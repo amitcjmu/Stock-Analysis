@@ -86,6 +86,9 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     def __init__(self, crewai_service, context: RequestContext, **kwargs):
         """Initialize unified discovery flow with agent-first architecture"""
         
+        # Initialize flow_id early to avoid attribute errors
+        self._flow_id = kwargs.get('flow_id') or str(uuid.uuid4())
+        
         # Initialize base flow
         if CREWAI_FLOW_AVAILABLE:
             super().__init__()
@@ -102,8 +105,14 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         self.initializer = FlowInitializer(crewai_service, context, **kwargs)
         self._init_context = self.initializer.init_context
         
-        # Initialize flow state
-        self.state = self.initializer.create_initial_state()
+        # Initialize flow state - CrewAI Flow manages state internally
+        if CREWAI_FLOW_AVAILABLE:
+            # For CrewAI Flow, state is managed by the base class
+            # We'll update it in the initialize_discovery method
+            pass
+        else:
+            # For fallback mode, we manage state directly
+            self.state = self.initializer.create_initial_state()
         
         # Initialize components
         self._initialize_components()
@@ -111,7 +120,13 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         # Initialize phase handlers
         self._initialize_phases()
         
-        logger.info(f"✅ Unified Discovery Flow initialized - Flow ID: {self.state.flow_id}")
+        # Flow ID already set in __init__
+        logger.info(f"✅ Unified Discovery Flow initialized - Flow ID: {self._flow_id}")
+    
+    @property
+    def flow_id(self):
+        """Get the flow ID"""
+        return self._flow_id
     
     def _initialize_components(self):
         """Initialize flow components"""
@@ -123,20 +138,20 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         self.phase_executor = handlers['phase_executor']
         self.crew_manager = handlers['crew_manager']
         
-        # Initialize flow management separately (needs state)
-        self.flow_management = UnifiedFlowManagement(self.state, self.crewai_service)
+        # Initialize flow management separately (will use state when available)
+        self.flow_management = UnifiedFlowManagement(None)
         
-        # Initialize state manager
-        self.state_manager = StateManager(self.state, self.flow_bridge)
+        # Initialize state manager (will use state when available)
+        self.state_manager = StateManager(None, self.flow_bridge)
         
         # Initialize crew coordinator
         self.crew_coordinator = CrewCoordinator(self.crewai_service, self.context)
         
-        # Initialize flow manager
-        self.flow_manager = FlowManager(self.state, self.state_manager, self.flow_management)
+        # Initialize flow manager (will use state when available)
+        self.flow_manager = FlowManager(None, self.state_manager, self.flow_management)
         
-        # Initialize flow finalizer
-        self.flow_finalizer = FlowFinalizer(self.state, self.state_manager)
+        # Initialize flow finalizer (will use state when available)
+        self.flow_finalizer = FlowFinalizer(None, self.state_manager)
         
         # Initialize agents
         agents = self.initializer.initialize_agents()
@@ -160,8 +175,8 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             'tech_debt_analysis_agent': self.tech_debt_analysis_agent
         }
         
-        # Initialize phases
-        phases = self.initializer.initialize_phases(self.state, agents, self.flow_bridge)
+        # Initialize phases (will use state when available)
+        phases = self.initializer.initialize_phases(None, agents, self.flow_bridge)
         
         self.data_validation_phase = phases['data_validation_phase']
         self.field_mapping_phase = phases['field_mapping_phase']
@@ -180,6 +195,48 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         logger.info("🎯 Starting Unified Discovery Flow")
         
         try:
+            # Initialize state from initializer if not already set by CrewAI
+            if not hasattr(self, 'state') or self.state is None:
+                initial_state = self.initializer.create_initial_state()
+                # For CrewAI Flow, we update the managed state attributes
+                if CREWAI_FLOW_AVAILABLE and hasattr(super(), 'state'):
+                    # Copy attributes from initial state
+                    for key, value in initial_state.__dict__.items():
+                        setattr(self.state, key, value)
+                else:
+                    self.state = initial_state
+            
+            # Update component references to use actual state
+            self.flow_management.state = self.state
+            self.state_manager.state = self.state
+            self.flow_manager.state = self.state
+            self.flow_finalizer.state = self.state
+            
+            # Initialize UnifiedFlowCrewManager now that we have state
+            from ..handlers.unified_flow_crew_manager import UnifiedFlowCrewManager
+            self.crew_manager = UnifiedFlowCrewManager(self.crewai_service, self.state)
+            
+            # Initialize PhaseExecutionManager now that we have state
+            from ..handlers.phase_executors.phase_execution_manager import PhaseExecutionManager
+            self.phase_executor = PhaseExecutionManager(self.state, self.crew_manager, self.flow_bridge)
+            
+            # Re-initialize phases with actual state
+            agents = {
+                'data_validation_agent': self.data_validation_agent,
+                'attribute_mapping_agent': self.attribute_mapping_agent,
+                'data_cleansing_agent': self.data_cleansing_agent,
+                'asset_inventory_agent': self.asset_inventory_agent,
+                'dependency_analysis_agent': self.dependency_analysis_agent,
+                'tech_debt_analysis_agent': self.tech_debt_analysis_agent
+            }
+            phases = self.initializer.initialize_phases(self.state, agents, self.flow_bridge)
+            self.data_validation_phase = phases['data_validation_phase']
+            self.field_mapping_phase = phases['field_mapping_phase']
+            self.data_cleansing_phase = phases['data_cleansing_phase']
+            self.asset_inventory_phase = phases['asset_inventory_phase']
+            self.dependency_analysis_phase = phases['dependency_analysis_phase']
+            self.tech_debt_assessment_phase = phases['tech_debt_assessment_phase']
+            
             # Set initial state
             self.state.status = "initializing"
             self.state.current_phase = "initialization"
@@ -188,7 +245,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             
             # Generate flow_id if not set
             if not hasattr(self.state, 'flow_id') or not self.state.flow_id:
-                self.state.flow_id = str(uuid.uuid4())
+                self.state.flow_id = self._init_context.get('flow_id') or str(uuid.uuid4())
             
             # Initialize with flow bridge
             if self.flow_bridge:
@@ -203,7 +260,8 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             
         except Exception as e:
             logger.error(f"❌ Discovery flow initialization failed: {e}")
-            self.state_manager.add_error("initialization", str(e))
+            if hasattr(self, 'state_manager') and self.state_manager:
+                self.state_manager.add_error("initialization", str(e))
             return "initialization_failed"
     
     @listen(initialize_discovery)

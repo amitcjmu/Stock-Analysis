@@ -1697,3 +1697,6 @@ def _calculate_mapping_confidence(source_field: str, target_field: str) -> float
     
     # Low confidence for new/unknown fields
     return 0.40
+
+# Export router as mapping_router for compatibility
+mapping_router = router

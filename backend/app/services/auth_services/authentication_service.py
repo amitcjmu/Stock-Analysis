@@ -72,6 +72,14 @@ class AuthenticationService:
                 for role in user_roles
             )
             
+            # Get user associations
+            from app.models.client_account import UserAccountAssociation
+            assoc_query = select(UserAccountAssociation).where(
+                UserAccountAssociation.user_id == user.id
+            )
+            assoc_result = await self.db.execute(assoc_query)
+            associations = assoc_result.scalars().all()
+            
             # Create user session data
             user_data = {
                 "id": str(user.id),
@@ -81,7 +89,15 @@ class AuthenticationService:
                 "role": "admin" if is_admin else "user",
                 "status": "approved",
                 "organization": user_profile.organization,
-                "role_description": user_profile.role_description
+                "role_description": user_profile.role_description,
+                "associations": [
+                    {
+                        "id": str(assoc.id),
+                        "client_account_id": str(assoc.client_account_id),
+                        "role": assoc.role
+                    }
+                    for assoc in associations
+                ]
             }
             
             # Log successful login

@@ -34,13 +34,15 @@ class DiscoveryFlowService:
         self.master_flow_repo = CrewAIFlowStateExtensionsRepository(
             db=db,
             client_account_id=str(context.client_account_id),
-            engagement_id=str(context.engagement_id)
+            engagement_id=str(context.engagement_id),
+            user_id=str(context.user_id) if context.user_id else None
         )
         
         self.flow_repo = DiscoveryFlowRepository(
             db=db,
             client_account_id=str(context.client_account_id),
-            engagement_id=str(context.engagement_id)
+            engagement_id=str(context.engagement_id),
+            user_id=str(context.user_id) if context.user_id else None
         )
         
         # Asset operations are handled through flow_repo.asset_queries and flow_repo.asset_commands

@@ -28,6 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import User, ClientAccount, Engagement
 from app.models.rbac import UserProfile, UserStatus, UserRole, RoleType
+from app.models.client_account import UserAccountAssociation
 
 logger = logging.getLogger(__name__)
 
@@ -79,8 +80,10 @@ class PlatformRequirements:
     
     @staticmethod
     def get_password_hash(password: str) -> str:
-        """Simple password hashing - should match authentication service"""
-        return hashlib.sha256(password.encode()).hexdigest()
+        """Password hashing using bcrypt to match authentication service"""
+        from passlib.context import CryptContext
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        return pwd_context.hash(password)
 
 
 class DatabaseInitializer:
@@ -223,6 +226,41 @@ class DatabaseInitializer:
         else:
             role.is_active = True
             logger.info("Updated platform admin role")
+        
+        # Ensure platform admin has user account association
+        # Platform admin needs a global association (can be with a default client for context)
+        # First, ensure we have at least one client to associate with
+        client_result = await self.db.execute(
+            select(ClientAccount).limit(1)
+        )
+        any_client = client_result.scalar_one_or_none()
+        
+        if any_client:
+            # Check if association exists
+            assoc_result = await self.db.execute(
+                select(UserAccountAssociation).where(
+                    UserAccountAssociation.user_id == admin_id
+                )
+            )
+            association = assoc_result.scalar_one_or_none()
+            
+            if not association:
+                # Create platform admin association
+                association = UserAccountAssociation(
+                    id=uuid.uuid4(),
+                    user_id=admin_id,
+                    client_account_id=any_client.id,
+                    role="platform_admin",
+                    created_at=datetime.now(timezone.utc),
+                    updated_at=datetime.now(timezone.utc)
+                )
+                self.db.add(association)
+                logger.info(f"Created platform admin association with client: {any_client.name}")
+            else:
+                # Ensure it's set to platform_admin role
+                association.role = "platform_admin"
+                association.updated_at = datetime.now(timezone.utc)
+                logger.info("Updated platform admin association")
         
         await self.db.commit()
     
@@ -389,6 +427,34 @@ class DatabaseInitializer:
                 is_active=True
             )
             self.db.add(role)
+        else:
+            role.is_active = True
+        
+        # Ensure user has account association
+        assoc_result = await self.db.execute(
+            select(UserAccountAssociation).where(
+                UserAccountAssociation.user_id == user_id,
+                UserAccountAssociation.client_account_id == client_id
+            )
+        )
+        association = assoc_result.scalar_one_or_none()
+        
+        if not association:
+            # Create user account association
+            association = UserAccountAssociation(
+                id=self.requirements.create_demo_uuid(),
+                user_id=user_id,
+                client_account_id=client_id,
+                role=user_data["role"].value.lower(),
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc)
+            )
+            self.db.add(association)
+            logger.info(f"Created user association for {user.email} with role {user_data['role'].value}")
+        else:
+            # Update role if needed
+            association.role = user_data["role"].value.lower()
+            association.updated_at = datetime.now(timezone.utc)
         
         await self.db.commit()
     

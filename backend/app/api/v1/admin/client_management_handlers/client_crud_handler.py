@@ -3,7 +3,7 @@ Client CRUD Handler - Core client account operations
 """
 
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from fastapi import HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, text, and_
@@ -373,12 +373,35 @@ class ClientCRUDHandler:
     async def list_clients(
         db: AsyncSession,
         pagination: Dict[str, Any],
-        filters: Dict[str, Any]
+        filters: Dict[str, Any],
+        user_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """List all client accounts with pagination and filtering."""
         try:
             if not CLIENT_MODELS_AVAILABLE:
                 raise HTTPException(status_code=503, detail="Client models not available")
+            
+            # Check if user is platform admin
+            is_platform_admin = False
+            if user_id:
+                try:
+                    from app.models.rbac import UserRole, RoleType
+                    admin_check = await db.execute(
+                        select(UserRole).where(
+                            and_(
+                                UserRole.user_id == user_id,
+                                UserRole.role_type == RoleType.ADMIN,
+                                UserRole.is_active == True
+                            )
+                        )
+                    )
+                    admin_role = admin_check.scalar_one_or_none()
+                    is_platform_admin = admin_role is not None
+                    
+                    if is_platform_admin:
+                        logger.info(f"Platform admin {user_id} - showing all clients")
+                except Exception as e:
+                    logger.warning(f"Could not check admin status: {e}")
 
             query = select(ClientAccount)
             

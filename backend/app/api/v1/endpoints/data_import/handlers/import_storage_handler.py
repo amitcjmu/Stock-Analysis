@@ -106,7 +106,7 @@ async def store_import_data(
         # Try to create StoreImportRequest from parsed data
         try:
             store_request = StoreImportRequest(**request_data)
-            logger.info(f"🔄 Starting data storage for session: {store_request.upload_context.validation_session_id}")
+            logger.info(f"🔄 Starting data storage for session: {store_request.upload_context.validation_id}")
         except ValidationError as e:
             logger.error(f"🚨 Pydantic validation error: {e}")
             raise HTTPException(status_code=422, detail=f"Validation error: {e.errors()}")
@@ -117,7 +117,7 @@ async def store_import_data(
         file_size = store_request.metadata.size
         file_type = store_request.metadata.type
         intended_type = store_request.upload_context.intended_type
-        validation_session_id = store_request.upload_context.validation_session_id
+        validation_session_id = store_request.upload_context.validation_id  # Use the property that handles both field names
         upload_timestamp = store_request.upload_context.upload_timestamp
         
         # 🔍 DEBUG: Log the actual data being received

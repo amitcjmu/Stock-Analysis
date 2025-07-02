@@ -2,21 +2,28 @@
 
 ## Executive Summary
 
-The Assessment Flow is the second major CrewAI flow in the AI Force Migration Platform, following the Discovery Flow. It takes selected applications from the inventory page and performs comprehensive assessment to determine the optimal 6R migration strategy (Rehost, Replatform, Refactor, Repurchase, Retire, Retain) for each application.
+The Assessment Flow is the second major CrewAI flow in the AI Force Migration Platform, following the Discovery Flow. It takes selected applications from the inventory page and performs comprehensive assessment to determine the optimal 6R migration strategy for each application and its components. The flow operates independently from Discovery, consuming the curated application inventory marked as "ready for assessment".
 
 ## Flow Overview
 
 ### Purpose
-- Accept selected applications from the Discovery Flow inventory
-- Verify architecture requirements and compliance
-- Analyze technical debt (moved from Discovery Flow)
-- Determine optimal 6R strategy for each application
-- Enable user review and override of AI recommendations
+- Accept selected applications marked "ready for assessment" from the curated inventory
+- Capture and verify architecture minimums at engagement and application levels
+- Analyze technical debt based on discovered metadata and patterns
+- Determine optimal 6R strategy for each application component (frontend, middleware, backend, etc.)
+- Enable user review and refinement at each flow node
+- Generate comprehensive "App on a page" view for each application
+
+### 6R Strategy Hierarchy
+The platform uses an enhanced 6R model with the following modernization hierarchy:
+- **Rewrite** > **ReArchitect** > **Refactor** > **Replatform** > **Rehost** > **Retain/Retire/Repurchase**
+
+Note: Repurchase and Retain fall outside the platform's modernization scope, while Retire is handled by the Decommission module.
 
 ### Flow Boundaries
-- **Starts**: Application selection from inventory page
-- **Ends**: Finalized 6R treatment decisions for each application
-- **Next Flow**: Planning Flow (future) will use 6R decisions for wave planning
+- **Starts**: Application selection from inventory page (apps marked "ready for assessment")
+- **Ends**: Finalized 6R treatment decisions with apps marked "ready for planning"
+- **Next Flow**: Planning Flow will consume 6R decisions for move group formation and wave planning
 
 ## Architecture Design
 
@@ -36,81 +43,87 @@ graph TD
 ### CrewAI Flow Implementation
 
 ```python
-class AssessmentFlow(Flow[AssessmentFlowState]):
+class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
     """
-    CrewAI Flow for assessing selected applications and determining 6R strategies
+    Unified CrewAI Flow for assessing applications and determining component-level 6R strategies.
+    Follows the same patterns as UnifiedDiscoveryFlow with PostgreSQL-only persistence.
     """
     
     def __init__(self, crewai_service: CrewAIService, context: FlowContext):
         super().__init__()
         self.crewai_service = crewai_service
         self.context = context
-        self.state_bridge = FlowStateBridge(context.flow_id)
+        self.state_manager = FlowStateManager(context.flow_id)
+        self.postgres_store = PostgresStore(context.flow_id)
     
     @start()
     def initialize_assessment(self):
         """
         Initialize flow with selected applications from inventory
-        - Load selected applications from discovery flow
-        - Create assessment flow record
-        - Initialize state tracking
+        - Load selected applications marked "ready for assessment"
+        - Create assessment flow record with multi-tenant context
+        - Initialize PostgreSQL-based state tracking
+        - Set up flow pause points for user interaction
         """
         
     @listen(initialize_assessment)
-    def verify_architecture_minimums(self, init_result):
+    def capture_architecture_minimums(self, init_result):
         """
-        Verify client/engagement architecture requirements
-        - Check compliance standards
-        - Validate security requirements
-        - Ensure architecture patterns compliance
+        Capture and verify architecture requirements at multiple levels
+        - Capture engagement-level architecture minimums with RBAC controls
+        - Allow app-specific modifications based on technology stack
+        - Calculate tech debt based on supported versions
+        - Flag exceptions that will be shown on "App on a page"
+        - PAUSE for user input and review
         """
         
-    @listen(verify_architecture_minimums)
+    @listen(capture_architecture_minimums)
     def analyze_technical_debt(self, arch_result):
         """
-        Analyze tech debt for selected applications
-        - Code quality assessment
-        - Security vulnerability scanning
-        - Dependency analysis
-        - Performance bottlenecks
+        Analyze tech debt for selected applications and identify components
+        - Component identification (flexible beyond 3-tier architecture)
+        - Tech debt analysis based on discovered metadata
+        - Security and compliance gap assessment
+        - Dependency and coupling analysis
+        - Performance and scalability evaluation
+        - PAUSE for user clarification and input
         """
         
     @listen(analyze_technical_debt)
-    def determine_sixr_strategies(self, tech_debt_result):
+    def determine_component_sixr_strategies(self, tech_debt_result):
         """
-        Determine 6R treatment for each application
-        - Analyze application characteristics
-        - Consider technical debt impact
-        - Evaluate business value
-        - Recommend optimal strategy
-        """
-        
-    @router(determine_sixr_strategies)
-    def route_for_review(self, strategies_result):
-        """
-        Route based on confidence scores
-        - High confidence (>80%): Direct to finalization
-        - Low confidence (<80%): Route to collaborative review
+        Determine 6R treatment for each application component
+        - Analyze component-level characteristics (frontend, middleware, backend, etc.)
+        - Consider technical debt impact and architecture exceptions
+        - Validate component treatment compatibility
+        - Calculate app-level strategy (highest modernization component)
+        - Generate detailed rationale for each recommendation
+        - PAUSE for user review
         """
         
-    @listen(route_for_review)
-    def collaborative_review(self, routing_result):
+    @listen(determine_component_sixr_strategies)
+    def generate_app_on_page(self, strategies_result):
         """
-        Allow user review and override of 6R decisions
-        - Present AI recommendations
-        - Capture user overrides
-        - Record override rationale
-        - Update learning system
+        Generate comprehensive "App on a page" view
+        - Consolidate all application details and assessments
+        - Include tech debt analysis and scores
+        - Show architectural insights and exceptions
+        - Display component-level 6R treatments
+        - Include dependencies and ownership information
+        - Present rationale for recommendations
+        - PAUSE for final user review and modifications
         """
         
-    @listen(collaborative_review)
+    @listen(generate_app_on_page)
     def finalize_assessment(self, review_result):
         """
         Finalize and persist 6R decisions
-        - Save final decisions to database
-        - Update assessment status
-        - Prepare data for Planning Flow
-        - Generate assessment report
+        - Save all decisions and modifications to PostgreSQL
+        - Update application attributes with assessment results
+        - Mark applications as "ready for planning"
+        - Persist all user inputs and overrides
+        - Generate assessment summary report
+        - Enable flow completion or re-assessment capability
         """
 ```
 
@@ -120,24 +133,30 @@ class AssessmentFlow(Flow[AssessmentFlowState]):
 
 ```python
 from pydantic import BaseModel
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 from datetime import datetime
 from enum import Enum
 
 class SixRStrategy(str, Enum):
-    REHOST = "rehost"
-    REPLATFORM = "replatform"
+    REWRITE = "rewrite"
+    REARCHITECT = "rearchitect"
     REFACTOR = "refactor"
+    REPLATFORM = "replatform"
+    REHOST = "rehost"
     REPURCHASE = "repurchase"
     RETIRE = "retire"
     RETAIN = "retain"
 
 class ArchitectureRequirement(BaseModel):
-    requirement_type: str
+    requirement_type: str  # security, compliance, patterns, etc.
     description: str
+    level: str  # engagement or application
     mandatory: bool
+    supported_versions: Optional[Dict[str, str]]  # For tech stack versioning
+    exceptions: Optional[List[str]]  # App-specific exceptions
     verification_status: Optional[str]
     verified_at: Optional[datetime]
+    modified_by: Optional[str]  # RBAC tracking
 
 class TechDebtItem(BaseModel):
     category: str  # security, performance, maintainability, etc.
@@ -146,49 +165,70 @@ class TechDebtItem(BaseModel):
     remediation_effort_hours: int
     impact_on_migration: str
 
+class ComponentTreatment(BaseModel):
+    component_name: str  # frontend, middleware, backend, or custom
+    component_type: str  # UI, API, DB, service, etc.
+    recommended_strategy: SixRStrategy
+    rationale: str
+    compatibility_validated: bool
+
 class SixRDecision(BaseModel):
     application_id: str
     application_name: str
-    recommended_strategy: SixRStrategy
+    component_treatments: List[ComponentTreatment]
+    overall_strategy: SixRStrategy  # Highest modernization from components
     confidence_score: float
     rationale: str
+    architecture_exceptions: List[str]
+    tech_debt_score: float
     risk_factors: List[str]
     estimated_effort: int
     estimated_cost: float
-    user_override: Optional[SixRStrategy]
-    override_reason: Optional[str]
-    override_by: Optional[str]
-    override_at: Optional[datetime]
+    move_group_hints: List[str]  # Technology proximity, dependencies
+    user_modifications: Optional[Dict[str, Any]]
+    modified_by: Optional[str]
+    modified_at: Optional[datetime]
 
 class AssessmentFlowState(BaseModel):
     flow_id: str
-    discovery_flow_id: str
     client_account_id: int
     engagement_id: int
     selected_application_ids: List[str]
     
-    # Architecture verification
-    architecture_requirements: List[ArchitectureRequirement]
-    architecture_verified: bool = False
-    architecture_issues: List[str] = []
+    # Architecture requirements
+    engagement_architecture_standards: List[ArchitectureRequirement]
+    application_architecture_overrides: Dict[str, List[ArchitectureRequirement]]
+    architecture_captured: bool = False
+    
+    # Component identification
+    application_components: Dict[str, List[ComponentTreatment]]
     
     # Tech debt analysis
     tech_debt_analysis: Dict[str, List[TechDebtItem]]
-    overall_tech_debt_score: Optional[float]
+    component_tech_debt: Dict[str, Dict[str, float]]  # app_id -> component -> score
     
     # 6R decisions
     sixr_decisions: Dict[str, SixRDecision]
     
+    # User interaction tracking
+    pause_points: List[str]  # Nodes where flow paused for input
+    user_inputs: Dict[str, Any]  # Captured user inputs at each node
+    
     # Flow metadata
-    status: str
+    status: str  # initialized, in_progress, paused, completed
     progress: int = 0
     current_phase: str
+    next_phase: Optional[str]  # Auto-adjusted based on navigation
     phase_results: Dict[str, Any]
     agent_insights: List[Dict[str, Any]]
+    
+    # Readiness tracking
+    apps_ready_for_planning: List[str]
     
     # Timestamps
     created_at: datetime
     updated_at: datetime
+    last_user_interaction: Optional[datetime]
     completed_at: Optional[datetime]
 ```
 
@@ -197,76 +237,128 @@ class AssessmentFlowState(BaseModel):
 ### Core Tables
 
 ```sql
--- Assessment flow tracking
+-- Assessment flow tracking (PostgreSQL-only, no SQLite)
 CREATE TABLE assessment_flows (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    discovery_flow_id UUID REFERENCES discovery_flows(id) NOT NULL,
     client_account_id INTEGER NOT NULL,
     engagement_id INTEGER NOT NULL,
     selected_application_ids JSONB NOT NULL,
-    architecture_verified BOOLEAN DEFAULT FALSE,
+    architecture_captured BOOLEAN DEFAULT FALSE,
     status VARCHAR(50) NOT NULL DEFAULT 'initialized',
     progress INTEGER DEFAULT 0,
     current_phase VARCHAR(100),
+    next_phase VARCHAR(100),
+    pause_points JSONB DEFAULT '[]',
+    user_inputs JSONB DEFAULT '{}',
     phase_results JSONB DEFAULT '{}',
     agent_insights JSONB DEFAULT '[]',
+    apps_ready_for_planning JSONB DEFAULT '[]',
+    last_user_interaction TIMESTAMP,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW(),
     completed_at TIMESTAMP,
     CONSTRAINT valid_progress CHECK (progress >= 0 AND progress <= 100)
 );
 
--- Architecture requirements and verification
-CREATE TABLE architecture_requirements (
+-- Engagement-level architecture standards
+CREATE TABLE engagement_architecture_standards (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    assessment_flow_id UUID REFERENCES assessment_flows(id) ON DELETE CASCADE,
+    engagement_id INTEGER NOT NULL,
     requirement_type VARCHAR(100) NOT NULL,
     description TEXT,
     mandatory BOOLEAN DEFAULT TRUE,
+    supported_versions JSONB,  -- {"java": "11+", "python": "3.8+"}
     requirement_details JSONB,
-    verification_status VARCHAR(50) DEFAULT 'pending',
-    verification_notes TEXT,
-    verified_by VARCHAR(100),
-    verified_at TIMESTAMP,
+    created_by VARCHAR(100),
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    CONSTRAINT unique_engagement_requirement UNIQUE (engagement_id, requirement_type)
+);
+
+-- Application-specific architecture overrides
+CREATE TABLE application_architecture_overrides (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    assessment_flow_id UUID REFERENCES assessment_flows(id) ON DELETE CASCADE,
+    application_id UUID NOT NULL,
+    standard_id UUID REFERENCES engagement_architecture_standards(id),
+    override_type VARCHAR(100) NOT NULL,  -- exception, modification, addition
+    override_details JSONB,
+    rationale TEXT,
+    approved_by VARCHAR(100),
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Tech debt analysis results
+-- Application components identification
+CREATE TABLE application_components (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    assessment_flow_id UUID REFERENCES assessment_flows(id) ON DELETE CASCADE,
+    application_id UUID NOT NULL,
+    component_name VARCHAR(255) NOT NULL,
+    component_type VARCHAR(100) NOT NULL,  -- frontend, middleware, backend, service, etc.
+    technology_stack JSONB,
+    dependencies JSONB,  -- Other components this depends on
+    created_at TIMESTAMP DEFAULT NOW(),
+    CONSTRAINT unique_app_component UNIQUE (assessment_flow_id, application_id, component_name)
+);
+
+-- Tech debt analysis results (component-aware)
 CREATE TABLE tech_debt_analysis (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assessment_flow_id UUID REFERENCES assessment_flows(id) ON DELETE CASCADE,
     application_id UUID NOT NULL,
+    component_id UUID REFERENCES application_components(id),
     debt_category VARCHAR(100) NOT NULL,
     severity VARCHAR(20) NOT NULL CHECK (severity IN ('critical', 'high', 'medium', 'low')),
     description TEXT NOT NULL,
     remediation_effort_hours INTEGER,
     impact_on_migration TEXT,
+    tech_debt_score FLOAT,
     detected_by_agent VARCHAR(100),
     agent_confidence FLOAT CHECK (agent_confidence >= 0 AND agent_confidence <= 1),
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- 6R strategy decisions
+-- Component-level 6R treatments
+CREATE TABLE component_treatments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    assessment_flow_id UUID REFERENCES assessment_flows(id) ON DELETE CASCADE,
+    application_id UUID NOT NULL,
+    component_id UUID REFERENCES application_components(id),
+    recommended_strategy VARCHAR(20) NOT NULL CHECK (recommended_strategy IN ('rewrite', 'rearchitect', 'refactor', 'replatform', 'rehost', 'repurchase', 'retire', 'retain')),
+    rationale TEXT,
+    compatibility_validated BOOLEAN DEFAULT FALSE,
+    compatibility_issues JSONB,
+    created_at TIMESTAMP DEFAULT NOW(),
+    CONSTRAINT unique_component_treatment UNIQUE (assessment_flow_id, component_id)
+);
+
+-- Application-level 6R decisions (with component rollup)
 CREATE TABLE sixr_decisions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assessment_flow_id UUID REFERENCES assessment_flows(id) ON DELETE CASCADE,
     application_id UUID NOT NULL,
     application_name VARCHAR(255) NOT NULL,
-    recommended_strategy VARCHAR(20) NOT NULL CHECK (recommended_strategy IN ('rehost', 'replatform', 'refactor', 'repurchase', 'retire', 'retain')),
+    overall_strategy VARCHAR(20) NOT NULL CHECK (overall_strategy IN ('rewrite', 'rearchitect', 'refactor', 'replatform', 'rehost', 'repurchase', 'retire', 'retain')),
     confidence_score FLOAT CHECK (confidence_score >= 0 AND confidence_score <= 1),
     rationale TEXT,
+    architecture_exceptions JSONB DEFAULT '[]',
+    tech_debt_score FLOAT,
     risk_factors JSONB DEFAULT '[]',
+    move_group_hints JSONB DEFAULT '[]',  -- Technology proximity, dependencies
     estimated_effort_hours INTEGER,
     estimated_cost DECIMAL(12, 2),
     
-    -- User override fields
-    user_override_strategy VARCHAR(20) CHECK (user_override_strategy IN ('rehost', 'replatform', 'refactor', 'repurchase', 'retire', 'retain')),
-    override_reason TEXT,
-    override_by VARCHAR(100),
-    override_at TIMESTAMP,
+    -- User modifications tracking
+    user_modifications JSONB,
+    modified_by VARCHAR(100),
+    modified_at TIMESTAMP,
+    
+    -- App on a page data
+    app_on_page_data JSONB,  -- Complete consolidated view
     
     -- Metadata
     decision_factors JSONB,
+    ready_for_planning BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW(),
     
@@ -288,73 +380,83 @@ CREATE TABLE assessment_learning_feedback (
 );
 
 -- Indexes for performance
-CREATE INDEX idx_assessment_flows_discovery_flow ON assessment_flows(discovery_flow_id);
 CREATE INDEX idx_assessment_flows_status ON assessment_flows(status);
 CREATE INDEX idx_assessment_flows_client ON assessment_flows(client_account_id, engagement_id);
+CREATE INDEX idx_assessment_flows_phase ON assessment_flows(current_phase, next_phase);
+CREATE INDEX idx_eng_arch_standards ON engagement_architecture_standards(engagement_id);
+CREATE INDEX idx_app_components ON application_components(application_id);
+CREATE INDEX idx_component_treatments ON component_treatments(application_id, recommended_strategy);
 CREATE INDEX idx_sixr_decisions_app ON sixr_decisions(application_id);
+CREATE INDEX idx_sixr_ready_planning ON sixr_decisions(ready_for_planning);
 CREATE INDEX idx_tech_debt_severity ON tech_debt_analysis(severity);
-CREATE INDEX idx_arch_req_status ON architecture_requirements(verification_status);
+CREATE INDEX idx_tech_debt_component ON tech_debt_analysis(component_id);
 ```
 
 ## Crew Architecture
 
-### 1. Architecture Verification Crew
+### 1. Architecture Standards Crew
 
 ```python
-class ArchitectureVerificationCrew:
-    """Verifies architecture requirements and compliance"""
+class ArchitectureStandardsCrew:
+    """Captures and evaluates architecture requirements with user collaboration"""
     
     agents = [
         {
             "role": "Architecture Standards Agent",
-            "goal": "Verify applications meet enterprise architecture standards",
-            "backstory": "Expert in cloud architecture patterns and best practices"
+            "goal": "Define and evaluate engagement-level architecture minimums",
+            "backstory": "Expert in cloud architecture patterns and version lifecycle management"
         },
         {
-            "role": "Compliance Checker Agent",
-            "goal": "Ensure regulatory and security compliance",
-            "backstory": "Specialist in compliance frameworks (SOC2, HIPAA, PCI-DSS)"
+            "role": "Technology Stack Analyst",
+            "goal": "Assess application technology stacks against supported versions",
+            "backstory": "Specialist in technology lifecycle and version compatibility"
+        },
+        {
+            "role": "Exception Handler Agent",
+            "goal": "Identify and document valid architecture exceptions",
+            "backstory": "Expert in evaluating business constraints and technical trade-offs"
         }
     ]
     
     tasks = [
-        "Review application architecture against standards",
-        "Check security compliance requirements",
-        "Validate data governance policies",
-        "Assess integration patterns"
+        "Capture engagement-level architecture minimums from user input",
+        "Analyze each application's technology stack",
+        "Calculate version-based technical debt",
+        "Identify and document architecture exceptions",
+        "Generate architecture compliance summary"
     ]
 ```
 
-### 2. Technical Debt Analysis Crew
+### 2. Component Analysis and Tech Debt Crew
 
 ```python
-class TechnicalDebtAnalysisCrew:
-    """Analyzes technical debt across multiple dimensions"""
+class ComponentAnalysisCrew:
+    """Identifies components and analyzes technical debt based on discovered metadata"""
     
     agents = [
         {
-            "role": "Code Quality Analyst",
-            "goal": "Assess code maintainability and quality metrics",
-            "backstory": "Expert in software quality metrics and refactoring"
+            "role": "Component Discovery Agent",
+            "goal": "Identify application components beyond traditional 3-tier",
+            "backstory": "Expert in modern application architectures and microservices"
         },
         {
-            "role": "Security Scanner Agent",
-            "goal": "Identify security vulnerabilities and risks",
-            "backstory": "Cybersecurity expert with knowledge of OWASP and CVEs"
+            "role": "Metadata Analyst",
+            "goal": "Analyze technical debt from discovered application metadata",
+            "backstory": "Specialist in pattern recognition and metadata analysis"
         },
         {
-            "role": "Performance Analyzer",
-            "goal": "Evaluate performance bottlenecks and scalability issues",
-            "backstory": "Performance engineering specialist"
+            "role": "Dependency Mapper",
+            "goal": "Map component dependencies and coupling patterns",
+            "backstory": "Expert in dependency analysis and architectural coupling"
         }
     ]
     
     tasks = [
-        "Analyze code complexity and maintainability",
-        "Scan for security vulnerabilities",
-        "Assess performance metrics",
-        "Evaluate dependency risks",
-        "Calculate technical debt score"
+        "Identify all application components (UI, API, services, data layers)",
+        "Analyze technical debt from Discovery metadata",
+        "Map inter-component dependencies",
+        "Calculate component-level tech debt scores",
+        "Identify coupling and affinity patterns for move groups"
     ]
 ```
 
@@ -362,33 +464,33 @@ class TechnicalDebtAnalysisCrew:
 
 ```python
 class SixRStrategyCrew:
-    """Determines optimal 6R migration strategy"""
+    """Determines component-level 6R strategies with validation"""
     
     agents = [
         {
-            "role": "Migration Strategy Expert",
-            "goal": "Recommend optimal 6R strategy based on application characteristics",
-            "backstory": "Veteran cloud migration architect with 100+ migrations"
+            "role": "Component Strategy Expert",
+            "goal": "Recommend optimal 6R strategy for each component",
+            "backstory": "Expert in component-level modernization strategies"
         },
         {
-            "role": "Cost-Benefit Analyst",
-            "goal": "Analyze financial implications of each strategy",
-            "backstory": "FinOps specialist focused on cloud economics"
+            "role": "Compatibility Validator",
+            "goal": "Validate treatment compatibility between dependent components",
+            "backstory": "Specialist in architectural compatibility and integration patterns"
         },
         {
-            "role": "Risk Assessment Specialist",
-            "goal": "Evaluate migration risks for each strategy",
-            "backstory": "Risk management expert in IT transformations"
+            "role": "Move Group Advisor",
+            "goal": "Identify move group hints based on technology and dependencies",
+            "backstory": "Expert in migration wave planning and application grouping"
         }
     ]
     
     tasks = [
-        "Analyze application characteristics",
-        "Evaluate technical constraints",
-        "Assess business value and criticality",
-        "Calculate migration effort and cost",
-        "Determine optimal 6R strategy",
-        "Generate decision rationale"
+        "Analyze each component's characteristics and constraints",
+        "Determine optimal 6R strategy per component",
+        "Validate compatibility between component treatments",
+        "Calculate overall application strategy (highest modernization)",
+        "Generate move group hints for Planning Flow",
+        "Create comprehensive rationale with architecture exceptions"
     ]
 ```
 
@@ -398,58 +500,78 @@ class SixRStrategyCrew:
 
 ```yaml
 # Initialize Assessment Flow
-POST /api/v3/assessment-flow/initialize
+POST /api/v1/assessment-flow/initialize
 Request:
   {
-    "discovery_flow_id": "uuid",
     "selected_application_ids": ["uuid1", "uuid2", ...]
   }
+Headers:
+  X-Client-Account-ID: 123
+  X-Engagement-ID: 456
 Response:
   {
     "flow_id": "uuid",
     "status": "initialized",
-    "next_phase": "architecture_verification"
+    "current_phase": "architecture_minimums",
+    "next_phase": "architecture_minimums"
   }
 
 # Get Assessment Flow Status
-GET /api/v3/assessment-flow/{flow_id}/status
+GET /api/v1/assessment-flow/{flow_id}/status
 Response:
   {
     "flow_id": "uuid",
-    "status": "in_progress",
+    "status": "paused",
     "progress": 45,
     "current_phase": "tech_debt_analysis",
-    "phase_results": {...},
-    "estimated_completion": "2024-01-15T10:30:00Z"
+    "next_phase": "component_sixr_strategies",
+    "pause_points": ["architecture_minimums", "tech_debt_analysis"],
+    "user_inputs_captured": true,
+    "phase_results": {...}
   }
 
-# Execute Flow Phase
-POST /api/v3/assessment-flow/{flow_id}/execute/{phase}
+# Resume Flow at Phase (with user input)
+POST /api/v1/assessment-flow/{flow_id}/resume
 Request:
   {
-    "phase_input": {...}  # Phase-specific input
+    "user_input": {...},  # User-provided input for current phase
+    "save_progress": true
   }
 Response:
   {
-    "phase": "tech_debt_analysis",
-    "status": "completed",
-    "results": {...},
-    "next_phase": "sixr_strategy"
+    "current_phase": "tech_debt_analysis",
+    "status": "processing",
+    "next_pause_point": "component_sixr_strategies"
   }
 
-# Get Architecture Requirements
-GET /api/v3/assessment-flow/{flow_id}/architecture-requirements
+# Get/Update Architecture Minimums
+GET /api/v1/assessment-flow/{flow_id}/architecture-minimums
 Response:
   {
-    "requirements": [
+    "engagement_standards": [
       {
         "id": "uuid",
-        "type": "security",
-        "description": "Must comply with SOC2",
-        "mandatory": true,
-        "verification_status": "verified"
+        "type": "technology_versions",
+        "description": "Minimum supported versions",
+        "supported_versions": {"java": "11+", "python": "3.8+"},
+        "mandatory": true
       }
-    ]
+    ],
+    "application_overrides": {
+      "app_uuid_1": [
+        {
+          "type": "exception",
+          "rationale": "Extended vendor support until 2025"
+        }
+      ]
+    }
+  }
+
+PUT /api/v1/assessment-flow/{flow_id}/architecture-minimums
+Request:
+  {
+    "engagement_standards": [...],
+    "application_overrides": {...}
   }
 
 # Update Architecture Verification
@@ -460,74 +582,130 @@ Request:
     "notes": "Compliant with all requirements"
   }
 
-# Get Tech Debt Analysis
-GET /api/v3/assessment-flow/{flow_id}/tech-debt
+# Get Component Tech Debt Analysis
+GET /api/v1/assessment-flow/{flow_id}/tech-debt
 Response:
   {
     "applications": {
       "app_id_1": {
-        "overall_score": 7.5,
-        "items": [
+        "components": [
           {
-            "category": "security",
-            "severity": "high",
-            "description": "Outdated dependencies with known vulnerabilities"
+            "component_name": "frontend",
+            "component_type": "UI",
+            "tech_debt_score": 7.5,
+            "items": [
+              {
+                "category": "version_obsolescence",
+                "severity": "high",
+                "description": "React 16.x is 2 major versions behind"
+              }
+            ]
           }
-        ]
+        ],
+        "overall_score": 7.5
       }
     }
   }
 
-# Get 6R Decisions
-GET /api/v3/assessment-flow/{flow_id}/sixr-decisions
+# Get Component 6R Decisions
+GET /api/v1/assessment-flow/{flow_id}/sixr-decisions
 Response:
   {
     "decisions": [
       {
         "application_id": "uuid",
         "application_name": "Customer Portal",
-        "recommended_strategy": "replatform",
+        "component_treatments": [
+          {
+            "component_name": "frontend",
+            "recommended_strategy": "refactor",
+            "rationale": "Needs modernization to React 18+"
+          },
+          {
+            "component_name": "backend",
+            "recommended_strategy": "replatform",
+            "rationale": "Container-ready with minimal changes"
+          }
+        ],
+        "overall_strategy": "refactor",
         "confidence_score": 0.85,
-        "rationale": "Modern architecture suitable for containerization"
+        "architecture_exceptions": ["Using Java 8 due to vendor dependency"],
+        "move_group_hints": ["Group with other Java services", "Shares database with Order Service"]
       }
     ]
   }
 
-# Override 6R Decision
-PUT /api/v3/assessment-flow/{flow_id}/sixr-decisions/{app_id}
+# Update Application Assessment (including 6R modifications)
+PUT /api/v1/assessment-flow/{flow_id}/applications/{app_id}
 Request:
   {
-    "override_strategy": "refactor",
-    "override_reason": "Business requires significant feature additions"
+    "component_treatments": [
+      {
+        "component_name": "frontend",
+        "strategy": "rearchitect",
+        "user_note": "Moving to micro-frontends"
+      }
+    ],
+    "architecture_overrides": [...],
+    "additional_notes": "Requires coordination with Platform team"
   }
 
 # Finalize Assessment
-POST /api/v3/assessment-flow/{flow_id}/finalize
+POST /api/v1/assessment-flow/{flow_id}/finalize
 Response:
   {
     "status": "completed",
+    "apps_ready_for_planning": ["uuid1", "uuid2", ...],
     "summary": {
       "total_applications": 25,
       "strategy_distribution": {
-        "rehost": 10,
+        "rewrite": 2,
+        "rearchitect": 3,
+        "refactor": 5,
         "replatform": 8,
-        "refactor": 3,
-        "retire": 2,
-        "retain": 2
+        "rehost": 5,
+        "retire": 1,
+        "retain": 1
       },
-      "user_overrides": 3
+      "user_modifications": 7,
+      "architecture_exceptions": 4
     }
   }
 
-# Get Assessment Report
-GET /api/v3/assessment-flow/{flow_id}/report
+# Get App on a Page Report
+GET /api/v1/assessment-flow/{flow_id}/app-on-page/{app_id}
+Response:
+  {
+    "application_id": "uuid",
+    "application_name": "Customer Portal",
+    "owner": "Digital Team",
+    "department": "Customer Experience",
+    "components": [...],
+    "tech_debt_summary": {...},
+    "dependencies": [...],
+    "sixr_treatment": {
+      "overall": "refactor",
+      "components": [...],
+      "rationale": "..."
+    },
+    "architecture_insights": [...],
+    "exceptions": [...],
+    "move_group_recommendations": [...],
+    "generated_at": "2024-01-15T14:30:00Z"
+  }
+
+# Get Full Assessment Report
+GET /api/v1/assessment-flow/{flow_id}/report
 Response:
   {
     "flow_id": "uuid",
-    "generated_at": "2024-01-15T14:30:00Z",
+    "total_apps_assessed": 25,
+    "apps_ready_for_planning": 23,
     "executive_summary": "...",
-    "detailed_findings": {...},
-    "recommendations": [...]
+    "strategy_summary": {...},
+    "tech_debt_overview": {...},
+    "architecture_compliance": {...},
+    "move_group_suggestions": [...]
   }
 ```
 
@@ -537,11 +715,12 @@ Response:
 
 ```
 /assessment/
-├── initialize/          # Application selection UI
-├── architecture/        # Architecture verification
-├── tech-debt/          # Tech debt results
-├── sixr-review/        # 6R strategy review/override
-└── summary/            # Assessment completion summary
+├── initialize/          # Application selection (filtered by ready_for_assessment)
+├── architecture/        # Architecture minimums capture and review
+├── tech-debt/          # Component identification and tech debt analysis
+├── sixr-review/        # Component-level 6R strategy review
+├── app-on-page/        # Comprehensive application view
+└── summary/            # Assessment completion with planning readiness
 ```
 
 ### useAssessmentFlow Hook
@@ -553,94 +732,121 @@ interface UseAssessmentFlowReturn {
   status: AssessmentFlowStatus;
   progress: number;
   currentPhase: AssessmentPhase;
+  nextPhase: AssessmentPhase | null;
+  pausePoints: string[];
   
   // Flow control
-  initializeFlow: (discoveryFlowId: string, selectedAppIds: string[]) => Promise<void>;
-  executePhase: (phase: AssessmentPhase) => Promise<void>;
+  initializeFlow: (selectedAppIds: string[]) => Promise<void>;
+  resumeFlow: (userInput: any) => Promise<void>;
+  navigateToPhase: (phase: AssessmentPhase) => Promise<void>;
   
   // Data access
-  architectureRequirements: ArchitectureRequirement[];
-  techDebtAnalysis: TechDebtAnalysis | null;
-  sixrDecisions: SixRDecision[];
+  engagementStandards: ArchitectureStandard[];
+  applicationOverrides: ApplicationOverride[];
+  applicationComponents: ApplicationComponent[];
+  techDebtAnalysis: ComponentTechDebt | null;
+  sixrDecisions: ComponentSixRDecision[];
+  appOnPageData: AppOnPage | null;
   
   // User actions
-  verifyRequirement: (reqId: string, status: string, notes?: string) => Promise<void>;
-  overrideSixRDecision: (appId: string, strategy: string, reason: string) => Promise<void>;
+  updateArchitectureMinimums: (standards: any, overrides: any) => Promise<void>;
+  updateApplicationAssessment: (appId: string, updates: any) => Promise<void>;
+  markAppsReadyForPlanning: (appIds: string[]) => Promise<void>;
   finalizeAssessment: () => Promise<void>;
   
-  // Real-time updates
-  subscribeToUpdates: () => void;
-  unsubscribeFromUpdates: () => void;
+  // Real-time updates (HTTP/2 events)
+  subscribeToAgentUpdates: () => void;
+  unsubscribeFromAgentUpdates: () => void;
 }
 ```
 
 ## Integration Points
 
 ### With Discovery Flow
-- Reads discovered applications and dependencies
-- Accesses discovery insights for context
-- Maintains flow continuity through discovery_flow_id
+- Consumes applications marked "ready for assessment" from inventory
+- Uses discovered metadata for tech debt analysis
+- Operates independently with no direct flow dependency
 
-### With Planning Flow (Future)
-- Provides 6R decisions as input
-- Shares tech debt analysis for prioritization
-- Passes risk assessments for wave planning
+### With Planning Flow
+- Produces applications marked "ready for planning"
+- Provides component-level 6R decisions
+- Supplies move group hints based on technology proximity and dependencies
+- Supports bidirectional flow for re-assessment requests
+
+### With Application Inventory
+- Updates application attributes with assessment results
+- Maintains readiness status for flow transitions
+- Persists all assessment data at application level
 
 ## Risk Mitigation
 
 ### Technical Risks
-1. **Large Application Sets**: Implement pagination and batch processing
-2. **Agent Decision Conflicts**: Use consensus mechanisms and confidence thresholds
-3. **Performance**: Cache frequently accessed data, optimize database queries
+1. **Flow State Management**: Use proven PostgreSQL persistence patterns from Discovery
+2. **Multi-Browser Sessions**: Implement robust state synchronization
+3. **Component Compatibility**: Validate treatment dependencies before finalization
+4. **Navigation Complexity**: Clear phase-to-page mapping with automatic next_phase updates
 
 ### Business Risks
-1. **Incorrect 6R Decisions**: Enable user overrides with rationale capture
-2. **Compliance Violations**: Mandatory architecture verification phase
-3. **User Adoption**: Intuitive UI with clear value demonstration
+1. **Architecture Exception Management**: Clear documentation on "App on a page"
+2. **User Input Fatigue**: Pause points at each node with progress preservation
+3. **Planning Integration**: Readiness criteria ensures smooth transitions
 
 ## Success Metrics
 
 ### Quantitative Metrics
 - Assessment completion time per application
+- Component identification accuracy
 - 6R decision confidence scores (target: >80%)
-- User override rate (target: <20%)
-- Tech debt identification accuracy
+- User modification rate (baseline for learning)
+- Apps marked ready for planning (target: >90%)
 
 ### Qualitative Metrics
-- User satisfaction with recommendations
-- Decision rationale clarity
-- Time saved vs manual assessment
-- Migration success rate correlation
+- "App on a page" completeness and usefulness
+- Architecture exception handling effectiveness
+- Move group hint quality for Planning Flow
+- User satisfaction with pause/resume experience
 
 ## Future Enhancements
 
 ### Phase 2 Features
-- External system integrations (ServiceNow, Jira)
-- Advanced risk modeling with Monte Carlo simulations
-- Automated remediation recommendations
-- Multi-user collaboration workflows
+- Deep code quality assessment integration
+- Automated component discovery from code repositories
+- Real-time collaboration during review phases
+- Advanced move group optimization algorithms
 
 ### Phase 3 Features
-- ML model fine-tuning based on outcomes
-- Industry-specific assessment templates
-- Automated compliance report generation
-- Real-time cost optimization suggestions
+- ML-based learning from user modifications
+- Automated architecture standard recommendations
+- Integration with CI/CD for continuous assessment
+- Predictive tech debt evolution modeling
 
 ## Appendix
 
-### 6R Strategy Definitions
+### 6R Strategy Definitions (Enhanced)
 
-1. **Rehost** (Lift & Shift): Move applications to cloud with minimal changes
-2. **Replatform**: Make small optimizations during migration
-3. **Refactor**: Redesign application architecture for cloud-native
-4. **Repurchase**: Replace with SaaS solution
-5. **Retire**: Decommission the application
-6. **Retain**: Keep in current environment
+1. **Rewrite**: Complete application rebuild with new technology stack
+2. **ReArchitect**: Fundamental architecture changes (e.g., monolith to microservices)
+3. **Refactor**: Significant code restructuring for cloud-native capabilities
+4. **Replatform**: Optimize for cloud with minimal architecture changes
+5. **Rehost** (Lift & Shift): Move to cloud with minimal changes
+6. **Repurchase**: Replace with SaaS solution (out of platform scope)
+7. **Retire**: Decommission the application (handled by Decommission module)
+8. **Retain**: Keep in current environment (out of platform scope)
 
 ### Tech Debt Categories
 
-- **Security**: Vulnerabilities, outdated dependencies, weak authentication
-- **Performance**: Slow queries, memory leaks, inefficient algorithms
-- **Maintainability**: Code complexity, lack of documentation, tight coupling
-- **Scalability**: Single points of failure, stateful designs
-- **Compliance**: Data privacy issues, audit gaps
+- **Version Obsolescence**: Outdated framework/language versions vs. supported minimums
+- **Security**: Known vulnerabilities, weak authentication patterns
+- **Architecture Patterns**: Anti-patterns, tight coupling, monolithic design
+- **Dependency Risk**: Outdated or abandoned dependencies
+- **Performance**: Resource inefficiency, scalability limitations
+- **Maintainability**: Code complexity, documentation gaps
+- **Compliance**: Gaps against engagement architecture standards
+
+### Implementation Notes
+
+1. **State Persistence**: All user inputs and flow progress must be persisted to PostgreSQL immediately
+2. **Navigation Flexibility**: Users can navigate to any previous phase, automatically adjusting next_phase
+3. **Multi-Tenant Context**: All operations must include proper client_account_id and engagement_id headers
+4. **Readiness Gates**: Applications must meet criteria before appearing in Assessment or Planning flows
+5. **Component Flexibility**: Support arbitrary component structures beyond traditional 3-tier architecture

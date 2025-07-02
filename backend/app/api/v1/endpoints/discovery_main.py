@@ -220,7 +220,7 @@ async def get_active_discovery_flows(
                     # Get flows for all authorized clients using V2 DiscoveryFlowService
                     for client_id in authorized_client_ids:
                         try:
-                            flow_repo = DiscoveryFlowRepository(db, client_id)
+                            flow_repo = DiscoveryFlowRepository(db, client_id, user_id=context.user_id)
                             flow_service = DiscoveryFlowService(flow_repo)
                             client_flows = await flow_service.list_flows(status_filter="active")
                             flows.extend(client_flows)
@@ -247,7 +247,7 @@ async def get_active_discovery_flows(
                     }
                 
                 # Use V2 DiscoveryFlowService for regular users
-                flow_repo = DiscoveryFlowRepository(db, context.client_account_id)
+                flow_repo = DiscoveryFlowRepository(db, context.client_account_id, user_id=context.user_id)
                 flow_service = DiscoveryFlowService(flow_repo)
                 flows = await flow_service.list_flows(status_filter="active")
             
@@ -340,7 +340,7 @@ async def get_flow_status(
         logger.info(f"📊 Getting flow status for: {flow_id}")
         
         # Initialize V2 services
-        flow_repo = DiscoveryFlowRepository(db, context.get('client_account_id'))
+        flow_repo = DiscoveryFlowRepository(db, context.get('client_account_id'), user_id=context.get('user_id'))
         flow_service = DiscoveryFlowService(flow_repo)
         
         # Get flow status
@@ -387,7 +387,7 @@ async def initialize_discovery_flow(
         logger.info("🚀 Initializing new discovery flow")
         
         # Initialize V2 services
-        flow_repo = DiscoveryFlowRepository(db, context.get('client_account_id'))
+        flow_repo = DiscoveryFlowRepository(db, context.get('client_account_id'), user_id=context.get('user_id'))
         flow_service = DiscoveryFlowService(flow_repo)
         
         # Create new discovery flow
@@ -427,7 +427,7 @@ async def advance_flow_phase(
         logger.info(f"⏭️ Advancing flow phase for: {flow_id}")
         
         # Initialize V2 services
-        flow_repo = DiscoveryFlowRepository(db, context.get('client_account_id'))
+        flow_repo = DiscoveryFlowRepository(db, context.get('client_account_id'), user_id=context.get('user_id'))
         flow_service = DiscoveryFlowService(flow_repo)
         
         # Get current flow

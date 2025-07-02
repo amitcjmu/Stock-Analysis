@@ -54,9 +54,9 @@ const getBackendUrl = (): string => {
     }
   }
   
-  // Priority 4: Development mode - use localhost
+  // Priority 4: Development mode - use empty string to utilize Vite proxy
   if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
-    return 'http://localhost:8000';
+    return '';  // Empty string means use same origin with proxy
   }
   
   // Priority 5: Final fallback - same origin

@@ -47,7 +47,8 @@ class FlowManagementHandler:
         self.flow_repo = DiscoveryFlowRepository(
             db=db,
             client_account_id=client_id,
-            engagement_id=engagement_id
+            engagement_id=engagement_id,
+            user_id=str(context.user_id) if context.user_id else None
         )
         
         # Initialize validators

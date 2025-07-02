@@ -138,9 +138,49 @@ async def create_platform_admin():
         )
         session.add(admin_profile)
         
-        # Note: Platform admin doesn't need UserRole or UserAccountAssociation
-        # as they have global access
+        # Create platform admin role
+        admin_role = UserRole(
+            id=uuid.uuid4(),
+            user_id=admin_id,
+            role_type="platform_admin",
+            role_name="Platform Administrator",
+            description="Full platform administrative access",
+            scope_type="global",
+            permissions={
+                "can_manage_platform_settings": True,
+                "can_manage_all_clients": True,
+                "can_manage_all_users": True,
+                "can_purge_deleted_data": True,
+                "can_view_system_logs": True,
+                "can_create_clients": True,
+                "can_modify_client_settings": True,
+                "can_manage_client_users": True,
+                "can_delete_client_data": True,
+                "can_create_engagements": True,
+                "can_modify_engagement_settings": True,
+                "can_manage_engagement_users": True,
+                "can_delete_engagement_data": True,
+                "can_import_data": True,
+                "can_export_data": True,
+                "can_view_analytics": True,
+                "can_modify_data": True,
+                "can_configure_agents": True,
+                "can_view_agent_insights": True,
+                "can_approve_agent_decisions": True
+            },
+            is_active=True
+        )
+        session.add(admin_role)
         
+        # Platform admin needs at least one client association to work with the auth system
+        # We'll check if there's any client available or create the demo client first
+        client_result = await session.execute(
+            select(ClientAccount).limit(1)
+        )
+        any_client = client_result.scalar_one_or_none()
+        
+        # If no client exists, we'll create one when demo data is created
+        # For now, just commit what we have
         await session.commit()
         print(f"✅ Created platform admin: chocka@gmail.com")
         print(f"   ID: {admin_id}")
@@ -278,6 +318,64 @@ async def create_minimal_demo_data():
         print(f"   Demo users password: Demo123!")
 
 
+async def ensure_platform_admin_association():
+    """Ensure platform admin has UserAccountAssociation after demo data is created"""
+    print("\n🔗 Ensuring platform admin association...")
+    async with AsyncSessionLocal() as session:
+        # Get platform admin
+        result = await session.execute(
+            select(User).where(User.email == "chocka@gmail.com")
+        )
+        admin = result.scalar()
+        
+        if not admin:
+            print("❌ Platform admin not found!")
+            return
+            
+        # Check if admin has any association
+        assoc_result = await session.execute(
+            select(UserAccountAssociation).where(
+                UserAccountAssociation.user_id == admin.id
+            )
+        )
+        existing_assoc = assoc_result.scalar()
+        
+        if existing_assoc:
+            print("✅ Platform admin already has association")
+            return
+            
+        # Get any client (preferably demo client)
+        client_result = await session.execute(
+            select(ClientAccount).where(
+                ClientAccount.name == "Demo Corporation"
+            )
+        )
+        demo_client = client_result.scalar()
+        
+        if not demo_client:
+            # Get any client
+            client_result = await session.execute(
+                select(ClientAccount).limit(1)
+            )
+            demo_client = client_result.scalar()
+            
+        if demo_client:
+            # Create association
+            association = UserAccountAssociation(
+                id=uuid.uuid4(),
+                user_id=admin.id,
+                client_account_id=demo_client.id,
+                role="platform_admin",
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc)
+            )
+            session.add(association)
+            await session.commit()
+            print(f"✅ Created platform admin association with client: {demo_client.name}")
+        else:
+            print("⚠️ No client available for platform admin association")
+
+
 async def verify_setup():
     """Verify the setup"""
     print("\n🔍 Verifying setup...")
@@ -321,6 +419,9 @@ async def main():
         
         # Create minimal demo data
         await create_minimal_demo_data()
+        
+        # Ensure platform admin has association
+        await ensure_platform_admin_association()
         
         # Verify
         await verify_setup()

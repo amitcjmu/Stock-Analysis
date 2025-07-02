@@ -6,24 +6,91 @@ Provides context-aware data access patterns for multi-tenant applications.
 import logging
 from typing import Optional, Any
 from sqlalchemy.orm import Session, Query
-from sqlalchemy import and_
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
 class ContextAwareRepository:
     """Base repository with context awareness for multi-tenant data access."""
     
-    def __init__(self, db: Session, client_account_id: Optional[int] = None, engagement_id: Optional[int] = None):
+    def __init__(self, db: Session, client_account_id: Optional[int] = None, engagement_id: Optional[int] = None, user_id: Optional[str] = None):
         self.db = db
         self.client_account_id = client_account_id
         self.engagement_id = engagement_id
+        self.user_id = user_id
+        self._is_platform_admin = None  # Cache admin status
         
         # Log context for debugging
         if client_account_id or engagement_id:
-            logger.debug(f"Repository context: client_account_id={client_account_id}, engagement_id={engagement_id}")
+            logger.debug(f"Repository context: client_account_id={client_account_id}, engagement_id={engagement_id}, user_id={user_id}")
     
+    async def _check_is_platform_admin(self) -> bool:
+        """Check if the current user is a platform admin."""
+        if self._is_platform_admin is not None:
+            return self._is_platform_admin
+            
+        if not self.user_id:
+            self._is_platform_admin = False
+            return False
+            
+        try:
+            # Import models here to avoid circular imports
+            from app.models.rbac import UserRole, RoleType
+            
+            # Check if this is an async session
+            if isinstance(self.db, AsyncSession):
+                # Async query
+                query = select(UserRole).where(
+                    and_(
+                        UserRole.user_id == self.user_id,
+                        UserRole.role_type == RoleType.ADMIN,
+                        UserRole.is_active == True
+                    )
+                )
+                result = await self.db.execute(query)
+                admin_role = result.scalar_one_or_none()
+            else:
+                # Sync query
+                admin_role = self.db.query(UserRole).filter(
+                    and_(
+                        UserRole.user_id == self.user_id,
+                        UserRole.role_type == RoleType.ADMIN,
+                        UserRole.is_active == True
+                    )
+                ).first()
+                
+            self._is_platform_admin = admin_role is not None
+            if self._is_platform_admin:
+                logger.info(f"User {self.user_id} is a platform admin - bypassing client filtering")
+            return self._is_platform_admin
+            
+        except Exception as e:
+            logger.warning(f"Could not check admin status for user {self.user_id}: {e}")
+            self._is_platform_admin = False
+            return False
+
     def _apply_context_filter(self, query: Query, model_class: Any) -> Query:
         """Apply context-based filtering to a query."""
+        # Platform admins see everything - no filtering
+        try:
+            # Run sync check for platform admin (repositories typically use sync sessions)
+            if self.user_id and not isinstance(self.db, AsyncSession):
+                from app.models.rbac import UserRole, RoleType
+                admin_role = self.db.query(UserRole).filter(
+                    and_(
+                        UserRole.user_id == self.user_id,
+                        UserRole.role_type == RoleType.ADMIN,
+                        UserRole.is_active == True
+                    )
+                ).first()
+                
+                if admin_role:
+                    logger.debug(f"Platform admin {self.user_id} - bypassing all filters")
+                    return query
+        except Exception as e:
+            logger.warning(f"Could not check admin status: {e}")
+        
         filters = []
         
         # Apply client account filter if model has the field and context is available
@@ -63,18 +130,20 @@ class ContextAwareRepository:
         
         return data
     
-    def set_context(self, client_account_id: Optional[int] = None, engagement_id: Optional[int] = None):
+    def set_context(self, client_account_id: Optional[int] = None, engagement_id: Optional[int] = None, user_id: Optional[str] = None):
         """Update the repository context."""
         self.client_account_id = client_account_id
         self.engagement_id = engagement_id
+        self.user_id = user_id
+        self._is_platform_admin = None  # Reset admin cache when context changes
         
-        logger.debug(f"Updated repository context: client_account_id={client_account_id}, engagement_id={engagement_id}")
+        logger.debug(f"Updated repository context: client_account_id={client_account_id}, engagement_id={engagement_id}, user_id={user_id}")
 
 class BaseRepository(ContextAwareRepository):
     """Extended base repository with common CRUD operations."""
     
-    def __init__(self, db: Session, model_class: Any, client_account_id: Optional[int] = None, engagement_id: Optional[int] = None):
-        super().__init__(db, client_account_id, engagement_id)
+    def __init__(self, db: Session, model_class: Any, client_account_id: Optional[int] = None, engagement_id: Optional[int] = None, user_id: Optional[str] = None):
+        super().__init__(db, client_account_id, engagement_id, user_id)
         self.model_class = model_class
     
     def get_by_id(self, id: int) -> Optional[Any]:

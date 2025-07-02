@@ -129,7 +129,7 @@ async def get_discovery_flow_by_master(
     if not client_account_id:
         raise HTTPException(status_code=400, detail="Client account ID required")
     
-    discovery_repo = DiscoveryFlowRepository(db, client_account_id, engagement_id)
+    discovery_repo = DiscoveryFlowRepository(db, client_account_id, engagement_id, user_id=current_user.get("user_id"))
     
     try:
         discovery_flow = await discovery_repo.get_by_master_flow_id(master_flow_id)
@@ -176,7 +176,7 @@ async def get_master_flow_coordination_summary(
     if not client_account_id:
         raise HTTPException(status_code=400, detail="Client account ID required")
     
-    discovery_repo = DiscoveryFlowRepository(db, client_account_id, engagement_id)
+    discovery_repo = DiscoveryFlowRepository(db, client_account_id, engagement_id, user_id=current_user.get("user_id"))
     
     try:
         summary = await discovery_repo.get_master_flow_coordination_summary()
@@ -246,7 +246,7 @@ async def transition_to_assessment_phase(
     if not client_account_id:
         raise HTTPException(status_code=400, detail="Client account ID required")
     
-    discovery_repo = DiscoveryFlowRepository(db, client_account_id, engagement_id)
+    discovery_repo = DiscoveryFlowRepository(db, client_account_id, engagement_id, user_id=current_user.get("user_id"))
     
     try:
         success = await discovery_repo.transition_to_assessment_phase(discovery_flow_id, assessment_flow_id)

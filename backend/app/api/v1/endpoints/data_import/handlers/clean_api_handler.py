@@ -151,7 +151,7 @@ async def handle_data_cleaning_request(
         logger.info(f"🧹 Processing data cleaning request for flow: {request.flow_id}")
         
         # Initialize V2 services
-        flow_repo = DiscoveryFlowRepository(db, context.get('client_account_id'))
+        flow_repo = DiscoveryFlowRepository(db, context.get('client_account_id'), user_id=context.get('user_id'))
         flow_service = DiscoveryFlowService(flow_repo)
         
         # Get the discovery flow
@@ -202,7 +202,7 @@ async def get_cleaning_status(
         logger.info(f"📊 Getting cleaning status for flow: {flow_id}")
         
         # Initialize V2 services
-        flow_repo = DiscoveryFlowRepository(db, context.get('client_account_id'))
+        flow_repo = DiscoveryFlowRepository(db, context.get('client_account_id'), user_id=context.get('user_id'))
         flow_service = DiscoveryFlowService(flow_repo)
         
         # Get flow status

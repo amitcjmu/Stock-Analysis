@@ -8,6 +8,7 @@ from typing import Dict, List, Any, Optional
 from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.dependencies import get_crewai_flow_service
 from app.services.crewai_flow_service import CrewAIFlowService
 from app.schemas.asset_schemas import AssetCreate, AssetUpdate, AssetResponse, PaginatedAssetResponse
@@ -406,7 +407,7 @@ async def create_asset(
     new_asset = await repo.create_asset(asset, user_id, context.engagement_id)
     return new_asset
 
-@router.get("/list/paginated")
+@router.get("/list/paginated-fallback")
 async def list_assets_paginated_fallback(
     page: int = 1,
     page_size: int = 50,
@@ -455,16 +456,148 @@ async def list_assets_paginated_fallback(
             }
     except Exception:
         pass  # fallback to main implementation below
+    
+    # Ensure we always return something
+    return None
 
-@router.get("/list/paginated", response_model=PaginatedAssetResponse)
+@router.get("/list/paginated")
 async def list_assets_paginated(
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
-    page: int = 1,
-    page_size: int = 20
+    page: int = Query(1, gt=0),
+    page_size: int = Query(20, gt=0, le=100),
+    per_page: int = Query(None)  # Support both page_size and per_page
 ):
-    repo = AssetRepository(db, context.client_account_id)
-    return await repo.list_assets(page, page_size)
+    """Get paginated list of assets for the current context."""
+    try:
+        # Support both page_size and per_page parameters
+        if per_page is not None:
+            page_size = per_page
+            
+        # Import here to avoid circular imports
+        from sqlalchemy import select, func
+        from app.models.asset import Asset
+        
+        # Build base query with context filtering
+        query = select(Asset).where(
+            Asset.client_account_id == context.client_account_id,
+            Asset.engagement_id == context.engagement_id
+        ).order_by(Asset.created_at.desc())
+        
+        # Get total count
+        count_query = select(func.count()).select_from(Asset).where(
+            Asset.client_account_id == context.client_account_id,
+            Asset.engagement_id == context.engagement_id
+        )
+        count_result = await db.execute(count_query)
+        total_items = count_result.scalar() or 0
+        
+        # Calculate pagination
+        offset = (page - 1) * page_size
+        query = query.offset(offset).limit(page_size)
+        
+        # Execute query
+        result = await db.execute(query)
+        assets = result.scalars().all()
+        
+        # Calculate totals
+        total_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 0
+        
+        # Build response
+        return {
+            "assets": [
+                {
+                    "id": str(asset.id),
+                    "name": asset.name,
+                    "asset_type": asset.asset_type,
+                    "environment": asset.environment,
+                    "criticality": asset.criticality,
+                    "status": asset.status,
+                    "six_r_strategy": asset.six_r_strategy,
+                    "migration_wave": asset.migration_wave,
+                    "application_name": asset.application_name,
+                    "hostname": asset.hostname,
+                    "operating_system": asset.operating_system,
+                    "cpu_cores": asset.cpu_cores,
+                    "memory_gb": asset.memory_gb,
+                    "storage_gb": asset.storage_gb,
+                    "created_at": asset.created_at.isoformat() if asset.created_at else None,
+                    "updated_at": asset.updated_at.isoformat() if asset.updated_at else None
+                }
+                for asset in assets
+            ],
+            "pagination": {
+                "current_page": page,
+                "page_size": page_size,
+                "total_items": total_items,
+                "total_pages": total_pages,
+                "has_next": page < total_pages,
+                "has_previous": page > 1
+            },
+            "summary": {
+                "total": total_items,
+                "filtered": total_items,
+                "applications": sum(1 for a in assets if a.asset_type == 'application'),
+                "servers": sum(1 for a in assets if a.asset_type == 'server'),
+                "databases": sum(1 for a in assets if a.asset_type == 'database'),
+                "devices": sum(1 for a in assets if a.asset_type not in ['application', 'server', 'database']),
+                "unknown": 0,
+                "discovered": sum(1 for a in assets if a.status == 'discovered'),
+                "pending": sum(1 for a in assets if a.status == 'pending'),
+                "device_breakdown": {}
+            },
+            "last_updated": max((a.updated_at for a in assets if a.updated_at), default=None),
+            "data_source": "database",
+            "suggested_headers": [],
+            "app_mappings": [],
+            "unlinked_assets": [],
+            "unlinked_summary": {
+                "total_unlinked": 0,
+                "by_type": {},
+                "by_environment": {},
+                "by_criticality": {},
+                "migration_impact": "none"
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in list_assets_paginated: {e}")
+        # Return empty result on error
+        return {
+            "assets": [],
+            "pagination": {
+                "current_page": page,
+                "page_size": page_size,
+                "total_items": 0,
+                "total_pages": 0,
+                "has_next": False,
+                "has_previous": False
+            },
+            "summary": {
+                "total": 0,
+                "filtered": 0,
+                "applications": 0,
+                "servers": 0,
+                "databases": 0,
+                "devices": 0,
+                "unknown": 0,
+                "discovered": 0,
+                "pending": 0,
+                "device_breakdown": {}
+            },
+            "last_updated": None,
+            "data_source": "error",
+            "suggested_headers": [],
+            "app_mappings": [],
+            "unlinked_assets": [],
+            "unlinked_summary": {
+                "total_unlinked": 0,
+                "by_type": {},
+                "by_environment": {},
+                "by_criticality": {},
+                "migration_impact": "none"
+            }
+        }
 
 @router.put("/{asset_id}", response_model=AssetResponse)
 async def update_asset(

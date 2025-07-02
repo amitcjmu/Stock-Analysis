@@ -79,11 +79,7 @@ class FlowInitializer:
     def initialize_flow_bridge(self) -> Optional[FlowStateBridge]:
         """Initialize the PostgreSQL flow bridge"""
         try:
-            flow_bridge = FlowStateBridge(
-                client_account_id=self.init_context['client_account_id'],
-                engagement_id=self.init_context['engagement_id'],
-                use_optimistic_locking=True
-            )
+            flow_bridge = FlowStateBridge(self.context)
             logger.info("✅ PostgreSQL Flow State Bridge initialized")
             return flow_bridge
         except Exception as e:
@@ -92,21 +88,23 @@ class FlowInitializer:
     
     def initialize_handlers(self) -> Dict[str, Any]:
         """Initialize flow handlers"""
+        # Note: Both managers need state which isn't available yet
+        # They will be initialized later with proper state
         return {
-            'phase_executor': PhaseExecutionManager(self.crewai_service),
-            'crew_manager': UnifiedFlowCrewManager(self.crewai_service)
+            'phase_executor': None,  # Will be initialized later with state
+            'crew_manager': None  # Will be initialized later with state
         }
     
     def initialize_agents(self) -> Dict[str, Any]:
         """Initialize all agent instances"""
         return {
-            'orchestrator': DiscoveryAgentOrchestrator(self.crewai_service),
-            'data_validation_agent': DataImportValidationAgent(self.crewai_service),
-            'attribute_mapping_agent': AttributeMappingAgent(self.crewai_service),
-            'data_cleansing_agent': DataCleansingAgent(self.crewai_service),
-            'asset_inventory_agent': AssetInventoryAgent(self.crewai_service),
-            'dependency_analysis_agent': DependencyAnalysisAgent(self.crewai_service),
-            'tech_debt_analysis_agent': TechDebtAnalysisAgent(self.crewai_service)
+            'orchestrator': DiscoveryAgentOrchestrator(),  # No args needed
+            'data_validation_agent': DataImportValidationAgent(),  # These are pseudo-agents, no args
+            'attribute_mapping_agent': AttributeMappingAgent(),
+            'data_cleansing_agent': DataCleansingAgent(),
+            'asset_inventory_agent': AssetInventoryAgent(),  # All agents are pseudo-agents currently
+            'dependency_analysis_agent': DependencyAnalysisAgent(),
+            'tech_debt_analysis_agent': TechDebtAnalysisAgent()
         }
     
     def initialize_phases(self, state, agents: Dict[str, Any], flow_bridge) -> Dict[str, Any]:

@@ -28,7 +28,7 @@ class DiscoveryFlowRepository(ContextAwareRepository):
     Uses CrewAI Flow ID as single source of truth.
     """
     
-    def __init__(self, db: AsyncSession, client_account_id: str, engagement_id: str = None):
+    def __init__(self, db: AsyncSession, client_account_id: str, engagement_id: str = None, user_id: Optional[str] = None):
         """Initialize with context-aware defaults"""
         # Handle None values and invalid UUIDs with proper fallbacks
         demo_client_id = uuid.UUID("11111111-1111-1111-1111-111111111111")
@@ -54,7 +54,7 @@ class DiscoveryFlowRepository(ContextAwareRepository):
             logger.warning(f"Invalid engagement_id '{engagement_id}', using demo fallback")
             parsed_engagement_id = demo_engagement_id
         
-        super().__init__(db, parsed_client_id, parsed_engagement_id)
+        super().__init__(db, client_account_id=int(parsed_client_id.int), engagement_id=int(parsed_engagement_id.int), user_id=user_id)
         
         # Initialize query and command handlers
         self.flow_queries = FlowQueries(db, parsed_client_id, parsed_engagement_id)

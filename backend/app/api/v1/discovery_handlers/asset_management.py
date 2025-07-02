@@ -72,7 +72,7 @@ class AssetManagementHandler:
                 try:
                     # Get the flow to find the internal ID
                     from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-                    flow_repo = DiscoveryFlowRepository(self.db, str(self.context.client_account_id), str(self.context.engagement_id))
+                    flow_repo = DiscoveryFlowRepository(self.db, str(self.context.client_account_id), str(self.context.engagement_id), user_id=str(self.context.user_id))
                     flow = await flow_repo.get_by_flow_id(flow_id)
                     
                     if flow:

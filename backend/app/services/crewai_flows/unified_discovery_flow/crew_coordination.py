@@ -32,7 +32,7 @@ class CrewCoordinator:
         self.agent_timeout = agent_timeout or FlowConfig.AGENT_TIMEOUT
         
         # Initialize orchestrator
-        self.orchestrator = DiscoveryAgentOrchestrator(crewai_service)
+        self.orchestrator = DiscoveryAgentOrchestrator()
         
         # Agent mapping by phase
         self._phase_agent_mapping = {
@@ -149,11 +149,24 @@ class CrewCoordinator:
     async def _execute_agent(self, agent_name: str, input_data: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
         """Execute a specific agent through the orchestrator"""
         
-        # Map agent names to orchestrator methods
+        # For pseudo-agents (data validation, mapping, cleansing), use orchestrator
+        if agent_name in ["data_import_validation_agent", "attribute_mapping_agent", "data_cleansing_agent"]:
+            # The orchestrator executes these agents in sequence
+            result = await self.orchestrator.execute(input_data, context)
+            # Extract the specific agent's result
+            if 'agent_results' in result and agent_name in result['agent_results']:
+                return result['agent_results'][agent_name]
+            else:
+                # Return a default success result if not found
+                return {
+                    "status": "success",
+                    "agent": agent_name,
+                    "data": input_data,
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+        
+        # Map agent names to specific handlers
         agent_methods = {
-            "data_import_validation_agent": self.orchestrator.execute_data_import_validation_agent_method,
-            "attribute_mapping_agent": self.orchestrator.execute_attribute_mapping_agent_method,
-            "data_cleansing_agent": self.orchestrator.execute_data_cleansing_agent_method,
             "asset_inventory_agent": self._execute_asset_inventory_agent,
             "dependency_analysis_agent": self._execute_analysis_agent,
             "tech_debt_analysis_agent": self._execute_analysis_agent

@@ -105,7 +105,8 @@ async def list_client_accounts(
         paginated_result = await ClientCRUDHandler.list_clients(
             db=db,
             pagination=pagination.dict(),
-            filters=filters.dict(exclude_none=True)
+            filters=filters.dict(exclude_none=True),
+            user_id=admin_user  # Pass the admin user ID for platform admin check
         )
         return PaginatedResponse(**paginated_result)
         

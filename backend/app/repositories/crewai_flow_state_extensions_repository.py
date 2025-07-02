@@ -24,7 +24,7 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
     This is the central coordination table for all flow types.
     """
     
-    def __init__(self, db: AsyncSession, client_account_id: str, engagement_id: str = None):
+    def __init__(self, db: AsyncSession, client_account_id: str, engagement_id: str = None, user_id: Optional[str] = None):
         # Handle None values and invalid UUIDs with proper fallbacks
         demo_client_id = uuid.UUID("11111111-1111-1111-1111-111111111111")
         demo_engagement_id = uuid.UUID("22222222-2222-2222-2222-222222222222")
@@ -49,11 +49,8 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             logger.warning(f"Invalid engagement_id '{engagement_id}', using demo fallback")
             parsed_engagement_id = demo_engagement_id
         
-        context = {
-            'client_account_id': parsed_client_id,
-            'engagement_id': parsed_engagement_id
-        }
-        super().__init__(db, context)
+        # Initialize parent with proper parameters
+        super().__init__(db, client_account_id=int(parsed_client_id.int), engagement_id=int(parsed_engagement_id.int), user_id=user_id)
         self.client_account_id = str(parsed_client_id)
         self.engagement_id = str(parsed_engagement_id)
     

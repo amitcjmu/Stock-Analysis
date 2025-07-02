@@ -52,8 +52,14 @@ class FileMetadata(BaseModel):
 class UploadContext(BaseModel):
     """Context information for data upload"""
     intended_type: str
-    validation_session_id: str
+    validation_session_id: Optional[str] = None  # Legacy field name
+    validation_upload_id: Optional[str] = None  # New field name
     upload_timestamp: str
+    
+    @property
+    def validation_id(self) -> str:
+        """Get validation ID from either field name"""
+        return self.validation_upload_id or self.validation_session_id or ""
 
 class StoreImportRequest(BaseModel):
     """Request schema for storing import data"""

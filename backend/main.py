@@ -292,7 +292,7 @@ try:
             "/openapi.json",
             "/debug/routes",
             "/static",
-            "/api/v1/assets/list/paginated",  # allow unauthenticated inventory preview
+            # "/api/v1/assets/list/paginated",  # Removed - now requires context
             "/api/v1/me",  # Allow user context endpoint
             "/api/v1/clients/default",  # Allow default client endpoint
             "/api/v1/clients/public",  # Allow public clients list endpoint for context establishment

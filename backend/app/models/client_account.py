@@ -73,6 +73,10 @@ class ClientAccount(Base):
         "constraints": []
     })
     
+    # IT Guidelines and Decision Criteria
+    it_guidelines = Column(JSON, default=lambda: {})
+    decision_criteria = Column(JSON, default=lambda: {})
+    
     # Agent Configuration Preferences
     agent_preferences = Column(JSON, default=lambda: {
         "discovery_depth": "comprehensive",
@@ -86,6 +90,7 @@ class ClientAccount(Base):
     # Audit
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by = Column(PostgresUUID(as_uuid=True), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False, index=True)
     
     # Core relationships only

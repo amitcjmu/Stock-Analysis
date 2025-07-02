@@ -16,7 +16,8 @@ from .handlers.import_storage_handler import router as import_storage_handler
 
 # Import agentic intelligence modules
 try:
-    from .agentic_critical_attributes import router as agentic_critical_attributes_router
+    # Import from the renamed agentic_critical_attributes_legacy.py file
+    from .agentic_critical_attributes_legacy import router as agentic_critical_attributes_router
     AGENTIC_AVAILABLE = True
 except ImportError:
     AGENTIC_AVAILABLE = False

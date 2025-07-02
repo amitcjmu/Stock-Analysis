@@ -95,7 +95,7 @@ async def switch_session(
     
     try:
         # Create repository and service instances
-        flow_repository = DiscoveryFlowRepository(db)
+        flow_repository = DiscoveryFlowRepository(db, client_account_id="11111111-1111-1111-1111-111111111111", engagement_id=engagement_id, user_id=current_user)
         flow_service = DiscoveryFlowService(flow_repository)
         
         # Get flows for the new engagement

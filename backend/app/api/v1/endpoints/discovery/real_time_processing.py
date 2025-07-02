@@ -365,7 +365,7 @@ async def get_processing_status(
         
         if crewai_flow_status.get("status") == "not_found":
             # Fallback: Check database for flow existence
-            flow_repo = DiscoveryFlowRepository(db, context.client_account_id)
+            flow_repo = DiscoveryFlowRepository(db, context.client_account_id, user_id=context.user_id)
             flow = await flow_repo.get_by_flow_id(flow_id)
             
             if not flow:
@@ -794,7 +794,7 @@ async def simulate_crewai_execution(
         logger.info(f"🚀 Simulating CrewAI execution for flow {flow_id}")
         
         # Verify flow exists in database
-        flow_repo = DiscoveryFlowRepository(db, context.client_account_id)
+        flow_repo = DiscoveryFlowRepository(db, context.client_account_id, user_id=context.user_id)
         flow = await flow_repo.get_by_flow_id(flow_id)
         
         if not flow:
@@ -980,7 +980,7 @@ async def inject_demo_events(
         logger.info(f"🔍 Injecting demo events for flow {flow_id}")
         
         # Verify flow exists in database
-        flow_repo = DiscoveryFlowRepository(db, context.client_account_id)
+        flow_repo = DiscoveryFlowRepository(db, context.client_account_id, user_id=context.user_id)
         flow = await flow_repo.get_by_flow_id(flow_id)
         
         if not flow:

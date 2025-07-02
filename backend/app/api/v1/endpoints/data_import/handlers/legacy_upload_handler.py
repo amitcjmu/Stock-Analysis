@@ -60,7 +60,7 @@ async def upload_data_file(
         flow_id = None
         if DISCOVERY_FLOW_AVAILABLE:
             try:
-                flow_repo = DiscoveryFlowRepository(db, context.client_account_id)
+                flow_repo = DiscoveryFlowRepository(db, context.client_account_id, user_id=context.user_id)
                 flow_service = DiscoveryFlowService(flow_repo)
                 
                 # Create new discovery flow

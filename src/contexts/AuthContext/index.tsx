@@ -23,7 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAuthenticated = !!user;
   const isAdmin = user?.role === 'admin' || user?.role === 'platform_admin';
 
-  const getAuthHeaders = useAuthHeaders(user, client, engagement, session);
+  const getAuthHeaders = useAuthHeaders(user, client, engagement, flow?.id || null);
 
   const {
     login,

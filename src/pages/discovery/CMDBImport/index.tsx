@@ -246,12 +246,8 @@ const CMDBImportContainer: React.FC = () => {
               {uploadedFiles.filter(f => f.flow_id).map((file) => (
                 <div key={file.id} className="bg-white rounded-lg border p-6">
                   <UniversalProcessingStatus
-                    flowId={file.flow_id!}
-                    fileName={file.name}
-                    onProcessingComplete={() => handleProcessingComplete(file)}
-                    onValidationFailed={(issues) => handleValidationFailed(file, issues)}
-                    autoStart={true}
-                    showPollingControls={true}
+                    flow_id={file.flow_id!}
+                    page_context="data_import"
                     className="w-full"
                   />
                 </div>

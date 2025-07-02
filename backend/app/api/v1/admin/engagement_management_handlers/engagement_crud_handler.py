@@ -3,9 +3,9 @@ Engagement CRUD Handler - Core engagement operations
 """
 
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, text
+from sqlalchemy import select, func, text, and_
 from app.models.client_account import Engagement
 from app.schemas.admin_schemas import EngagementResponse, AdminSuccessResponse
 from datetime import datetime, timedelta
@@ -111,16 +111,39 @@ class EngagementCRUDHandler:
     async def list_engagements(
         db: AsyncSession,
         client_account_id: str,
-        pagination: Dict[str, Any]
+        pagination: Dict[str, Any],
+        user_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """List all engagements for a client with pagination."""
         try:
             page = pagination.get('page', 1)
             page_size = pagination.get('page_size', 20)
+            
+            # Check if user is platform admin
+            is_platform_admin = False
+            if user_id:
+                try:
+                    from app.models.rbac import UserRole, RoleType
+                    admin_check = await db.execute(
+                        select(UserRole).where(
+                            and_(
+                                UserRole.user_id == user_id,
+                                UserRole.role_type == RoleType.ADMIN,
+                                UserRole.is_active == True
+                            )
+                        )
+                    )
+                    admin_role = admin_check.scalar_one_or_none()
+                    is_platform_admin = admin_role is not None
+                    
+                    if is_platform_admin:
+                        logger.info(f"Platform admin {user_id} - showing all engagements")
+                except Exception as e:
+                    logger.warning(f"Could not check admin status: {e}")
 
             query = select(Engagement).where(Engagement.is_active == True)  # Filter out soft-deleted
-            # Only filter by client_account_id if it's provided (not None)
-            if client_account_id:
+            # Only filter by client_account_id if it's provided (not None) AND user is not platform admin
+            if client_account_id and not is_platform_admin:
                  query = query.where(Engagement.client_account_id == client_account_id)
             
             total_items_query = select(func.count()).select_from(query.alias())

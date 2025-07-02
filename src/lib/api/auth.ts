@@ -7,9 +7,9 @@ const getApiBaseUrl = (): string => {
     return backendUrl;
   }
   
-  // In development mode, use localhost
+  // In development mode, use relative path to utilize Vite proxy
   if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
-    return 'http://localhost:8000';
+    return '';  // Empty string means use same origin with proxy
   }
   
   // For production without explicit backend URL, use same origin

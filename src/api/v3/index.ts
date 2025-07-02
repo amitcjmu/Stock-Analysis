@@ -162,7 +162,7 @@ export function createApiV3Client(config: ApiClientConfig): ApiV3Client {
  */
 export function createDefaultConfig(baseURL?: string): ApiClientConfig {
   return {
-    baseURL: baseURL || process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v3',
+    baseURL: baseURL || process.env.REACT_APP_API_URL || '/api/v3',  // Use relative path for proxy
     timeout: 30000,
     retryAttempts: 3,
     retryDelay: 1000,

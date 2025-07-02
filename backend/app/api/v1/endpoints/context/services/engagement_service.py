@@ -119,10 +119,10 @@ class EngagementService:
                     id=str(engagement.id),
                     name=engagement.name,
                     client_id=client_id,
-                    status="active" if engagement.is_active else "inactive",
-                    type=engagement.engagement_type,
-                    start_date=engagement.start_date.isoformat() if engagement.start_date else None,
-                    end_date=engagement.end_date.isoformat() if engagement.end_date else None
+                    status=engagement.status if hasattr(engagement, 'status') else ("active" if engagement.is_active else "inactive"),
+                    type=engagement.engagement_type if hasattr(engagement, 'engagement_type') else "migration",
+                    start_date=engagement.start_date.isoformat() if hasattr(engagement, 'start_date') and engagement.start_date else None,
+                    end_date=engagement.target_completion_date.isoformat() if hasattr(engagement, 'target_completion_date') and engagement.target_completion_date else None
                 ))
         except Exception as e:
             logger.error(f"Error fetching real engagements: {e}")

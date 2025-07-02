@@ -47,6 +47,20 @@ from app.api.v1.endpoints.context_establishment import router as context_establi
 # from app.api.v1.unified_discovery import router as unified_discovery_router
 UNIFIED_DISCOVERY_AVAILABLE = False  # Disabled - use /discovery instead
 
+# Assessment endpoints
+try:
+    from app.api.v1.endpoints.assess import router as assess_router
+    ASSESS_AVAILABLE = True
+except ImportError:
+    ASSESS_AVAILABLE = False
+
+# Wave Planning endpoints
+try:
+    from app.api.v1.endpoints.wave_planning import router as wave_planning_router
+    WAVE_PLANNING_AVAILABLE = True
+except ImportError:
+    WAVE_PLANNING_AVAILABLE = False
+
 # Import the /me endpoint function for root-level access
 from app.api.v1.endpoints.context import get_user_context
 from app.core.database import get_db
@@ -252,6 +266,19 @@ try:
 except ImportError as e:
     logger.warning(f"⚠️ Performance Monitoring router not available: {e}")
 api_router.include_router(context_establishment_router, prefix="/context-establishment", tags=["Context Establishment"])
+
+# Assessment Management
+if ASSESS_AVAILABLE:
+    api_router.include_router(assess_router, prefix="/assess", tags=["Assessment"])
+    logger.info("✅ Assessment router included")
+else:
+    logger.warning("⚠️ Assessment router not available")
+
+if WAVE_PLANNING_AVAILABLE:
+    api_router.include_router(wave_planning_router, prefix="/ave-planning", tags=["Wave Planning"])
+    logger.info("✅ Wave Planning router included")
+else:
+    logger.warning("⚠️ Wave Planning router not available")
 
 # Data Management
 api_router.include_router(data_import_router, prefix="/data-import", tags=["Data Import"])

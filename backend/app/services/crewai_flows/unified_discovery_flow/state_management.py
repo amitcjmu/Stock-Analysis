@@ -116,7 +116,9 @@ class StateManager:
             "error": error,
             "timestamp": datetime.utcnow().isoformat()
         }
-        self.state.errors.append(error_entry)
+        # Safe attribute access for CrewAI state
+        if hasattr(self.state, 'errors'):
+            self.state.errors.append(error_entry)
         logger.error(f"❌ Error in phase '{phase}': {error}")
     
     def add_warning(self, phase: str, warning: str):
@@ -156,7 +158,8 @@ class StateManager:
     def calculate_progress(self) -> float:
         """Calculate overall flow progress percentage"""
         total_phases = len(FlowConfig.PHASE_ORDER)
-        completed_phases = len([p for p in FlowConfig.PHASE_ORDER if self.state.phase_completion.get(p, False)])
+        phase_completion = getattr(self.state, 'phase_completion', {})
+        completed_phases = len([p for p in FlowConfig.PHASE_ORDER if phase_completion.get(p, False)])
         
         return round((completed_phases / total_phases) * 100, 1)
     
@@ -224,18 +227,19 @@ class StateManager:
     
     def create_flow_summary(self) -> Dict[str, Any]:
         """Create a comprehensive summary of the flow"""
+        # Safe attribute access for CrewAI StateWithId compatibility
         return {
-            "flow_id": self.state.flow_id,
-            "status": self.state.status,
+            "flow_id": getattr(self.state, 'flow_id', None),
+            "status": getattr(self.state, 'status', 'unknown'),
             "progress": self.calculate_progress(),
-            "current_phase": self.state.current_phase,
-            "completed_phases": self.state.completed_phases,
-            "total_assets": self.state.total_assets,
-            "errors": len(self.state.errors),
-            "warnings": len(self.state.warnings),
-            "agent_insights": len(self.state.agent_insights),
+            "current_phase": getattr(self.state, 'current_phase', 'unknown'),
+            "completed_phases": getattr(self.state, 'completed_phases', []),
+            "total_assets": getattr(self.state, 'total_assets', 0),
+            "errors": len(getattr(self.state, 'errors', [])),
+            "warnings": len(getattr(self.state, 'warnings', [])),
+            "agent_insights": len(getattr(self.state, 'agent_insights', [])),
             "timestamps": {
-                "started": self.state.created_at.isoformat() if self.state.created_at else None,
-                "updated": self.state.updated_at.isoformat() if self.state.updated_at else None
+                "started": getattr(self.state, 'created_at', datetime.utcnow()).isoformat() if hasattr(self.state, 'created_at') else None,
+                "updated": getattr(self.state, 'updated_at', datetime.utcnow()).isoformat() if hasattr(self.state, 'updated_at') else None
             }
         }

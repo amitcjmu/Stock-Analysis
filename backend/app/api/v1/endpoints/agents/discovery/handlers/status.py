@@ -272,7 +272,7 @@ async def get_discovery_status(
         logger.info("🔍 Getting discovery status using V2 Discovery Flow")
         
         # Initialize V2 services
-        flow_repo = DiscoveryFlowRepository(db, context.get('client_account_id'))
+        flow_repo = DiscoveryFlowRepository(db, context.get('client_account_id'), user_id=context.get('user_id'))
         flow_service = DiscoveryFlowService(flow_repo)
         
         # Get all active discovery flows for this client

@@ -80,7 +80,8 @@ async def list_engagements(
     paginated_result = await EngagementCRUDHandler.list_engagements(
         db=db,
         client_account_id=client_account_id,  # Pass None if not specified
-        pagination=pagination.dict()
+        pagination=pagination.dict(),
+        user_id=admin_user  # Pass the admin user ID for platform admin check
     )
     return PaginatedResponse(**paginated_result)
 
