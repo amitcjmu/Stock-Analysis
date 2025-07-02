@@ -15,7 +15,6 @@ interface AttributeMappingTabContentProps {
   refetchAgentic: () => void;
   onAttributeUpdate?: (attributeName: string, updates: Partial<any>) => void;
   sessionInfo?: {
-    sessionId: string | null;
     flowId: string | null;
     availableDataImports: any[];
     selectedDataImportId: string | null;

@@ -30,22 +30,22 @@ import { useToast } from '@/hooks/use-toast';
 import { useEnhancedFlowManagement, useFlowHealthMonitor } from '@/hooks/discovery/useEnhancedFlowManagement';
 
 interface EnhancedFlowManagementDashboardProps {
-  sessionId?: string;
-  sessionIds?: string[];
+  flowId?: string;
+  flowIds?: string[];
   showHealthMonitor?: boolean;
   showCleanupTools?: boolean;
   autoRefresh?: boolean;
 }
 
 export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDashboardProps> = ({
-  sessionId,
-  sessionIds = [],
+  flowId,
+  flowIds = [],
   showHealthMonitor = true,
   showCleanupTools = true,
   autoRefresh = true
 }) => {
   const { toast } = useToast();
-  const [selectedSessionId, setSelectedSessionId] = useState(sessionId || '');
+  const [selectedFlowId, setSelectedFlowId] = useState(flowId || '');
   const [cleanupOptions, setCleanupOptions] = useState({
     expirationHours: 72,
     dryRun: true
@@ -66,9 +66,9 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
   } = useEnhancedFlowManagement();
 
   // Queries
-  const persistenceStatusQuery = usePersistenceStatus(selectedSessionId, !!selectedSessionId);
+  const persistenceStatusQuery = usePersistenceStatus(selectedFlowId, !!selectedFlowId);
   const persistenceHealthQuery = usePersistenceHealth();
-  const flowHealthMonitor = useFlowHealthMonitor(sessionIds, showHealthMonitor && sessionIds.length > 0);
+  const flowHealthMonitor = useFlowHealthMonitor(flowIds, showHealthMonitor && flowIds.length > 0);
 
   // State for validation results
   const [validationResult, setValidationResult] = useState<any>(null);
@@ -77,17 +77,17 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
 
   // Handlers
   const handleValidateFlow = async () => {
-    if (!selectedSessionId) {
+    if (!selectedFlowId) {
       toast({
-        title: "Session Required",
-        description: "Please enter a session ID to validate",
+        title: "Flow Required",
+        description: "Please enter a flow ID to validate",
         variant: "destructive"
       });
       return;
     }
 
     try {
-      const result = await validateFlowWithRecommendations(selectedSessionId);
+      const result = await validateFlowWithRecommendations(selectedFlowId);
       setValidationResult(result);
       
       toast({
@@ -107,17 +107,17 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
   };
 
   const handleRecoverFlow = async (strategy: 'postgresql' | 'hybrid' = 'postgresql') => {
-    if (!selectedSessionId) {
+    if (!selectedFlowId) {
       toast({
-        title: "Session Required",
-        description: "Please enter a session ID to recover",
+        title: "Flow Required",
+        description: "Please enter a flow ID to recover",
         variant: "destructive"
       });
       return;
     }
 
     try {
-      const result = await performFlowRecovery(selectedSessionId, strategy);
+      const result = await performFlowRecovery(selectedFlowId, strategy);
       setRecoveryResult(result);
       
       toast({
@@ -158,17 +158,17 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
   };
 
   const handleBulkValidation = async () => {
-    if (sessionIds.length === 0) {
+    if (flowIds.length === 0) {
       toast({
-        title: "No Sessions",
-        description: "No session IDs available for bulk validation",
+        title: "No Flows",
+        description: "No flow IDs available for bulk validation",
         variant: "destructive"
       });
       return;
     }
 
     try {
-      const result = await performBulkValidation(sessionIds);
+      const result = await performBulkValidation(flowIds);
       
       toast({
         title: "Bulk Validation Complete",
@@ -244,14 +244,14 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
               <div className="flex space-x-2">
                 <input
                   type="text"
-                  placeholder="Enter session ID"
-                  value={selectedSessionId}
-                  onChange={(e) => setSelectedSessionId(e.target.value)}
+                  placeholder="Enter flow ID"
+                  value={selectedFlowId}
+                  onChange={(e) => setSelectedFlowId(e.target.value)}
                   className="flex-1 px-3 py-2 border rounded-md"
                 />
                 <Button 
                   onClick={handleValidateFlow}
-                  disabled={isValidating || !selectedSessionId}
+                  disabled={isValidating || !selectedFlowId}
                 >
                   {isValidating ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2" />}
                   Validate
@@ -330,7 +330,7 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
               <div className="flex space-x-2">
                 <Button 
                   onClick={() => handleRecoverFlow('postgresql')}
-                  disabled={isRecovering || !selectedSessionId}
+                  disabled={isRecovering || !selectedFlowId}
                   variant="outline"
                 >
                   {isRecovering ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Database className="w-4 h-4 mr-2" />}
@@ -338,7 +338,7 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
                 </Button>
                 <Button 
                   onClick={() => handleRecoverFlow('hybrid')}
-                  disabled={isRecovering || !selectedSessionId}
+                  disabled={isRecovering || !selectedFlowId}
                   variant="outline"
                 >
                   <Zap className="w-4 h-4 mr-2" />
@@ -447,10 +447,10 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
             <CardContent className="space-y-4">
               {/* Bulk Validation */}
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Bulk Flow Validation ({sessionIds.length} flows)</span>
+                <span className="text-sm font-medium">Bulk Flow Validation ({flowIds.length} flows)</span>
                 <Button 
                   onClick={handleBulkValidation}
-                  disabled={isBulkValidating || sessionIds.length === 0}
+                  disabled={isBulkValidating || flowIds.length === 0}
                   size="sm"
                 >
                   {isBulkValidating ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2" />}

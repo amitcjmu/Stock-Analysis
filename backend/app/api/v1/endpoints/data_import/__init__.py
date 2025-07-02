@@ -7,7 +7,7 @@ from fastapi import APIRouter
 
 # Import all module routers
 from .core_import import router as core_router
-from .field_mapping import router as mapping_router
+from .field_mapping import mapping_router
 # from .quality_analysis import router as quality_router  # Disabled - DataQualityIssue model removed
 from .critical_attributes import router as critical_router
 from .learning_integration import router as learning_router

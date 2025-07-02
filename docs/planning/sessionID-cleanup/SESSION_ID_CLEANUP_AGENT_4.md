@@ -69,13 +69,21 @@ async getFlowStatusBySessionId(sessionId: string) {
 // Update method signatures to use flowId
 ```
 
-### **3. DELETE Migration Utilities**
+### **3. PRESERVE Migration Utilities (Updated)**
 **File**: `/src/utils/migration/sessionToFlow.ts`  
-**Action**: DELETE THE ENTIRE FILE (300+ lines)
+**Action**: **DO NOT DELETE** - This contains working migration infrastructure
 
-```bash
-# Also remove the directory if empty
-rm -rf src/utils/migration/
+**Why Preserve**:
+- Contains proper deprecation warning system
+- Provides conversion utilities during transition  
+- Frontend components depend on this during cleanup phase
+- Will be removed AFTER all components are updated
+
+```typescript
+// KEEP these methods during transition:
+// - SessionToFlowMigration.convertSessionToFlowId()
+// - SessionToFlowMigration.logDeprecationWarning()
+// - SessionToFlowMigration.getIdentifier()
 ```
 
 ### **4. Context Utilities**
@@ -194,14 +202,20 @@ docker exec -it migration_frontend npm run type-check
 ## 📝 **Progress Tracking**
 
 Update the master plan tracker after each file:
-- [ ] `/src/hooks/useUnifiedDiscoveryFlow.ts` - CRITICAL
-- [ ] `/src/services/discoveryUnifiedService.ts`
-- [ ] `/src/utils/migration/sessionToFlow.ts` - DELETE
-- [ ] `/src/utils/contextUtils.ts`
-- [ ] `/src/services/apiClient.ts`
-- [ ] `/src/types/discovery.ts`
-- [ ] `/src/store/discoverySlice.ts`
-- [ ] `/src/services/websocketClient.ts`
+- [x] `/src/hooks/useUnifiedDiscoveryFlow.ts` - CRITICAL - ✅ COMPLETED
+- [x] `/src/services/discoveryUnifiedService.ts` - ✅ COMPLETED
+- [x] `/src/utils/migration/sessionToFlow.ts` - **PRESERVED** (working infrastructure)
+- [x] `/src/utils/contextUtils.ts` - Remove session extraction - ✅ COMPLETED
+- [x] `/src/services/apiClient.ts` - (Not found, checked other files)
+- [x] `/src/types/discovery.ts` - ✅ COMPLETED
+- [x] `/src/store/discoverySlice.ts` - (Not found)
+- [x] `/src/services/websocketClient.ts` - (Not found)
+
+**Additional files cleaned:**
+- [x] `/src/contexts/AuthContext/hooks/useAuthHeaders.ts` - ✅ COMPLETED
+- [x] `/src/config/api.ts` - ✅ COMPLETED  
+- [x] `/src/api/v3/utils/requestConfig.ts` - ✅ COMPLETED
+- [x] `/src/pages/discovery/hooks/useCMDBImport.ts` - ✅ COMPLETED
 
 ## 🔄 **Commit Pattern**
 

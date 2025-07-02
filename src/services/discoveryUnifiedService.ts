@@ -6,7 +6,6 @@
 
 import { apiCall } from '../config/api';
 import { getAuthHeaders } from '../utils/contextUtils';
-import { SessionToFlowMigration } from '../utils/migration/sessionToFlow';
 
 // Configuration - API base URL no longer needed as apiCall handles the full URL construction
 
@@ -338,32 +337,6 @@ export class UnifiedDiscoveryService {
 
   // === Migration Helpers ===
 
-  /**
-   * Smart identifier resolver - accepts either session_id or flow_id
-   */
-  private resolveFlowId(identifier: string): string {
-    // Check if it's already a flow ID (UUID format)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (uuidRegex.test(identifier)) {
-      return identifier;
-    }
-    
-    // Convert session ID to flow ID
-    return SessionToFlowMigration.convertSessionToFlowId(identifier);
-  }
-
-  /**
-   * Get flow status with automatic session_id to flow_id conversion
-   */
-  async getFlowStatusSmart(identifier: string): Promise<UnifiedDiscoveryFlowResponse> {
-    const flowId = this.resolveFlowId(identifier);
-    
-    if (flowId !== identifier) {
-      SessionToFlowMigration.logDeprecationWarning('getFlowStatusSmart', identifier);
-    }
-    
-    return await this.getFlowStatus(flowId);
-  }
 
   // === Legacy Compatibility ===
 
@@ -381,24 +354,6 @@ export class UnifiedDiscoveryService {
     }
   }
 
-  /**
-   * Legacy status endpoint (converts session_id to flow_id)
-   */
-  async getFlowStatusLegacy(sessionId: string): Promise<UnifiedDiscoveryFlowResponse> {
-    try {
-      SessionToFlowMigration.logDeprecationWarning('getFlowStatusLegacy', sessionId);
-      
-      // Convert session ID to flow ID using migration utility
-      const flowId = SessionToFlowMigration.convertSessionToFlowId(sessionId);
-      console.log('🔄 Legacy status lookup - converted to flow_id:', { sessionId, flowId });
-      
-      // Use the regular flow status method with converted ID
-      return await this.getFlowStatus(flowId);
-    } catch (error) {
-      console.error('❌ Legacy status lookup failed:', error);
-      throw error;
-    }
-  }
 
   // === CrewAI Flow Control Methods ===
 
@@ -489,7 +444,5 @@ export const resumeFlowAtPhase = (flowId: string, phase: string, humanInput?: Re
 export const runDiscoveryFlow = (request: Record<string, any>) => 
   unifiedDiscoveryService.runFlow(request);
 
-export const getFlowStatusBySessionId = (sessionId: string) => 
-  unifiedDiscoveryService.getFlowStatusLegacy(sessionId);
 
 export default unifiedDiscoveryService; 

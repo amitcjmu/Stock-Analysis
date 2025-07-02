@@ -29,7 +29,7 @@ class TestCrewAIFlowMigration:
             client_account_id="test-client-123",
             engagement_id="test-engagement-456", 
             user_id="test-user-789",
-            session_id="test-session-abc"
+            flow_id="test-flow-abc"
         )
     
     @pytest.fixture
@@ -52,13 +52,13 @@ class TestCrewAIFlowMigration:
     def test_discovery_flow_state_model(self):
         """Test that the DiscoveryFlowState model works correctly."""
         state = UnifiedDiscoveryFlowState(
-            session_id="test-session",
+            flow_id="test-flow",
             client_account_id="test-client",
             engagement_id="test-engagement",
             user_id="test-user"
         )
         
-        assert state.session_id == "test-session"
+        assert state.flow_id == "test-flow"
         assert state.status == "running"
         assert state.current_phase == "initialization"
         assert state.progress_percentage == 0.0
@@ -74,7 +74,7 @@ class TestCrewAIFlowMigration:
         from app.services.crewai_flows.unified_discovery_flow import create_unified_discovery_flow
         
         flow = create_unified_discovery_flow(
-            session_id="test-session",
+            flow_id="test-flow",
             client_account_id="test-client",
             engagement_id="test-engagement",
             user_id="test-user",
@@ -86,7 +86,7 @@ class TestCrewAIFlowMigration:
         
         assert flow is not None
         assert hasattr(flow, 'state')
-        assert flow.state.session_id == "test-session"
+        assert flow.state.flow_id == "test-flow"
         assert flow.crewai_service == mock_service
         assert flow.context == sample_context
     
@@ -119,7 +119,7 @@ class TestCrewAIFlowMigration:
         
         # Create state in native format
         native_state = {
-            "session_id": "test-session",
+            "flow_id": "test-flow",
             "client_account_id": "test-client",
             "engagement_id": "test-engagement",
             "user_id": "test-user",
@@ -133,7 +133,7 @@ class TestCrewAIFlowMigration:
         
         # Should be able to create DiscoveryFlowState from native format
         state = UnifiedDiscoveryFlowState(**native_state)
-        assert state.session_id == "test-session"
+        assert state.flow_id == "test-flow"
         assert state.status == "running"
     
     def test_fallback_behavior_when_crewai_unavailable(self):
@@ -232,7 +232,7 @@ class TestCrewAIFlowMigration:
         from app.services.crewai_flows.unified_discovery_flow import create_unified_discovery_flow
         
         flow = create_unified_discovery_flow(
-            session_id="test-session",
+            flow_id="test-flow",
             client_account_id="test-client",
             engagement_id="test-engagement", 
             user_id="test-user",
@@ -256,7 +256,7 @@ class TestCrewAIFlowMigration:
         from app.services.crewai_flows.unified_discovery_flow import create_unified_discovery_flow
         
         flow = create_unified_discovery_flow(
-            session_id="test-session",
+            flow_id="test-flow",
             client_account_id="test-client",
             engagement_id="test-engagement",
             user_id="test-user",
@@ -281,7 +281,7 @@ class TestCrewAIFlowMigration:
         from app.services.crewai_flows.unified_discovery_flow import create_unified_discovery_flow
         
         flow = create_unified_discovery_flow(
-            session_id="test-session",
+            flow_id="test-flow",
             client_account_id="test-client",
             engagement_id="test-engagement",
             user_id="test-user",
@@ -309,7 +309,7 @@ class TestCrewAIFlowMigration:
         from app.services.crewai_flows.unified_discovery_flow import create_unified_discovery_flow
         
         flow = create_unified_discovery_flow(
-            session_id="test-session",
+            flow_id="test-flow",
             client_account_id="test-client",
             engagement_id="test-engagement",
             user_id="test-user",
@@ -345,7 +345,7 @@ class TestNativeFormatValidation:
         
         # Create new state
         new_state = UnifiedDiscoveryFlowState(
-            session_id="test-session",
+            flow_id="test-flow",
             client_account_id="test-client",
             engagement_id="test-engagement",
             user_id="test-user"
@@ -356,7 +356,7 @@ class TestNativeFormatValidation:
         
         # Verify all expected native fields exist
         expected_fields = [
-            "session_id", "client_account_id", "engagement_id", "user_id",
+            "flow_id", "client_account_id", "engagement_id", "user_id",
             "status", "current_phase", "phase_completion", "errors",
             "metadata", "created_at", "updated_at", "progress_percentage",
             "agent_insights", "warnings"
@@ -420,11 +420,11 @@ class TestPerformanceAndScaling:
             client_account_id="test-client",
             engagement_id="test-engagement",
             user_id="test-user",
-            session_id="test-session"
+            flow_id="test-flow"
         )
         
         flow = create_unified_discovery_flow(
-            session_id="test-session",
+            flow_id="test-flow",
             client_account_id="test-client",
             engagement_id="test-engagement",
             user_id="test-user",

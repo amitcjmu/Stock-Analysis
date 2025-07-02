@@ -111,7 +111,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         # Initialize phase handlers
         self._initialize_phases()
         
-        logger.info(f"✅ Unified Discovery Flow initialized - Session: {self.state.session_id}")
+        logger.info(f"✅ Unified Discovery Flow initialized - Flow ID: {self.state.flow_id}")
     
     def _initialize_components(self):
         """Initialize flow components"""

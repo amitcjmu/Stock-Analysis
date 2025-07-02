@@ -499,7 +499,7 @@ async def get_crewai_flow_status(
         # Enhanced flow details with agent task information
         enhanced_flows = []
         for flow in active_flows:
-            flow_id = flow.get("session_id")
+            flow_id = flow.get("flow_id")
             if flow_id:
                 # Get detailed flow status
                 flow_status = service.get_flow_status(flow_id)
@@ -534,9 +534,9 @@ async def get_crewai_flow_status(
         raise HTTPException(status_code=500, detail=f"Failed to get CrewAI flow status: {str(e)}")
 
 
-@router.get("/crewai-flows/{session_id}")
+@router.get("/crewai-flows/{flow_id}")
 async def get_specific_flow_details(
-    session_id: str,
+    flow_id: str,
     request: Request,
     service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ):
@@ -556,16 +556,16 @@ async def get_specific_flow_details(
         context = extract_context_from_request(request)
         
         # Get flow state
-        flow_state = await service.get_flow_state_by_session(session_id, context)
+        flow_state = await service.get_flow_state_by_flow_id(flow_id, context)
         if not flow_state:
-            raise HTTPException(status_code=404, detail=f"Flow not found: {session_id}")
+            raise HTTPException(status_code=404, detail=f"Flow not found: {flow_id}")
         
         # Get detailed flow status
-        flow_status = service.get_flow_status(session_id)
+        flow_status = service.get_flow_status(flow_id)
         
         # Combine all flow information
         detailed_flow = {
-            "session_id": session_id,
+            "flow_id": flow_id,
             "flow_state": flow_state,
             "flow_status": flow_status,
             "agent_tasks": flow_status.get("agent_tasks", []),
@@ -592,13 +592,13 @@ async def get_specific_flow_details(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting flow details for {session_id}: {e}")
+        logger.error(f"Error getting flow details for {flow_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get flow details: {str(e)}")
 
 
-@router.get("/crewai-flows/{session_id}/agent-tasks")
+@router.get("/crewai-flows/{flow_id}/agent-tasks")
 async def get_flow_agent_tasks(
-    session_id: str,
+    flow_id: str,
     service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ):
     """
@@ -613,20 +613,20 @@ async def get_flow_agent_tasks(
     """
     try:
         # Use CrewAI replay functionality to get real task data
-        task_history = await service.get_task_execution_history(session_id)
+        task_history = await service.get_task_execution_history(flow_id)
         
         if "error" in task_history:
             # Fall back to flow status if replay is not available
-            flow_status = service.get_flow_status(session_id)
+            flow_status = service.get_flow_status(flow_id)
             
             if not flow_status or flow_status.get("status") == "not_found":
-                raise HTTPException(status_code=404, detail=f"Flow not found: {session_id}")
+                raise HTTPException(status_code=404, detail=f"Flow not found: {flow_id}")
             
             # Return basic flow info if replay not available
             return {
                 "success": True,
                 "timestamp": datetime.utcnow().isoformat(),
-                "session_id": session_id,
+                "flow_id": flow_id,
                 "agent_tasks": {
                     "replay_available": False,
                     "error": task_history["error"],
@@ -636,7 +636,7 @@ async def get_flow_agent_tasks(
             }
         
         # Update agent performance metrics from real task data
-        performance_update = await service.update_agent_performance_from_tasks(session_id)
+        performance_update = await service.update_agent_performance_from_tasks(flow_id)
         
         # Organize tasks by agent and crew
         tasks_by_agent = {}
@@ -660,7 +660,7 @@ async def get_flow_agent_tasks(
         return {
             "success": True,
             "timestamp": datetime.utcnow().isoformat(),
-            "session_id": session_id,
+            "flow_id": flow_id,
             "agent_tasks": {
                 "replay_available": True,
                 "source": "crewai_replay_tasks_from_latest_crew_kickoff",
@@ -684,7 +684,7 @@ async def get_flow_agent_tasks(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting agent tasks for flow {session_id}: {e}")
+        logger.error(f"Error getting agent tasks for flow {flow_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get agent tasks: {str(e)}")
 
 

@@ -35,7 +35,6 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
     mappingProgress,
     criticalAttributes,
     flowState,
-    sessionId,
     flowId,
     availableDataImports,
     selectedDataImportId,
@@ -52,7 +51,6 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
         <ProgressDashboard 
           progress={mappingProgress}
           agentAnalysis={crewAnalysis}
-          sessionId={sessionId}
           flowId={flowId}
           effectiveFlowId={effectiveFlowId}
           availableDataImports={availableDataImports}
@@ -101,7 +99,7 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <AgentClarificationPanel 
             data={agenticData}
-            flowId={effectiveFlowId || sessionId}
+            flowId={effectiveFlowId || flowId}
           />
           <DataClassificationDisplay 
             data={agenticData}
@@ -113,13 +111,13 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
       {flowState && (
         <div className="space-y-6">
           <AgentInsightsSection 
-            flowId={effectiveFlowId || sessionId}
+            flowId={effectiveFlowId || flowId}
             flowState={flowState}
             currentPhase="attribute_mapping"
           />
           
           <EnhancedAgentOrchestrationPanel 
-            flowId={effectiveFlowId || sessionId}
+            flowId={effectiveFlowId || flowId}
             currentPhase="attribute_mapping"
             flowState={flowState}
           />

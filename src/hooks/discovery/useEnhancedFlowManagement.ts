@@ -70,21 +70,21 @@ interface BulkValidationResponse {
 // API FUNCTIONS
 // ========================================
 
-const validateFlowState = async (sessionId: string, comprehensive: boolean = true): Promise<FlowStateValidationResponse> => {
-  const response = await apiClient.post(`/discovery/enhanced/flows/${sessionId}/validate`, {
-    session_id: sessionId,
+const validateFlowState = async (flowId: string, comprehensive: boolean = true): Promise<FlowStateValidationResponse> => {
+  const response = await apiClient.post(`/discovery/enhanced/flows/${flowId}/validate`, {
+    flow_id: flowId,
     comprehensive
   });
   return response.data;
 };
 
 const recoverFlowState = async (
-  sessionId: string, 
+  flowId: string, 
   recoveryStrategy: string = 'postgresql',
   forceRecovery: boolean = false
 ): Promise<FlowRecoveryResponse> => {
-  const response = await apiClient.post(`/discovery/enhanced/flows/${sessionId}/recover`, {
-    session_id: sessionId,
+  const response = await apiClient.post(`/discovery/enhanced/flows/${flowId}/recover`, {
+    flow_id: flowId,
     recovery_strategy: recoveryStrategy,
     force_recovery: forceRecovery
   });
@@ -104,13 +104,13 @@ const cleanupExpiredFlows = async (
   return response.data;
 };
 
-const getFlowPersistenceStatus = async (sessionId: string): Promise<FlowPersistenceStatusResponse> => {
-  const response = await apiClient.get(`/discovery/enhanced/flows/${sessionId}/persistence-status`);
+const getFlowPersistenceStatus = async (flowId: string): Promise<FlowPersistenceStatusResponse> => {
+  const response = await apiClient.get(`/discovery/enhanced/flows/${flowId}/persistence-status`);
   return response.data;
 };
 
-const bulkValidateFlows = async (sessionIds: string[]): Promise<BulkValidationResponse> => {
-  const response = await apiClient.post('/discovery/enhanced/flows/bulk-validate', sessionIds);
+const bulkValidateFlows = async (flowIds: string[]): Promise<BulkValidationResponse> => {
+  const response = await apiClient.post('/discovery/enhanced/flows/bulk-validate', flowIds);
   return response.data;
 };
 
@@ -130,8 +130,8 @@ export const useEnhancedFlowManagement = () => {
 
   // Flow State Validation
   const validateFlow = useMutation({
-    mutationFn: ({ sessionId, comprehensive = true }: { sessionId: string; comprehensive?: boolean }) =>
-      validateFlowState(sessionId, comprehensive),
+    mutationFn: ({ flowId, comprehensive = true }: { flowId: string; comprehensive?: boolean }) =>
+      validateFlowState(flowId, comprehensive),
     onMutate: () => setIsValidating(true),
     onSettled: () => setIsValidating(false),
   });
@@ -139,14 +139,14 @@ export const useEnhancedFlowManagement = () => {
   // Flow State Recovery
   const recoverFlow = useMutation({
     mutationFn: ({ 
-      sessionId, 
+      flowId, 
       recoveryStrategy = 'postgresql', 
       forceRecovery = false 
     }: { 
-      sessionId: string; 
+      flowId: string; 
       recoveryStrategy?: string; 
       forceRecovery?: boolean; 
-    }) => recoverFlowState(sessionId, recoveryStrategy, forceRecovery),
+    }) => recoverFlowState(flowId, recoveryStrategy, forceRecovery),
     onMutate: () => setIsRecovering(true),
     onSettled: () => setIsRecovering(false),
   });
@@ -168,15 +168,15 @@ export const useEnhancedFlowManagement = () => {
 
   // Bulk Validation
   const bulkValidate = useMutation({
-    mutationFn: (sessionIds: string[]) => bulkValidateFlows(sessionIds),
+    mutationFn: (flowIds: string[]) => bulkValidateFlows(flowIds),
   });
 
   // Persistence Status Query
-  const usePersistenceStatus = (sessionId: string, enabled: boolean = true) => {
+  const usePersistenceStatus = (flowId: string, enabled: boolean = true) => {
     return useQuery({
-      queryKey: ['flow-persistence-status', sessionId],
-      queryFn: () => getFlowPersistenceStatus(sessionId),
-      enabled: enabled && !!sessionId,
+      queryKey: ['flow-persistence-status', flowId],
+      queryFn: () => getFlowPersistenceStatus(flowId),
+      enabled: enabled && !!flowId,
       refetchInterval: false, // DISABLED: No automatic polling
     });
   };
@@ -191,9 +191,9 @@ export const useEnhancedFlowManagement = () => {
   };
 
   // Convenience Methods
-  const validateFlowWithRecommendations = useCallback(async (sessionId: string) => {
+  const validateFlowWithRecommendations = useCallback(async (flowId: string) => {
     try {
-      const result = await validateFlow.mutateAsync({ sessionId, comprehensive: true });
+      const result = await validateFlow.mutateAsync({ flowId, comprehensive: true });
       
       return {
         ...result,
@@ -210,10 +210,10 @@ export const useEnhancedFlowManagement = () => {
     }
   }, [validateFlow]);
 
-  const performFlowRecovery = useCallback(async (sessionId: string, strategy: 'postgresql' | 'hybrid' = 'postgresql') => {
+  const performFlowRecovery = useCallback(async (flowId: string, strategy: 'postgresql' | 'hybrid' = 'postgresql') => {
     try {
       const result = await recoverFlow.mutateAsync({ 
-        sessionId, 
+        flowId, 
         recoveryStrategy: strategy,
         forceRecovery: false 
       });
@@ -256,9 +256,9 @@ export const useEnhancedFlowManagement = () => {
     }
   }, [cleanupFlows]);
 
-  const performBulkValidation = useCallback(async (sessionIds: string[]) => {
+  const performBulkValidation = useCallback(async (flowIds: string[]) => {
     try {
-      const result = await bulkValidate.mutateAsync(sessionIds);
+      const result = await bulkValidate.mutateAsync(flowIds);
       
       const healthyFlows = result.results.filter(r => r.valid);
       const problematicFlows = result.results.filter(r => !r.valid || r.error);
@@ -317,13 +317,13 @@ export const useEnhancedFlowManagement = () => {
 /**
  * Hook for monitoring multiple flows' health
  */
-export const useFlowHealthMonitor = (sessionIds: string[], enabled: boolean = true) => {
+export const useFlowHealthMonitor = (flowIds: string[], enabled: boolean = true) => {
   const { performBulkValidation } = useEnhancedFlowManagement();
   
   return useQuery({
-    queryKey: ['flow-health-monitor', sessionIds],
-    queryFn: () => performBulkValidation(sessionIds),
-    enabled: enabled && sessionIds.length > 0,
+    queryKey: ['flow-health-monitor', flowIds],
+    queryFn: () => performBulkValidation(flowIds),
+    enabled: enabled && flowIds.length > 0,
     refetchInterval: false, // DISABLED: No automatic polling
     retry: 2,
   });

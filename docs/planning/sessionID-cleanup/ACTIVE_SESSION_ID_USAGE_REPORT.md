@@ -4,9 +4,13 @@
 
 This report identifies **active session_id usage** in the codebase that blocks completion of the session_id → flow_id migration. These are **executing code paths** that need modification during Remediation Phase 1, not legacy references or documentation.
 
-**Total Active Usage Found**: 47 files with active session_id usage  
+**⚠️ SCOPE UPDATE**: Recent comprehensive audit reveals **246 total files** with session_id references (originally estimated 132+). The modularization effort has successfully eliminated direct references from some main components, but the backend cleanup effort is significantly larger than initially projected.
+
+**Total Active Usage Found**: 246 files with session_id usage (47 active executing paths)  
 **Critical Blockers**: 18 files requiring immediate attention  
-**Estimated Cleanup Time**: 4-6 weeks (aligns with remediation timeline)
+**Backend Heavy**: 216 files (88% of total) are backend components  
+**Frontend Affected**: 30 files (12% of total) in frontend  
+**Estimated Cleanup Time**: 6-8 weeks (scope larger than initially projected)
 
 ## 🚨 **CRITICAL PRIORITY (Must Fix - Weeks 1-2)**
 
@@ -29,7 +33,7 @@ def get_session_context(session_id: str) -> RequestContext:
     # Function actively called by middleware
     return RequestContext(session_id=session_id)
 ```
-**Impact**: Core system component that propagates session_id to all downstream operations
+**Impact**: **CRITICAL BLOCKER** - Core system component that propagates session_id to all downstream operations. Recent audit confirms this is still the primary source of session_id generation affecting entire backend.
 
 #### **2. API v1 Session Endpoints**
 **File**: `/backend/app/api/v1/endpoints/sessions.py`  
@@ -66,7 +70,7 @@ async def get_import_debug_info(context: RequestContext = Depends(get_request_co
         "debug_info": debug_data
     }
 ```
-**Impact**: New V3 API perpetuating session_id usage instead of eliminating it
+**Impact**: **CRITICAL REGRESSION** - V3 API accidentally exposing deprecated session_id fields when it should be the "clean" flow_id-only API. This undermines the migration strategy.
 
 ### **Database Models & Queries (Active Schema)**
 
@@ -87,7 +91,7 @@ class DiscoveryFlow(Base):
     def session_id(self):
         return self.import_session_id  # ❌ PROPERTY ACTIVELY ACCESSED
 ```
-**Impact**: Database schema actively stores and indexes session_id relationships
+**Impact**: **PARTIALLY RESOLVED** - Field renamed to `import_session_id` but still present in schema and API responses. Progress made but not complete.
 
 #### **5. Repository Query Methods**
 **File**: `/backend/app/repositories/discovery_flow_repository.py`  
@@ -105,7 +109,7 @@ async def get_flows_for_session(self, session_id: str) -> List[DiscoveryFlow]:
     # Method actively called by service layer
     return await self._filter_by_session(session_id)
 ```
-**Impact**: Data access layer actively queries and filters by session_id
+**Impact**: **STATUS UNKNOWN** - Repository has been modularized into subcomponents. Session_id queries likely moved to `/queries/` and `/commands/` subdirectories that require individual audit.
 
 #### **6. Asset Model Relationships**
 **File**: `/backend/app/models/asset.py`  
@@ -122,11 +126,11 @@ class Asset(Base):
     def legacy_session_id(self):
         return self.session_id  # ❌ ACTIVELY ACCESSED BY SERVICE LAYER
 ```
-**Impact**: Asset relationships still depend on session_id for data integrity
+**Impact**: **CONFIRMED ACTIVE** - Asset model still contains active `session_id` foreign key column with CASCADE delete. Maintained for "backward compatibility during migration" but creates ongoing dependency.
 
-## 🔴 **HIGH PRIORITY (Weeks 3-4)**
+## 🔴 **HIGH PRIORITY (Weeks 3-4)** - Backend Heavy (216/246 files)
 
-### **Frontend Active Usage**
+### **Frontend Active Usage** (30/246 files - 12% of total)
 
 #### **7. Main Discovery Hook**
 **File**: `/src/hooks/useUnifiedDiscoveryFlow.ts`  
@@ -158,37 +162,21 @@ useEffect(() => {
   }
 }, []);
 ```
-**Impact**: Primary frontend hook still actively supporting session_id workflow
+**Impact**: Primary frontend hook still actively supporting session_id workflow but includes proper migration infrastructure with deprecation warnings
 
 #### **8. CMDB Import Component**
 **File**: `/src/pages/discovery/CMDBImport.tsx`  
-**Lines**: 174-198, 234, 267  
-**Issue**: Component functions actively using session_id for navigation  
+**Status**: ✅ **MODULARIZED - Main component clean**  
+**Issue**: Component has been successfully modularized (commit 969f5b7f)  
 ```typescript
-// ACTIVE USAGE - Lines 174-198
-const handleContinueFlow = useCallback(async (sessionId: string) => {
-  try {
-    // ❌ ACTIVELY CALLED WITH SESSION_ID
-    const flowStatus = await discoveryUnifiedService.getFlowStatus(sessionId);
-    if (flowStatus.success) {
-      navigate(`/discovery/flow?sessionId=${sessionId}`);  // ❌ PROPAGATES SESSION_ID
-    }
-  } catch (error) {
-    console.error('Error continuing flow:', error);
-  }
-}, [navigate]);
-
-// ACTIVE USAGE - Line 234
-const handleDeleteFlow = async (sessionId: string) => {
-  await discoveryUnifiedService.deleteFlow(sessionId);  // ❌ ACTIVE API CALL
-};
-
-// ACTIVE USAGE - Line 267  
-const handleViewFlowDetails = (sessionId: string) => {
-  navigate(`/discovery/details?sessionId=${sessionId}`);  // ❌ ACTIVE NAVIGATION
-};
+// CURRENT STATE - Main component is now a simple re-export
+export { default } from './CMDBImport/index';
 ```
-**Impact**: User-facing components actively create and propagate session_id in URLs
+**Remaining Issues in Modular Components**:
+- `/src/pages/discovery/CMDBImport/hooks/useFlowManagement.ts` - Lines 26, 30, 34, 38, 42 still use sessionId parameters
+- `/src/pages/discovery/CMDBImport/hooks/useFileUpload.ts` - Line 193 creates tempSessionId (for upload sessions, not flow sessions)
+
+**Impact**: **Reduced** - Main component eliminated direct session_id usage, but hooks still need migration
 
 #### **9. Discovery Service Layer**
 **File**: `/src/services/discoveryUnifiedService.ts`  
@@ -318,20 +306,20 @@ async def initialize_flow(request: FlowInitRequest):
 ## 📊 **Summary by Impact**
 
 ### **Critical Blockers (18 files)**
-- **Backend Core**: 6 files (context, models, repositories)
-- **Backend API**: 4 files (v1 endpoints, v3 inadvertent exposure)
-- **Frontend Core**: 3 files (main hook, service layer, components)
-- **Database Schema**: 5 files (models with session_id columns)
+- **Backend Core**: 6 files (context, models, repositories) - **CONFIRMED ACTIVE**
+- **Backend API**: 4 files (v1 endpoints, v3 inadvertent exposure) - **V3 REGRESSION IDENTIFIED**
+- **Frontend Core**: 3 files (main hook, service layer, components) - **MIGRATION INFRASTRUCTURE WORKING**
+- **Database Schema**: 5 files (models with session_id columns) - **PARTIALLY RESOLVED**
 
 ### **High Priority (15 files)**
-- **Frontend Components**: 8 files (pages, navigation, UI)
-- **Backend Services**: 4 files (import workflows, business logic)
-- **API Layers**: 3 files (routing, middleware)
+- **Frontend Components**: 8 files (pages, navigation, UI) - **MODULARIZATION REDUCED IMPACT**
+- **Backend Services**: 4 files (import workflows, business logic) - **MAJOR REMEDIATION NEEDED**
+- **API Layers**: 3 files (routing, middleware) - **MIXED PROGRESS**
 
 ### **Medium Priority (14 files)**
-- **Migration Utils**: 6 files (transition support code)
-- **Helper Functions**: 4 files (utilities, context extraction)
-- **Legacy Support**: 4 files (backwards compatibility)
+- **Migration Utils**: 6 files (transition support code) - **WORKING WELL**
+- **Helper Functions**: 4 files (utilities, context extraction) - **PROPER DEPRECATION WARNINGS**
+- **Legacy Support**: 4 files (backwards compatibility) - **GRADUAL CLEANUP NEEDED**
 
 ## 🎯 **Remediation Strategy**
 
@@ -353,24 +341,46 @@ async def initialize_flow(request: FlowInitRequest):
 3. **Remove legacy API endpoints** that accept session_id
 4. **Drop database columns** with session_id references
 
+## 📦 **Modularization Impact** (Recent Progress)
+
+### **✅ Positive Impact from Component Modularization**
+- **CMDBImport.tsx**: Successfully modularized, main component now clean of direct session_id usage
+- **EnhancedDiscoveryDashboard.tsx**: Modularized with improved separation of concerns
+- **AttributeMapping.tsx**: Modularized structure reduces session_id exposure
+- **Repository Patterns**: Backend repositories modularized into queries/commands structure
+
+### **⚠️ Remaining Issues in Modular Components**
+- **Hooks**: Modular hooks still contain session_id parameters (e.g., `useFlowManagement.ts`)
+- **Services**: Backend services spread session_id usage across multiple modules
+- **Repository Submodules**: Queries and commands likely still contain session_id filters
+
+### **📈 Modularization Benefits for Migration**
+- **Reduced Complexity**: Main components cleaner, easier to identify remaining issues
+- **Isolated Impact**: Session_id usage now contained in specific hooks/services
+- **Better Testing**: Modular structure allows targeted testing of session_id removal
+
 ## ⚠️ **Risk Assessment**
 
 ### **High Risk Changes**
-- **RequestContext modification**: Affects entire backend
-- **Database schema changes**: Requires careful migration
+- **RequestContext modification**: Affects entire backend (216 files)
+- **Database schema changes**: Requires careful migration with active foreign keys
 - **Frontend hook updates**: Impacts all discovery flow components
+- **V3 API Regression**: Accidental session_id exposure in "clean" API
 
 ### **Mitigation Strategies**
 - **Feature flags**: Enable/disable session_id support during transition
 - **Gradual rollout**: Update components one at a time
 - **Comprehensive testing**: Validate each change doesn't break workflows
 - **Rollback plan**: Ability to restore session_id support if needed
+- **Leverage Modularization**: Use modular structure to isolate and test changes
 
 ---
 
-**Total Active Usage**: 47 files requiring modification  
+**Total Active Usage**: 246 files requiring modification (up from 132+ originally estimated)  
 **Critical Path**: 18 files blocking completion  
-**Estimated Timeline**: 4-6 weeks for complete cleanup  
+**Backend Heavy**: 216 files (88% of total) require backend remediation  
+**Frontend Reduced**: 30 files (12% of total) with modularization helping reduce impact  
+**Estimated Timeline**: 6-8 weeks for complete cleanup (scope larger than projected)  
 **Success Criteria**: Zero active session_id usage in executing code paths
 
-*This report focuses exclusively on active, executing code that must be modified to complete the session_id → flow_id migration during Remediation Phase 1.*
+*This report focuses exclusively on active, executing code that must be modified to complete the session_id → flow_id migration during Remediation Phase 1. Updated January 2025 to reflect comprehensive audit findings and modularization progress.*

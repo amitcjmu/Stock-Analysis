@@ -22,19 +22,19 @@ interface CrewProgress {
 }
 
 interface EnhancedAgentOrchestrationPanelProps {
-  sessionId: string;
+  flowId: string;
   flowState?: any;
 }
 
 const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelProps> = ({
-  sessionId,
+  flowId,
   flowState
 }) => {
   const [crews, setCrews] = useState<CrewProgress[]>([]);
 
   // Update crews based on real flow state
   useEffect(() => {
-    console.log('🔍 Updating crew state with:', { sessionId, flowState });
+    console.log('🔍 Updating crew state with:', { flowId, flowState });
 
     const DISCOVERY_FLOW_CREWS = [
       {
@@ -160,7 +160,7 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
     });
 
     setCrews(updatedCrews);
-  }, [sessionId, flowState]);
+  }, [flowId, flowState]);
 
   const getStatusBadge = (status: string) => {
     const baseClasses = "px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1";
@@ -221,7 +221,7 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
           </div>
           <Progress value={getOverallProgress()} className="h-3" />
           <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>Session: {sessionId.substring(0, 8)}...</span>
+            <span>Flow: {flowId.substring(0, 8)}...</span>
             <span>Status: {flowState?.overall_status || 'initializing'}</span>
           </div>
         </div>

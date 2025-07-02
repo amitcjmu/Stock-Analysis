@@ -169,7 +169,7 @@ class SuggestionService:
             crew_result = field_mapping_crew.kickoff()
             
             # Parse crew results
-            suggestions = self._parse_crew_results(crew_result, source_fields, available_fields)
+            suggestions = await self._parse_crew_results(crew_result, source_fields, available_fields)
             
             logger.info(f"CrewAI generated {len(suggestions)} field mapping suggestions")
             return suggestions
@@ -178,7 +178,7 @@ class SuggestionService:
             logger.error(f"Error in CrewAI field mapping analysis: {e}")
             return await self._generate_fallback_suggestions(source_fields, sample_data, available_fields)
     
-    def _parse_crew_results(
+    async def _parse_crew_results(
         self, 
         crew_result: Any, 
         source_fields: List[str], 

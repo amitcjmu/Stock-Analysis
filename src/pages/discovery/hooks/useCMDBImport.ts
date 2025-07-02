@@ -8,7 +8,7 @@ export interface UploadedFile {
   file: File;
   type: string;
   status: 'uploaded' | 'analyzing' | 'processed' | 'error';
-  sessionId?: string; // Session ID from the CrewAI workflow
+  flowId?: string; // Flow ID from the CrewAI workflow
   filename?: string; // File name for display
   recordCount?: number; // Number of records in the file
   aiSuggestions?: string[];
@@ -37,7 +37,6 @@ export interface DiscoveryFlowRequest {
 export interface DiscoveryFlowResponse {
   status: string;
   message: string;
-  session_id: string;
   flow_id: string;
   workflow_status: string;
   current_phase: string;
@@ -50,7 +49,7 @@ export interface DiscoveryFlowResponse {
 
 interface AnalysisStatusResponse {
   status: 'running' | 'completed' | 'failed' | 'idle' | 'error' | 'in_progress' | 'processing';
-  session_id: string;
+  flow_id: string;
   current_phase: string;
   workflow_phases: string[];
   progress_percentage?: number;
@@ -114,13 +113,13 @@ const parseCSVFile = (file: File): Promise<{ headers: string[]; sample_data: Rec
 // Main hook for initiating discovery workflow
 export const useDiscoveryFlow = () => {
   const queryClient = useQueryClient();
-  const { currentSessionId } = useAuth(); // Get session ID from AuthContext
+  const { flowId } = useAuth(); // Get flow ID from AuthContext
   
   return useMutation<DiscoveryFlowResponse, Error, { file: File }>(
     {
       mutationFn: async ({ file }) => {
         console.log('🔍 Starting discovery flow for file:', file.name);
-        console.log('📋 Using session ID from AuthContext:', currentSessionId);
+        console.log('📋 Using flow ID from AuthContext:', flowId);
         
         // Parse CSV file
         const { headers, sample_data } = await parseCSVFile(file);
@@ -141,13 +140,13 @@ export const useDiscoveryFlow = () => {
             enable_retry_logic: true,
             max_retries: 3,
             timeout_seconds: 300,
-            session_id: currentSessionId // Use session ID from AuthContext
+            flow_id: flowId // Use flow ID from AuthContext
           }
         };
         
         console.log('🚀 Sending request to backend:', {
           endpoint: '/api/v1/discovery/flow/run-redesigned',
-          session_id: currentSessionId,
+          flow_id: flowId,
           filename: file.name,
           headers_count: headers.length,
           sample_data_count: sample_data.length
@@ -166,7 +165,7 @@ export const useDiscoveryFlow = () => {
       onSuccess: (data) => {
         console.log('🎉 Discovery flow completed successfully:', data);
         // Only invalidate the specific query for this workflow, not all discovery queries
-        queryClient.invalidateQueries({ queryKey: ['discoveryFlowStatus', data.session_id] });
+        queryClient.invalidateQueries({ queryKey: ['discoveryFlowStatus', data.flow_id] });
       },
       onError: (error) => {
         console.error('❌ Discovery flow failed:', error);
@@ -176,15 +175,15 @@ export const useDiscoveryFlow = () => {
 };
 
 // Hook for polling workflow status
-export const useDiscoveryFlowStatus = (sessionId: string | null) => {
+export const useDiscoveryFlowStatus = (flowId: string | null) => {
   return useQuery<AnalysisStatusResponse, Error>({
-    queryKey: ['discoveryFlowStatus', sessionId],
+    queryKey: ['discoveryFlowStatus', flowId],
     queryFn: async () => {
-      if (!sessionId) throw new Error('Session ID is required');
+      if (!flowId) throw new Error('Flow ID is required');
       
       // Use the public status endpoint that doesn't require authentication
       const response = await apiCall(
-        `/api/v1/discovery/flow/agentic-analysis/status-public?session_id=${sessionId}`
+        `/api/v1/discovery/flow/agentic-analysis/status-public?flow_id=${flowId}`
       ) as any;
       
       // Extract the actual workflow status from the backend response
@@ -203,7 +202,7 @@ export const useDiscoveryFlowStatus = (sessionId: string | null) => {
       // Simple transformation - just pass through what the agents provide
       return {
         status: workflowStatus,
-        session_id: sessionId,
+        flow_id: flowId,
         current_phase: currentPhase,
         workflow_phases: flowStatus.workflow_phases || [],
         progress_percentage: progressPercentage,
@@ -225,7 +224,7 @@ export const useDiscoveryFlowStatus = (sessionId: string | null) => {
         }
       } as AnalysisStatusResponse;
     },
-    enabled: !!sessionId,
+    enabled: !!flowId,
     staleTime: Infinity, // Never automatically consider data stale
     gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
     refetchInterval: false, // DISABLED: No automatic polling - use manual refresh only
@@ -242,13 +241,13 @@ export const useDiscoveryFlowStatus = (sessionId: string | null) => {
  * Get discovery flow status with authentication
  * Uses the authenticated endpoint for better security and more detailed status
  */
-export const useAuthenticatedDiscoveryStatus = (sessionId: string | null) => {
+export const useAuthenticatedDiscoveryStatus = (flowId: string | null) => {
   const { user, client, engagement } = useAuth();
   
   return useQuery<AnalysisStatusResponse, Error>({
-    queryKey: ['authenticatedDiscoveryStatus', sessionId],
+    queryKey: ['authenticatedDiscoveryStatus', flowId],
     queryFn: async () => {
-      if (!sessionId) throw new Error('Session ID is required');
+      if (!flowId) throw new Error('Flow ID is required');
       if (!user) throw new Error('Authentication required');
       
       try {
@@ -285,7 +284,7 @@ export const useAuthenticatedDiscoveryStatus = (sessionId: string | null) => {
         const headers: Record<string, string> = {
           'X-Client-Account-Id': clientId,
           'X-Engagement-Id': engagementId,
-          'X-Session-Id': sessionId,
+          'X-Flow-ID': flowId,
           'X-Requested-With': 'XMLHttpRequest' // Helps identify AJAX requests
         };
         
@@ -293,7 +292,7 @@ export const useAuthenticatedDiscoveryStatus = (sessionId: string | null) => {
         
         // Build query parameters
         const queryParams = new URLSearchParams({
-          session_id: sessionId,
+          flow_id: flowId,
           page_context: 'data-import',
           client_id: clientId,
           engagement_id: engagementId,
@@ -333,7 +332,7 @@ export const useAuthenticatedDiscoveryStatus = (sessionId: string | null) => {
         
         return {
           status: workflowStatus,
-          session_id: sessionId,
+          flow_id: flowId,
           current_phase: currentPhase,
           workflow_phases: flowStatus.workflow_phases || [],
           progress_percentage: progressPercentage,
@@ -358,7 +357,7 @@ export const useAuthenticatedDiscoveryStatus = (sessionId: string | null) => {
         throw new Error('Failed to fetch status with authentication');
       }
     },
-    enabled: !!sessionId,
+    enabled: !!flowId,
     refetchInterval: false, // DISABLED: No automatic polling - use manual refresh only
     retry: (failureCount, error) => {
       // Only retry on network errors, not on 4xx errors
@@ -393,18 +392,18 @@ export const useFileUpload = () => {
             file,
           });
           
-          // Use the session ID returned by the backend
-          const actualSessionId = result.session_id || id;
+          // Use the flow ID returned by the backend
+          const actualFlowId = result.flow_id || id;
           
           // Parse CSV to get record count for display
           const { headers, sample_data } = await parseCSVFile(file);
           
-          // Update file with backend session ID and additional metadata
+          // Update file with backend flow ID and additional metadata
           queryClient.setQueryData<UploadedFile[]>(['uploadedFiles'], (old = []) => 
             old.map(f => f.id === id ? { 
               ...f, 
-              id: actualSessionId,
-              sessionId: actualSessionId, // Add session ID for status polling
+              id: actualFlowId,
+              flowId: actualFlowId, // Add flow ID for status polling
               filename: file.name, // Add filename for display
               recordCount: sample_data.length, // Add record count for display
               status: 'analyzing',
@@ -413,11 +412,11 @@ export const useFileUpload = () => {
           );
           
           return {
-            id: actualSessionId,
+            id: actualFlowId,
             file,
             type,
             status: 'analyzing' as const,
-            sessionId: actualSessionId, // Add session ID for status polling
+            flowId: actualFlowId, // Add flow ID for status polling
             filename: file.name, // Add filename for display 
             recordCount: sample_data.length, // Add record count for display
             detectedFileType: file.name.split('.').pop()?.toUpperCase() || 'CSV',
@@ -454,7 +453,7 @@ export const useFileUpload = () => {
         file,
         type,
         status: 'uploaded' as const,
-        sessionId: id, // Temporary until backend returns real session ID
+        flowId: id, // Temporary until backend returns real flow ID
         filename: file.name,
         recordCount: 0, // Will be updated after parsing
         detectedFileType: file.name.split('.').pop()?.toUpperCase(),

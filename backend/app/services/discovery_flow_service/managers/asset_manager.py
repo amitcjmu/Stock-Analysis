@@ -7,7 +7,7 @@ import uuid
 from typing import Dict, Any, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.repositories.discovery_flow_repository import DiscoveryAssetRepository
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.models.asset import Asset
 from app.core.context import RequestContext
 
@@ -21,7 +21,7 @@ class AssetManager:
         self.db = db
         self.context = context
         
-        self.asset_repo = DiscoveryAssetRepository(
+        self.flow_repo = DiscoveryFlowRepository(
             db=db,
             client_account_id=str(context.client_account_id),
             engagement_id=str(context.engagement_id)
@@ -30,7 +30,7 @@ class AssetManager:
     async def get_flow_assets(self, flow_id: str, flow_internal_id: uuid.UUID) -> List[Asset]:
         """Get all assets for a discovery flow"""
         try:
-            assets = await self.asset_repo.get_assets_by_flow_id(flow_internal_id)
+            assets = await self.flow_repo.asset_queries.get_assets_by_flow_id(flow_internal_id)
             logger.info(f"✅ Found {len(assets)} assets for flow: {flow_id}")
             return assets
             
@@ -41,7 +41,7 @@ class AssetManager:
     async def get_assets_by_type(self, asset_type: str) -> List[Asset]:
         """Get assets by type for the current client/engagement"""
         try:
-            assets = await self.asset_repo.get_assets_by_type(asset_type)
+            assets = await self.flow_repo.asset_queries.get_assets_by_type(asset_type)
             logger.info(f"✅ Found {len(assets)} assets of type: {asset_type}")
             return assets
             
@@ -63,7 +63,7 @@ class AssetManager:
             if validation_status not in valid_statuses:
                 raise ValueError(f"Invalid validation status: {validation_status}")
             
-            asset = await self.asset_repo.update_asset_validation(
+            asset = await self.flow_repo.asset_commands.update_asset_validation(
                 asset_id=asset_id,
                 validation_status=validation_status,
                 validation_results=validation_results
@@ -89,7 +89,7 @@ class AssetManager:
         try:
             logger.info(f"📦 Creating {len(asset_data_list)} assets from {discovered_in_phase} phase")
             
-            assets = await self.asset_repo.create_assets_from_discovery(
+            assets = await self.flow_repo.asset_commands.create_assets_from_discovery(
                 discovery_flow_id=discovery_flow_id,
                 asset_data_list=asset_data_list,
                 discovered_in_phase=discovered_in_phase
@@ -119,7 +119,7 @@ class AssetManager:
             if not (0.0 <= confidence_score <= 1.0):
                 raise ValueError(f"Confidence score must be between 0.0 and 1.0: {confidence_score}")
             
-            asset = await self.asset_repo.update_asset_quality_scores(
+            asset = await self.flow_repo.asset_commands.update_asset_quality_scores(
                 asset_id=asset_id,
                 quality_score=quality_score,
                 confidence_score=confidence_score
@@ -138,7 +138,7 @@ class AssetManager:
     async def get_assets_by_validation_status(self, validation_status: str) -> List[Asset]:
         """Get assets by validation status"""
         try:
-            assets = await self.asset_repo.get_assets_by_validation_status(validation_status)
+            assets = await self.flow_repo.asset_queries.get_assets_by_validation_status(validation_status)
             logger.info(f"✅ Found {len(assets)} assets with validation status: {validation_status}")
             return assets
             
@@ -149,7 +149,7 @@ class AssetManager:
     async def get_assets_requiring_review(self, min_confidence_threshold: float = 0.7) -> List[Asset]:
         """Get assets that require manual review based on confidence threshold"""
         try:
-            assets = await self.asset_repo.get_assets_below_confidence_threshold(min_confidence_threshold)
+            assets = await self.flow_repo.asset_queries.get_assets_below_confidence_threshold(min_confidence_threshold)
             logger.info(f"✅ Found {len(assets)} assets requiring review (confidence < {min_confidence_threshold})")
             return assets
             
@@ -242,7 +242,7 @@ class AssetManager:
             logger.info(f"🔍 Filtering assets by criteria: {criteria}")
             
             # Get all assets for the flow
-            assets = await self.asset_repo.get_assets_by_flow_id(flow_internal_id)
+            assets = await self.flow_repo.asset_queries.get_assets_by_flow_id(flow_internal_id)
             
             # Apply filters
             filtered_assets = []

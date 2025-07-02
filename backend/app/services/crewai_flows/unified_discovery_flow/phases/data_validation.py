@@ -96,7 +96,6 @@ class DataValidationPhase:
             'source_columns': list(self.state.raw_data[0].keys()) if self.state.raw_data else [],
             'file_info': self.state.metadata.get('file_info', {}),
             'flow_metadata': {
-                'session_id': self.state.session_id,
                 'flow_id': self.state.flow_id
             }
         }

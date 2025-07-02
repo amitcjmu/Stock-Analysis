@@ -23,27 +23,27 @@ export const useFlowManagement = () => {
   const hasIncompleteFlows = incompleteFlows.length > 0;
 
   // Flow Management Handlers
-  const handleContinueFlow = useCallback((sessionId: string) => {
-    flowResumption.mutate(sessionId);
+  const handleContinueFlow = useCallback((flowId: string) => {
+    flowResumption.mutate(flowId);
   }, [flowResumption]);
 
-  const handleDeleteFlow = useCallback((sessionId: string) => {
-    flowDeletion.mutate(sessionId);
+  const handleDeleteFlow = useCallback((flowId: string) => {
+    flowDeletion.mutate(flowId);
   }, [flowDeletion]);
 
-  const handleBatchDeleteFlows = useCallback((sessionIds: string[]) => {
-    bulkFlowOperations.mutate({ session_ids: sessionIds });
+  const handleBatchDeleteFlows = useCallback((flowIds: string[]) => {
+    bulkFlowOperations.mutate({ flow_ids: flowIds });
   }, [bulkFlowOperations]);
 
-  const handleViewFlowDetails = useCallback((sessionId: string, phase: string) => {
+  const handleViewFlowDetails = useCallback((flowId: string, phase: string) => {
     // Navigate to phase-specific page using correct phase names
     const phaseRoutes = {
       'data_import': `/discovery/import`,
-      'attribute_mapping': `/discovery/attribute-mapping/${sessionId}`,
-      'data_cleansing': `/discovery/data-cleansing/${sessionId}`,
-      'inventory': `/discovery/inventory/${sessionId}`,
-      'dependencies': `/discovery/dependencies/${sessionId}`,
-      'tech_debt': `/discovery/tech-debt/${sessionId}`
+      'attribute_mapping': `/discovery/attribute-mapping/${flowId}`,
+      'data_cleansing': `/discovery/data-cleansing/${flowId}`,
+      'inventory': `/discovery/inventory/${flowId}`,
+      'dependencies': `/discovery/dependencies/${flowId}`,
+      'tech_debt': `/discovery/tech-debt/${flowId}`
     };
     const route = phaseRoutes[phase as keyof typeof phaseRoutes] || `/discovery/enhanced-dashboard`;
     navigate(route);

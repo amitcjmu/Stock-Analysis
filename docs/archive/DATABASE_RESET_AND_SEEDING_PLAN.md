@@ -58,8 +58,11 @@ This plan outlines the complete database reset strategy to fix schema mismatches
    ```
    - Demo Client Account (11111111-1111-1111-1111-111111111111)
    - Demo Engagement (22222222-2222-2222-2222-222222222222)
-   - Demo User (demo@democorp.com)
-   - Additional team users (analyst@democorp.com, manager@democorp.com)
+   - Demo Users with RBAC Roles:
+     - demo@democorp.com (ENGAGEMENT_MANAGER role, READ_WRITE access)
+     - analyst@democorp.com (ANALYST role, READ_WRITE access)
+     - viewer@democorp.com (VIEWER role, READ_ONLY access)
+     - client.admin@democorp.com (CLIENT_ADMIN role, ADMIN access)
    ```
 
 2. **Discovery Flow Data**
@@ -72,22 +75,23 @@ This plan outlines the complete database reset strategy to fix schema mismatches
 
 3. **Data Import Records**
    ```
-   - 5 Data imports (various formats: CSV, JSON, Excel)
-   - 1000+ raw import records
-   - Field mappings for each import
-   - Processing history
+   - 3 Data imports (CSV from CMDB, JSON from cloud inventory, Excel manual)
+   - 150-200 raw import records (enough to generate 60 assets)
+   - Field mappings for each import (10-15 fields per import)
+   - Processing history showing validation and cleansing
    ```
 
 4. **Asset Inventory**
    ```
-   - 500 discovered assets across categories:
-     - 150 Applications
-     - 200 Servers (Linux/Windows)
-     - 100 Databases
-     - 50 Network devices
+   - 60 discovered assets across categories:
+     - 10 Applications (mix of Java, .NET, Python)
+     - 35 Servers (20 Linux, 15 Windows)
+     - 10 Databases (4 Oracle, 3 SQL Server, 3 PostgreSQL)
+     - 5 Network devices (2 load balancers, 3 firewalls)
    - Realistic metadata (IPs, hostnames, specs)
    - Business ownership assignments
    - Technical specifications
+   - Clear dependencies between assets
    ```
 
 5. **Migration Planning Data**
@@ -120,17 +124,18 @@ This plan outlines the complete database reset strategy to fix schema mismatches
 ### Scenario 1: Complete Discovery Journey
 - CMDB import completed
 - All phases executed successfully
-- 100 assets discovered and analyzed
+- 25 assets discovered and analyzed
 - Ready for migration planning
 
 ### Scenario 2: In-Progress Analysis
 - Data imported, field mapping pending
+- 15 assets in processing
 - Shows active workflow state
 - Demonstrates approval process
 
-### Scenario 3: Complex Enterprise Environment
-- Multiple data sources imported
-- Cross-dependencies mapped
+### Scenario 3: Moderate Enterprise Environment
+- 2 data sources imported (CMDB + manual)
+- 60 total assets with dependencies mapped
 - Technical debt identified
 - Wave planning in progress
 

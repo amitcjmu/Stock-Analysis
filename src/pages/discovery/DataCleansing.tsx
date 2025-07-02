@@ -335,7 +335,7 @@ const DataCleansing: React.FC = () => {
                   </CardHeader>
                   <CardContent>
                     <EnhancedAgentOrchestrationPanel
-                      sessionId={flow.flow_id}
+                      flowId={flow.flow_id}
                       flowState={flow}
                     />
                   </CardContent>

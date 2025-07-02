@@ -172,8 +172,7 @@ export const useAttributeMappingLogic = () => {
     }
   }, [fieldMappingData]);
 
-  // Session and flow information
-  const sessionId = effectiveFlowId;
+  // Flow information
   const availableDataImports = flowList || [];
   const selectedDataImportId = effectiveFlowId;
 
@@ -455,8 +454,7 @@ export const useAttributeMappingLogic = () => {
     // Flow state
     flowState: flow, // Keep backward compatibility
     flow,
-    sessionId,
-    flowId: flow?.flow_id,
+    flowId: flow?.flow_id || effectiveFlowId,
     availableDataImports,
     selectedDataImportId,
     

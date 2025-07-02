@@ -88,8 +88,7 @@ async def test_discovery_flow(
         
         return {
             "success": True,
-            "flow_id": result.get("session_id"),
-            "session_id": result.get("session_id"),
+            "flow_id": result.get("flow_id"),
             "status": "initiated",
             "message": "Test discovery flow started successfully",
             "current_phase": result.get("current_phase", "initialization"),
@@ -105,7 +104,7 @@ async def test_discovery_flow(
 
 @router.get("/flow/status")
 async def test_flow_status(
-    session_id: str,
+    flow_id: str,
     request: Request,
     service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ):
@@ -116,17 +115,17 @@ async def test_flow_status(
         # Get context without authentication
         context = extract_context_from_request(request)
         
-        logger.info(f"Test flow status request for session: {session_id}")
+        logger.info(f"Test flow status request for flow: {flow_id}")
         
         # Get flow state
-        flow_state = await service.get_flow_state_by_session(session_id, context)
+        flow_state = await service.get_flow_state_by_flow_id(flow_id, context)
         
         if not flow_state:
-            raise HTTPException(status_code=404, detail=f"Flow not found: {session_id}")
+            raise HTTPException(status_code=404, detail=f"Flow not found: {flow_id}")
         
         return {
             "success": True,
-            "session_id": session_id,
+            "flow_id": flow_id,
             "flow_status": {
                 "status": flow_state.get("status", "unknown"),
                 "current_phase": flow_state.get("current_phase", "unknown"),

@@ -17,7 +17,7 @@ class StatusHandler:
     def get_current_status(self, state, knowledge_bases: Dict[str, Any]) -> Dict[str, Any]:
         """Get comprehensive flow status"""
         status = {
-            "session_id": state.session_id,
+            "flow_id": state.flow_id,
             "current_phase": state.current_phase,
             "overall_plan": state.overall_plan,
             "crew_status": state.crew_status,

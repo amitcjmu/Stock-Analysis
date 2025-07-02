@@ -30,7 +30,6 @@ interface CriticalAttributesTabProps {
   fieldMappings?: any[];
   onAttributeUpdate?: (attributeName: string, updates: Partial<CriticalAttribute>) => void;
   sessionInfo?: {
-    sessionId: string | null;
     flowId: string | null;
     availableDataImports: any[];
     selectedDataImportId: string | null;

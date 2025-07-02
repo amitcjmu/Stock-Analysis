@@ -8,7 +8,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.repositories.discovery_flow_repository import DiscoveryFlowRepository, DiscoveryAssetRepository
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
 from app.models.discovery_flow import DiscoveryFlow
 from app.models.asset import Asset
@@ -37,11 +37,7 @@ class FlowManager:
             engagement_id=str(context.engagement_id)
         )
         
-        self.asset_repo = DiscoveryAssetRepository(
-            db=db,
-            client_account_id=str(context.client_account_id),
-            engagement_id=str(context.engagement_id)
-        )
+        # Asset operations handled through flow_repo.asset_queries and flow_repo.asset_commands
     
     async def create_discovery_flow(
         self,
@@ -80,8 +76,7 @@ class FlowManager:
             
             discovery_flow = await self.flow_repo.create_discovery_flow(
                 flow_id=flow_id,
-                import_session_id=data_import_id,  # For backward compatibility
-                data_import_id=data_import_id,  # Store as data_import_id
+                data_import_id=data_import_id,
                 user_id=user_id or str(self.context.user_id),
                 raw_data=raw_data,
                 metadata=metadata or {}
@@ -135,20 +130,6 @@ class FlowManager:
             logger.error(f"❌ Failed to get discovery flow {flow_id}: {e}")
             raise
     
-    async def get_flow_by_import_session(self, import_session_id: str) -> Optional[DiscoveryFlow]:
-        """Get discovery flow by import session ID (for backward compatibility)"""
-        try:
-            flow = await self.flow_repo.get_by_import_session_id(import_session_id)
-            if flow:
-                logger.info(f"✅ Discovery flow found by import session: {import_session_id} -> {flow.flow_id}")
-            else:
-                logger.warning(f"⚠️ Discovery flow not found for import session: {import_session_id}")
-            
-            return flow
-            
-        except Exception as e:
-            logger.error(f"❌ Failed to get discovery flow by import session {import_session_id}: {e}")
-            raise
     
     async def update_phase_completion(
         self,
@@ -294,7 +275,7 @@ class FlowManager:
         try:
             logger.info(f"📦 Creating {len(asset_data_list)} assets from inventory for flow: {flow.flow_id}")
             
-            assets = await self.asset_repo.create_assets_from_discovery(
+            assets = await self.flow_repo.asset_commands.create_assets_from_discovery(
                 discovery_flow_id=flow.id,
                 asset_data_list=asset_data_list,
                 discovered_in_phase="inventory"

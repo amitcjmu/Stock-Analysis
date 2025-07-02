@@ -19,6 +19,16 @@ from app.api.v1.endpoints import (
     agents_router,
 )
 
+# Admin endpoints
+try:
+    from app.api.v1.admin.security_monitoring_handlers.security_audit_handler import router as security_audit_router
+    from app.api.v1.admin.platform_admin_handlers import router as platform_admin_router
+    from app.api.v1.admin.user_management_handlers.user_approval_handler import router as user_approval_router
+    ADMIN_ENDPOINTS_AVAILABLE = True
+except ImportError as e:
+    ADMIN_ENDPOINTS_AVAILABLE = False
+    logging.warning(f"Admin endpoints not available: {e}")
+
 # Legacy Discovery Flow Management - DISABLED (replaced by V2 Discovery Flow API)
 # from app.api.v1.endpoints.discovery_flow_management import router as discovery_flow_management_router
 # from app.api.v1.endpoints.discovery_flow_management_enhanced import router as discovery_flow_management_enhanced_router
@@ -281,6 +291,11 @@ if PLATFORM_ADMIN_AVAILABLE:
 if USER_APPROVALS_AVAILABLE:
     api_router.include_router(user_approvals_router, prefix="/admin/approvals", tags=["Admin - User Approvals"])
     logger.info("✅ User approvals router included")
+
+# Security monitoring endpoints
+if ADMIN_ENDPOINTS_AVAILABLE:
+    api_router.include_router(security_audit_router, prefix="/admin", tags=["Admin - Security Monitoring"])
+    logger.info("✅ Security audit router included")
 
 # Admin handlers are already included through the auth router (rbac.py)
 # No need to include admin_router separately - it would create duplicate routes

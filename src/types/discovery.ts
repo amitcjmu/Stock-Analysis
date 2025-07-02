@@ -1,12 +1,10 @@
-// Flow identifier interfaces for session-to-flow migration
+// Flow identifier interface
 export interface FlowIdentifier {
   flowId: string;
-  sessionId?: string; // @deprecated - remove in Phase 2
 }
 
 export interface FlowState {
   flow_id: string; // Primary identifier
-  session_id?: string; // @deprecated - Use flow_id instead
   current_phase: string;
   next_phase: string;
   previous_phase: string;
@@ -146,7 +144,6 @@ export interface DiscoveryFlowData {
   client_account_id: string;
   engagement_id: string;
   user_id: string;
-  import_session_id?: string; // Legacy field for backward compatibility
   flow_name: string;
   flow_description?: string;
   status: 'active' | 'completed' | 'failed' | 'paused' | 'waiting_for_user' | 'migrated';
@@ -169,7 +166,6 @@ export interface DiscoveryFlowData {
 // API Response Types
 export interface FlowStatusResponse {
   flow_id: string;
-  session_id?: string; // @deprecated
   status: string;
   progress_percentage: number;
   current_phase: string;
@@ -182,21 +178,7 @@ export interface FlowStatusResponse {
   warnings?: string[];
 }
 
-// Migration Utility Types
-export interface MigrationContext {
-  useFlowId: boolean;
-  identifier: string; // Either flowId or sessionId depending on context
-  legacySessionId?: string;
-}
-
-// Backward Compatibility Types
-export interface LegacySessionData {
-  sessionId: string;
-  sessionData: any;
-}
-
 export interface FlowData {
   flowId: string;
   flowData: any;
-  sessionId?: string; // For backward compatibility
 } 

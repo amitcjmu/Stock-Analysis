@@ -95,58 +95,6 @@ class CrewAIIntegrationService:
             logger.error(f"❌ Failed to sync CrewAI state for {flow_id}: {e}")
             raise
     
-    async def bridge_legacy_session(
-        self,
-        session_id: str,
-        crewai_flow_id: str,
-        crewai_state: Dict[str, Any]
-    ) -> DiscoveryFlow:
-        """
-        Bridge legacy session-based flow to new CrewAI flow architecture.
-        Provides backward compatibility during transition.
-        """
-        try:
-            logger.info(f"🌉 Bridging legacy session {session_id} to CrewAI flow {crewai_flow_id}")
-            
-            # Check if flow already exists by session ID
-            existing_flow = await self.flow_manager.get_flow_by_import_session(session_id)
-            if existing_flow:
-                logger.info(f"✅ Found existing flow for session {session_id}: {existing_flow.flow_id}")
-                
-                # Update with new CrewAI flow ID if different
-                if existing_flow.flow_id != crewai_flow_id:
-                    logger.info(f"🔄 Updating flow ID from {existing_flow.flow_id} to {crewai_flow_id}")
-                    # Note: This would require a repository method to update flow_id
-                
-                return existing_flow
-            
-            # Extract raw data from CrewAI state for new flow creation
-            raw_data = crewai_state.get("raw_data", [])
-            if not raw_data:
-                logger.warning(f"⚠️ No raw data found in CrewAI state for session {session_id}")
-                raw_data = []  # Create empty flow
-            
-            # Create new flow with legacy session mapping
-            metadata = {
-                "legacy_session_id": session_id,
-                "migrated_from": "legacy_session",
-                "migration_timestamp": logger.info.__self__.time() if hasattr(logger.info.__self__, 'time') else "unknown"
-            }
-            
-            flow = await self.create_flow_from_crewai(
-                crewai_flow_id=crewai_flow_id,
-                crewai_state=crewai_state,
-                raw_data=raw_data,
-                metadata=metadata
-            )
-            
-            logger.info(f"✅ Legacy session bridged: {session_id} -> {crewai_flow_id}")
-            return flow
-            
-        except Exception as e:
-            logger.error(f"❌ Failed to bridge legacy session {session_id}: {e}")
-            raise
-    
     async def export_flow_to_crewai(self, flow_id: str) -> Dict[str, Any]:
         """
         Export discovery flow data back to CrewAI format.
@@ -163,7 +111,7 @@ class CrewAIIntegrationService:
             # Build CrewAI compatible state
             crewai_export = {
                 "flow_id": flow.flow_id,
-                "session_id": flow.import_session_id or flow.data_import_id,  # Backward compatibility
+                "data_import_id": flow.data_import_id,
                 "current_phase": flow.get_next_phase(),
                 "flow_status": flow.status,
                 "progress_percentage": flow.progress_percentage,
@@ -277,12 +225,6 @@ class CrewAIIntegrationService:
         
         if metadata and "data_import_id" in metadata:
             return metadata["data_import_id"]
-        elif metadata and "import_session_id" in metadata:
-            # Backward compatibility - use import_session_id as data_import_id
-            return metadata["import_session_id"]
-        elif crewai_state and "session_id" in crewai_state:
-            # Backward compatibility - use session_id as data_import_id
-            return crewai_state["session_id"]
         elif crewai_state and "data_import_id" in crewai_state:
             return crewai_state["data_import_id"]
         

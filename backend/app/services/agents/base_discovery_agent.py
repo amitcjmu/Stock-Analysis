@@ -81,7 +81,7 @@ class BaseDiscoveryAgent(ABC):
         
         Args:
             data: Input data for processing
-            context: Additional context (flow_id, session_id, etc.)
+            context: Additional context (flow_id, client_account_id, etc.)
             
         Returns:
             AgentResult with processing results, confidence, clarifications, and insights

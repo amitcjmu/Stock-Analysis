@@ -392,7 +392,6 @@ async def initialize_discovery_flow(
         
         # Create new discovery flow
         flow = await flow_service.create_flow(
-            import_session_id=request.get('import_session_id'),
             initial_phase="data_import",
             metadata=request.get('metadata', {})
         )

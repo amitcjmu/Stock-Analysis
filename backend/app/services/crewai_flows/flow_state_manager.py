@@ -44,7 +44,6 @@ class FlowStateManager:
             # Create initial state structure
             flow_state = {
                 'flow_id': flow_id,
-                'session_id': initial_data.get('session_id', flow_id),
                 'client_account_id': str(self.context.client_account_id),
                 'engagement_id': str(self.context.engagement_id),
                 'user_id': str(self.context.user_id),

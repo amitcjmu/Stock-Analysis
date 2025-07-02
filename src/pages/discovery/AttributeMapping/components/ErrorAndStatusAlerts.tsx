@@ -8,7 +8,7 @@ interface ErrorAndStatusAlertsProps {
   isFlowNotFound: boolean;
   isLoading: boolean;
   hasData: boolean;
-  sessionId: string | null;
+  flowId: string | null;
   flowList: any[];
   effectiveFlowId: string | null;
   isAnalyzing: boolean;
@@ -19,7 +19,7 @@ export const ErrorAndStatusAlerts: React.FC<ErrorAndStatusAlertsProps> = ({
   isFlowNotFound,
   isLoading,
   hasData,
-  sessionId,
+  flowId,
   flowList,
   effectiveFlowId,
   isAnalyzing,
@@ -117,7 +117,7 @@ export const ErrorAndStatusAlerts: React.FC<ErrorAndStatusAlertsProps> = ({
   }
 
   // Viewing previous discovery data
-  if (!sessionId && !isFlowNotFound && hasData) {
+  if (!flowId && !isFlowNotFound && hasData) {
     return (
       <Alert className="mb-6 border-blue-200 bg-blue-50">
         <Upload className="h-5 w-5 text-blue-600" />

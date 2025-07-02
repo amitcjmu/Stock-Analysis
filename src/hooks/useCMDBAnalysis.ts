@@ -46,8 +46,8 @@ export const useCMDBAnalysis = () => {
       
       const parsedData = parseCSVData(fileContent);
       
-      // Generate a session ID for this analysis
-      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+      // Generate a flow ID for this analysis
+      const flowId = `flow_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
       
       // Prepare data in the format expected by CrewAI Flow endpoint
       const requestData = {
@@ -59,7 +59,7 @@ export const useCMDBAnalysis = () => {
             size: fileUpload.file.size,
             type: fileUpload.file.type,
             lastModified: fileUpload.file.lastModified,
-            import_session_id: sessionId
+            import_flow_id: flowId
           },
           columns: parsedData.length > 0 ? Object.keys(parsedData[0]) : [],
           sample_data: parsedData.slice(0, 10) // First 10 rows as sample
@@ -95,7 +95,7 @@ export const useCMDBAnalysis = () => {
         readyForImport: true,
         preview: parsedData.slice(0, 5),
         rawData: parsedData,
-        sessionId: analysis.session_id || sessionId,
+        flowId: analysis.flow_id || flowId,
         agentAnalysis: analysis.agent_analysis
       };
       

@@ -159,13 +159,13 @@ async def debug_v3_context(
             "client_account_id": context.client_account_id,
             "engagement_id": context.engagement_id,
             "user_id": context.user_id,
-            "session_id": context.session_id
+            "flow_id": context.flow_id
         },
         "str_values": {
             "client_account_id": str(context.client_account_id),
             "engagement_id": str(context.engagement_id),
             "user_id": str(context.user_id),
-            "session_id": str(context.session_id)
+            "flow_id": str(context.flow_id) if context.flow_id else None
         }
     }
 

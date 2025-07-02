@@ -9,8 +9,7 @@ interface AppContextType {
   user: { id: string } | null;
   client: { id: string } | null;
   engagement: { id: string } | null;
-  session: { id: string } | null;
-  flow?: { id: string } | null; // New flow context for migration
+  flow: { id: string } | null;
 }
 
 // Create a variable to store the current context
@@ -18,7 +17,6 @@ let currentContext: AppContextType = {
   user: null,
   client: null,
   engagement: null,
-  session: null,
   flow: null
 };
 
@@ -255,9 +253,6 @@ export const apiCall = async (
           }
           if (currentContext?.engagement?.id) {
             headers['X-Engagement-ID'] = currentContext.engagement.id;
-          }
-          if (currentContext?.session?.id) {
-            headers['X-Session-ID'] = currentContext.session.id;
           }
           if (currentContext?.flow?.id) {
             headers['X-Flow-ID'] = currentContext.flow.id;

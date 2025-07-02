@@ -319,15 +319,15 @@ class TestSharedMemoryIntegration:
     async def test_memory_persistence(self, field_mapping_crew, mock_import_session):
         """Test memory persistence across crew execution"""
         # Add initial memory
-        field_mapping_crew.shared_memory.add("session_context", {
-            "session_id": mock_import_session.id,
+        field_mapping_crew.shared_memory.add("flow_context", {
+            "flow_id": str(mock_import_session.id),
             "previous_mappings": {"server": "hostname"}
         })
         
         # Retrieve memory
-        context = field_mapping_crew.shared_memory.get("session_context")
+        context = field_mapping_crew.shared_memory.get("flow_context")
         
-        assert context["session_id"] == 123
+        assert context["flow_id"] == "123"
         assert context["previous_mappings"]["server"] == "hostname"
         
     @pytest.mark.asyncio

@@ -41,7 +41,7 @@ async def test_agentic_flow():
             client_account_id=str(uuid.uuid4()),
             engagement_id=str(uuid.uuid4()),
             user_id=str(uuid.uuid4()),
-            session_id=str(uuid.uuid4())
+            flow_id=str(uuid.uuid4())
         )
         
         # Create test CMDB data
@@ -71,7 +71,7 @@ async def test_agentic_flow():
             crewai_service = CrewAIFlowService(db)
             
             flow = create_discovery_flow(
-                session_id=context.session_id,
+                flow_id=context.flow_id,
                 client_account_id=context.client_account_id,
                 engagement_id=context.engagement_id,
                 user_id=context.user_id,
@@ -89,7 +89,7 @@ async def test_agentic_flow():
         print("\n3. Testing Flow state initialization...")
         initial_result = flow.initialize_discovery()
         print(f"   ✅ Initialization result: {initial_result}")
-        print(f"   ✅ Session ID set: {flow.state.session_id}")
+        print(f"   ✅ Flow ID set: {flow.state.flow_id}")
         print(f"   ✅ Fingerprint ID set: {flow.state.fingerprint_id}")
         print(f"   ✅ Data records: {len(flow.state.cmdb_data.get('file_data', []))}")
         

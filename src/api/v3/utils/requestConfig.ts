@@ -73,9 +73,6 @@ export function buildHeaders(
     if (context.user_id) {
       headers['X-User-ID'] = context.user_id;
     }
-    if (context.session_id) {
-      headers['X-Session-ID'] = context.session_id;
-    }
     if (context.flow_id) {
       headers['X-Flow-ID'] = context.flow_id;
     }

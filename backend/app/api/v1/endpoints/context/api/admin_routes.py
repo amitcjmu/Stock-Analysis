@@ -32,7 +32,7 @@ async def get_context(
         "client_account_id": context.client_account_id,
         "engagement_id": context.engagement_id,
         "user_id": context.user_id,
-        "session_id": context.session_id,
+        "flow_id": context.flow_id,
         "request_id": context.request_id
     }
 

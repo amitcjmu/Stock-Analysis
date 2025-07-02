@@ -114,7 +114,7 @@ class InitializationHandler:
         
         return knowledge_bases
     
-    def setup_flow_id(self, session_id: str, client_account_id: str, 
+    def setup_flow_id(self, client_account_id: str, 
                      engagement_id: str, raw_data: List[Dict[str, Any]]) -> str:
         """Setup flow ID using the flow service for session management"""
         
@@ -128,14 +128,12 @@ class InitializationHandler:
             # Generate unique flow ID using the service
             flow_id = flow_service.generate_flow_id(
                 flow_type="discovery_redesigned",
-                session_id=session_id,
                 client_account_id=client_account_id,
                 engagement_id=engagement_id
             )
             
             # Create flow metadata
             flow_metadata = {
-                "session_id": session_id,
                 "client_account_id": client_account_id,
                 "engagement_id": engagement_id,
                 "data_sample_size": len(raw_data),
@@ -158,11 +156,11 @@ class InitializationHandler:
             logger.error(f"Failed to create flow ID: {e}")
             # Fallback flow ID generation
             import uuid
-            flow_id = f"discovery_redesigned_{session_id}_{uuid.uuid4().hex[:8]}"
+            flow_id = f"discovery_redesigned_{uuid.uuid4().hex[:8]}"
             logger.warning(f"Using fallback flow ID: {flow_id}")
             return flow_id
     
-    def initialize_flow_state(self, session_id: str, client_account_id: str, 
+    def initialize_flow_state(self, client_account_id: str, 
                              engagement_id: str, user_id: str, raw_data: List[Dict[str, Any]],
                              metadata: Dict[str, Any], flow_id: str, 
                              shared_memory: Optional[LongTermMemory]) -> Dict[str, Any]:
@@ -177,11 +175,10 @@ class InitializationHandler:
         crew_coordination = self.plan_crew_coordination()
         
         return {
-            "session_id": session_id,
+            "flow_id": flow_id,
             "client_account_id": client_account_id,
             "engagement_id": engagement_id,
             "user_id": user_id,
-            "flow_id": flow_id,
             "raw_data": raw_data,
             "metadata": metadata,
             "created_at": now,

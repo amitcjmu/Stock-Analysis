@@ -140,7 +140,7 @@ class DataImportSession(Base):
     # Note: data_imports relationship removed as session_id was replaced with master_flow_id during database consolidation
     
     def __repr__(self):
-        return f"<DataImportSession(id={self.id}, name='{self.session_name}', status='{self.status}', is_mock={self.is_mock})>"
+        return f"<DataImportSession(id={self.id}, name='{self.session_name}', status='{self.status}')>"
     
     @classmethod
     def generate_session_name(cls, client_name: str, engagement_name: str, timestamp: datetime = None) -> str:

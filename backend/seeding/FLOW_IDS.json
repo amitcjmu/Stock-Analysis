@@ -1,0 +1,39 @@
+{
+  "flows": [
+    {
+      "id": "77777777-7777-7777-7777-777777777777",
+      "flow_id": "77777777-7777-7777-7777-777777777777",
+      "name": "Completed Discovery - Production Environment",
+      "state": "complete",
+      "progress": 100
+    },
+    {
+      "id": "88888888-8888-8888-8888-888888888888",
+      "flow_id": "88888888-8888-8888-8888-888888888888",
+      "name": "In Progress - Field Mapping Phase",
+      "state": "in_progress",
+      "progress": 45
+    },
+    {
+      "id": "99999999-9999-9999-9999-999999999999",
+      "flow_id": "99999999-9999-9999-9999-999999999999",
+      "name": "Asset Inventory Building",
+      "state": "in_progress",
+      "progress": 65
+    },
+    {
+      "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "flow_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "name": "Failed Import - Data Quality Issues",
+      "state": "failed",
+      "progress": 15
+    },
+    {
+      "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "flow_id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "name": "New Discovery - Just Initialized",
+      "state": "in_progress",
+      "progress": 5
+    }
+  ]
+}

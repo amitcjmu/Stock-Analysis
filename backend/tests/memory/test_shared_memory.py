@@ -35,7 +35,7 @@ class MockMemoryItem:
         self.timestamp = time.time()
         self.client_account_id = metadata.get('client_account_id', 1) if metadata else 1
         self.engagement_id = metadata.get('engagement_id', 1) if metadata else 1
-        self.session_id = metadata.get('session_id', str(uuid.uuid4())) if metadata else str(uuid.uuid4())
+        self.flow_id = metadata.get('flow_id', str(uuid.uuid4())) if metadata else str(uuid.uuid4())
         
     def to_dict(self):
         return {
@@ -45,7 +45,7 @@ class MockMemoryItem:
             "timestamp": self.timestamp,
             "client_account_id": self.client_account_id,
             "engagement_id": self.engagement_id,
-            "session_id": self.session_id
+            "flow_id": self.flow_id
         }
 
 
@@ -137,18 +137,18 @@ class MockSharedMemoryService:
                 })
         return results
         
-    async def add_cross_crew_insight(self, insight: Dict, session_id: str = None) -> bool:
+    async def add_cross_crew_insight(self, insight: Dict, flow_id: str = None) -> bool:
         """Add cross-crew insight"""
-        insight["session_id"] = session_id or str(uuid.uuid4())
+        insight["flow_id"] = flow_id or str(uuid.uuid4())
         insight["timestamp"] = time.time()
         self.cross_crew_insights.append(insight)
         return True
         
-    async def get_cross_crew_insights(self, session_id: str = None) -> List[Dict]:
-        """Get cross-crew insights for session"""
-        if session_id:
+    async def get_cross_crew_insights(self, flow_id: str = None) -> List[Dict]:
+        """Get cross-crew insights for flow"""
+        if flow_id:
             return [insight for insight in self.cross_crew_insights 
-                   if insight.get("session_id") == session_id]
+                   if insight.get("flow_id") == flow_id]
         return self.cross_crew_insights
         
     async def optimize_memory(self, strategy: str = "cleanup") -> Dict:
@@ -301,13 +301,13 @@ class TestMemoryPersistenceAcrossExecutions:
         await service.add_memory(
             "field_mapping_result",
             {"mappings": {"hostname": "server_name"}},
-            {"client_account_id": session.client_account_id, "session_id": session.session_uuid}
+            {"client_account_id": session.client_account_id, "flow_id": session.flow_uuid}
         )
         
         await service.add_memory(
             "data_cleansing_result", 
             {"quality_score": 0.92},
-            {"client_account_id": session.client_account_id, "session_id": session.session_uuid}
+            {"client_account_id": session.client_account_id, "flow_id": session.flow_uuid}
         )
         
         # Verify persistence
@@ -325,19 +325,19 @@ class TestMemoryPersistenceAcrossExecutions:
         service = shared_memory_service
         
         # Session 1
-        session1_id = str(uuid.uuid4())
+        flow1_id = str(uuid.uuid4())
         await service.add_memory(
             "learned_pattern_1",
             {"pattern": "hostname_variations", "confidence": 0.95},
-            {"client_account_id": 1, "session_id": session1_id}
+            {"client_account_id": 1, "flow_id": flow1_id}
         )
         
-        # Session 2
-        session2_id = str(uuid.uuid4())
+        # Flow 2
+        flow2_id = str(uuid.uuid4())
         await service.add_memory(
             "learned_pattern_2",
             {"pattern": "ip_formats", "confidence": 0.88},
-            {"client_account_id": 1, "session_id": session2_id}
+            {"client_account_id": 1, "flow_id": flow2_id}
         )
         
         # Verify both patterns persist

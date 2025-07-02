@@ -99,7 +99,6 @@ class PostgresFlowStateStore:
                 # Create new record
                 new_record = CrewAIFlowStateExtensions(
                     flow_id=flow_id,
-                    session_id=uuid.UUID(state.get('session_id', str(uuid.uuid4()))),
                     client_account_id=self.client_account_id,
                     engagement_id=self.engagement_id,
                     user_id=self.user_id,

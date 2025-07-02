@@ -21,13 +21,13 @@ class DependencyAnalysisService:
         db: AsyncSession,
         client_account_id: str,
         engagement_id: str,
-        session_id: Optional[str] = None
+        flow_id: Optional[str] = None
     ):
         """Initialize the service with context."""
         self.db = db
         self.client_account_id = client_account_id
         self.engagement_id = engagement_id
-        self.session_id = session_id
+        self.flow_id = flow_id
         self.repository = DependencyRepository(db, client_account_id, engagement_id)
         self.discovery_flow = CrewAIFlowService(db)
 

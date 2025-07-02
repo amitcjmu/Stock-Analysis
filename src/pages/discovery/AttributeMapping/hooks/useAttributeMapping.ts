@@ -17,7 +17,6 @@ export const useAttributeMapping = () => {
     mappingProgress,
     criticalAttributes,
     flowState,
-    sessionId,
     flowId,
     availableDataImports,
     selectedDataImportId,
@@ -51,12 +50,11 @@ export const useAttributeMapping = () => {
   const errorMessage = flowStateError?.message || agenticError?.message;
   const hasData = !!(agenticData?.attributes?.length);
   const isFlowNotFound = errorMessage?.includes('Flow not found') || errorMessage?.includes('404');
-  const hasSessionData = sessionId || flowState;
+  const hasSessionData = flowId || flowState;
   const hasUploadedData = agenticData?.attributes && agenticData.attributes.length > 0;
 
   // Session info object
   const sessionInfo: SessionInfo = {
-    sessionId,
     flowId,
     availableDataImports,
     selectedDataImportId,
@@ -71,7 +69,6 @@ export const useAttributeMapping = () => {
     mappingProgress,
     criticalAttributes,
     flowState,
-    sessionId,
     flowId,
     availableDataImports,
     selectedDataImportId,

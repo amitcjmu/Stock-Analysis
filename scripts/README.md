@@ -38,9 +38,9 @@ python scripts/modularization_test.py --export-json results.json
 python scripts/modularization_test.py --threshold 300 --detailed --export-json modularization_report.json
 ```
 
-#### Claude Code Integration
+#### CC Integration
 
-The script is available as Claude commands:
+The script is available as CC commands:
 - `/modularization-test` - Full command with all options
 - `/modtest` - Quick alias for common usage
 

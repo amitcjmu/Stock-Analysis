@@ -42,11 +42,11 @@ export const useFileUpload = () => {
   const storeImportData = useCallback(async (
     csvData: any[], 
     file: File, 
-    sessionId: string, 
+    uploadId: string, 
     categoryId: string
   ): Promise<{import_session_id: string | null, flow_id: string | null}> => {
-    if (!sessionId) {
-      console.error('No session ID available for storing data.');
+    if (!uploadId) {
+      console.error('No upload ID available for storing data.');
       return { import_session_id: null, flow_id: null };
     }
 
@@ -56,7 +56,7 @@ export const useFileUpload = () => {
     const effectiveEngagement = engagement || (isAdmin ? { id: 'demo-engagement', name: 'Demo Engagement' } : null);
 
     try {
-      console.log(`Storing data for session: ${sessionId}`);
+      console.log(`Storing data for upload: ${uploadId}`);
       console.log('Using effective context:', { 
         client: effectiveClient?.id, 
         engagement: effectiveEngagement?.id 
@@ -77,7 +77,7 @@ export const useFileUpload = () => {
           },
           upload_context: {
             intended_type: categoryId,
-            validation_session_id: sessionId,
+            validation_upload_id: uploadId,
             upload_timestamp: new Date().toISOString(),
           },
           client_id: effectiveClient?.id || null,
@@ -189,12 +189,12 @@ export const useFileUpload = () => {
 
       console.log(`Parsed ${csvData.length} records from CSV file`);
       
-      // Generate a proper UUID for the upload session
-      const tempSessionId = crypto.randomUUID();
+      // Generate a proper UUID for the upload
+      const uploadId = crypto.randomUUID();
       
       // Store data and trigger UnifiedDiscoveryFlow directly
       console.log('Storing data and triggering UnifiedDiscoveryFlow...');
-      const { import_session_id, flow_id } = await storeImportData(csvData, file, tempSessionId, categoryId);
+      const { import_session_id, flow_id } = await storeImportData(csvData, file, uploadId, categoryId);
       
       if (flow_id) {
         // Success - UnifiedDiscoveryFlow was triggered - START PROCESSING TRACKING

@@ -9,7 +9,7 @@ V2 Discovery Flow Architecture:
 """
 
 # Core Models
-from app.models.client_account import ClientAccount, Engagement, User
+from app.models.client_account import ClientAccount, Engagement, User, UserAccountAssociation
 
 # V2 Discovery Flow Models (Primary)
 from app.models.discovery_flow import DiscoveryFlow
@@ -91,6 +91,7 @@ __all__ = [
     "UserRole",
     "ClientAccess", 
     "AccessLevel",
+    "UserAccountAssociation",
     
     # Agent Communication Models
     "AgentQuestion",

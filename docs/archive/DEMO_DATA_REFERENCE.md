@@ -6,17 +6,19 @@
 ```python
 DEMO_CLIENT_ID = "11111111-1111-1111-1111-111111111111"
 DEMO_ENGAGEMENT_ID = "22222222-2222-2222-2222-222222222222"
-DEMO_USER_ID = "33333333-3333-3333-3333-333333333333"
-ANALYST_USER_ID = "44444444-4444-4444-4444-444444444444"
-MANAGER_USER_ID = "55555555-5555-5555-5555-555555555555"
+DEMO_USER_ID = "33333333-3333-3333-3333-333333333333"  # demo@democorp.com
+ANALYST_USER_ID = "44444444-4444-4444-4444-444444444444"  # analyst@democorp.com
+VIEWER_USER_ID = "55555555-5555-5555-5555-555555555555"  # viewer@democorp.com
+CLIENT_ADMIN_USER_ID = "66666666-6666-6666-6666-666666666666"  # client.admin@democorp.com
 ```
 
 ### Demo User Accounts
-| Email | Password | Role | Purpose |
-|-------|----------|------|---------|
-| demo@democorp.com | Demo123! | Migration Architect | Primary demo user |
-| analyst@democorp.com | Demo123! | Data Analyst | Read/analyze workflows |
-| manager@democorp.com | Demo123! | Program Manager | Administrative views |
+| Email | Password | RBAC Role | Access Level | Purpose |
+|-------|----------|-----------|--------------|---------|
+| demo@democorp.com | Demo123! | ENGAGEMENT_MANAGER | READ_WRITE | Primary demo user - manages engagements |
+| analyst@democorp.com | Demo123! | ANALYST | READ_WRITE | Data analysis and reporting |
+| viewer@democorp.com | Demo123! | VIEWER | READ_ONLY | Read-only access to view data |
+| client.admin@democorp.com | Demo123! | CLIENT_ADMIN | ADMIN | Client-level administration |
 
 ## Demo Scenarios
 
@@ -46,53 +48,61 @@ MANAGER_USER_ID = "55555555-5555-5555-5555-555555555555"
 
 ## Sample Asset Categories
 
-### Applications (150 total)
-- 50 Web Applications (Java, .NET, Python)
-- 30 Databases (Oracle, SQL Server, PostgreSQL)
-- 40 Middleware (WebLogic, JBoss, Tomcat)
-- 30 Custom Applications
+### Applications (10 total)
+- 3 Web Applications (1 Java, 1 .NET, 1 Python)
+- 4 Business Applications (ERP, CRM, HR, Finance)
+- 3 Custom Applications
 
-### Servers (200 total)
-- 120 Linux Servers (RHEL, Ubuntu)
-- 80 Windows Servers (2016, 2019, 2022)
+### Servers (35 total)
+- 20 Linux Servers (12 RHEL, 8 Ubuntu)
+- 15 Windows Servers (5 Win 2016, 7 Win 2019, 3 Win 2022)
+
+### Databases (10 total)
+- 4 Oracle (Production)
+- 3 SQL Server (Mixed environments)
+- 3 PostgreSQL (Development)
 
 ### Sample Asset Names
 ```
-Web Servers:
-- demo-web-prod-01 through demo-web-prod-20
-- demo-web-staging-01 through demo-web-staging-10
+Web/App Servers:
+- demo-web-prod-01 through demo-web-prod-05
+- demo-app-prod-01 through demo-app-prod-10
+- demo-app-dev-01 through demo-app-dev-05
 
-App Servers:
-- demo-app-prod-01 through demo-app-prod-30
-- demo-app-dev-01 through demo-app-dev-10
+Database Servers:
+- demo-db-oracle-prod-01 through demo-db-oracle-prod-04
+- demo-db-mssql-prod-01 through demo-db-mssql-prod-03
+- demo-db-postgres-dev-01 through demo-db-postgres-dev-03
 
-Databases:
-- demo-db-oracle-prod-01
-- demo-db-mssql-prod-01
-- demo-db-postgres-prod-01
+Applications:
+- CustomerPortal (Java web app)
+- FinanceSystem (.NET app)
+- HRManagement (Python web app)
+- InventoryERP (Legacy)
 ```
 
 ## Migration Waves
 
 ### Wave 1: "Dev/Test Systems" (Month 1-2)
-- 50 non-production assets
+- 8 development servers
+- 3 test databases
 - Low risk, high learning
 
-### Wave 2: "Stateless Web Tier" (Month 3-4)
-- 75 web servers
+### Wave 2: "Non-Critical Apps" (Month 3-4)
+- 5 internal applications
+- 10 application servers
 - Medium complexity
 
-### Wave 3: "Application Tier" (Month 5-6)
-- 100 application servers
+### Wave 3: "Customer-Facing Apps" (Month 5-6)
+- 3 web applications
+- 12 production servers
 - Complex dependencies
 
-### Wave 4: "Data Tier" (Month 7-8)
-- 50 databases
+### Wave 4: "Core Business Systems" (Month 7-8)
+- 2 critical applications (ERP, CRM)
+- 7 database servers
+- 5 app servers
 - High complexity
-
-### Wave 5: "Production Critical" (Month 9-10)
-- 25 mission-critical systems
-- Extensive planning required
 
 ## Sample Field Mappings
 
@@ -146,12 +156,13 @@ AND client_account_id = '11111111-1111-1111-1111-111111111111';
 When logged in as demo@democorp.com, verify:
 
 - [ ] Dashboard shows 5 discovery flows
-- [ ] Asset inventory displays 500 assets
+- [ ] Asset inventory displays 60 assets total
 - [ ] Field mappings has pending approvals
-- [ ] Dependency graph renders properly
-- [ ] Migration waves show 5 waves
+- [ ] Dependency graph renders properly with connections
+- [ ] Migration waves show 4 waves with proper asset distribution
 - [ ] Analytics has performance data
 - [ ] No empty state messages appear
+- [ ] Asset breakdown shows: 10 apps, 35 servers, 10 databases, 5 network devices
 
 ## Notes
 

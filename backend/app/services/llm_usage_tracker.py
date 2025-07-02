@@ -59,7 +59,7 @@ class LLMUsageTracker:
         engagement_id: Optional[int] = None,
         user_id: Optional[int] = None,
         username: Optional[str] = None,
-        session_id: Optional[str] = None,
+        flow_id: Optional[str] = None,
         page_context: Optional[str] = None,
         feature_context: Optional[str] = None,
         endpoint: Optional[str] = None
@@ -70,7 +70,7 @@ class LLMUsageTracker:
             'engagement_id': engagement_id,
             'user_id': user_id,
             'username': username,
-            'session_id': session_id,
+            'flow_id': flow_id,
             'page_context': page_context,
             'feature_context': feature_context,
             'endpoint': endpoint,

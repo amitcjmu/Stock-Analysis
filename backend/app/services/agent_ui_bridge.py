@@ -95,12 +95,12 @@ class AgentUIBridge:
                          title: str, description: str, confidence: ConfidenceLevel,
                          supporting_data: Dict[str, Any], page: str = "discovery",
                          actionable: bool = True, client_account_id: str = None,
-                         engagement_id: str = None, session_id: str = None) -> str:
+                         engagement_id: str = None, flow_id: str = None) -> str:
         """Add a new insight from an agent (will be reviewed before presentation)."""
         return self.insight_handler.add_agent_insight(
             agent_id, agent_name, insight_type, title, description, 
             confidence, supporting_data, page, actionable,
-            client_account_id, engagement_id, session_id
+            client_account_id, engagement_id, flow_id
         )
     
     def get_insights_for_page(self, page: str) -> List[Dict[str, Any]]:

@@ -6,7 +6,6 @@ export interface AttributeMappingState {
   mappingProgress: any;
   criticalAttributes: any[];
   flowState: any;
-  sessionId: string | null;
   flowId: string | null;
   availableDataImports: any[];
   selectedDataImportId: string | null;
@@ -37,7 +36,6 @@ export interface NavigationState {
 }
 
 export interface SessionInfo {
-  sessionId: string | null;
   flowId: string | null;
   availableDataImports: any[];
   selectedDataImportId: string | null;

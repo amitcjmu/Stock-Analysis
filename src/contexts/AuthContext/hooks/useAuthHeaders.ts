@@ -1,12 +1,12 @@
 import { useCallback } from 'react';
-import { User, Client, Engagement, Session } from '../types';
+import { User, Client, Engagement } from '../types';
 import { tokenStorage } from '../storage';
 
 export const useAuthHeaders = (
   user: User | null,
   client: Client | null,
   engagement: Engagement | null,
-  session: Session | null
+  flowId: string | null
 ) => {
   return useCallback((): Record<string, string> => {
     const token = tokenStorage.getToken();
@@ -37,7 +37,7 @@ export const useAuthHeaders = (
       } : null,
       client: client ? { id: client.id, name: client.name } : null,
       engagement: engagement ? { id: engagement.id, name: engagement.name } : null,
-      session: session ? { id: session.id, name: session.name } : null
+      flowId: flowId
     });
     
     if (token) {
@@ -76,14 +76,14 @@ export const useAuthHeaders = (
       console.warn('⚠️ No engagement or engagement.id available for X-Engagement-ID header:', { engagement });
     }
     
-    if (session && session.id) {
-      headers['X-Session-ID'] = session.id;
-      console.log('✅ Added X-Session-ID header:', session.id);
+    if (flowId) {
+      headers['X-Flow-ID'] = flowId;
+      console.log('✅ Added X-Flow-ID header:', flowId);
     } else {
-      console.warn('⚠️ No session or session.id available for X-Session-ID header:', { session });
+      console.warn('⚠️ No flowId available for X-Flow-ID header');
     }
 
     console.log('🔍 Final headers being sent:', headers);
     return headers;
-  }, [user, client, engagement, session]);
+  }, [user, client, engagement, flowId]);
 };

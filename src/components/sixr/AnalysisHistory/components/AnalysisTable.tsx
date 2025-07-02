@@ -1,6 +1,6 @@
 import React from 'react';
-import { Table, TableBody, TableHead, TableHeader, TableRow } from '../../ui/table';
-import { Checkbox } from '../../ui/checkbox';
+import { Table, TableBody, TableHead, TableHeader, TableRow } from '../../../ui/table';
+import { Checkbox } from '../../../ui/checkbox';
 import { AnalysisHistoryItem } from '../types';
 import { AnalysisTableRow } from './AnalysisTableRow';
 

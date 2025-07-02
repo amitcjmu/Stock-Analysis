@@ -172,11 +172,11 @@ class MultiTenantWorkflowTester:
             client_test_results["csv_upload"] = csv_result
             
             if csv_result.get("success"):
-                print(f"✅ CSV Upload successful: Session {csv_result.get('import_session_id')}")
+                print(f"✅ CSV Upload successful: Flow {csv_result.get('flow_id')}")
                 
                 # Step 3: Process with CrewAI for this client
                 process_result = await self.process_crewai_for_client(
-                    csv_result.get("import_session_id"), client_id
+                    csv_result.get("flow_id"), client_id
                 )
                 client_test_results["crewai_processing"] = process_result
                 
@@ -278,7 +278,7 @@ class MultiTenantWorkflowTester:
                             upload_result = await response.json()
                             result = {
                                 "success": True,
-                                "import_session_id": upload_result.get("import_session_id"),
+                                "flow_id": upload_result.get("flow_id"),
                                 "total_records": upload_result.get("total_records"),
                                 "test_data_count": len(test_data),
                                 "client_id": client_id
@@ -303,7 +303,7 @@ class MultiTenantWorkflowTester:
                 "client_id": client_id
             }
     
-    async def process_crewai_for_client(self, import_session_id: str, client_id: str):
+    async def process_crewai_for_client(self, flow_id: str, client_id: str):
         """Process uploaded data with CrewAI for a specific client."""
         try:
             base_url = "http://localhost:8000"
@@ -315,14 +315,14 @@ class MultiTenantWorkflowTester:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
                     f"{base_url}/api/v1/data-import/process-raw-to-assets",
-                    json={"import_session_id": import_session_id},
+                    json={"flow_id": flow_id},
                     headers=headers
                 ) as response:
                     if response.status == 200:
                         process_result = await response.json()
                         return {
                             "success": True,
-                            "import_session_id": import_session_id,
+                            "flow_id": flow_id,
                             "result": process_result,
                             "assets_created": process_result.get("assets_created", 0),
                             "client_id": client_id
@@ -331,7 +331,7 @@ class MultiTenantWorkflowTester:
                         error_text = await response.text()
                         return {
                             "success": False,
-                            "import_session_id": import_session_id,
+                            "flow_id": flow_id,
                             "status": response.status,
                             "error": error_text,
                             "client_id": client_id

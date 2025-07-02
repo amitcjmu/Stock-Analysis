@@ -42,7 +42,6 @@ const AttributeMappingContainer: React.FC = () => {
     mappingProgress,
     criticalAttributes,
     flowState,
-    sessionId,
     flowId,
     availableDataImports,
     selectedDataImportId,
@@ -98,7 +97,7 @@ const AttributeMappingContainer: React.FC = () => {
               isFlowNotFound={isFlowNotFound}
               isLoading={isLoading}
               hasData={hasData}
-              sessionId={sessionId}
+              flowId={flowId}
               flowList={flowList}
               effectiveFlowId={effectiveFlowId}
               isAnalyzing={isAnalyzing}

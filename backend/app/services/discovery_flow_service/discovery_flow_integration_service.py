@@ -69,22 +69,6 @@ class DiscoveryFlowIntegrationService:
     
     # Enhanced methods using modular integration component
     
-    async def bridge_legacy_session(
-        self,
-        session_id: str,
-        crewai_flow_id: str,
-        crewai_state: Dict[str, Any]
-    ) -> DiscoveryFlow:
-        """
-        Bridge legacy session-based flow to new CrewAI flow architecture.
-        Provides backward compatibility during transition.
-        """
-        return await self.crewai_integration.bridge_legacy_session(
-            session_id=session_id,
-            crewai_flow_id=crewai_flow_id,
-            crewai_state=crewai_state
-        )
-    
     async def export_flow_to_crewai(self, flow_id: str) -> Dict[str, Any]:
         """
         Export discovery flow data back to CrewAI format.
@@ -105,35 +89,6 @@ class DiscoveryFlowIntegrationService:
             flow_id=flow_id,
             crewai_state=crewai_state
         )
-    
-    async def migrate_session_to_flow(
-        self,
-        session_id: str,
-        target_flow_id: str = None
-    ) -> DiscoveryFlow:
-        """
-        Migrate legacy session-based data to new flow architecture.
-        """
-        try:
-            logger.info(f"🔄 Migrating session to flow architecture: {session_id}")
-            
-            # Get existing flow by session ID
-            existing_flow = await self.discovery_service.get_flow_by_import_session(session_id)
-            if not existing_flow:
-                raise ValueError(f"No flow found for session: {session_id}")
-            
-            # If target flow ID provided and different, update the flow
-            if target_flow_id and target_flow_id != existing_flow.flow_id:
-                logger.info(f"🔄 Updating flow ID from {existing_flow.flow_id} to {target_flow_id}")
-                # This would require a repository method to update flow_id
-                # For now, return the existing flow
-            
-            logger.info(f"✅ Session migration completed: {session_id} -> {existing_flow.flow_id}")
-            return existing_flow
-            
-        except Exception as e:
-            logger.error(f"❌ Failed to migrate session {session_id}: {e}")
-            raise
     
     async def synchronize_with_crewai_flow(
         self,
@@ -219,7 +174,7 @@ class DiscoveryFlowIntegrationService:
                     "crew_status_available": has_crew_status,
                     "agent_insights_available": has_agent_insights,
                     "exportable_to_crewai": bool(crewai_export),
-                    "legacy_session_compatible": bool(flow.import_session_id or flow.data_import_id)
+                    "data_import_linked": bool(flow.data_import_id)
                 },
                 "data_completeness": {
                     "raw_data_available": bool(flow.raw_data),
@@ -262,7 +217,7 @@ class DiscoveryFlowIntegrationService:
         if flow.progress_percentage and flow.progress_percentage < 50:
             recommendations.append("Continue flow execution to capture more phase data")
         
-        if not (flow.import_session_id or flow.data_import_id):
-            recommendations.append("Link flow to data import session for full traceability")
+        if not flow.data_import_id:
+            recommendations.append("Link flow to data import for full traceability")
         
         return recommendations

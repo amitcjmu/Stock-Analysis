@@ -32,7 +32,6 @@ async def test_postgres_store():
     test_flow_id = "test-flow-" + datetime.now().strftime("%Y%m%d-%H%M%S")
     test_state = {
         'flow_id': test_flow_id,
-        'session_id': test_flow_id,
         'client_account_id': str(context.client_account_id),
         'engagement_id': str(context.engagement_id),
         'user_id': str(context.user_id),

@@ -1,0 +1,107 @@
+{
+  "client_account": {
+    "id": "11111111-1111-1111-1111-111111111111",
+    "name": "DemoCorp International"
+  },
+  "engagement": {
+    "id": "22222222-2222-2222-2222-222222222222",
+    "name": "Cloud Migration Assessment 2024"
+  },
+  "users": [
+    {
+      "id": "33333333-3333-3333-3333-333333333333",
+      "email": "demo@democorp.com",
+      "role": "ENGAGEMENT_MANAGER"
+    },
+    {
+      "id": "44444444-4444-4444-4444-444444444444",
+      "email": "analyst@democorp.com",
+      "role": "ANALYST"
+    },
+    {
+      "id": "55555555-5555-5555-5555-555555555555",
+      "email": "viewer@democorp.com",
+      "role": "VIEWER"
+    },
+    {
+      "id": "66666666-6666-6666-6666-666666666666",
+      "email": "client.admin@democorp.com",
+      "role": "CLIENT_ADMIN"
+    }
+  ],
+  "flows": [
+    {
+      "id": "77777777-7777-7777-7777-777777777777",
+      "name": "Completed Discovery - Production Environment",
+      "state": "complete",
+      "progress": 100,
+      "current_phase": "completion_phase"
+    },
+    {
+      "id": "88888888-8888-8888-8888-888888888888",
+      "name": "In Progress - Field Mapping Phase",
+      "state": "in_progress",
+      "progress": 45,
+      "current_phase": "field_mapping_phase"
+    },
+    {
+      "id": "99999999-9999-9999-9999-999999999999",
+      "name": "Asset Inventory Building",
+      "state": "in_progress",
+      "progress": 65,
+      "current_phase": "asset_intelligence_phase"
+    },
+    {
+      "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "name": "Failed Import - Data Quality Issues",
+      "state": "failed",
+      "progress": 15,
+      "current_phase": "data_import_phase"
+    },
+    {
+      "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "name": "New Discovery - Just Initialized",
+      "state": "in_progress",
+      "progress": 5,
+      "current_phase": "initialization_phase"
+    }
+  ],
+  "imports": [
+    {
+      "id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+      "flow_id": "77777777-7777-7777-7777-777777777777",
+      "filename": "server_inventory.csv",
+      "type": "ASSET_INVENTORY",
+      "status": "completed",
+      "rows": {
+        "total": 150,
+        "processed": 150,
+        "failed": 0
+      }
+    },
+    {
+      "id": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      "flow_id": "88888888-8888-8888-8888-888888888888",
+      "filename": "application_catalog.json",
+      "type": "BUSINESS_APPS",
+      "status": "processing",
+      "rows": {
+        "total": 75,
+        "processed": 45,
+        "failed": 2
+      }
+    },
+    {
+      "id": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+      "flow_id": "99999999-9999-9999-9999-999999999999",
+      "filename": "app_dependencies.xlsx",
+      "type": "NETWORK_DATA",
+      "status": "completed",
+      "rows": {
+        "total": 200,
+        "processed": 198,
+        "failed": 2
+      }
+    }
+  ]
+}

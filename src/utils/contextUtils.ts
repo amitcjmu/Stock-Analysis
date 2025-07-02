@@ -3,9 +3,8 @@ import { AuthContextType } from '../contexts/AuthContext';
 interface ContextWithIds {
   client?: { id: string };
   engagement?: { id: string };
-  session?: { id: string };
   currentEngagementId?: string | null;
-  currentSessionId?: string | null;
+  flowId?: string | null;
   user?: { id: string; role: string } | null;
 }
 
@@ -31,8 +30,8 @@ export const getAuthHeaders = (context?: Partial<AuthContextType & ContextWithId
     headers['X-Engagement-ID'] = context.currentEngagementId;
   }
   
-  if (context?.currentSessionId) {
-    headers['X-Session-ID'] = context.currentSessionId;
+  if (context?.flowId) {
+    headers['X-Flow-ID'] = context.flowId;
   }
 
   return headers;
@@ -56,10 +55,8 @@ export const getContextHeaders = (context?: Partial<ContextWithIds>) => {
     headers['X-Engagement-ID'] = context.currentEngagementId;
   }
   
-  if (context?.session?.id) {
-    headers['X-Session-ID'] = context.session.id;
-  } else if (context?.currentSessionId) {
-    headers['X-Session-ID'] = context.currentSessionId;
+  if (context?.flowId) {
+    headers['X-Flow-ID'] = context.flowId;
   }
   
   return headers;
@@ -74,6 +71,6 @@ export const extractContextFromHeaders = (headers: Headers): Record<string, stri
   return {
     clientId: headers.get('X-Client-ID') || '',
     engagementId: headers.get('X-Engagement-ID') || '',
-    sessionId: headers.get('X-Session-ID') || '',
+    flowId: headers.get('X-Flow-ID') || '',
   };
 };

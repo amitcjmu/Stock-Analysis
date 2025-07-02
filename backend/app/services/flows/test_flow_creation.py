@@ -38,8 +38,7 @@ async def test_flow_creation():
                 {"hostname": "server1", "ip": "192.168.1.1", "type": "server"},
                 {"hostname": "server2", "ip": "192.168.1.2", "type": "database"},
                 {"hostname": "app1", "ip": "192.168.1.3", "type": "application"}
-            ],
-            "session_id": "test-session-456"
+            ]
         }
         
         # Test with mock database session
@@ -59,8 +58,7 @@ async def test_flow_creation():
                 data_import_id=import_data["import_id"],
                 import_filename=import_data["filename"],
                 total_records=import_data["record_count"],
-                raw_data=import_data["raw_data"],
-                session_id=import_data["session_id"]
+                raw_data=import_data["raw_data"]
             )
             
             logger.info(f"✅ Initial state created: {initial_state.flow_id}")

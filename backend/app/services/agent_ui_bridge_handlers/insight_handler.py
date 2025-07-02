@@ -24,7 +24,7 @@ class InsightHandler:
                          title: str, description: str, confidence: ConfidenceLevel,
                          supporting_data: Dict[str, Any], page: str = "discovery",
                          actionable: bool = True, client_account_id: str = None,
-                         engagement_id: str = None, session_id: str = None) -> str:
+                         engagement_id: str = None, flow_id: str = None) -> str:
         """Add a new insight from an agent (with presentation review filtering)."""
         insight_id = str(uuid.uuid4())
         
@@ -35,7 +35,7 @@ class InsightHandler:
                 context = get_current_context()
                 client_account_id = client_account_id or context.client_account_id
                 engagement_id = engagement_id or context.engagement_id
-                session_id = session_id or getattr(context, 'session_id', None)
+                flow_id = flow_id or getattr(context, 'flow_id', None)
                 logger.info(f"Captured client context for insight: client={client_account_id}, engagement={engagement_id}")
             except Exception as e:
                 logger.warning(f"Could not capture client context: {e}")
@@ -54,7 +54,7 @@ class InsightHandler:
             page=page,
             client_account_id=client_account_id,
             engagement_id=engagement_id,
-            session_id=session_id
+            flow_id=flow_id
         )
         
         # Check for duplicates before adding - simple duplicate detection

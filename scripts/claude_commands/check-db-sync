@@ -1,0 +1,157 @@
+#!/bin/bash
+# Claude Code Command: check-db-sync
+# Check database model synchronization and identify schema mismatches
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}🔍 Database Model Synchronization Checker${NC}"
+echo "=========================================="
+
+# Function to show usage
+show_usage() {
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  --table, -t TABLE_NAME    Check specific table only"
+    echo "  --fix                     Generate Alembic migration for differences"
+    echo "  --verbose, -v             Show detailed comparison output"
+    echo "  --output, -o FILE         Save report to JSON file"
+    echo "  --help, -h                Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0                        Check all tables"
+    echo "  $0 --table users          Check only 'users' table"
+    echo "  $0 --fix --verbose        Check all and generate migration with details"
+    echo "  $0 --output report.json   Save detailed report to file"
+}
+
+# Parse command line arguments
+ARGS=()
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --table|-t)
+            TABLE_NAME="$2"
+            ARGS+=("--table" "$2")
+            shift 2
+            ;;
+        --fix)
+            FIX_MODE=true
+            ARGS+=("--fix")
+            shift
+            ;;
+        --verbose|-v)
+            VERBOSE=true
+            ARGS+=("--verbose")
+            shift
+            ;;
+        --output|-o)
+            OUTPUT_FILE="$2"
+            ARGS+=("--output" "$2")
+            shift 2
+            ;;
+        --help|-h)
+            show_usage
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}Unknown option: $1${NC}"
+            show_usage
+            exit 1
+            ;;
+    esac
+done
+
+# Check if Docker is running
+if ! docker info >/dev/null 2>&1; then
+    echo -e "${RED}❌ Docker is not running. Please start Docker first.${NC}"
+    exit 1
+fi
+
+# Check if containers are running
+if ! docker-compose ps | grep -q "migration_backend.*Up"; then
+    echo -e "${RED}❌ Backend container is not running.${NC}"
+    echo -e "${YELLOW}Starting containers...${NC}"
+    docker-compose up -d
+    
+    # Wait for containers to be ready
+    echo "Waiting for services to be ready..."
+    sleep 10
+fi
+
+# Check if database is accessible
+echo -e "${BLUE}🔗 Checking database connectivity...${NC}"
+if ! docker exec migration_backend python -c "
+import asyncio
+import sys
+sys.path.append('/app')
+from app.core.database import AsyncSessionLocal
+from sqlalchemy import text
+async def test():
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(text('SELECT 1 as test'))
+        print('✅ Database connection successful')
+asyncio.run(test())
+" 2>/dev/null; then
+    echo -e "${RED}❌ Cannot connect to database. Check your database configuration.${NC}"
+    exit 1
+fi
+
+# Run the synchronization checker
+echo -e "${BLUE}🔍 Running database model synchronization check...${NC}"
+
+# Execute the checker script in the backend container
+DOCKER_CMD="docker exec -i migration_backend python /app/scripts/db_model_sync_checker.py"
+
+# Add arguments if provided
+if [ ${#ARGS[@]} -gt 0 ]; then
+    DOCKER_CMD="$DOCKER_CMD ${ARGS[*]}"
+fi
+
+# Run the command and capture exit code
+set +e
+$DOCKER_CMD
+EXIT_CODE=$?
+set -e
+
+# Interpret results
+if [ $EXIT_CODE -eq 0 ]; then
+    echo -e "\n${GREEN}🎉 All database models are in sync!${NC}"
+elif [ $EXIT_CODE -eq 1 ]; then
+    echo -e "\n${YELLOW}⚠️  Schema differences detected. See report above.${NC}"
+    
+    if [ "$FIX_MODE" = true ]; then
+        echo -e "${BLUE}🔧 Migration suggestions generated.${NC}"
+        echo -e "${YELLOW}Next steps:${NC}"
+        echo "1. Review the differences carefully"
+        echo "2. Run: docker exec migration_backend alembic revision --autogenerate -m 'sync schema'"
+        echo "3. Review the generated migration file"
+        echo "4. Run: docker exec migration_backend alembic upgrade head"
+    else
+        echo -e "${YELLOW}To generate migration scripts, run with --fix flag${NC}"
+    fi
+else
+    echo -e "${RED}❌ Error occurred during schema check.${NC}"
+    exit $EXIT_CODE
+fi
+
+# Show additional helpful information
+echo -e "\n${BLUE}📚 Additional Commands:${NC}"
+echo "  docker exec migration_backend alembic current     # Show current migration"
+echo "  docker exec migration_backend alembic history     # Show migration history"
+echo "  docker exec migration_backend alembic upgrade head # Apply migrations"
+echo "  docker exec migration_backend python -c \"from app.models import Base; print([t.name for t in Base.metadata.tables.values()])\" # List model tables"
+
+# If output file was specified, show where it was saved
+if [ -n "$OUTPUT_FILE" ]; then
+    echo -e "\n${GREEN}📄 Detailed report saved to: $OUTPUT_FILE${NC}"
+fi

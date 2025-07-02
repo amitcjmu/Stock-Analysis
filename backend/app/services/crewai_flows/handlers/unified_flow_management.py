@@ -60,7 +60,6 @@ class UnifiedFlowManagement:
     def get_flow_management_info(self) -> Dict[str, Any]:
         """Get comprehensive flow information for management UI"""
         return {
-            "session_id": self.state.session_id,
             "flow_id": self.state.flow_id,
             "current_phase": self.state.current_phase,
             "status": self.state.status,
@@ -82,7 +81,7 @@ class UnifiedFlowManagement:
         """Validate that the flow state is valid for resumption"""
         try:
             # Check basic state integrity
-            if not self.state.session_id or not self.state.current_phase:
+            if not self.state.flow_id or not self.state.current_phase:
                 return False
             
             # Check phase dependencies

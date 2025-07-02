@@ -60,7 +60,7 @@ class FlowInitializer:
             'client_account_id': str(context.client_account_id),
             'engagement_id': str(context.engagement_id),
             'user_id': str(context.user_id),
-            'session_id': kwargs.get('session_id', f'disc_session_{uuid.uuid4().hex[:8]}'),
+            'flow_id': kwargs.get('flow_id', str(uuid.uuid4())),
             'flow_name': kwargs.get('flow_name', 'Unified Discovery Flow'),
             'metadata': kwargs.get('metadata', {})
         }

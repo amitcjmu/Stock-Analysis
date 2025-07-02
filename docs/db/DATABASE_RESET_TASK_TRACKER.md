@@ -151,8 +151,13 @@ This tracker monitors the execution of the Database Reset and Comprehensive Seed
 - [ ] **2.2.1** Create 01_core_entities.py
   - Demo client account
   - Demo engagement
-  - 3 demo users (demo@, analyst@, manager@)
+  - 4 demo users with proper RBAC roles:
+    - demo@democorp.com (ENGAGEMENT_MANAGER, READ_WRITE)
+    - analyst@democorp.com (ANALYST, READ_WRITE)
+    - viewer@democorp.com (VIEWER, READ_ONLY)
+    - client.admin@democorp.com (CLIENT_ADMIN, ADMIN)
   - User-account associations
+  - User profiles with RBAC settings
   
 - [ ] **2.2.2** Add supporting entities
   - 2 additional client accounts (for variety)
@@ -170,10 +175,12 @@ This tracker monitors the execution of the Database Reset and Comprehensive Seed
   - Agent insights
   - Performance metrics
 
-#### Task 2.4: Data Import Seeding (1 hour)
+#### Task 2.4: Data Import Seeding (45 minutes)
 - [ ] **2.4.1** Create 03_data_imports.py
-  - 5 imports with different statuses
-  - Various file types (CSV, JSON, Excel)
+  - 3 imports with different sources:
+    - CMDB export (CSV, completed)
+    - Cloud inventory (JSON, completed)
+    - Manual asset list (Excel, in-progress)
   - Realistic file sizes and names
   
 - [ ] **2.4.2** Create sample import files
@@ -183,11 +190,12 @@ This tracker monitors the execution of the Database Reset and Comprehensive Seed
 
 ### Afternoon Session: Assets and Relationships (4 hours)
 
-#### Task 2.5: Raw Import Records (1 hour)
+#### Task 2.5: Raw Import Records (45 minutes)
 - [ ] **2.5.1** Create 04_raw_import_records.py
-  - 1000+ raw records across imports
+  - 150-200 raw records across 3 imports
   - Mix of valid and invalid records
   - Various data quality issues
+  - Enough to generate 60 final assets
   
 - [ ] **2.5.2** Add cleansed data
   - Transformation results
@@ -201,12 +209,12 @@ This tracker monitors the execution of the Database Reset and Comprehensive Seed
   - Various confidence scores
   - Transformation rules
 
-#### Task 2.7: Asset Inventory Seeding (1.5 hours)
+#### Task 2.7: Asset Inventory Seeding (1 hour)
 - [ ] **2.7.1** Create 06_assets.py
-  - 150 Applications (various tech stacks)
-  - 200 Servers (Linux/Windows mix)
-  - 100 Databases (SQL/NoSQL)
-  - 50 Network devices
+  - 10 Applications (Java, .NET, Python, Legacy)
+  - 35 Servers (20 Linux, 15 Windows)
+  - 10 Databases (Oracle, SQL Server, PostgreSQL)
+  - 5 Network devices (load balancers, firewalls)
   
 - [ ] **2.7.2** Add realistic metadata
   - Proper hostnames/IPs

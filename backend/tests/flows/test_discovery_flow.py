@@ -41,8 +41,7 @@ def sample_import_data():
             {"hostname": "server1", "ip": "192.168.1.1", "type": "server"},
             {"hostname": "server2", "ip": "192.168.1.2", "type": "database"},
             {"hostname": "app1", "ip": "192.168.1.3", "type": "application"}
-        ],
-        "session_id": "test-session-456"
+        ]
     }
 
 

@@ -3,7 +3,7 @@ Client Account models for multi-tenant data segregation.
 """
 
 try:
-    from sqlalchemy import Column, String, Text, Boolean, DateTime, UUID, JSON, ForeignKey, UniqueConstraint
+    from sqlalchemy import Column, String, Text, Boolean, DateTime, UUID, JSON, ForeignKey, UniqueConstraint, Integer
     from sqlalchemy.orm import relationship
     from sqlalchemy.ext.associationproxy import association_proxy
     from sqlalchemy.sql import func
@@ -45,10 +45,21 @@ class ClientAccount(Base):
     primary_contact_name = Column(String(255))
     primary_contact_email = Column(String(255))
     primary_contact_phone = Column(String(50))
-    
+    contact_email = Column(String(255))
+    contact_phone = Column(String(50))
+    address = Column(Text)
+    timezone = Column(String(50))
     # Subscription & Billing
     subscription_tier = Column(String(50), default='standard')
     billing_contact_email = Column(String(255))
+    subscription_start_date = Column(DateTime(timezone=True))
+    subscription_end_date = Column(DateTime(timezone=True))
+    max_users = Column(Integer)
+    max_engagements = Column(Integer)
+    features_enabled = Column(JSON, default=lambda: {})
+    agent_configuration = Column(JSON, default=lambda: {})
+    storage_quota_gb = Column(Integer)
+    api_quota_monthly = Column(Integer)
     
     # Settings
     settings = Column(JSON, default=lambda: {})
@@ -59,48 +70,22 @@ class ClientAccount(Base):
         "primary_goals": [],
         "timeframe": "",
         "success_metrics": [],
-        "budget_constraints": "",
-        "compliance_requirements": []
+        "constraints": []
     })
     
-    it_guidelines = Column(JSON, default=lambda: {
-        "architecture_patterns": [],
-        "security_requirements": [],
-        "compliance_standards": [],
-        "technology_preferences": [],
-        "cloud_strategy": "",
-        "data_governance": {}
-    })
-    
-    decision_criteria = Column(JSON, default=lambda: {
-        "risk_tolerance": "medium",
-        "cost_sensitivity": "medium",
-        "innovation_appetite": "moderate",
-        "timeline_pressure": "medium",
-        "quality_vs_speed": "balanced",
-        "technical_debt_tolerance": "low"
-    })
-    
+    # Agent Configuration Preferences
     agent_preferences = Column(JSON, default=lambda: {
-        "confidence_thresholds": {
-            "field_mapping": 0.8,
-            "data_classification": 0.75,
-            "risk_assessment": 0.85,
-            "migration_strategy": 0.9
-        },
-        "learning_preferences": ["conservative", "accuracy_focused"],
-        "custom_prompts": {},
-        "notification_preferences": {
-            "confidence_alerts": True,
-            "learning_updates": False,
-            "error_notifications": True
-        }
+        "discovery_depth": "comprehensive",
+        "automation_level": "assisted",
+        "risk_tolerance": "moderate",
+        "preferred_clouds": [],
+        "compliance_requirements": [],
+        "custom_rules": []
     })
     
     # Audit
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    created_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False, index=True)
     
     # Core relationships only

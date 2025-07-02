@@ -1,8 +1,8 @@
 import React from 'react';
-import { TableCell, TableRow } from '../../ui/table';
-import { Checkbox } from '../../ui/checkbox';
-import { Button } from '../../ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../ui/dropdown-menu';
+import { TableCell, TableRow } from '../../../ui/table';
+import { Checkbox } from '../../../ui/checkbox';
+import { Button } from '../../../ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../ui/dropdown-menu';
 import { Eye, Archive, Trash2, MoreHorizontal, Star } from 'lucide-react';
 import { AnalysisHistoryItem } from '../types';
 import { StrategyBadge } from './StrategyBadge';

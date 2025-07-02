@@ -187,8 +187,8 @@ class DiscoveryFlowCleanupService:
                 and_(
                     Asset.client_account_id == self.client_account_id,
                     Asset.engagement_id == self.engagement_id,
-                    # Try to match by session_id if it exists
-                    Asset.session_id == flow_id
+                    # Match by discovery_flow_id
+                    Asset.discovery_flow_id == flow.id
                 )
             )
             result = await db_session.execute(legacy_assets_stmt)
@@ -210,11 +210,11 @@ class DiscoveryFlowCleanupService:
         try:
             sessions_deleted = 0
             
-            # Delete by import_session_id if available
-            if flow.import_session_id:
+            # Delete by data_import_id if available
+            if hasattr(flow, 'data_import_id') and flow.data_import_id:
                 sessions_stmt = select(DataImportSession).where(
                     and_(
-                        DataImportSession.id == flow.import_session_id,
+                        DataImportSession.id == flow.data_import_id,
                         DataImportSession.client_account_id == self.client_account_id,
                         DataImportSession.engagement_id == self.engagement_id
                     )

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Badge } from '../../ui/badge';
+import { Badge } from '../../../ui/badge';
 import { statusColors } from '../constants';
 
 interface StatusBadgeProps {

@@ -121,11 +121,11 @@ After completing each file, update this tracker:
 | Agent | Files Completed | Files Remaining | Status | Notes |
 |-------|----------------|-----------------|---------|-------|
 | Agent 1 | 4/15 | 11 | In Progress | Core Backend Context - context.py COMPLETED, sessions.py deleted |
-| Agent 2 | 8/60 | 52 | In Progress | Models & repos cleaned, migration created |
-| Agent 3 | 0/80 | 80 | Not Started | APIs & Services |
-| Agent 4 | 0/8 | 8 | Not Started | Frontend Infrastructure |
-| Agent 5 | 0/15 | 15 | Not Started | Frontend Components |
-| Agent 6 | 9/68 | 59 | In Progress | Backend Services & Testing - Cleaning services and tests |
+| Agent 2 | 30/60 | 30 | In Progress | Models/repos/schemas cleaned, core validator updated, 50% complete |
+| Agent 3 | 7/80 | 73 | In Progress | v3 data_import cleaned, monitoring.py cleaned, discovery services cleaned |
+| Agent 4 | 8/8 | 0 | ✅ COMPLETED | Frontend Infrastructure - All files cleaned! |
+| Agent 5 | 11/15 | 4 | In Progress | Cleaned modular hooks, AttributeMapping, DataCleansing, Enhanced panels, CMDB hooks |
+| Agent 6 | 23/68 | 45 | In Progress | Backend Services & Testing - DB migration complete, cleaning tests |
 
 ### **Blocker Log**
 

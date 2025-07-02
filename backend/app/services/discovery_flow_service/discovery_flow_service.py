@@ -79,9 +79,6 @@ class DiscoveryFlowService:
         """Get discovery flow by CrewAI Flow ID (single source of truth)"""
         return await self.flow_manager.get_flow_by_id(flow_id)
     
-    async def get_flow_by_import_session(self, import_session_id: str) -> Optional[DiscoveryFlow]:
-        """Get discovery flow by import session ID (for backward compatibility)"""
-        return await self.flow_manager.get_flow_by_import_session(import_session_id)
     
     async def update_phase_completion(
         self,

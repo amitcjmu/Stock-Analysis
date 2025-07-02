@@ -9,7 +9,7 @@ import uuid
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
-from app.repositories.discovery_flow_repository import DiscoveryFlowRepository, DiscoveryAssetRepository
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
 from app.models.discovery_flow import DiscoveryFlow
 # from app.models.discovery_asset import DiscoveryAsset  # Model removed - using Asset model instead
@@ -43,11 +43,7 @@ class DiscoveryFlowService:
             engagement_id=str(context.engagement_id)
         )
         
-        self.asset_repo = DiscoveryAssetRepository(
-            db=db,
-            client_account_id=str(context.client_account_id),
-            engagement_id=str(context.engagement_id)
-        )
+        # Asset operations are handled through flow_repo.asset_queries and flow_repo.asset_commands
     
     async def create_discovery_flow(
         self,
@@ -88,8 +84,7 @@ class DiscoveryFlowService:
             
             discovery_flow = await self.flow_repo.create_discovery_flow(
                 flow_id=flow_id,
-                import_session_id=data_import_id,  # For backward compatibility
-                data_import_id=data_import_id,  # Store as data_import_id
+                data_import_id=data_import_id,
                 user_id=user_id or str(self.context.user_id),
                 raw_data=raw_data,
                 metadata=metadata or {}
@@ -163,21 +158,6 @@ class DiscoveryFlowService:
             
         except Exception as e:
             logger.error(f"❌ Failed to get discovery flow {flow_id}: {e}")
-            raise
-    
-    async def get_flow_by_import_session(self, import_session_id: str) -> Optional[DiscoveryFlow]:
-        """Get discovery flow by import session ID (for backward compatibility)"""
-        try:
-            flow = await self.flow_repo.get_by_import_session_id(import_session_id)
-            if flow:
-                logger.info(f"✅ Discovery flow found by import session: {import_session_id} -> {flow.flow_id}")
-            else:
-                logger.warning(f"⚠️ Discovery flow not found for import session: {import_session_id}")
-            
-            return flow
-            
-        except Exception as e:
-            logger.error(f"❌ Failed to get discovery flow by import session {import_session_id}: {e}")
             raise
     
     async def update_phase_completion(
@@ -271,7 +251,7 @@ class DiscoveryFlowService:
             if not flow:
                 raise ValueError(f"Discovery flow not found: {flow_id}")
             
-            assets = await self.asset_repo.get_assets_by_flow_id(flow.id)
+            assets = await self.flow_repo.asset_queries.get_assets_by_flow_id(flow.id)
             logger.info(f"✅ Found {len(assets)} assets for flow: {flow_id}")
             return assets
             
@@ -282,7 +262,7 @@ class DiscoveryFlowService:
     async def get_assets_by_type(self, asset_type: str) -> List[Asset]:
         """Get assets by type for the current client/engagement"""
         try:
-            assets = await self.asset_repo.get_assets_by_type(asset_type)
+            assets = await self.flow_repo.asset_queries.get_assets_by_type(asset_type)
             logger.info(f"✅ Found {len(assets)} assets of type: {asset_type}")
             return assets
             
@@ -304,7 +284,7 @@ class DiscoveryFlowService:
             if validation_status not in valid_statuses:
                 raise ValueError(f"Invalid validation status: {validation_status}")
             
-            asset = await self.asset_repo.update_asset_validation(
+            asset = await self.flow_repo.asset_commands.update_asset_validation(
                 asset_id=asset_id,
                 validation_status=validation_status,
                 validation_results=validation_results
@@ -419,7 +399,7 @@ class DiscoveryFlowService:
         try:
             logger.info(f"📦 Creating {len(asset_data_list)} assets from inventory for flow: {flow.flow_id}")
             
-            assets = await self.asset_repo.create_assets_from_discovery(
+            assets = await self.flow_repo.asset_commands.create_assets_from_discovery(
                 discovery_flow_id=flow.id,
                 asset_data_list=asset_data_list,
                 discovered_in_phase="inventory"
@@ -458,16 +438,10 @@ class DiscoveryFlowIntegrationService:
         try:
             logger.info(f"🔗 Creating discovery flow from CrewAI: {crewai_flow_id}")
             
-            # Extract data import ID if available (for linking to import session)
+            # Extract data import ID if available
             data_import_id = None
             if metadata and "data_import_id" in metadata:
                 data_import_id = metadata["data_import_id"]
-            elif metadata and "import_session_id" in metadata:
-                # Backward compatibility - use import_session_id as data_import_id
-                data_import_id = metadata["import_session_id"]
-            elif crewai_state and "session_id" in crewai_state:
-                # Backward compatibility - use session_id as data_import_id
-                data_import_id = crewai_state["session_id"]
             
             # Create discovery flow using CrewAI Flow ID as single source of truth
             flow = await self.discovery_service.create_discovery_flow(

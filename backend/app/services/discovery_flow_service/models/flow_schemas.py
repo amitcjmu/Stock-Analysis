@@ -104,7 +104,6 @@ class CrewAIExport(BaseModel):
     """Model for CrewAI flow export data."""
     
     flow_id: str = Field(..., description="Discovery flow identifier")
-    session_id: Optional[str] = Field(None, description="Legacy session ID")
     current_phase: str = Field(..., description="Current flow phase")
     flow_status: str = Field(..., description="Flow status")
     progress_percentage: Optional[float] = Field(None, description="Progress percentage")
@@ -127,13 +126,6 @@ class ValidationReport(BaseModel):
     validation_timestamp: str = Field(..., description="Validation execution timestamp")
 
 
-class LegacySessionBridge(BaseModel):
-    """Model for bridging legacy session to new flow architecture."""
-    
-    session_id: str = Field(..., description="Legacy session identifier")
-    crewai_flow_id: str = Field(..., description="New CrewAI flow identifier")
-    crewai_state: Dict[str, Any] = Field(..., description="CrewAI state to bridge")
-    preserve_session_data: bool = Field(True, description="Preserve original session data")
 
 
 class AssetQualityUpdate(BaseModel):
