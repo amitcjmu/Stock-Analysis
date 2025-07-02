@@ -89,8 +89,6 @@ class Asset(Base):
     
     # Flow-based tracking (migrated from session_id)
     flow_id = Column(PostgresUUID(as_uuid=True), ForeignKey('discovery_flows.flow_id', ondelete='CASCADE'), nullable=True, index=True)
-    # Legacy session tracking - maintained for backward compatibility during migration
-    session_id = Column(PostgresUUID(as_uuid=True), ForeignKey('data_import_sessions.id', ondelete='CASCADE'), nullable=True, index=True)
     migration_id = Column(PostgresUUID(as_uuid=True), ForeignKey('migrations.id'), nullable=True)
     
     # Master Flow Coordination (Phase 2)
@@ -109,7 +107,7 @@ class Asset(Base):
     name = Column(String(255), nullable=False, index=True)
     asset_name = Column(String(255), nullable=True)
     hostname = Column(String(255), index=True)
-    asset_type = Column(Enum(AssetType), nullable=False, index=True)
+    asset_type = Column(String(50), nullable=False, index=True)
     description = Column(Text)
     
     # Network information
@@ -142,7 +140,7 @@ class Asset(Base):
     custom_attributes = Column(JSON)  # Arbitrary custom attributes captured during import
     
     # Migration assessment
-    six_r_strategy = Column(Enum(SixRStrategy))
+    six_r_strategy = Column(String(50))
     mapping_status = Column(String(20), index=True)  # pending, in_progress, completed
     migration_priority = Column(Integer, default=5)  # 1-10 scale
     migration_complexity = Column(String(20))  # Low, Medium, High
@@ -151,7 +149,7 @@ class Asset(Base):
 
     # Status and ownership
     status = Column(String(50), default='active', index=True) # Operational status
-    migration_status = Column(Enum(AssetStatus), default=AssetStatus.DISCOVERED, index=True)
+    migration_status = Column(String(50), default='discovered', index=True)
     
     # Dependencies and relationships
     dependencies = Column(JSON)  # List of dependent asset IDs or names
@@ -304,7 +302,7 @@ class CMDBSixRAnalysis(Base):
     created_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
     
     def __repr__(self):
-        return f"<CMDBSixRAnalysis(id={self.id}, name='{self.analysis_name}', total_assets={self.total_assets}, is_mock={self.is_mock})>"
+        return f"<CMDBSixRAnalysis(id={self.id}, name='{self.analysis_name}', total_assets={self.total_assets})>"
 
 
 class MigrationWave(Base):
@@ -349,4 +347,4 @@ class MigrationWave(Base):
     created_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
     
     def __repr__(self):
-        return f"<MigrationWave(id={self.id}, wave_number={self.wave_number}, name='{self.name}', is_mock={self.is_mock})>" 
+        return f"<MigrationWave(id={self.id}, wave_number={self.wave_number}, name='{self.name}')>" 
