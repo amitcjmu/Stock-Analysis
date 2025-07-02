@@ -28,13 +28,13 @@ router = APIRouter()
 
 class FlowStateValidationRequest(BaseModel):
     """Request model for flow state validation"""
-    session_id: str = Field(..., description="Session ID to validate")
+    flow_id: str = Field(..., description="Flow ID to validate")
     comprehensive: bool = Field(default=True, description="Perform comprehensive validation")
 
 class FlowStateValidationResponse(BaseModel):
     """Response model for flow state validation"""
     status: str
-    session_id: str
+    flow_id: str
     overall_valid: bool
     crewai_validation: Dict[str, Any]
     postgresql_validation: Dict[str, Any]
@@ -44,7 +44,7 @@ class FlowStateValidationResponse(BaseModel):
 
 class UserApprovalRequest(BaseModel):
     """Request model for user approval of discovery flow phase progression"""
-    session_id: str = Field(..., description="Session ID to approve")
+    flow_id: str = Field(..., description="Flow ID to approve")
     approved: bool = Field(..., description="Whether user approves proceeding to next phase")
     selected_agent: Optional[str] = Field(default=None, description="User-selected agent if different from recommended")
     comments: Optional[str] = Field(default=None, description="User comments or feedback")
@@ -52,7 +52,7 @@ class UserApprovalRequest(BaseModel):
 class UserApprovalResponse(BaseModel):
     """Response model for user approval"""
     status: str
-    session_id: str
+    flow_id: str
     approval_recorded: bool
     next_phase: str
     selected_agent: str
@@ -61,11 +61,11 @@ class UserApprovalResponse(BaseModel):
 
 class DataValidationReportRequest(BaseModel):
     """Request model for getting data validation report"""
-    session_id: str = Field(..., description="Session ID to get report for")
+    flow_id: str = Field(..., description="Flow ID to get report for")
 
 class DataValidationReportResponse(BaseModel):
     """Response model for data validation report"""
-    session_id: str
+    flow_id: str
     validation_status: str
     file_analysis: Dict[str, Any]
     security_assessment: Dict[str, Any]
@@ -76,14 +76,14 @@ class DataValidationReportResponse(BaseModel):
 
 class FlowRecoveryRequest(BaseModel):
     """Request model for flow state recovery"""
-    session_id: str = Field(..., description="Session ID to recover")
+    flow_id: str = Field(..., description="Flow ID to recover")
     recovery_strategy: str = Field(default="postgresql", description="Recovery strategy: postgresql, hybrid")
     force_recovery: bool = Field(default=False, description="Force recovery even if current state exists")
 
 class FlowRecoveryResponse(BaseModel):
     """Response model for flow state recovery"""
     status: str
-    session_id: str
+    flow_id: str
     recovery_successful: bool
     recovered_state: Optional[Dict[str, Any]] = None
     recovery_strategy_used: str
@@ -94,20 +94,20 @@ class FlowCleanupRequest(BaseModel):
     """Request model for flow state cleanup"""
     expiration_hours: int = Field(default=72, description="Hours after which flows are considered expired")
     dry_run: bool = Field(default=False, description="Perform dry run without actual cleanup")
-    specific_session_ids: Optional[List[str]] = Field(default=None, description="Specific sessions to clean up")
+    specific_flow_ids: Optional[List[str]] = Field(default=None, description="Specific flows to clean up")
 
 class FlowCleanupResponse(BaseModel):
     """Response model for flow state cleanup"""
     status: str
     flows_cleaned: int
-    session_ids_cleaned: List[str]
+    flow_ids_cleaned: List[str]
     dry_run: bool
     cleanup_timestamp: str
     space_recovered: Optional[str] = None
 
 class FlowPersistenceStatusResponse(BaseModel):
     """Response model for flow persistence status"""
-    session_id: str
+    flow_id: str
     crewai_persistence: Dict[str, Any]
     postgresql_persistence: Dict[str, Any]
     bridge_status: Dict[str, Any]
@@ -118,9 +118,9 @@ class FlowPersistenceStatusResponse(BaseModel):
 # FLOW STATE VALIDATION ENDPOINTS
 # ========================================
 
-@router.post("/flows/{session_id}/validate", response_model=FlowStateValidationResponse)
+@router.post("/flows/{flow_id}/validate", response_model=FlowStateValidationResponse)
 async def validate_flow_state(
-    session_id: str,
+    flow_id: str,
     request: FlowStateValidationRequest,
     context: RequestContext = Depends(get_current_context_dependency),
     db: AsyncSession = Depends(get_db)
@@ -130,13 +130,13 @@ async def validate_flow_state(
     Provides comprehensive health check for flow data consistency.
     """
     try:
-        logger.info(f"🔍 Validating flow state: session={session_id}")
+        logger.info(f"🔍 Validating flow state: flow={flow_id}")
         
         # Create flow state bridge
         bridge = create_flow_state_bridge(context)
         
         # Perform validation
-        validation_result = await bridge.validate_state_integrity(session_id)
+        validation_result = await bridge.validate_state_integrity(flow_id)
         
         # Add recommendations based on validation results
         recommendations = []
@@ -154,11 +154,11 @@ async def validate_flow_state(
         if postgresql_validation.get("warnings"):
             recommendations.append("Review PostgreSQL validation warnings for potential issues")
         
-        logger.info(f"✅ Flow state validation completed: session={session_id}, valid={validation_result.get('overall_valid', False)}")
+        logger.info(f"✅ Flow state validation completed: flow={flow_id}, valid={validation_result.get('overall_valid', False)}")
         
         return FlowStateValidationResponse(
             status=validation_result.get("status", "unknown"),
-            session_id=session_id,
+            flow_id=flow_id,
             overall_valid=validation_result.get("overall_valid", False),
             crewai_validation=validation_result.get("crewai_validation", {}),
             postgresql_validation=postgresql_validation,
@@ -174,7 +174,7 @@ async def validate_flow_state(
             detail={
                 "error": "flow_validation_failed",
                 "message": str(e),
-                "session_id": session_id
+                "flow_id": flow_id
             }
         )
 
@@ -182,9 +182,9 @@ async def validate_flow_state(
 # USER APPROVAL ENDPOINTS
 # ========================================
 
-@router.get("/flows/{session_id}/validation-report", response_model=DataValidationReportResponse)
+@router.get("/flows/{flow_id}/validation-report", response_model=DataValidationReportResponse)
 async def get_data_validation_report(
-    session_id: str,
+    flow_id: str,
     context: RequestContext = Depends(get_current_context_dependency),
     db: AsyncSession = Depends(get_db)
 ):
@@ -193,17 +193,17 @@ async def get_data_validation_report(
     Shows file analysis, security assessment, and recommendations.
     """
     try:
-        logger.info(f"📊 Getting validation report: session={session_id}")
+        logger.info(f"📊 Getting validation report: flow={flow_id}")
         
         # Create flow state bridge
         bridge = create_flow_state_bridge(context)
         
         # Get flow state
-        flow_state = await bridge.get_flow_state(session_id)
+        flow_state = await bridge.get_flow_state(flow_id)
         if not flow_state:
             raise HTTPException(
                 status_code=404,
-                detail=f"Flow session not found: {session_id}"
+                detail=f"Flow not found: {flow_id}"
             )
         
         # Get data validation results
@@ -212,7 +212,7 @@ async def get_data_validation_report(
         if not validation_data:
             raise HTTPException(
                 status_code=400,
-                detail=f"Data validation not completed for session: {session_id}"
+                detail=f"Data validation not completed for flow: {flow_id}"
             )
         
         file_analysis = validation_data.get("file_analysis", {})
@@ -224,10 +224,10 @@ async def get_data_validation_report(
             flow_state.current_phase == "data_validation_complete"
         )
         
-        logger.info(f"✅ Validation report retrieved: session={session_id}, awaiting_approval={awaiting_approval}")
+        logger.info(f"✅ Validation report retrieved: flow={flow_id}, awaiting_approval={awaiting_approval}")
         
         return DataValidationReportResponse(
-            session_id=session_id,
+            flow_id=flow_id,
             validation_status=validation_data.get("security_status", "unknown"),
             file_analysis=file_analysis,
             security_assessment=detailed_report.get("security_assessment", {}),
@@ -246,13 +246,13 @@ async def get_data_validation_report(
             detail={
                 "error": "validation_report_failed",
                 "message": str(e),
-                "session_id": session_id
+                "flow_id": flow_id
             }
         )
 
-@router.post("/flows/{session_id}/approve", response_model=UserApprovalResponse)
+@router.post("/flows/{flow_id}/approve", response_model=UserApprovalResponse)
 async def approve_flow_progression(
-    session_id: str,
+    flow_id: str,
     request: UserApprovalRequest,
     context: RequestContext = Depends(get_current_context_dependency),
     db: AsyncSession = Depends(get_db)
@@ -262,17 +262,17 @@ async def approve_flow_progression(
     Allows user to select different agent if recommended agent is incorrect.
     """
     try:
-        logger.info(f"👤 Processing user approval: session={session_id}, approved={request.approved}")
+        logger.info(f"👤 Processing user approval: flow={flow_id}, approved={request.approved}")
         
         # Create flow state bridge
         bridge = create_flow_state_bridge(context)
         
         # Get flow state
-        flow_state = await bridge.get_flow_state(session_id)
+        flow_state = await bridge.get_flow_state(flow_id)
         if not flow_state:
             raise HTTPException(
                 status_code=404,
-                detail=f"Flow session not found: {session_id}"
+                detail=f"Flow not found: {flow_id}"
             )
         
         # Verify flow is awaiting approval
@@ -325,7 +325,7 @@ async def approve_flow_progression(
                 crew_results={"action": "user_approved", "approval_data": approval_data}
             )
             
-            logger.info(f"✅ User approval recorded and flow ready to resume: session={session_id}")
+            logger.info(f"✅ User approval recorded and flow ready to resume: flow={flow_id}")
             logger.info(f"🤖 Selected agent: {selected_agent}")
             
             flow_resumed = True
@@ -354,12 +354,12 @@ async def approve_flow_progression(
                 crew_results={"action": "user_rejected", "rejection_data": rejection_data}
             )
             
-            logger.info(f"❌ User rejected flow progression: session={session_id}")
+            logger.info(f"❌ User rejected flow progression: flow={flow_id}")
             next_phase = "field_mapping_rejected"
         
         return UserApprovalResponse(
             status="success",
-            session_id=session_id,
+            flow_id=flow_id,
             approval_recorded=True,
             next_phase=next_phase,
             selected_agent=selected_agent,
@@ -376,13 +376,13 @@ async def approve_flow_progression(
             detail={
                 "error": "approval_processing_failed",
                 "message": str(e),
-                "session_id": session_id
+                "flow_id": flow_id
             }
         )
 
-@router.post("/flows/{session_id}/resume")
+@router.post("/flows/{flow_id}/resume")
 async def resume_flow_execution(
-    session_id: str,
+    flow_id: str,
     context: RequestContext = Depends(get_current_context_dependency),
     db: AsyncSession = Depends(get_db)
 ):
@@ -391,17 +391,17 @@ async def resume_flow_execution(
     Triggers the next phase (field mapping) to continue from where it paused.
     """
     try:
-        logger.info(f"▶️ Attempting to resume flow execution: session={session_id}")
+        logger.info(f"▶️ Attempting to resume flow execution: flow={flow_id}")
         
         # Create flow state bridge
         bridge = create_flow_state_bridge(context)
         
         # Get flow state
-        flow_state = await bridge.get_flow_state(session_id)
+        flow_state = await bridge.get_flow_state(flow_id)
         if not flow_state:
             raise HTTPException(
                 status_code=404,
-                detail=f"Flow session not found: {session_id}"
+                detail=f"Flow not found: {flow_id}"
             )
         
         # Verify flow is approved and ready to resume
@@ -432,7 +432,7 @@ async def resume_flow_execution(
         
         # Trigger field mapping phase execution
         field_mapping_result = await discovery_service.execute_field_mapping_phase(
-            session_id=session_id,
+            flow_id=flow_id,
             previous_phase_result="data_validation_completed",
             selected_agent=selected_agent
         )
@@ -448,11 +448,11 @@ async def resume_flow_execution(
             crew_results={"action": "flow_resumed", "field_mapping_result": field_mapping_result}
         )
         
-        logger.info(f"✅ Flow execution resumed successfully: session={session_id}")
+        logger.info(f"✅ Flow execution resumed successfully: flow={flow_id}")
         
         return {
             "status": "success",
-            "session_id": session_id,
+            "flow_id": flow_id,
             "flow_resumed": True,
             "current_phase": "attribute_mapping",
             "selected_agent": selected_agent,
@@ -469,7 +469,7 @@ async def resume_flow_execution(
             detail={
                 "error": "flow_resumption_failed",
                 "message": str(e),
-                "session_id": session_id
+                "flow_id": flow_id
             }
         )
 
@@ -477,9 +477,9 @@ async def resume_flow_execution(
 # FLOW STATE RECOVERY ENDPOINTS
 # ========================================
 
-@router.post("/flows/{session_id}/recover", response_model=FlowRecoveryResponse)
+@router.post("/flows/{flow_id}/recover", response_model=FlowRecoveryResponse)
 async def recover_flow_state(
-    session_id: str,
+    flow_id: str,
     request: FlowRecoveryRequest,
     context: RequestContext = Depends(get_current_context_dependency),
     db: AsyncSession = Depends(get_db)
@@ -489,13 +489,13 @@ async def recover_flow_state(
     Provides advanced recovery mechanism for production environments.
     """
     try:
-        logger.info(f"🔄 Attempting flow state recovery: session={session_id}, strategy={request.recovery_strategy}")
+        logger.info(f"🔄 Attempting flow state recovery: flow={flow_id}, strategy={request.recovery_strategy}")
         
         # Create flow state bridge
         bridge = create_flow_state_bridge(context)
         
         # Attempt recovery
-        recovered_state = await bridge.recover_flow_state(session_id)
+        recovered_state = await bridge.recover_flow_state(flow_id)
         
         recovery_successful = recovered_state is not None
         next_steps = []
@@ -508,16 +508,16 @@ async def recover_flow_state(
             ])
         else:
             next_steps.extend([
-                "Check if session ID exists in the system",
+                "Check if flow ID exists in the system",
                 "Verify client account and engagement permissions",
                 "Consider manual data recovery if critical"
             ])
         
-        logger.info(f"✅ Flow state recovery completed: session={session_id}, successful={recovery_successful}")
+        logger.info(f"✅ Flow state recovery completed: flow={flow_id}, successful={recovery_successful}")
         
         return FlowRecoveryResponse(
             status="success" if recovery_successful else "no_recoverable_state",
-            session_id=session_id,
+            flow_id=flow_id,
             recovery_successful=recovery_successful,
             recovered_state=recovered_state.dict() if recovered_state else None,
             recovery_strategy_used=request.recovery_strategy,
@@ -532,7 +532,7 @@ async def recover_flow_state(
             detail={
                 "error": "flow_recovery_failed",
                 "message": str(e),
-                "session_id": session_id
+                "flow_id": flow_id
             }
         )
 
@@ -567,7 +567,7 @@ async def cleanup_expired_flows(
             cleanup_result = {
                 "status": "dry_run_completed",
                 "flows_cleaned": 0,
-                "session_ids": [],
+                "flow_ids": [],
                 "message": "Dry run - no actual cleanup performed"
             }
         else:
@@ -579,7 +579,7 @@ async def cleanup_expired_flows(
                 background_tasks.add_task(
                     _post_cleanup_validation,
                     context,
-                    cleanup_result.get("session_ids", [])
+                    cleanup_result.get("flow_ids", [])
                 )
         
         logger.info(f"✅ Flow cleanup completed: {cleanup_result.get('flows_cleaned', 0)} flows cleaned")
@@ -587,7 +587,7 @@ async def cleanup_expired_flows(
         return FlowCleanupResponse(
             status=cleanup_result.get("status", "unknown"),
             flows_cleaned=cleanup_result.get("flows_cleaned", 0),
-            session_ids_cleaned=cleanup_result.get("session_ids", []),
+            flow_ids_cleaned=cleanup_result.get("flow_ids", []),
             dry_run=request.dry_run,
             cleanup_timestamp=cleanup_result.get("cleanup_timestamp", ""),
             space_recovered=f"~{cleanup_result.get('flows_cleaned', 0) * 50}KB estimated"
@@ -607,9 +607,9 @@ async def cleanup_expired_flows(
 # FLOW PERSISTENCE STATUS ENDPOINTS
 # ========================================
 
-@router.get("/flows/{session_id}/persistence-status", response_model=FlowPersistenceStatusResponse)
+@router.get("/flows/{flow_id}/persistence-status", response_model=FlowPersistenceStatusResponse)
 async def get_flow_persistence_status(
-    session_id: str,
+    flow_id: str,
     context: RequestContext = Depends(get_current_context_dependency),
     db: AsyncSession = Depends(get_db)
 ):
@@ -618,13 +618,13 @@ async def get_flow_persistence_status(
     Shows status across both CrewAI and PostgreSQL persistence layers.
     """
     try:
-        logger.info(f"📊 Getting persistence status: session={session_id}")
+        logger.info(f"📊 Getting persistence status: flow={flow_id}")
         
         # Create flow state bridge
         bridge = create_flow_state_bridge(context)
         
         # Get validation results for status
-        validation_result = await bridge.validate_state_integrity(session_id)
+        validation_result = await bridge.validate_state_integrity(flow_id)
         
         # Build comprehensive status
         crewai_persistence = {
@@ -649,10 +649,10 @@ async def get_flow_persistence_status(
             "sync_errors": []  # Would track any recent sync errors
         }
         
-        logger.info(f"✅ Persistence status retrieved: session={session_id}")
+        logger.info(f"✅ Persistence status retrieved: flow={flow_id}")
         
         return FlowPersistenceStatusResponse(
-            session_id=session_id,
+            flow_id=flow_id,
             crewai_persistence=crewai_persistence,
             postgresql_persistence=postgresql_persistence,
             bridge_status=bridge_status,
@@ -667,7 +667,7 @@ async def get_flow_persistence_status(
             detail={
                 "error": "persistence_status_failed",
                 "message": str(e),
-                "session_id": session_id
+                "flow_id": flow_id
             }
         )
 
@@ -677,7 +677,7 @@ async def get_flow_persistence_status(
 
 @router.post("/flows/bulk-validate")
 async def bulk_validate_flows(
-    session_ids: List[str],
+    flow_ids: List[str],
     context: RequestContext = Depends(get_current_context_dependency),
     db: AsyncSession = Depends(get_db)
 ):
@@ -686,16 +686,16 @@ async def bulk_validate_flows(
     Useful for health checks across multiple active flows.
     """
     try:
-        logger.info(f"🔍 Bulk validating {len(session_ids)} flows")
+        logger.info(f"🔍 Bulk validating {len(flow_ids)} flows")
         
         bridge = create_flow_state_bridge(context)
         results = []
         
-        for session_id in session_ids:
+        for flow_id in flow_ids:
             try:
-                validation_result = await bridge.validate_state_integrity(session_id)
+                validation_result = await bridge.validate_state_integrity(flow_id)
                 results.append({
-                    "session_id": session_id,
+                    "flow_id": flow_id,
                     "status": "validated",
                     "valid": validation_result.get("overall_valid", False),
                     "summary": {
@@ -706,20 +706,20 @@ async def bulk_validate_flows(
                 })
             except Exception as e:
                 results.append({
-                    "session_id": session_id,
+                    "flow_id": flow_id,
                     "status": "validation_failed",
                     "error": str(e)
                 })
         
         valid_count = sum(1 for r in results if r.get("valid", False))
         
-        logger.info(f"✅ Bulk validation completed: {valid_count}/{len(session_ids)} flows valid")
+        logger.info(f"✅ Bulk validation completed: {valid_count}/{len(flow_ids)} flows valid")
         
         return {
             "status": "completed",
-            "total_flows": len(session_ids),
+            "total_flows": len(flow_ids),
             "valid_flows": valid_count,
-            "invalid_flows": len(session_ids) - valid_count,
+            "invalid_flows": len(flow_ids) - valid_count,
             "results": results,
             "validation_timestamp": datetime.utcnow().isoformat()
         }
@@ -738,21 +738,21 @@ async def bulk_validate_flows(
 # BACKGROUND TASKS
 # ========================================
 
-async def _post_cleanup_validation(context: RequestContext, cleaned_session_ids: List[str]):
+async def _post_cleanup_validation(context: RequestContext, cleaned_flow_ids: List[str]):
     """
     Background task to validate system state after cleanup operations.
     Ensures cleanup didn't affect active flows.
     """
     try:
-        logger.info(f"🔍 Post-cleanup validation for {len(cleaned_session_ids)} cleaned sessions")
+        logger.info(f"🔍 Post-cleanup validation for {len(cleaned_flow_ids)} cleaned flows")
         
         bridge = create_flow_state_bridge(context)
         
-        # Verify cleaned sessions are actually gone
-        for session_id in cleaned_session_ids[:5]:  # Sample first 5
-            validation_result = await bridge.validate_state_integrity(session_id)
+        # Verify cleaned flows are actually gone
+        for flow_id in cleaned_flow_ids[:5]:  # Sample first 5
+            validation_result = await bridge.validate_state_integrity(flow_id)
             if validation_result.get("status") != "not_found":
-                logger.warning(f"⚠️ Session {session_id} still exists after cleanup")
+                logger.warning(f"⚠️ Flow {flow_id} still exists after cleanup")
         
         logger.info("✅ Post-cleanup validation completed")
         
