@@ -30,7 +30,6 @@ class FlowCommands:
     async def create_discovery_flow(
         self, 
         flow_id: str,
-        import_session_id: Optional[str] = None,
         master_flow_id: Optional[str] = None,
         flow_type: str = "primary",
         description: Optional[str] = None,
@@ -49,14 +48,12 @@ class FlowCommands:
             raise ValueError(f"Invalid CrewAI Flow ID: {flow_id}. Must be a valid UUID.")
         
         # Parse optional UUIDs
-        import_uuid = uuid.UUID(import_session_id) if import_session_id else None
         master_uuid = uuid.UUID(master_flow_id) if master_flow_id else None
         
         flow = DiscoveryFlow(
             flow_id=parsed_flow_id,
             client_account_id=self.client_account_id,
             engagement_id=self.engagement_id,
-            import_session_id=import_uuid,
             master_flow_id=master_uuid,
             flow_type=flow_type,
             flow_name=description or f"Discovery Flow {flow_id[:8]}",

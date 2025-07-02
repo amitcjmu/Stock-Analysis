@@ -78,9 +78,6 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         """Get flow by ID without context filtering"""
         return await self.flow_queries.get_by_flow_id_global(flow_id)
     
-    async def get_by_import_session_id(self, import_session_id: str) -> Optional[DiscoveryFlow]:
-        """Get flow by import session ID"""
-        return await self.flow_queries.get_by_import_session_id(import_session_id)
     
     async def get_active_flows(self) -> List[DiscoveryFlow]:
         """Get all active flows"""
@@ -105,7 +102,6 @@ class DiscoveryFlowRepository(ContextAwareRepository):
     async def create_discovery_flow(
         self,
         flow_id: str,
-        import_session_id: Optional[str] = None,
         master_flow_id: Optional[str] = None,
         flow_type: str = "primary",
         description: Optional[str] = None,
@@ -113,7 +109,7 @@ class DiscoveryFlowRepository(ContextAwareRepository):
     ) -> DiscoveryFlow:
         """Create a new discovery flow"""
         return await self.flow_commands.create_discovery_flow(
-            flow_id, import_session_id, master_flow_id, 
+            flow_id, master_flow_id, 
             flow_type, description, initial_state_data
         )
     

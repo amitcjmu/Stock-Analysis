@@ -71,25 +71,6 @@ class FlowQueries:
             logger.error(f"❌ Database error in get_by_flow_id_global: {e}")
             return None
     
-    async def get_by_import_session_id(self, import_session_id: str) -> Optional[DiscoveryFlow]:
-        """Get discovery flow by import session ID (backward compatibility)"""
-        try:
-            import_uuid = uuid.UUID(import_session_id)
-            
-            stmt = select(DiscoveryFlow).where(
-                and_(
-                    DiscoveryFlow.import_session_id == import_uuid,
-                    DiscoveryFlow.client_account_id == self.client_account_id,
-                    DiscoveryFlow.engagement_id == self.engagement_id
-                )
-            )
-            
-            result = await self.db.execute(stmt)
-            return result.scalar_one_or_none()
-            
-        except Exception as e:
-            logger.error(f"Error getting flow by import session: {e}")
-            return None
     
     async def get_active_flows(self) -> List[DiscoveryFlow]:
         """Get all active discovery flows for the client/engagement"""

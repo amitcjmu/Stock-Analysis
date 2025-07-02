@@ -14,7 +14,6 @@ from app.api.v1.endpoints import (
     chat_router,
     agent_learning_router,
     data_import_router,
-    sessions_router,
     context_router,
     test_discovery_router,
     agents_router,
@@ -264,8 +263,7 @@ try:
 except ImportError as e:
     logger.warning(f"⚠️ Flow Processing Agent router not available: {e}")
 
-# Session Management
-api_router.include_router(sessions_router, prefix="/sessions", tags=["Sessions"])
+# Session Management - REMOVED (use flow_id instead)
 
 # Admin Management (conditional)
 if CLIENT_MANAGEMENT_AVAILABLE:
