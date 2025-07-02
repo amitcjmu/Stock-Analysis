@@ -1,6 +1,6 @@
 """
 Context management for multi-tenant request handling.
-Provides utilities for extracting and injecting client/engagement/session context.
+Provides utilities for extracting and injecting client/engagement/flow context.
 """
 
 from typing import Optional, Dict, Any, TypeVar, Callable
@@ -24,7 +24,7 @@ _request_context: ContextVar[Optional['RequestContext']] = ContextVar(
 _client_account_id: ContextVar[Optional[str]] = ContextVar('client_account_id', default=None)
 _engagement_id: ContextVar[Optional[str]] = ContextVar('engagement_id', default=None) 
 _user_id: ContextVar[Optional[str]] = ContextVar('user_id', default=None)
-_session_id: ContextVar[Optional[str]] = ContextVar('session_id', default=None)
+_flow_id: ContextVar[Optional[str]] = ContextVar('flow_id', default=None)
 
 # Demo client configuration with proper UUIDs (using existing client from database)
 DEMO_CLIENT_CONFIG = {
@@ -52,7 +52,7 @@ class RequestContext:
     client_account_id: Optional[str] = None
     engagement_id: Optional[str] = None
     user_id: Optional[str] = None
-    session_id: Optional[str] = None
+    flow_id: Optional[str] = None
     request_id: Optional[str] = None
     
     # Audit fields
@@ -79,7 +79,7 @@ class RequestContext:
         return True
     
     def __repr__(self):
-        return f"RequestContext(client={self.client_account_id}, engagement={self.engagement_id}, user={self.user_id}, session={self.session_id})"
+        return f"RequestContext(client={self.client_account_id}, engagement={self.engagement_id}, user={self.user_id}, flow={self.flow_id})"
 
 
 def extract_context_from_request(request: Request) -> RequestContext:
@@ -145,23 +145,18 @@ def extract_context_from_request(request: Request) -> RequestContext:
     if user_id:
         user_id = clean_header_value(user_id)
 
-    session_id = (
-        headers.get("X-Session-ID") or             # Frontend sends this format
-        headers.get("x-session-id") or
-        headers.get("X-Session-Id") or
-        headers.get("x-context-session-id") or
-        headers.get("session-id")
+    flow_id = (
+        headers.get("X-Flow-ID") or
+        headers.get("x-flow-id") or
+        headers.get("X-Flow-Id")
     )
-    if session_id:
-        session_id = clean_header_value(session_id)
+    if flow_id:
+        flow_id = clean_header_value(flow_id)
     
     # Debug logging to see what we extracted
-    logger.info(f"🔍 Extracted values - Client: {client_account_id}, Engagement: {engagement_id}, User: {user_id}, Session: {session_id}")
+    logger.info(f"🔍 Extracted values - Client: {client_account_id}, Engagement: {engagement_id}, User: {user_id}, Flow: {flow_id}")
     
-    # Generate a session ID if not provided
-    if not session_id:
-        session_id = str(uuid.uuid4())
-        logger.debug(f"No session ID in headers, generated new one: {session_id}")
+    # Flow ID is optional - no auto-generation needed
     
     # NO DEMO CLIENT FALLBACKS IN BACKEND - Security requirement for multi-tenancy
     # All context must be explicitly provided via headers
@@ -170,7 +165,7 @@ def extract_context_from_request(request: Request) -> RequestContext:
         client_account_id=client_account_id,
         engagement_id=engagement_id,
         user_id=user_id,
-        session_id=session_id
+        flow_id=flow_id
     )
     
     logger.info(f"🔍 Final context: {context}")
@@ -214,7 +209,7 @@ def set_request_context(context: RequestContext) -> None:
     _client_account_id.set(context.client_account_id)
     _engagement_id.set(context.engagement_id)
     _user_id.set(context.user_id)
-    _session_id.set(context.session_id)
+    _flow_id.set(context.flow_id)
     logger.debug(f"Set context for client {context.client_account_id}")
 
 def set_context(context: RequestContext) -> None:
@@ -232,14 +227,14 @@ def get_current_context() -> Optional[RequestContext]:
     client_id = _client_account_id.get()
     engagement_id = _engagement_id.get()
     user_id = _user_id.get()
-    session_id = _session_id.get()
+    flow_id = _flow_id.get()
     
-    if any([client_id, engagement_id, user_id, session_id]):
+    if any([client_id, engagement_id, user_id, flow_id]):
         return RequestContext(
             client_account_id=client_id,
             engagement_id=engagement_id,
             user_id=user_id,
-            session_id=session_id
+            flow_id=flow_id
         )
     
     return None
@@ -258,7 +253,7 @@ def clear_request_context() -> None:
     _client_account_id.set(None)
     _engagement_id.set(None)
     _user_id.set(None)
-    _session_id.set(None)
+    _flow_id.set(None)
 
 
 def get_client_account_id() -> Optional[str]:
@@ -276,9 +271,9 @@ def get_user_id() -> Optional[str]:
     return _user_id.get()
 
 
-def get_session_id() -> Optional[str]:
-    """Get current session ID."""
-    return _session_id.get()
+def get_flow_id() -> Optional[str]:
+    """Get current flow ID."""
+    return _flow_id.get()
 
 
 def validate_context(context: RequestContext, require_client: bool = True, require_engagement: bool = False) -> None:
@@ -343,8 +338,8 @@ def create_context_headers(context: RequestContext) -> Dict[str, str]:
     if context.user_id:
         headers["X-User-Id"] = context.user_id
         
-    if context.session_id:
-        headers["X-Session-Id"] = context.session_id
+    if context.flow_id:
+        headers["X-Flow-Id"] = context.flow_id
     
     return headers
 

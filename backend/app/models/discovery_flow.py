@@ -31,7 +31,6 @@ class DiscoveryFlow(Base):
     user_id = Column(String, nullable=False)
     
     # Data import integration
-    import_session_id = Column(UUID(as_uuid=True), nullable=True, index=True)
     data_import_id = Column(UUID(as_uuid=True), ForeignKey("data_imports.id"), nullable=True, index=True)
     
     # Flow metadata
@@ -48,16 +47,25 @@ class DiscoveryFlow(Base):
     dependency_analysis_completed = Column(Boolean, nullable=False, default=False)  # was dependencies_completed
     tech_debt_assessment_completed = Column(Boolean, nullable=False, default=False)  # was tech_debt_completed
     
-    # JSON fields for CrewAI state management (V3 features)
-    flow_type = Column(String(100), default='unified_discovery')
-    current_phase = Column(String(100), nullable=True)
-    phases_completed = Column(JSON, default=list)
-    flow_state = Column(JSON, default=dict)
-    crew_outputs = Column(JSON, default=dict)
-    field_mappings = Column(JSON, nullable=True)
-    discovered_assets = Column(JSON, nullable=True)
-    dependencies = Column(JSON, nullable=True)
-    tech_debt_analysis = Column(JSON, nullable=True)
+    # Multi-tenant learning and memory isolation (REQUIRED for agent system)
+    learning_scope = Column(String(50), nullable=False, default='engagement')  # engagement/client/global
+    memory_isolation_level = Column(String(20), nullable=False, default='strict')  # strict/moderate/open
+    assessment_ready = Column(Boolean, nullable=False, default=False)  # Ready for assessment phase handoff
+    
+    # Additional state management columns that exist in database
+    phase_state = Column(JSONB, nullable=False, default={})  # Phase-specific state data
+    agent_state = Column(JSONB, nullable=False, default={})  # Agent execution state
+    
+    # JSON fields for CrewAI state management (V3 features - OPTIONAL until migration)
+    flow_type = Column(String(100), nullable=True)  # Will be 'unified_discovery' when set
+    current_phase = Column(String(100), nullable=True)  # Already exists in DB
+    phases_completed = Column(JSON, nullable=True)  # Future: array of completed phases
+    flow_state = Column(JSON, default=dict)  # Already exists in DB
+    crew_outputs = Column(JSON, nullable=True)  # Future: crew execution outputs
+    field_mappings = Column(JSON, nullable=True)  # Future: discovered field mappings
+    discovered_assets = Column(JSON, nullable=True)  # Future: asset discovery results
+    dependencies = Column(JSON, nullable=True)  # Future: dependency analysis results
+    tech_debt_analysis = Column(JSON, nullable=True)  # Future: tech debt findings
     
     # CrewAI integration
     crewai_persistence_id = Column(UUID(as_uuid=True), nullable=True)
@@ -191,7 +199,6 @@ class DiscoveryFlow(Base):
             "client_account_id": str(self.client_account_id),
             "engagement_id": str(self.engagement_id),
             "user_id": self.user_id,
-            "import_session_id": str(self.import_session_id) if self.import_session_id else None,
             "data_import_id": str(self.data_import_id) if self.data_import_id else None,
             "flow_name": self.flow_name,
             "status": self.status,
@@ -204,6 +211,9 @@ class DiscoveryFlow(Base):
                 "dependency_analysis_completed": self.dependency_analysis_completed,
                 "tech_debt_assessment_completed": self.tech_debt_assessment_completed
             },
+            "learning_scope": self.learning_scope,
+            "memory_isolation_level": self.memory_isolation_level,
+            "assessment_ready": self.assessment_ready,
             "crewai_persistence_id": str(self.crewai_persistence_id) if self.crewai_persistence_id else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
