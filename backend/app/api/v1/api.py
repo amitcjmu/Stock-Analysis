@@ -17,6 +17,8 @@ from app.api.v1.endpoints import (
     context_router,
     test_discovery_router,
     agents_router,
+    assessment_flow_router,
+    assessment_events_router,
 )
 
 # Admin endpoints
@@ -291,6 +293,10 @@ api_router.include_router(monitoring_router, prefix="/monitoring", tags=["Monito
 api_router.include_router(agents_router, prefix="/agents", tags=["Agents"])
 api_router.include_router(agent_learning_router, prefix="/agent-learning", tags=["Agent Learning"])
 api_router.include_router(chat_router, prefix="/chat", tags=["Chat"])
+
+# Assessment Flow Services
+api_router.include_router(assessment_flow_router, tags=["Assessment Flow"])
+api_router.include_router(assessment_events_router, tags=["Assessment Flow Events"])
 
 # Flow Processing Agent (Central routing for all flow continuations)
 try:

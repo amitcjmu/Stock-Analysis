@@ -1,0 +1,168 @@
+version: '3.8'
+
+services:
+  # Test Database
+  test-db:
+    image: pgvector/pgvector:pg16
+    container_name: migration_test_db
+    environment:
+      POSTGRES_DB: test_assessment_db
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_pass
+    ports:
+      - "5434:5432"
+    volumes:
+      - test_postgres_data:/var/lib/postgresql/data
+      - ./backend/tests/fixtures/test_init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d test_assessment_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Test Backend for Assessment Flow
+  test-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.test
+    container_name: migration_test_backend
+    environment:
+      # Test Database Configuration
+      - DATABASE_URL=postgresql://test_user:test_pass@test-db:5432/test_assessment_db
+      - TEST_DATABASE_URL=postgresql://test_user:test_pass@test-db:5432/test_assessment_db
+      
+      # Test Environment Settings
+      - ENVIRONMENT=test
+      - DEBUG=true
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      
+      # Assessment Flow Test Configuration
+      - ASSESSMENT_FLOW_ENABLED=true
+      - ASSESSMENT_FLOW_DEBUG=true
+      - ASSESSMENT_CREW_PARALLELISM=1  # Reduced for testing
+      - ASSESSMENT_TIMEOUT_MINUTES=5   # Shorter timeout for tests
+      
+      # CrewAI Test Configuration
+      - CREWAI_ASSESSMENT_AGENTS_ENABLED=true
+      - CREWAI_LOG_LEVEL=DEBUG
+      - DEEPINFRA_API_KEY=test_key_for_mocking
+      
+      # Disable external services for testing
+      - OTEL_SDK_DISABLED=true
+      - OTEL_TRACES_EXPORTER=none
+      - OTEL_METRICS_EXPORTER=none
+      - OTEL_LOGS_EXPORTER=none
+      
+      # Test-specific settings
+      - PYTEST_ARGS=tests/assessment_flow/
+      - COVERAGE_REPORT=true
+      - TEST_PARALLEL=true
+    depends_on:
+      test-db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - test_coverage_data:/app/coverage
+    working_dir: /app
+    command: ["pytest", "-v", "--cov=app", "--cov-report=html:/app/coverage/html", "--cov-report=term", "tests/assessment_flow/"]
+
+  # Integration Test Backend (with real CrewAI)
+  integration-test-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.test
+    container_name: migration_integration_test_backend
+    environment:
+      # Same as test-backend but with real API keys
+      - DATABASE_URL=postgresql://test_user:test_pass@test-db:5432/test_assessment_db
+      - ENVIRONMENT=integration_test
+      - DEBUG=true
+      - PYTHONPATH=/app
+      
+      # Real CrewAI Configuration for Integration Tests
+      - ASSESSMENT_FLOW_ENABLED=true
+      - CREWAI_ASSESSMENT_AGENTS_ENABLED=true
+      - DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY}  # Real API key
+      
+      # Integration test timeouts (longer)
+      - ASSESSMENT_TIMEOUT_MINUTES=15
+      - CREW_EXECUTION_TIMEOUT_MINUTES=10
+      
+      # Integration test settings
+      - PYTEST_ARGS=tests/integration/assessment_flow/
+      - RUN_INTEGRATION_TESTS=true
+    depends_on:
+      test-db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    working_dir: /app
+    command: ["pytest", "-v", "-m", "integration", "tests/integration/assessment_flow/"]
+    profiles:
+      - integration  # Only run with docker-compose --profile integration
+
+  # Performance Test Backend
+  performance-test-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.test
+    container_name: migration_performance_test_backend
+    environment:
+      - DATABASE_URL=postgresql://test_user:test_pass@test-db:5432/test_assessment_db
+      - ENVIRONMENT=performance_test
+      - PYTHONPATH=/app
+      
+      # Performance test configuration
+      - ASSESSMENT_FLOW_ENABLED=true
+      - ASSESSMENT_MAX_CONCURRENT_FLOWS=5
+      - ASSESSMENT_COMPONENT_BATCH_SIZE=20
+      
+      # Mock CrewAI for performance testing
+      - CREWAI_MOCK_MODE=true
+      - MOCK_CREW_RESPONSE_TIME=0.1  # Fast mock responses
+      
+      # Performance test settings
+      - PYTEST_ARGS=tests/performance/assessment_flow/
+      - RUN_PERFORMANCE_TESTS=true
+    depends_on:
+      test-db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - performance_results:/app/performance_results
+    working_dir: /app
+    command: ["pytest", "-v", "-m", "performance", "tests/performance/assessment_flow/"]
+    profiles:
+      - performance  # Only run with docker-compose --profile performance
+
+  # Test Frontend (for component testing)
+  test-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend.test
+    container_name: migration_test_frontend
+    environment:
+      - NODE_ENV=test
+      - VITE_BACKEND_URL=http://test-backend:8000
+      - VITE_WS_BASE_URL=ws://test-backend:8000/ws
+      
+      # Test configuration
+      - VITEST_REPORTER=verbose
+      - COVERAGE_ENABLED=true
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - frontend_test_coverage:/app/coverage
+    working_dir: /app
+    command: ["npm", "run", "test:assessment-flow"]
+    depends_on:
+      - test-backend
+    profiles:
+      - frontend  # Only run with docker-compose --profile frontend
+
+volumes:
+  test_postgres_data:
+  test_coverage_data:
+  performance_results:
+  frontend_test_coverage:

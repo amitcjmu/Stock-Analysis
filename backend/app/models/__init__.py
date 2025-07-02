@@ -22,6 +22,39 @@ from app.models.data_import_session import DataImportSession
 # Assessment Models
 from app.models.assessment import Assessment, WavePlan
 
+# Assessment Flow Models (New) - Temporarily disabled due to SQLAlchemy compatibility issue
+# from app.models.assessment_flow import (
+#     AssessmentFlow, 
+#     EngagementArchitectureStandard, 
+#     ApplicationArchitectureOverride,
+#     ApplicationComponent, 
+#     TechDebtAnalysis, 
+#     ComponentTreatment, 
+#     SixRDecision, 
+#     AssessmentLearningFeedback
+# )
+
+# Assessment Flow State Models (New) - Temporarily disabled due to SQLAlchemy compatibility issue
+# from app.models.assessment_flow_state import (
+#     AssessmentFlowState,
+#     SixRStrategy,
+#     AssessmentPhase,
+#     AssessmentFlowStatus,
+#     TechDebtSeverity,
+#     ComponentType,
+#     OverrideType,
+#     ArchitectureRequirement,
+#     ApplicationArchitectureOverride as ApplicationArchitectureOverrideState,
+#     ApplicationComponent as ApplicationComponentState,
+#     TechDebtItem,
+#     ComponentTreatment as ComponentTreatmentState,
+#     SixRDecision as SixRDecisionState,
+#     AssessmentLearningFeedback as AssessmentLearningFeedbackState,
+#     AssessmentFlowSummary,
+#     AssessmentPhaseResult,
+#     AssessmentValidationResult
+# )
+
 # Asset Models
 from app.models.asset import Asset, AssetDependency
 
@@ -55,6 +88,7 @@ from app.models.llm_usage import LLMUsageLog, LLMUsageSummary
 # SixR Analysis Models
 from app.models.sixr_analysis import SixRAnalysis
 
+
 # V3 Models REMOVED - Using consolidated schema
 
 # DEPRECATED MODELS (Legacy V1 - Use V2 Discovery Flow instead)
@@ -79,6 +113,35 @@ __all__ = [
     # Assessment Models
     "Assessment",
     "WavePlan",
+    
+    # Assessment Flow Models (SQLAlchemy) - Temporarily disabled
+    # "AssessmentFlow",
+    # "EngagementArchitectureStandard", 
+    # "ApplicationArchitectureOverride",
+    # "ApplicationComponent",
+    # "TechDebtAnalysis",
+    # "ComponentTreatment",
+    # "SixRDecision",
+    # "AssessmentLearningFeedback",
+    
+    # Assessment Flow State Models (Pydantic) - Temporarily disabled
+    # "AssessmentFlowState",
+    # "SixRStrategy",
+    # "AssessmentPhase",
+    # "AssessmentFlowStatus",
+    # "TechDebtSeverity",
+    # "ComponentType",
+    # "OverrideType",
+    # "ArchitectureRequirement",
+    # "ApplicationArchitectureOverrideState",
+    # "ApplicationComponentState",
+    # "TechDebtItem",
+    # "ComponentTreatmentState",
+    # "SixRDecisionState",
+    # "AssessmentLearningFeedbackState",
+    # "AssessmentFlowSummary",
+    # "AssessmentPhaseResult",
+    # "AssessmentValidationResult",
     
     # Asset Models
     "Asset",

@@ -23,12 +23,13 @@ import hashlib
 import logging
 from datetime import datetime, timezone
 from typing import List, Dict, Optional
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import User, ClientAccount, Engagement
 from app.models.rbac import UserProfile, UserStatus, UserRole, RoleType
 from app.models.client_account import UserAccountAssociation
+from app.models.assessment_flow import EngagementArchitectureStandard
 
 logger = logging.getLogger(__name__)
 
@@ -98,16 +99,22 @@ class DatabaseInitializer:
         logger.info("Starting database initialization...")
         
         try:
-            # Step 1: Ensure platform admin exists
+            # Step 1: Verify assessment flow tables exist
+            await self.verify_assessment_tables()
+            
+            # Step 2: Ensure platform admin exists
             await self.ensure_platform_admin()
             
-            # Step 2: Create demo data if needed
+            # Step 3: Create demo data if needed
             await self.ensure_demo_data()
             
-            # Step 3: Verify all users have profiles
+            # Step 4: Initialize assessment standards for existing engagements
+            await self.ensure_engagement_assessment_standards()
+            
+            # Step 5: Verify all users have profiles
             await self.ensure_user_profiles()
             
-            # Step 4: Clean up invalid data
+            # Step 6: Clean up invalid data
             await self.cleanup_invalid_data()
             
             logger.info("Database initialization completed successfully")
@@ -512,6 +519,81 @@ class DatabaseInitializer:
         
         if invalid_roles:
             await self.db.commit()
+    
+    async def verify_assessment_tables(self):
+        """Verify assessment flow tables exist and are properly configured"""
+        logger.info("Verifying assessment flow tables...")
+        
+        required_tables = [
+            'assessment_flows',
+            'engagement_architecture_standards', 
+            'application_architecture_overrides',
+            'application_components',
+            'tech_debt_analysis',
+            'component_treatments',
+            'sixr_decisions',
+            'assessment_learning_feedback'
+        ]
+        
+        missing_tables = []
+        for table in required_tables:
+            try:
+                result = await self.db.execute(
+                    text("SELECT to_regclass(:table_name)"), 
+                    {"table_name": table}
+                )
+                if not result.scalar():
+                    missing_tables.append(table)
+            except Exception as e:
+                logger.warning(f"Could not verify table {table}: {e}")
+                missing_tables.append(table)
+        
+        if missing_tables:
+            raise Exception(f"Missing assessment flow tables: {', '.join(missing_tables)}. Please run migration 002_add_assessment_flow_tables.")
+        
+        logger.info("Assessment flow tables verified successfully")
+    
+    async def ensure_engagement_assessment_standards(self):
+        """Initialize assessment standards for existing engagements"""
+        logger.info("Ensuring assessment standards for all engagements...")
+        
+        try:
+            # Import here to avoid circular imports
+            from app.core.seed_data.assessment_standards import initialize_assessment_standards
+            
+            # Get all active engagements
+            result = await self.db.execute(
+                select(Engagement).where(Engagement.status == 'active')
+            )
+            engagements = result.scalars().all()
+            
+            standards_initialized = 0
+            for engagement in engagements:
+                # Check if standards already exist
+                existing_standards = await self.db.execute(
+                    select(EngagementArchitectureStandard)
+                    .where(EngagementArchitectureStandard.engagement_id == engagement.id)
+                )
+                
+                if not existing_standards.first():
+                    try:
+                        await initialize_assessment_standards(self.db, str(engagement.id))
+                        standards_initialized += 1
+                        logger.info(f"Initialized assessment standards for engagement: {engagement.name}")
+                    except Exception as e:
+                        logger.error(f"Failed to initialize standards for engagement {engagement.id}: {str(e)}")
+                        continue
+                else:
+                    logger.debug(f"Standards already exist for engagement: {engagement.name}")
+            
+            if standards_initialized > 0:
+                logger.info(f"Successfully initialized assessment standards for {standards_initialized} engagements")
+            else:
+                logger.info("All engagements already have assessment standards")
+                
+        except Exception as e:
+            logger.error(f"Failed to ensure engagement assessment standards: {str(e)}")
+            # Don't raise here - this shouldn't block the main initialization
 
 
 async def initialize_database(db: AsyncSession):

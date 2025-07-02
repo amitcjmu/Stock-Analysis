@@ -177,6 +177,129 @@ class MigrationHooks:
             logger.warning(f"Deleted {deleted_count} invalid demo client admin roles")
     
     @staticmethod
+    def verify_assessment_tables_sync(op):
+        """
+        Verify that assessment flow tables exist after migration.
+        """
+        bind = op.get_bind()
+        
+        required_tables = [
+            'assessment_flows',
+            'engagement_architecture_standards', 
+            'application_architecture_overrides',
+            'application_components',
+            'tech_debt_analysis',
+            'component_treatments',
+            'sixr_decisions',
+            'assessment_learning_feedback'
+        ]
+        
+        missing_tables = []
+        for table in required_tables:
+            try:
+                result = bind.execute(text(f"SELECT to_regclass('{table}')"))
+                if not result.scalar():
+                    missing_tables.append(table)
+            except Exception as e:
+                logger.warning(f"Could not verify table {table}: {e}")
+                missing_tables.append(table)
+        
+        if missing_tables:
+            logger.error(f"Missing assessment flow tables: {', '.join(missing_tables)}")
+        else:
+            logger.info("Assessment flow tables verified successfully")
+    
+    @staticmethod
+    def initialize_engagement_standards_sync(op):
+        """
+        Initialize architecture standards for existing engagements (synchronous).
+        This should be called after assessment tables are created.
+        """
+        bind = op.get_bind()
+        
+        try:
+            # Get all active engagements
+            result = bind.execute(text("""
+                SELECT id, name FROM engagements WHERE status = 'active'
+            """))
+            engagements = result.fetchall()
+            
+            if not engagements:
+                logger.info("No active engagements found for standards initialization")
+                return
+            
+            # Default standards data (simplified for migration context)
+            default_standards = [
+                {
+                    'requirement_type': 'java_versions',
+                    'description': 'Minimum supported Java versions for cloud migration',
+                    'mandatory': True,
+                    'requirement_details': '{"rationale": "Java 8 end-of-life considerations"}'
+                },
+                {
+                    'requirement_type': 'authentication',
+                    'description': 'Modern authentication and authorization patterns',
+                    'mandatory': True,
+                    'requirement_details': '{"required_patterns": ["OAuth2", "OIDC", "SAML"]}'
+                },
+                {
+                    'requirement_type': 'containerization',
+                    'description': 'Container readiness for cloud deployment',
+                    'mandatory': False,
+                    'requirement_details': '{"container_runtime": ["Docker", "Containerd"]}'
+                }
+            ]
+            
+            standards_created = 0
+            for engagement_id, engagement_name in engagements:
+                # Check if standards already exist
+                existing = bind.execute(text("""
+                    SELECT COUNT(*) FROM engagement_architecture_standards 
+                    WHERE engagement_id = :engagement_id
+                """), {"engagement_id": engagement_id})
+                
+                if existing.scalar() > 0:
+                    logger.debug(f"Standards already exist for engagement: {engagement_name}")
+                    continue
+                
+                # Create standards for this engagement
+                for standard in default_standards:
+                    import uuid
+                    try:
+                        bind.execute(text("""
+                            INSERT INTO engagement_architecture_standards (
+                                id, engagement_id, requirement_type, description,
+                                mandatory, requirement_details, created_by,
+                                created_at, updated_at
+                            ) VALUES (
+                                :id, :engagement_id, :requirement_type, :description,
+                                :mandatory, :requirement_details::jsonb, :created_by,
+                                NOW(), NOW()
+                            )
+                        """), {
+                            "id": str(uuid.uuid4()),
+                            "engagement_id": engagement_id,
+                            "requirement_type": standard['requirement_type'],
+                            "description": standard['description'],
+                            "mandatory": standard['mandatory'],
+                            "requirement_details": standard['requirement_details'],
+                            "created_by": "migration_init"
+                        })
+                        standards_created += 1
+                    except Exception as e:
+                        logger.error(f"Failed to create standard {standard['requirement_type']} for engagement {engagement_id}: {e}")
+                        continue
+                
+                logger.info(f"Initialized standards for engagement: {engagement_name}")
+            
+            if standards_created > 0:
+                logger.info(f"Successfully created {standards_created} architecture standards")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize engagement standards: {e}")
+            # Don't raise - this shouldn't block migration
+    
+    @staticmethod
     def run_all_hooks(op):
         """
         Run all migration hooks in the correct order.
@@ -194,3 +317,22 @@ class MigrationHooks:
         MigrationHooks.cleanup_invalid_demo_admins_sync(op)
         
         logger.info("Migration hooks completed successfully")
+    
+    @staticmethod
+    def run_assessment_migration_hooks(op):
+        """
+        Run assessment flow specific migration hooks.
+        Call this from assessment flow migrations.
+        """
+        logger.info("Running assessment flow migration hooks...")
+        
+        # 1. Verify assessment tables exist
+        MigrationHooks.verify_assessment_tables_sync(op)
+        
+        # 2. Initialize standards for existing engagements
+        MigrationHooks.initialize_engagement_standards_sync(op)
+        
+        # 3. Run standard hooks as well
+        MigrationHooks.run_all_hooks(op)
+        
+        logger.info("Assessment flow migration hooks completed successfully")

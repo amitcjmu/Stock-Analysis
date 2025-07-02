@@ -1,0 +1,411 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Assessment Flow Monitoring",
+    "tags": ["assessment", "migration", "crewai"],
+    "style": "dark",
+    "timezone": "utc",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Active Assessment Flows",
+        "type": "stat",
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 10},
+                {"color": "red", "value": 20}
+              ]
+            }
+          }
+        },
+        "targets": [
+          {
+            "expr": "sum(active_assessment_flows)",
+            "legendFormat": "Active Flows"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Assessment Flow Completion Rate",
+        "type": "stat",
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "color": {
+              "mode": "thresholds"
+            }
+          }
+        },
+        "targets": [
+          {
+            "expr": "rate(assessment_flows_completed_total[5m])",
+            "legendFormat": "Completions/sec"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Flow Success Rate",
+        "type": "stat",
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 80},
+                {"color": "green", "value": 95}
+              ]
+            }
+          }
+        },
+        "targets": [
+          {
+            "expr": "100 * rate(assessment_flows_completed_total{status=\"completed\"}[5m]) / rate(assessment_flows_completed_total[5m])",
+            "legendFormat": "Success %"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Average Phase Duration",
+        "type": "stat",
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "color": {
+              "mode": "thresholds"
+            }
+          }
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, assessment_phase_duration_seconds_bucket)",
+            "legendFormat": "Median Duration"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Phase Duration by Type",
+        "type": "timeseries",
+        "gridPos": {
+          "h": 10,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "spanNulls": false
+            }
+          }
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(assessment_phase_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{phase}} - p50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(assessment_phase_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{phase}} - p95"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "CrewAI Agent Performance",
+        "type": "timeseries",
+        "gridPos": {
+          "h": 10,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear"
+            }
+          }
+        },
+        "targets": [
+          {
+            "expr": "rate(crewai_agent_executions_total{status=\"success\"}[5m])",
+            "legendFormat": "{{agent_type}} - Success"
+          },
+          {
+            "expr": "rate(crewai_agent_executions_total{status=\"error\"}[5m])",
+            "legendFormat": "{{agent_type}} - Errors"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Error Rate by Phase",
+        "type": "timeseries",
+        "gridPos": {
+          "h": 10,
+          "w": 12,
+          "x": 0,
+          "y": 18
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "custom": {
+              "drawStyle": "bars",
+              "lineInterpolation": "linear"
+            },
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "targets": [
+          {
+            "expr": "rate(assessment_flow_errors_total[5m])",
+            "legendFormat": "{{phase}} - {{error_type}}"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "LLM Token Usage",
+        "type": "timeseries",
+        "gridPos": {
+          "h": 10,
+          "w": 12,
+          "x": 12,
+          "y": 18
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear"
+            }
+          }
+        },
+        "targets": [
+          {
+            "expr": "rate(llm_token_usage_total[5m])",
+            "legendFormat": "{{model}} - {{operation_type}}"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Applications Processed",
+        "type": "timeseries",
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 28
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "bars"
+            }
+          }
+        },
+        "targets": [
+          {
+            "expr": "increase(assessment_applications_processed_total[1h])",
+            "legendFormat": "{{phase}}"
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "User Interactions",
+        "type": "timeseries",
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 28
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "custom": {
+              "drawStyle": "bars"
+            }
+          }
+        },
+        "targets": [
+          {
+            "expr": "rate(assessment_user_interactions_total[5m])",
+            "legendFormat": "{{interaction_type}} - {{phase}}"
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Quality Scores Distribution",
+        "type": "histogram",
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 28
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "bucketSize": 0.1
+            }
+          }
+        },
+        "targets": [
+          {
+            "expr": "assessment_flow_quality_score_bucket",
+            "legendFormat": "{{phase}}"
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Flow Status Distribution",
+        "type": "piechart",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 36
+        },
+        "targets": [
+          {
+            "expr": "sum by (status) (active_assessment_flows)",
+            "legendFormat": "{{status}}"
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Top Error Types",
+        "type": "table",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 36
+        },
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "left"
+            }
+          }
+        },
+        "targets": [
+          {
+            "expr": "topk(10, sum by (error_type, phase) (increase(assessment_flow_errors_total[1h])))",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true
+              },
+              "renameByName": {
+                "error_type": "Error Type",
+                "phase": "Phase",
+                "Value": "Count"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "annotations": {
+      "list": [
+        {
+          "name": "Flow Deployments",
+          "datasource": "prometheus",
+          "enable": true,
+          "expr": "increase(assessment_flows_total[1m]) > 0",
+          "titleFormat": "New Assessment Flow",
+          "textFormat": "Flow started"
+        }
+      ]
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "client_account",
+          "type": "query",
+          "query": "label_values(assessment_flows_total, client_account_id)",
+          "refresh": 2,
+          "includeAll": true,
+          "allValue": ".*"
+        },
+        {
+          "name": "phase",
+          "type": "query",
+          "query": "label_values(assessment_phase_duration_seconds, phase)",
+          "refresh": 2,
+          "includeAll": true,
+          "allValue": ".*"
+        }
+      ]
+    }
+  }
+}

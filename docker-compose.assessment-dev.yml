@@ -1,0 +1,67 @@
+version: '3.8'
+
+# Development Docker Compose for Assessment Flow Development
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.assessment-dev.yml up
+
+services:
+  backend:
+    environment:
+      # Development-specific assessment flow settings
+      - DEBUG=true
+      - ASSESSMENT_FLOW_DEBUG=true
+      - CREWAI_LOG_LEVEL=DEBUG
+      
+      # Faster development iterations
+      - ASSESSMENT_TIMEOUT_MINUTES=10  # Shorter timeout for dev
+      - ASSESSMENT_CREW_PARALLELISM=1  # Single thread for easier debugging
+      
+      # Development API keys (use mock for testing)
+      - DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY:-mock_key_for_dev}
+      - CREWAI_MOCK_MODE=${CREWAI_MOCK_MODE:-false}
+    volumes:
+      # Additional volumes for development
+      - ./backend/tests:/app/tests
+      - ./backend/docs:/app/docs
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload --log-level debug
+
+  frontend:
+    environment:
+      # Frontend development for assessment flow
+      - NODE_ENV=development
+      - VITE_BACKEND_URL=http://localhost:8000
+      - VITE_WS_BASE_URL=ws://localhost:8000/ws
+      - NEXT_PUBLIC_ASSESSMENT_SSE_URL=http://localhost:8000
+      
+      # Development features
+      - VITE_DEV_TOOLS=true
+      - VITE_ASSESSMENT_DEBUG=true
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 8081"
+
+  # Development database with assessment flow tables
+  postgres:
+    environment:
+      # Development database settings
+      - POSTGRES_DB=migration_dev_db
+      - POSTGRES_USER=dev_user
+      - POSTGRES_PASSWORD=dev_pass
+    volumes:
+      # Additional initialization for assessment flow
+      - ./backend/tests/fixtures/test_init.sql:/docker-entrypoint-initdb.d/02_assessment_init.sql
+    ports:
+      - "5433:5432"
+
+  # Development Redis with debugging
+  redis:
+    command: redis-server --appendonly yes --loglevel debug
+    
+  # Assessment flow development worker
+  assessment-worker:
+    environment:
+      # Development worker settings
+      - REDIS_URL=redis://redis:6379
+      - WORKER_TYPE=assessment_flow
+      - DEBUG=true
+      - ASSESSMENT_WORKER_CONCURRENCY=1
+      - CREWAI_LOG_LEVEL=DEBUG
+    profiles:
+      - dev-worker
