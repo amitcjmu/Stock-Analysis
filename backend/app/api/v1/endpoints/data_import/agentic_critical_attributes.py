@@ -345,10 +345,10 @@ async def _get_discovery_flow_results(
         from app.services.crewai_flow_service import CrewAIFlowService
         
         crewai_service = CrewAIFlowService()
-        session_id = f"critical_attrs_{data_import.id}"
+        flow_id = data_import.id  # Use data import ID directly as flow ID
         
         # Check for existing flow results
-        flow_state = crewai_service.get_flow_status(session_id)
+        flow_state = crewai_service.get_flow_status(flow_id)
         
         if flow_state and flow_state.get("agent_results", {}).get("field_mapping"):
             logger.info("🤖 Found existing Field Mapping Crew results")
