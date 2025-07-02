@@ -16,8 +16,6 @@ class FlowDeletionAudit(Base):
     # Primary identification
     id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid())
     flow_id = Column(UUID(as_uuid=True), nullable=False, index=True)  # Primary flow identifier
-    # Legacy session_id maintained for backward compatibility during migration
-    session_id = Column(UUID(as_uuid=True), nullable=True, index=True)  # DEPRECATED: Use flow_id instead
     client_account_id = Column(UUID(as_uuid=True), nullable=False, index=True)
     engagement_id = Column(UUID(as_uuid=True), nullable=False, index=True)
     user_id = Column(String, nullable=False)
@@ -54,7 +52,6 @@ class FlowDeletionAudit(Base):
         """Get a summary of the deletion operation."""
         return {
             "flow_id": str(self.flow_id),
-            "session_id": str(self.session_id) if self.session_id else None,  # Legacy field for backward compatibility
             "deletion_type": self.deletion_type,
             "deletion_method": self.deletion_method,
             "deleted_at": self.deleted_at.isoformat() if self.deleted_at else None,
@@ -79,7 +76,6 @@ class FlowDeletionAudit(Base):
         deletion_type: str,
         deletion_method: str,
         deleted_by: str,
-        session_id: str = None,  # Legacy parameter for backward compatibility
         deletion_reason: str = None,
         data_deleted: dict = None,
         deletion_impact: dict = None,
@@ -89,7 +85,6 @@ class FlowDeletionAudit(Base):
         """Create a new audit record for flow deletion."""
         return cls(
             flow_id=flow_id,
-            session_id=session_id,  # Optional legacy field
             client_account_id=client_account_id,
             engagement_id=engagement_id,
             user_id=user_id,

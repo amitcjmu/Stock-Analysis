@@ -28,6 +28,9 @@ def upgrade():
     # Drop column from access_audit_log table (RBAC)
     op.drop_column('access_audit_log', 'session_id')
     
+    # Drop column from flow_deletion_audit table
+    op.drop_column('flow_deletion_audit', 'session_id')
+    
     # Drop column from llm_usage_logs table (renamed from session_id to flow_id)
     # Note: This column was already renamed in the model, so we're aligning the database
     op.execute("ALTER TABLE llm_usage_logs RENAME COLUMN session_id TO flow_id")

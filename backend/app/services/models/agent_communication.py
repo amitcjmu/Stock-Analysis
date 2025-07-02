@@ -83,7 +83,7 @@ class AgentInsight:
     # Client context fields for multi-tenancy
     client_account_id: Optional[str] = None
     engagement_id: Optional[str] = None
-    session_id: Optional[str] = None
+    flow_id: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.utcnow)
     user_feedback: Optional[Dict[str, Any]] = None
     is_validated: bool = False 
