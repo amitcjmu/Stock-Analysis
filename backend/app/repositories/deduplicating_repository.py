@@ -31,7 +31,7 @@ class DeduplicatingRepository(ContextAwareRepository[ModelType]):
         model_class: Type[ModelType],
         client_account_id: Optional[str] = None,
         engagement_id: Optional[str] = None,
-        session_id: Optional[str] = None
+        flow_id: Optional[str] = None
     ):
         """
         Initialize deduplicating repository.
@@ -41,12 +41,12 @@ class DeduplicatingRepository(ContextAwareRepository[ModelType]):
             model_class: SQLAlchemy model class
             client_account_id: Client account UUID for multi-tenant scoping
             engagement_id: Engagement UUID for project scoping
-            session_id: Optional data import session UUID to scope the repository
+            flow_id: Optional flow UUID to scope the repository
         """
         super().__init__(db, model_class, client_account_id, engagement_id)
-        self.session_id = session_id
-        self.has_session = hasattr(model_class, 'session_id')
-        logger.debug(f"Initialized {model_class.__name__} deduplicating repository. Session-scoped: {self.session_id is not None}")
+        self.flow_id = flow_id
+        self.has_flow = hasattr(model_class, 'flow_id')
+        logger.debug(f"Initialized {model_class.__name__} deduplicating repository. Flow-scoped: {self.flow_id is not None}")
 
     def _apply_context_filter(self, query: Select) -> Select:
         """
@@ -59,9 +59,9 @@ class DeduplicatingRepository(ContextAwareRepository[ModelType]):
             Query with context filters applied
         """
         query = super()._apply_context_filter(query)
-        if self.session_id and self.has_session:
-            query = query.where(self.model_class.session_id == self.session_id)
-            logger.debug(f"Applied session filter: {self.session_id}")
+        if self.flow_id and self.has_flow:
+            query = query.where(self.model_class.flow_id == self.flow_id)
+            logger.debug(f"Applied flow filter: {self.flow_id}")
         return query
 
     async def get_by_id(self, id: Any) -> Optional[ModelType]:
@@ -91,7 +91,7 @@ class DeduplicatingRepository(ContextAwareRepository[ModelType]):
         Returns:
             List of model instances
         """
-        if self.session_id:
+        if self.flow_id:
             # If scoped to a session, don't deduplicate, just get all from that session
             query = select(self.model_class)
             query = self._apply_context_filter(query)
@@ -114,7 +114,7 @@ class DeduplicatingRepository(ContextAwareRepository[ModelType]):
         Returns:
             List of matching model instances
         """
-        if self.session_id:
+        if self.flow_id:
             query = select(self.model_class)
             query = self._apply_context_filter(query)
             for field, value in filters.items():
@@ -138,9 +138,9 @@ class DeduplicatingRepository(ContextAwareRepository[ModelType]):
         instance = self.model_class(**data)
         instance = self._apply_context_to_instance(instance)
         
-        # If the model supports session_id and the repo is scoped, set it.
-        if self.session_id and self.has_session:
-            setattr(instance, 'session_id', self.session_id)
+        # If the model supports flow_id and the repo is scoped, set it.
+        if self.flow_id and self.has_flow:
+            setattr(instance, 'flow_id', self.flow_id)
         
         self.db.add(instance)
         await self.db.commit()
@@ -176,8 +176,8 @@ class DeduplicatingRepository(ContextAwareRepository[ModelType]):
                 dedup_field = getattr(self.model_class, field_name)
                 break
         
-        if not dedup_field or not self.has_session:
-            logger.warning(f"No deduplication field or session_id found for {self.model_class.__name__}, returning regular query.")
+        if not dedup_field or not self.has_flow:
+            logger.warning(f"No deduplication field or flow_id found for {self.model_class.__name__}, returning regular query.")
             # Fallback to non-deduplicated query if model doesn't support it
             query = select(self.model_class)
             query = self._apply_context_filter(query)
@@ -197,7 +197,7 @@ class DeduplicatingRepository(ContextAwareRepository[ModelType]):
         latest_records_subquery = (
             select(
                 dedup_field,
-                self.model_class.session_id,
+                self.model_class.flow_id,
                 func.row_number().over(
                     partition_by=dedup_field,
                     order_by=desc(self.model_class.created_at)
@@ -220,7 +220,7 @@ class DeduplicatingRepository(ContextAwareRepository[ModelType]):
             select(self.model_class)
             .join(subquery, and_(
                 dedup_field == subquery.c[dedup_field.name],
-                self.model_class.session_id == subquery.c.session_id
+                self.model_class.flow_id == subquery.c.flow_id
             ))
             .where(subquery.c.row_num == 1)
         )
@@ -256,7 +256,7 @@ class DeduplicatingRepository(ContextAwareRepository[ModelType]):
                 dedup_field = getattr(self.model_class, field_name)
                 break
 
-        if not dedup_field or not self.has_session:
+        if not dedup_field or not self.has_flow:
             logger.warning(f"Cannot perform deduplicated count for {self.model_class.__name__}")
             return await super().count(**filters)
 

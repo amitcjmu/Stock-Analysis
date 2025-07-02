@@ -107,7 +107,7 @@ class DeduplicationService:
             func.row_number().over(
                 partition_by=hostname_field,
                 order_by=[
-                    desc(model_class.session_id),  # Latest session first
+                    desc(model_class.flow_id),  # Latest flow first
                     desc(func.length(hostname_field)),  # Longer hostname first
                     desc(model_class.created_at) if hasattr(model_class, 'created_at') else text('1')
                 ]
@@ -184,7 +184,7 @@ class DeduplicationService:
         latest_records_subquery = (
             select(
                 dedup_field,
-                model_class.session_id,
+                model_class.flow_id,
                 func.row_number().over(
                     partition_by=dedup_field,
                     order_by=desc(model_class.created_at)
@@ -212,7 +212,7 @@ class DeduplicationService:
         subquery = (
             select(
                 latest_records_subquery.c[dedup_field.name],
-                latest_records_subquery.c.session_id.label('latest_session_id')
+                latest_records_subquery.c.flow_id.label('latest_flow_id')
             )
             .where(latest_records_subquery.c.row_num == 1)
         )
@@ -224,7 +224,7 @@ class DeduplicationService:
             subquery,
             and_(
                 dedup_field == subquery.c[dedup_field.name],
-                model_class.session_id == subquery.c.latest_session_id
+                model_class.flow_id == subquery.c.latest_flow_id
             )
         )
         
@@ -273,7 +273,7 @@ class DeduplicationService:
         # Calculate data quality score (count of non-null fields)
         quality_fields = []
         for column in model_class.__table__.columns:
-            if column.name not in ['id', 'created_at', 'updated_at', 'session_id']:
+            if column.name not in ['id', 'created_at', 'updated_at', 'flow_id']:
                 quality_fields.append(
                     func.case((getattr(model_class, column.name).is_not(None), 1), else_=0)
                 )
@@ -287,7 +287,7 @@ class DeduplicationService:
                 partition_by=dedup_field,
                 order_by=[
                     desc(quality_score),  # Best quality first
-                    desc(model_class.session_id),  # Latest session as tiebreaker
+                    desc(model_class.flow_id),  # Latest flow as tiebreaker
                     desc(model_class.created_at) if hasattr(model_class, 'created_at') else text('1')
                 ]
             ).label('rn')
@@ -445,7 +445,7 @@ class DeduplicationService:
         duplicate_count = sum(len(group) - 1 for group in duplicate_groups.values())
         
         # Sessions count
-        sessions_query = select(func.count(func.distinct(model_class.session_id)))
+        sessions_query = select(func.count(func.distinct(model_class.flow_id)))
         if hasattr(model_class, 'engagement_id'):
             sessions_query = sessions_query.where(model_class.engagement_id == engagement_id)
         
