@@ -1,5 +1,5 @@
-# Use Python 3.11 for better compatibility with CrewAI
-FROM python:3.11-slim
+# Use Python 3.11 for better compatibility with CrewAI - with security updates
+FROM python:3.11-slim-bookworm@sha256:139020233cc412efe4c8135b0efe1c7569dc8b28ddd88bddb109b764f8977e30
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -9,13 +9,17 @@ ENV ENVIRONMENT=production
 # Set work directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies with security updates
 RUN apt-get update \
+    && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
         build-essential \
         libpq-dev \
         curl \
-    && rm -rf /var/lib/apt/lists/*
+        ca-certificates \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /tmp/* /var/tmp/*
 
 # Copy requirements first for better caching
 COPY requirements-docker.txt requirements.txt ./

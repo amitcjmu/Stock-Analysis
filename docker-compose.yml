@@ -23,8 +23,9 @@ services:
   # FastAPI Backend
   backend:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
+    image: migrate-platform:latest
     env_file:
       - ./backend/.env
     container_name: migration_backend

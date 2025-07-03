@@ -1,0 +1,27 @@
+# Multi-stage build for minimal attack surface
+FROM python:3.11-slim-bookworm as builder
+
+WORKDIR /app
+COPY backend/requirements-security.txt .
+RUN pip install --user --no-cache-dir -r requirements-security.txt
+
+# Final minimal image
+FROM python:3.11-slim-bookworm
+RUN apt-get update && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends libpq5 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy only necessary files
+COPY --from=builder /root/.local /root/.local
+COPY backend/ /app/
+
+WORKDIR /app
+ENV PATH=/root/.local/bin:$PATH
+
+# Run as non-root
+RUN useradd -m -u 1000 appuser
+USER appuser
+
+EXPOSE 8000
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

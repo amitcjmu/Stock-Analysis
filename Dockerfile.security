@@ -1,0 +1,89 @@
+# AI Force Migration Platform - Security-Hardened Dockerfile
+# This Dockerfile uses security best practices to minimize vulnerabilities
+
+# Use specific version with security updates
+FROM python:3.11-slim-bookworm@sha256:139020233cc412efe4c8135b0efe1c7569dc8b28ddd88bddb109b764f8977e30
+
+# Set up non-root user early
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Install security updates first
+RUN apt-get update && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Install only necessary system dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        libpq-dev \
+        curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /tmp/* \
+    && rm -rf /var/tmp/*
+
+# Copy requirements first for better caching
+COPY --chown=appuser:appuser backend/requirements-docker.txt requirements.txt
+
+# Install Python dependencies as non-root
+USER appuser
+
+# Install dependencies with security flags
+RUN pip install --user --no-cache-dir --upgrade pip \
+    && pip install --user --no-cache-dir \
+        --no-compile \
+        --disable-pip-version-check \
+        -r requirements.txt
+
+# Switch back to root to copy files
+USER root
+
+# Copy application code
+COPY --chown=appuser:appuser backend/ .
+
+# Copy startup script
+COPY --chown=appuser:appuser backend/scripts/deployment/start.sh .
+
+# Make startup script executable
+RUN chmod +x start.sh start.py || true
+
+# Remove unnecessary files and permissions
+RUN find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true \
+    && find . -type f -name "*.pyc" -delete \
+    && find . -type f -name "*.pyo" -delete \
+    && find . -type f -name "*.orig" -delete \
+    && chmod -R 755 /app \
+    && chown -R appuser:appuser /app
+
+# Security: Drop all capabilities
+RUN setcap -r /usr/local/bin/python3.11 2>/dev/null || true
+
+# Switch to non-root user
+USER appuser
+
+# Use non-root port
+EXPOSE 8000
+
+# Add security labels
+LABEL security.scan="true" \
+      security.nonroot="true" \
+      maintainer="security@aiforce.com"
+
+# Health check with timeout
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python -c "import urllib.request; import os; port=os.getenv('PORT', '8000'); urllib.request.urlopen(f'http://localhost:{port}/health')" || exit 1
+
+# Set security environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+# Start with minimal permissions
+CMD ["./start.sh"]

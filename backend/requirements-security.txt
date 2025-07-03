@@ -1,0 +1,28 @@
+# Core dependencies with security patches
+aiofiles==24.1.0
+aiohttp>=3.10.0  # CVE fixes
+alembic>=1.16.2
+asyncpg>=0.30.0
+bcrypt>=4.3.0  # Latest security patches
+crewai>=0.140.0
+cryptography>=45.0.5  # Important security updates
+fastapi>=0.115.14
+httpx>=0.28.1
+jinja2>=3.1.6  # Template injection fixes
+passlib[bcrypt]>=1.7.4
+psycopg2-binary>=2.9.10  # PostgreSQL security updates
+pydantic>=2.11.7
+python-jose[cryptography]>=3.5.0
+python-multipart>=0.0.20
+sqlalchemy>=2.0.41
+uvicorn[standard]>=0.35.0
+
+# Security tools
+pip-audit>=2.7.0
+safety>=3.2.0
+bandit>=1.7.8
+
+# Remove or update vulnerable packages
+# certifi>=2025.6.15  # Update to latest
+# pillow>=11.3.0  # Update for CVE fixes
+# urllib3>=2.5.0  # Security patches

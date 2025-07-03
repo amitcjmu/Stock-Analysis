@@ -1,0 +1,147 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    image: migrate-platform:secure
+    container_name: migration_backend_secure
+    restart: unless-stopped
+    
+    # Security configurations
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:unconfined
+    
+    # Drop all capabilities and add only what's needed
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - NET_BIND_SERVICE
+    
+    # Read-only root filesystem
+    read_only: true
+    
+    # Temporary filesystems for writable directories
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100M
+      - /var/run:noexec,nosuid,size=10M
+      - /var/cache:noexec,nosuid,size=50M
+    
+    # Volume for persistent data (if needed)
+    volumes:
+      - app-data:/app/data:rw
+      - ./backend/app:/app/app:ro  # Application code read-only
+    
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY}
+      - ENVIRONMENT=production
+      - PORT=8000
+    
+    ports:
+      - "8000:8000"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    
+    # User context
+    user: appuser
+    
+    networks:
+      - secure-network
+    
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-bookworm
+    container_name: migration_db_secure
+    restart: unless-stopped
+    
+    # Security configurations
+    security_opt:
+      - no-new-privileges:true
+    
+    # Read-only with specific writable volumes
+    read_only: true
+    tmpfs:
+      - /var/run/postgresql:noexec,nosuid
+      - /tmp:noexec,nosuid
+    
+    volumes:
+      - postgres-data:/var/lib/postgresql/data:rw
+    
+    environment:
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME:-migration_db}
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256 --auth-local=scram-sha-256
+    
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-migration_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+    
+    networks:
+      - secure-network
+
+  # Optional: Security scanner sidecar
+  scanner:
+    image: aquasec/trivy:latest
+    container_name: security_scanner
+    profiles: ["security"]
+    command: ["server", "--listen", "0.0.0.0:8080"]
+    ports:
+      - "8080:8080"
+    networks:
+      - secure-network
+
+networks:
+  secure-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-secure
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgres-data:
+    driver: local
+  app-data:
+    driver: local

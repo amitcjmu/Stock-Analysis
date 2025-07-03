@@ -1,0 +1,120 @@
+# Security-focused pre-commit hooks
+# Install: pip install pre-commit && pre-commit install
+
+repos:
+  # Secret Detection
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.0
+    hooks:
+      - id: gitleaks
+
+  # Python Security Linting
+  - repo: https://github.com/pycqa/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: ['-ll', '-i', '-r', 'backend/']
+        exclude: ^backend/tests/
+
+  # Security Vulnerabilities in Dependencies
+  - repo: https://github.com/pyupio/safety
+    rev: v2.3.5
+    hooks:
+      - id: safety
+        args: ['check', '--json', '-r', 'backend/requirements.txt']
+
+  # General Python Code Quality
+  - repo: https://github.com/psf/black
+    rev: 23.11.0
+    hooks:
+      - id: black
+        language_version: python3.11
+        files: ^backend/
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.1.0
+    hooks:
+      - id: flake8
+        args: ['--max-line-length=120', '--extend-ignore=E203,W503']
+        files: ^backend/
+
+  # Type Checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.1
+    hooks:
+      - id: mypy
+        files: ^backend/
+        additional_dependencies: [types-all]
+
+  # Dockerfile Security
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint
+        args: ['--ignore', 'DL3008', '--ignore', 'DL3009']
+
+  # YAML/JSON Validation
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-yaml
+        args: ['--unsafe']
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+
+  # SQL Injection Detection
+  - repo: https://github.com/sqlfluff/sqlfluff
+    rev: 2.3.5
+    hooks:
+      - id: sqlfluff-lint
+        files: \.(sql|py)$
+        args: ['--dialect', 'postgres']
+
+  # Security-focused Python checks
+  - repo: local
+    hooks:
+      - id: check-credentials
+        name: Check for hardcoded credentials
+        entry: python scripts/security/check_credentials.py
+        language: python
+        files: \.(py|yml|yaml|json|env)$
+        
+      - id: check-jwt-secrets
+        name: Ensure JWT secrets are not hardcoded
+        entry: sh -c 'grep -r "SECRET_KEY.*=" backend/ | grep -v "Field(default=None" | grep -v "# EXAMPLE" && exit 1 || exit 0'
+        language: system
+        files: \.py$
+
+      - id: pip-audit
+        name: Audit Python dependencies
+        entry: pip-audit
+        language: system
+        files: requirements.*\.txt$
+        
+      - id: check-api-keys
+        name: Check for exposed API keys
+        entry: sh -c 'grep -r "api_key\|apikey\|api-key" backend/ --include="*.py" | grep -v "Field(\|Column(\|# EXAMPLE" | grep "=" && exit 1 || exit 0'
+        language: system
+        files: \.py$
+
+# Configuration for specific hooks
+exclude: |
+  (?x)^(
+    backend/venv/.*|
+    backend/migrations/.*|
+    backend/tests/fixtures/.*|
+    .*\.egg-info/.*|
+    docs/.*\.md|
+    scripts/archive/.*
+  )$
+
+fail_fast: false
+default_stages: [commit]

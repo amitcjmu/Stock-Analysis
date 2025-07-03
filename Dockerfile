@@ -1,18 +1,22 @@
 # AI Force Migration Platform - Railway Deployment Dockerfile
 # This Dockerfile is specifically for Railway.com deployment
 
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm@sha256:139020233cc412efe4c8135b0efe1c7569dc8b28ddd88bddb109b764f8977e30
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies with security updates
 RUN apt-get update \
+    && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
         build-essential \
         libpq-dev \
         curl \
-    && rm -rf /var/lib/apt/lists/*
+        ca-certificates \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /tmp/* /var/tmp/*
 
 # Copy backend requirements
 COPY backend/requirements-docker.txt requirements.txt
@@ -32,7 +36,8 @@ RUN chmod +x start.sh start.py || true
 
 # Create non-root user for security
 RUN adduser --disabled-password --gecos '' appuser \
-    && chown -R appuser:appuser /app
+    && chown -R appuser:appuser /app \
+    && chmod -R 755 /app
 
 # Expose port (Railway will set the PORT environment variable)
 EXPOSE 8000

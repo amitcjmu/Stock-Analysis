@@ -1,0 +1,276 @@
+# GitLab CI/CD Security Pipeline
+# Runs security scans on demand and for release branches
+
+stages:
+  - security-sast
+  - security-dependencies
+  - security-containers
+  - security-secrets
+  - security-report
+
+variables:
+  DOCKER_DRIVER: overlay2
+  SECURE_ANALYZERS_PREFIX: "registry.gitlab.com/security-products"
+  SAST_EXCLUDED_PATHS: "venv,node_modules,tests"
+
+# Only run on release branches or manual trigger
+.security-scan-rules:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'  # Manual pipeline
+    - if: '$CI_COMMIT_BRANCH =~ /^release\/.*/'
+    - if: '$CI_COMMIT_BRANCH =~ /^hotfix\/.*/'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: manual
+
+# SAST - Static Application Security Testing
+sast:
+  stage: security-sast
+  extends: .security-scan-rules
+  image: python:3.11-slim
+  before_script:
+    - pip install bandit safety semgrep
+  script:
+    - echo "Running SAST scans..."
+    - mkdir -p reports
+    
+    # Bandit
+    - bandit -r backend/ -f json -o reports/bandit-report.json --severity-level medium || true
+    - bandit -r backend/ -f txt -o reports/bandit-report.txt --severity-level medium || true
+    
+    # Semgrep
+    - semgrep --config=auto --json --output=reports/semgrep-report.json backend/ || true
+    
+    # Custom security checks
+    - python scripts/security/check_credentials.py backend/**/*.py || true
+  artifacts:
+    name: "sast-reports-$CI_COMMIT_SHA"
+    paths:
+      - reports/
+    expire_in: 30 days
+    reports:
+      sast: reports/semgrep-report.json
+
+# Secret Detection
+secret_detection:
+  stage: security-secrets
+  extends: .security-scan-rules
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache git
+  script:
+    - echo "Running secret detection..."
+    - mkdir -p reports
+    
+    # GitLeaks
+    - wget -q https://github.com/gitleaks/gitleaks/releases/download/v8.18.0/gitleaks_8.18.0_linux_x64.tar.gz
+    - tar -xzf gitleaks_8.18.0_linux_x64.tar.gz
+    - ./gitleaks detect --source . --report-path reports/gitleaks-report.json || true
+    
+    # TruffleHog
+    - wget -q https://github.com/trufflesecurity/trufflehog/releases/download/v3.63.0/trufflehog_3.63.0_linux_amd64.tar.gz
+    - tar -xzf trufflehog_3.63.0_linux_amd64.tar.gz
+    - ./trufflehog filesystem . --json > reports/trufflehog-report.json || true
+  artifacts:
+    name: "secret-reports-$CI_COMMIT_SHA"
+    paths:
+      - reports/
+    expire_in: 30 days
+
+# Dependency Scanning
+dependency_scanning:
+  stage: security-dependencies
+  extends: .security-scan-rules
+  image: python:3.11-slim
+  before_script:
+    - pip install safety pip-audit
+  script:
+    - echo "Running dependency scans..."
+    - mkdir -p reports
+    
+    # Safety
+    - safety check --json --output reports/safety-report.json -r backend/requirements.txt || true
+    
+    # pip-audit
+    - pip-audit -r backend/requirements.txt --format json --output reports/pip-audit-report.json || true
+    
+    # OWASP Dependency Check (if using)
+    - |
+      if command -v dependency-check; then
+        dependency-check --project "$CI_PROJECT_NAME" --scan . --format JSON --out reports/dependency-check-report.json || true
+      fi
+  artifacts:
+    name: "dependency-reports-$CI_COMMIT_SHA"
+    paths:
+      - reports/
+    expire_in: 30 days
+    reports:
+      dependency_scanning: reports/safety-report.json
+
+# Container Scanning
+container_scanning:
+  stage: security-containers
+  extends: .security-scan-rules
+  image: docker:stable
+  services:
+    - docker:dind
+  before_script:
+    - apk add --no-cache curl
+  script:
+    - echo "Running container security scans..."
+    - mkdir -p reports
+    
+    # Build image for scanning
+    - docker build -t $CI_PROJECT_NAME:$CI_COMMIT_SHA -f Dockerfile .
+    
+    # Trivy scan
+    - |
+      docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+        -v $(pwd)/reports:/reports \
+        aquasec/trivy:latest image \
+        --format json \
+        --output /reports/trivy-report.json \
+        --severity HIGH,CRITICAL \
+        $CI_PROJECT_NAME:$CI_COMMIT_SHA || true
+    
+    # Grype scan
+    - |
+      docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+        -v $(pwd)/reports:/reports \
+        anchore/grype:latest \
+        $CI_PROJECT_NAME:$CI_COMMIT_SHA \
+        -o json > reports/grype-report.json || true
+    
+    # Hadolint for Dockerfile
+    - |
+      docker run --rm -i hadolint/hadolint < Dockerfile > reports/hadolint-report.txt || true
+  artifacts:
+    name: "container-reports-$CI_COMMIT_SHA"
+    paths:
+      - reports/
+    expire_in: 30 days
+    reports:
+      container_scanning: reports/trivy-report.json
+
+# License Scanning
+license_scanning:
+  stage: security-dependencies
+  extends: .security-scan-rules
+  image: python:3.11-slim
+  before_script:
+    - pip install pip-licenses
+  script:
+    - echo "Running license scan..."
+    - mkdir -p reports
+    - pip-licenses --with-urls --format=json --output-file=reports/license-report.json
+  artifacts:
+    name: "license-report-$CI_COMMIT_SHA"
+    paths:
+      - reports/
+    expire_in: 30 days
+
+# DAST - Dynamic Application Security Testing (Optional)
+dast:
+  stage: security-report
+  extends: .security-scan-rules
+  image: owasp/zap2docker-stable
+  when: manual
+  allow_failure: true
+  script:
+    - echo "Running DAST scan..."
+    - mkdir -p reports
+    
+    # Start the application (you need to adapt this)
+    # docker-compose up -d
+    
+    # Run ZAP baseline scan
+    - |
+      zap-baseline.py \
+        -t http://localhost:8000 \
+        -g gen.conf \
+        -r reports/zap-report.html \
+        -J reports/zap-report.json || true
+  artifacts:
+    name: "dast-reports-$CI_COMMIT_SHA"
+    paths:
+      - reports/
+    expire_in: 30 days
+
+# Security Report Generation
+security_report:
+  stage: security-report
+  extends: .security-scan-rules
+  image: python:3.11-slim
+  needs:
+    - sast
+    - secret_detection
+    - dependency_scanning
+    - container_scanning
+    - license_scanning
+  before_script:
+    - pip install jinja2 markdown2
+  script:
+    - echo "Generating consolidated security report..."
+    - mkdir -p final-reports
+    
+    # Download all artifacts
+    - cp -r reports/* final-reports/ || true
+    
+    # Generate report
+    - python scripts/security/generate_security_report.py final-reports/ > final-reports/security-assessment.md
+    
+    # Check for critical issues
+    - |
+      if grep -q "CRITICAL" final-reports/security-assessment.md; then
+        echo "🚨 CRITICAL security issues found!"
+        exit 1
+      fi
+  artifacts:
+    name: "security-assessment-$CI_COMMIT_SHA"
+    paths:
+      - final-reports/
+    expire_in: 90 days
+    expose_as: 'Security Assessment Report'
+  coverage: '/Total security score: \d+%/'
+
+# Notify results
+notify_security_results:
+  stage: .post
+  extends: .security-scan-rules
+  image: alpine:latest
+  when: always
+  dependencies:
+    - security_report
+  before_script:
+    - apk add --no-cache curl
+  script:
+    - |
+      if [ -f final-reports/security-assessment.md ]; then
+        REPORT_SUMMARY=$(head -n 20 final-reports/security-assessment.md)
+        # Send to Slack/Teams/Email
+        # curl -X POST $SLACK_WEBHOOK -d "{\"text\": \"Security scan completed: $REPORT_SUMMARY\"}"
+      fi
+
+# Security compliance check
+compliance_check:
+  stage: security-report
+  extends: .security-scan-rules
+  image: python:3.11-slim
+  needs:
+    - security_report
+  script:
+    - echo "Checking security compliance..."
+    - |
+      # Check if report exists and parse it
+      if [ -f final-reports/security-report.json ]; then
+        python -c "
+import json
+with open('final-reports/security-report.json') as f:
+    data = json.load(f)
+    risk_score = data.get('risk_score', 0)
+    if risk_score < 70:
+        print(f'❌ Security compliance failed. Risk score: {risk_score}/100')
+        exit(1)
+    else:
+        print(f'✅ Security compliance passed. Risk score: {risk_score}/100')
+        "
+      fi
