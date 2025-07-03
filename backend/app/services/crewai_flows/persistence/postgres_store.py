@@ -299,6 +299,14 @@ class PostgresFlowStateStore:
                 return str(obj)
             elif isinstance(obj, datetime):
                 return obj.isoformat()
+            elif isinstance(obj, str):
+                # Check if it's already an ISO format datetime string
+                try:
+                    # Try to parse it as a datetime to verify it's a valid ISO string
+                    datetime.fromisoformat(obj.replace('Z', '+00:00'))
+                    return obj  # It's already an ISO format string, return as-is
+                except (ValueError, AttributeError):
+                    return obj  # Not a datetime string, return as-is
             elif hasattr(obj, 'model_dump'):
                 return convert_obj(obj.model_dump())
             elif hasattr(obj, '__dict__'):

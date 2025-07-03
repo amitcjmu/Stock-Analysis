@@ -24,8 +24,11 @@ RUN pip install --no-cache-dir --upgrade pip \
 # Copy backend application code
 COPY backend/ .
 
-# Make startup scripts executable
-RUN chmod +x start.sh start.py
+# Copy startup script from deployment directory to root
+COPY backend/scripts/deployment/start.sh .
+
+# Make startup script executable (only start.sh exists, start.py is already in root)
+RUN chmod +x start.sh start.py || true
 
 # Create non-root user for security
 RUN adduser --disabled-password --gecos '' appuser \
@@ -41,5 +44,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 # Switch to non-root user
 USER appuser
 
-# Start command (Railway will override this with the PORT variable)
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"] 
+# Start command using start.sh which handles Railway's PORT variable
+CMD ["./start.sh"] 
