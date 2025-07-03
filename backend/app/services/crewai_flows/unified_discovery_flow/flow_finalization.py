@@ -68,7 +68,7 @@ class FlowFinalizer:
             self.state.final_result = "completed"
             self.state.status = "completed"
             self.state.current_phase = "completed"
-            self.state.completed_at = datetime.utcnow()
+            self.state.completed_at = datetime.utcnow().isoformat()
             self.state.progress_percentage = 100.0
             
             # Update phase completion
@@ -94,8 +94,14 @@ class FlowFinalizer:
     def _calculate_final_metrics(self) -> None:
         """Calculate final flow metrics"""
         if self.state.created_at:
-            duration = (datetime.utcnow() - self.state.created_at).total_seconds()
-            self.state.execution_time_seconds = duration
+            try:
+                # Parse the created_at string back to datetime for calculation
+                created_datetime = datetime.fromisoformat(self.state.created_at.replace('Z', '+00:00'))
+                duration = (datetime.utcnow() - created_datetime).total_seconds()
+                self.state.execution_time_seconds = duration
+            except (ValueError, AttributeError) as e:
+                logger.warning(f"Could not calculate execution time: {e}")
+                self.state.execution_time_seconds = 0.0
         
         # Count total insights
         self.state.total_insights = len(self.state.agent_insights)

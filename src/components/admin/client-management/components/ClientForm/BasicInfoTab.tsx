@@ -61,7 +61,7 @@ export const BasicInfoTab: React.FC<BasicInfoTabProps> = ({ formData, onFormChan
             </SelectTrigger>
             <SelectContent>
               {SubscriptionTiers.map(tier => (
-                <SelectItem key={tier} value={tier}>{tier}</SelectItem>
+                <SelectItem key={tier.value} value={tier.value}>{tier.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>

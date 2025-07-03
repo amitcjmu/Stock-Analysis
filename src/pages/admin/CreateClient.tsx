@@ -74,9 +74,19 @@ const CreateClient: React.FC = () => {
     },
     onError: (error: any) => {
       console.error('Create client error:', error);
-      const errorMessage = error?.response?.data?.detail || 
-                          error?.message || 
-                          "Failed to create client. Please try again.";
+      let errorMessage = "Failed to create client. Please try again.";
+      
+      // Safely extract error message
+      if (error?.response?.data?.detail) {
+        errorMessage = typeof error.response.data.detail === 'string' 
+          ? error.response.data.detail 
+          : JSON.stringify(error.response.data.detail);
+      } else if (error?.message) {
+        errorMessage = typeof error.message === 'string' 
+          ? error.message 
+          : JSON.stringify(error.message);
+      }
+      
       toast({
         title: "Error",
         description: errorMessage,
@@ -103,6 +113,9 @@ const CreateClient: React.FC = () => {
 
   // Simple form handler - no useCallback to prevent re-renders
   const handleFormChange = (field: keyof CreateClientData, value: any) => {
+    // Debug logging
+    console.log(`handleFormChange: field=${field}, value=`, value, `type=${typeof value}`);
+    
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -315,6 +328,7 @@ const CreateClient: React.FC = () => {
                           id={`cloud-${provider.value}`}
                           checked={formData.target_cloud_providers.includes(provider.value)}
                           onCheckedChange={(checked) => {
+                            console.log('Checkbox onCheckedChange:', checked, 'type:', typeof checked);
                             const currentArray = formData.target_cloud_providers;
                             if (checked) {
                               handleFormChange('target_cloud_providers', [...currentArray, provider.value]);

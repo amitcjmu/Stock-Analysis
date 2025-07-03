@@ -197,8 +197,8 @@ class CrewCoordinator:
     
     async def _execute_analysis_agent(self, agent_name: str, input_data: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
         """Execute analysis agents (dependency or tech debt)"""
-        # Use the orchestrator's parallel analysis method
-        analysis_results = await self.orchestrator.execute_parallel_analysis_agents_method(input_data, context)
+        # Use the orchestrator's main execution method
+        analysis_results = await self.orchestrator.execute_discovery_agents(input_data, context)
         
         # Extract specific agent results
         if agent_name == "dependency_analysis_agent":

@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-@router.get("/health")
+@router.get("")
 async def health_check() -> Dict[str, Any]:
     """
     🏥 ENHANCED: Health check endpoint with database performance monitoring.
@@ -57,7 +57,7 @@ async def health_check() -> Dict[str, Any]:
     
     return health_status
 
-@router.get("/health/database")
+@router.get("/database")
 async def database_health_detailed() -> Dict[str, Any]:
     """
     🎯 PERFORMANCE: Detailed database health and performance metrics.

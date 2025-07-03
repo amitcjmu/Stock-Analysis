@@ -108,7 +108,7 @@ class PostgreSQLFlowPersistence:
                 return {
                     "status": "success",
                     "flow_id": str(flow.flow_id),
-                    "legacy_session_id": state.session_id,  # For backward compatibility
+                    "legacy_session_id": state.flow_id,  # For backward compatibility
                     "persisted_at": datetime.utcnow().isoformat(),
                     "migration_note": "Persisted using V2 DiscoveryFlow architecture"
                 }
@@ -175,7 +175,7 @@ class PostgreSQLFlowPersistence:
                 return {
                     "status": "success",
                     "flow_id": str(flow.flow_id),
-                    "legacy_session_id": state.session_id,  # For backward compatibility
+                    "legacy_session_id": state.flow_id,  # For backward compatibility
                     "updated_at": datetime.utcnow().isoformat(),
                     "progress_percentage": flow.progress_percentage,
                     "current_phase": flow.get_next_phase() or "completed"
@@ -284,11 +284,11 @@ class PostgreSQLFlowPersistence:
                     warnings=workflow.warnings or [],
                     workflow_log=workflow.workflow_log or [],
                     
-                    # Timestamps
-                    started_at=workflow.started_at.isoformat() if workflow.started_at else datetime.utcnow().isoformat(),
-                    created_at=workflow.created_at.isoformat() if workflow.created_at else datetime.utcnow().isoformat(),
-                    updated_at=workflow.updated_at.isoformat() if workflow.updated_at else datetime.utcnow().isoformat(),
-                    completed_at=workflow.completed_at.isoformat() if workflow.completed_at else None
+                    # Timestamps - handle both datetime objects and strings
+                    started_at=workflow.started_at.isoformat() if hasattr(workflow.started_at, 'isoformat') else workflow.started_at if workflow.started_at else datetime.utcnow().isoformat(),
+                    created_at=workflow.created_at.isoformat() if hasattr(workflow.created_at, 'isoformat') else workflow.created_at if workflow.created_at else datetime.utcnow().isoformat(),
+                    updated_at=workflow.updated_at.isoformat() if hasattr(workflow.updated_at, 'isoformat') else workflow.updated_at if workflow.updated_at else datetime.utcnow().isoformat(),
+                    completed_at=workflow.completed_at.isoformat() if hasattr(workflow.completed_at, 'isoformat') else workflow.completed_at if workflow.completed_at else None
                 )
                 
                 logger.info(f"✅ Flow state restored from PostgreSQL: session={session_id}")

@@ -96,8 +96,9 @@ class FieldMappingPhase:
             'source_columns': list(self.state.raw_data[0].keys()) if self.state.raw_data else [],
             'validation_results': self.state.data_validation_results,
             'flow_metadata': {
-                'session_id': self.state.session_id,
-                'flow_id': self.state.flow_id
+                'flow_id': self.state.flow_id,
+                'client_account_id': self.state.client_account_id,
+                'engagement_id': self.state.engagement_id
             }
         }
     

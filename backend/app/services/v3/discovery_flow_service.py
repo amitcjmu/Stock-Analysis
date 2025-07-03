@@ -245,6 +245,41 @@ class V3DiscoveryFlowService:
             for flow in flows
         ]
     
+    async def list_flows(self, status: Optional[str] = None, limit: int = 50, offset: int = 0, 
+                         status_filter: Optional[str] = None, execution_mode: Optional[str] = None) -> List[Dict[str, Any]]:
+        """List flows with optional filtering"""
+        # Use status_filter if provided, otherwise use status
+        filter_status = status_filter or status
+        
+        if filter_status and filter_status == 'active':
+            return await self.get_active_flows()
+        
+        # Get all flows with optional status filter
+        flows = await self.flow_repo.get_all(limit=limit, offset=offset)
+        
+        # Filter by status if provided
+        if filter_status:
+            flows = [f for f in flows if f.status == filter_status]
+        
+        # Filter by execution mode if provided (currently all flows are in 'synchronous' mode)
+        if execution_mode:
+            # For now, all flows use synchronous mode
+            pass
+        
+        return [
+            {
+                "flow_id": str(flow.id),
+                "flow_name": flow.flow_name,
+                "status": flow.status,
+                "current_phase": flow.current_phase,
+                "progress_percentage": flow.progress_percentage,
+                "data_import_id": str(flow.data_import_id) if flow.data_import_id else None,
+                "created_at": flow.created_at.isoformat() if flow.created_at else None,
+                "updated_at": flow.updated_at.isoformat() if flow.updated_at else None
+            }
+            for flow in flows
+        ]
+    
     async def get_flow_by_import(self, import_id: str) -> Optional[Dict[str, Any]]:
         """Get flow associated with a data import"""
         flow = await self.flow_repo.get_by_import_id(import_id)

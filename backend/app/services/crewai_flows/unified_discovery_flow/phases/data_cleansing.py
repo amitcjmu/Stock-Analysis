@@ -83,8 +83,9 @@ class DataCleansingPhase:
             'field_mappings': self.state.field_mappings,
             'validation_results': self.state.data_validation_results,
             'flow_metadata': {
-                'session_id': self.state.session_id,
-                'flow_id': self.state.flow_id
+                'flow_id': self.state.flow_id,
+                'client_account_id': self.state.client_account_id,
+                'engagement_id': self.state.engagement_id
             }
         }
     

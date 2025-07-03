@@ -38,6 +38,12 @@ class FlowStateBridge:
         )
         self._state_sync_enabled = True
     
+    async def initialize_flow(self, state: UnifiedDiscoveryFlowState) -> Dict[str, Any]:
+        """
+        Initialize flow state in PostgreSQL - alias for backward compatibility.
+        """
+        return await self.initialize_flow_state(state)
+    
     async def initialize_flow_state(self, state: UnifiedDiscoveryFlowState) -> Dict[str, Any]:
         """
         Initialize flow state in PostgreSQL as single source of truth.
@@ -45,7 +51,7 @@ class FlowStateBridge:
         """
         try:
             logger.info(f"🔄 Initializing PostgreSQL-only flow state: {state.flow_id}")
-            logger.info(f"   📋 Session context: {state.session_id}")
+            logger.info(f"   📋 Flow context: {state.flow_id}")
             
             # Persist to PostgreSQL as single source of truth
             pg_result = await self.pg_persistence.persist_flow_initialization(state)

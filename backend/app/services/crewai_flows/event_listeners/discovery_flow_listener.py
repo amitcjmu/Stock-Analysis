@@ -151,7 +151,7 @@ class DiscoveryFlowEventListener(BaseEventListener):
             # Update database status to "running"
             try:
                 import asyncio
-                from app.db.session import AsyncSessionLocal
+                from app.core.database import AsyncSessionLocal
                 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
                 
                 async def update_flow_status():

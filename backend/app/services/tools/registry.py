@@ -67,6 +67,7 @@ class ToolRegistry:
                         if (inspect.isclass(obj) and 
                             issubclass(obj, BaseTool) and 
                             obj != BaseTool and
+                            obj.__name__ not in ['BaseDiscoveryTool', 'AsyncBaseDiscoveryTool'] and
                             hasattr(obj, 'tool_metadata') and
                             not inspect.isabstract(obj)):
                             

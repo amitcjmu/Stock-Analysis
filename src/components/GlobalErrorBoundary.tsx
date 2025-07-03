@@ -40,7 +40,11 @@ class GlobalErrorBoundary extends React.Component<GlobalErrorBoundaryProps, Stat
                 Something went wrong. The application has encountered an unrecoverable error.
               </p>
               <pre className="text-sm overflow-auto max-h-60 bg-gray-100 p-2 rounded mt-2">
-                {this.state.error?.message || this.state.error?.toString() || 'Unknown error'}
+                {typeof this.state.error?.message === 'string' 
+                  ? this.state.error.message 
+                  : typeof this.state.error?.message === 'object'
+                  ? JSON.stringify(this.state.error.message, null, 2)
+                  : this.state.error?.toString() || 'Unknown error'}
               </pre>
               <Button 
                 className="mt-4"

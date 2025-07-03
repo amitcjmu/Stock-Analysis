@@ -55,7 +55,7 @@ class StateManager:
                 self.state.current_phase = phase_name
             
             # Update timestamps
-            self.state.updated_at = datetime.utcnow()
+            self.state.updated_at = datetime.utcnow().isoformat()
             
             logger.info(f"✅ Phase '{phase_name}' status updated to: {status}")
     
@@ -99,7 +99,7 @@ class StateManager:
     def _store_inventory_results(self, result: Dict[str, Any]):
         """Store asset inventory results"""
         self.state.asset_inventory = result.get("inventory", {})
-        self.state.total_assets = len(result.get("assets", []))
+        self.state.asset_inventory["total_assets"] = len(result.get("assets", []))
     
     def _store_dependency_results(self, result: Dict[str, Any]):
         """Store dependency analysis results"""
@@ -239,7 +239,7 @@ class StateManager:
             "warnings": len(getattr(self.state, 'warnings', [])),
             "agent_insights": len(getattr(self.state, 'agent_insights', [])),
             "timestamps": {
-                "started": getattr(self.state, 'created_at', datetime.utcnow()).isoformat() if hasattr(self.state, 'created_at') else None,
-                "updated": getattr(self.state, 'updated_at', datetime.utcnow()).isoformat() if hasattr(self.state, 'updated_at') else None
+                "started": getattr(self.state, 'created_at', None),
+                "updated": getattr(self.state, 'updated_at', None)
             }
         }
