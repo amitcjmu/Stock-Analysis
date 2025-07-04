@@ -20,11 +20,11 @@ import { MetricsPanel } from './components/MetricsPanel';
 import { ActivityTimeline } from './components/ActivityTimeline';
 import { QuickActions } from './components/QuickActions';
 
-// V2 Flow Management hooks
+// Flow Management hooks
 import { 
   useIncompleteFlowDetectionV2,
   useFlowDeletionV2
-} from '@/hooks/discovery/useIncompleteFlowDetectionV2';
+} from '@/hooks/discovery/useFlowOperations';
 
 const EnhancedDiscoveryDashboardContainer: React.FC = () => {
   const navigate = useNavigate();

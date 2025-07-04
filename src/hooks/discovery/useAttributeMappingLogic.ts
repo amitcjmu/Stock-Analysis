@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useDiscoveryFlowV2, useDiscoveryFlowList } from './useDiscoveryFlowV2';
+import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
+import { useDiscoveryFlowList, useAttributeMappingFlowDetection } from './useDiscoveryFlowAutoDetection';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { API_CONFIG, apiCall } from '../../config/api';
-import { useAttributeMappingFlowDetection } from './useDiscoveryFlowAutoDetection';
 
 export const useAttributeMappingLogic = () => {
   const { pathname } = useLocation();
@@ -21,14 +21,14 @@ export const useAttributeMappingLogic = () => {
     hasEffectiveFlow
   } = useAttributeMappingFlowDetection();
 
-  // Use V2 discovery flow with effective flow ID
+  // Use unified discovery flow with effective flow ID
   const {
-    flow,
+    flowState: flow,
     isLoading: isFlowLoading,
     error: flowError,
-    updatePhase,
-    refresh
-  } = useDiscoveryFlowV2(effectiveFlowId);
+    executeFlowPhase: updatePhase,
+    refreshFlow: refresh
+  } = useUnifiedDiscoveryFlow(effectiveFlowId);
 
   // Get real field mappings from database instead of flow state
   const {

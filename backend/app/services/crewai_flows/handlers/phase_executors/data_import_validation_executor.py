@@ -46,6 +46,60 @@ class DataImportValidationExecutor(BasePhaseExecutor):
         self.state.phase_data["data_import"] = results
         if results.get("is_valid", False):
             self.state.phase_completion["data_import"] = True
+        
+        # Add real-time insights from validation results
+        if hasattr(self.state, 'agent_insights'):
+            # Add file type analysis insight
+            file_analysis = results.get('file_analysis', {})
+            if file_analysis:
+                insight = f"📊 Detected {file_analysis.get('detected_type', 'unknown')} data type with {file_analysis.get('confidence', 0):.0%} confidence. Recommended agent: {file_analysis.get('recommended_agent', 'CMDB_Data_Analyst_Agent')}"
+                self.state.agent_insights.append({
+                    "agent": "Data Import Agent",
+                    "insight": insight,
+                    "timestamp": self._get_timestamp(),
+                    "confidence": file_analysis.get('confidence', 0.5)
+                })
+            
+            # Add data quality insight
+            quality_score = results.get('quality_score', 0)
+            total_records = results.get('total_records', 0)
+            insight = f"✅ Validated {total_records} records. Data quality score: {quality_score:.0%}"
+            self.state.agent_insights.append({
+                "agent": "Data Import Agent",
+                "insight": insight,
+                "timestamp": self._get_timestamp(),
+                "confidence": 0.9
+            })
+            
+            # Add security insights
+            security_status = results.get('security_status', 'unknown')
+            if security_status == 'pii_detected':
+                pii_types = results.get('detailed_report', {}).get('security_analysis', {}).get('pii_types', [])
+                insight = f"⚠️ PII detected in data: {', '.join(pii_types)}. Please ensure compliance with data privacy regulations."
+                self.state.agent_insights.append({
+                    "agent": "Data Import Agent",
+                    "insight": insight,
+                    "timestamp": self._get_timestamp(),
+                    "confidence": 0.95
+                })
+            elif security_status == 'clean':
+                self.state.agent_insights.append({
+                    "agent": "Data Import Agent",
+                    "insight": "🔒 Security scan passed. No malicious content or PII detected.",
+                    "timestamp": self._get_timestamp(),
+                    "confidence": 0.9
+                })
+            
+            # Add recommendations from detailed report
+            detailed_report = results.get('detailed_report', {})
+            recommendations = detailed_report.get('recommendations', [])
+            for recommendation in recommendations[:3]:  # Limit to top 3 recommendations
+                self.state.agent_insights.append({
+                    "agent": "Data Import Agent",
+                    "insight": f"💡 {recommendation}",
+                    "timestamp": self._get_timestamp(),
+                    "confidence": 0.8
+                })
     
     async def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
         """Execute data import validation with CrewAI crew (if available)"""

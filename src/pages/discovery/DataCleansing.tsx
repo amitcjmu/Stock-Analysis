@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useDiscoveryFlowV2 } from '../../hooks/discovery/useDiscoveryFlowV2';
+import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
 import { useDiscoveryFlowAutoDetection } from '../../hooks/discovery/useDiscoveryFlowAutoDetection';
 import { useLatestImport, useAssets } from '../../hooks/discovery/useDataCleansingQueries';
 
@@ -36,19 +36,26 @@ const DataCleansing: React.FC = () => {
     hasEffectiveFlow
   } = useDiscoveryFlowAutoDetection();
   
-  // V2 Discovery flow hook with auto-detected flow ID
+  // Unified Discovery flow hook with auto-detected flow ID
   const {
-    flow,
+    flowState: flow,
     isLoading,
     error,
-    updatePhase,
-    isUpdating,
-    progressPercentage,
-    currentPhase,
-    completedPhases,
-    nextPhase,
-    refresh
-  } = useDiscoveryFlowV2(effectiveFlowId);
+    executeFlowPhase: updatePhase,
+    isExecutingPhase: isUpdating,
+    refreshFlow: refresh,
+    isPhaseComplete,
+    getPhaseData
+  } = useUnifiedDiscoveryFlow(effectiveFlowId);
+  
+  // Extract flow details from unified flow state
+  const progressPercentage = flow?.progress_percentage || 0;
+  const currentPhase = flow?.current_phase || '';
+  const completedPhases = flow?.phase_completion ? 
+    Object.entries(flow.phase_completion)
+      .filter(([_, completed]) => completed)
+      .map(([phase, _]) => phase) : [];
+  const nextPhase = currentPhase === 'data_cleansing' ? 'inventory' : '';
 
   // Use data cleansing hooks - fallback to simple approach since complex hooks aren't working
   const {
@@ -85,7 +92,7 @@ const DataCleansing: React.FC = () => {
   const handleTriggerDataCleansingCrew = async () => {
     try {
       console.log('🧹 Triggering data cleansing phase...');
-      await updatePhase('data_cleansing', { action: 'start_cleansing' });
+      await updatePhase('data_cleansing');
       // Refresh the data after triggering
       setTimeout(() => {
         refresh();

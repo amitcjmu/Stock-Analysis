@@ -6,6 +6,7 @@ Task 5.2.1: API endpoints for cross-phase asset queries and master flow analytic
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+import logging
 
 from app.core.database import get_db
 from app.core.auth import get_current_user_id
@@ -14,6 +15,8 @@ from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.schemas.asset_schemas import AssetResponse
 from pydantic import BaseModel
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 # Helper function to get demo context for testing
 async def get_current_user_context(user_id: str = Depends(get_current_user_id)):
@@ -298,4 +301,56 @@ async def update_asset_phase_progression(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error updating phase progression: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Error updating phase progression: {str(e)}")
+
+
+@router.delete("/{flow_id}")
+async def delete_master_flow(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_user_context)
+) -> Dict[str, Any]:
+    """Delete a master flow and all associated data"""
+    
+    client_account_id = current_user.get("client_account_id")
+    if not client_account_id:
+        raise HTTPException(status_code=400, detail="Client account ID required")
+    
+    # Special handling for placeholder flows
+    if flow_id.startswith("placeholder-"):
+        logger.info(f"Deleting placeholder flow {flow_id}")
+        return {
+            "success": True,
+            "flow_id": flow_id,
+            "message": "Placeholder flow deleted successfully"
+        }
+    
+    # Import the repository for master flow operations
+    from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
+    
+    extensions_repo = CrewAIFlowStateExtensionsRepository(db, client_account_id)
+    
+    try:
+        # Delete from master flow table (this should cascade to related tables)
+        success = await extensions_repo.delete_master_flow(flow_id)
+        
+        if success:
+            await db.commit()
+            logger.info(f"✅ Master flow {flow_id} deleted successfully")
+            return {
+                "success": True,
+                "flow_id": flow_id,
+                "message": "Master flow deleted successfully"
+            }
+        else:
+            logger.warning(f"Master flow {flow_id} not found or already deleted")
+            return {
+                "success": True,
+                "flow_id": flow_id,
+                "message": "Flow not found or already deleted"
+            }
+            
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"❌ Failed to delete master flow {flow_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete flow: {str(e)}") 

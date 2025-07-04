@@ -97,8 +97,11 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
       };
     }
 
-    // Check actual progress from processing status (handle both field names)
-    const actualProgress = processingStatus?.progress_percentage || processingStatus?.progress || 0;
+    // Check actual progress from processing status (handle both field names and nested objects)
+    const progressObj = processingStatus?.progress_percentage;
+    const actualProgress = typeof progressObj === 'object' 
+      ? (progressObj?.completion_percentage || progressObj?.overall || 0)
+      : (progressObj || processingStatus?.progress || 0);
     console.log('[UniversalProcessingStatus] Actual progress:', actualProgress, 'from processingStatus:', processingStatus);
     
     if (processingStatus?.status === 'completed' || 
@@ -186,6 +189,26 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
 
   // State for collapsible sections - expanded by default
   const [expandedSections, setExpandedSections] = useState(new Set(['upload', 'security']));
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date>(new Date());
+  
+  // Auto-refresh effect (only when enabled)
+  useEffect(() => {
+    if (!autoRefreshEnabled || !flow_id) return;
+    
+    const interval = setInterval(() => {
+      monitoring?.refreshStatus();
+      setLastRefreshTime(new Date());
+    }, 30000); // 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [autoRefreshEnabled, flow_id, monitoring]);
+  
+  // Manual refresh handler
+  const handleManualRefresh = () => {
+    monitoring?.refreshStatus();
+    setLastRefreshTime(new Date());
+  };
   
   // Display error details if status is error
   useEffect(() => {
@@ -369,6 +392,43 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
 
   return (
     <div className={`space-y-6 ${className}`}>
+      {/* Refresh Controls */}
+      <Card className="mb-4 border-gray-200">
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                onClick={handleManualRefresh}
+                disabled={monitoring?.isRefreshing}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${monitoring?.isRefreshing ? 'animate-spin' : ''}`} />
+                Refresh Status
+              </Button>
+              
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="auto-refresh"
+                  checked={autoRefreshEnabled}
+                  onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
+                  className="rounded border-gray-300"
+                />
+                <label htmlFor="auto-refresh" className="text-sm text-gray-600">
+                  Auto-refresh every 30s
+                </label>
+              </div>
+            </div>
+            
+            <div className="text-sm text-gray-500">
+              Last updated: {lastRefreshTime.toLocaleTimeString()}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
       {/* Next Steps Card */}
       <NextStepsCard />
 
@@ -479,6 +539,86 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
           </CardContent>
         )}
       </Card>
+
+      {/* Agent Insights - Show real-time insights from data validation */}
+      {agentInsights && agentInsights.length > 0 && (
+        <Card>
+          <CardHeader 
+            className="cursor-pointer"
+            onClick={() => toggleSection('insights')}
+          >
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Bot className="h-5 w-5 text-purple-600" />
+                Agent Insights
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">
+                  {agentInsights.length} insights
+                </Badge>
+                <Button variant="ghost" size="sm">
+                  {expandedSections.has('insights') ? '−' : '+'}
+                </Button>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          
+          {expandedSections.has('insights') && (
+            <CardContent>
+              <ScrollArea className="h-[200px] w-full">
+                <div className="space-y-3">
+                  {agentInsights.map((insight, index) => {
+                    // Parse insight based on structure
+                    const agent = insight.agent || insight.agent_name || 'Data Import Agent';
+                    const message = insight.insight || insight.message || insight.description || '';
+                    const timestamp = insight.timestamp || insight.created_at || new Date().toISOString();
+                    const confidence = insight.confidence || 0.8;
+                    
+                    // Determine icon based on message content
+                    let icon = Info;
+                    let iconColor = 'text-blue-600';
+                    if (message.toLowerCase().includes('warning') || message.toLowerCase().includes('⚠️')) {
+                      icon = AlertTriangle;
+                      iconColor = 'text-yellow-600';
+                    } else if (message.toLowerCase().includes('error') || message.toLowerCase().includes('❌')) {
+                      icon = XCircle;
+                      iconColor = 'text-red-600';
+                    } else if (message.toLowerCase().includes('success') || message.toLowerCase().includes('✅') || message.toLowerCase().includes('✓')) {
+                      icon = CheckCircle;
+                      iconColor = 'text-green-600';
+                    } else if (message.toLowerCase().includes('security') || message.toLowerCase().includes('🔒')) {
+                      icon = Lock;
+                      iconColor = 'text-purple-600';
+                    }
+                    
+                    const Icon = icon;
+                    
+                    return (
+                      <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                        <Icon className={`h-5 w-5 ${iconColor} flex-shrink-0 mt-0.5`} />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm font-medium text-gray-900">{agent}</span>
+                            <span className="text-xs text-gray-500">
+                              {new Date(timestamp).toLocaleTimeString()}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600">{message}</p>
+                          {confidence < 0.7 && (
+                            <Badge variant="outline" className="mt-1 text-xs">
+                              Confidence: {(confidence * 100).toFixed(0)}%
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          )}
+        </Card>
+      )}
 
       {/* Security & Validation */}
       <Card>

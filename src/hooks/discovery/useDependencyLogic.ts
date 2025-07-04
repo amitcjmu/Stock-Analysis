@@ -1,15 +1,15 @@
 import { useState, useCallback } from 'react';
-import { useDiscoveryFlowV2 } from './useDiscoveryFlowV2';
+import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
 
 export const useDependencyLogic = (flowId?: string) => {
-  // Use the V2 discovery flow
+  // Use the unified discovery flow
   const {
-    flow,
+    flowState: flow,
     isLoading,
     error,
-    updatePhase,
-    refresh
-  } = useDiscoveryFlowV2(flowId);
+    executeFlowPhase: updatePhase,
+    refreshFlow: refresh
+  } = useUnifiedDiscoveryFlow(flowId);
 
   // Local UI state
   const [activeView, setActiveView] = useState<'app-server' | 'app-app'>('app-server');

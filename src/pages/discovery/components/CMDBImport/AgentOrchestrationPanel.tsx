@@ -420,10 +420,8 @@ const AgentOrchestrationPanel: React.FC<AgentOrchestrationPanelProps> = ({
       }
     };
 
+    // Fetch once on mount only - no auto-polling to improve performance
     fetchEnhancedData();
-    // PERFORMANCE FIX: Reduce polling frequency from 5s to 30s to prevent page slowdowns
-    const interval = setInterval(fetchEnhancedData, 30000); // Update every 30 seconds
-    return () => clearInterval(interval);
   }, [flowState?.flow_id]);
 
   const updateCrewsWithMonitoringData = (monitoringData: any) => {

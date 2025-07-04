@@ -5,7 +5,7 @@
  * to replace automatic polling with pull-based requests and manage errors.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -89,10 +89,11 @@ export function PollingControls({
       }
     };
 
-    const interval = setInterval(checkPollingStatus, 5000);
+    // Only check polling status once on mount and on manual refresh
     checkPollingStatus(); // Initial check
 
-    return () => clearInterval(interval);
+    // No auto-polling - user must manually refresh
+    return () => {};
   }, [queryClient]);
 
   const handleEmergencyStop = async () => {
@@ -339,19 +340,20 @@ export function PollingControls({
 export function PollingStatusIndicator({ flowId }: { flowId?: string }) {
   const queryClient = useQueryClient();
   const [errorCount, setErrorCount] = useState(0);
+  const [lastChecked, setLastChecked] = useState(new Date());
 
-  useEffect(() => {
-    const checkErrors = () => {
-      const queries = queryClient.getQueryCache().getAll();
-      const errors = queries.filter(q => q.state.status === 'error').length;
-      setErrorCount(errors);
-    };
-
-    const interval = setInterval(checkErrors, 2000);
-    checkErrors();
-
-    return () => clearInterval(interval);
+  // Check errors on mount and provide manual refresh
+  const checkErrors = useCallback(() => {
+    const queries = queryClient.getQueryCache().getAll();
+    const errors = queries.filter(q => q.state.status === 'error').length;
+    setErrorCount(errors);
+    setLastChecked(new Date());
   }, [queryClient]);
+
+  // Check once on mount
+  useEffect(() => {
+    checkErrors();
+  }, [checkErrors]);
 
   const handleQuickStop = async () => {
     try {
@@ -378,9 +380,14 @@ export function PollingStatusIndicator({ flowId }: { flowId?: string }) {
 
   if (errorCount === 0) {
     return (
-      <Badge variant="default" className="cursor-pointer">
-        <CheckCircle className="h-3 w-3 mr-1" />
-        Polling OK
+      <Badge 
+        variant="default" 
+        className="cursor-pointer hover:bg-gray-200" 
+        onClick={checkErrors}
+        title={`Last checked: ${lastChecked.toLocaleTimeString()}`}
+      >
+        <RefreshCw className="h-3 w-3 mr-1" />
+        Status OK
       </Badge>
     );
   }
@@ -390,9 +397,10 @@ export function PollingStatusIndicator({ flowId }: { flowId?: string }) {
       variant="destructive" 
       className="cursor-pointer"
       onClick={handleQuickStop}
+      title={`${errorCount} errors detected - Click to stop all polling`}
     >
       <XCircle className="h-3 w-3 mr-1" />
-      {errorCount} Errors - Click to Stop
+      {errorCount} Errors
     </Badge>
   );
 }

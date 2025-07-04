@@ -51,9 +51,18 @@ class PhaseExecutionManager:
         """Execute data import validation phase with PostgreSQL persistence"""
         return await self.data_import_validation_executor.execute(previous_result)
     
-    async def execute_field_mapping_phase(self, previous_result):
-        """Execute field mapping phase with PostgreSQL persistence"""
-        return await self.field_mapping_executor.execute(previous_result)
+    async def execute_field_mapping_phase(self, previous_result, mode: str = "full"):
+        """Execute field mapping phase with PostgreSQL persistence
+        
+        Args:
+            previous_result: Result from previous phase
+            mode: Execution mode - 'full' or 'suggestions_only'
+        """
+        # Pass mode to executor if it's suggestions_only
+        if mode == "suggestions_only":
+            return await self.field_mapping_executor.execute_suggestions_only(previous_result)
+        else:
+            return await self.field_mapping_executor.execute(previous_result)
     
     async def execute_data_cleansing_phase(self, previous_result):
         """Execute data cleansing phase with PostgreSQL persistence"""

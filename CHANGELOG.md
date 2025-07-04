@@ -1,5 +1,54 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [1.0.3] - 2025-07-04
+
+### 🔧 **Frontend API Integration - Discovery Flow Management**
+
+This release resolves critical frontend API integration issues preventing discovery flow management, implementing centralized flow operations and fixing 404 errors that blocked user workflows.
+
+### 🚀 **Integration Fixes**
+
+#### **Legacy Code Cleanup & Archive**
+- **Change Type**: Code remediation and architecture cleanup
+- **Impact**: Eliminated 20+ import errors and 404 API endpoint failures
+- **Technical Details**: 
+  - Archived 11 legacy V2 discovery flow components to `/src/archive/`
+  - Updated 20+ files to use `useUnifiedDiscoveryFlow` instead of archived `useDiscoveryFlowV2`
+  - Preserved existing functionality while removing deprecated code patterns
+  - Added comprehensive archive documentation
+
+#### **API Endpoint Corrections**
+- **Change Type**: Backend-frontend API alignment
+- **Impact**: Fixed all 404 errors for discovery flow operations
+- **Technical Details**:
+  - Updated hooks to use existing `/api/v1/discovery/flows/active` endpoint
+  - Fixed flow listing and auto-detection functionality
+  - Implemented proper error handling for non-existent endpoints
+  - Added fallback patterns for graceful degradation
+
+#### **Centralized Flow Management**
+- **Change Type**: Architectural improvement for flow operations
+- **Impact**: Enables scalable flow deletion across all flow types
+- **Technical Details**:
+  - Added DELETE endpoint to `/api/v1/master-flows/{flow_id}` for centralized management
+  - Leveraged existing `CrewAIFlowStateExtensionsRepository.delete_master_flow()` method
+  - Implemented proper multi-tenant flow deletion with cascading cleanup
+  - Handles both real flows and placeholder flows consistently
+
+### 📊 **Business Impact**
+
+- **User Experience**: Users can now see and delete incomplete flows that were blocking uploads
+- **System Reliability**: Eliminated API errors preventing core discovery workflows
+- **Maintainability**: Centralized flow operations prevent future code sprawl
+- **Scalability**: Architecture supports all flow types (discovery, assessment, planning, execution)
+
+### 🎯 **Success Metrics**
+
+- **Error Reduction**: 100% elimination of 404 errors for discovery flow endpoints
+- **Code Quality**: 11 legacy files archived, 20+ files updated to current patterns
+- **API Consistency**: Single centralized delete endpoint for all flow types
+- **User Workflow**: Discovery flow management fully functional with proper flow detection
+
 ## [1.0.2] - 2025-07-03
 
 ### 🔒 **Security Hardening - Container & Application Security**

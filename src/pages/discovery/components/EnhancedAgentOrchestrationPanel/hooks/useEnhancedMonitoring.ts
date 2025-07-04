@@ -103,9 +103,8 @@ export const useEnhancedMonitoring = (flowId: string, flowState: any) => {
   }, [flowId, updateCrewsWithMonitoringData]);
 
   useEffect(() => {
+    // Fetch once on mount only - no auto-polling
     fetchEnhancedData();
-    const interval = setInterval(fetchEnhancedData, 5000);
-    return () => clearInterval(interval);
   }, [fetchEnhancedData]);
 
   return {

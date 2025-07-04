@@ -5,10 +5,18 @@ Split from unified_flow_phase_executor.py for better modularity.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, List
 from .base_phase_executor import BasePhaseExecutor
 
 logger = logging.getLogger(__name__)
+
+# CrewAI Flow imports with graceful fallback
+CREWAI_FLOW_AVAILABLE = False
+try:
+    from crewai import Flow
+    CREWAI_FLOW_AVAILABLE = True
+except ImportError:
+    logger.warning("CrewAI Flow not available")
 
 
 class FieldMappingExecutor(BasePhaseExecutor):
@@ -174,4 +182,236 @@ class FieldMappingExecutor(BasePhaseExecutor):
                 return datetime.utcnow().isoformat()
         except Exception:
             # Final fallback
-            return datetime.utcnow().isoformat() 
+            return datetime.utcnow().isoformat()
+    
+    async def execute_suggestions_only(self, previous_result) -> Dict[str, Any]:
+        """Execute field mapping in suggestions-only mode - generates mappings and clarifications"""
+        logger.info("🔍 Executing field mapping in suggestions-only mode")
+        
+        # Update state
+        self.state.current_phase = self.get_phase_name()
+        
+        try:
+            # Generate mapping suggestions
+            if CREWAI_FLOW_AVAILABLE and self.crew_manager:
+                # Use CrewAI crew for intelligent mapping
+                crew_input = self._prepare_crew_input()
+                crew_input["mode"] = "suggestions_only"
+                crew_input["generate_clarifications"] = True
+                
+                crew = self.crew_manager.create_crew_on_demand(
+                    "attribute_mapping",
+                    **self._get_crew_context()
+                )
+                
+                if crew:
+                    logger.info("🤖 Using CrewAI crew for mapping suggestions")
+                    crew_result = crew.kickoff(inputs=crew_input)
+                    results = self._process_mapping_suggestions(crew_result)
+                else:
+                    logger.warning("Field mapping crew not available - using fallback suggestions")
+                    results = self._generate_fallback_suggestions()
+            else:
+                # Use fallback suggestions
+                results = self._generate_fallback_suggestions()
+            
+            # Extract mappings, clarifications, and confidence scores
+            mappings = results.get("mappings", {})
+            clarifications = results.get("clarifications", [])
+            confidence_scores = results.get("confidence_scores", {})
+            
+            # Add default clarifications if none were generated
+            if not clarifications and mappings:
+                clarifications = self._generate_default_clarifications(mappings, confidence_scores)
+            
+            return {
+                "mappings": mappings,
+                "clarifications": clarifications,
+                "confidence_scores": confidence_scores,
+                "suggestions_generated": True,
+                "execution_metadata": {
+                    "timestamp": self._get_timestamp(),
+                    "method": "suggestions_only",
+                    "crew_used": CREWAI_FLOW_AVAILABLE and self.crew_manager is not None
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to generate mapping suggestions: {e}")
+            # Return minimal suggestions on error
+            return {
+                "mappings": {},
+                "clarifications": ["Unable to generate automatic mapping suggestions. Please map fields manually."],
+                "confidence_scores": {},
+                "suggestions_generated": False,
+                "error": str(e)
+            }
+    
+    def _process_mapping_suggestions(self, crew_result) -> Dict[str, Any]:
+        """Process crew result for mapping suggestions"""
+        base_result = self._process_crew_result(crew_result)
+        
+        # Extract suggestions from crew result
+        if isinstance(base_result.get('raw_result'), dict):
+            return base_result['raw_result']
+        else:
+            # Parse text result for suggestions
+            text_result = str(base_result.get('raw_result', ''))
+            mappings = self._extract_mappings_from_text(text_result)
+            clarifications = self._extract_clarifications_from_text(text_result)
+            confidence_scores = self._calculate_confidence_scores(mappings)
+            
+            return {
+                "mappings": mappings,
+                "clarifications": clarifications,
+                "confidence_scores": confidence_scores
+            }
+    
+    def _generate_fallback_suggestions(self) -> Dict[str, Any]:
+        """Generate fallback mapping suggestions with clarifications"""
+        if not self.state.raw_data:
+            return {
+                "mappings": {},
+                "clarifications": ["No data available for mapping. Please upload data first."],
+                "confidence_scores": {}
+            }
+        
+        # Get first record to analyze fields
+        sample_record = self.state.raw_data[0]
+        columns = list(sample_record.keys())
+        
+        # Enhanced mapping logic with confidence scoring
+        mappings = {}
+        confidence_scores = {}
+        clarifications = []
+        
+        # Critical fields we need to map
+        critical_fields = {
+            'name': ['name', 'hostname', 'server_name', 'app_name', 'application_name'],
+            'asset_type': ['type', 'category', 'asset_category', 'resource_type'],
+            'environment': ['env', 'environment', 'stage', 'tier'],
+            'ip_address': ['ip', 'ip_address', 'address', 'network_address'],
+            'operating_system': ['os', 'operating_system', 'platform'],
+            'location': ['location', 'datacenter', 'region', 'zone'],
+            'criticality': ['criticality', 'priority', 'importance'],
+            'owner': ['owner', 'contact', 'responsible_party']
+        }
+        
+        # Map columns to critical fields
+        unmapped_columns = []
+        for column in columns:
+            column_lower = column.lower()
+            mapped = False
+            
+            for target_field, patterns in critical_fields.items():
+                for pattern in patterns:
+                    if pattern in column_lower:
+                        mappings[column] = target_field
+                        # Calculate confidence based on exact match vs partial match
+                        if column_lower == pattern:
+                            confidence_scores[column] = 0.9
+                        else:
+                            confidence_scores[column] = 0.7
+                        mapped = True
+                        break
+                if mapped:
+                    break
+            
+            if not mapped:
+                # Keep unmapped fields for clarification
+                unmapped_columns.append(column)
+                mappings[column] = column  # Default to same name
+                confidence_scores[column] = 0.3
+        
+        # Generate clarifications
+        if unmapped_columns:
+            clarifications.append(
+                f"Unable to automatically map {len(unmapped_columns)} fields: {', '.join(unmapped_columns[:5])}{'...' if len(unmapped_columns) > 5 else ''}. "
+                "Please review these mappings carefully."
+            )
+        
+        # Check for missing critical fields
+        mapped_targets = set(mappings.values())
+        missing_critical = [field for field in ['name', 'asset_type', 'environment'] if field not in mapped_targets]
+        if missing_critical:
+            clarifications.append(
+                f"Critical fields not mapped: {', '.join(missing_critical)}. "
+                "Please ensure these fields are properly mapped for accurate asset discovery."
+            )
+        
+        # Add data quality clarification
+        sample_values = {col: str(sample_record.get(col, ''))[:50] for col in columns[:3]}
+        clarifications.append(
+            f"Sample data detected: {sample_values}. "
+            "Please verify the mappings match your data structure."
+        )
+        
+        return {
+            "mappings": mappings,
+            "clarifications": clarifications,
+            "confidence_scores": confidence_scores
+        }
+    
+    def _extract_clarifications_from_text(self, text: str) -> List[str]:
+        """Extract clarification questions from text result"""
+        clarifications = []
+        
+        # Look for question patterns
+        lines = text.split('\n')
+        for line in lines:
+            line = line.strip()
+            if any(indicator in line.lower() for indicator in ['clarification:', 'question:', 'please confirm:', 'verify:']):
+                clarifications.append(line)
+            elif line.endswith('?'):
+                clarifications.append(line)
+        
+        return clarifications
+    
+    def _calculate_confidence_scores(self, mappings: Dict[str, str]) -> Dict[str, float]:
+        """Calculate confidence scores for mappings"""
+        confidence_scores = {}
+        
+        for source, target in mappings.items():
+            # Simple heuristic - exact match = high confidence
+            if source.lower() == target.lower():
+                confidence_scores[source] = 0.9
+            elif target.lower() in source.lower() or source.lower() in target.lower():
+                confidence_scores[source] = 0.7
+            else:
+                confidence_scores[source] = 0.5
+        
+        return confidence_scores
+    
+    def _generate_default_clarifications(self, mappings: Dict[str, str], confidence_scores: Dict[str, float]) -> List[str]:
+        """Generate default clarification questions based on mappings"""
+        clarifications = []
+        
+        # Count low confidence mappings
+        low_confidence = [field for field, score in confidence_scores.items() if score < 0.7]
+        if low_confidence:
+            clarifications.append(
+                f"We have low confidence in {len(low_confidence)} field mappings. "
+                "Please review and confirm these mappings are correct."
+            )
+        
+        # Check if we have minimum required fields
+        mapped_targets = set(mappings.values())
+        if 'name' not in mapped_targets:
+            clarifications.append(
+                "No field was mapped to 'name'. This is required to identify assets. "
+                "Which field contains the asset names?"
+            )
+        
+        if 'asset_type' not in mapped_targets:
+            clarifications.append(
+                "No field was mapped to 'asset_type'. "
+                "Do you have a field that indicates whether assets are servers, applications, or devices?"
+            )
+        
+        # General review request
+        clarifications.append(
+            f"We've suggested mappings for {len(mappings)} fields. "
+            "Please review and adjust as needed before proceeding."
+        )
+        
+        return clarifications 

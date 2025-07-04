@@ -55,6 +55,7 @@ export interface RealTimeProcessingOptions {
   polling_interval?: number;
   max_updates_history?: number;
   enabled?: boolean;
+  enableAutoPolling?: boolean; // New option to control auto-polling
 }
 
 /**
@@ -65,9 +66,10 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
   const {
     flow_id,
     phase,
-    polling_interval = 5000, // Reduced to 5 seconds for faster updates
+    polling_interval = 30000, // Changed to 30 seconds default
     max_updates_history = 50,
-    enabled = true
+    enabled = true,
+    enableAutoPolling = false // Disabled by default - user must enable
   } = options;
 
   const queryClient = useQueryClient();
@@ -187,6 +189,11 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
     enabled: enabled && !!flow_id && !shouldRespectCircuitBreaker,
     staleTime: 3000, // Reduced to 3 seconds for fresher data
     refetchInterval: (data) => {
+      // Disable auto-polling if not explicitly enabled
+      if (!enableAutoPolling) {
+        return false;
+      }
+      
       // Stop polling if flow is completed, failed, paused, or waiting for user approval
       if (!enabled || !flow_id || shouldRespectCircuitBreaker) {
         return false;
@@ -200,6 +207,11 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
         const progressPercentage = (data as any)?.progress_percentage;
         const currentPhase = (data as any)?.current_phase;
         
+        // Extract numeric progress from progress_percentage object
+        const numericProgress = typeof progressPercentage === 'object' 
+          ? (progressPercentage?.completion_percentage || progressPercentage?.overall || 0)
+          : (progressPercentage || 0);
+        
         // Check various status fields for completion
         const finalResult = (data as any)?.final_result;
         const isCompleted = status === 'completed' || 
@@ -207,16 +219,29 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
             status === 'error' ||
             status === 'paused' ||
             status === 'waiting_for_user_approval' ||
+            status === 'waiting_for_approval' ||
             finalResult === 'discovery_failed' ||
             currentPhase === 'failed' ||
-            (phase === 'attribute_mapping' && (progress >= 90 || progressPercentage >= 90)) ||
+            (phase === 'attribute_mapping' && (progress >= 90 || numericProgress >= 90)) ||
             (currentPhase === 'completed') ||
-            progressPercentage === 100 ||
-            (phase === 'data_import' && progressPercentage >= 100) ||
-            (currentPhase === 'data_import' && (status === 'active' || status === 'initialized') && progressPercentage === 0); // Flow created but waiting for next phase
+            numericProgress === 100 ||
+            (phase === 'data_import' && numericProgress >= 100) ||
+            (currentPhase === 'data_import' && (status === 'active' || status === 'initialized') && numericProgress === 0); // Flow created but waiting for next phase
             
         if (isCompleted) {
-          console.log(`[useRealTimeProcessing] Stopping polling for flow ${flow_id} - Status: ${status}, Phase: ${phase || currentPhase}, Progress: ${progress || progressPercentage}%`);
+          console.log(`[useRealTimeProcessing] Stopping polling for flow ${flow_id} - Status: ${status}, Phase: ${phase || currentPhase}, Progress: ${numericProgress}%`);
+          return false;
+        }
+        
+        // Only poll during active processing phases
+        const isActivelyProcessing = status === 'running' || 
+                                    status === 'processing' || 
+                                    status === 'validating' ||
+                                    status === 'in_progress' ||
+                                    status === 'active';
+        
+        if (!isActivelyProcessing) {
+          console.log(`[useRealTimeProcessing] Not actively processing - pausing polling`);
           return false;
         }
       }
@@ -598,8 +623,12 @@ export const useRealTimeValidation = (flow_id: string, processingStatus?: Proces
 /**
  * Combined hook for comprehensive real-time monitoring
  */
-export const useComprehensiveRealTimeMonitoring = (flow_id: string, page_context?: string) => {
-  const processing = useRealTimeProcessing({ flow_id, enabled: !!flow_id });
+export const useComprehensiveRealTimeMonitoring = (flow_id: string, page_context?: string, enableAutoPolling: boolean = false) => {
+  const processing = useRealTimeProcessing({ 
+    flow_id, 
+    enabled: !!flow_id,
+    enableAutoPolling // Pass through auto-polling preference
+  });
   const insights = useRealTimeAgentInsights(flow_id, page_context, processing.processingStatus);
   const validation = useRealTimeValidation(flow_id, processing.processingStatus);
   const actions = useProcessingActions();
@@ -619,5 +648,8 @@ export const useComprehensiveRealTimeMonitoring = (flow_id: string, page_context
       insights.clearInsights();
       // Validation will auto-refresh via its own polling
     },
+    // Manual refresh control
+    refreshStatus: processing.refetch,
+    isRefreshing: processing.isLoading
   };
 };

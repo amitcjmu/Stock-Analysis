@@ -115,6 +115,8 @@ const AttributeMappingContainer: React.FC = () => {
                   onRefetch={refetchAgentic}
                   onTriggerAnalysis={handleTriggerFieldMappingCrew}
                   onContinueToDataCleansing={handleContinueToDataCleansing}
+                  flowStatus={flowState?.status}
+                  hasFieldMappings={fieldMappings && fieldMappings.length > 0}
                 />
 
                 {/* Main Content */}

@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDiscoveryFlowV2 } from './useDiscoveryFlowV2';
+import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
 
 interface InventoryProgress {
   total_assets: number;
@@ -23,7 +23,7 @@ interface InventoryNavigationOptions {
 
 export const useInventoryNavigation = (flowId?: string) => {
   const navigate = useNavigate();
-  const { flow, updatePhase } = useDiscoveryFlowV2(flowId);
+  const { flowState: flow, executeFlowPhase: updatePhase } = useUnifiedDiscoveryFlow(flowId);
 
   const handleContinueToAppServerDependencies = useCallback(async (options?: {
     flow_session_id?: string;

@@ -1,0 +1,178 @@
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiCall } from '@/config/api';
+import { useToast } from '@/components/ui/use-toast';
+import { useNavigate } from 'react-router-dom';
+
+// Type definitions
+export interface IncompleteFlowV2 {
+  flow_id: string;
+  status: string;
+  current_phase: string;
+  next_phase?: string;
+  phases_completed: string[];
+  progress: number;
+  created_at: string;
+  updated_at: string;
+  error?: string;
+  client_account_id?: string;
+  engagement_id?: string;
+}
+
+// Hook to detect incomplete flows
+export const useIncompleteFlowDetectionV2 = () => {
+  return useQuery({
+    queryKey: ['incomplete-flows'],
+    queryFn: async () => {
+      try {
+        // Try the active flows endpoint first
+        const response = await apiCall('/api/v1/discovery/flows/active');
+        const allFlows = Array.isArray(response) ? response : (response.flows || []);
+        
+        // Filter for incomplete flows (not completed or failed)
+        const incompleteFlows = allFlows.filter((flow: any) => 
+          flow.status !== 'completed' && 
+          flow.status !== 'failed' &&
+          flow.status !== 'error'
+        );
+        
+        return {
+          flows: incompleteFlows
+        };
+      } catch (error) {
+        console.warn('Failed to fetch active flows, returning empty list:', error);
+        return { flows: [] };
+      }
+    },
+    staleTime: 30000,
+    refetchInterval: false
+  });
+};
+
+// Hook for resuming flows
+export const useFlowResumptionV2 = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  
+  return useMutation({
+    mutationFn: async (flowId: string) => {
+      return await apiCall(`/api/v1/discovery/flow/${flowId}/resume`, {
+        method: 'POST'
+      });
+    },
+    onSuccess: (data, flowId) => {
+      queryClient.invalidateQueries({ queryKey: ['incomplete-flows'] });
+      queryClient.invalidateQueries({ queryKey: ['discovery-flows'] });
+      
+      toast({
+        title: "Flow Resumed",
+        description: "The discovery flow has been resumed successfully.",
+      });
+      
+      // Navigate to the appropriate page based on the flow's current phase
+      if (data.current_phase) {
+        navigate(`/discovery/${data.current_phase.replace('_', '-')}/${flowId}`);
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to resume flow",
+        variant: "destructive",
+      });
+    }
+  });
+};
+
+// Hook for deleting flows
+export const useFlowDeletionV2 = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async (flowId: string) => {
+      // Use the master flows API for centralized flow management
+      return await apiCall(`/api/v1/master-flows/${flowId}`, {
+        method: 'DELETE'
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['incomplete-flows'] });
+      queryClient.invalidateQueries({ queryKey: ['discovery-flows'] });
+      
+      toast({
+        title: "Flow Deleted",
+        description: "The discovery flow has been deleted successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete flow",
+        variant: "destructive",
+      });
+    }
+  });
+};
+
+// Hook for bulk flow operations
+export const useBulkFlowOperationsV2 = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  const bulkDelete = useMutation({
+    mutationFn: async (flowIds: string[]) => {
+      setIsDeleting(true);
+      try {
+        const results = await Promise.all(
+          flowIds.map(flowId => 
+            apiCall(`/api/v1/discovery/flow/${flowId}`, { method: 'DELETE' })
+              .catch(error => ({ flowId, error }))
+          )
+        );
+        return results;
+      } finally {
+        setIsDeleting(false);
+      }
+    },
+    onSuccess: (results) => {
+      const successCount = results.filter(r => !r.error).length;
+      const failureCount = results.filter(r => r.error).length;
+      
+      queryClient.invalidateQueries({ queryKey: ['incomplete-flows'] });
+      queryClient.invalidateQueries({ queryKey: ['discovery-flows'] });
+      
+      if (successCount > 0) {
+        toast({
+          title: "Flows Deleted",
+          description: `Successfully deleted ${successCount} flow(s)${failureCount > 0 ? `, ${failureCount} failed` : ''}.`,
+        });
+      }
+      
+      if (failureCount > 0) {
+        toast({
+          title: "Some Deletions Failed",
+          description: `Failed to delete ${failureCount} flow(s).`,
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete flows",
+        variant: "destructive",
+      });
+    }
+  });
+  
+  return {
+    mutate: bulkDelete.mutate,
+    mutateAsync: bulkDelete.mutateAsync,
+    isLoading: isDeleting,
+    isError: bulkDelete.isError,
+    error: bulkDelete.error
+  };
+};

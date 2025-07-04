@@ -8,7 +8,7 @@ import {
   Lightbulb, CheckCircle, Users, Brain, Zap, Cloud, ArrowRight, AlertTriangle, GitBranch, BarChart3
 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
-import { useDiscoveryFlowV2 } from '../../../hooks/discovery/useDiscoveryFlowV2';
+import { useUnifiedDiscoveryFlow } from '../../../hooks/useUnifiedDiscoveryFlow';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface AssetInventory {
@@ -88,7 +88,8 @@ const EnhancedInventoryInsights: React.FC<EnhancedInventoryInsightsProps> = ({
   className = ""
 }) => {
   const { client, engagement } = useAuth();
-  const { getFlow } = useDiscoveryFlowV2();
+  const { flowState: flow } = useUnifiedDiscoveryFlow();
+  const getFlow = () => flow;
 
   // Get flow data with agent insights
   const { data: flowData, isLoading, error } = useQuery({

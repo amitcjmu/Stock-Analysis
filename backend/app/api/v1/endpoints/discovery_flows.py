@@ -4,6 +4,7 @@ Provides basic flow management endpoints until real CrewAI flows are implemented
 """
 
 import logging
+from datetime import datetime
 from typing import Dict, Any, List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -60,33 +61,161 @@ async def get_flow_status(
     """
     Get status of a specific discovery flow.
     
-    This is a minimal implementation to support frontend compatibility.
-    TODO: Replace with real CrewAI flow status.
+    Delegates to the unified discovery orchestrator for real status.
     """
     try:
         logger.info(f"Getting status for flow {flow_id}")
         
-        # Check if context is None and provide defaults
-        client_account_id = context.client_account_id if context else ""
-        engagement_id = context.engagement_id if context else ""
+        # First try to get the actual flow from DiscoveryFlow table
+        from sqlalchemy import select
+        from app.models.discovery_flow import DiscoveryFlow
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
         
-        # Minimal response for frontend compatibility
-        # TODO: Replace with real flow database queries
+        try:
+            # Convert flow_id string to UUID for proper comparison
+            import uuid as uuid_lib
+            try:
+                flow_uuid = uuid_lib.UUID(flow_id)
+            except ValueError:
+                logger.warning(f"Invalid UUID format for flow_id: {flow_id}")
+                flow_uuid = flow_id  # Fallback to string if not valid UUID
+            
+            # Get flow from DiscoveryFlow table
+            stmt = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_uuid)
+            result = await db.execute(stmt)
+            flow = result.scalar_one_or_none()
+            
+            if flow:
+                logger.info(f"Found flow in DiscoveryFlow table: status={flow.status}, progress={flow.progress_percentage}")
+                
+                # Calculate current phase from completion flags
+                current_phase = "unknown"
+                steps_completed = 0
+                
+                if not flow.data_import_completed:
+                    current_phase = "data_import"
+                elif not flow.field_mapping_completed:
+                    current_phase = "field_mapping"
+                    steps_completed = 1
+                elif not flow.data_cleansing_completed:
+                    current_phase = "data_cleansing"
+                    steps_completed = 2
+                elif not flow.asset_inventory_completed:
+                    current_phase = "asset_inventory"
+                    steps_completed = 3
+                elif not flow.dependency_analysis_completed:
+                    current_phase = "dependency_analysis"
+                    steps_completed = 4
+                elif not flow.tech_debt_assessment_completed:
+                    current_phase = "tech_debt_assessment"
+                    steps_completed = 5
+                else:
+                    current_phase = "completed"
+                    steps_completed = 6
+                
+                # Also check CrewAI state extensions for additional data
+                ext_stmt = select(CrewAIFlowStateExtensions).where(CrewAIFlowStateExtensions.flow_id == flow_uuid)
+                ext_result = await db.execute(ext_stmt)
+                extensions = ext_result.scalar_one_or_none()
+                
+                agent_insights = []
+                if extensions and extensions.agent_insights:
+                    agent_insights = extensions.agent_insights
+                
+                return {
+                    "flow_id": str(flow_id),
+                    "status": flow.status if flow.status != "active" else "processing",
+                    "type": "discovery",
+                    "client_account_id": str(flow.client_account_id),
+                    "engagement_id": str(flow.engagement_id),
+                    "progress": {
+                        "current_phase": current_phase,
+                        "completion_percentage": float(flow.progress_percentage),
+                        "steps_completed": steps_completed,
+                        "total_steps": 6
+                    },
+                    "metadata": {},
+                    "crewai_status": "active" if flow.status == "active" else flow.status,
+                    "agent_insights": agent_insights,
+                    "phase_completion": {
+                        "data_import": flow.data_import_completed,
+                        "field_mapping": flow.field_mapping_completed,
+                        "data_cleansing": flow.data_cleansing_completed,
+                        "asset_inventory": flow.asset_inventory_completed,
+                        "dependency_analysis": flow.dependency_analysis_completed,
+                        "tech_debt_assessment": flow.tech_debt_assessment_completed
+                    },
+                    "last_updated": flow.updated_at.isoformat() if flow.updated_at else ""
+                }
+        except Exception as direct_error:
+            logger.warning(f"Failed to get flow from DiscoveryFlow table: {direct_error}")
+        
+        # Try the flow state persistence data as second attempt
+        from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
+        
+        try:
+            # Get the actual flow state from PostgreSQL
+            store = PostgresFlowStateStore(db, context)
+            state_dict = await store.load_state(flow_id)
+            
+            if state_dict:
+                # We have a real flow state
+                progress_percentage = float(state_dict.get("progress_percentage", 0))
+                current_phase = state_dict.get("current_phase", "unknown")
+                status = state_dict.get("status", "running")
+                
+                # Determine if flow is complete
+                if progress_percentage >= 100 or status == "completed":
+                    status = "completed"
+                elif status == "failed":
+                    status = "failed"
+                else:
+                    status = "processing"
+                
+                return {
+                    "flow_id": flow_id,
+                    "status": status,
+                    "type": "discovery",
+                    "client_account_id": state_dict.get("client_account_id", ""),
+                    "engagement_id": state_dict.get("engagement_id", ""),
+                    "progress": {
+                        "current_phase": current_phase,
+                        "completion_percentage": progress_percentage,
+                        "steps_completed": len([p for p in state_dict.get("phase_completion", {}).values() if p]),
+                        "total_steps": 6  # Total phases
+                    },
+                    "metadata": state_dict.get("metadata", {}),
+                    "crewai_status": "active" if status == "processing" else status,
+                    "agent_insights": state_dict.get("agent_insights", []),
+                    "phase_completion": state_dict.get("phase_completion", {}),
+                    "last_updated": state_dict.get("updated_at", "")
+                }
+        except Exception as store_error:
+            logger.warning(f"Failed to get flow state from store: {store_error}")
+        
+        # Last fallback to orchestrator
+        from app.api.v1.unified_discovery.services.discovery_orchestrator import DiscoveryOrchestrator
+        
+        orchestrator = DiscoveryOrchestrator(db, context)
+        result = await orchestrator.get_discovery_flow_status(flow_id)
+        
+        # Transform to frontend-compatible format
+        progress_percentage = float(result.get("progress_percentage", 0))
         return {
             "flow_id": flow_id,
-            "status": "ready",
+            "status": result.get("status", "unknown"),
             "type": "discovery",
-            "client_account_id": client_account_id,
-            "engagement_id": engagement_id,
+            "client_account_id": result.get("client_account_id", ""),
+            "engagement_id": result.get("engagement_id", ""),
             "progress": {
-                "current_phase": "initialization",
-                "completion_percentage": 0,
-                "steps_completed": 0,
+                "current_phase": result.get("current_phase", "unknown"),
+                "completion_percentage": progress_percentage,
+                "steps_completed": int(progress_percentage / 20),  # 5 phases = 20% each
                 "total_steps": 5
             },
-            "metadata": {
-                "note": "Placeholder flow status - CrewAI implementation pending"
-            }
+            "metadata": result.get("metadata", {}),
+            "crewai_status": result.get("crewai_status", "unknown"),
+            "agent_insights": result.get("agent_insights", [])
         }
         
     except Exception as e:
@@ -177,73 +306,10 @@ async def get_flow_status_v2(
 ):
     """
     Get status of a specific discovery flow (alternate endpoint).
-    Routes to the actual unified discovery flow status.
+    Uses the same direct database query as the main status endpoint.
     """
-    try:
-        logger.info(f"Getting status for flow {flow_id} (v2 endpoint) - routing to unified discovery")
-        
-        # Import the orchestrator to get real status
-        from app.api.v1.unified_discovery.services.discovery_orchestrator import DiscoveryOrchestrator
-        
-        # Create orchestrator with context
-        orchestrator = DiscoveryOrchestrator(db, context)
-        
-        try:
-            # Get real flow status
-            result = await orchestrator.get_discovery_flow_status(flow_id)
-            
-            # Ensure required fields for frontend
-            if "progress" not in result:
-                result["progress"] = {
-                    "current_phase": result.get("current_phase", "initialization"),
-                    "completion_percentage": float(result.get("progress_percentage", 0)),
-                    "steps_completed": 0,
-                    "total_steps": 5
-                }
-            
-            # Add phases for frontend compatibility
-            if "phases" not in result:
-                result["phases"] = result.get("phase_completion", {})
-            
-            return result
-            
-        except Exception as orch_error:
-            logger.warning(f"Failed to get flow from orchestrator: {orch_error}, returning placeholder")
-            
-            # Fallback to placeholder if orchestrator fails
-            client_account_id = context.client_account_id if context else ""
-            engagement_id = context.engagement_id if context else ""
-            
-            return {
-                "flow_id": flow_id,
-                "status": "active",
-                "type": "discovery",
-                "client_account_id": client_account_id,
-                "engagement_id": engagement_id,
-                "progress_percentage": 0.0,
-                "current_phase": "data_import",
-                "progress": {
-                    "current_phase": "data_import",
-                    "completion_percentage": 0.0,
-                    "steps_completed": 0,
-                    "total_steps": 5
-                },
-                "phases": {
-                    "data_import": False,
-                    "field_mapping": False,
-                    "data_cleansing": False,
-                    "asset_inventory": False,
-                    "dependency_analysis": False,
-                    "tech_debt_analysis": False
-                },
-                "metadata": {
-                    "note": "Flow status pending"
-                }
-            }
-        
-    except Exception as e:
-        logger.error(f"Error getting flow status: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get flow status: {str(e)}")
+    # Use the same implementation as get_flow_status
+    return await get_flow_status(flow_id, context, db)
 
 @router.get("/flow/{flow_id}/processing-status", response_model=Dict[str, Any])
 async def get_flow_processing_status(
@@ -362,3 +428,54 @@ async def get_flow_validation_status(
     except Exception as e:
         logger.error(f"Error getting validation status: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get validation status: {str(e)}")
+
+@router.post("/flow/{flow_id}/resume", response_model=Dict[str, Any])
+async def resume_discovery_flow(
+    flow_id: str,
+    request: Dict[str, Any],
+    context: RequestContext = Depends(get_current_context),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Resume a paused discovery flow after user approval.
+    
+    This endpoint is used when the flow is waiting for field mapping approval.
+    """
+    try:
+        logger.info(f"Resuming discovery flow {flow_id}")
+        
+        # Get the CrewAI flow service
+        from app.services.crewai_flow_service import CrewAIFlowService
+        crewai_service = CrewAIFlowService()
+        
+        # Prepare resume context with user approval data
+        resume_context = {
+            "user_approval": True,
+            "field_mappings": request.get("field_mappings", {}),
+            "approval_timestamp": datetime.utcnow().isoformat(),
+            "approved_by": context.user_id,
+            "approval_notes": request.get("notes", "")
+        }
+        
+        # Resume the flow
+        result = await crewai_service.resume_flow(flow_id, resume_context)
+        
+        if result.get("status") == "resumed":
+            logger.info(f"✅ Flow {flow_id} resumed successfully")
+            return {
+                "success": True,
+                "flow_id": flow_id,
+                "status": "resumed",
+                "message": "Discovery flow resumed successfully",
+                "next_phase": result.get("next_phase", "field_mapping")
+            }
+        else:
+            logger.error(f"Failed to resume flow {flow_id}: {result}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Failed to resume flow: {result.get('message', 'Unknown error')}"
+            )
+            
+    except Exception as e:
+        logger.error(f"Error resuming flow {flow_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to resume flow: {str(e)}")

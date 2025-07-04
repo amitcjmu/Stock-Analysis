@@ -95,15 +95,38 @@ class CrewCoordinator:
         """
         logger.info(f"🚀 Executing {len(phases)} agents in parallel: {phases}")
         
-        # Create tasks for parallel execution
+        # Create tasks for parallel execution with proper task tracking
         tasks = []
+        task_names = []
         for phase_name in phases:
-            task = self.execute_phase_agent(phase_name, input_data, context_data)
+            task = asyncio.create_task(
+                self.execute_phase_agent(phase_name, input_data, context_data),
+                name=f"agent_{phase_name}"
+            )
             tasks.append(task)
+            task_names.append(phase_name)
         
-        # Execute in parallel
+        # Execute in parallel with proper completion waiting
         try:
+            # Wait for ALL tasks to complete (not just first completion)
             results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Ensure all background tasks are complete
+            await asyncio.sleep(0.1)  # Allow any spawned tasks to surface
+            
+            # Check for any remaining background tasks
+            all_tasks = asyncio.all_tasks()
+            background_tasks = [t for t in all_tasks if not t.done() and t != asyncio.current_task()]
+            if background_tasks:
+                logger.warning(f"⚠️ Found {len(background_tasks)} background tasks still running")
+                # Wait for background tasks with timeout
+                try:
+                    await asyncio.wait_for(
+                        asyncio.gather(*background_tasks, return_exceptions=True),
+                        timeout=5.0
+                    )
+                except asyncio.TimeoutError:
+                    logger.error("❌ Background tasks did not complete within timeout")
             
             # Process results
             combined_results = {}
@@ -122,11 +145,15 @@ class CrewCoordinator:
                 logger.warning(f"⚠️ {len(errors)} agents failed during parallel execution")
                 combined_results["errors"] = errors
             
-            logger.info(f"✅ Parallel agent execution completed")
+            logger.info(f"✅ Parallel agent execution completed - all tasks finished")
             return combined_results
             
         except Exception as e:
             logger.error(f"❌ Parallel agent execution failed: {str(e)}")
+            # Cancel any remaining tasks
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
             raise
     
     def _prepare_agent_context(self, phase_name: str, context_data: Dict[str, Any] = None) -> Dict[str, Any]:

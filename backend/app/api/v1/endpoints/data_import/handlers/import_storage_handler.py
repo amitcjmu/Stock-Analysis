@@ -315,7 +315,7 @@ async def _trigger_discovery_flow(
         # Create proper flow using the factory function
         logger.info(f"🔍 DEBUG: Creating discovery flow...")
         discovery_flow = create_unified_discovery_flow(
-            flow_id=data_import_id,
+            flow_id=data_import_id,  # Use data_import_id as the flow_id - ONE flow for entire process
             client_account_id=client_account_id,
             engagement_id=engagement_id,
             user_id=user_id,

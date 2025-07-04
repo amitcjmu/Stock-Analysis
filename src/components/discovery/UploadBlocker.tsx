@@ -19,8 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { IncompleteFlowV2 } from '@/hooks/discovery/useIncompleteFlowDetectionV2';
-import { useBulkFlowOperationsV2 } from '@/hooks/discovery/useIncompleteFlowDetectionV2';
+import { useBulkFlowOperationsV2, IncompleteFlowV2 } from '@/hooks/discovery/useFlowOperations';
 import { useToast } from '@/hooks/use-toast';
 import { unifiedDiscoveryService } from '@/services/discoveryUnifiedService';
 

@@ -10,7 +10,7 @@ import {
   Code, Database, Globe, BarChart3, Settings,
   CheckCircle, X, Info, GraduationCap, RotateCcw, Play, RefreshCw
 } from 'lucide-react';
-import { useDiscoveryFlowV2 } from '../../hooks/discovery/useDiscoveryFlowV2';
+import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
 import { useTechDebtFlowDetection } from '../../hooks/discovery/useDiscoveryFlowAutoDetection';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '../../components/ui/button';
@@ -55,18 +55,25 @@ const TechDebtAnalysis = () => {
     hasEffectiveFlow
   } = useTechDebtFlowDetection();
   
-  // V2 Discovery flow hook - pass effectiveFlowId instead of urlFlowId
+  // Unified Discovery flow hook - pass effectiveFlowId instead of urlFlowId
   const {
-    flow,
+    flowState: flow,
     isLoading,
     error,
-    updatePhase,
-    isUpdating,
-    progressPercentage,
-    currentPhase,
-    completedPhases,
-    nextPhase
-  } = useDiscoveryFlowV2(effectiveFlowId);
+    executeFlowPhase: updatePhase,
+    isExecutingPhase: isUpdating,
+    refreshFlow: refresh,
+    isPhaseComplete
+  } = useUnifiedDiscoveryFlow(effectiveFlowId);
+  
+  // Extract flow details
+  const progressPercentage = flow?.progress_percentage || 0;
+  const currentPhase = flow?.current_phase || '';
+  const completedPhases = flow?.phase_completion ? 
+    Object.entries(flow.phase_completion)
+      .filter(([_, completed]) => completed)
+      .map(([phase, _]) => phase) : [];
+  const nextPhase = '';
 
   // Debug info for flow detection
   console.log('🔍 TechDebt flow detection:', {

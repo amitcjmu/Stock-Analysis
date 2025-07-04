@@ -1,7 +1,7 @@
 import React from 'react';
 import Sidebar from '../../components/Sidebar';
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
-import { useDiscoveryFlowV2 } from '../../hooks/discovery/useDiscoveryFlowV2';
+import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
 import { useDependencyFlowDetection } from '../../hooks/discovery/useDiscoveryFlowAutoDetection';
 import { useDependencyLogic } from '../../hooks/discovery/useDependencyLogic';
 import { Button } from '../../components/ui/button';
@@ -32,17 +32,23 @@ const DependencyAnalysisPage = () => {
   
   // V2 Discovery flow hook - pass effectiveFlowId instead of urlFlowId
   const {
-    flow,
+    flowState: flow,
     isLoading,
     error,
-    updatePhase,
-    isUpdating,
-    progressPercentage,
-    currentPhase,
-    completedPhases,
-    nextPhase,
-    refresh
-  } = useDiscoveryFlowV2(effectiveFlowId);
+    executeFlowPhase: updatePhase,
+    isExecutingPhase: isUpdating,
+    refreshFlow: refresh,
+    isPhaseComplete
+  } = useUnifiedDiscoveryFlow(effectiveFlowId);
+  
+  // Extract flow details
+  const progressPercentage = flow?.progress_percentage || 0;
+  const currentPhase = flow?.current_phase || '';
+  const completedPhases = flow?.phase_completion ? 
+    Object.entries(flow.phase_completion)
+      .filter(([_, completed]) => completed)
+      .map(([phase, _]) => phase) : [];
+  const nextPhase = currentPhase === 'dependencies' ? 'tech_debt' : '';
 
   // Use dependency logic hook for dependency-specific functionality
   const {

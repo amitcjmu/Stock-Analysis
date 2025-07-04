@@ -5,7 +5,7 @@ import {
   useFlowResumptionV2, 
   useFlowDeletionV2, 
   useBulkFlowOperationsV2 
-} from '@/hooks/discovery/useIncompleteFlowDetectionV2';
+} from '@/hooks/discovery/useFlowOperations';
 
 export const useFlowManagement = () => {
   const navigate = useNavigate();

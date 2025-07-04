@@ -1,20 +1,16 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDiscoveryFlowV2 } from './useDiscoveryFlowV2';
+import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
 
 export const useDependencyNavigation = (flowId?: string, dependencyData?: any) => {
   const navigate = useNavigate();
-  const { flow, updatePhase } = useDiscoveryFlowV2(flowId);
+  const { flowState: flow, executeFlowPhase: updatePhase } = useUnifiedDiscoveryFlow(flowId);
 
   const handleContinueToNextPhase = useCallback(async () => {
     try {
       if (flow && flow.flow_id) {
-        // Update to tech debt analysis phase using V2 API
-        await updatePhase('tech_debt_analysis', {
-          completed_phases: [...(flow.phases ? Object.keys(flow.phases).filter(p => flow.phases[p]) : []), 'dependency_analysis'],
-          current_phase: 'tech_debt_analysis',
-          progress_data: dependencyData
-        });
+        // Update to tech debt analysis phase
+        await updatePhase('tech_debt_analysis');
         navigate('/discovery/tech-debt');
       }
     } catch (error) {

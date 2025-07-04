@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { useDiscoveryFlowList } from './useDiscoveryFlowV2';
+import { useDiscoveryFlowList } from './useDiscoveryFlowList';
 
 interface FlowAutoDetectionOptions {
   currentPhase?: string;
@@ -199,3 +199,6 @@ export const useTechDebtFlowDetection = () => {
     fallbackToAnyRunning: true
   });
 };
+
+// Re-export useDiscoveryFlowList for components that need it
+export { useDiscoveryFlowList } from './useDiscoveryFlowList';

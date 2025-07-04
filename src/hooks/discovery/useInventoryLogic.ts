@@ -1,18 +1,20 @@
 import { useState, useCallback } from 'react';
-import { useDiscoveryFlowV2 } from './useDiscoveryFlowV2';
+import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
 import { unifiedDiscoveryService } from '../../services/discoveryUnifiedService';
 import { useQuery } from '@tanstack/react-query';
 
 export const useInventoryLogic = (flowId?: string) => {
-  // Use the V2 discovery flow
+  // Use the unified discovery flow
   const {
-    flow,
-    assets,
+    flowState: flow,
     isLoading,
     error,
-    updatePhase,
-    refresh
-  } = useDiscoveryFlowV2(flowId);
+    executeFlowPhase: updatePhase,
+    refreshFlow: refresh
+  } = useUnifiedDiscoveryFlow(flowId);
+  
+  // Extract assets from flow state
+  const assets = flow?.asset_inventory?.assets || [];
 
   // Local UI state for filters, pagination, etc.
   const [currentPage, setCurrentPage] = useState(1);

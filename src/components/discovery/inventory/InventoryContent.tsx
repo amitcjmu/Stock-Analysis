@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '../../../contexts/AuthContext';
-import { useDiscoveryFlowV2 } from '../../../hooks/discovery/useDiscoveryFlowV2';
+import { useUnifiedDiscoveryFlow } from '../../../hooks/useUnifiedDiscoveryFlow';
 
 // Components
 import { InventoryOverview } from './components/InventoryOverview';
@@ -36,7 +36,9 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   flowId
 }) => {
   const { client, engagement } = useAuth();
-  const { getAssets, getFlow } = useDiscoveryFlowV2(flowId);
+  const { flowState: flow, getPhaseData } = useUnifiedDiscoveryFlow(flowId);
+  const getAssets = () => flow?.asset_inventory?.assets || [];
+  const getFlow = () => flow;
 
   // State
   const [selectedColumns, setSelectedColumns] = useState(DEFAULT_COLUMNS);

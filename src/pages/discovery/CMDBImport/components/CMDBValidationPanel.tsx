@@ -23,7 +23,7 @@ export const CMDBValidationPanel: React.FC<CMDBValidationPanelProps> = ({
   file, 
   onValidationUpdate 
 }) => {
-  const monitoring = file.flow_id ? useComprehensiveRealTimeMonitoring(file.flow_id, 'data_import') : null;
+  const monitoring = file.flow_id ? useComprehensiveRealTimeMonitoring(file.flow_id, 'data_import', false) : null;
   
   // Get validation data from real-time monitoring or fallback to defaults
   const validationData = monitoring?.data?.validationResult || {};

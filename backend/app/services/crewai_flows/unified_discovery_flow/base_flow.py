@@ -262,15 +262,89 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             return "discovery_failed"
     
     @listen(execute_data_import_validation_agent)
-    async def execute_attribute_mapping_agent(self, previous_result):
-        """Execute field mapping phase using real CrewAI crews"""
-        result = await self.phase_executor.execute_field_mapping_phase(previous_result)
+    async def generate_field_mapping_suggestions(self, previous_result):
+        """Generate initial field mapping suggestions before pausing for approval"""
+        logger.info("🤖 Generating field mapping suggestions")
+        
+        # Update phase
+        self.state.current_phase = PhaseNames.FIELD_MAPPING
+        
+        # Execute field mapping crew to generate suggestions
+        mapping_result = await self.phase_executor.execute_field_mapping_phase(
+            previous_result, 
+            mode="suggestions_only"  # Special mode to only generate suggestions
+        )
+        
+        # Extract mapping suggestions and clarifications
+        suggested_mappings = mapping_result.get("mappings", {})
+        clarification_questions = mapping_result.get("clarifications", [])
+        confidence_scores = mapping_result.get("confidence_scores", {})
+        
+        # Store suggestions in state
+        self.state.field_mappings = suggested_mappings
+        self.state.field_mapping_confidence = confidence_scores
+        
+        # Add agent insights
+        if clarification_questions:
+            for question in clarification_questions:
+                self.state_manager.add_agent_insight(
+                    "Field Mapping Agent",
+                    question,
+                    confidence=0.7
+                )
+        
         await self.state_manager.safe_update_flow_state()
-        return result
+        logger.info(f"✅ Generated {len(suggested_mappings)} mapping suggestions")
+        
+        return "field_mapping_suggestions_ready"
     
-    @listen(execute_attribute_mapping_agent)
+    @listen(generate_field_mapping_suggestions)
+    async def pause_for_field_mapping_approval(self, previous_result):
+        """Pause flow for user to review and approve field mappings"""
+        logger.info("⏸️ Pausing for field mapping approval")
+        
+        # Update status to waiting
+        self.state.status = "waiting_for_approval"
+        self.state.user_approval_context = {
+            "phase": PhaseNames.FIELD_MAPPING,
+            "reason": "Please review and approve the suggested field mappings",
+            "data_preview": self.state.raw_data[:5] if self.state.raw_data else [],
+            "suggested_mappings": self.state.field_mappings,
+            "confidence_scores": self.state.field_mapping_confidence,
+            "clarifications_needed": len([i for i in self.state.agent_insights if i.get("agent") == "Field Mapping Agent"])
+        }
+        
+        await self.state_manager.safe_update_flow_state()
+        logger.info("⏸️ Flow paused - waiting for field mapping approval")
+        
+        return "paused_for_field_mapping_approval"
+    
+    @listen(pause_for_field_mapping_approval)
+    async def apply_approved_field_mappings(self, previous_result):
+        """Apply user-approved field mappings and continue to data cleansing"""
+        # This will only run when flow is resumed after approval
+        if previous_result == "paused_for_field_mapping_approval":
+            logger.info("⏭️ Flow waiting for user approval - skipping application")
+            return previous_result
+        
+        # User has approved - apply the mappings
+        logger.info("✅ Applying approved field mappings")
+        
+        # The mappings are already in state from the suggestions phase
+        # Just update the status
+        self.state.phase_completion[PhaseNames.FIELD_MAPPING] = True
+        await self.state_manager.safe_update_flow_state()
+        
+        return "field_mapping_completed"
+    
+    @listen(apply_approved_field_mappings)
     async def execute_data_cleansing_agent(self, previous_result):
         """Execute data cleansing phase using real CrewAI crews"""
+        # Check if flow is paused
+        if previous_result == "paused_for_field_mapping_approval":
+            logger.info("⏭️ Flow paused - data cleansing will not execute")
+            return previous_result
+            
         result = await self.phase_executor.execute_data_cleansing_phase(previous_result)
         await self.state_manager.safe_update_flow_state()
         return result
@@ -278,6 +352,11 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     @listen(execute_data_cleansing_agent)
     async def create_discovery_assets_from_cleaned_data(self, previous_result):
         """Create discovery assets from cleaned data"""
+        # Check if flow is paused
+        if previous_result == "paused_for_field_mapping_approval":
+            logger.info("⏭️ Flow paused - asset inventory will not execute")
+            return previous_result
+            
         # Use PhaseExecutionManager with real CrewAI crews
         result = await self.phase_executor.execute_asset_inventory_phase(previous_result)
         await self.state_manager.safe_update_flow_state()
@@ -286,12 +365,22 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     @listen(create_discovery_assets_from_cleaned_data)
     async def promote_discovery_assets_to_assets(self, previous_result):
         """Promote discovery assets to main assets table"""
+        # Check if flow is paused
+        if previous_result == "paused_for_field_mapping_approval":
+            logger.info("⏭️ Flow paused - asset promotion will not execute")
+            return previous_result
+            
         # This is handled within asset_inventory_phase
         return "assets_promoted"
     
     @listen(promote_discovery_assets_to_assets)
     async def execute_parallel_analysis_agents(self, previous_result):
         """Execute dependency and tech debt analysis in parallel"""
+        # Check if flow is paused
+        if previous_result == "paused_for_field_mapping_approval":
+            logger.info("⏭️ Flow paused - parallel analysis will not execute")
+            return previous_result
+            
         logger.info("🚀 Starting parallel analysis agents")
         
         try:
@@ -327,6 +416,11 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     @listen(execute_parallel_analysis_agents)
     async def check_user_approval_needed(self, previous_result):
         """Check if user approval is needed and finalize flow"""
+        # Check if flow is paused
+        if previous_result == "paused_for_field_mapping_approval":
+            logger.info("⏭️ Flow paused - finalization will not execute")
+            return previous_result
+            
         if self.state_manager.is_user_approval_needed():
             await self.flow_finalizer.pause_for_user_approval(previous_result)
             return "awaiting_user_approval_in_attribute_mapping"
