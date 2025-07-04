@@ -139,7 +139,7 @@ export const useDataCleansingAnalysis = (flowId?: string) => {
 
       // Fallback: try to get the data cleansing results from the active discovery flows
       try {
-        const flowResponse = await apiCall('/discovery/flows/active', {
+        const flowResponse = await apiCall('/api/v1/discovery/flows/active', {
           method: 'GET',
           headers: {
             'X-Client-Account-Id': client.id.toString(),
@@ -148,9 +148,12 @@ export const useDataCleansingAnalysis = (flowId?: string) => {
           }
         });
 
-        if (flowResponse.success && flowResponse.flow_details && flowResponse.flow_details.length > 0) {
+        // Handle the unified discovery API response structure
+        const flows = flowResponse.flows || flowResponse.flow_details || [];
+        
+        if (flows.length > 0) {
           // Find the most recent flow with data cleansing results
-          const flowsWithCleansing = flowResponse.flow_details.filter(flow => 
+          const flowsWithCleansing = flows.filter(flow => 
             flow.phase_completion?.data_cleansing === true || 
             flow.results?.data_cleansing ||
             flow.data_cleansing_results

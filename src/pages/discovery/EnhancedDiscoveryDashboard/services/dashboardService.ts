@@ -20,8 +20,8 @@ export class DashboardService {
 
     // Fetch real-time active flows from multiple sources
     const [discoveryFlowsResponse, dataImportsResponse] = await Promise.allSettled([
-      // Get active Discovery flows
-      apiCall('/discovery/flows/active', {
+      // Get active Discovery flows - try the discovery flows endpoint first
+      apiCall('/api/v1/discovery/flows/active', {
         method: 'GET',
         headers: getAuthHeaders()
       }),
@@ -39,37 +39,58 @@ export class DashboardService {
       const discoveryData = discoveryFlowsResponse.value;
       console.log('📊 Discovery flows data:', discoveryData);
 
-      if (discoveryData.flow_details && Array.isArray(discoveryData.flow_details)) {
-        console.log(`📊 Processing ${discoveryData.flow_details.length} flows...`);
-        for (const flow of discoveryData.flow_details) {
-          try {
-            console.log('📊 Processing flow:', flow);
-            allFlows.push({
-              flow_id: flow.flow_id,
-              session_id: flow.session_id || flow.flow_id,
-              engagement_name: flow.engagement_name || `${flow.client_name || 'Unknown'} - Discovery`,
-              engagement_id: flow.engagement_id || 'unknown',
-              client_name: flow.client_name || 'Unknown Client',
-              client_id: flow.client_id || 'unknown',
-              status: flow.status === 'active' ? 'active' : (flow.status || 'running'),
-              progress: flow.progress || 0,
-              current_phase: flow.current_phase || 'initialization',
-              started_at: flow.start_time || new Date().toISOString(),
-              estimated_completion: flow.estimated_completion,
-              last_updated: flow.last_updated || new Date().toISOString(),
-              crew_count: 6, // Standard Discovery flow has 6 crews
-              active_agents: flow.active_agents || 18,
-              data_sources: flow.data_sources || 1,
-              success_criteria_met: flow.success_criteria_met || 0,
-              total_success_criteria: 18, // Standard Discovery flow criteria
-              flow_type: 'discovery'
-            });
-          } catch (flowError) {
-            console.warn('Failed to process flow:', flow, flowError);
-          }
+      // Handle both array response and object with flows array
+      let flowsToProcess = [];
+      
+      if (Array.isArray(discoveryData)) {
+        // Direct array response from /api/v1/discovery/flows/active
+        flowsToProcess = discoveryData;
+        console.log(`📊 Processing ${flowsToProcess.length} flows from discovery API (array response)...`);
+      } else if (discoveryData.flows && Array.isArray(discoveryData.flows)) {
+        // Object with flows array from unified discovery API
+        flowsToProcess = discoveryData.flows;
+        console.log(`📊 Processing ${flowsToProcess.length} flows from discovery API (object.flows response)...`);
+      } else if (discoveryData.flow_details && Array.isArray(discoveryData.flow_details)) {
+        // Legacy structure if exists
+        flowsToProcess = discoveryData.flow_details;
+        console.log(`📊 Processing ${flowsToProcess.length} flows from discovery API (legacy flow_details)...`);
+      }
+
+      // Process all flows with consistent handling
+      for (const flow of flowsToProcess) {
+        try {
+          console.log('📊 Processing flow:', flow);
+          
+          // Extract metadata if it exists
+          const metadata = flow.metadata || {};
+          
+          allFlows.push({
+            flow_id: flow.flow_id,
+            session_id: flow.session_id || flow.flow_id,
+            engagement_name: metadata.engagement_name || flow.engagement_name || `${client?.name || 'Unknown'} - Discovery`,
+            engagement_id: flow.engagement_id || engagement?.id || 'unknown',
+            client_name: metadata.client_name || flow.client_name || client?.name || 'Unknown Client',
+            client_id: flow.client_account_id || flow.client_id || client?.id || 'unknown',
+            status: flow.status === 'active' ? 'active' : (flow.status || 'running'),
+            progress: metadata.progress_percentage || flow.progress_percentage || flow.progress || 0,
+            current_phase: metadata.current_phase || flow.current_phase || 'initialization',
+            started_at: flow.created_at || flow.start_time || new Date().toISOString(),
+            estimated_completion: flow.estimated_completion,
+            last_updated: flow.updated_at || flow.last_updated || new Date().toISOString(),
+            crew_count: 6, // Standard Discovery flow has 6 crews
+            active_agents: metadata.active_agents || flow.active_agents || 18,
+            data_sources: metadata.data_sources || flow.data_sources || 1,
+            success_criteria_met: metadata.success_criteria_met || flow.success_criteria_met || Object.values(flow.phases || metadata.phases || {}).filter(Boolean).length || 0,
+            total_success_criteria: 6, // 6 phases in discovery
+            flow_type: flow.type || 'discovery'
+          });
+        } catch (flowError) {
+          console.warn('Failed to process flow:', flow, flowError);
         }
-      } else {
-        console.warn('📊 No flow_details found or not an array:', discoveryData);
+      }
+
+      if (flowsToProcess.length === 0) {
+        console.warn('📊 No flows found in response:', discoveryData);
       }
     } else {
       console.warn('📊 Discovery flows response failed or empty:', discoveryFlowsResponse);
