@@ -113,48 +113,62 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     };
 
-    // Wait for full auth context to be available before making API calls
-    // This prevents race conditions where API calls are made without proper context headers
-    if (user && !authLoading && authClient && authEngagement && authSession) {
-      console.log('🔄 ClientContext: Full auth context available, making API calls');
+    // Load clients when user is available - don't wait for full auth context
+    // The auth context depends on ClientContext, so we can't wait for it
+    if (user && !authLoading) {
+      console.log('🔄 ClientContext: User available, fetching clients');
       const fetchClients = async () => {
         setIsLoading(true);
         try {
+          // First try to get default client
+          try {
+            const defaultResponse = await apiCall('/context/clients/default', {}, false);
+            if (defaultResponse && defaultResponse.id) {
+              console.log('✅ Got default client:', defaultResponse.name);
+              setCurrentClient(defaultResponse);
+              sessionStorage.setItem(CLIENT_KEY, defaultResponse.id);
+            }
+          } catch (defaultErr) {
+            console.log('ℹ️ No default client found, fetching all clients');
+          }
+
+          // Also fetch all available clients
           const response = await apiCall('/context/clients', {}, false); // Don't include context headers when fetching clients 
-          if (response.items) {
-            setAvailableClients(response.items);
-            const storedClientId = sessionStorage.getItem(CLIENT_KEY);
-            if (storedClientId) {
-              const client = response.items.find((c: Client) => c.id === storedClientId);
-              if (client) {
-                setCurrentClient(client);
+          if (response.clients) {
+            setAvailableClients(response.clients);
+            
+            // If we didn't get a default client, use stored or first available
+            if (!currentClient) {
+              const storedClientId = sessionStorage.getItem(CLIENT_KEY);
+              if (storedClientId) {
+                const client = response.clients.find((c: Client) => c.id === storedClientId);
+                if (client) {
+                  setCurrentClient(client);
+                }
+              } else if (response.clients.length > 0) {
+                // select the first client if none is stored
+                setCurrentClient(response.clients[0]);
+                sessionStorage.setItem(CLIENT_KEY, response.clients[0].id);
               }
-            } else if (response.items.length > 0) {
-              // select the first client if none is stored
-              setCurrentClient(response.items[0]);
-              sessionStorage.setItem(CLIENT_KEY, response.items[0].id);
             }
           }
         } catch (err) {
+          console.error('Failed to fetch clients:', err);
           setError(err instanceof Error ? err : new Error('Failed to fetch clients'));
         } finally {
           setIsLoading(false);
         }
       };
       fetchClients();
+    } else if (authLoading) {
+      console.log('🔄 ClientContext: Waiting for auth to load');
     } else {
-      console.log('🔄 ClientContext: Waiting for auth context', { 
-        hasUser: !!user, 
-        authLoading, 
-        hasAuthClient: !!authClient, 
-        hasAuthEngagement: !!authEngagement, 
-        hasAuthSession: !!authSession 
-      });
+      console.log('🔄 ClientContext: No user available');
       setIsLoading(false);
       setCurrentClient(null);
       setAvailableClients([]);
     }
-  }, [user, authClient, authEngagement, authSession, authLoading, navigate]);
+  }, [user, authLoading, navigate]);
 
   const switchClient = async (id: string): Promise<void> => {
     const client = availableClients.find(c => c.id === id);

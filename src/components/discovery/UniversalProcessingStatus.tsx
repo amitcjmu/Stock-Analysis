@@ -114,11 +114,15 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
       };
     }
 
-    if (processingStatus?.status === 'failed' || processingStatus?.status === 'error') {
+    if (processingStatus?.status === 'failed' || 
+        processingStatus?.status === 'error' ||
+        processingStatus?.final_result === 'discovery_failed' ||
+        processingStatus?.current_phase === 'failed') {
+      const errorMessage = processingStatus?.errors?.[0] || 'An error occurred during processing. Please check the logs for details.';
       return {
         status: 'error',
         message: 'Processing Error',
-        description: 'An error occurred during processing. Please check the logs for details.',
+        description: errorMessage,
         color: 'bg-red-50 border-red-200',
         icon: XCircle,
         iconColor: 'text-red-600',
@@ -182,6 +186,17 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
 
   // State for collapsible sections - expanded by default
   const [expandedSections, setExpandedSections] = useState(new Set(['upload', 'security']));
+  
+  // Display error details if status is error
+  useEffect(() => {
+    if (enhancedStatus.status === 'error') {
+      console.error('[UniversalProcessingStatus] Processing failed:', {
+        errors: processingStatus?.errors,
+        final_result: processingStatus?.final_result,
+        status: processingStatus?.status
+      });
+    }
+  }, [enhancedStatus.status, processingStatus]);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => {
@@ -374,7 +389,7 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
             </div>
             <div className="flex items-center gap-2">
               <Badge variant={enhancedStatus.status === 'running' ? 'default' : 'secondary'}>
-                {enhancedStatus.progress.toFixed(0)}% Complete
+                {(typeof enhancedStatus.progress === 'number' ? enhancedStatus.progress.toFixed(0) : '0')}% Complete
               </Badge>
               <Button variant="ghost" size="sm">
                 {expandedSections.has('upload') ? '−' : '+'}
@@ -393,9 +408,9 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Progress</span>
-                  <span>{enhancedStatus.progress.toFixed(1)}%</span>
+                  <span>{(typeof enhancedStatus.progress === 'number' ? enhancedStatus.progress.toFixed(1) : '0.0')}%</span>
                 </div>
-                <Progress value={enhancedStatus.progress} className="w-full" />
+                <Progress value={typeof enhancedStatus.progress === 'number' ? enhancedStatus.progress : 0} className="w-full" />
               </div>
 
               {/* Processing Statistics - Only show when we have actual records */}
@@ -442,6 +457,23 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
                     </Badge>
                   )}
                 </div>
+              )}
+              
+              {/* Error Display */}
+              {enhancedStatus.status === 'error' && processingStatus?.errors?.length > 0 && (
+                <Alert className="mt-4 border-red-200 bg-red-50">
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                  <AlertDescription className="text-red-800">
+                    <span className="font-semibold">Error Details:</span>
+                    <ul className="mt-2 list-disc list-inside text-sm">
+                      {processingStatus.errors.map((error, idx) => (
+                        <li key={idx}>
+                          {typeof error === 'string' ? error : error.error || error.message || JSON.stringify(error)}
+                        </li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
               )}
             </div>
           </CardContent>

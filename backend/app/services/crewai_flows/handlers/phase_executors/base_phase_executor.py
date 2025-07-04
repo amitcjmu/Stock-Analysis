@@ -73,21 +73,37 @@ class BasePhaseExecutor(ABC):
                 logger.warning(f"⚠️ State sync failed during phase start: {e}")
         
         try:
-            # Try CrewAI execution first
-            if CREWAI_FLOW_AVAILABLE:
+            # CREWAI MODE: Check if we should disable CrewAI (fast mode)
+            import os
+            use_fast_mode = os.getenv("USE_FAST_DISCOVERY_MODE", "false").lower() == "true"
+            
+            # Use CrewAI by default unless explicitly disabled
+            if not use_fast_mode and CREWAI_FLOW_AVAILABLE:
                 crew = self.crew_manager.create_crew_on_demand(
                     phase_name,
                     **self._get_crew_context()
                 )
                 
                 if crew:
+                    logger.info(f"🤖 Using CrewAI crew for {phase_name} (real agents active)")
                     crew_input = self._prepare_crew_input()
-                    results = await self.execute_with_crew(crew_input)
+                    
+                    # Add timeout for crew execution
+                    import asyncio
+                    try:
+                        results = await asyncio.wait_for(
+                            self.execute_with_crew(crew_input),
+                            timeout=20  # 20 second hard timeout
+                        )
+                    except asyncio.TimeoutError:
+                        logger.error(f"⏱️ Crew execution timed out after 20s, using fallback")
+                        results = await self.execute_fallback()
                 else:
                     logger.warning(f"{phase_name} crew not available - using fallback")
                     results = await self.execute_fallback()
             else:
-                logger.warning(f"CrewAI not available for {phase_name} - using fallback")
+                # Use fast fallback when explicitly enabled
+                logger.info(f"⚡ Using optimized fallback for {phase_name} (fast mode explicitly enabled)")
                 results = await self.execute_fallback()
             
             # Store results and update state

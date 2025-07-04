@@ -167,6 +167,8 @@ class UnifiedDiscoveryFlowState(BaseModel):
     records_total: int = 0
     records_valid: int = 0
     records_failed: int = 0
+    total_insights: int = 0
+    total_clarifications: int = 0
     
     # User approval and interaction
     awaiting_user_approval: bool = False
@@ -246,6 +248,7 @@ class UnifiedDiscoveryFlowState(BaseModel):
     updated_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
+    execution_time_seconds: float = 0.0
     
     # ========================================
     # DATABASE INTEGRATION

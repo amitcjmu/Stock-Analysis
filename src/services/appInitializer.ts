@@ -45,19 +45,31 @@ export class AppInitializer {
     console.log('🚀 Starting app initialization...');
     
     try {
-      // Task 1: Initialize demo context
-      console.log('📋 Task 1: Loading demo context...');
-      const demoContext = await demoContextService.initialize();
+      // Task 1: Initialize demo context (only if user has access)
+      console.log('📋 Task 1: Checking for demo context access...');
       
-      if (demoContext) {
-        console.log('✅ Demo context loaded successfully');
-        
-        // Store demo context in sessionStorage for quick access
-        sessionStorage.setItem('demo_client_id', demoContext.client.id);
-        sessionStorage.setItem('demo_engagement_id', demoContext.engagement.id);
-        sessionStorage.setItem('demo_context', JSON.stringify(demoContext));
+      // Check if user has a valid auth token first
+      const authToken = localStorage.getItem('auth-token');
+      if (!authToken) {
+        console.log('⚠️ No auth token found, skipping demo context initialization');
       } else {
-        console.warn('⚠️ Demo context not available');
+        try {
+          const demoContext = await demoContextService.initialize();
+          
+          if (demoContext) {
+            console.log('✅ Demo context loaded successfully');
+            
+            // Store demo context in sessionStorage for quick access
+            sessionStorage.setItem('demo_client_id', demoContext.client.id);
+            sessionStorage.setItem('demo_engagement_id', demoContext.engagement.id);
+            sessionStorage.setItem('demo_context', JSON.stringify(demoContext));
+          } else {
+            console.log('ℹ️ No demo context available for this user');
+          }
+        } catch (error) {
+          console.log('ℹ️ Demo context not accessible:', error);
+          // This is expected for non-demo users
+        }
       }
       
       // Task 2: Check API health

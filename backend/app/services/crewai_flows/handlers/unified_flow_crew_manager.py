@@ -54,6 +54,7 @@ class UnifiedFlowCrewManager:
             # Store factory functions
             self.crew_factories = {
                 "data_import_validation": create_data_import_validation_crew,  # NEW: Focused data validation crew
+                "data_import": create_data_import_validation_crew,  # Alias for phase executor compatibility
                 "attribute_mapping": field_mapping_factory,  # Dynamic based on CREWAI_FAST_MODE setting
                 "data_cleansing": create_data_cleansing_crew,
                 "inventory": create_inventory_building_crew,  # Fixed: Use inventory to match DB schema
@@ -79,7 +80,7 @@ class UnifiedFlowCrewManager:
             factory = self.crew_factories[crew_type]
             
             # Create crew with appropriate parameters
-            if crew_type == "data_import_validation":
+            if crew_type in ["data_import_validation", "data_import"]:
                 crew = factory(
                     self.crewai_service,
                     kwargs.get('raw_data', []),

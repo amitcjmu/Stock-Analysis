@@ -7,7 +7,8 @@ Handles the dependency analysis phase of the discovery flow.
 import logging
 from typing import Dict, Any, Optional
 
-from app.services.agents.dependency_analysis_agent import DependencyAnalysisAgent
+# from app.services.agents.dependency_analysis_agent import DependencyAnalysisAgent
+# TODO: Replace with real CrewAI agent
 from ..flow_config import PhaseNames
 
 logger = logging.getLogger(__name__)
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 class DependencyAnalysisPhase:
     """Handles dependency analysis phase execution"""
     
-    def __init__(self, state, dependency_analysis_agent: DependencyAnalysisAgent, init_context: Dict[str, Any], flow_bridge=None):
+    def __init__(self, state, dependency_analysis_agent, init_context: Dict[str, Any], flow_bridge=None):
         """
         Initialize dependency analysis phase
         

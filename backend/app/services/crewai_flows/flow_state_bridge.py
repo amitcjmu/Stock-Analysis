@@ -13,7 +13,8 @@ from contextlib import asynccontextmanager
 
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 from app.core.context import RequestContext
-from .postgresql_flow_persistence import PostgreSQLFlowPersistence
+from app.core.database import AsyncSessionLocal
+from .persistence.postgres_store import PostgresFlowStateStore
 
 logger = logging.getLogger(__name__)
 
@@ -31,12 +32,8 @@ class FlowStateBridge:
     def __init__(self, context: RequestContext):
         """Initialize bridge with tenant context"""
         self.context = context
-        self.pg_persistence = PostgreSQLFlowPersistence(
-            client_account_id=context.client_account_id,
-            engagement_id=context.engagement_id,
-            user_id=context.user_id
-        )
         self._state_sync_enabled = True
+        self._version_cache = {}  # Cache flow versions
     
     async def initialize_flow(self, state: UnifiedDiscoveryFlowState) -> Dict[str, Any]:
         """
@@ -53,14 +50,21 @@ class FlowStateBridge:
             logger.info(f"🔄 Initializing PostgreSQL-only flow state: {state.flow_id}")
             logger.info(f"   📋 Flow context: {state.flow_id}")
             
-            # Persist to PostgreSQL as single source of truth
-            pg_result = await self.pg_persistence.persist_flow_initialization(state)
+            # Use postgres store to persist state
+            async with AsyncSessionLocal() as db:
+                store = PostgresFlowStateStore(db, self.context)
+                await store.save_state(
+                    flow_id=state.flow_id,
+                    state=state.model_dump(),
+                    phase=state.current_phase or "initialization"
+                )
+                await db.commit()
             
             logger.info(f"✅ PostgreSQL flow state initialized: Flow ID={state.flow_id}")
             
             return {
                 "status": "success",
-                "postgresql_persistence": pg_result,
+                "postgresql_persistence": {"status": "success", "flow_id": state.flow_id},
                 "persistence_model": "postgresql_only",
                 "bridge_enabled": True
             }
@@ -83,18 +87,36 @@ class FlowStateBridge:
             return {"status": "sync_disabled"}
         
         try:
-            # Update PostgreSQL state (single source of truth)
-            pg_result = await self.pg_persistence.update_workflow_state(state)
+            # Get current version for optimistic locking
+            current_version = self._version_cache.get(state.flow_id)
             
-            # Log phase completion if crew results provided
-            if crew_results:
-                await self.pg_persistence.persist_phase_completion(state, phase, crew_results)
+            # Update PostgreSQL state (single source of truth)
+            async with AsyncSessionLocal() as db:
+                store = PostgresFlowStateStore(db, self.context)
+                
+                # Merge crew results into state if provided
+                state_data = state.model_dump()
+                if crew_results:
+                    state_data["crew_results"] = state_data.get("crew_results", {})
+                    state_data["crew_results"][phase] = crew_results
+                
+                await store.save_state(
+                    flow_id=state.flow_id,
+                    state=state_data,
+                    phase=phase,
+                    version=current_version
+                )
+                await db.commit()
+                
+                # Update version cache
+                if current_version is not None:
+                    self._version_cache[state.flow_id] = current_version + 1
             
             logger.debug(f"🔄 PostgreSQL state updated for Flow ID: {state.flow_id}, phase: {phase}")
             
             return {
                 "status": "success",
-                "postgresql_update": pg_result,
+                "postgresql_update": {"status": "success", "phase": phase},
                 "phase": phase,
                 "crew_results_logged": crew_results is not None,
                 "persistence_model": "postgresql_only"
@@ -117,67 +139,12 @@ class FlowStateBridge:
             # Determine current phase from state
             current_phase = getattr(state, 'current_phase', 'unknown')
             
-            # Extract and ensure processing statistics are at root level of state data
-            # This is critical for the frontend to receive the correct record counts
-            state_dict = state.model_dump()
+            # Use sync_state_update which already handles the postgres store
+            result = await self.sync_state_update(state, current_phase)
             
-            # Ensure these fields are available at the root level for API responses
-            processing_fields = ['records_processed', 'records_total', 'records_valid', 'records_failed']
-            for field in processing_fields:
-                if hasattr(state, field):
-                    state_dict[field] = getattr(state, field)
+            logger.debug(f"🔄 Flow state updated for CrewAI Flow ID: {state.flow_id}, phase: {current_phase}")
             
-            # Handle phase mapping for parallel analysis phases
-            if current_phase == "analysis":
-                # For analysis phase, update individual component phases based on completion status
-                analysis_results = []
-                
-                # Check which analysis components completed and update them individually
-                if state.phase_completion.get('asset_inventory', False):
-                    inventory_result = await self.pg_persistence.update_workflow_state(state)
-                    await self.pg_persistence.persist_phase_completion(state, "inventory", {
-                        "assets": state.asset_inventory,
-                        "confidence": state.agent_confidences.get('asset_inventory', 0.0)
-                    })
-                    analysis_results.append(("inventory", inventory_result))
-                
-                if state.phase_completion.get('dependency_analysis', False):
-                    deps_result = await self.pg_persistence.update_workflow_state(state)
-                    await self.pg_persistence.persist_phase_completion(state, "dependencies", {
-                        "dependencies": state.dependency_analysis,
-                        "confidence": state.agent_confidences.get('dependency_analysis', 0.0)
-                    })
-                    analysis_results.append(("dependencies", deps_result))
-                
-                if state.phase_completion.get('tech_debt_analysis', False):
-                    tech_debt_result = await self.pg_persistence.update_workflow_state(state)
-                    await self.pg_persistence.persist_phase_completion(state, "tech_debt", {
-                        "tech_debt": state.tech_debt_analysis,
-                        "confidence": state.agent_confidences.get('tech_debt_analysis', 0.0)
-                    })
-                    analysis_results.append(("tech_debt", tech_debt_result))
-                
-                logger.debug(f"🔄 Analysis phase components updated for CrewAI Flow ID: {state.flow_id}")
-                
-                return {
-                    "status": "success",
-                    "postgresql_update": analysis_results,
-                    "phase": "analysis (multi-component)",
-                    "flow_id": state.flow_id,
-                    "components_updated": len(analysis_results)
-                }
-            else:
-                # Standard single-phase update
-                pg_result = await self.pg_persistence.update_workflow_state(state)
-                
-                logger.debug(f"🔄 Flow state updated for CrewAI Flow ID: {state.flow_id}, phase: {current_phase}")
-                
-                return {
-                    "status": "success",
-                    "postgresql_update": pg_result,
-                    "phase": current_phase,
-                    "flow_id": state.flow_id
-                }
+            return result
             
         except Exception as e:
             logger.warning(f"⚠️ Flow state update failed (non-critical): {e}")
@@ -188,23 +155,27 @@ class FlowStateBridge:
                 "impact": "PostgreSQL state may be stale, but CrewAI flow continues"
             }
     
-    async def recover_flow_state(self, session_id: str) -> Optional[UnifiedDiscoveryFlowState]:
+    async def recover_flow_state(self, flow_id: str) -> Optional[UnifiedDiscoveryFlowState]:
         """
         Recover flow state from PostgreSQL when CrewAI persistence fails.
         Provides fallback recovery mechanism.
         """
         try:
-            logger.info(f"🔄 Attempting flow state recovery for session: {session_id}")
+            logger.info(f"🔄 Attempting flow state recovery for flow: {flow_id}")
             
-            # Try to restore from PostgreSQL
-            restored_state = await self.pg_persistence.restore_flow_state(session_id)
-            
-            if restored_state:
-                logger.info(f"✅ Flow state recovered from PostgreSQL: {session_id}")
-                return restored_state
-            else:
-                logger.warning(f"⚠️ No recoverable state found for session: {session_id}")
-                return None
+            # Try to restore from PostgreSQL using postgres store
+            async with AsyncSessionLocal() as db:
+                store = PostgresFlowStateStore(db, self.context)
+                state_data = await store.load_state(flow_id)
+                
+                if state_data:
+                    # Reconstruct UnifiedDiscoveryFlowState from recovered data
+                    restored_state = UnifiedDiscoveryFlowState(**state_data)
+                    logger.info(f"✅ Flow state recovered from PostgreSQL: {flow_id}")
+                    return restored_state
+                else:
+                    logger.warning(f"⚠️ No recoverable state found for flow: {flow_id}")
+                    return None
                 
         except Exception as e:
             logger.error(f"❌ Flow state recovery failed: {e}")

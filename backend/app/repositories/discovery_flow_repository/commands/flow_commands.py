@@ -33,7 +33,11 @@ class FlowCommands:
         master_flow_id: Optional[str] = None,
         flow_type: str = "primary",
         description: Optional[str] = None,
-        initial_state_data: Optional[Dict[str, Any]] = None
+        initial_state_data: Optional[Dict[str, Any]] = None,
+        data_import_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        raw_data: Optional[List[Dict[str, Any]]] = None,
+        metadata: Optional[Dict[str, Any]] = None
     ) -> DiscoveryFlow:
         """Create new discovery flow using CrewAI Flow ID"""
         
@@ -50,15 +54,33 @@ class FlowCommands:
         # Parse optional UUIDs
         master_uuid = uuid.UUID(master_flow_id) if master_flow_id else None
         
+        # Prepare initial state data including raw_data and metadata
+        state_data = initial_state_data or {}
+        if raw_data:
+            state_data['raw_data'] = raw_data
+            state_data['records_total'] = len(raw_data)
+        if metadata:
+            state_data['metadata'] = metadata
+        
+        # Parse data_import_id if provided
+        data_import_uuid = None
+        if data_import_id:
+            try:
+                data_import_uuid = uuid.UUID(data_import_id)
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid data_import_id: {data_import_id}")
+        
         flow = DiscoveryFlow(
             flow_id=parsed_flow_id,
             client_account_id=self.client_account_id,
             engagement_id=self.engagement_id,
+            user_id=user_id or "system",  # Add user_id with fallback
             master_flow_id=master_uuid,
             flow_type=flow_type,
             flow_name=description or f"Discovery Flow {flow_id[:8]}",
             status="active",
-            crewai_state_data=initial_state_data or {},
+            crewai_state_data=state_data,
+            data_import_id=data_import_uuid,  # Store data_import_id
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )

@@ -41,7 +41,8 @@ class ContextMiddleware(BaseHTTPMiddleware):
         app: Callable,
         require_client: bool = True,
         require_engagement: bool = False,
-        exempt_paths: Optional[list] = None
+        exempt_paths: Optional[list] = None,
+        additional_exempt_paths: Optional[list] = None
     ):
         """
         Initialize context middleware.
@@ -50,13 +51,18 @@ class ContextMiddleware(BaseHTTPMiddleware):
             app: FastAPI application
             require_client: Whether to require client context (default: True)
             require_engagement: Whether to require engagement context (default: False)
-            exempt_paths: List of paths to exempt from context requirements
+            exempt_paths: Complete list of exempt paths (overrides defaults)
+            additional_exempt_paths: Additional paths to add to defaults (extends defaults)
         """
         super().__init__(app)
         self.require_client = require_client
         self.require_engagement = require_engagement
-        self.exempt_paths = exempt_paths or [
+        
+        # Define core exempt paths that should always be exempt
+        default_exempt_paths = [
             "/health",
+            "/api/v1/health",        # Health endpoint - no tenant context needed
+            "/api/v1/health/database", # Database health - no tenant context needed
             "/",
             "/docs",
             "/redoc", 
@@ -76,6 +82,15 @@ class ContextMiddleware(BaseHTTPMiddleware):
             # /me endpoint for context initialization
             "/api/v1/me"
         ]
+        
+        if exempt_paths is not None:
+            # Complete override of defaults (backward compatibility)
+            self.exempt_paths = exempt_paths
+        else:
+            # Use defaults and extend with additional paths
+            self.exempt_paths = default_exempt_paths.copy()
+            if additional_exempt_paths:
+                self.exempt_paths.extend(additional_exempt_paths)
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """
@@ -230,7 +245,7 @@ class ContextMiddleware(BaseHTTPMiddleware):
             "/api/v1/auth/pending-approvals",   # User approval management - FIXED PREFIX
             "/api/v1/auth/approve-user",         # User approval actions - FIXED PREFIX
             "/api/v1/auth/reject-user",          # User rejection actions - FIXED PREFIX
-            "/api/v1/active-users",              # Active user management (admin_handlers)
+            "/api/v1/auth/active-users",         # Active user management (admin_handlers) - FIXED PATH
             "/admin/",                           # All other admin routes (client/engagement management)
         ]
         return any(path.startswith(admin_path) for admin_path in admin_paths)

@@ -213,21 +213,10 @@ except Exception as e:
     print(f"⚠️  API v1 routes error: {e}")
     API_ROUTES_ERROR = str(e)
 
-# Try to import API v3 routes
+# V3 API routes ARCHIVED - legacy database abstraction layer
 API_V3_ROUTES_ENABLED = False
-API_V3_ROUTES_ERROR = None
-try:
-    from app.api.v3.router import api_router as api_v3_router, setup_v3_middleware
-    app.include_router(api_v3_router)  # v3 router includes its own /api/v3 prefix
-    
-    # Setup v3-specific middleware
-    setup_v3_middleware(app)
-    
-    API_V3_ROUTES_ENABLED = True
-    print("✅ API v3 routes loaded successfully")
-except Exception as e:
-    print(f"⚠️  API v3 routes error: {e}")
-    API_V3_ROUTES_ERROR = str(e)
+API_V3_ROUTES_ERROR = "V3 API archived - was legacy database abstraction layer"
+print("✅ V3 API routes archived - legacy database abstraction removed")
 
 # WebSocket support removed for Vercel+Railway compatibility
 WEBSOCKET_ENABLED = False
@@ -263,100 +252,44 @@ cors_origins = list(set(filter(None, cors_origins)))
 
 print(f"🌐 CORS Origins configured: {cors_origins}")
 
-# CORS middleware configuration first (CRITICAL: Middleware runs in reverse order)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # Add context middleware (Task 1.2.3)
 try:
     from app.core.middleware import ContextMiddleware, RequestLoggingMiddleware
     
     # CRITICAL: Middleware is executed in REVERSE order of addition.
-    # Order: RequestLogging -> Context -> CORS
+    # Actual execution order will be: CORS -> Context -> RequestLogging
+    # This ensures CORS headers are added to ALL responses, including errors
     
-    # Add context middleware with updated exempt paths
+    # Add context middleware with app-specific additional exempt paths
+    # Core paths (health, auth, docs) are handled by middleware defaults
+    app_specific_exempt_paths = [
+        # Context establishment endpoints - these are needed to establish context
+        "/api/v1/context/me",  # User context endpoint - needed before client context
+        "/api/v1/clients/default",  # Allow default client endpoint
+        "/api/v1/clients",  # Allow clients list endpoint for context establishment
+        "/api/v1/clients/",  # Allow clients list endpoint with trailing slash
+        "/api/v1/context/clients",  # New dedicated context establishment endpoint
+        "/api/v1/context/clients/",  # With trailing slash
+        "/api/v1/context/engagements",  # New dedicated context establishment endpoint
+        "/api/v1/context/engagements/",  # With trailing slash
+        "/api/v1/context-establishment/clients",  # Correct context establishment endpoint
+        "/api/v1/context-establishment/engagements",  # Correct context establishment endpoint
+        # NO DEMO FALLBACK - All users must be authenticated
+        # Data import endpoints that need to work before context is established
+        "/api/v1/data-import/latest-import",  # Allow checking for existing data
+        "/api/v1/data-import/status",  # Allow checking import status
+        # Discovery flow status endpoints that may be called before context
+        "/api/v1/discovery/flow/status",  # Allow checking flow status
+        "/api/v1/unified-discovery/flow/health",  # Allow health checks
+        "/api/v1/unified-discovery/flow/status",  # Allow flow status checks
+        # Note: Auth and health endpoints are handled by middleware defaults
+    ]
+    
     app.add_middleware(
         ContextMiddleware,
         require_client=True,
         require_engagement=True,  # SECURITY: Require engagement context for multi-tenancy
-        exempt_paths=[
-            "/health",
-            "/",
-            "/docs", 
-            "/redoc",
-            "/openapi.json",
-            "/debug/routes",
-            "/static",
-            # "/api/v1/assets/list/paginated",  # Removed - now requires context
-            "/api/v1/me",  # Allow user context endpoint
-            "/api/v1/clients/default",  # Allow default client endpoint
-            "/api/v1/clients",  # Allow clients list endpoint for context establishment
-            "/api/v1/clients/",  # Allow clients list endpoint with trailing slash
-            # Context establishment endpoints - these are needed to establish context
-            "/api/v1/context/clients",  # New dedicated context establishment endpoint
-            "/api/v1/context/clients/",  # With trailing slash
-            "/api/v1/context/engagements",  # New dedicated context establishment endpoint
-            "/api/v1/context/engagements/",  # With trailing slash
-            "/api/v1/context-establishment/clients",  # Correct context establishment endpoint
-            "/api/v1/context-establishment/engagements",  # Correct context establishment endpoint
-            "/api/v1/context-establishment/clients",  # Correct context establishment endpoint
-            "/api/v1/context-establishment/engagements",  # Correct context establishment endpoint
-            # Data import endpoints that need to work before context is established
-            "/api/v1/data-import/latest-import",  # Allow checking for existing data
-            "/api/v1/data-import/status",  # Allow checking import status
-            # Discovery flow status endpoints that may be called before context
-            # Removed /api/v1/discovery/flow/active - now requires context for RBAC
-            "/api/v1/discovery/flow/status",  # Allow checking flow status
-            "/api/v1/unified-discovery/flow/health",  # Allow health checks
-            "/api/v1/unified-discovery/flow/status",  # Allow flow status checks
-            # API v3 health and status endpoints
-            "/api/v3/health",  # V3 main health endpoint
-            "/api/v3/discovery-flow/health",  # V3 discovery flow health
-            "/api/v3/field-mapping/health",  # V3 field mapping health
-            "/api/v3/status",  # V3 status endpoint
-            "/api/v3/metrics",  # V3 metrics endpoint
-            # Authentication endpoints - should not require context
-            "/api/v1/auth/login",
-            "/api/v1/auth/register",
-            "/api/v1/auth/registration-status",
-            "/api/v1/auth/health",
-            "/api/v1/auth/demo/create-admin-user",
-            "/api/v1/auth/demo/status",
-            "/api/v1/auth/demo/reset",
-            "/api/v1/auth/demo/health",
-            "/api/v1/auth/system/info",
-            # Admin dashboard endpoints - should be global, not client-scoped
-            "/api/v1/auth/admin/dashboard-stats",
-            "/api/v1/admin/clients/dashboard/stats",
-            "/api/v1/admin/engagements/dashboard/stats",
-            "/api/v1/admin/clients/health",
-            "/api/v1/admin/engagements/health",
-            # Admin CRUD endpoints - should be global for admin management
-            "/api/v1/admin/clients",
-            "/api/v1/admin/clients/",
-            "/api/v1/admin/engagements",
-            "/api/v1/admin/engagements/",
-            "/api/v1/admin/users",
-            "/api/v1/admin/users/",
-            "/api/v1/admin/user-profiles",
-            "/api/v1/admin/user-profiles/",
-            "/api/v1/auth/admin/create-user",
-            "/api/v1/auth/pending-approvals",
-            "/api/v1/auth/approve-user",
-            "/api/v1/auth/reject-user",
-            "/api/v1/auth/active-users",
-            "/api/v1/auth/admin/access-logs",
-            # User profile endpoint requires authentication but allows admin access without client context via role-based exemption
-            "/api/v1/me",
-            "/api/v1/context/me",  # Actual location of the /me endpoint
-            # Agent health endpoint only - status requires context for multi-tenant security
-            "/api/v1/agents/discovery/health"
-        ]
+        additional_exempt_paths=app_specific_exempt_paths  # Extend defaults, don't replace
     )
     
     # Add request logging middleware last
@@ -365,10 +298,21 @@ try:
         excluded_paths=["/health"]
     )
 
-    print("✅ Middleware loaded successfully in correct order: CORS -> Context -> Logging")
+    print("✅ Middleware loaded successfully")
 except Exception as e:
     print(f"⚠️  Middleware could not be loaded: {e}")
     print(f"📋 Traceback: {traceback.format_exc()}")
+
+# Add CORS middleware LAST so it executes FIRST (middleware runs in reverse order)
+# This ensures CORS headers are added to ALL responses, including error responses
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+print("✅ CORS middleware added - will process all responses including errors")
 
 @app.get("/debug/routes")
 async def debug_routes():

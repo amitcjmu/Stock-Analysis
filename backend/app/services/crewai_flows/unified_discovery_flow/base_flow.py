@@ -10,42 +10,23 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 import uuid
 
-# CrewAI Flow imports with graceful fallback
-CREWAI_FLOW_AVAILABLE = False
+# CrewAI Flow imports - REAL AGENTS ONLY
+logger = logging.getLogger(__name__)
+
 try:
     from crewai import Flow
     from crewai.flow.flow import listen, start
     from crewai.flow.persistence import persist
     CREWAI_FLOW_AVAILABLE = True
-    logger = logging.getLogger(__name__)
-    logger.info("✅ CrewAI Flow imports successful")
+    logger.info("✅ CrewAI Flow imports successful - REAL AGENTS ENABLED")
 except ImportError as e:
-    logger = logging.getLogger(__name__)
-    logger.warning(f"CrewAI Flow not available: {e}")
-    
-    # Fallback implementations
-    class Flow:
-        def __init__(self): 
-            self.state = None
-        def __class_getitem__(cls, item):
-            return cls
-        def kickoff(self):
-            return {}
-    
-    def listen(condition):
-        def decorator(func):
-            return func
-        return decorator
-    
-    def start():
-        def decorator(func):
-            return func
-        return decorator
-    
-    def persist():
-        def decorator(func):
-            return func
-        return decorator
+    logger.error(f"❌ CrewAI Flow not available: {e}")
+    logger.error("❌ CRITICAL: Cannot proceed without real CrewAI agents")
+    raise ImportError(f"CrewAI is required for real agent execution: {e}")
+
+# Verify we're not using pseudo-agents
+if not CREWAI_FLOW_AVAILABLE:
+    raise RuntimeError("❌ CRITICAL: Pseudo-agent fallback detected - real CrewAI required")
 
 # Import state and configuration
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
@@ -89,11 +70,9 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         # Initialize flow_id early to avoid attribute errors
         self._flow_id = kwargs.get('flow_id') or str(uuid.uuid4())
         
-        # Initialize base flow
-        if CREWAI_FLOW_AVAILABLE:
-            super().__init__()
-        else:
-            self.state = None
+        # Initialize base CrewAI Flow - REAL AGENTS ONLY
+        super().__init__()
+        logger.info("✅ CrewAI Flow base class initialized - real agents active")
             
         logger.info("🚀 Initializing Unified Discovery Flow with Agent-First Architecture")
         
@@ -106,13 +85,8 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         self._init_context = self.initializer.init_context
         
         # Initialize flow state - CrewAI Flow manages state internally
-        if CREWAI_FLOW_AVAILABLE:
-            # For CrewAI Flow, state is managed by the base class
-            # We'll update it in the initialize_discovery method
-            pass
-        else:
-            # For fallback mode, we manage state directly
-            self.state = self.initializer.create_initial_state()
+        # CrewAI Flow base class manages state - we'll configure it in initialize_discovery
+        logger.info("🔄 Flow state will be managed by CrewAI Flow base class")
         
         # Initialize components
         self._initialize_components()
@@ -195,30 +169,29 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         logger.info("🎯 Starting Unified Discovery Flow")
         
         try:
-            # Initialize state from initializer if not already set by CrewAI
-            if not hasattr(self, 'state') or self.state is None:
-                initial_state = self.initializer.create_initial_state()
-                # For CrewAI Flow, we update the managed state attributes
-                if CREWAI_FLOW_AVAILABLE and hasattr(super(), 'state'):
-                    # Copy attributes from initial state
-                    for key, value in initial_state.__dict__.items():
-                        setattr(self.state, key, value)
-                else:
-                    self.state = initial_state
+            # Initialize state using CrewAI Flow's built-in state management
+            # CrewAI Flow automatically manages state - we configure our data structure
+            initial_state = self.initializer.create_initial_state()
+            
+            # Configure CrewAI Flow state with our initial data
+            # CrewAI Flow manages state internally - we need to work with its patterns
+            # Instead of setting self.state directly, we'll store our state separately
+            self._flow_state = initial_state
+            logger.info("✅ CrewAI Flow state initialized with structured state management")
             
             # Update component references to use actual state
-            self.flow_management.state = self.state
-            self.state_manager.state = self.state
-            self.flow_manager.state = self.state
-            self.flow_finalizer.state = self.state
+            self.flow_management.state = self._flow_state
+            self.state_manager.state = self._flow_state
+            self.flow_manager.state = self._flow_state
+            self.flow_finalizer.state = self._flow_state
             
             # Initialize UnifiedFlowCrewManager now that we have state
             from ..handlers.unified_flow_crew_manager import UnifiedFlowCrewManager
-            self.crew_manager = UnifiedFlowCrewManager(self.crewai_service, self.state)
+            self.crew_manager = UnifiedFlowCrewManager(self.crewai_service, self._flow_state)
             
             # Initialize PhaseExecutionManager now that we have state
             from ..handlers.phase_executors.phase_execution_manager import PhaseExecutionManager
-            self.phase_executor = PhaseExecutionManager(self.state, self.crew_manager, self.flow_bridge)
+            self.phase_executor = PhaseExecutionManager(self._flow_state, self.crew_manager, self.flow_bridge)
             
             # Re-initialize phases with actual state
             agents = {
@@ -266,29 +239,47 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     
     @listen(initialize_discovery)
     async def execute_data_import_validation_agent(self, previous_result):
-        """Execute data import validation phase"""
-        result = await self.data_validation_phase.execute(previous_result)
-        await self.state_manager.safe_update_flow_state()
-        return result
+        """Execute data import validation phase using real CrewAI crews"""
+        try:
+            # Use PhaseExecutionManager with real CrewAI crews instead of pseudo-agents
+            result = await self.phase_executor.execute_data_import_validation_phase(previous_result)
+            await self.state_manager.safe_update_flow_state()
+            
+            # Check if phase failed
+            if result == "data_validation_failed":
+                self.state.status = "failed"
+                self.state.final_result = "discovery_failed"
+                await self.state_manager.safe_update_flow_state()
+                return "discovery_failed"
+                
+            return result
+        except Exception as e:
+            logger.error(f"❌ Error in phase '{PhaseNames.DATA_IMPORT_VALIDATION}': {e}")
+            self.state_manager.add_error(PhaseNames.DATA_IMPORT_VALIDATION, str(e))
+            self.state.status = "failed"
+            self.state.final_result = "discovery_failed"
+            await self.state_manager.safe_update_flow_state()
+            return "discovery_failed"
     
     @listen(execute_data_import_validation_agent)
     async def execute_attribute_mapping_agent(self, previous_result):
-        """Execute field mapping phase"""
-        result = await self.field_mapping_phase.execute(previous_result)
+        """Execute field mapping phase using real CrewAI crews"""
+        result = await self.phase_executor.execute_field_mapping_phase(previous_result)
         await self.state_manager.safe_update_flow_state()
         return result
     
     @listen(execute_attribute_mapping_agent)
     async def execute_data_cleansing_agent(self, previous_result):
-        """Execute data cleansing phase"""
-        result = await self.data_cleansing_phase.execute(previous_result)
+        """Execute data cleansing phase using real CrewAI crews"""
+        result = await self.phase_executor.execute_data_cleansing_phase(previous_result)
         await self.state_manager.safe_update_flow_state()
         return result
     
     @listen(execute_data_cleansing_agent)
     async def create_discovery_assets_from_cleaned_data(self, previous_result):
         """Create discovery assets from cleaned data"""
-        result = await self.asset_inventory_phase.execute(previous_result)
+        # Use PhaseExecutionManager with real CrewAI crews
+        result = await self.phase_executor.execute_asset_inventory_phase(previous_result)
         await self.state_manager.safe_update_flow_state()
         return result
     

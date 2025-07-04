@@ -8,7 +8,8 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 
-from app.services.agents.asset_inventory_agent import AssetInventoryAgent
+# from app.services.agents.asset_inventory_agent import AssetInventoryAgent
+# TODO: Replace with real CrewAI agent
 from ..flow_config import PhaseNames, FlowConfig
 
 logger = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
 class AssetInventoryPhase:
     """Handles asset inventory phase execution"""
     
-    def __init__(self, state, asset_inventory_agent: AssetInventoryAgent, init_context: Dict[str, Any], flow_bridge=None):
+    def __init__(self, state, asset_inventory_agent, init_context: Dict[str, Any], flow_bridge=None):
         """
         Initialize asset inventory phase
         
@@ -62,7 +63,8 @@ class AssetInventoryPhase:
             # Update phase completion
             self.state.phase_completion['inventory'] = True
             self.state.progress_percentage = 80.0
-            self.state.total_assets = len(assets)
+            # Update total_assets in the asset_inventory dictionary
+            self.state.asset_inventory["total_assets"] = len(assets)
             
             # Persist state
             await self._update_flow_state()

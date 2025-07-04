@@ -45,9 +45,13 @@ except ImportError as e:
 # Import only existing endpoint files
 from app.api.v1.endpoints.context_establishment import router as context_establishment_router
 
-# Legacy Unified Discovery Flow API (REMOVED - consolidated into /discovery)
-# from app.api.v1.unified_discovery import router as unified_discovery_router
-UNIFIED_DISCOVERY_AVAILABLE = False  # Disabled - use /discovery instead
+# Modular Unified Discovery Flow API 
+try:
+    from app.api.v1.unified_discovery_modular import router as unified_discovery_router
+    UNIFIED_DISCOVERY_AVAILABLE = True
+except ImportError as e:
+    UNIFIED_DISCOVERY_AVAILABLE = False
+    logging.warning(f"Unified Discovery router not available: {e}")
 
 # Assessment endpoints
 try:
@@ -186,17 +190,9 @@ logger.info("--- Starting API Router Inclusion Process ---")
 # Core Discovery and Analysis
 api_router.include_router(sixr_router, prefix="/6r", tags=["6R Analysis"])
 
-# Unified Discovery API (Single Source of Truth)
-try:
-    from app.api.v1.unified_discovery_api import router as unified_discovery_api_router
-    api_router.include_router(unified_discovery_api_router, prefix="/discovery", tags=["Discovery - Unified API"])
-    logger.info("✅ Unified Discovery API router included at /discovery")
-    UNIFIED_DISCOVERY_API_AVAILABLE = True
-except ImportError as e:
-    # Fallback to legacy discovery router
-    api_router.include_router(discovery_router, prefix="/discovery", tags=["Discovery - Legacy"])
-    logger.warning(f"⚠️ Unified Discovery API not available ({e}), using legacy discovery router")
-    UNIFIED_DISCOVERY_API_AVAILABLE = False
+# Discovery API - ARCHIVED (discovery_flow_new.py was also legacy)
+# TODO: Create proper CrewAI-only discovery flow endpoint
+logger.info("⚠️ Discovery Flow API archived - needs pure CrewAI implementation")
 
 # Legacy Unified Discovery Flow endpoints (REMOVED - redirects to /discovery)
 # Old /unified-discovery endpoints have been consolidated into /discovery
@@ -252,13 +248,25 @@ else:
 
 api_router.include_router(context_router, prefix="/context", tags=["Context Management"])
 
-# Discovery Crew Escalation API (Task 2.3)
+# Discovery Flows API - Minimal implementation for frontend compatibility
 try:
-    from app.api.v1.endpoints.discovery_escalation import router as escalation_router
-    api_router.include_router(escalation_router, prefix="/discovery", tags=["Discovery Crew Escalation"])
-    logger.info("✅ Discovery Crew Escalation router included")
+    from app.api.v1.endpoints.discovery_flows import router as discovery_flows_router
+    api_router.include_router(discovery_flows_router, prefix="/discovery", tags=["Discovery Flows"])
+    logger.info("✅ Discovery Flows router included (minimal implementation)")
 except ImportError as e:
-    logger.warning(f"⚠️ Discovery Crew Escalation router not available: {e}")
+    logger.warning(f"⚠️ Discovery Flows router not available: {e}")
+
+# Unified Discovery API - Modular implementation with real CrewAI flows
+if UNIFIED_DISCOVERY_AVAILABLE:
+    api_router.include_router(unified_discovery_router, tags=["Unified Discovery"])
+    logger.info("✅ Unified Discovery router included (modular implementation)")
+else:
+    logger.warning("⚠️ Unified Discovery router not available")
+
+# ARCHIVED: Discovery Crew Escalation API - depended on pseudo-agents
+# Original discovery_escalation module imported DataImportValidationAgent and other pseudo-agents
+# TODO: Implement real CrewAI crew escalation patterns
+logger.info("📦 Discovery Crew Escalation archived - was pseudo-agent implementation")
 
 # Performance Monitoring API (Task 4.3)
 try:

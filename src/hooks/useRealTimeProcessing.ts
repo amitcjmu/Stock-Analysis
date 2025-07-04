@@ -201,11 +201,14 @@ export const useRealTimeProcessing = (options: RealTimeProcessingOptions) => {
         const currentPhase = (data as any)?.current_phase;
         
         // Check various status fields for completion
+        const finalResult = (data as any)?.final_result;
         const isCompleted = status === 'completed' || 
             status === 'failed' || 
             status === 'error' ||
             status === 'paused' ||
             status === 'waiting_for_user_approval' ||
+            finalResult === 'discovery_failed' ||
+            currentPhase === 'failed' ||
             (phase === 'attribute_mapping' && (progress >= 90 || progressPercentage >= 90)) ||
             (currentPhase === 'completed') ||
             progressPercentage === 100 ||

@@ -75,23 +75,25 @@ class PostgresFlowStateStore:
             
             if existing and version is not None:
                 # Check for concurrent modification
-                current_version = existing.state_version or 0
+                current_config = existing.flow_configuration or {}
+                current_version = current_config.get("version", 0)
                 if current_version != version:
                     raise ConcurrentModificationError(
                         f"State version mismatch. Expected {version}, got {current_version}"
                     )
             
             # Calculate new version
-            new_version = (existing.state_version + 1) if existing else 1
+            current_config = existing.flow_configuration if existing else {}
+            new_version = (current_config.get("version", 0) + 1) if existing else 1
             
             if existing:
                 # Update existing record
                 update_stmt = update(CrewAIFlowStateExtensions).where(
                     CrewAIFlowStateExtensions.id == existing.id
                 ).values(
-                    flow_state_data=state_data,
-                    current_phase=phase,
-                    state_version=new_version,
+                    flow_persistence_data=state_data,
+                    flow_status=phase,
+                    flow_configuration={"phase": phase, "version": new_version},
                     updated_at=datetime.utcnow()
                 )
                 await self.db.execute(update_stmt)
@@ -102,9 +104,10 @@ class PostgresFlowStateStore:
                     client_account_id=self.client_account_id,
                     engagement_id=self.engagement_id,
                     user_id=self.user_id,
-                    flow_state_data=state_data,
-                    current_phase=phase,
-                    state_version=new_version,
+                    flow_type="discovery",
+                    flow_persistence_data=state_data,
+                    flow_status=phase,
+                    flow_configuration={"phase": phase, "version": new_version},
                     created_at=datetime.utcnow(),
                     updated_at=datetime.utcnow()
                 )
@@ -126,14 +129,15 @@ class PostgresFlowStateStore:
                     CrewAIFlowStateExtensions.flow_id == flow_id,
                     CrewAIFlowStateExtensions.client_account_id == self.client_account_id
                 )
-            ).order_by(CrewAIFlowStateExtensions.state_version.desc())
+            )
             
             result = await self.db.execute(stmt)
             record = result.scalar_one_or_none()
             
             if record:
-                logger.info(f"✅ State loaded for flow {flow_id}, version {record.state_version}")
-                return record.flow_state_data
+                version = record.flow_configuration.get("version", 0) if record.flow_configuration else 0
+                logger.info(f"✅ State loaded for flow {flow_id}, version {version}")
+                return record.flow_persistence_data
             else:
                 logger.warning(f"⚠️ No state found for flow {flow_id}")
                 return None
@@ -234,16 +238,17 @@ class PostgresFlowStateStore:
                     CrewAIFlowStateExtensions.flow_id == flow_id,
                     CrewAIFlowStateExtensions.client_account_id == self.client_account_id
                 )
-            ).order_by(CrewAIFlowStateExtensions.state_version.desc())
+            ).order_by(CrewAIFlowStateExtensions.updated_at.desc())
             
             result = await self.db.execute(stmt)
             records = result.scalars().all()
             
             versions = []
             for record in records:
+                config = record.flow_configuration or {}
                 versions.append({
-                    'version': record.state_version,
-                    'phase': record.current_phase,
+                    'version': config.get("version", 0),
+                    'phase': config.get("phase", record.flow_status),
                     'created_at': record.created_at.isoformat(),
                     'updated_at': record.updated_at.isoformat()
                 })
@@ -263,7 +268,7 @@ class PostgresFlowStateStore:
                     CrewAIFlowStateExtensions.flow_id == flow_id,
                     CrewAIFlowStateExtensions.client_account_id == self.client_account_id
                 )
-            ).order_by(CrewAIFlowStateExtensions.state_version.desc())
+            ).order_by(CrewAIFlowStateExtensions.updated_at.desc())
             
             result = await self.db.execute(stmt)
             records = result.scalars().all()

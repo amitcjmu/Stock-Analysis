@@ -93,19 +93,21 @@ const AuthenticatedApp = () => {
   const { isLoading, isAuthenticated } = useAuth();
   const [appInitialized, setAppInitialized] = useState(false);
 
-  // Initialize app on first load
+  // Initialize app only when authenticated
   useEffect(() => {
-    AppInitializer.initialize()
-      .then(() => {
-        setAppInitialized(true);
-        console.log('✅ App initialization completed');
-      })
-      .catch((error) => {
-        console.error('❌ App initialization failed:', error);
-        // Continue anyway - don't block the app
-        setAppInitialized(true);
-      });
-  }, []);
+    if (isAuthenticated && !appInitialized) {
+      AppInitializer.initialize()
+        .then(() => {
+          setAppInitialized(true);
+          console.log('✅ App initialization completed');
+        })
+        .catch((error) => {
+          console.error('❌ App initialization failed:', error);
+          // Continue anyway - don't block the app
+          setAppInitialized(true);
+        });
+    }
+  }, [isAuthenticated, appInitialized]);
 
   // Debug logging
   console.log('🔍 AuthenticatedApp State:', { isLoading, isAuthenticated, appInitialized });

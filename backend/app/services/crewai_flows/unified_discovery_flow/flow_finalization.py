@@ -87,8 +87,16 @@ class FlowFinalizer:
             logger.error(f"❌ Discovery flow finalization failed: {e}")
             self.state_manager.add_error("finalization", str(e))
             self.state.status = "failed"
+            self.state.final_result = "discovery_failed"
             # Mark as completed even if failed, to indicate the flow has ended
             self.state.completed_at = datetime.utcnow().isoformat()
+            
+            # Make sure to update the database with the failed status
+            try:
+                await self.state_manager.safe_update_flow_state()
+            except Exception as update_error:
+                logger.error(f"❌ Failed to update flow state in database: {update_error}")
+            
             return "discovery_failed"
     
     def _calculate_final_metrics(self) -> None:
@@ -111,5 +119,20 @@ class FlowFinalizer:
         
         # Average confidence score
         if self.state.agent_confidences:
-            scores = list(self.state.agent_confidences.values())
-            self.state.average_confidence = sum(scores) / len(scores)
+            try:
+                # Convert string values to float if needed
+                scores = []
+                for score in self.state.agent_confidences.values():
+                    if isinstance(score, str):
+                        # Try to parse as float
+                        scores.append(float(score))
+                    else:
+                        scores.append(score)
+                
+                if scores:
+                    self.state.average_confidence = sum(scores) / len(scores)
+                else:
+                    self.state.average_confidence = 0.0
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Could not calculate average confidence: {e}")
+                self.state.average_confidence = 0.0

@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete, and_, desc, func
 from sqlalchemy.orm import selectinload
 
-from app.repositories.base_repository import ContextAwareRepository
+from app.repositories.context_aware_repository import ContextAwareRepository
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,12 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             parsed_engagement_id = demo_engagement_id
         
         # Initialize parent with proper parameters
-        super().__init__(db, client_account_id=int(parsed_client_id.int), engagement_id=int(parsed_engagement_id.int), user_id=user_id)
+        super().__init__(
+            db=db,
+            model_class=CrewAIFlowStateExtensions,
+            client_account_id=str(parsed_client_id),
+            engagement_id=str(parsed_engagement_id)
+        )
         self.client_account_id = str(parsed_client_id)
         self.engagement_id = str(parsed_engagement_id)
     

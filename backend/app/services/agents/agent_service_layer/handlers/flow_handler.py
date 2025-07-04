@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import AsyncSessionLocal
 from app.core.context import RequestContext
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-from app.api.v1.discovery_handlers.flow_management import FlowManagementHandler
 
 logger = logging.getLogger(__name__)
 
@@ -75,23 +74,34 @@ class FlowHandler:
                 }
     
     async def get_navigation_guidance(self, flow_id: str, current_phase: str) -> Dict[str, Any]:
-        """Get navigation guidance using flow management handler"""
+        """Get navigation guidance using flow repository"""
         async with AsyncSessionLocal() as db:
             try:
-                handler = FlowManagementHandler(db, self.context)
+                flow_repo = DiscoveryFlowRepository(
+                    db=db,
+                    client_account_id=str(self.context.client_account_id),
+                    engagement_id=str(self.context.engagement_id)
+                )
                 
-                # Direct service call - no HTTP needed
-                flow_status = await handler.get_flow_status(flow_id)
+                # Direct repository call - no HTTP needed
+                flow = await flow_repo.get_by_flow_id(flow_id)
                 
-                if not flow_status or flow_status.get("status") != "success":
+                if not flow:
                     return {
                         "status": "flow_not_found",
                         "guidance": [],
                         "message": "Cannot provide guidance for non-existent flow"
                     }
                 
-                flow_data = flow_status.get("flow", {})
-                phases_completed = flow_data.get("phases_completed", {})
+                # Extract phases completed from flow model
+                phases_completed = {
+                    "data_import": flow.data_import_completed,
+                    "attribute_mapping": flow.attribute_mapping_completed,
+                    "data_cleansing": flow.data_cleansing_completed,
+                    "inventory": flow.inventory_completed,
+                    "dependencies": flow.dependencies_completed,
+                    "tech_debt": flow.tech_debt_completed
+                }
                 
                 # Generate contextual guidance
                 guidance = []
@@ -146,6 +156,15 @@ class FlowHandler:
                         "priority": "low",
                         "next_url": f"/assessment/{flow_id}/summary"
                     })
+                
+                flow_data = {
+                    "flow_id": str(flow.flow_id),
+                    "status": flow.status,
+                    "current_phase": flow.get_current_phase(),
+                    "next_phase": flow.get_next_phase(),
+                    "progress": flow.progress_percentage,
+                    "phases_completed": phases_completed
+                }
                 
                 return {
                     "status": "success",

@@ -77,7 +77,7 @@ class FlowManager:
             discovery_flow = await self.flow_repo.create_discovery_flow(
                 flow_id=flow_id,
                 data_import_id=data_import_id,
-                user_id=user_id or str(self.context.user_id),
+                user_id=user_id or (str(self.context.user_id) if self.context.user_id else "system"),
                 raw_data=raw_data,
                 metadata=metadata or {}
             )
@@ -248,7 +248,7 @@ class FlowManager:
             extensions_record = await self.master_flow_repo.create_master_flow(
                 flow_id=flow_id,  # Same flow_id as discovery flow
                 flow_type="discovery",
-                user_id=user_id or str(self.context.user_id),
+                user_id=user_id or (str(self.context.user_id) if self.context.user_id else "system"),
                 flow_name=f"Discovery Flow {flow_id[:8]}",
                 flow_configuration={
                     "data_import_id": data_import_id,

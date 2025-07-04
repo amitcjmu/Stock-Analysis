@@ -11,7 +11,29 @@ from datetime import datetime
 import uuid
 
 from .discovery_agent_orchestrator import DiscoveryAgentOrchestrator
-from .base_discovery_agent import AgentResult, AgentClarificationRequest, AgentInsight
+# ARCHIVED: base_discovery_agent moved to archive/legacy
+# TODO: Define these types in a modern agent interface module
+# from .base_discovery_agent import AgentResult, AgentClarificationRequest, AgentInsight
+
+# Temporary type definitions to replace archived imports
+from typing import Dict, Any, Optional, List
+from pydantic import BaseModel
+
+class AgentResult(BaseModel):
+    success: bool
+    data: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+
+class AgentClarificationRequest(BaseModel):
+    agent_name: str
+    question: str
+    context: Optional[Dict[str, Any]] = None
+
+class AgentInsight(BaseModel):
+    agent_name: str
+    insight: str
+    confidence: float
+    metadata: Optional[Dict[str, Any]] = None
 
 logger = logging.getLogger(__name__)
 

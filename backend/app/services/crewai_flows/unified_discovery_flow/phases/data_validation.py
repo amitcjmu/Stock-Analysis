@@ -8,7 +8,8 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
 
-from app.services.agents.data_import_validation_agent import DataImportValidationAgent
+# from app.services.agents.data_import_validation_agent import DataImportValidationAgent
+# TODO: Replace with real CrewAI agent
 from app.services.agent_ui_bridge import agent_ui_bridge
 from ..flow_config import PhaseNames
 
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 class DataValidationPhase:
     """Handles data import validation phase execution"""
     
-    def __init__(self, state, data_validation_agent: DataImportValidationAgent, init_context: Dict[str, Any]):
+    def __init__(self, state, data_validation_agent, init_context: Dict[str, Any]):
         """
         Initialize data validation phase
         

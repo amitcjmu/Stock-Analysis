@@ -34,7 +34,10 @@ def create_data_import_validation_crew(
         # Get LLM from service
         llm = crewai_service.get_llm()
         
-        # Create focused data validation agent
+        # Import optimized config
+        from .crew_config import DEFAULT_AGENT_CONFIG
+        
+        # Create focused data validation agent with NO delegation
         data_validation_agent = Agent(
             role="Data Import Validation Specialist",
             goal="Quickly validate imported data for security, PII, file type, and relevance to asset inventory creation",
@@ -46,10 +49,9 @@ def create_data_import_validation_crew(
             
             You DO NOT perform complex analysis, standardization, or transformation. 
             You provide quick, accurate validation results for user approval.""",
-            verbose=True,
-            allow_delegation=False,  # Prevent delegation to keep it focused
             llm=llm,
-            memory=shared_memory
+            memory=shared_memory,
+            **DEFAULT_AGENT_CONFIG  # Apply no-delegation config
         )
         
         # Create focused validation task
@@ -85,13 +87,16 @@ def create_data_import_validation_crew(
             expected_output="JSON object with validation results as specified above"
         )
         
-        # Create focused crew
+        # Import crew config
+        from .crew_config import get_optimized_crew_config
+        
+        # Create focused crew with NO iterations, single pass only
+        crew_config = get_optimized_crew_config()
         crew = Crew(
             agents=[data_validation_agent],
             tasks=[validation_task],
-            verbose=True,
-            memory=shared_memory,
-            process="sequential"  # Simple sequential process
+            process="sequential",  # Simple sequential process
+            **crew_config  # Apply optimized config (no iterations, 15s timeout)
         )
         
         logger.info("✅ Data Import Validation Crew created successfully")

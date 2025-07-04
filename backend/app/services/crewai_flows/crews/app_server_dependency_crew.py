@@ -11,6 +11,7 @@ import logging
 import json
 from typing import Dict, List, Any, Optional
 from crewai import Agent, Task, Crew, Process
+from .crew_config import get_optimized_agent_config, MAX_DELEGATIONS
 
 # Import advanced CrewAI features with fallbacks
 try:
@@ -92,6 +93,7 @@ class AppServerDependencyCrew:
         """Create agents with hierarchical management for dependency analysis"""
         
         # Manager Agent for dependency coordination
+        manager_config = get_optimized_agent_config(allow_delegation=True)
         dependency_manager = Agent(
             role="Dependency Analysis Manager",
             goal="Coordinate comprehensive app-server hosting relationship mapping for migration planning",
@@ -102,12 +104,12 @@ class AppServerDependencyCrew:
             memory=self.shared_memory,
             knowledge=self.knowledge_base,
             verbose=True,
-            allow_delegation=True,
-            max_delegation=2,
-            planning=True if CREWAI_ADVANCED_AVAILABLE else False
+            planning=True if CREWAI_ADVANCED_AVAILABLE else False,
+            **manager_config
         )
         
-        # Hosting Relationship Expert - specialist agent
+        # Hosting Relationship Expert - specialist agent (no delegation)
+        specialist_config = get_optimized_agent_config(allow_delegation=False)
         hosting_expert = Agent(
             role="Hosting Relationship Expert", 
             goal="Identify and map application-to-server hosting relationships with migration impact analysis",
@@ -119,10 +121,11 @@ class AppServerDependencyCrew:
             knowledge=self.knowledge_base,
             verbose=True,
             collaboration=True if CREWAI_ADVANCED_AVAILABLE else False,
-            tools=self._create_hosting_analysis_tools()
+            tools=self._create_hosting_analysis_tools(),
+            **specialist_config
         )
         
-        # Migration Impact Analyst - specialist agent  
+        # Migration Impact Analyst - specialist agent (no delegation)
         migration_impact_analyst = Agent(
             role="Migration Impact Analyst",
             goal="Assess migration complexity and risk based on app-server dependencies",
@@ -134,7 +137,8 @@ class AppServerDependencyCrew:
             knowledge=self.knowledge_base,
             verbose=True,
             collaboration=True if CREWAI_ADVANCED_AVAILABLE else False,
-            tools=self._create_impact_analysis_tools()
+            tools=self._create_impact_analysis_tools(),
+            **specialist_config
         )
         
         return [dependency_manager, hosting_expert, migration_impact_analyst]
@@ -231,7 +235,9 @@ class AppServerDependencyCrew:
             "agents": agents,
             "tasks": tasks,
             "process": process,
-            "verbose": True
+            "verbose": True,
+            "max_iterations": 10,  # Limit total crew iterations
+            "step_callback": lambda step: logger.info(f"Crew step {step}")
         }
         
         # Add advanced features if available
@@ -253,7 +259,6 @@ class AppServerDependencyCrew:
         
         logger.info(f"Creating App-Server Dependency Crew with {process.name if hasattr(process, 'name') else 'sequential'} process")
         logger.info(f"Using LLM: {self.llm.model if hasattr(self.llm, 'model') else 'Unknown'}")
-        return Crew(**crew_config)
         return Crew(**crew_config)
     
     def _create_hosting_analysis_tools(self):

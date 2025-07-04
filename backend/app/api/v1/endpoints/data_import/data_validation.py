@@ -21,7 +21,9 @@ from app.schemas.data_import_schemas import (
     ValidationAgentResult,
     SecurityAnalysisResult
 )
-from app.services.data_import_validation_service import DataImportValidationService
+# ARCHIVED: data_import_validation_service moved to archive/legacy
+# TODO: Replace with modern validation service
+# from app.services.data_import_validation_service import DataImportValidationService
 
 router = APIRouter()
 
@@ -90,8 +92,10 @@ async def validate_file_upload(
     Validate uploaded file using specialized agents
     """
     try:
+        # ARCHIVED: DataImportValidationService moved to archive/legacy
+        # TODO: Replace with modern validation service
         # Initialize validation service
-        validation_service = DataImportValidationService(db)
+        # validation_service = DataImportValidationService(db)
         
         # Validate category
         valid_categories = ['cmdb', 'app-discovery', 'infrastructure', 'sensitive']
@@ -184,8 +188,10 @@ async def validate_file_upload(
         validation_session['status'] = final_status
         validation_session['agent_results'] = agent_results
         
+        # ARCHIVED: validation_service no longer available
+        # TODO: Replace with modern validation storage
         # Store validation results (in real implementation, save to database)
-        await validation_service.store_validation_session(validation_session)
+        # await validation_service.store_validation_session(validation_session)
         
         return {
             'success': True,
@@ -227,11 +233,15 @@ async def get_validation_session(
     """
     Get validation session details and results
     """
-    validation_service = DataImportValidationService(db)
-    session = await validation_service.get_validation_session(flow_id)
+    # ARCHIVED: DataImportValidationService moved to archive/legacy
+    # TODO: Replace with modern validation service
+    # validation_service = DataImportValidationService(db)
+    # session = await validation_service.get_validation_session(flow_id)
     
+    # Temporary return for archived service
+    session = None
     if not session:
-        raise HTTPException(status_code=404, detail="Validation session not found")
+        raise HTTPException(status_code=404, detail="Validation session not found - service archived")
     
     return session
 

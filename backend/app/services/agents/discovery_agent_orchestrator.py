@@ -10,10 +10,31 @@ import logging
 from datetime import datetime
 import uuid
 
-from .base_discovery_agent import AgentResult, AgentClarificationRequest, AgentInsight
-from .data_import_validation_agent import DataImportValidationAgent
-from .attribute_mapping_agent import AttributeMappingAgent
-from .data_cleansing_agent import DataCleansingAgent
+# ARCHIVED: All these pseudo-agents moved to archive/legacy
+# TODO: Replace with real CrewAI agent orchestration
+# from .data_import_validation_agent import DataImportValidationAgent
+# from .attribute_mapping_agent import AttributeMappingAgent
+# from .data_cleansing_agent import DataCleansingAgent
+
+# Temporary type definitions 
+from typing import Dict, Any, Optional, List
+from pydantic import BaseModel
+
+class AgentResult(BaseModel):
+    success: bool
+    data: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+
+class AgentClarificationRequest(BaseModel):
+    agent_name: str
+    question: str
+    context: Optional[Dict[str, Any]] = None
+
+class AgentInsight(BaseModel):
+    agent_name: str
+    insight: str
+    confidence: float
+    metadata: Optional[Dict[str, Any]] = None
 
 logger = logging.getLogger(__name__)
 
@@ -29,18 +50,22 @@ class DiscoveryAgentOrchestrator:
         self.orchestrator_id = f"discovery_orchestrator_{uuid.uuid4().hex[:8]}"
         self.logger = logging.getLogger("agents.discovery_orchestrator")
         
+        # ARCHIVED: Individual pseudo-agents moved to archive/legacy
+        # TODO: Replace with real CrewAI agent integration
         # Initialize individual agents
         self.agents = {
-            'data_validation': DataImportValidationAgent(),
-            'attribute_mapping': AttributeMappingAgent(),
-            'data_cleansing': DataCleansingAgent()
+            # 'data_validation': DataImportValidationAgent(),  # ARCHIVED: pseudo-agent
+            # 'attribute_mapping': AttributeMappingAgent(),   # ARCHIVED: pseudo-agent
+            # 'data_cleansing': DataCleansingAgent()          # ARCHIVED: pseudo-agent
         }
         
+        # ARCHIVED: Agent execution order for pseudo-agents
+        # TODO: Replace with real CrewAI agent execution order
         # Agent execution order
         self.agent_execution_order = [
-            'data_validation',
-            'attribute_mapping', 
-            'data_cleansing'
+            # 'data_validation',   # ARCHIVED: pseudo-agent
+            # 'attribute_mapping', # ARCHIVED: pseudo-agent
+            # 'data_cleansing'     # ARCHIVED: pseudo-agent
         ]
         
         # Orchestration state

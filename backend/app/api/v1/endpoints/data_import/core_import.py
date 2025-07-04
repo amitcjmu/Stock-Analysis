@@ -15,13 +15,9 @@ from .handlers.import_retrieval_handler import router as import_retrieval_router
 from .handlers.import_storage_handler import router as import_storage_handler
 
 # Import agentic intelligence modules
-try:
-    # Import from the renamed agentic_critical_attributes_legacy.py file
-    from .agentic_critical_attributes_legacy import router as agentic_critical_attributes_router
-    AGENTIC_AVAILABLE = True
-except ImportError:
-    AGENTIC_AVAILABLE = False
-    agentic_critical_attributes_router = None
+# ARCHIVED: agentic_critical_attributes_legacy.py moved to archive/legacy
+AGENTIC_AVAILABLE = False
+agentic_critical_attributes_router = None
 
 logger = logging.getLogger(__name__)
 
@@ -34,12 +30,10 @@ router.include_router(legacy_upload_router, tags=["Legacy Upload"])
 router.include_router(import_retrieval_router, tags=["Import Retrieval"])
 router.include_router(import_storage_handler, tags=["Import Storage"])
 
-# Include agentic intelligence router if available
-if AGENTIC_AVAILABLE:
-    router.include_router(agentic_critical_attributes_router, tags=["Agentic Intelligence"])
-    logger.info("✅ Agentic Critical Attributes router loaded")
-else:
-    logger.warning("⚠️ Agentic Critical Attributes router not available")
+# ARCHIVED: Agentic Critical Attributes router - was pseudo-agent implementation
+# Original agentic_critical_attributes_router depended on pseudo-agents
+# TODO: Implement real CrewAI agent-based critical attributes analysis
+logger.info("📦 Agentic Critical Attributes archived - was pseudo-agent implementation")
 
 # Health check endpoint for the modular service
 @router.get("/health")

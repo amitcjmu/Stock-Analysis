@@ -55,6 +55,7 @@ class CrewAIFlowService:
     def __init__(self, db: Optional[AsyncSession] = None):
         self.db = db
         self._discovery_flow_service: Optional[DiscoveryFlowService] = None
+        self._llm = None
         
     async def _get_discovery_flow_service(self, context: Dict[str, Any]) -> DiscoveryFlowService:
         """Get or create discovery flow service with context."""
@@ -66,6 +67,22 @@ class CrewAIFlowService:
             self._discovery_flow_service = DiscoveryFlowService(flow_repo)
         
         return self._discovery_flow_service
+    
+    def get_llm(self):
+        """Get the LLM instance for CrewAI agents."""
+        if not self._llm:
+            try:
+                from app.services.llm_config import get_crewai_llm
+                self._llm = get_crewai_llm()
+                logger.info("✅ LLM initialized for CrewAI flows")
+            except ImportError as e:
+                logger.error(f"❌ Failed to import LLM config: {e}")
+                # Return a mock LLM for fallback
+                class MockLLM:
+                    def __call__(self, prompt):
+                        return "LLM not available - using fallback response"
+                self._llm = MockLLM()
+        return self._llm
     
 
 

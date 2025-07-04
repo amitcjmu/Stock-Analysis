@@ -38,22 +38,62 @@ async def get_default_client(
         
         # Check if demo user
         if str(current_user.id) == "44444444-4444-4444-4444-444444444444":
-            return service.create_demo_context(
+            context = service.create_demo_context(
                 str(current_user.id), 
                 current_user.email, 
                 user_role
             )
+            # Return just the client part as dict
+            if context.client:
+                return {
+                    "id": str(context.client.id),
+                    "name": context.client.name,
+                    "status": "active",
+                    "type": "enterprise",
+                    "created_at": context.client.created_at.isoformat() if context.client.created_at else None,
+                    "updated_at": context.client.updated_at.isoformat() if context.client.updated_at else None,
+                    "metadata": {
+                        "industry": "Technology",
+                        "size": "Enterprise",
+                        "location": "Global"
+                    }
+                }
         
         # Try to get context from user's client access
         context = await service.get_user_context_from_access(current_user, user_role)
-        if context:
-            return context
+        if context and context.client:
+            return {
+                "id": str(context.client.id),
+                "name": context.client.name,
+                "status": "active",
+                "type": "enterprise",
+                "created_at": context.client.created_at.isoformat() if context.client.created_at else None,
+                "updated_at": context.client.updated_at.isoformat() if context.client.updated_at else None,
+                "metadata": {
+                    "description": context.client.description or "",
+                    "engagement_id": str(context.engagement.id) if context.engagement else None,
+                    "engagement_name": context.engagement.name if context.engagement else None
+                }
+            }
         
         # Platform admin fallback
         if user_role == "platform_admin":
             context = await service.get_admin_context(current_user, user_role)
-            if context:
-                return context
+            if context and context.client:
+                return {
+                    "id": str(context.client.id),
+                    "name": context.client.name,
+                    "status": "active",
+                    "type": "enterprise",
+                    "created_at": context.client.created_at.isoformat() if context.client.created_at else None,
+                    "updated_at": context.client.updated_at.isoformat() if context.client.updated_at else None,
+                    "metadata": {
+                        "description": context.client.description or "",
+                        "engagement_id": str(context.engagement.id) if context.engagement else None,
+                        "engagement_name": context.engagement.name if context.engagement else None,
+                        "admin_context": True
+                    }
+                }
         
         # No accessible clients found
         raise HTTPException(

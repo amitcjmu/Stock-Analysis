@@ -72,103 +72,78 @@ class DemoContextService {
    */
   private async fetchDemoContext(): Promise<DemoContext | null> {
     try {
-      console.log('🔄 Fetching demo context from backend...');
-      
-      // Fetch demo context from a new endpoint
-      const response = await apiCall('/context/demo', {}, false);
-      
-      if (response && response.client && response.engagement) {
-        console.log('✅ Demo context fetched successfully:', {
-          client: response.client.name,
-          clientId: response.client.id,
-          engagement: response.engagement.name,
-          engagementId: response.engagement.id
-        });
-        
-        return {
-          client: response.client,
-          engagement: response.engagement,
-          users: response.users || []
-        };
-      }
-      
-      // Fallback: Try to find demo data manually
-      console.log('⚠️ Demo context endpoint not available, trying fallback method...');
-      return await this.fetchDemoContextFallback();
-      
-    } catch (error) {
-      console.error('❌ Failed to fetch demo context:', error);
-      
-      // Try fallback method
-      try {
-        return await this.fetchDemoContextFallback();
-      } catch (fallbackError) {
-        console.error('❌ Fallback method also failed:', fallbackError);
+      // Check if user is authenticated
+      const authToken = localStorage.getItem('auth-token');
+      if (!authToken) {
+        console.log('⚠️ No authentication token, cannot fetch demo context');
         return null;
       }
-    }
-  }
 
-  /**
-   * Fallback method to find demo data by querying clients and engagements
-   */
-  private async fetchDemoContextFallback(): Promise<DemoContext | null> {
-    try {
-      // Fetch all clients and find the demo one (contains 'def0-def0-def0' in UUID)
-      const clientsResponse = await apiCall('/admin/clients', {}, false);
+      console.log('🔄 Fetching demo context from backend...');
+      
+      // Try to fetch user's available contexts
+      const clientsResponse = await apiCall('/context/clients', {}, false);
       
       if (clientsResponse && Array.isArray(clientsResponse)) {
-        // Find demo client (UUID contains 'def0-def0-def0')
+        // Check if user has access to demo client
         const demoClient = clientsResponse.find((client: any) => 
           client.id && client.id.includes('def0-def0-def0')
         );
         
         if (demoClient) {
-          // Fetch engagements for this client
+          // User has access to demo data
+          console.log('✅ User has access to demo client:', demoClient.name);
+          
+          // Fetch engagements for demo client
           const engagementsResponse = await apiCall(
-            `/admin/engagements?client_account_id=${demoClient.id}`,
+            `/context/engagements?client_account_id=${demoClient.id}`,
             {},
             false
           );
           
           if (engagementsResponse && Array.isArray(engagementsResponse)) {
-            // Find demo engagement
             const demoEngagement = engagementsResponse.find((eng: any) =>
               eng.id && eng.id.includes('def0-def0-def0')
             );
             
             if (demoEngagement) {
-              console.log('✅ Demo context found via fallback:', {
+              console.log('✅ Demo context found:', {
                 client: demoClient.name,
-                clientId: demoClient.id,
-                engagement: demoEngagement.name,
-                engagementId: demoEngagement.id
+                engagement: demoEngagement.name
               });
               
               return {
                 client: {
                   id: demoClient.id,
-                  name: demoClient.name || 'Demo Client'
+                  name: demoClient.name
                 },
                 engagement: {
                   id: demoEngagement.id,
-                  name: demoEngagement.name || 'Demo Engagement'
+                  name: demoEngagement.name
                 },
                 users: []
               };
             }
           }
+        } else {
+          console.log('ℹ️ User does not have access to demo data');
         }
       }
       
-      console.warn('⚠️ No demo data found in database');
       return null;
       
-    } catch (error) {
-      console.error('❌ Fallback method failed:', error);
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        console.log('⚠️ User not authenticated');
+      } else if (error.response?.status === 403) {
+        console.log('⚠️ User not authorized for demo data');
+      } else {
+        console.error('❌ Failed to fetch demo context:', error);
+      }
       return null;
     }
   }
+
 
   /**
    * Get cached demo context

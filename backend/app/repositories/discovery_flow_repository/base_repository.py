@@ -54,7 +54,12 @@ class DiscoveryFlowRepository(ContextAwareRepository):
             logger.warning(f"Invalid engagement_id '{engagement_id}', using demo fallback")
             parsed_engagement_id = demo_engagement_id
         
-        super().__init__(db, DiscoveryFlow, client_account_id=str(parsed_client_id), engagement_id=str(parsed_engagement_id))
+        super().__init__(
+            db=db, 
+            model_class=DiscoveryFlow, 
+            client_account_id=str(parsed_client_id), 
+            engagement_id=str(parsed_engagement_id)
+        )
         
         # Initialize query and command handlers
         self.flow_queries = FlowQueries(db, parsed_client_id, parsed_engagement_id)
@@ -105,12 +110,23 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         master_flow_id: Optional[str] = None,
         flow_type: str = "primary",
         description: Optional[str] = None,
-        initial_state_data: Optional[Dict[str, Any]] = None
+        initial_state_data: Optional[Dict[str, Any]] = None,
+        data_import_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        raw_data: Optional[List[Dict[str, Any]]] = None,
+        metadata: Optional[Dict[str, Any]] = None
     ) -> DiscoveryFlow:
         """Create a new discovery flow"""
         return await self.flow_commands.create_discovery_flow(
-            flow_id, master_flow_id, 
-            flow_type, description, initial_state_data
+            flow_id=flow_id,
+            master_flow_id=master_flow_id, 
+            flow_type=flow_type,
+            description=description,
+            initial_state_data=initial_state_data,
+            data_import_id=data_import_id,
+            user_id=user_id,
+            raw_data=raw_data,
+            metadata=metadata
         )
     
     async def update_phase_completion(
