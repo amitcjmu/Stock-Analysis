@@ -96,21 +96,21 @@
   },
   "suites": [
     {
-      "title": "discovery-complete-flow.spec.ts",
-      "file": "discovery-complete-flow.spec.ts",
+      "title": "import-and-mapping.spec.ts",
+      "file": "import-and-mapping.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "Complete Discovery Flow",
-          "file": "discovery-complete-flow.spec.ts",
-          "line": 417,
+          "title": "Import and Attribute Mapping",
+          "file": "import-and-mapping.spec.ts",
+          "line": 16,
           "column": 6,
           "specs": [
             {
-              "title": "Execute complete discovery workflow from CMDB upload to asset inventory",
-              "ok": true,
+              "title": "Import CMDB file and complete attribute mapping",
+              "ok": false,
               "tags": [],
               "tests": [
                 {
@@ -123,168 +123,70 @@
                     {
                       "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 59209,
-                      "errors": [],
+                      "status": "failed",
+                      "duration": 6986,
+                      "error": {
+                        "message": "Error: Login failed - still on login page",
+                        "stack": "Error: Login failed - still on login page\n    at /Users/chocka/CursorProjects/migrate-ui-orchestrator/tests/e2e/import-and-mapping.spec.ts:38:13",
+                        "location": {
+                          "file": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/tests/e2e/import-and-mapping.spec.ts",
+                          "column": 13,
+                          "line": 38
+                        },
+                        "snippet": "  36 |     const currentUrl = page.url();\n  37 |     if (currentUrl.includes('/login')) {\n> 38 |       throw new Error('Login failed - still on login page');\n     |             ^\n  39 |     }\n  40 |     console.log('✅ Login successful');\n  41 |     "
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/tests/e2e/import-and-mapping.spec.ts",
+                            "column": 13,
+                            "line": 38
+                          },
+                          "message": "Error: Login failed - still on login page\n\n  36 |     const currentUrl = page.url();\n  37 |     if (currentUrl.includes('/login')) {\n> 38 |       throw new Error('Login failed - still on login page');\n     |             ^\n  39 |     }\n  40 |     console.log('✅ Login successful');\n  41 |     \n    at /Users/chocka/CursorProjects/migrate-ui-orchestrator/tests/e2e/import-and-mapping.spec.ts:38:13"
+                        }
+                      ],
                       "stdout": [
                         {
-                          "text": "🔐 Logging in user...\n"
+                          "text": "Starting import and mapping test...\n"
                         },
                         {
-                          "text": "✅ User logged in successfully, current URL: http://localhost:8081/\n"
-                        },
-                        {
-                          "text": "📁 Navigating to Data Import...\n"
-                        },
-                        {
-                          "text": "🔗 Found Data Import link, clicking...\n"
-                        },
-                        {
-                          "text": "📄 On CMDB Import page, URL: http://localhost:8081/discovery/cmdb-import\n"
-                        },
-                        {
-                          "text": "📤 Uploading CMDB file...\n"
-                        },
-                        {
-                          "text": "⚠️ Upload blocked by existing flows - attempting to resolve...\n"
-                        },
-                        {
-                          "text": "🗑️ Deleting existing flow to allow new upload...\n"
-                        },
-                        {
-                          "text": "Found 0 upload areas\n"
-                        },
-                        {
-                          "text": "Found 18 alternative upload areas\n"
-                        },
-                        {
-                          "text": "🎯 Clicking first upload area...\n"
-                        },
-                        {
-                          "text": "Upload area visible: \u001b[33mtrue\u001b[39m\n"
-                        },
-                        {
-                          "text": "File inputs found: 4\n"
-                        },
-                        {
-                          "text": "Test file path: /Users/chocka/CursorProjects/migrate-ui-orchestrator/tests/fixtures/enterprise-cmdb-data.csv\n"
-                        },
-                        {
-                          "text": "✅ Test file exists, uploading...\n"
-                        },
-                        {
-                          "text": "✅ Upload successful: Demo CorporationDemo Cloud Migration ProjectSwitch ContextSecure Data ImportDemo Corporation • Demo Cloud Migration ProjectStatus OKUpload migration data files for AI-powered validation and security analysis. Our specialized agents ensure data quality, security, and privacy compliance before processing.Enterprise Security: All uploaded data is analyzed by specialized validation agents for format compliance, security threats, privacy protection, and data quality before any processing begins.Choose Data CategoryCMDB Export Datastandard security4 validation agentsConfiguration Management Database exports with asset informationAccepted formats:.csv.xlsx.jsonExamples:ServiceNow exports, BMC Remedy data, Custom CMDB filesUpload CMDB Export DataApplication Discovery Dataelevated security5 validation agentsApplication portfolio and dependency scan resultsAccepted formats:.csv.json.xmlExamples:Application scans, Dependency maps, Service inventoriesUpload Application Discovery DataInfrastructure Assessmenthigh security5 validation agentsServer, network, and infrastructure discovery dataAccepted formats:.csv.xlsx.jsonExamples:Network scans, Server inventories, Performance dataUpload Infrastructure AssessmentSensitive Data Assetsmaximum security6 validation agentsData containing PII, financial, or confidential informationAccepted formats:.csv.xlsxExamples:Customer data, Financial records, HR systemsUpload Sensitive Data AssetsUpload & Validation Statusenterprise-cmdb-data.csv0.00 MB • text/csvProcessingCrewAI Discovery Flow Progress0%Current Phase: data_importCrewAI agents are analyzing your data using advanced AI techniquesDiscovery Flow Statusenterprise-cmdb-data.csv3281Discovery Flow Status0% CompleteStatus:InitializingCurrent Phase:data importFlow is being initializedOverall Progress0%Phases Completed:data importfield mappingdata cleansingasset inventorydependency analysistech debt assessmentasset creationtech debt analysisLast updated: 1:05:49 PM\n"
-                        },
-                        {
-                          "text": "📤 Upload result: Demo CorporationDemo Cloud Migration ProjectSwitch ContextSecure Data ImportDemo Corporation • Demo Cloud Migration ProjectStatus OKUpload migration data files for AI-powered validation and security analysis. Our specialized agents ensure data quality, security, and privacy compliance before processing.Enterprise Security: All uploaded data is analyzed by specialized validation agents for format compliance, security threats, privacy protection, and data quality before any processing begins.Choose Data CategoryCMDB Export Datastandard security4 validation agentsConfiguration Management Database exports with asset informationAccepted formats:.csv.xlsx.jsonExamples:ServiceNow exports, BMC Remedy data, Custom CMDB filesUpload CMDB Export DataApplication Discovery Dataelevated security5 validation agentsApplication portfolio and dependency scan resultsAccepted formats:.csv.json.xmlExamples:Application scans, Dependency maps, Service inventoriesUpload Application Discovery DataInfrastructure Assessmenthigh security5 validation agentsServer, network, and infrastructure discovery dataAccepted formats:.csv.xlsx.jsonExamples:Network scans, Server inventories, Performance dataUpload Infrastructure AssessmentSensitive Data Assetsmaximum security6 validation agentsData containing PII, financial, or confidential informationAccepted formats:.csv.xlsxExamples:Customer data, Financial records, HR systemsUpload Sensitive Data AssetsUpload & Validation Statusenterprise-cmdb-data.csv0.00 MB • text/csvProcessingCrewAI Discovery Flow Progress0%Current Phase: data_importCrewAI agents are analyzing your data using advanced AI techniquesDiscovery Flow Statusenterprise-cmdb-data.csv3281Discovery Flow Status0% CompleteStatus:InitializingCurrent Phase:data importFlow is being initializedOverall Progress0%Phases Completed:data importfield mappingdata cleansingasset inventorydependency analysistech debt assessmentasset creationtech debt analysisLast updated: 1:05:49 PM\n"
-                        },
-                        {
-                          "text": "⏳ Waiting for discovery processing...\n"
-                        },
-                        {
-                          "text": "🔄 Processing detected, waiting...\n"
-                        },
-                        {
-                          "text": "⏳ Still processing... (1/15)\n"
-                        },
-                        {
-                          "text": "⏳ Still processing... (2/15)\n"
-                        },
-                        {
-                          "text": "⏳ Still processing... (3/15)\n"
-                        },
-                        {
-                          "text": "⏳ Still processing... (4/15)\n"
-                        },
-                        {
-                          "text": "⏳ Still processing... (5/15)\n"
-                        },
-                        {
-                          "text": "⏳ Still processing... (6/15)\n"
-                        },
-                        {
-                          "text": "⏳ Still processing... (7/15)\n"
-                        },
-                        {
-                          "text": "⏳ Still processing... (8/15)\n"
-                        },
-                        {
-                          "text": "⏳ Still processing... (9/15)\n"
-                        },
-                        {
-                          "text": "⏳ Still processing... (10/15)\n"
-                        },
-                        {
-                          "text": "⏳ Still processing... (11/15)\n"
-                        },
-                        {
-                          "text": "⏳ Still processing... (12/15)\n"
-                        },
-                        {
-                          "text": "⏳ Still processing... (13/15)\n"
-                        },
-                        {
-                          "text": "⏳ Still processing... (14/15)\n"
-                        },
-                        {
-                          "text": "⏳ Still processing... (15/15)\n"
-                        },
-                        {
-                          "text": "⚠️ Processing timeout - proceeding anyway\n"
-                        },
-                        {
-                          "text": "🗺️ Navigating to Attribute Mapping...\n"
-                        },
-                        {
-                          "text": "🔗 Found attribute mapping link: text=\"Attribute Mapping\"\n"
-                        },
-                        {
-                          "text": "📄 On Attribute Mapping page, URL: http://localhost:8081/discovery/attribute-mapping\n"
-                        },
-                        {
-                          "text": "🔍 Validating field mappings...\n"
-                        },
-                        {
-                          "text": "✅ Field mapping data found: text=/field mapping/i\n"
-                        },
-                        {
-                          "text": "📊 Mapping rows found: 0\n"
-                        },
-                        {
-                          "text": "🗺️ Field mappings: \u001b[33m0\u001b[39m\n"
-                        },
-                        {
-                          "text": "📋 Navigating to Asset Inventory...\n"
-                        },
-                        {
-                          "text": "🔗 Found asset inventory link: nav a:has-text(\"Inventory\")\n"
-                        },
-                        {
-                          "text": "📄 On Asset Inventory page, URL: http://localhost:8081/discovery/inventory\n"
-                        },
-                        {
-                          "text": "📊 Assets found: 0\n"
-                        },
-                        {
-                          "text": "🎉 Discovery Flow Results: {\n  login: \u001b[33mtrue\u001b[39m,\n  navigation: \u001b[33mtrue\u001b[39m,\n  upload: \u001b[33mtrue\u001b[39m,\n  processing: \u001b[33mtrue\u001b[39m,\n  attributeMapping: \u001b[33mfalse\u001b[39m,\n  assetInventory: \u001b[33mfalse\u001b[39m,\n  assetCount: \u001b[33m0\u001b[39m\n}\n"
-                        },
-                        {
-                          "text": "⚠️ DISCOVERY FLOW INCOMPLETE - No assets or mappings detected\n"
+                          "text": "🔐 Step 1: Logging in...\n"
                         }
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-07-05T17:05:32.873Z",
+                      "startTime": "2025-07-05T23:23:46.334Z",
                       "annotations": [],
-                      "attachments": []
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/test-results/import-and-mapping-Import--981f6--complete-attribute-mapping-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/test-results/import-and-mapping-Import--981f6--complete-attribute-mapping-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/test-results/import-and-mapping-Import--981f6--complete-attribute-mapping-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/tests/e2e/import-and-mapping.spec.ts",
+                        "column": 13,
+                        "line": 38
+                      }
                     }
                   ],
-                  "status": "expected"
+                  "status": "unexpected"
                 }
               ],
-              "id": "4dd1dd663376991beec4-4a613f3b6194641138c3",
-              "file": "discovery-complete-flow.spec.ts",
-              "line": 418,
+              "id": "4c8438fd41a3f82d67de-f03e4a216d61fdf22e74",
+              "file": "import-and-mapping.spec.ts",
+              "line": 17,
               "column": 3
             }
           ]
@@ -294,11 +196,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-07-05T17:05:32.253Z",
-    "duration": 60127.513999999996,
-    "expected": 1,
+    "startTime": "2025-07-05T23:23:45.731Z",
+    "duration": 8526.878,
+    "expected": 0,
     "skipped": 0,
-    "unexpected": 0,
+    "unexpected": 1,
     "flaky": 0
   }
 }

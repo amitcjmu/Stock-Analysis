@@ -113,3 +113,6 @@ CLAUDE.md
 # Archive directories (legacy code from migrations)
 **/archive_*/
 archive_*/
+
+# Postgres data volume
+postgres-data-volume/

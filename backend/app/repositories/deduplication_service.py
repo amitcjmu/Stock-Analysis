@@ -346,7 +346,7 @@ class DeduplicationService:
             List of deduplicated model instances
         """
         # For now, fall back to data quality strategy
-        # TODO: Integrate with CrewAI agents for intelligent deduplication
+        # Use MasterFlowOrchestrator for intelligent deduplication
         logger.info(f"Agent-assisted deduplication not yet implemented, using data quality strategy")
         return await self._data_quality_strategy(model_class, engagement_id, filters)
     

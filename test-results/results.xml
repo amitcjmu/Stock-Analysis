@@ -1,63 +1,40 @@
-<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="0" time="60.127514">
-<testsuite name="discovery-complete-flow.spec.ts" timestamp="2025-07-05T17:05:32.424Z" hostname="chromium" tests="1" failures="0" skipped="0" time="59.209" errors="0">
-<testcase name="Complete Discovery Flow › Execute complete discovery workflow from CMDB upload to asset inventory" classname="discovery-complete-flow.spec.ts" time="59.209">
+<testsuites id="" name="" tests="1" failures="1" skipped="0" errors="0" time="8.526878">
+<testsuite name="import-and-mapping.spec.ts" timestamp="2025-07-05T23:23:45.914Z" hostname="chromium" tests="1" failures="1" skipped="0" time="6.986" errors="0">
+<testcase name="Import and Attribute Mapping › Import CMDB file and complete attribute mapping" classname="import-and-mapping.spec.ts" time="6.986">
+<failure message="import-and-mapping.spec.ts:17:3 Import CMDB file and complete attribute mapping" type="FAILURE">
+<![CDATA[  [chromium] › import-and-mapping.spec.ts:17:3 › Import and Attribute Mapping › Import CMDB file and complete attribute mapping 
+
+    Error: Login failed - still on login page
+
+      36 |     const currentUrl = page.url();
+      37 |     if (currentUrl.includes('/login')) {
+    > 38 |       throw new Error('Login failed - still on login page');
+         |             ^
+      39 |     }
+      40 |     console.log('✅ Login successful');
+      41 |     
+        at /Users/chocka/CursorProjects/migrate-ui-orchestrator/tests/e2e/import-and-mapping.spec.ts:38:13
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/import-and-mapping-Import--981f6--complete-attribute-mapping-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/import-and-mapping-Import--981f6--complete-attribute-mapping-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../test-results/import-and-mapping-Import--981f6--complete-attribute-mapping-chromium/error-context.md
+]]>
+</failure>
 <system-out>
-<![CDATA[🔐 Logging in user...
-✅ User logged in successfully, current URL: http://localhost:8081/
-📁 Navigating to Data Import...
-🔗 Found Data Import link, clicking...
-📄 On CMDB Import page, URL: http://localhost:8081/discovery/cmdb-import
-📤 Uploading CMDB file...
-⚠️ Upload blocked by existing flows - attempting to resolve...
-🗑️ Deleting existing flow to allow new upload...
-Found 0 upload areas
-Found 18 alternative upload areas
-🎯 Clicking first upload area...
-Upload area visible: [33mtrue[39m
-File inputs found: 4
-Test file path: /Users/chocka/CursorProjects/migrate-ui-orchestrator/tests/fixtures/enterprise-cmdb-data.csv
-✅ Test file exists, uploading...
-✅ Upload successful: Demo CorporationDemo Cloud Migration ProjectSwitch ContextSecure Data ImportDemo Corporation • Demo Cloud Migration ProjectStatus OKUpload migration data files for AI-powered validation and security analysis. Our specialized agents ensure data quality, security, and privacy compliance before processing.Enterprise Security: All uploaded data is analyzed by specialized validation agents for format compliance, security threats, privacy protection, and data quality before any processing begins.Choose Data CategoryCMDB Export Datastandard security4 validation agentsConfiguration Management Database exports with asset informationAccepted formats:.csv.xlsx.jsonExamples:ServiceNow exports, BMC Remedy data, Custom CMDB filesUpload CMDB Export DataApplication Discovery Dataelevated security5 validation agentsApplication portfolio and dependency scan resultsAccepted formats:.csv.json.xmlExamples:Application scans, Dependency maps, Service inventoriesUpload Application Discovery DataInfrastructure Assessmenthigh security5 validation agentsServer, network, and infrastructure discovery dataAccepted formats:.csv.xlsx.jsonExamples:Network scans, Server inventories, Performance dataUpload Infrastructure AssessmentSensitive Data Assetsmaximum security6 validation agentsData containing PII, financial, or confidential informationAccepted formats:.csv.xlsxExamples:Customer data, Financial records, HR systemsUpload Sensitive Data AssetsUpload & Validation Statusenterprise-cmdb-data.csv0.00 MB • text/csvProcessingCrewAI Discovery Flow Progress0%Current Phase: data_importCrewAI agents are analyzing your data using advanced AI techniquesDiscovery Flow Statusenterprise-cmdb-data.csv3281Discovery Flow Status0% CompleteStatus:InitializingCurrent Phase:data importFlow is being initializedOverall Progress0%Phases Completed:data importfield mappingdata cleansingasset inventorydependency analysistech debt assessmentasset creationtech debt analysisLast updated: 1:05:49 PM
-📤 Upload result: Demo CorporationDemo Cloud Migration ProjectSwitch ContextSecure Data ImportDemo Corporation • Demo Cloud Migration ProjectStatus OKUpload migration data files for AI-powered validation and security analysis. Our specialized agents ensure data quality, security, and privacy compliance before processing.Enterprise Security: All uploaded data is analyzed by specialized validation agents for format compliance, security threats, privacy protection, and data quality before any processing begins.Choose Data CategoryCMDB Export Datastandard security4 validation agentsConfiguration Management Database exports with asset informationAccepted formats:.csv.xlsx.jsonExamples:ServiceNow exports, BMC Remedy data, Custom CMDB filesUpload CMDB Export DataApplication Discovery Dataelevated security5 validation agentsApplication portfolio and dependency scan resultsAccepted formats:.csv.json.xmlExamples:Application scans, Dependency maps, Service inventoriesUpload Application Discovery DataInfrastructure Assessmenthigh security5 validation agentsServer, network, and infrastructure discovery dataAccepted formats:.csv.xlsx.jsonExamples:Network scans, Server inventories, Performance dataUpload Infrastructure AssessmentSensitive Data Assetsmaximum security6 validation agentsData containing PII, financial, or confidential informationAccepted formats:.csv.xlsxExamples:Customer data, Financial records, HR systemsUpload Sensitive Data AssetsUpload & Validation Statusenterprise-cmdb-data.csv0.00 MB • text/csvProcessingCrewAI Discovery Flow Progress0%Current Phase: data_importCrewAI agents are analyzing your data using advanced AI techniquesDiscovery Flow Statusenterprise-cmdb-data.csv3281Discovery Flow Status0% CompleteStatus:InitializingCurrent Phase:data importFlow is being initializedOverall Progress0%Phases Completed:data importfield mappingdata cleansingasset inventorydependency analysistech debt assessmentasset creationtech debt analysisLast updated: 1:05:49 PM
-⏳ Waiting for discovery processing...
-🔄 Processing detected, waiting...
-⏳ Still processing... (1/15)
-⏳ Still processing... (2/15)
-⏳ Still processing... (3/15)
-⏳ Still processing... (4/15)
-⏳ Still processing... (5/15)
-⏳ Still processing... (6/15)
-⏳ Still processing... (7/15)
-⏳ Still processing... (8/15)
-⏳ Still processing... (9/15)
-⏳ Still processing... (10/15)
-⏳ Still processing... (11/15)
-⏳ Still processing... (12/15)
-⏳ Still processing... (13/15)
-⏳ Still processing... (14/15)
-⏳ Still processing... (15/15)
-⚠️ Processing timeout - proceeding anyway
-🗺️ Navigating to Attribute Mapping...
-🔗 Found attribute mapping link: text="Attribute Mapping"
-📄 On Attribute Mapping page, URL: http://localhost:8081/discovery/attribute-mapping
-🔍 Validating field mappings...
-✅ Field mapping data found: text=/field mapping/i
-📊 Mapping rows found: 0
-🗺️ Field mappings: [33m0[39m
-📋 Navigating to Asset Inventory...
-🔗 Found asset inventory link: nav a:has-text("Inventory")
-📄 On Asset Inventory page, URL: http://localhost:8081/discovery/inventory
-📊 Assets found: 0
-🎉 Discovery Flow Results: {
-  login: [33mtrue[39m,
-  navigation: [33mtrue[39m,
-  upload: [33mtrue[39m,
-  processing: [33mtrue[39m,
-  attributeMapping: [33mfalse[39m,
-  assetInventory: [33mfalse[39m,
-  assetCount: [33m0[39m
-}
-⚠️ DISCOVERY FLOW INCOMPLETE - No assets or mappings detected
+<![CDATA[Starting import and mapping test...
+🔐 Step 1: Logging in...
+
+[[ATTACHMENT|import-and-mapping-Import--981f6--complete-attribute-mapping-chromium/test-failed-1.png]]
+
+[[ATTACHMENT|import-and-mapping-Import--981f6--complete-attribute-mapping-chromium/video.webm]]
+
+[[ATTACHMENT|import-and-mapping-Import--981f6--complete-attribute-mapping-chromium/error-context.md]]
 ]]>
 </system-out>
 </testcase>

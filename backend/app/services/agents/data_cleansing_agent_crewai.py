@@ -5,11 +5,11 @@ Enterprise Data Standardization and Bulk Processing Specialist
 
 from typing import List, Dict, Any
 from crewai import Agent
-from app.services.agents.base_agent import BaseDiscoveryAgent
+from app.services.agents.base_agent import BaseCrewAIAgent
 from app.services.agents.registry import AgentMetadata
 from app.services.llm_config import get_crewai_llm
 
-class DataCleansingAgent(BaseDiscoveryAgent):
+class DataCleansingAgent(BaseCrewAIAgent):
     """
     Performs intelligent data cleansing and standardization using CrewAI patterns.
     

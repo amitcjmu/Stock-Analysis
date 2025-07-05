@@ -18,15 +18,7 @@ from ..handlers.phase_executors import PhaseExecutionManager
 from ..handlers.unified_flow_management import UnifiedFlowManagement
 from ..flow_state_bridge import FlowStateBridge
 
-# Import individual agents - ARCHIVED (pseudo-agents removed)
-# TODO: Replace with real CrewAI agents
-# from app.services.agents.data_import_validation_agent import DataImportValidationAgent
-# from app.services.agents.attribute_mapping_agent import AttributeMappingAgent
-# from app.services.agents.data_cleansing_agent import DataCleansingAgent
-# from app.services.agents.asset_inventory_agent import AssetInventoryAgent
-# from app.services.agents.dependency_analysis_agent import DependencyAnalysisAgent
-# from app.services.agents.tech_debt_analysis_agent import TechDebtAnalysisAgent
-# from app.services.agents.discovery_agent_orchestrator import DiscoveryAgentOrchestrator
+# Real CrewAI agents are managed by UnifiedFlowCrewManager - no individual agent imports needed
 
 # Import phase classes
 from .phases import (

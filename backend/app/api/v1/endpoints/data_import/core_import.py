@@ -10,13 +10,12 @@ from app.core.database import get_db
 
 # Import modular handlers
 from .handlers.clean_api_handler import router as clean_api_router
-from .handlers.legacy_upload_handler import router as legacy_upload_router
+# from .handlers.legacy_upload_handler import router as legacy_upload_router  # File doesn't exist
 from .handlers.import_retrieval_handler import router as import_retrieval_router
 from .handlers.import_storage_handler import router as import_storage_handler
 from .handlers.field_handler import router as field_handler
 
 # Import agentic intelligence modules
-# ARCHIVED: agentic_critical_attributes_legacy.py moved to archive/legacy
 AGENTIC_AVAILABLE = False
 agentic_critical_attributes_router = None
 
@@ -27,15 +26,13 @@ router = APIRouter()
 
 # Include all handler routers with proper prefixes
 router.include_router(clean_api_router, tags=["Clean API"])
-router.include_router(legacy_upload_router, tags=["Legacy Upload"])
+# router.include_router(legacy_upload_router, tags=["Legacy Upload"])  # Router not available - file doesn't exist
 router.include_router(import_retrieval_router, tags=["Import Retrieval"])
 router.include_router(import_storage_handler, tags=["Import Storage"])
 router.include_router(field_handler, tags=["Field Mapping"])
 
-# ARCHIVED: Agentic Critical Attributes router - was pseudo-agent implementation
-# Original agentic_critical_attributes_router depended on pseudo-agents
-# TODO: Implement real CrewAI agent-based critical attributes analysis
-logger.info("📦 Agentic Critical Attributes archived - was pseudo-agent implementation")
+# Critical attributes analysis handled by MasterFlowOrchestrator with real CrewAI agents
+logger.info("📦 Critical attributes analysis now handled by MasterFlowOrchestrator")
 
 # Health check endpoint for the modular service
 @router.get("/health")
@@ -43,7 +40,7 @@ async def health_check():
     """Health check for the modular data import service."""
     handlers = [
         "clean_api_handler",
-        "legacy_upload_handler", 
+        # "legacy_upload_handler",  # File doesn't exist
         "import_retrieval_handler",
         "import_storage_handler",
         "field_handler"

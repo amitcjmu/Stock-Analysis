@@ -261,10 +261,37 @@ export function getFlowTypeFromPath(pathname: string): FlowType | null {
 
 /**
  * Get flow information from the backend flow state
- * This can be extended to fetch from API or use context
+ * MFO-086: Updated to use Master Flow Orchestrator API
  */
 export async function getFlowInfo(flowId: string): Promise<{ flowType: FlowType; currentPhase: string } | null> {
-  // TODO: Implement API call to get flow info
-  // For now, return null to indicate not implemented
-  return null;
+  try {
+    // Import FlowService dynamically to avoid circular dependencies
+    const { FlowService } = await import('../../frontend/src/services/FlowService');
+    const flowService = FlowService.getInstance();
+    
+    const flowStatus = await flowService.getFlowStatus(flowId);
+    
+    return {
+      flowType: flowStatus.flow_type as FlowType,
+      currentPhase: flowStatus.current_phase || 'unknown'
+    };
+  } catch (error) {
+    console.error('Failed to get flow info:', error);
+    return null;
+  }
+}
+
+/**
+ * Master flow dashboard route
+ * MFO-086: Add route for unified flow dashboard
+ */
+export const MASTER_FLOW_DASHBOARD_ROUTE = '/flows';
+
+/**
+ * Get dashboard route for a specific flow type
+ * MFO-086: Support flow type specific dashboards
+ */
+export function getFlowDashboardRoute(flowType?: FlowType): string {
+  if (!flowType) return MASTER_FLOW_DASHBOARD_ROUTE;
+  return `/${flowType}`;
 }

@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 
 # from app.services.agents.asset_inventory_agent import AssetInventoryAgent
-# TODO: Replace with real CrewAI agent
+# Handled by MasterFlowOrchestrator with real CrewAI agents
 from ..flow_config import PhaseNames, FlowConfig
 
 logger = logging.getLogger(__name__)

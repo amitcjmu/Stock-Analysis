@@ -12,9 +12,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class BaseDiscoveryAgent(Agent):
+class BaseCrewAIAgent(Agent):
     """
-    Base class for all discovery agents.
+    Base class for all CrewAI agents.
     Provides:
     - Proper CrewAI Agent inheritance
     - Context awareness for multi-tenancy

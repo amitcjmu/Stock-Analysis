@@ -1,0 +1,361 @@
+# Staging Environment Configuration
+# Docker Compose for Master Flow Orchestrator Staging Deployment
+# Use: docker-compose -f docker-compose.staging.yml up -d
+
+services:
+  # PostgreSQL Database with pgvector (Staging)
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: migration_postgres_staging
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-migration_db_staging}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Staging PostgreSQL settings
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    volumes:
+      - postgres_staging_data:/var/lib/postgresql/data
+      - ./backups:/backups
+      - ./scripts/staging-init.sql:/docker-entrypoint-initdb.d/99-staging-init.sql
+    ports:
+      - "${POSTGRES_PORT:-5434}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - migration_staging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Staging security
+    security_opt:
+      - no-new-privileges:true
+
+  # FastAPI Backend (Staging)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: staging  # Use staging stage
+    container_name: migration_backend_staging
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-migration_db_staging}
+      - PYTHONUNBUFFERED=1
+      - DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY}
+      - FRONTEND_URL=${STAGING_FRONTEND_URL:-http://localhost:3001}
+      - ENVIRONMENT=staging
+      - DEBUG=true
+      - PYTHONPATH=/app
+      - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
+      - DEMO_DATA=true
+      - AUTO_SEED_DATA=true
+      # Master Flow Orchestrator feature flags
+      - ENABLE_MASTER_FLOW_ORCHESTRATOR=true
+      - MASTER_FLOW_ORCHESTRATOR_LOGGING=true
+      - ENABLE_FLOW_PERFORMANCE_TRACKING=true
+      - ENABLE_FLOW_AUDIT_LOGGING=true
+      # Staging security
+      - SECRET_KEY=${SECRET_KEY:-staging-secret-key-change-in-production}
+      - JWT_SECRET=${JWT_SECRET:-staging-jwt-secret-change-in-production}
+      - ALLOWED_ORIGINS=${STAGING_FRONTEND_URL:-http://localhost:3001}
+      # Performance settings for staging
+      - WORKERS=${BACKEND_WORKERS:-2}
+      - MAX_CONNECTIONS=${MAX_DB_CONNECTIONS:-10}
+      - POOL_SIZE=${DB_POOL_SIZE:-5}
+      # Feature flags for staging testing
+      - ENABLE_FLOW_VALIDATION=true
+      - ENABLE_RETRY_LOGIC=true
+      - ENABLE_ERROR_HANDLING=true
+      - ENABLE_METRICS=true
+    ports:
+      - "${BACKEND_PORT:-8001}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - staging_logs:/app/logs
+      - ./backend/app:/app/app  # For development
+      - ./backups:/app/backups:ro
+    working_dir: /app
+    command: >
+      sh -c "
+        echo '🚀 Starting staging backend with Master Flow Orchestrator...' &&
+        echo '📋 Running database migrations...' &&
+        python -m alembic upgrade head &&
+        echo '🔧 Initializing database...' &&
+        python -m app.core.database_initialization &&
+        echo '🔄 Running Master Flow Orchestrator migration...' &&
+        python scripts/migrate_assessment_flows_to_master.py &&
+        echo '🚀 Starting application server...' &&
+        uvicorn main:app --host 0.0.0.0 --port 8000 --reload --log-level debug
+      "
+    networks:
+      - migration_staging
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # Frontend (Staging)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      target: staging  # Use staging stage
+    container_name: migration_frontend_staging
+    environment:
+      - VITE_BACKEND_URL=${STAGING_BACKEND_URL:-http://localhost:8001}
+      - VITE_WS_BASE_URL=${STAGING_WS_URL:-ws://localhost:8001}
+      - VITE_ENVIRONMENT=staging
+      - VITE_DEBUG=true
+      - VITE_DEMO_MODE=true
+      - NODE_ENV=staging
+      # Master Flow Orchestrator frontend flags
+      - VITE_ENABLE_MASTER_FLOW_ORCHESTRATOR=true
+      - VITE_ENABLE_FLOW_DASHBOARD=true
+      - VITE_ENABLE_FLOW_ANALYTICS=true
+    ports:
+      - "${FRONTEND_PORT:-3001}:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./src:/app/src  # For development
+      - ./public:/app/public
+    networks:
+      - migration_staging
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis (Staging - for caching and sessions)
+  redis:
+    image: redis:7-alpine
+    container_name: migration_redis_staging
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-staging-redis-password}
+    ports:
+      - "${REDIS_PORT:-6380}:6379"
+    volumes:
+      - redis_staging_data:/data
+    command: redis-server --requirepass ${REDIS_PASSWORD:-staging-redis-password}
+    networks:
+      - migration_staging
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-staging-redis-password}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+  # Test Runner Service (for automated testing)
+  test_runner:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: staging
+    container_name: migration_test_runner_staging
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-migration_db_staging}
+      - PYTHONUNBUFFERED=1
+      - DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY}
+      - ENVIRONMENT=staging
+      - PYTHONPATH=/app
+      - TEST_MODE=true
+      # Test-specific configuration
+      - BACKEND_URL=http://backend:8000
+      - FRONTEND_URL=http://frontend:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - staging_logs:/app/logs
+      - test_results:/app/test_results
+    working_dir: /app
+    command: >
+      sh -c "
+        echo '⏳ Waiting for services to be ready...' &&
+        sleep 30 &&
+        echo '🧪 Running comprehensive test suite...' &&
+        python -m pytest tests/ -v --tb=short --junitxml=/app/test_results/junit.xml &&
+        echo '✅ Tests completed'
+      "
+    networks:
+      - migration_staging
+    profiles:
+      - testing
+
+  # Load Testing Service
+  load_tester:
+    image: locustio/locust:latest
+    container_name: migration_load_tester_staging
+    ports:
+      - "8089:8089"
+    volumes:
+      - ./tests/load:/mnt/locust
+      - test_results:/mnt/results
+    environment:
+      - TARGET_HOST=http://backend:8000
+    command: >
+      sh -c "
+        echo '📊 Starting load testing service...' &&
+        locust -f /mnt/locust/locustfile.py --host=http://backend:8000
+      "
+    depends_on:
+      - backend
+    networks:
+      - migration_staging
+    profiles:
+      - load-testing
+
+  # Database Backup Service (Staging)
+  db_backup:
+    image: postgres:16-alpine
+    container_name: migration_backup_staging
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-migration_db_staging}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup_staging.sh:/backup_staging.sh:ro
+    depends_on:
+      - postgres
+    networks:
+      - migration_staging
+    command: >
+      sh -c "
+        echo '📦 Creating staging backup...' &&
+        /backup_staging.sh &&
+        echo '✅ Backup completed'
+      "
+    profiles:
+      - backup
+
+  # Monitoring (Staging)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: migration_prometheus_staging
+    ports:
+      - "${PROMETHEUS_PORT:-9091}:9090"
+    volumes:
+      - ./monitoring/prometheus.staging.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_staging_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.enable-lifecycle'
+    networks:
+      - migration_staging
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+  # Grafana (Staging - Monitoring Dashboard)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: migration_grafana_staging
+    ports:
+      - "${GRAFANA_PORT:-3002}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-staging-grafana-password}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana_staging_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    networks:
+      - migration_staging
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+volumes:
+  postgres_staging_data:
+    name: migration_staging_postgres_data
+  redis_staging_data:
+    name: migration_staging_redis_data
+  staging_logs:
+    name: migration_staging_logs
+  test_results:
+    name: migration_staging_test_results
+  prometheus_staging_data:
+    name: migration_staging_prometheus_data
+  grafana_staging_data:
+    name: migration_staging_grafana_data
+
+networks:
+  migration_staging:
+    name: migration_staging_network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+
+# Environment Variables Template
+# Create a .env.staging file with these variables:
+#
+# # Database
+# POSTGRES_PASSWORD=your-staging-db-password
+# POSTGRES_DB=migration_db_staging
+# POSTGRES_USER=postgres
+#
+# # Application
+# DEEPINFRA_API_KEY=your-deepinfra-api-key
+# SECRET_KEY=your-staging-secret-key
+# JWT_SECRET=your-staging-jwt-secret
+#
+# # URLs
+# STAGING_BACKEND_URL=http://localhost:8001
+# STAGING_FRONTEND_URL=http://localhost:3001
+# STAGING_WS_URL=ws://localhost:8001
+#
+# # Redis
+# REDIS_PASSWORD=your-staging-redis-password
+#
+# # Monitoring
+# GRAFANA_PASSWORD=your-staging-grafana-password
+#
+# # Ports (optional, defaults shown)
+# BACKEND_PORT=8001
+# FRONTEND_PORT=3001
+# POSTGRES_PORT=5434
+# REDIS_PORT=6380
+# PROMETHEUS_PORT=9091
+# GRAFANA_PORT=3002

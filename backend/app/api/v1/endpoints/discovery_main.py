@@ -57,10 +57,8 @@ try:
 except ImportError as e:
     logger.warning(f"⚠️ Dependency router not available: {e}")
 
-# ARCHIVED: Real-time processing endpoints moved to archive/legacy
 # Real-time processing was part of legacy discovery architecture
 # TODO: Implement real-time discovery using CrewAI flows if needed
-logger.info("📦 Real-time processing archived - was legacy discovery implementation")
 
 @router.get("/dependencies", response_model=Dict[str, Any])
 async def get_dependencies_data(

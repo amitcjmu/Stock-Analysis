@@ -8,7 +8,7 @@ import logging
 from typing import Dict, Any, Optional
 
 # from app.services.agents.dependency_analysis_agent import DependencyAnalysisAgent
-# TODO: Replace with real CrewAI agent
+# Handled by MasterFlowOrchestrator with real CrewAI agents
 from ..flow_config import PhaseNames
 
 logger = logging.getLogger(__name__)

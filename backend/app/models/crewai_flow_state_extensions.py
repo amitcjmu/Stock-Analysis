@@ -4,12 +4,13 @@ Phase 4: Advanced CrewAI Flow analytics and performance tracking
 Extended table for CrewAI-specific flow state data and metrics
 """
 
-from sqlalchemy import Column, String, DateTime, ForeignKey, func
+from sqlalchemy import Column, String, DateTime, ForeignKey, func, Integer
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
 import uuid
 from datetime import datetime
+from typing import Optional, Any
 
 from app.core.database import Base
 
@@ -52,6 +53,14 @@ class CrewAIFlowStateExtensions(Base):
     user_feedback_history = Column(JSONB, nullable=True, server_default=text("'[]'::jsonb"))
     adaptation_metrics = Column(JSONB, nullable=True, server_default=text("'{}'::jsonb"))
     
+    # Master Flow Orchestrator fields (added in Phase 2)
+    phase_transitions = Column(JSONB, nullable=True, server_default=text("'[]'::jsonb"))
+    error_history = Column(JSONB, nullable=True, server_default=text("'[]'::jsonb"))
+    retry_count = Column(Integer, nullable=False, server_default='0')
+    parent_flow_id = Column(UUID(as_uuid=True), ForeignKey('crewai_flow_state_extensions.flow_id', ondelete='SET NULL'), nullable=True)
+    child_flow_ids = Column(JSONB, nullable=True, server_default=text("'[]'::jsonb"))
+    flow_metadata = Column(JSONB, nullable=True, server_default=text("'{}'::jsonb"))
+    
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -85,6 +94,12 @@ class CrewAIFlowStateExtensions(Base):
             "learning_patterns": self.learning_patterns or [],
             "user_feedback_history": self.user_feedback_history or [],
             "adaptation_metrics": self.adaptation_metrics or {},
+            "phase_transitions": self.phase_transitions or [],
+            "error_history": self.error_history or [],
+            "retry_count": self.retry_count,
+            "parent_flow_id": str(self.parent_flow_id) if self.parent_flow_id else None,
+            "child_flow_ids": self.child_flow_ids or [],
+            "flow_metadata": self.flow_metadata or {},
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
@@ -173,5 +188,77 @@ class CrewAIFlowStateExtensions(Base):
             "learning_patterns_count": len(self.learning_patterns or []),
             "user_feedback_count": len(self.user_feedback_history or []),
             "memory_usage": self.memory_usage_metrics or {},
-            "crew_coordination": self.crew_coordination_analytics or {}
-        } 
+            "crew_coordination": self.crew_coordination_analytics or {},
+            "phase_transitions_count": len(self.phase_transitions or []),
+            "error_count": len(self.error_history or []),
+            "retry_count": self.retry_count
+        }
+    
+    def add_phase_transition(self, phase: str, status: str, metadata: dict = None):
+        """Add a phase transition record"""
+        if not self.phase_transitions:
+            self.phase_transitions = []
+        
+        transition = {
+            "phase": phase,
+            "status": status,
+            "timestamp": datetime.now().isoformat(),
+            "metadata": metadata or {}
+        }
+        
+        self.phase_transitions.append(transition)
+    
+    def add_error(self, phase: str, error: str, details: dict = None):
+        """Add an error to the error history"""
+        if not self.error_history:
+            self.error_history = []
+        
+        error_entry = {
+            "timestamp": datetime.now().isoformat(),
+            "phase": phase,
+            "error": error,
+            "details": details or {},
+            "retry_count": self.retry_count
+        }
+        
+        self.error_history.append(error_entry)
+        
+        # Keep only last 100 errors
+        if len(self.error_history) > 100:
+            self.error_history = self.error_history[-100:]
+    
+    def add_child_flow(self, child_flow_id: str):
+        """Add a child flow ID"""
+        if not self.child_flow_ids:
+            self.child_flow_ids = []
+        
+        if child_flow_id not in self.child_flow_ids:
+            self.child_flow_ids.append(child_flow_id)
+    
+    def remove_child_flow(self, child_flow_id: str):
+        """Remove a child flow ID"""
+        if self.child_flow_ids and child_flow_id in self.child_flow_ids:
+            self.child_flow_ids.remove(child_flow_id)
+    
+    def update_flow_metadata(self, key: str, value: Any):
+        """Update a specific key in flow metadata"""
+        if not self.flow_metadata:
+            self.flow_metadata = {}
+        
+        self.flow_metadata[key] = value
+    
+    def get_current_phase(self) -> Optional[str]:
+        """Get the current active phase from transitions"""
+        if not self.phase_transitions:
+            return None
+        
+        # Find the last active/processing phase
+        for transition in reversed(self.phase_transitions):
+            if transition.get('status') in ['active', 'processing']:
+                return transition.get('phase')
+        
+        # If no active phase, return the last phase
+        if self.phase_transitions:
+            return self.phase_transitions[-1].get('phase')
+        
+        return None 

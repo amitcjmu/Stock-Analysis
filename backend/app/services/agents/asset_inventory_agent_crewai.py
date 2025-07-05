@@ -5,11 +5,11 @@ Specialized agent for asset classification and inventory management
 
 from typing import List, Dict, Any
 from crewai import Agent
-from app.services.agents.base_agent import BaseDiscoveryAgent
+from app.services.agents.base_agent import BaseCrewAIAgent
 from app.services.agents.registry import AgentMetadata
 from app.services.llm_config import get_crewai_llm
 
-class AssetInventoryAgent(BaseDiscoveryAgent):
+class AssetInventoryAgent(BaseCrewAIAgent):
     """
     Performs asset classification and inventory management using CrewAI patterns.
     

@@ -9,9 +9,11 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends, Body, Request
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_request_context_dependency
-from app.services.agents.discovery_agent_orchestrator import DiscoveryAgentOrchestrator
+from app.core.database import get_db
+from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 from app.services.agents.agent_communication_protocol import get_communication_protocol
 from app.services.agent_ui_bridge import agent_ui_bridge
 from app.services.confidence.confidence_manager import ConfidenceManager
@@ -40,13 +42,21 @@ class PonderRequest(BaseModel):
     context: Dict[str, Any]
     collaboration_type: str = "cross_agent"  # cross_agent, expert_panel, full_crew
 
-# Initialize services
-agent_orchestrator = DiscoveryAgentOrchestrator()
+# Services will be initialized per request with proper context
 confidence_manager = ConfidenceManager()
+
+# Dependency injection for MasterFlowOrchestrator
+async def get_orchestrator(
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_request_context_dependency)
+) -> MasterFlowOrchestrator:
+    """Get MasterFlowOrchestrator instance with proper context"""
+    return MasterFlowOrchestrator(db, context)
 
 @router.get("/agent-status")
 async def get_agent_status(
-    context: RequestContext = Depends(get_request_context_dependency)
+    context: RequestContext = Depends(get_request_context_dependency),
+    master_orchestrator: MasterFlowOrchestrator = Depends(get_orchestrator)
 ):
     """Get current agent status for the UI monitor panel - scoped by client/engagement for multi-tenant security."""
     try:
@@ -54,8 +64,8 @@ async def get_agent_status(
         comm_protocol = get_communication_protocol()
         protocol_status = comm_protocol.get_protocol_status()
         
-        # Get agent orchestrator status (context-aware but not scoped at orchestrator level)
-        orchestrator_status = await agent_orchestrator.get_orchestrator_status()
+        # Get master orchestrator status
+        orchestrator_status = await master_orchestrator.get_flow_status('discovery')
         
         # Get individual agent statuses (scoped to client/engagement)
         agent_statuses = {}
@@ -267,11 +277,15 @@ async def agent_think(
 ):
     """Trigger 'Think' button functionality for progressive intelligence."""
     try:
-        # Get the agent and trigger deeper analysis
-        result = await agent_orchestrator.trigger_agent_thinking(
-            agent_id=request.agent_id,
-            context=request.context,
-            complexity_level=request.complexity_level
+        # Use master orchestrator to trigger deeper analysis
+        result = await master_orchestrator.execute_flow_phase(
+            flow_type='discovery',
+            phase_name='agent_thinking',
+            context={
+                'agent_id': request.agent_id,
+                'request_context': request.context,
+                'complexity_level': request.complexity_level
+            }
         )
         
         # Send thinking request through communication protocol
@@ -303,11 +317,15 @@ async def agent_ponder_more(
 ):
     """Trigger 'Ponder More' button functionality for crew collaboration."""
     try:
-        # Trigger crew collaboration for deeper analysis
-        result = await agent_orchestrator.trigger_crew_collaboration(
-            agent_id=request.agent_id,
-            context=request.context,
-            collaboration_type=request.collaboration_type
+        # Use master orchestrator to trigger crew collaboration
+        result = await master_orchestrator.execute_flow_phase(
+            flow_type='discovery',
+            phase_name='crew_collaboration',
+            context={
+                'agent_id': request.agent_id,
+                'request_context': request.context,
+                'collaboration_type': request.collaboration_type
+            }
         )
         
         # Send pondering request through communication protocol

@@ -186,7 +186,7 @@ logger.info("--- Starting API Router Inclusion Process ---")
 # Core Discovery and Analysis
 api_router.include_router(sixr_router, prefix="/6r", tags=["6R Analysis"])
 
-# Discovery API - ARCHIVED (discovery_flow_new.py was also legacy)
+# Discovery API
 # TODO: Create proper CrewAI-only discovery flow endpoint
 logger.info("⚠️ Discovery Flow API archived - needs pure CrewAI implementation")
 
@@ -242,6 +242,14 @@ if MASTER_FLOWS_AVAILABLE:
 else:
     logger.warning("⚠️ Master Flows router not available")
 
+# Unified Flow API - Master Flow Orchestrator endpoints
+try:
+    from app.api.v1.flows import router as unified_flows_router
+    api_router.include_router(unified_flows_router, prefix="/flows", tags=["Unified Flow Management"])
+    logger.info("✅ Unified Flow API router included")
+except ImportError as e:
+    logger.warning(f"⚠️ Unified Flow API router not available: {e}")
+
 api_router.include_router(context_router, prefix="/context", tags=["Context Management"])
 
 # Discovery Flows API - Minimal implementation for frontend compatibility
@@ -257,7 +265,7 @@ except ImportError as e:
 # TODO: Remove the entire unified_discovery_modular.py and associated mock files
 logger.info("📦 Unified Discovery mock orchestrator removed - use /discovery endpoints for real CrewAI flows")
 
-# ARCHIVED: Discovery Crew Escalation API - depended on pseudo-agents
+# Discovery Crew Escalation API
 # Original discovery_escalation module imported DataImportValidationAgent and other pseudo-agents
 # TODO: Implement real CrewAI crew escalation patterns
 logger.info("📦 Discovery Crew Escalation archived - was pseudo-agent implementation")

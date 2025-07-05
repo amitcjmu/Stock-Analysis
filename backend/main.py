@@ -93,6 +93,21 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"⚠️  RBAC initialization warning: {e}")
     
+    # Initialize Master Flow Orchestrator configurations
+    try:
+        from app.core.flow_initialization import initialize_flows_on_startup
+        print("🔄 Initializing Master Flow Orchestrator configurations...")
+        flow_init_results = initialize_flows_on_startup()
+        if flow_init_results.get("success", False):
+            print("✅ Master Flow Orchestrator initialized successfully")
+        else:
+            print(f"⚠️  Flow initialization completed with issues: {flow_init_results.get('initialization', {}).get('errors', [])}")
+    except Exception as e:
+        print(f"⚠️  Flow initialization warning: {e}")
+        # Don't fail startup on flow initialization issues
+        import traceback
+        traceback.print_exc()
+    
     print("✅ Startup logic completed.")
 
     # Test database connection
@@ -213,7 +228,7 @@ except Exception as e:
     print(f"⚠️  API v1 routes error: {e}")
     API_ROUTES_ERROR = str(e)
 
-# V3 API routes ARCHIVED - legacy database abstraction layer
+# V3 API routes removed - replaced by unified API
 API_V3_ROUTES_ENABLED = False
 API_V3_ROUTES_ERROR = "V3 API archived - was legacy database abstraction layer"
 print("✅ V3 API routes archived - legacy database abstraction removed")

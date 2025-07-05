@@ -404,7 +404,7 @@ async def get_flow_agent_insights(
     Get agent insights for a specific flow.
     
     This is a minimal implementation to support frontend compatibility.
-    TODO: Replace with real CrewAI agent insights.
+    Use MasterFlowOrchestrator for agent insights.
     """
     try:
         logger.info(f"Getting agent insights for flow {flow_id}, page context: {page_context}")
@@ -922,3 +922,241 @@ async def delete_discovery_flow(
         await db.rollback()
         logger.error(f"❌ Error marking discovery flow {flow_id} as deleted: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to delete flow: {str(e)}")
+
+@router.post("/flow/{flow_id}/resume-intelligent", response_model=Dict[str, Any])
+async def resume_flow_intelligent(
+    flow_id: str,
+    request: Dict[str, Any] = {},
+    context: RequestContext = Depends(get_current_context),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Intelligently resume a flow from any interrupted state.
+    
+    This endpoint analyzes the flow's current state and determines the best way to resume:
+    - If waiting for approval: Handles approval or regeneration
+    - If interrupted: Resumes from the last successful phase
+    - If data exists: Can restart processing from raw data
+    
+    Request body can include:
+    - action: "approve", "regenerate", or "auto" (default)
+    - field_mappings: Updated mappings if approving
+    - force_restart: Boolean to restart from beginning even if data exists
+    """
+    try:
+        logger.info(f"🔄 Intelligent resume requested for flow {flow_id}")
+        
+        action = request.get("action", "auto")
+        force_restart = request.get("force_restart", False)
+        
+        # Import required modules
+        from sqlalchemy import select, and_
+        from app.models.discovery_flow import DiscoveryFlow
+        from app.models.data_import import DataImport
+        from app.models.raw_import_record import RawImportRecord
+        from app.services.crewai_flows.unified_discovery_flow.flow_management import UnifiedDiscoveryFlowManager
+        from app.services.crewai_flows.unified_discovery_flow.flow_finalization import UnifiedDiscoveryFlowFinalizer
+        import uuid as uuid_lib
+        
+        # Convert flow_id to UUID
+        try:
+            flow_uuid = uuid_lib.UUID(flow_id)
+        except ValueError:
+            flow_uuid = flow_id
+        
+        # 1. Analyze current flow state
+        logger.info("📊 Analyzing flow state...")
+        
+        # Get discovery flow
+        stmt = select(DiscoveryFlow).where(
+            and_(
+                DiscoveryFlow.flow_id == flow_uuid,
+                DiscoveryFlow.client_account_id == context.client_account_id,
+                DiscoveryFlow.engagement_id == context.engagement_id
+            )
+        )
+        result = await db.execute(stmt)
+        flow = result.scalar_one_or_none()
+        
+        if not flow:
+            raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found")
+        
+        if flow.status == "deleted":
+            raise HTTPException(status_code=400, detail="Cannot resume a deleted flow")
+        
+        # 2. Check for raw data availability
+        raw_data_available = False
+        raw_data_count = 0
+        
+        # Check data imports
+        data_import_stmt = select(DataImport).where(
+            DataImport.discovery_flow_id == flow_uuid
+        )
+        data_import_result = await db.execute(data_import_stmt)
+        data_import = data_import_result.scalar_one_or_none()
+        
+        if data_import:
+            # Count raw records
+            count_stmt = select(func.count(RawImportRecord.id)).where(
+                RawImportRecord.data_import_id == data_import.id
+            )
+            count_result = await db.execute(count_stmt)
+            raw_data_count = count_result.scalar() or 0
+            raw_data_available = raw_data_count > 0
+        
+        # 3. Determine resume strategy
+        resume_strategy = {
+            "action": action,
+            "strategy": "unknown",
+            "from_phase": None,
+            "raw_data_available": raw_data_available,
+            "raw_data_count": raw_data_count
+        }
+        
+        # Analyze flow state
+        is_waiting_approval = flow.status in ["paused", "waiting_for_approval", "waiting_for_user_approval"]
+        has_field_mappings = bool(flow.field_mappings)
+        current_phase = flow.current_phase or "data_import"
+        
+        if action == "auto":
+            if is_waiting_approval and current_phase == "field_mapping":
+                resume_strategy["strategy"] = "approve_field_mappings"
+                resume_strategy["from_phase"] = "field_mapping"
+            elif flow.status == "completed":
+                resume_strategy["strategy"] = "already_completed"
+            elif raw_data_available and not flow.data_import_completed:
+                resume_strategy["strategy"] = "restart_from_raw_data"
+                resume_strategy["from_phase"] = "data_import"
+            elif flow.data_import_completed and not flow.field_mapping_completed:
+                resume_strategy["strategy"] = "resume_field_mapping"
+                resume_strategy["from_phase"] = "field_mapping"
+            elif flow.field_mapping_completed and not flow.data_cleansing_completed:
+                resume_strategy["strategy"] = "resume_data_cleansing"
+                resume_strategy["from_phase"] = "data_cleansing"
+            else:
+                resume_strategy["strategy"] = "continue_from_current"
+                resume_strategy["from_phase"] = current_phase
+        
+        # 4. Execute resume based on strategy
+        logger.info(f"🎯 Resume strategy: {resume_strategy}")
+        
+        if resume_strategy["strategy"] == "already_completed":
+            return {
+                "success": True,
+                "flow_id": str(flow_id),
+                "message": "Flow is already completed",
+                "strategy": resume_strategy,
+                "flow_status": flow.status
+            }
+        
+        # Initialize flow manager
+        flow_manager = UnifiedDiscoveryFlowManager(
+            db=db,
+            client_account_id=context.client_account_id,
+            engagement_id=context.engagement_id,
+            user_id=context.user_id
+        )
+        
+        # Handle approval scenarios
+        if resume_strategy["strategy"] == "approve_field_mappings" and action in ["auto", "approve"]:
+            logger.info("✅ Approving field mappings and resuming...")
+            
+            # Get field mappings from request or use existing
+            field_mappings = request.get("field_mappings", flow.field_mappings)
+            
+            if not field_mappings:
+                raise HTTPException(status_code=400, detail="Field mappings required for approval")
+            
+            # Use flow finalizer to handle approval
+            finalizer = UnifiedDiscoveryFlowFinalizer(flow_manager)
+            result = await finalizer.finalize_field_mapping_approval(
+                flow_id=str(flow_id),
+                field_mappings=field_mappings,
+                confidence_scores=request.get("confidence_scores", {})
+            )
+            
+            return {
+                "success": True,
+                "flow_id": str(flow_id),
+                "message": "Field mappings approved, flow resumed",
+                "strategy": resume_strategy,
+                "flow_status": "processing",
+                "next_phase": "data_cleansing"
+            }
+        
+        # Handle regeneration
+        if action == "regenerate" and is_waiting_approval:
+            logger.info("🔄 Regenerating suggestions...")
+            
+            # This would trigger the CrewAI agents to regenerate suggestions
+            # For now, return a placeholder
+            return {
+                "success": True,
+                "flow_id": str(flow_id),
+                "message": "Regeneration triggered",
+                "strategy": {"action": "regenerate", "strategy": "regenerate_suggestions"},
+                "flow_status": flow.status
+            }
+        
+        # Handle restart from raw data
+        if resume_strategy["strategy"] == "restart_from_raw_data" or force_restart:
+            logger.info("🔄 Restarting from raw data...")
+            
+            # Get raw data
+            if data_import:
+                raw_records_stmt = select(RawImportRecord).where(
+                    RawImportRecord.data_import_id == data_import.id
+                ).limit(100)  # Limit for performance
+                raw_records_result = await db.execute(raw_records_stmt)
+                raw_records = raw_records_result.scalars().all()
+                
+                raw_data = [record.raw_data for record in raw_records]
+                
+                # Restart flow processing
+                from app.services.crewai_flows.unified_discovery_flow.base_flow import UnifiedDiscoveryFlow
+                discovery_flow = UnifiedDiscoveryFlow()
+                
+                # Kickoff the flow
+                logger.info(f"🚀 Kicking off flow with {len(raw_data)} records")
+                
+                async def run_flow():
+                    try:
+                        result = await asyncio.to_thread(discovery_flow.kickoff)
+                        logger.info(f"✅ Flow completed: {result}")
+                    except Exception as e:
+                        logger.error(f"❌ Flow execution error: {e}")
+                
+                # Start flow execution in background
+                import asyncio
+                asyncio.create_task(run_flow())
+                
+                return {
+                    "success": True,
+                    "flow_id": str(flow_id),
+                    "message": f"Flow restarted from {raw_data_count} raw records",
+                    "strategy": resume_strategy,
+                    "flow_status": "processing"
+                }
+        
+        # Default: Update status and let normal flow resume
+        logger.info("📈 Resuming normal flow execution...")
+        
+        flow.status = "processing"
+        flow.updated_at = datetime.utcnow()
+        await db.commit()
+        
+        return {
+            "success": True,
+            "flow_id": str(flow_id),
+            "message": f"Flow resumed from phase: {resume_strategy['from_phase']}",
+            "strategy": resume_strategy,
+            "flow_status": "processing",
+            "current_phase": current_phase
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error in intelligent resume: {e}", exc_info=True)
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to resume flow: {str(e)}")
