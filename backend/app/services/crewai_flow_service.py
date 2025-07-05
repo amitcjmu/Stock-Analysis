@@ -432,10 +432,16 @@ class CrewAIFlowService:
             # Try to resume the actual CrewAI Flow instance
             if CREWAI_FLOWS_AVAILABLE:
                 try:
-                    from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow
+                    from app.services.crewai_flows.unified_discovery_flow.base_flow import UnifiedDiscoveryFlow
+                    from app.core.context import RequestContext
+                    from app.core.database import AsyncSessionLocal
                     
-                    # Resume flow execution (this would need flow registry management)
-                    # For now, we'll simulate resumption and determine next phase
+                    # Create request context from resume_context
+                    context = RequestContext(
+                        client_account_id=resume_context.get('client_account_id'),
+                        engagement_id=resume_context.get('engagement_id'),
+                        user_id=resume_context.get('approved_by')
+                    )
                     
                     # Get current flow state to determine where to resume
                     discovery_service = await self._get_discovery_flow_service(resume_context)
@@ -444,44 +450,52 @@ class CrewAIFlowService:
                     if not flow:
                         raise ValueError(f"Flow not found: {flow_id}")
                     
-                    # Determine next phase based on current state
-                    next_phase = flow.get_next_phase()
+                    # Create and initialize real CrewAI flow
+                    async with AsyncSessionLocal() as db:
+                        # Initialize the real UnifiedDiscoveryFlow
+                        crewai_flow = UnifiedDiscoveryFlow(
+                            crewai_service=self,
+                            context=context,
+                            flow_id=flow_id
+                        )
+                        
+                        # Load existing state and continue execution
+                        await crewai_flow.initialize(
+                            flow_id=flow_id, 
+                            context=vars(context)
+                        )
+                        
+                        # Resume from field mapping approval if that's where we paused
+                        if flow.status == 'waiting_for_approval' and flow.current_phase == 'field_mapping':
+                            logger.info(f"🔄 Continuing from field mapping approval: {flow_id}")
+                            
+                            # Continue the flow execution from pause point
+                            # This should trigger the actual field mapping agents
+                            result = await crewai_flow.resume_flow_from_state(resume_context)
+                        else:
+                            # Start/continue flow execution from current phase
+                            result = await crewai_flow.kickoff()
                     
-                    result = {
-                        "status": "resumed",
+                    logger.info(f"✅ CrewAI flow resumed and executed: {flow_id}")
+                    
+                    return {
+                        "status": "resumed_and_executed",
                         "flow_id": flow_id,
                         "resumed_at": datetime.now().isoformat(),
-                        "next_phase": next_phase,
-                        "current_phase": flow.current_phase,
-                        "progress": flow.progress_percentage,
-                        "method": "crewai_flow_resume",
+                        "execution_result": result,
+                        "method": "real_crewai_flow_resume",
                         "resume_context": resume_context
                     }
                     
-                    logger.info(f"✅ CrewAI flow resumed: {flow_id} -> {next_phase}")
-                    return result
-                    
                 except Exception as e:
-                    logger.warning(f"⚠️ CrewAI flow resume failed: {e}")
-                    # Fallback to PostgreSQL state management
-                    return {
-                        "status": "resumed",
-                        "flow_id": flow_id,
-                        "resumed_at": datetime.now().isoformat(),
-                        "next_phase": "unknown",
-                        "method": "postgresql_state_resume",
-                        "error": str(e),
-                        "note": "CrewAI resume failed, using state management"
-                    }
+                    logger.error(f"⚠️ Real CrewAI flow resume failed: {e}")
+                    import traceback
+                    logger.error(f"Traceback: {traceback.format_exc()}")
+                    
+                    # Don't fall back to fake responses - let the error bubble up
+                    raise e
             else:
-                # CrewAI not available, use PostgreSQL state management
-                return {
-                    "status": "resumed",
-                    "flow_id": flow_id,
-                    "resumed_at": datetime.now().isoformat(),
-                    "next_phase": "unknown",
-                    "method": "postgresql_state_only"
-                }
+                raise ValueError("CrewAI flows not available - cannot resume real flow")
                 
         except Exception as e:
             logger.error(f"❌ Failed to resume flow {flow_id}: {e}")
