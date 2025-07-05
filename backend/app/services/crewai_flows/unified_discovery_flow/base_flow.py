@@ -282,7 +282,20 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         
         # Store suggestions in state
         self.state.field_mappings = suggested_mappings
-        self.state.field_mapping_confidence = confidence_scores
+        
+        # Store individual confidence scores in field mappings
+        if isinstance(confidence_scores, dict):
+            self.state.field_mappings["confidence_scores"] = confidence_scores
+            
+            # Calculate overall confidence as average of individual scores
+            if confidence_scores:
+                total_confidence = sum(confidence_scores.values())
+                self.state.field_mapping_confidence = total_confidence / len(confidence_scores)
+            else:
+                self.state.field_mapping_confidence = 0.0
+        else:
+            # If confidence_scores is already a float (overall confidence)
+            self.state.field_mapping_confidence = float(confidence_scores)
         
         # Add agent insights
         if clarification_questions:

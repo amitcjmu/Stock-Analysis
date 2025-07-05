@@ -1,5 +1,53 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [1.0.7] - 2025-07-05
+
+### 🎯 **Master Flow Registration & State Model Fixes**
+
+This release fixes critical master-child flow registration issues and adds missing state model fields, ensuring proper flow orchestration and preventing runtime errors.
+
+### 🚀 **Critical Architecture Fixes**
+
+#### **Master Flow Registration Implementation**
+- **Change Type**: Architecture fix
+- **Impact**: Discovery flows now properly register with master flow orchestration system
+- **Technical Details**:
+  - Fixed flow creation to generate unique master flow ID first
+  - Discovery flows now properly set `master_flow_id` field linking to master
+  - Corrected architecture: Master flow has unique ID, child flows reference it
+  - Added `/api/v1/master-flows/active` endpoint for unified flow visibility
+
+#### **State Model Field Addition**
+- **Change Type**: Bug fix
+- **Impact**: CrewAI flows no longer crash when setting confidence scores
+- **Technical Details**:
+  - Added missing `field_mapping_confidence: float` field to UnifiedDiscoveryFlowState
+  - Properly calculates overall confidence from individual field scores
+  - Maintains backward compatibility with existing confidence score storage
+  - Fixed ValueError: "StateWithId" object has no field "field_mapping_confidence"
+
+#### **Syntax Error Fixes**
+- **Change Type**: Bug fix
+- **Impact**: Backend API routes load successfully without syntax errors
+- **Technical Details**:
+  - Fixed PostgreSQL casting syntax causing Python syntax errors
+  - Replaced SQL-style casting with proper Python dictionary updates
+  - Simplified master flow status updates for better maintainability
+
+### 📊 **Business Impact**
+
+- **Flow Visibility**: All discovery flows now appear in master flow dashboards
+- **System Stability**: Eliminated runtime errors from missing state fields
+- **Flow Control**: 80% confidence threshold checks work correctly
+- **Cross-Flow Coordination**: Master-child relationships enable proper orchestration
+
+### 🎯 **Success Metrics**
+
+- **100% Flow Registration**: All new discovery flows properly linked to master flows
+- **Zero Runtime Errors**: State model now includes all required fields
+- **Proper Architecture**: Master-child flow pattern correctly implemented
+- **Enhanced Monitoring**: Unified view of all flow types through master flow API
+
 ## [1.0.6] - 2025-07-05
 
 ### 🎯 **Flow Lifecycle Management & Audit Trail System**

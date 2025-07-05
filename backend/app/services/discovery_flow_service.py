@@ -81,27 +81,21 @@ class DiscoveryFlowService:
                 logger.info(f"✅ Discovery flow already exists globally, returning existing: {flow_id}")
                 return existing_flow
             
-            # Step 1: Create discovery flow in discovery_flows table
-            logger.info(f"🔧 Creating discovery flow: {flow_id}")
+            # Step 1: Create master flow in crewai_flow_state_extensions table
+            logger.info(f"🔧 Creating master flow for discovery flow coordination")
             
-            discovery_flow = await self.flow_repo.create_discovery_flow(
-                flow_id=flow_id,
-                data_import_id=data_import_id,
-                user_id=user_id or str(self.context.user_id),
-                raw_data=raw_data,
-                metadata=metadata or {}
-            )
-            
-            # Step 2: Create corresponding crewai_flow_state_extensions record with same flow_id
-            logger.info(f"🔧 Creating crewai_flow_state_extensions record: {flow_id}")
+            # Generate a unique master flow ID
+            import uuid
+            master_flow_id = str(uuid.uuid4())
             
             try:
                 extensions_record = await self.master_flow_repo.create_master_flow(
-                    flow_id=flow_id,  # Same flow_id as discovery flow
+                    flow_id=master_flow_id,  # Unique master flow ID
                     flow_type="discovery",
                     user_id=user_id or str(self.context.user_id),
                     flow_name=f"Discovery Flow {flow_id[:8]}",
                     flow_configuration={
+                        "discovery_flow_id": flow_id,  # Reference to the child discovery flow
                         "data_import_id": data_import_id,
                         "raw_data_count": len(raw_data),
                         "metadata": metadata or {}
@@ -112,14 +106,28 @@ class DiscoveryFlowService:
                         "creation_timestamp": datetime.utcnow().isoformat()
                     }
                 )
-                logger.info(f"✅ Extensions record created: {extensions_record.flow_id}")
+                logger.info(f"✅ Master flow created: {master_flow_id}")
             except Exception as ext_error:
-                logger.warning(f"⚠️ Failed to create extensions record (non-critical): {ext_error}")
-                # Don't fail the whole operation if extensions creation fails
+                logger.error(f"❌ Failed to create master flow record: {ext_error}")
+                # Master flow is critical for proper flow coordination
+                raise Exception(f"Failed to create master flow: {ext_error}")
+            
+            # Step 2: Create discovery flow in discovery_flows table with master_flow_id reference
+            logger.info(f"🔧 Creating discovery flow: {flow_id} with master_flow_id: {master_flow_id}")
+            
+            discovery_flow = await self.flow_repo.create_discovery_flow(
+                flow_id=flow_id,
+                master_flow_id=master_flow_id,  # Link to master flow
+                data_import_id=data_import_id,
+                user_id=user_id or str(self.context.user_id),
+                raw_data=raw_data,
+                metadata=metadata or {}
+            )
             
             logger.info(f"✅ Discovery flow created successfully: {flow_id}")
+            logger.info(f"   Master flow: crewai_flow_state_extensions.flow_id = {master_flow_id}")
             logger.info(f"   Discovery flow: discovery_flows.flow_id = {flow_id}")
-            logger.info(f"   Extensions: crewai_flow_state_extensions.flow_id = {flow_id}")
+            logger.info(f"   Discovery flow: discovery_flows.master_flow_id = {master_flow_id}")
             
             return discovery_flow
             

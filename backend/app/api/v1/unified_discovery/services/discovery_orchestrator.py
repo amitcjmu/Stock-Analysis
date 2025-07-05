@@ -310,8 +310,8 @@ class DiscoveryOrchestrator:
         # Start with base flow information
         merged_status = {
             "flow_id": flow_id,
-            "client_account_id": self.context.client_account_id,
-            "engagement_id": self.context.engagement_id,
+            "client_account_id": str(self.context.client_account_id),
+            "engagement_id": str(self.context.engagement_id),
             "layers": {
                 "crewai": crewai_status,
                 "database": database_status

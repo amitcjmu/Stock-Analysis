@@ -9,6 +9,7 @@ from typing import Dict, Any, List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func
+from sqlalchemy.dialects.postgresql import JSONB
 
 from app.core.database import get_db
 from app.core.context import RequestContext, get_current_context
@@ -145,8 +146,9 @@ async def get_flow_status(
                 extensions = ext_result.scalar_one_or_none()
                 
                 agent_insights = []
-                if extensions and extensions.agent_insights:
-                    agent_insights = extensions.agent_insights
+                if extensions and extensions.flow_persistence_data:
+                    # Agent insights might be stored in flow_persistence_data
+                    agent_insights = extensions.flow_persistence_data.get("agent_insights", [])
                 
                 return {
                     "flow_id": str(flow_id),
@@ -198,12 +200,13 @@ async def get_flow_status(
                 else:
                     status = "processing"
                 
+                # Use context values for client_account_id and engagement_id since state_dict is just the persistence data
                 return {
                     "flow_id": flow_id,
                     "status": status,
                     "type": "discovery",
-                    "client_account_id": state_dict.get("client_account_id", ""),
-                    "engagement_id": state_dict.get("engagement_id", ""),
+                    "client_account_id": str(context.client_account_id),
+                    "engagement_id": str(context.engagement_id),
                     "progress": {
                         "current_phase": current_phase,
                         "completion_percentage": progress_percentage,
@@ -231,8 +234,8 @@ async def get_flow_status(
             "flow_id": flow_id,
             "status": result.get("status", "unknown"),
             "type": "discovery",
-            "client_account_id": result.get("client_account_id", ""),
-            "engagement_id": result.get("engagement_id", ""),
+            "client_account_id": str(result.get("client_account_id", context.client_account_id)),
+            "engagement_id": str(result.get("engagement_id", context.engagement_id)),
             "progress": {
                 "current_phase": result.get("current_phase", "unknown"),
                 "completion_percentage": progress_percentage,
@@ -774,18 +777,23 @@ async def delete_discovery_flow(
         
         # Update master flow if exists
         if flow.master_flow_id:
-            master_stmt = update(CrewAIFlowStateExtensions).where(
+            # Get the master flow to update its persistence data
+            master_stmt = select(CrewAIFlowStateExtensions).where(
                 CrewAIFlowStateExtensions.flow_id == flow.master_flow_id
-            ).values(
-                flow_status="child_flows_deleted",
-                updated_at=datetime.utcnow(),
-                flow_persistence_data=func.jsonb_set(
-                    CrewAIFlowStateExtensions.flow_persistence_data,
-                    '{discovery_flow_deleted}',
-                    'true'::jsonb
-                )
             )
-            await db.execute(master_stmt)
+            master_result = await db.execute(master_stmt)
+            master_flow = master_result.scalar_one_or_none()
+            
+            if master_flow:
+                master_flow.flow_status = "child_flows_deleted"
+                master_flow.updated_at = datetime.utcnow()
+                
+                # Update persistence data
+                if not master_flow.flow_persistence_data:
+                    master_flow.flow_persistence_data = {}
+                master_flow.flow_persistence_data["discovery_flow_deleted"] = True
+                master_flow.flow_persistence_data["deletion_timestamp"] = datetime.utcnow().isoformat()
+                master_flow.flow_persistence_data["deleted_by"] = context.user_id
         
         # Create audit record
         duration_ms = int((time.time() - start_time) * 1000)

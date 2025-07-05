@@ -104,6 +104,7 @@ class UnifiedDiscoveryFlowState(BaseModel):
         "validation_results": {},
         "agent_insights": {}
     })
+    field_mapping_confidence: float = Field(default=0.0, description="Overall confidence score for field mappings (0-1)")
     
     # Data validation results (from DataImportValidationAgent)
     data_validation_results: Dict[str, Any] = Field(default_factory=dict)

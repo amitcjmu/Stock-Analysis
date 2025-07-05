@@ -107,6 +107,53 @@ async def get_cross_phase_analytics(
         raise HTTPException(status_code=500, detail=f"Error retrieving cross-phase analytics: {str(e)}")
 
 
+@router.get("/active", response_model=List[Dict[str, Any]])
+async def get_active_master_flows(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user_context)
+) -> List[Dict[str, Any]]:
+    """Get all active master flows across all flow types"""
+    
+    client_account_id = current_user.get("client_account_id")
+    if not client_account_id:
+        raise HTTPException(status_code=400, detail="Client account ID required")
+    
+    try:
+        from sqlalchemy import select, and_, or_
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+        
+        # Query for active master flows
+        stmt = select(CrewAIFlowStateExtensions).where(
+            and_(
+                CrewAIFlowStateExtensions.client_account_id == client_account_id,
+                CrewAIFlowStateExtensions.flow_status.notin_(["deleted", "cancelled", "child_flows_deleted"])
+            )
+        ).order_by(CrewAIFlowStateExtensions.created_at.desc())
+        
+        result = await db.execute(stmt)
+        master_flows = result.scalars().all()
+        
+        # Convert to response format
+        active_flows = []
+        for flow in master_flows:
+            active_flows.append({
+                "master_flow_id": str(flow.flow_id),
+                "flow_type": flow.flow_type,
+                "flow_name": flow.flow_name,
+                "status": flow.flow_status,
+                "created_at": flow.created_at.isoformat() if flow.created_at else None,
+                "updated_at": flow.updated_at.isoformat() if flow.updated_at else None,
+                "configuration": flow.flow_configuration or {}
+            })
+        
+        logger.info(f"Found {len(active_flows)} active master flows")
+        return active_flows
+        
+    except Exception as e:
+        logger.error(f"Error retrieving active master flows: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving active master flows: {str(e)}")
+
+
 @router.get("/coordination/summary", response_model=MasterFlowCoordinationResponse)
 async def get_master_flow_coordination_summary(
     db: AsyncSession = Depends(get_db),
