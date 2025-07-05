@@ -1,0 +1,304 @@
+{
+  "config": {
+    "configFile": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/playwright.config.ts",
+    "rootDir": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/results.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "test-results/results.xml"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 300000
+      },
+      {
+        "outputDir": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 300000
+      },
+      {
+        "outputDir": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 300000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.53.2",
+    "workers": 4,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "discovery-complete-flow.spec.ts",
+      "file": "discovery-complete-flow.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Complete Discovery Flow",
+          "file": "discovery-complete-flow.spec.ts",
+          "line": 417,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Execute complete discovery workflow from CMDB upload to asset inventory",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 300000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 59209,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🔐 Logging in user...\n"
+                        },
+                        {
+                          "text": "✅ User logged in successfully, current URL: http://localhost:8081/\n"
+                        },
+                        {
+                          "text": "📁 Navigating to Data Import...\n"
+                        },
+                        {
+                          "text": "🔗 Found Data Import link, clicking...\n"
+                        },
+                        {
+                          "text": "📄 On CMDB Import page, URL: http://localhost:8081/discovery/cmdb-import\n"
+                        },
+                        {
+                          "text": "📤 Uploading CMDB file...\n"
+                        },
+                        {
+                          "text": "⚠️ Upload blocked by existing flows - attempting to resolve...\n"
+                        },
+                        {
+                          "text": "🗑️ Deleting existing flow to allow new upload...\n"
+                        },
+                        {
+                          "text": "Found 0 upload areas\n"
+                        },
+                        {
+                          "text": "Found 18 alternative upload areas\n"
+                        },
+                        {
+                          "text": "🎯 Clicking first upload area...\n"
+                        },
+                        {
+                          "text": "Upload area visible: \u001b[33mtrue\u001b[39m\n"
+                        },
+                        {
+                          "text": "File inputs found: 4\n"
+                        },
+                        {
+                          "text": "Test file path: /Users/chocka/CursorProjects/migrate-ui-orchestrator/tests/fixtures/enterprise-cmdb-data.csv\n"
+                        },
+                        {
+                          "text": "✅ Test file exists, uploading...\n"
+                        },
+                        {
+                          "text": "✅ Upload successful: Demo CorporationDemo Cloud Migration ProjectSwitch ContextSecure Data ImportDemo Corporation • Demo Cloud Migration ProjectStatus OKUpload migration data files for AI-powered validation and security analysis. Our specialized agents ensure data quality, security, and privacy compliance before processing.Enterprise Security: All uploaded data is analyzed by specialized validation agents for format compliance, security threats, privacy protection, and data quality before any processing begins.Choose Data CategoryCMDB Export Datastandard security4 validation agentsConfiguration Management Database exports with asset informationAccepted formats:.csv.xlsx.jsonExamples:ServiceNow exports, BMC Remedy data, Custom CMDB filesUpload CMDB Export DataApplication Discovery Dataelevated security5 validation agentsApplication portfolio and dependency scan resultsAccepted formats:.csv.json.xmlExamples:Application scans, Dependency maps, Service inventoriesUpload Application Discovery DataInfrastructure Assessmenthigh security5 validation agentsServer, network, and infrastructure discovery dataAccepted formats:.csv.xlsx.jsonExamples:Network scans, Server inventories, Performance dataUpload Infrastructure AssessmentSensitive Data Assetsmaximum security6 validation agentsData containing PII, financial, or confidential informationAccepted formats:.csv.xlsxExamples:Customer data, Financial records, HR systemsUpload Sensitive Data AssetsUpload & Validation Statusenterprise-cmdb-data.csv0.00 MB • text/csvProcessingCrewAI Discovery Flow Progress0%Current Phase: data_importCrewAI agents are analyzing your data using advanced AI techniquesDiscovery Flow Statusenterprise-cmdb-data.csv3281Discovery Flow Status0% CompleteStatus:InitializingCurrent Phase:data importFlow is being initializedOverall Progress0%Phases Completed:data importfield mappingdata cleansingasset inventorydependency analysistech debt assessmentasset creationtech debt analysisLast updated: 1:05:49 PM\n"
+                        },
+                        {
+                          "text": "📤 Upload result: Demo CorporationDemo Cloud Migration ProjectSwitch ContextSecure Data ImportDemo Corporation • Demo Cloud Migration ProjectStatus OKUpload migration data files for AI-powered validation and security analysis. Our specialized agents ensure data quality, security, and privacy compliance before processing.Enterprise Security: All uploaded data is analyzed by specialized validation agents for format compliance, security threats, privacy protection, and data quality before any processing begins.Choose Data CategoryCMDB Export Datastandard security4 validation agentsConfiguration Management Database exports with asset informationAccepted formats:.csv.xlsx.jsonExamples:ServiceNow exports, BMC Remedy data, Custom CMDB filesUpload CMDB Export DataApplication Discovery Dataelevated security5 validation agentsApplication portfolio and dependency scan resultsAccepted formats:.csv.json.xmlExamples:Application scans, Dependency maps, Service inventoriesUpload Application Discovery DataInfrastructure Assessmenthigh security5 validation agentsServer, network, and infrastructure discovery dataAccepted formats:.csv.xlsx.jsonExamples:Network scans, Server inventories, Performance dataUpload Infrastructure AssessmentSensitive Data Assetsmaximum security6 validation agentsData containing PII, financial, or confidential informationAccepted formats:.csv.xlsxExamples:Customer data, Financial records, HR systemsUpload Sensitive Data AssetsUpload & Validation Statusenterprise-cmdb-data.csv0.00 MB • text/csvProcessingCrewAI Discovery Flow Progress0%Current Phase: data_importCrewAI agents are analyzing your data using advanced AI techniquesDiscovery Flow Statusenterprise-cmdb-data.csv3281Discovery Flow Status0% CompleteStatus:InitializingCurrent Phase:data importFlow is being initializedOverall Progress0%Phases Completed:data importfield mappingdata cleansingasset inventorydependency analysistech debt assessmentasset creationtech debt analysisLast updated: 1:05:49 PM\n"
+                        },
+                        {
+                          "text": "⏳ Waiting for discovery processing...\n"
+                        },
+                        {
+                          "text": "🔄 Processing detected, waiting...\n"
+                        },
+                        {
+                          "text": "⏳ Still processing... (1/15)\n"
+                        },
+                        {
+                          "text": "⏳ Still processing... (2/15)\n"
+                        },
+                        {
+                          "text": "⏳ Still processing... (3/15)\n"
+                        },
+                        {
+                          "text": "⏳ Still processing... (4/15)\n"
+                        },
+                        {
+                          "text": "⏳ Still processing... (5/15)\n"
+                        },
+                        {
+                          "text": "⏳ Still processing... (6/15)\n"
+                        },
+                        {
+                          "text": "⏳ Still processing... (7/15)\n"
+                        },
+                        {
+                          "text": "⏳ Still processing... (8/15)\n"
+                        },
+                        {
+                          "text": "⏳ Still processing... (9/15)\n"
+                        },
+                        {
+                          "text": "⏳ Still processing... (10/15)\n"
+                        },
+                        {
+                          "text": "⏳ Still processing... (11/15)\n"
+                        },
+                        {
+                          "text": "⏳ Still processing... (12/15)\n"
+                        },
+                        {
+                          "text": "⏳ Still processing... (13/15)\n"
+                        },
+                        {
+                          "text": "⏳ Still processing... (14/15)\n"
+                        },
+                        {
+                          "text": "⏳ Still processing... (15/15)\n"
+                        },
+                        {
+                          "text": "⚠️ Processing timeout - proceeding anyway\n"
+                        },
+                        {
+                          "text": "🗺️ Navigating to Attribute Mapping...\n"
+                        },
+                        {
+                          "text": "🔗 Found attribute mapping link: text=\"Attribute Mapping\"\n"
+                        },
+                        {
+                          "text": "📄 On Attribute Mapping page, URL: http://localhost:8081/discovery/attribute-mapping\n"
+                        },
+                        {
+                          "text": "🔍 Validating field mappings...\n"
+                        },
+                        {
+                          "text": "✅ Field mapping data found: text=/field mapping/i\n"
+                        },
+                        {
+                          "text": "📊 Mapping rows found: 0\n"
+                        },
+                        {
+                          "text": "🗺️ Field mappings: \u001b[33m0\u001b[39m\n"
+                        },
+                        {
+                          "text": "📋 Navigating to Asset Inventory...\n"
+                        },
+                        {
+                          "text": "🔗 Found asset inventory link: nav a:has-text(\"Inventory\")\n"
+                        },
+                        {
+                          "text": "📄 On Asset Inventory page, URL: http://localhost:8081/discovery/inventory\n"
+                        },
+                        {
+                          "text": "📊 Assets found: 0\n"
+                        },
+                        {
+                          "text": "🎉 Discovery Flow Results: {\n  login: \u001b[33mtrue\u001b[39m,\n  navigation: \u001b[33mtrue\u001b[39m,\n  upload: \u001b[33mtrue\u001b[39m,\n  processing: \u001b[33mtrue\u001b[39m,\n  attributeMapping: \u001b[33mfalse\u001b[39m,\n  assetInventory: \u001b[33mfalse\u001b[39m,\n  assetCount: \u001b[33m0\u001b[39m\n}\n"
+                        },
+                        {
+                          "text": "⚠️ DISCOVERY FLOW INCOMPLETE - No assets or mappings detected\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-07-05T17:05:32.873Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "4dd1dd663376991beec4-4a613f3b6194641138c3",
+              "file": "discovery-complete-flow.spec.ts",
+              "line": 418,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-07-05T17:05:32.253Z",
+    "duration": 60127.513999999996,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

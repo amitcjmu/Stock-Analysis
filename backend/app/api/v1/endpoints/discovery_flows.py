@@ -226,6 +226,19 @@ async def get_flow_status(
                 if extensions and extensions.flow_persistence_data and "phase_completion" in extensions.flow_persistence_data:
                     phase_completion.update(extensions.flow_persistence_data["phase_completion"])
                 
+                # Extract field mappings from CrewAI state extensions
+                field_mappings = {}
+                if extensions and extensions.flow_persistence_data:
+                    field_mappings = extensions.flow_persistence_data.get("field_mappings", {})
+                    logger.info(f"🔍 TESTING: Found field mappings in extensions: {len(field_mappings) if isinstance(field_mappings, dict) else 'not dict'}")
+                    logger.info(f"🔍 TESTING: Field mappings structure: {field_mappings}")
+                
+                # Also check discovery_flows table JSONB for field mappings
+                if not field_mappings and flow.crewai_state_data:
+                    field_mappings = flow.crewai_state_data.get("field_mappings", {})
+                    logger.info(f"🔍 TESTING: Found field mappings in discovery_flows: {len(field_mappings) if isinstance(field_mappings, dict) else 'not dict'}")
+                    logger.info(f"🔍 TESTING: Field mappings structure from discovery_flows: {field_mappings}")
+                
                 return {
                     "flow_id": str(flow_id),
                     "status": final_status,
@@ -245,6 +258,7 @@ async def get_flow_status(
                     "crewai_status": final_status,
                     "agent_insights": agent_insights,
                     "phase_completion": phase_completion,
+                    "field_mappings": field_mappings,  # Add field mappings to response
                     "last_updated": flow.updated_at.isoformat() if flow.updated_at else ""
                 }
         except Exception as direct_error:
@@ -290,6 +304,7 @@ async def get_flow_status(
                     "crewai_status": "active" if status == "processing" else status,
                     "agent_insights": state_dict.get("agent_insights", []),
                     "phase_completion": state_dict.get("phase_completion", {}),
+                    "field_mappings": state_dict.get("field_mappings", {}),  # Add field mappings
                     "awaiting_user_approval": state_dict.get("awaiting_user_approval", False),
                     "last_updated": state_dict.get("updated_at", "")
                 }
@@ -645,10 +660,13 @@ async def resume_discovery_flow(
         
         # Try to resume with CrewAI service if available
         try:
+            logger.info(f"🔍 TESTING: About to call crewai_service.resume_flow({flow_id}, {resume_context})")
             result = await crewai_service.resume_flow(flow_id, resume_context)
-            logger.info(f"CrewAI service resume result: {result}")
+            logger.info(f"🔍 TESTING: CrewAI service resume result: {result}")
         except Exception as crewai_error:
-            logger.warning(f"CrewAI service resume failed: {crewai_error}")
+            logger.warning(f"🔍 TESTING: CrewAI service resume failed: {crewai_error}")
+            import traceback
+            logger.error(f"🔍 TESTING: Resume error traceback: {traceback.format_exc()}")
         
         logger.info(f"✅ Flow {flow_id} resumed successfully")
         

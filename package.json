@@ -28,7 +28,13 @@
     "test:e2e": "playwright test",
     "test:e2e:import": "playwright test tests/e2e/data-import-flow.spec.ts",
     "test:e2e:ui": "npx playwright test tests/e2e/admin-interface.spec.ts --ui",
-    "test:admin": "npx playwright test tests/e2e/admin-interface.spec.ts"
+    "test:e2e:journey": "playwright test tests/e2e/complete-user-journey.spec.ts",
+    "test:e2e:all": "playwright test tests/e2e/",
+    "test:admin": "npx playwright test tests/e2e/admin-interface.spec.ts",
+    "test:backend:agents": "cd backend && python -m pytest tests/backend/integration/test_real_agent_processing.py -v",
+    "test:backend:persistence": "cd backend && python -m pytest tests/backend/integration/test_cross_flow_persistence.py -v",
+    "test:backend:integration": "cd backend && python -m pytest tests/backend/integration/ -v",
+    "test:complete": "npm run test:backend:integration && npm run test:e2e:journey"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
@@ -75,7 +81,6 @@
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "papaparse": "^5.5.3",
-    "playwright": "^1.53.2",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
@@ -96,7 +101,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
-    "@playwright/test": "^1.52.0",
+    "@playwright/test": "^1.53.2",
     "@tailwindcss/typography": "^0.5.15",
     "@types/node": "^22.5.5",
     "@types/react": "^18.3.3",

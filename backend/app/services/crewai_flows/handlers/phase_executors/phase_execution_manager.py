@@ -58,10 +58,17 @@ class PhaseExecutionManager:
             previous_result: Result from previous phase
             mode: Execution mode - 'full' or 'suggestions_only'
         """
+        logger.info(f"🔍 DEBUG: execute_field_mapping_phase called with mode: {mode}")
+        
         # Pass mode to executor if it's suggestions_only
         if mode == "suggestions_only":
-            return await self.field_mapping_executor.execute_suggestions_only(previous_result)
+            logger.info("🔍 DEBUG: Calling execute_suggestions_only")
+            result = await self.field_mapping_executor.execute_suggestions_only(previous_result)
+            logger.info(f"🔍 DEBUG: execute_suggestions_only returned: {result}")
+            logger.info(f"🔍 DEBUG: Return result keys: {list(result.keys()) if isinstance(result, dict) else 'Not a dict'}")
+            return result
         else:
+            logger.info("🔍 DEBUG: Calling execute (full mode)")
             return await self.field_mapping_executor.execute(previous_result)
     
     async def execute_data_cleansing_phase(self, previous_result):

@@ -374,6 +374,16 @@ async def _trigger_discovery_flow(
                     user_id=user_id or "system"
                 )
                 
+                # 🚨 CRITICAL FIX: Mark data import phase as completed
+                logger.info(f"🔍 Marking data import phase as completed for flow {actual_crewai_flow_id}")
+                await discovery_service.update_phase_completion(
+                    flow_id=actual_crewai_flow_id,
+                    phase="data_import",
+                    phase_data={"total_records": len(file_data), "processed_records": len(file_data)},
+                    crew_status={"status": "completed", "message": "Data import successful"}
+                )
+                logger.info(f"✅ Data import phase marked as completed for flow {actual_crewai_flow_id}")
+                
                 # Commit the database transaction
                 await db_session.commit()
                 
@@ -394,9 +404,24 @@ async def _trigger_discovery_flow(
         
         # Start the flow execution in background (non-blocking)
         try:
-            # Use asyncio.create_task to run the flow in background
+            # CrewAI Flow needs to be started with kickoff() to run the full event chain
             import asyncio
-            task = asyncio.create_task(asyncio.to_thread(discovery_flow.kickoff))
+            
+            # Create a task to run the flow's kickoff method
+            async def run_flow():
+                try:
+                    logger.info(f"🎯 Starting CrewAI Flow execution for flow_id: {actual_crewai_flow_id}")
+                    # Use kickoff() to start the full flow execution through all @start and @listen methods
+                    # CrewAI Flow kickoff() is synchronous, so we run it in a thread
+                    result = await asyncio.to_thread(discovery_flow.kickoff)
+                    logger.info(f"✅ CrewAI Flow completed with result: {result}")
+                except Exception as e:
+                    logger.error(f"❌ Error during flow execution: {e}")
+                    import traceback
+                    logger.error(f"Traceback: {traceback.format_exc()}")
+            
+            # Create the task but don't await it
+            task = asyncio.create_task(run_flow())
             logger.info(f"🚀 CrewAI Flow task created and running in background")
             
             # Don't await the task - let it run independently

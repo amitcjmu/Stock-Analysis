@@ -1,0 +1,159 @@
+{
+  "test_applications": [
+    {
+      "id": "legacy_cobol_app",
+      "name": "Legacy Billing System",
+      "description": "COBOL-based mainframe billing application",
+      "technology_stack": ["COBOL", "CICS", "IBM DB2", "JCL"],
+      "department": "Finance",
+      "business_unit": "Billing Operations",
+      "criticality": "critical",
+      "complexity_score": 9,
+      "age_years": 25,
+      "maintenance_cost": "very_high",
+      "documentation_quality": "poor",
+      "test_coverage": "minimal",
+      "expected_6r_strategy": "replace",
+      "expected_confidence": 0.9,
+      "rationale": "Legacy technology stack with high maintenance costs and limited modernization options"
+    },
+    {
+      "id": "modern_java_microservice", 
+      "name": "Customer Portal API",
+      "description": "Modern Java Spring Boot microservice",
+      "technology_stack": ["Java 11", "Spring Boot", "PostgreSQL", "Docker"],
+      "department": "IT",
+      "business_unit": "Customer Service",
+      "criticality": "high",
+      "complexity_score": 6,
+      "age_years": 3,
+      "maintenance_cost": "medium",
+      "documentation_quality": "good",
+      "test_coverage": "comprehensive",
+      "expected_6r_strategy": "refactor",
+      "expected_confidence": 0.8,
+      "rationale": "Modern stack with good practices, suitable for cloud-native refactoring"
+    },
+    {
+      "id": "simple_static_website",
+      "name": "Company Marketing Site", 
+      "description": "Static HTML/CSS marketing website",
+      "technology_stack": ["HTML", "CSS", "JavaScript", "Apache"],
+      "department": "Marketing",
+      "business_unit": "Digital Marketing",
+      "criticality": "low",
+      "complexity_score": 2,
+      "age_years": 5,
+      "maintenance_cost": "low",
+      "documentation_quality": "minimal",
+      "test_coverage": "none",
+      "expected_6r_strategy": "rehost",
+      "expected_confidence": 0.95,
+      "rationale": "Simple static content easily migrated to cloud hosting"
+    },
+    {
+      "id": "enterprise_erp",
+      "name": "SAP ERP System",
+      "description": "Enterprise resource planning system",
+      "technology_stack": ["SAP ECC", "ABAP", "Oracle DB", "Windows Server"],
+      "department": "Finance",
+      "business_unit": "Enterprise Operations",
+      "criticality": "critical",
+      "complexity_score": 8,
+      "age_years": 12,
+      "maintenance_cost": "high",
+      "documentation_quality": "extensive",
+      "test_coverage": "moderate",
+      "expected_6r_strategy": "retain",
+      "expected_confidence": 0.75,
+      "rationale": "Mission-critical system with high migration risks and vendor dependencies"
+    },
+    {
+      "id": "data_analytics_platform",
+      "name": "Business Intelligence Platform",
+      "description": "Data analytics and reporting platform",
+      "technology_stack": ["Python", "Pandas", "PostgreSQL", "Tableau"],
+      "department": "Analytics",
+      "business_unit": "Business Intelligence",
+      "criticality": "medium",
+      "complexity_score": 7,
+      "age_years": 4,
+      "maintenance_cost": "medium",
+      "documentation_quality": "good",
+      "test_coverage": "good",
+      "expected_6r_strategy": "replatform",
+      "expected_confidence": 0.82,
+      "rationale": "Modern data stack suitable for cloud data platform migration"
+    },
+    {
+      "id": "legacy_windows_app",
+      "name": "Desktop Inventory Management",
+      "description": "Legacy Windows desktop application",
+      "technology_stack": [".NET Framework 4.5", "SQL Server", "WinForms"],
+      "department": "Operations",
+      "business_unit": "Inventory Management",
+      "criticality": "medium",
+      "complexity_score": 5,
+      "age_years": 8,
+      "maintenance_cost": "high",
+      "documentation_quality": "poor",
+      "test_coverage": "minimal",
+      "expected_6r_strategy": "repurchase",
+      "expected_confidence": 0.7,
+      "rationale": "Legacy desktop app better replaced with cloud-based SaaS solution"
+    }
+  ],
+  "test_parameters": {
+    "default_business_value": 7,
+    "default_technical_complexity": 5,
+    "default_migration_urgency": 6,
+    "default_compliance_requirements": 4,
+    "default_cost_sensitivity": 5,
+    "default_risk_tolerance": 6,
+    "default_innovation_priority": 8
+  },
+  "test_scenarios": [
+    {
+      "name": "high_innovation_scenario",
+      "description": "Organization with high innovation priority and risk tolerance",
+      "parameters": {
+        "business_value": 8,
+        "technical_complexity": 6,
+        "migration_urgency": 8,
+        "compliance_requirements": 3,
+        "cost_sensitivity": 4,
+        "risk_tolerance": 8,
+        "innovation_priority": 9
+      },
+      "expected_bias": "Favor Refactor and ReArchitect strategies"
+    },
+    {
+      "name": "cost_sensitive_scenario",
+      "description": "Organization focused on cost optimization",
+      "parameters": {
+        "business_value": 6,
+        "technical_complexity": 5,
+        "migration_urgency": 4,
+        "compliance_requirements": 5,
+        "cost_sensitivity": 9,
+        "risk_tolerance": 3,
+        "innovation_priority": 4
+      },
+      "expected_bias": "Favor Rehost and Retain strategies"
+    },
+    {
+      "name": "compliance_heavy_scenario",
+      "description": "Highly regulated organization with strict compliance",
+      "parameters": {
+        "business_value": 7,
+        "technical_complexity": 6,
+        "migration_urgency": 5,
+        "compliance_requirements": 9,
+        "cost_sensitivity": 6,
+        "risk_tolerance": 2,
+        "innovation_priority": 5
+      },
+      "expected_bias": "Favor Retain and Replatform strategies"
+    }
+  ]
+}

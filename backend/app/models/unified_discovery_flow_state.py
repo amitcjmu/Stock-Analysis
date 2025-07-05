@@ -251,6 +251,11 @@ class UnifiedDiscoveryFlowState(BaseModel):
     completed_at: Optional[str] = None
     execution_time_seconds: float = 0.0
     
+    # Pause/Resume related timestamps
+    paused_at: Optional[str] = None
+    resumed_at: Optional[str] = None
+    pause_reason: Optional[str] = None
+    
     # ========================================
     # DATABASE INTEGRATION
     # ========================================

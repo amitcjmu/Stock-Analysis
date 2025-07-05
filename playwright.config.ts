@@ -6,10 +6,14 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
-  timeout: 90 * 1000, // Increased timeout for comprehensive tests
+  reporter: [
+    ['html'],
+    ['json', { outputFile: 'test-results/results.json' }],
+    ['junit', { outputFile: 'test-results/results.xml' }]
+  ],
+  timeout: 300 * 1000, // 5 minutes for complete journey tests
   expect: {
-    timeout: 10000, // Increased expect timeout
+    timeout: 15000, // Increased expect timeout for complex operations
   },
   use: {
     baseURL: 'http://localhost:8081',

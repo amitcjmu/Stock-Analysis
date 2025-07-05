@@ -158,12 +158,30 @@ class FieldMappingExecutor(BasePhaseExecutor):
         # Simple text parsing for mappings
         lines = text.split('\n')
         for line in lines:
-            if ':' in line and '->' in line:
+            # Look for different mapping formats
+            # Format 1: source_field -> target_attribute
+            if '->' in line:
                 parts = line.split('->')
                 if len(parts) == 2:
-                    source = parts[0].strip().strip('"\'')
-                    target = parts[1].strip().strip('"\'')
-                    mappings[source] = target
+                    source = parts[0].strip().strip('"\'').strip(':').strip()
+                    target = parts[1].strip().strip('"\'').strip()
+                    if source and target:
+                        mappings[source] = target
+            # Format 2: source_field: target_attribute
+            elif ':' in line and not any(skip in line.lower() for skip in ['confidence', 'status', 'clarification', 'question']):
+                parts = line.split(':', 1)
+                if len(parts) == 2:
+                    source = parts[0].strip().strip('"\'').strip()
+                    target = parts[1].strip().strip('"\'').strip()
+                    # Skip if it looks like a sentence or instruction
+                    if source and target and not ' ' in source.strip() and len(source) < 50:
+                        mappings[source] = target
+        
+        # If no mappings found from the crew, use the fallback based on the raw data
+        if not mappings and hasattr(self.state, 'raw_data') and self.state.raw_data:
+            logger.info("🔄 No mappings extracted from crew result, using fallback pattern matching")
+            fallback_result = self._generate_fallback_suggestions()
+            mappings = fallback_result.get('mappings', {})
         
         return mappings
     
@@ -224,7 +242,7 @@ class FieldMappingExecutor(BasePhaseExecutor):
             if not clarifications and mappings:
                 clarifications = self._generate_default_clarifications(mappings, confidence_scores)
             
-            return {
+            result = {
                 "mappings": mappings,
                 "clarifications": clarifications,
                 "confidence_scores": confidence_scores,
@@ -235,6 +253,15 @@ class FieldMappingExecutor(BasePhaseExecutor):
                     "crew_used": CREWAI_FLOW_AVAILABLE and self.crew_manager is not None
                 }
             }
+            
+            # Debug: Log the result structure being returned
+            logger.info(f"🔍 DEBUG: execute_suggestions_only returning: {result}")
+            logger.info(f"🔍 DEBUG: Result keys: {list(result.keys())}")
+            logger.info(f"🔍 DEBUG: Mappings count: {len(mappings)}")
+            logger.info(f"🔍 DEBUG: Clarifications count: {len(clarifications)}")
+            logger.info(f"🔍 DEBUG: Confidence scores count: {len(confidence_scores)}")
+            
+            return result
             
         except Exception as e:
             logger.error(f"❌ Failed to generate mapping suggestions: {e}")
@@ -249,7 +276,12 @@ class FieldMappingExecutor(BasePhaseExecutor):
     
     def _process_mapping_suggestions(self, crew_result) -> Dict[str, Any]:
         """Process crew result for mapping suggestions"""
+        # Debug logging
+        logger.info(f"🔍 DEBUG: Processing crew_result type: {type(crew_result)}")
+        logger.info(f"🔍 DEBUG: crew_result value: {crew_result}")
+        
         base_result = self._process_crew_result(crew_result)
+        logger.info(f"🔍 DEBUG: base_result: {base_result}")
         
         # Extract suggestions from crew result
         if isinstance(base_result.get('raw_result'), dict):
@@ -257,9 +289,14 @@ class FieldMappingExecutor(BasePhaseExecutor):
         else:
             # Parse text result for suggestions
             text_result = str(base_result.get('raw_result', ''))
+            logger.info(f"🔍 DEBUG: text_result to parse: {text_result[:500]}")  # First 500 chars
+            
             mappings = self._extract_mappings_from_text(text_result)
             clarifications = self._extract_clarifications_from_text(text_result)
             confidence_scores = self._calculate_confidence_scores(mappings)
+            
+            logger.info(f"🔍 DEBUG: Extracted mappings: {mappings}")
+            logger.info(f"🔍 DEBUG: Extracted clarifications: {clarifications}")
             
             return {
                 "mappings": mappings,

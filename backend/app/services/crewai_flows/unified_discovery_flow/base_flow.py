@@ -281,10 +281,19 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             mode="suggestions_only"  # Special mode to only generate suggestions
         )
         
+        # Debug: Log the full mapping result to identify structure issue
+        logger.info(f"🔍 DEBUG: Full mapping_result structure: {mapping_result}")
+        logger.info(f"🔍 DEBUG: mapping_result keys: {list(mapping_result.keys()) if isinstance(mapping_result, dict) else 'Not a dict'}")
+        
         # Extract mapping suggestions and clarifications
         suggested_mappings = mapping_result.get("mappings", {})
         clarification_questions = mapping_result.get("clarifications", [])
         confidence_scores = mapping_result.get("confidence_scores", {})
+        
+        # Debug: Log what we extracted
+        logger.info(f"🔍 DEBUG: Extracted mappings: {suggested_mappings}")
+        logger.info(f"🔍 DEBUG: Extracted clarifications: {clarification_questions}")
+        logger.info(f"🔍 DEBUG: Extracted confidence_scores: {confidence_scores}")
         
         # Store suggestions in state
         self.state.field_mappings = suggested_mappings

@@ -63,8 +63,15 @@ class CrewAIFlowService:
             if not self.db:
                 raise ValueError("Database session required for V2 Discovery Flow service")
             
-            flow_repo = DiscoveryFlowRepository(self.db, context.get('client_account_id'))
-            self._discovery_flow_service = DiscoveryFlowService(flow_repo)
+            # Create RequestContext from the context dict
+            from app.core.context import RequestContext
+            request_context = RequestContext(
+                client_account_id=context.get('client_account_id'),
+                engagement_id=context.get('engagement_id'),
+                user_id=context.get('approved_by') or context.get('user_id')
+            )
+            
+            self._discovery_flow_service = DiscoveryFlowService(self.db, request_context)
         
         return self._discovery_flow_service
     
@@ -107,7 +114,7 @@ class CrewAIFlowService:
             discovery_service = await self._get_discovery_flow_service(context)
             
             # Check if flow already exists
-            existing_flow = await discovery_service.get_flow(flow_id)
+            existing_flow = await discovery_service.get_flow_by_id(flow_id)
             if existing_flow:
                 logger.info(f"✅ Flow already exists: {flow_id}")
                 return {
@@ -175,7 +182,7 @@ class CrewAIFlowService:
             discovery_service = await self._get_discovery_flow_service(context)
             
             # Get flow from V2 architecture
-            flow = await discovery_service.get_flow(flow_id)
+            flow = await discovery_service.get_flow_by_id(flow_id)
             if not flow:
                 return {
                     "status": "not_found",
@@ -245,7 +252,7 @@ class CrewAIFlowService:
             
             # Advance phase through discovery service
             await discovery_service.update_phase(flow_id, next_phase)
-            result = await discovery_service.get_flow(flow_id)
+            result = await discovery_service.get_flow_by_id(flow_id)
             
             logger.info(f"✅ Flow phase advanced: {flow_id} -> {next_phase}")
             
@@ -427,7 +434,9 @@ class CrewAIFlowService:
             resume_context: Context for resumption (user input, etc.)
         """
         try:
-            logger.info(f"▶️ Resuming CrewAI flow: {flow_id}")
+            logger.info(f"🔍 TESTING: CrewAIFlowService.resume_flow called for {flow_id}")
+            logger.info(f"🔍 TESTING: CREWAI_FLOWS_AVAILABLE = {CREWAI_FLOWS_AVAILABLE}")
+            logger.info(f"🔍 TESTING: resume_context = {resume_context}")
             
             # Try to resume the actual CrewAI Flow instance
             if CREWAI_FLOWS_AVAILABLE:
@@ -445,7 +454,7 @@ class CrewAIFlowService:
                     
                     # Get current flow state to determine where to resume
                     discovery_service = await self._get_discovery_flow_service(resume_context)
-                    flow = await discovery_service.get_flow(flow_id)
+                    flow = await discovery_service.get_flow_by_id(flow_id)
                     
                     if not flow:
                         raise ValueError(f"Flow not found: {flow_id}")
@@ -459,22 +468,57 @@ class CrewAIFlowService:
                             flow_id=flow_id
                         )
                         
-                        # Load existing state and continue execution
-                        await crewai_flow.initialize(
-                            flow_id=flow_id, 
-                            context=vars(context)
-                        )
+                        # Load existing flow state (don't re-initialize if already exists)
+                        if not hasattr(crewai_flow, '_flow_state') or not crewai_flow._flow_state:
+                            await crewai_flow.initialize_discovery()
                         
-                        # Resume from field mapping approval if that's where we paused
-                        if flow.status == 'waiting_for_approval' and flow.current_phase == 'field_mapping':
-                            logger.info(f"🔄 Continuing from field mapping approval: {flow_id}")
+                        # Debug: Log the current flow status to understand the condition
+                        logger.info(f"🔍 TESTING: Current flow status='{flow.status}', phase='{flow.current_phase}'")
+                        logger.info(f"🔍 TESTING: Checking condition: status == 'waiting_for_approval' ({flow.status == 'waiting_for_approval'}) and phase == 'field_mapping' ({flow.current_phase == 'field_mapping'})")
+                        
+                        # Resume from field mapping approval using CrewAI event listener system
+                        # Check for both 'waiting_for_approval' and other paused statuses where approval might be needed
+                        if (flow.status in ['waiting_for_approval', 'processing'] and 
+                            flow.current_phase == 'field_mapping' and 
+                            resume_context.get('user_approval') == True):
+                            logger.info(f"🔄 Resuming CrewAI Flow from field mapping approval: {flow_id}")
                             
-                            # Continue the flow execution from pause point
-                            # This should trigger the actual field mapping agents
-                            result = await crewai_flow.resume_flow_from_state(resume_context)
+                            # Update the flow state to indicate user approval
+                            crewai_flow.state.awaiting_user_approval = False
+                            crewai_flow.state.status = "processing"
+                            
+                            # Add user approval context
+                            if 'user_approval' in resume_context:
+                                crewai_flow.state.user_approval_data['approved'] = resume_context['user_approval']
+                                crewai_flow.state.user_approval_data['approved_at'] = resume_context.get('approval_timestamp')
+                                crewai_flow.state.user_approval_data['notes'] = resume_context.get('notes', '')
+                            
+                            # First generate field mapping suggestions if they don't exist
+                            logger.info("🔍 Checking if field mappings already exist in state")
+                            mappings_exist = False
+                            if hasattr(crewai_flow.state, 'field_mappings') and crewai_flow.state.field_mappings:
+                                # Check if actual mappings exist (not just the structure)
+                                if isinstance(crewai_flow.state.field_mappings, dict):
+                                    mappings = crewai_flow.state.field_mappings.get('mappings', {})
+                                    mappings_exist = len(mappings) > 0
+                                    logger.info(f"🔍 TESTING: Field mappings structure check - outer dict len: {len(crewai_flow.state.field_mappings)}, mappings len: {len(mappings)}")
+                                
+                            if not mappings_exist:
+                                logger.info("🤖 No actual field mappings found, generating suggestions first")
+                                # Generate field mapping suggestions using the CrewAI agents
+                                suggestion_result = await crewai_flow.generate_field_mapping_suggestions("data_validation_completed")
+                                logger.info(f"✅ Generated field mapping suggestions: {suggestion_result}")
+                            else:
+                                logger.info(f"✅ Field mappings already exist: actual mappings found")
+                            
+                            # Now apply the approved field mappings
+                            logger.info("🎯 Triggering apply_approved_field_mappings listener")
+                            result = await crewai_flow.apply_approved_field_mappings("field_mapping_approved")
+                            
                         else:
-                            # Start/continue flow execution from current phase
-                            result = await crewai_flow.kickoff()
+                            # For other states, use the standard flow resumption
+                            logger.info(f"🔄 Resuming flow from current state: {flow.status}, phase: {flow.current_phase}")
+                            result = await crewai_flow.resume_flow_from_state(resume_context)
                     
                     logger.info(f"✅ CrewAI flow resumed and executed: {flow_id}")
                     
@@ -534,7 +578,7 @@ class CrewAIFlowService:
                     
                     # Get current flow state
                     discovery_service = await self._get_discovery_flow_service(resume_context)
-                    flow = await discovery_service.get_flow(flow_id)
+                    flow = await discovery_service.get_flow_by_id(flow_id)
                     
                     if not flow:
                         raise ValueError(f"Flow not found: {flow_id}")
