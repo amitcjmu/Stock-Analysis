@@ -52,7 +52,7 @@ class AssessmentFlowRepository(ContextAwareRepository):
         selected_application_ids: List[str],
         created_by: Optional[str] = None
     ) -> str:
-        """Create new assessment flow with initial state"""
+        """Create new assessment flow with initial state and register with master flow system"""
         
         flow_record = AssessmentFlow(
             client_account_id=self.client_account_id,
@@ -67,6 +67,41 @@ class AssessmentFlowRepository(ContextAwareRepository):
         self.db.add(flow_record)
         await self.db.commit()
         await self.db.refresh(flow_record)
+        
+        # Register with master flow system
+        from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
+        
+        try:
+            extensions_repo = CrewAIFlowStateExtensionsRepository(
+                self.db, 
+                str(self.client_account_id), 
+                str(engagement_id),
+                user_id=created_by
+            )
+            
+            master_flow = await extensions_repo.create_master_flow(
+                flow_id=str(flow_record.id),
+                flow_type='assessment',  # Using 'assessment' for consistency
+                user_id=created_by or 'system',
+                flow_name=f"Assessment Flow - {len(selected_application_ids)} Applications",
+                flow_configuration={
+                    "selected_applications": selected_application_ids,
+                    "assessment_type": "sixr_analysis",
+                    "created_by": created_by,
+                    "engagement_id": str(engagement_id)
+                },
+                initial_state={
+                    "phase": AssessmentPhase.INITIALIZATION.value,
+                    "applications_count": len(selected_application_ids)
+                }
+            )
+            
+            logger.info(f"Registered assessment flow {flow_record.id} with master flow system")
+            
+        except Exception as e:
+            logger.error(f"Failed to register assessment flow {flow_record.id} with master flow: {e}")
+            # Don't fail the entire creation if master flow registration fails
+            # The flow still exists and can function, just without master coordination
         
         logger.info(f"Created assessment flow {flow_record.id} for engagement {engagement_id}")
         return str(flow_record.id)
@@ -153,7 +188,7 @@ class AssessmentFlowRepository(ContextAwareRepository):
         progress: Optional[int] = None,
         status: Optional[str] = None
     ):
-        """Update flow phase and progress"""
+        """Update flow phase and progress, sync with master flow"""
         
         update_data = {
             "current_phase": current_phase,
@@ -180,6 +215,9 @@ class AssessmentFlowRepository(ContextAwareRepository):
         await self.db.commit()
         
         logger.info(f"Updated flow {flow_id} phase to {current_phase}")
+        
+        # Update master flow status
+        await self._update_master_flow_status(flow_id, status or "running", current_phase)
     
     async def save_user_input(
         self, 
@@ -224,7 +262,7 @@ class AssessmentFlowRepository(ContextAwareRepository):
         phase: str,
         insights: List[Dict[str, Any]]
     ):
-        """Save agent insights for specific phase"""
+        """Save agent insights for specific phase and log to master flow"""
         
         # Get current agent insights
         result = await self.db.execute(
@@ -259,6 +297,9 @@ class AssessmentFlowRepository(ContextAwareRepository):
             )
         )
         await self.db.commit()
+        
+        # Log agent collaboration to master flow
+        await self._log_agent_collaboration(flow_id, phase, insights)
     
     # === ARCHITECTURE STANDARDS MANAGEMENT ===
     
@@ -862,3 +903,99 @@ class AssessmentFlowRepository(ContextAwareRepository):
             )
         
         return decision_models
+    
+    async def _update_master_flow_status(
+        self, 
+        flow_id: str, 
+        status: str, 
+        current_phase: str,
+        phase_data: Optional[Dict[str, Any]] = None
+    ):
+        """Update master flow status and phase data"""
+        from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
+        
+        try:
+            # Get engagement_id for this flow
+            result = await self.db.execute(
+                select(AssessmentFlow.engagement_id)
+                .where(AssessmentFlow.id == flow_id)
+            )
+            engagement_id = result.scalar()
+            
+            if engagement_id:
+                extensions_repo = CrewAIFlowStateExtensionsRepository(
+                    self.db, 
+                    str(self.client_account_id), 
+                    str(engagement_id)
+                )
+                
+                # Prepare phase data
+                update_phase_data = {
+                    "current_phase": current_phase,
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+                if phase_data:
+                    update_phase_data.update(phase_data)
+                
+                # Update master flow
+                await extensions_repo.update_flow_status(
+                    flow_id=str(flow_id),
+                    status=status,
+                    phase_data=update_phase_data
+                )
+                
+                logger.info(f"Updated master flow status for assessment flow {flow_id}")
+                
+        except Exception as e:
+            logger.error(f"Failed to update master flow status for {flow_id}: {e}")
+            # Don't fail the operation if master flow update fails
+    
+    async def _log_agent_collaboration(
+        self, 
+        flow_id: str, 
+        phase: str, 
+        insights: List[Dict[str, Any]]
+    ):
+        """Log agent collaboration to master flow"""
+        from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
+        
+        try:
+            # Get engagement_id for this flow
+            result = await self.db.execute(
+                select(AssessmentFlow.engagement_id)
+                .where(AssessmentFlow.id == flow_id)
+            )
+            engagement_id = result.scalar()
+            
+            if engagement_id:
+                extensions_repo = CrewAIFlowStateExtensionsRepository(
+                    self.db, 
+                    str(self.client_account_id), 
+                    str(engagement_id)
+                )
+                
+                # Get the master flow record
+                master_flow = await extensions_repo.get_by_flow_id(str(flow_id))
+                if master_flow:
+                    # Log each insight as agent collaboration
+                    for insight in insights:
+                        agent_name = insight.get("agent", "AssessmentAgent")
+                        action = f"phase_{phase}_insight"
+                        
+                        master_flow.add_agent_collaboration_entry(
+                            agent_name=agent_name,
+                            action=action,
+                            details={
+                                "phase": phase,
+                                "insight": insight,
+                                "timestamp": datetime.utcnow().isoformat()
+                            }
+                        )
+                    
+                    # Save the updated master flow
+                    await self.db.commit()
+                    logger.info(f"Logged {len(insights)} agent collaborations to master flow")
+                
+        except Exception as e:
+            logger.error(f"Failed to log agent collaboration for {flow_id}: {e}")
+            # Don't fail the operation if master flow update fails

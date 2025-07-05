@@ -15,7 +15,7 @@ from crewai import Agent, Task, Crew, Process
 # Import advanced CrewAI features with fallbacks
 try:
     from crewai.memory import LongTermMemory
-    from crewai.knowledge.knowledge import Knowledge
+    from crewai.knowledge import Knowledge, LocalKnowledgeBase
     CREWAI_ADVANCED_AVAILABLE = True
 except ImportError:
     CREWAI_ADVANCED_AVAILABLE = False
@@ -24,6 +24,9 @@ except ImportError:
         def __init__(self, **kwargs):
             pass
     class Knowledge:
+        def __init__(self, **kwargs):
+            pass
+    class LocalKnowledgeBase:
         def __init__(self, **kwargs):
             pass
 
@@ -57,13 +60,15 @@ class InventoryBuildingCrew:
             return None
         
         try:
-            return LongTermMemory(
-                storage_type="vector",
-                embedder_config={
-                    "provider": "openai", 
-                    "model": "text-embedding-3-small"
-                }
+            # Use LocalKnowledgeBase for file-based knowledge
+            kb = LocalKnowledgeBase(
+                collection_name="inventory_building_insights",
+                storage_path="./data/memory"
             )
+            # LongTermMemory now uses a knowledge_base parameter
+            memory = LongTermMemory(knowledge_base=kb)
+            logger.info("✅ Shared memory initialized with LocalKnowledgeBase")
+            return memory
         except Exception as e:
             logger.warning(f"Failed to setup shared memory: {e}")
             return None
@@ -75,14 +80,10 @@ class InventoryBuildingCrew:
             return None
         
         try:
-            return Knowledge(
-                sources=[
-                    "backend/app/knowledge_bases/asset_classification_rules.json"
-                ],
-                embedder_config={
-                    "provider": "openai",
-                    "model": "text-embedding-3-small"
-                }
+            # Use LocalKnowledgeBase for file-based knowledge
+            return LocalKnowledgeBase(
+                collection_name="asset_classification_rules",
+                file_path="backend/app/knowledge_bases/asset_classification_rules.json"
             )
         except Exception as e:
             logger.warning(f"Failed to setup knowledge base: {e}")
@@ -134,8 +135,8 @@ class InventoryBuildingCrew:
             - Asset classification confidence below acceptable thresholds
             """,
             llm=self.llm,
-            memory=None,  # Agent-level memory approach
-            knowledge=None,  # Will be added when available
+            memory=self.shared_memory,
+            knowledge_base=self.knowledge_base,
             verbose=True,
             allow_delegation=True,
             max_delegation=3,  # Set to 3 as requested
@@ -196,8 +197,8 @@ class InventoryBuildingCrew:
             - Server classification confidence below 80%
             """,
             llm=self.llm,
-            memory=None,  # Agent-level memory approach
-            knowledge=None,  # Will be added when available
+            memory=self.shared_memory,
+            knowledge_base=self.knowledge_base,
             verbose=True,
             max_execution_time=180,  # 3 minute timeout
             max_retry=1,  # Prevent retry loops
@@ -213,8 +214,8 @@ class InventoryBuildingCrew:
             applications. You excel at identifying application types, versions, business criticality, 
             and hosting relationships for migration strategy.""",
             llm=self.llm,
-            memory=None,  # DISABLED: Causing APIStatusError loops
-            knowledge=None,  # DISABLED: Causing API errors
+            memory=self.shared_memory,
+            knowledge_base=self.knowledge_base,
             verbose=True,
             max_execution_time=180,  # ADD: 3 minute timeout
             max_retry=1,  # ADD: Prevent retry loops
@@ -230,8 +231,8 @@ class InventoryBuildingCrew:
             topologies. You excel at identifying network devices, security appliances, and 
             infrastructure components that support migration planning.""",
             llm=self.llm,
-            memory=None,  # DISABLED: Causing APIStatusError loops
-            knowledge=None,  # DISABLED: Causing API errors
+            memory=self.shared_memory,
+            knowledge_base=self.knowledge_base,
             verbose=True,
             max_execution_time=180,  # ADD: 3 minute timeout
             max_retry=1,  # ADD: Prevent retry loops
@@ -242,257 +243,67 @@ class InventoryBuildingCrew:
         return [inventory_manager, server_expert, app_expert, device_expert]
     
     def create_tasks(self, agents, cleaned_data: List[Dict[str, Any]], field_mappings: Dict[str, Any]):
-        """Create hierarchical tasks with cross-domain collaboration and insight generation"""
+        """
+        Creates a robust, sequential-then-parallel task structure for inventory building.
+        1. Triage: A fast, initial sorting of all assets.
+        2. Classify: Parallel, deep classification by domain experts on filtered data.
+        3. Consolidate: Final assembly and relationship mapping.
+        """
         manager, server_expert, app_expert, device_expert = agents
-        
-        data_sample = cleaned_data[:5] if cleaned_data else []
-        mapped_fields = field_mappings.get("mappings", {})
-        
-        # Planning Task - Manager coordinates multi-domain classification
-        planning_task = Task(
-            description=f"""Plan comprehensive asset inventory strategy across all IT domains.
-            
-            Data to classify: {len(cleaned_data)} records
-            Available field mappings: {list(mapped_fields.keys())}
-            Asset type indicators: {self._identify_asset_type_indicators(cleaned_data)}
-            
-            Create a classification plan that:
-            1. Assigns domain experts to appropriate asset types
-            2. Defines cross-domain collaboration strategies
-            3. Establishes classification criteria and validation
-            4. Plans relationship mapping between domains
-            5. Leverages field mappings and data quality insights
-            
-            CRITICAL: Generate comprehensive STRATEGIC INSIGHTS for the inventory management:
-            - Infrastructure standardization opportunities
-            - Technology stack consolidation recommendations
-            - Migration complexity assessment patterns
-            - Asset portfolio optimization insights
-            - Risk factors and mitigation strategies
-            
-            Store strategic insights in shared memory for domain experts to enhance.""",
-            expected_output="""Comprehensive asset classification plan with domain assignments and collaboration strategy.
-            
-            PLUS: Strategic Insights JSON containing:
-            {
-                "infrastructure_patterns": {
-                    "standardization_level": "high/medium/low",
-                    "consolidation_opportunities": [],
-                    "complexity_factors": []
-                },
-                "migration_strategy": {
-                    "recommended_approach": "lift_shift/replatform/refactor",
-                    "readiness_assessment": "ready/needs_prep/complex",
-                    "sequencing_recommendations": []
-                },
-                "portfolio_insights": {
-                    "technology_diversity": "homogeneous/mixed/heterogeneous",
-                    "business_criticality_distribution": {},
-                    "modernization_priorities": []
-                }
-            }""",
-            agent=manager,
-            tools=[]
+
+        # Step 1: The Triage Task
+        # A single, fast task for the manager to sort assets into domains.
+        triage_task = Task(
+            description="Triage the entire list of assets. Your job is to sort each asset into one of three lists: 'servers', 'applications', or 'devices' based on its name and type. Do NOT perform a deep classification. Your output must be a JSON object with these three keys.",
+            expected_output="A JSON object with three keys: 'server_assets', 'application_assets', and 'device_assets'. Each key should contain a list of the corresponding asset records.",
+            agent=manager
         )
-        
-        # Server Classification Task - Infrastructure assets with deep insights
+
+        # Step 2: Parallel Classification Tasks
+        # These tasks depend on the triage_task and run in parallel.
         server_classification_task = Task(
-            description=f"""Classify server and infrastructure assets with detailed specifications AND generate comprehensive infrastructure insights.
-            
-            Data to analyze: {len(cleaned_data)} records
-            Sample data: {data_sample}
-            Relevant field mappings: {self._filter_infrastructure_mappings(mapped_fields)}
-            Strategic insights: Use manager's strategic insights from shared memory
-            
-            Classification Requirements:
-            1. Identify servers, virtual machines, and infrastructure components
-            2. Extract technical specifications (CPU, memory, storage, OS)
-            3. Determine hosting relationships and infrastructure dependencies
-            4. Assess migration complexity and hosting requirements
-            5. Generate server inventory with technical details
-            6. Collaborate with application expert for hosting relationships
-            
-            CRITICAL: Generate INFRASTRUCTURE INSIGHTS by analyzing patterns:
-            - Operating system distribution and standardization
-            - Hardware specification patterns and capacity trends
-            - Virtualization adoption and cloud readiness
-            - Infrastructure age and modernization needs
-            - Geographic/location distribution patterns
-            - Security and compliance posture assessment
-            - Performance and scalability bottlenecks
-            - Cost optimization opportunities
-            
-            Store infrastructure insights in shared memory for cross-domain analysis.""",
-            expected_output="""Comprehensive server inventory with technical specifications and hosting relationships.
-            
-            PLUS: Infrastructure Insights JSON containing:
-            {
-                "hosting_patterns": {
-                    "os_distribution": {},
-                    "virtualization_level": "percentage",
-                    "cloud_readiness_score": "0-100",
-                    "standardization_assessment": "high/medium/low"
-                },
-                "capacity_analysis": {
-                    "resource_utilization": {},
-                    "scaling_opportunities": [],
-                    "consolidation_potential": []
-                },
-                "migration_readiness": {
-                    "lift_shift_candidates": "count",
-                    "replatform_candidates": "count",
-                    "modernization_required": "count",
-                    "risk_factors": []
-                },
-                "recommendations": {
-                    "immediate_actions": [],
-                    "strategic_initiatives": [],
-                    "cost_optimizations": []
-                }
-            }""",
+            description="Perform a detailed classification of the server assets provided. Identify OS, function, and virtual/physical status.",
+            expected_output="A JSON list of fully classified server assets with detailed attributes.",
             agent=server_expert,
-            context=[planning_task],
-            tools=self._create_server_classification_tools()
+            context=[triage_task],  # Depends on the output of the triage task
+            async_execution=True
         )
-        
-        # Application Classification Task - Application assets with business insights
+
         app_classification_task = Task(
-            description=f"""Identify and categorize application assets with business context AND generate comprehensive application portfolio insights.
-            
-            Data to analyze: {len(cleaned_data)} records
-            Field mappings: {self._filter_application_mappings(mapped_fields)}
-            Server insights: Use server expert insights from shared memory
-            Strategic insights: Use manager's strategic insights from shared memory
-            
-            Classification Requirements:
-            1. Identify applications, services, and software components
-            2. Determine application types, versions, and technologies
-            3. Assess business criticality and owner information
-            4. Map applications to hosting infrastructure
-            5. Identify application dependencies and integrations
-            6. Generate application portfolio with business context
-            7. Collaborate with server expert for hosting validation
-            
-            CRITICAL: Generate APPLICATION PORTFOLIO INSIGHTS by analyzing:
-            - Technology stack diversity and standardization opportunities
-            - Application architecture patterns (monolith/microservices/hybrid)
-            - Business criticality distribution and risk assessment
-            - Integration complexity and API modernization needs
-            - License optimization and vendor consolidation opportunities
-            - Technical debt assessment and modernization priorities
-            - Performance and user experience optimization potential
-            - Security and compliance gaps and recommendations
-            
-            Store application insights in shared memory for complete portfolio analysis.""",
-            expected_output="""Comprehensive application inventory with business context and hosting relationships.
-            
-            PLUS: Application Portfolio Insights JSON containing:
-            {
-                "technology_analysis": {
-                    "stack_diversity": "homogeneous/mixed/heterogeneous",
-                    "modernization_score": "0-100",
-                    "architecture_patterns": {},
-                    "integration_complexity": "low/medium/high"
-                },
-                "business_analysis": {
-                    "criticality_distribution": {},
-                    "user_impact_assessment": {},
-                    "business_value_score": "0-100"
-                },
-                "migration_strategy": {
-                    "containerization_candidates": [],
-                    "cloud_native_opportunities": [],
-                    "legacy_modernization_priorities": [],
-                    "6r_recommendations": {}
-                },
-                "optimization_opportunities": {
-                    "license_consolidation": [],
-                    "performance_improvements": [],
-                    "security_enhancements": []
-                }
-            }""",
+            description="Perform a detailed classification of the application assets provided. Identify version, type, and business context.",
+            expected_output="A JSON list of fully classified application assets with detailed attributes.",
             agent=app_expert,
-            context=[server_classification_task],
-            tools=self._create_app_classification_tools()
+            context=[triage_task],
+            async_execution=True
         )
-        
-        # Device Classification Task - Network and device assets with topology insights
+
         device_classification_task = Task(
-            description=f"""Classify network devices and infrastructure components AND generate comprehensive network topology insights.
-            
-            Data to analyze: {len(cleaned_data)} records
-            Field mappings: {self._filter_device_mappings(mapped_fields)}
-            Infrastructure context: Use server and app insights from shared memory
-            Strategic insights: Use all previous insights from shared memory
-            
-            Classification Requirements:
-            1. Identify network devices, security appliances, and infrastructure
-            2. Determine device types, roles, and network functions
-            3. Map network topology and device relationships
-            4. Assess migration impact on network infrastructure
-            5. Generate device inventory with network context
-            6. Validate topology with server and application insights
-            
-            CRITICAL: Generate COMPREHENSIVE DISCOVERY INSIGHTS by synthesizing ALL crew analysis:
-            - Network topology assessment and cloud migration readiness
-            - Security infrastructure evaluation and modernization needs
-            - Device consolidation and SDN transformation opportunities
-            - Complete infrastructure dependency mapping
-            - Migration wave planning and sequencing recommendations
-            - Risk assessment across all infrastructure domains
-            - Cost optimization through infrastructure rationalization
-            - Business continuity and disaster recovery assessment
-            
-            FINAL TASK: Create UNIFIED DISCOVERY INSIGHTS that consolidate insights from:
-            - Manager's strategic planning insights
-            - Server expert's infrastructure insights  
-            - Application expert's portfolio insights
-            - Device expert's network topology insights
-            
-            Store consolidated discovery insights in shared memory for UI retrieval.""",
-            expected_output="""Comprehensive device inventory with network topology and relationships.
-            
-            PLUS: Consolidated Discovery Insights JSON containing:
-            {
-                "executive_summary": {
-                    "total_assets_analyzed": "count",
-                    "infrastructure_readiness_score": "0-100",
-                    "migration_complexity": "low/medium/high",
-                    "recommended_strategy": "detailed_recommendation"
-                },
-                "infrastructure_analysis": {
-                    "hosting_patterns": "from_server_expert",
-                    "application_portfolio": "from_app_expert", 
-                    "network_topology": "from_device_expert",
-                    "integration_points": []
-                },
-                "migration_recommendations": {
-                    "6r_strategy_distribution": {},
-                    "wave_planning": [],
-                    "risk_mitigation": [],
-                    "quick_wins": []
-                },
-                "business_impact": {
-                    "cost_optimization_potential": "percentage",
-                    "performance_improvement_areas": [],
-                    "compliance_and_security_gaps": [],
-                    "modernization_roi_estimate": "high/medium/low"
-                },
-                "next_steps": {
-                    "immediate_actions": [],
-                    "phase_2_initiatives": [],
-                    "long_term_strategy": []
-                }
-            }""",
+            description="Perform a detailed classification of the device assets provided. Identify device type and network role.",
+            expected_output="A JSON list of fully classified device assets with detailed attributes.",
             agent=device_expert,
-            context=[app_classification_task],
-            tools=self._create_device_classification_tools()
+            context=[triage_task],
+            async_execution=True
+        )
+
+        # Step 3: Final Consolidation and Relationship Mapping
+        # This task runs last, after all experts have finished.
+        consolidation_task = Task(
+            description="Consolidate the outputs from the server, application, and device experts into a single, unified asset inventory. Then, analyze the consolidated data to map relationships between the assets.",
+            expected_output="A final JSON object containing three lists: 'servers', 'applications', and 'devices', and a fourth list 'relationships' detailing all identified connections.",
+            agent=manager,
+            context=[server_classification_task, app_classification_task, device_classification_task] # Depends on all classification tasks
         )
         
-        return [planning_task, server_classification_task, app_classification_task, device_classification_task]
+        return [
+            triage_task,
+            server_classification_task,
+            app_classification_task,
+            device_classification_task,
+            consolidation_task
+        ]
     
     def create_crew(self, cleaned_data: List[Dict[str, Any]], field_mappings: Dict[str, Any]):
-        """Create hierarchical crew with cross-domain collaboration"""
+        """Create the inventory building crew with agents and tasks"""
         agents = self.create_agents()
         tasks = self.create_tasks(agents, cleaned_data, field_mappings)
         

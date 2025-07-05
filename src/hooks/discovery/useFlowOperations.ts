@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiCall } from '@/config/api';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
 
 // Type definitions
 export interface IncompleteFlowV2 {
@@ -72,7 +73,8 @@ export const useFlowResumptionV2 = () => {
       
       // Navigate to the appropriate page based on the flow's current phase
       if (data.current_phase) {
-        navigate(`/discovery/${data.current_phase.replace('_', '-')}/${flowId}`);
+        const route = getDiscoveryPhaseRoute(data.current_phase, flowId);
+        navigate(route);
       }
     },
     onError: (error: any) => {

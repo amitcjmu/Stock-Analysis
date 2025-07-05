@@ -31,22 +31,43 @@ async def get_active_flows(
     try:
         logger.info(f"Getting active flows for client {context.client_account_id}, engagement {context.engagement_id}")
         
-        # Minimal response for frontend compatibility
-        # TODO: Replace with real flow database queries
-        return [
-            {
-                "flow_id": "placeholder-flow-001",
-                "status": "ready",
+        # Query actual discovery flows from database
+        from sqlalchemy import select, and_, or_
+        from app.models.discovery_flow import DiscoveryFlow
+        
+        stmt = select(DiscoveryFlow).where(
+            and_(
+                DiscoveryFlow.client_account_id == context.client_account_id,
+                DiscoveryFlow.engagement_id == context.engagement_id,
+                or_(
+                    DiscoveryFlow.status == 'active',
+                    DiscoveryFlow.status == 'running',
+                    DiscoveryFlow.status == 'paused',
+                    DiscoveryFlow.status == 'processing',
+                    DiscoveryFlow.status == 'ready'
+                )
+            )
+        ).order_by(DiscoveryFlow.created_at.desc())
+        
+        result = await db.execute(stmt)
+        flows = result.scalars().all()
+        
+        # Convert to response format
+        active_flows = []
+        for flow in flows:
+            active_flows.append({
+                "flow_id": str(flow.flow_id),
+                "status": flow.status,
                 "type": "discovery",
-                "client_account_id": context.client_account_id,
-                "engagement_id": context.engagement_id,
-                "created_at": "2025-07-04T00:00:00Z",
-                "updated_at": "2025-07-04T00:00:00Z",
-                "metadata": {
-                    "note": "Placeholder flow - CrewAI implementation pending"
-                }
-            }
-        ]
+                "client_account_id": str(flow.client_account_id),
+                "engagement_id": str(flow.engagement_id),
+                "created_at": flow.created_at.isoformat() if flow.created_at else "",
+                "updated_at": flow.updated_at.isoformat() if flow.updated_at else "",
+                "metadata": flow.flow_state or {}
+            })
+        
+        logger.info(f"Found {len(active_flows)} active flows")
+        return active_flows
         
     except Exception as e:
         logger.error(f"Error getting active flows: {e}")

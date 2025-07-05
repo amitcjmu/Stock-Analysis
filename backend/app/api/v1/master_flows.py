@@ -15,22 +15,30 @@ from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.schemas.asset_schemas import AssetResponse
 from pydantic import BaseModel
 from datetime import datetime
+from app.api.v1.auth.auth_utils import get_current_user
+from app.models import User
+from app.api.v1.endpoints.context.services.user_service import UserService
 
 logger = logging.getLogger(__name__)
 
-# Helper function to get demo context for testing
-async def get_current_user_context(user_id: str = Depends(get_current_user_id)):
+# Helper function to get user context with proper authentication
+async def get_current_user_context(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """
-    Get user context with client_account_id and engagement_id.
-    Uses demo values for testing purposes.
+    Get user context with client_account_id and engagement_id from authenticated user.
     """
+    service = UserService(db)
+    user_context = await service.get_user_context(current_user)
+    
     return {
-        "user_id": user_id,
-        "client_account_id": "11111111-1111-1111-1111-111111111111",
-        "engagement_id": "22222222-2222-2222-2222-222222222222"
+        "user_id": str(current_user.id),
+        "client_account_id": str(user_context.client_account_id) if user_context.client_account_id else None,
+        "engagement_id": str(user_context.engagement_id) if user_context.engagement_id else None
     }
 
-router = APIRouter(prefix="/master-flows", tags=["Master Flow Coordination"])
+router = APIRouter(tags=["Master Flow Coordination"])
 
 
 class MasterFlowSummaryResponse(BaseModel):
@@ -80,7 +88,7 @@ class DiscoveryFlowResponse(BaseModel):
 async def get_assets_by_master_flow(
     master_flow_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user_context)
+    current_user: dict = Depends(get_current_user_context)
 ) -> List[AssetResponse]:
     """Get all assets for a specific master flow"""
     
@@ -101,7 +109,7 @@ async def get_assets_by_master_flow(
 async def get_master_flow_summary(
     master_flow_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user_context)
+    current_user: dict = Depends(get_current_user_context)
 ) -> MasterFlowSummaryResponse:
     """Get comprehensive summary for a master flow"""
     
@@ -122,7 +130,7 @@ async def get_master_flow_summary(
 async def get_discovery_flow_by_master(
     master_flow_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user_context)
+    current_user: dict = Depends(get_current_user_context)
 ) -> DiscoveryFlowResponse:
     """Get discovery flow associated with a master flow"""
     
@@ -149,7 +157,7 @@ async def get_discovery_flow_by_master(
 @router.get("/analytics/cross-phase", response_model=CrossPhaseAnalyticsResponse)
 async def get_cross_phase_analytics(
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user_context)
+    current_user: dict = Depends(get_current_user_context)
 ) -> CrossPhaseAnalyticsResponse:
     """Get analytics across all phases and master flows"""
     
@@ -169,7 +177,7 @@ async def get_cross_phase_analytics(
 @router.get("/coordination/summary", response_model=MasterFlowCoordinationResponse)
 async def get_master_flow_coordination_summary(
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user_context)
+    current_user: dict = Depends(get_current_user_context)
 ) -> MasterFlowCoordinationResponse:
     """Get master flow coordination summary"""
     
@@ -193,7 +201,7 @@ async def get_assets_by_phase(
     phase: str,
     current_phase: bool = Query(True, description="If true, filter by current_phase; if false, filter by source_phase"),
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user_context)
+    current_user: dict = Depends(get_current_user_context)
 ) -> List[AssetResponse]:
     """Get assets by phase (current or source)"""
     
@@ -217,7 +225,7 @@ async def get_assets_by_phase(
 @router.get("/multi-phase/assets", response_model=List[AssetResponse])
 async def get_multi_phase_assets(
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user_context)
+    current_user: dict = Depends(get_current_user_context)
 ) -> List[AssetResponse]:
     """Get assets that have progressed through multiple phases"""
     
@@ -239,7 +247,7 @@ async def transition_to_assessment_phase(
     discovery_flow_id: str,
     assessment_flow_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user_context)
+    current_user: dict = Depends(get_current_user_context)
 ) -> Dict[str, Any]:
     """Prepare discovery flow for assessment phase transition"""
     
@@ -275,7 +283,7 @@ async def update_asset_phase_progression(
     new_phase: str,
     notes: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user_context)
+    current_user: dict = Depends(get_current_user_context)
 ) -> Dict[str, Any]:
     """Update asset phase progression with tracking"""
     
@@ -308,22 +316,13 @@ async def update_asset_phase_progression(
 async def delete_master_flow(
     flow_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user_context)
+    current_user: dict = Depends(get_current_user_context)
 ) -> Dict[str, Any]:
     """Delete a master flow and all associated data"""
     
     client_account_id = current_user.get("client_account_id")
     if not client_account_id:
         raise HTTPException(status_code=400, detail="Client account ID required")
-    
-    # Special handling for placeholder flows
-    if flow_id.startswith("placeholder-"):
-        logger.info(f"Deleting placeholder flow {flow_id}")
-        return {
-            "success": True,
-            "flow_id": flow_id,
-            "message": "Placeholder flow deleted successfully"
-        }
     
     # Import the repository for master flow operations
     from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Brain } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
 
 // Components
 import Sidebar from '../../../components/Sidebar';
@@ -70,42 +71,26 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
   const handleViewDetails = (flowId: string, phase: string) => {
     console.log(`🤖 AGENTIC NAVIGATION: Analyzing flow ${flowId} in phase "${phase}"`);
     
-    const getAgenticRoute = (currentPhase: string, flowId: string) => {
-      if (currentPhase === "completed") {
-        console.log(`🤖 Flow marked as completed, but checking if truly complete...`);
-        return `/discovery/inventory/${flowId}`;
+    // If phase is 'current', we need to find the actual phase from the flow data
+    let actualPhase = phase;
+    if (phase === 'current') {
+      const flow = activeFlows.find(f => f.flow_id === flowId);
+      if (flow) {
+        actualPhase = flow.current_phase;
+        console.log(`🤖 Resolved 'current' phase to actual phase: ${actualPhase}`);
       }
-      
-      const agenticPhaseRoutes = {
-        'data_import': `/discovery/cmdb-import`,
-        'attribute_mapping': `/discovery/attribute-mapping/${flowId}`,
-        'field_mapping': `/discovery/attribute-mapping/${flowId}`,
-        'data_cleansing': `/discovery/data-cleansing/${flowId}`,
-        'inventory': `/discovery/inventory/${flowId}`,
-        'asset_inventory': `/discovery/inventory/${flowId}`,
-        'dependencies': `/discovery/dependencies/${flowId}`,
-        'dependency_analysis': `/discovery/dependencies/${flowId}`,
-        'tech_debt': `/discovery/tech-debt/${flowId}`,
-        'tech_debt_analysis': `/discovery/tech-debt/${flowId}`,
-        'technical_debt': `/discovery/tech-debt/${flowId}`,
-        
-        'waiting_for_user_approval': `/discovery/attribute-mapping/${flowId}`,
-        'paused': `/discovery/attribute-mapping/${flowId}`,
-        'pending_approval': `/discovery/attribute-mapping/${flowId}`,
-        
-        'failed': `/discovery/cmdb-import`,
-        'error': `/discovery/cmdb-import`,
-        'not_found': `/discovery/cmdb-import`,
-        
-        'unknown': `/discovery/inventory/${flowId}`,
-        'undefined': `/discovery/inventory/${flowId}`,
-      };
-      
-      return agenticPhaseRoutes[currentPhase] || `/discovery/inventory/${flowId}`;
-    };
+    }
     
-    const route = getAgenticRoute(phase, flowId);
-    console.log(`🤖 AGENTIC DECISION: phase="${phase}" -> route="${route}"`);
+    // Handle completed flows specially
+    if (actualPhase === "completed") {
+      console.log(`🤖 Flow marked as completed, routing to inventory`);
+      navigate(`/discovery/inventory/${flowId}`);
+      return;
+    }
+    
+    // Use centralized routing configuration
+    const route = getDiscoveryPhaseRoute(actualPhase, flowId);
+    console.log(`🤖 AGENTIC DECISION: phase="${actualPhase}" -> route="${route}"`);
     navigate(route);
   };
 
@@ -251,10 +236,15 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
               </DialogHeader>
               <IncompleteFlowManager
                 flows={incompleteFlows}
-                onContinueFlow={(flowId) => handleViewDetails(flowId, 'current')}
+                onContinueFlow={(flowId) => {
+                  // Find the flow to get its current phase
+                  const flow = incompleteFlows.find(f => f.flow_id === flowId);
+                  const phase = flow?.current_phase || 'data_import_validation';
+                  handleViewDetails(flowId, phase);
+                }}
                 onDeleteFlow={handleDeleteFlow}
                 onBatchDelete={(flowIds) => flowIds.forEach(handleDeleteFlow)}
-                onViewDetails={(flowId) => handleViewDetails(flowId, 'current')}
+                onViewDetails={(flowId, phase) => handleViewDetails(flowId, phase)}
                 onClose={() => toggleFlowManager(false)}
                 isLoading={isDeleting}
               />

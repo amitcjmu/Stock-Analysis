@@ -30,7 +30,7 @@ class RouteDecisionTool(BaseTool):
             "tech_debt": "/discovery/tech-debt",
             "completed": "/discovery/tech-debt"
         },
-        "assess": {
+        "assessment": {
             "migration_readiness": "/assess/migration-readiness",
             "business_impact": "/assess/business-impact",
             "technical_assessment": "/assess/technical-assessment",

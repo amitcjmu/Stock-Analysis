@@ -12,10 +12,25 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { IncompleteFlow } from '@/hooks/discovery/useIncompleteFlowDetection';
+// Simple flow interface that matches the actual API response
+interface SimpleFlow {
+  flow_id: string;
+  status: string;
+  current_phase?: string;
+  progress_percentage?: number;
+  created_at: string;
+  updated_at: string;
+  flow_name?: string;
+  agent_insights?: any[];
+  deletion_impact?: {
+    data_to_delete: Record<string, number>;
+    estimated_cleanup_time: string;
+  };
+  session_id?: string;
+}
 
 interface FlowDeletionConfirmDialogProps {
-  flow: IncompleteFlow;
+  flow: SimpleFlow;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -47,6 +62,7 @@ export const FlowDeletionConfirmDialog: React.FC<FlowDeletionConfirmDialogProps>
   };
 
   const getTotalDataRecords = () => {
+    if (!flow.deletion_impact?.data_to_delete) return 0;
     const data = flow.deletion_impact.data_to_delete;
     return Object.values(data).reduce((sum, count) => sum + (typeof count === 'number' ? count : 0), 0);
   };
@@ -71,12 +87,12 @@ export const FlowDeletionConfirmDialog: React.FC<FlowDeletionConfirmDialogProps>
             <h3 className="font-semibold mb-2">Flow Information</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-gray-500">Session ID:</span>
-                <p className="font-mono">{flow.session_id}</p>
+                <span className="text-gray-500">Flow ID:</span>
+                <p className="font-mono">{flow.flow_id}</p>
               </div>
               <div>
                 <span className="text-gray-500">Current Phase:</span>
-                <p>{getPhaseDisplayName(flow.current_phase)}</p>
+                <p>{getPhaseDisplayName(flow.current_phase || 'unknown')}</p>
               </div>
               <div>
                 <span className="text-gray-500">Status:</span>
@@ -86,7 +102,7 @@ export const FlowDeletionConfirmDialog: React.FC<FlowDeletionConfirmDialogProps>
               </div>
               <div>
                 <span className="text-gray-500">Progress:</span>
-                <p>{Math.round(flow.progress_percentage)}% Complete</p>
+                <p>{Math.round(flow.progress_percentage || 0)}% Complete</p>
               </div>
               <div>
                 <span className="text-gray-500">Created:</span>
@@ -103,53 +119,61 @@ export const FlowDeletionConfirmDialog: React.FC<FlowDeletionConfirmDialogProps>
           <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
             <h3 className="font-semibold text-red-800 mb-3 flex items-center">
               <Database className="h-4 w-4 mr-2" />
-              Deletion Impact Analysis
+              Deletion Impact
             </h3>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-              {Object.entries(flow.deletion_impact.data_to_delete).map(([key, count]) => {
-                if (typeof count !== 'number' || count === 0) return null;
-                
-                const icons = {
-                  workflow_state: FileText,
-                  import_sessions: Server,
-                  field_mappings: FileText,
-                  assets: Database,
-                  dependencies: Users,
-                  shared_memory_refs: Server
-                };
-                
-                const Icon = icons[key as keyof typeof icons] || Database;
-                
-                return (
-                  <div key={key} className="flex items-center space-x-2">
-                    <Icon className="h-4 w-4 text-red-600" />
-                    <div>
-                      <p className="text-xs text-red-600 capitalize">
-                        {key.replace('_', ' ')}
-                      </p>
-                      <p className="font-semibold text-red-800">{count}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            {flow.deletion_impact?.data_to_delete ? (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  {Object.entries(flow.deletion_impact.data_to_delete).map(([key, count]) => {
+                    if (typeof count !== 'number' || count === 0) return null;
+                    
+                    const icons = {
+                      workflow_state: FileText,
+                      import_sessions: Server,
+                      field_mappings: FileText,
+                      assets: Database,
+                      dependencies: Users,
+                      shared_memory_refs: Server
+                    };
+                    
+                    const Icon = icons[key as keyof typeof icons] || Database;
+                    
+                    return (
+                      <div key={key} className="flex items-center space-x-2">
+                        <Icon className="h-4 w-4 text-red-600" />
+                        <div>
+                          <p className="text-xs text-red-600 capitalize">
+                            {key.replace('_', ' ')}
+                          </p>
+                          <p className="font-semibold text-red-800">{count}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
 
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center space-x-2">
-                <Clock className="h-4 w-4 text-red-600" />
-                <span className="text-red-700">
-                  Estimated cleanup time: {flow.deletion_impact.estimated_cleanup_time}
-                </span>
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center space-x-2">
+                    <Clock className="h-4 w-4 text-red-600" />
+                    <span className="text-red-700">
+                      Estimated cleanup time: {flow.deletion_impact.estimated_cleanup_time}
+                    </span>
+                  </div>
+                  <div className="font-semibold text-red-800">
+                    Total records: {getTotalDataRecords()}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-sm text-red-700">
+                <p>This flow will be permanently deleted along with any associated data and progress.</p>
               </div>
-              <div className="font-semibold text-red-800">
-                Total records: {getTotalDataRecords()}
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Agent Insights Impact */}
-          {flow.agent_insights.length > 0 && (
+          {flow.agent_insights && flow.agent_insights.length > 0 && (
             <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
               <h3 className="font-semibold text-yellow-800 mb-2 flex items-center">
                 <Users className="h-4 w-4 mr-2" />
@@ -162,9 +186,9 @@ export const FlowDeletionConfirmDialog: React.FC<FlowDeletionConfirmDialogProps>
                 {flow.agent_insights.slice(0, 3).map((insight, idx) => (
                   <div key={idx} className="text-xs bg-yellow-100 p-2 rounded">
                     <span className="font-medium capitalize">
-                      {getPhaseDisplayName(insight.phase)}:
+                      {getPhaseDisplayName(insight.phase || 'unknown')}:
                     </span>
-                    <span className="ml-1">{insight.insight.substring(0, 100)}...</span>
+                    <span className="ml-1">{(insight.insight || insight.description || 'Insight data').substring(0, 100)}...</span>
                   </div>
                 ))}
                 {flow.agent_insights.length > 3 && (

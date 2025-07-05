@@ -1,5 +1,54 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [1.0.4] - 2025-07-05
+
+### 🎯 **Master Flow Orchestration - Assessment Flow Integration**
+
+This release completes the integration of Assessment flows with the master flow orchestration system, enabling unified flow tracking and management across all independent flow types.
+
+### 🚀 **Orchestration Enhancement**
+
+#### **Assessment Flow Master Registration**
+- **Change Type**: Core architectural integration
+- **Impact**: Assessment flows now fully participate in master flow orchestration
+- **Technical Details**:
+  - Modified `AssessmentFlowRepository.create_assessment_flow()` to register with `crewai_flow_state_extensions`
+  - Added automatic master flow status synchronization on phase updates
+  - Implemented agent collaboration logging to master flow system
+  - Created helper methods for master flow interactions
+
+#### **Flow Type Naming Consistency**
+- **Change Type**: Codebase standardization
+- **Impact**: Eliminates confusion between 'assess' and 'assessment' references
+- **Technical Details**:
+  - Updated backend `RouteDecisionTool` to use 'assessment' flow type
+  - Modified frontend `flowRoutes.ts` for consistent naming
+  - Aligned all flow type definitions across the platform
+  - Ensures proper flow type detection and routing
+
+#### **Migration Script for Existing Flows**
+- **Change Type**: Data migration tooling
+- **Impact**: Ensures all existing assessment flows are tracked in master system
+- **Technical Details**:
+  - Created `/backend/scripts/migrate_assessment_flows_to_master.py`
+  - Handles retroactive registration of assessment flows
+  - Includes verification and detailed logging
+  - Preserves original flow metadata and state
+
+### 📊 **Business Impact**
+
+- **Unified Flow Visibility**: All flow types now visible in master flow dashboard
+- **Iterative Workflows**: Supports multiple runs of same flow type for data quality improvement
+- **Complete Audit Trail**: Master flow tracks all attempts (successful or failed)
+- **Consistent Architecture**: Assessment flows gain same orchestration benefits as Discovery flows
+
+### 🎯 **Success Metrics**
+
+- **Integration Coverage**: 100% of Assessment flows now register with master system
+- **Code Consistency**: All 'assess' references updated to 'assessment'
+- **Architecture Alignment**: Assessment flows follow same patterns as Discovery flows
+- **Operational Visibility**: Master flow system tracks 8 distinct flow types
+
 ## [1.0.3] - 2025-07-04
 
 ### 🔧 **Frontend API Integration - Discovery Flow Management**

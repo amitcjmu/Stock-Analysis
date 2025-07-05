@@ -6,6 +6,7 @@ import {
   useFlowDeletionV2, 
   useBulkFlowOperationsV2 
 } from '@/hooks/discovery/useFlowOperations';
+import { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
 
 export const useFlowManagement = () => {
   const navigate = useNavigate();
@@ -36,16 +37,8 @@ export const useFlowManagement = () => {
   }, [bulkFlowOperations]);
 
   const handleViewFlowDetails = useCallback((flowId: string, phase: string) => {
-    // Navigate to phase-specific page using correct phase names
-    const phaseRoutes = {
-      'data_import': `/discovery/import`,
-      'attribute_mapping': `/discovery/attribute-mapping/${flowId}`,
-      'data_cleansing': `/discovery/data-cleansing/${flowId}`,
-      'inventory': `/discovery/inventory/${flowId}`,
-      'dependencies': `/discovery/dependencies/${flowId}`,
-      'tech_debt': `/discovery/tech-debt/${flowId}`
-    };
-    const route = phaseRoutes[phase as keyof typeof phaseRoutes] || `/discovery/enhanced-dashboard`;
+    // Navigate to phase-specific page using centralized routing configuration
+    const route = getDiscoveryPhaseRoute(phase, flowId);
     navigate(route);
   }, [navigate]);
 

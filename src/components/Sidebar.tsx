@@ -93,7 +93,7 @@ const Sidebar = () => {
       hasSubmenu: true,
       submenu: [
         { name: 'Overview', path: '/discovery/overview', icon: LayoutDashboard },
-        { name: 'Data Import', path: '/discovery/import', icon: Upload },
+        { name: 'Data Import', path: '/discovery/cmdb-import', icon: Upload },
         { name: 'Attribute Mapping', path: '/discovery/attribute-mapping', icon: Settings2 },
         { name: 'Data Cleansing', path: '/discovery/data-cleansing', icon: Wand2 },
         { name: 'Inventory', path: '/discovery/inventory', icon: Database },
