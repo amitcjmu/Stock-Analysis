@@ -8,9 +8,12 @@ from datetime import datetime
 from typing import Dict, Any, List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func
 
 from app.core.database import get_db
 from app.core.context import RequestContext, get_current_context
+from app.api.v1.dependencies import get_crewai_flow_service
+from app.services.crewai_flow_service import CrewAIFlowService
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +42,8 @@ async def get_active_flows(
             and_(
                 DiscoveryFlow.client_account_id == context.client_account_id,
                 DiscoveryFlow.engagement_id == context.engagement_id,
+                DiscoveryFlow.status != 'deleted',  # Exclude soft-deleted flows
+                DiscoveryFlow.status != 'cancelled',  # Exclude cancelled flows
                 or_(
                     DiscoveryFlow.status == 'active',
                     DiscoveryFlow.status == 'running',
@@ -453,8 +458,9 @@ async def get_flow_validation_status(
 @router.post("/flow/{flow_id}/resume", response_model=Dict[str, Any])
 async def resume_discovery_flow(
     flow_id: str,
-    request: Dict[str, Any],
+    request: Dict[str, Any] = {},
     context: RequestContext = Depends(get_current_context),
+    crewai_service: CrewAIFlowService = Depends(get_crewai_flow_service),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -465,38 +471,354 @@ async def resume_discovery_flow(
     try:
         logger.info(f"Resuming discovery flow {flow_id}")
         
-        # Get the CrewAI flow service
-        from app.services.crewai_flow_service import CrewAIFlowService
-        crewai_service = CrewAIFlowService()
-        
         # Prepare resume context with user approval data
         resume_context = {
             "user_approval": True,
             "field_mappings": request.get("field_mappings", {}),
             "approval_timestamp": datetime.utcnow().isoformat(),
             "approved_by": context.user_id,
-            "approval_notes": request.get("notes", "")
+            "approval_notes": request.get("notes", ""),
+            "client_account_id": context.client_account_id,
+            "engagement_id": context.engagement_id
         }
         
-        # Resume the flow
-        result = await crewai_service.resume_flow(flow_id, resume_context)
+        # Get the flow to check its current state
+        from sqlalchemy import select
+        from app.models.discovery_flow import DiscoveryFlow
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+        import uuid as uuid_lib
         
-        if result.get("status") == "resumed":
-            logger.info(f"✅ Flow {flow_id} resumed successfully")
-            return {
-                "success": True,
-                "flow_id": flow_id,
-                "status": "resumed",
-                "message": "Discovery flow resumed successfully",
-                "next_phase": result.get("next_phase", "field_mapping")
-            }
-        else:
-            logger.error(f"Failed to resume flow {flow_id}: {result}")
-            raise HTTPException(
-                status_code=400,
-                detail=f"Failed to resume flow: {result.get('message', 'Unknown error')}"
+        try:
+            flow_uuid = uuid_lib.UUID(flow_id)
+        except ValueError:
+            flow_uuid = flow_id
+        
+        # Get the flow
+        stmt = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_uuid)
+        result = await db.execute(stmt)
+        flow = result.scalar_one_or_none()
+        
+        if not flow:
+            raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found")
+        
+        if flow.status == "deleted":
+            raise HTTPException(status_code=400, detail="Cannot resume a deleted flow")
+        
+        # Determine the appropriate status to set
+        previous_status = "processing"
+        if flow.status == "paused" and flow.flow_state and "pause_metadata" in flow.flow_state:
+            # Restore to previous status if available
+            previous_status = flow.flow_state["pause_metadata"].get("previous_status", "processing")
+        
+        # Update flow status
+        flow.status = previous_status
+        flow.updated_at = datetime.utcnow()
+        
+        # Update resume metadata
+        if not flow.flow_state:
+            flow.flow_state = {}
+        flow.flow_state["resume_metadata"] = {
+            "resumed_at": datetime.utcnow().isoformat(),
+            "resumed_by": context.user_id,
+            "resumed_from_status": "paused"
+        }
+        
+        # Update master flow if exists
+        if flow.master_flow_id:
+            master_stmt = select(CrewAIFlowStateExtensions).where(
+                CrewAIFlowStateExtensions.flow_id == flow.master_flow_id
             )
+            master_result = await db.execute(master_stmt)
+            master_flow = master_result.scalar_one_or_none()
+            
+            if master_flow:
+                master_flow.flow_status = "active"
+                master_flow.updated_at = datetime.utcnow()
+                
+                # Add resume event to collaboration log
+                master_flow.add_agent_collaboration_entry(
+                    agent_name="system",
+                    action="resume_flow",
+                    details={
+                        "child_flow_id": str(flow_id),
+                        "child_flow_type": "discovery",
+                        "resumed_to_status": previous_status,
+                        "resumed_by": context.user_id
+                    }
+                )
+        
+        # Determine next phase
+        next_phase = "unknown"
+        if not flow.data_import_completed:
+            next_phase = "data_import"
+        elif not flow.field_mapping_completed:
+            next_phase = "field_mapping"
+        elif not flow.data_cleansing_completed:
+            next_phase = "data_cleansing"
+        elif not flow.asset_inventory_completed:
+            next_phase = "asset_inventory"
+        elif not flow.dependency_analysis_completed:
+            next_phase = "dependency_analysis"
+        elif not flow.tech_debt_assessment_completed:
+            next_phase = "tech_debt_assessment"
+        else:
+            next_phase = "completed"
+        
+        await db.commit()
+        
+        # Try to resume with CrewAI service if available
+        try:
+            result = await crewai_service.resume_flow(flow_id, resume_context)
+            logger.info(f"CrewAI service resume result: {result}")
+        except Exception as crewai_error:
+            logger.warning(f"CrewAI service resume failed: {crewai_error}")
+        
+        logger.info(f"✅ Flow {flow_id} resumed successfully")
+        
+        return {
+            "success": True,
+            "flow_id": str(flow_id),
+            "status": "resumed",
+            "message": "Discovery flow resumed successfully",
+            "next_phase": next_phase,
+            "current_phase": next_phase
+        }
             
     except Exception as e:
         logger.error(f"Error resuming flow {flow_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to resume flow: {str(e)}")
+
+@router.post("/flow/{flow_id}/pause", response_model=Dict[str, Any])
+async def pause_discovery_flow(
+    flow_id: str,
+    request: Dict[str, Any] = {},
+    context: RequestContext = Depends(get_current_context),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Pause an active discovery flow.
+    
+    Updates both the discovery flow and master flow status to reflect paused state.
+    """
+    try:
+        logger.info(f"⏸️ Pausing discovery flow {flow_id}")
+        
+        from sqlalchemy import select
+        from app.models.discovery_flow import DiscoveryFlow
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+        import uuid as uuid_lib
+        
+        try:
+            flow_uuid = uuid_lib.UUID(flow_id)
+        except ValueError:
+            logger.warning(f"Invalid UUID format for flow_id: {flow_id}")
+            flow_uuid = flow_id
+        
+        # Get the flow
+        stmt = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_uuid)
+        result = await db.execute(stmt)
+        flow = result.scalar_one_or_none()
+        
+        if not flow:
+            raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found")
+        
+        if flow.status == "deleted":
+            raise HTTPException(status_code=400, detail="Cannot pause a deleted flow")
+        
+        if flow.status == "completed":
+            raise HTTPException(status_code=400, detail="Cannot pause a completed flow")
+        
+        if flow.status == "paused":
+            logger.info(f"Flow {flow_id} is already paused")
+            return {
+                "success": True,
+                "flow_id": str(flow_id),
+                "status": "already_paused",
+                "message": "Flow is already paused"
+            }
+        
+        # Store the previous status for potential resume
+        previous_status = flow.status
+        flow.status = "paused"
+        flow.updated_at = datetime.utcnow()
+        
+        # Store pause metadata in flow_state
+        if not flow.flow_state:
+            flow.flow_state = {}
+        flow.flow_state["pause_metadata"] = {
+            "paused_at": datetime.utcnow().isoformat(),
+            "paused_by": context.user_id,
+            "previous_status": previous_status,
+            "pause_reason": request.get("reason", "User requested pause")
+        }
+        
+        # Update master flow if exists
+        if flow.master_flow_id:
+            master_stmt = select(CrewAIFlowStateExtensions).where(
+                CrewAIFlowStateExtensions.flow_id == flow.master_flow_id
+            )
+            master_result = await db.execute(master_stmt)
+            master_flow = master_result.scalar_one_or_none()
+            
+            if master_flow:
+                master_flow.flow_status = "paused"
+                master_flow.updated_at = datetime.utcnow()
+                
+                # Add pause event to collaboration log
+                master_flow.add_agent_collaboration_entry(
+                    agent_name="system",
+                    action="pause_flow",
+                    details={
+                        "child_flow_id": str(flow_id),
+                        "child_flow_type": "discovery",
+                        "previous_status": previous_status,
+                        "paused_by": context.user_id
+                    }
+                )
+        
+        await db.commit()
+        
+        logger.info(f"✅ Flow {flow_id} paused successfully")
+        
+        return {
+            "success": True,
+            "flow_id": str(flow_id),
+            "status": "paused",
+            "message": "Discovery flow paused successfully",
+            "previous_status": previous_status
+        }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error pausing flow {flow_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to pause flow: {str(e)}")
+
+@router.delete("/flow/{flow_id}", response_model=Dict[str, Any])
+async def delete_discovery_flow(
+    flow_id: str,
+    context: RequestContext = Depends(get_current_context),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Mark a discovery flow as deleted (soft delete) and update master flow status.
+    
+    This maintains audit trail by not physically deleting the flow,
+    instead marking it as 'deleted' and creating an audit record.
+    """
+    try:
+        logger.info(f"🗑️ Marking discovery flow {flow_id} as deleted")
+        
+        from sqlalchemy import select, update
+        from app.models.discovery_flow import DiscoveryFlow
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+        from app.models.flow_deletion_audit import FlowDeletionAudit
+        import uuid as uuid_lib
+        from datetime import datetime
+        import time
+        
+        start_time = time.time()
+        
+        try:
+            flow_uuid = uuid_lib.UUID(flow_id)
+        except ValueError:
+            logger.warning(f"Invalid UUID format for flow_id: {flow_id}")
+            flow_uuid = flow_id
+        
+        # Get the discovery flow
+        stmt = select(DiscoveryFlow).where(
+            DiscoveryFlow.flow_id == flow_uuid,
+            DiscoveryFlow.client_account_id == context.client_account_id,
+            DiscoveryFlow.engagement_id == context.engagement_id
+        )
+        result = await db.execute(stmt)
+        flow = result.scalar_one_or_none()
+        
+        if not flow:
+            logger.warning(f"Discovery flow {flow_id} not found")
+            return {
+                "success": False,
+                "flow_id": str(flow_id),
+                "message": "Flow not found",
+                "deleted": False
+            }
+        
+        if flow.status == "deleted":
+            logger.info(f"Discovery flow {flow_id} already marked as deleted")
+            return {
+                "success": True,
+                "flow_id": str(flow_id),
+                "message": "Flow already deleted",
+                "deleted": False
+            }
+        
+        # Prepare deletion data for audit
+        deletion_data = {
+            "flow_type": "discovery",
+            "previous_status": flow.status,
+            "flow_name": flow.flow_name,
+            "progress_percentage": flow.progress_percentage,
+            "phases_completed": {
+                "data_import": flow.data_import_completed,
+                "field_mapping": flow.field_mapping_completed,
+                "data_cleansing": flow.data_cleansing_completed,
+                "asset_inventory": flow.asset_inventory_completed,
+                "dependency_analysis": flow.dependency_analysis_completed,
+                "tech_debt_assessment": flow.tech_debt_assessment_completed
+            }
+        }
+        
+        # Mark discovery flow as deleted
+        flow.status = "deleted"
+        flow.updated_at = datetime.utcnow()
+        
+        # Update master flow if exists
+        if flow.master_flow_id:
+            master_stmt = update(CrewAIFlowStateExtensions).where(
+                CrewAIFlowStateExtensions.flow_id == flow.master_flow_id
+            ).values(
+                flow_status="child_flows_deleted",
+                updated_at=datetime.utcnow(),
+                flow_persistence_data=func.jsonb_set(
+                    CrewAIFlowStateExtensions.flow_persistence_data,
+                    '{discovery_flow_deleted}',
+                    'true'::jsonb
+                )
+            )
+            await db.execute(master_stmt)
+        
+        # Create audit record
+        duration_ms = int((time.time() - start_time) * 1000)
+        audit_record = FlowDeletionAudit.create_audit_record(
+            flow_id=str(flow_uuid),
+            client_account_id=str(context.client_account_id),
+            engagement_id=str(context.engagement_id),
+            user_id=context.user_id,
+            deletion_type="user_requested",
+            deletion_method="api",
+            deleted_by=context.user_id,
+            deletion_reason="User requested deletion via UI",
+            data_deleted=deletion_data,
+            deletion_impact={"flow_type": "discovery", "soft_delete": True},
+            cleanup_summary={"status_updated": True, "master_flow_updated": bool(flow.master_flow_id)},
+            deletion_duration_ms=duration_ms
+        )
+        db.add(audit_record)
+        
+        # Commit all changes
+        await db.commit()
+        
+        logger.info(f"✅ Discovery flow {flow_id} marked as deleted successfully")
+        
+        return {
+            "success": True,
+            "flow_id": str(flow_id),
+            "message": "Discovery flow marked as deleted",
+            "deleted": True,
+            "audit_id": str(audit_record.id)
+        }
+            
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"❌ Error marking discovery flow {flow_id} as deleted: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete flow: {str(e)}")

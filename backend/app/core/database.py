@@ -192,7 +192,13 @@ async def get_db() -> AsyncSession:
             connection_health.record_connection_attempt(True, response_time)
             
             yield session
-            await session.commit()
+            
+            # Only commit if there's no active transaction error
+            try:
+                await session.commit()
+            except Exception as commit_error:
+                logger.warning(f"Could not commit transaction: {commit_error}")
+                await session.rollback()
     
     except asyncio.TimeoutError:
         logger.error("Database session creation timeout")

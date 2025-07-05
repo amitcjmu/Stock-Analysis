@@ -14,10 +14,10 @@ graph TB
     end
 
     subgraph "API Gateway"
-        APIv3[API v3 Endpoints<br/>Primary Target]
-        APIv1[API v1 Endpoints<br/>Still in Use]
-        Hooks --> APIv3
-        Hooks -.-> APIv1
+        APIv1[API v1 Endpoints<br/><strong>Primary Entry Point (Current)</strong>]
+        APIv3[API v3 Endpoints<br/>Future Target]
+        Hooks --> APIv1
+        Hooks -.-> APIv3
     end
 
     subgraph "Multi-Tenant Context Layer"
@@ -81,8 +81,8 @@ graph TB
         UDF --> DIA
     end
 
-    style APIv3 fill:#90EE90
-    style APIv1 fill:#FFE4B5
+    style APIv1 fill:#90EE90
+    style APIv3 fill:#FFE4B5
     style UDF fill:#87CEEB
     style FSB fill:#87CEEB
 ```
@@ -119,25 +119,40 @@ sequenceDiagram
 ```mermaid
 stateDiagram-v2
     [*] --> Initialize: @start()
-    Initialize --> DataValidation: @listen(initialize)
-    DataValidation --> AttributeMapping: @listen(data_validation)
-    AttributeMapping --> DataCleansing: @listen(attribute_mapping)
-    DataCleansing --> AssetDiscovery: @listen(data_cleansing)
-    AssetDiscovery --> ParallelAnalysis: @listen(asset_discovery)
+    Initialize --> DataValidation: @listen
+    DataValidation --> AttributeMapping: @listen
+    AttributeMapping --> PauseForUserApproval: Human-in-the-loop
+    PauseForUserApproval --> DataCleansing: @listen (on resume)
+    DataCleansing --> AssetDiscovery: @listen
+
+    state AssetDiscovery {
+        direction LR
+        [*] --> Triage: Manager sorts assets
+        Triage --> ServerClassification
+        Triage --> AppClassification
+        Triage --> DeviceClassification
+        
+        state "Parallel Classification" as PC {
+            direction LR
+            ServerClassification
+            AppClassification
+            DeviceClassification
+        }
+
+        PC --> Consolidation: Manager maps relationships
+        Consolidation --> [*]
+    }
+
+    AssetDiscovery --> ParallelAnalysis: @listen
     
     state ParallelAnalysis {
         [*] --> DependencyAnalysis
         [*] --> TechDebtAnalysis
-        [*] --> RiskAssessment
         DependencyAnalysis --> [*]
         TechDebtAnalysis --> [*]
-        RiskAssessment --> [*]
     }
     
-    ParallelAnalysis --> UserApproval: @listen(parallel_analysis)
-    UserApproval --> WavePlanning: Approved
-    UserApproval --> [*]: Rejected
-    WavePlanning --> [*]: Complete
+    ParallelAnalysis --> [*]: Flow Complete
 ```
 
 ### 3. Multi-Tenant Data Access Pattern

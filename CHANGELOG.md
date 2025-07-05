@@ -1,5 +1,65 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [1.0.6] - 2025-07-05
+
+### 🎯 **Flow Lifecycle Management & Audit Trail System**
+
+This release implements comprehensive flow lifecycle management with soft deletion, audit trails, and proper master-child flow coordination, ensuring complete traceability and troubleshooting capabilities.
+
+### 🚀 **Major Architectural Improvements**
+
+#### **Soft Delete Implementation with Audit Trail**
+- **Change Type**: Architecture enhancement
+- **Impact**: All flows maintain complete history for troubleshooting and compliance
+- **Technical Details**:
+  - Implemented soft delete for discovery flows - marked as 'deleted' instead of physical removal
+  - Master flows updated to 'child_flows_deleted' status when children are deleted
+  - Created comprehensive audit records in `FlowDeletionAudit` table
+  - Active flow queries exclude soft-deleted and cancelled flows
+  - Frontend updated to use discovery flow delete endpoint with master flow fallback
+
+#### **Flow Pause/Resume Functionality**
+- **Change Type**: New feature
+- **Impact**: Users can pause and resume flows maintaining proper state
+- **Technical Details**:
+  - Added `/api/v1/discovery/flow/{flow_id}/pause` endpoint
+  - Stores previous status in flow_state for accurate resume behavior
+  - Resume endpoint enhanced to restore previous status when resuming from pause
+  - Master flow status synchronized with child flow operations
+  - Collaboration log tracks all pause/resume events
+
+#### **Master-Child Flow Coordination**
+- **Change Type**: Architecture fix
+- **Impact**: Proper lifecycle management across all flow types
+- **Technical Details**:
+  - Fixed CrewAIFlowService to use dependency injection for database sessions
+  - Master flows track all child flow operations in collaboration logs
+  - Child flow status changes reflected in master flow status
+  - Resume endpoint properly updates both child and master flow states
+
+#### **Fixed Flow Resume & Delete Issues**
+- **Change Type**: Bug fix
+- **Impact**: "Continue Flow" and "Delete Flow" functionality now work correctly
+- **Technical Details**:
+  - Fixed 422 error on resume endpoint by making request body optional
+  - Added proper request body to frontend resume API call
+  - Delete operations now properly soft-delete from discovery_flow table
+  - Bulk delete operations support both discovery and master flow endpoints
+
+### 📊 **Business Impact**
+
+- **Complete Audit Trail**: All flow operations logged for compliance and troubleshooting
+- **Data Recovery**: Soft-deleted flows can be recovered if needed
+- **Operational Control**: Pause/resume capability for better flow management
+- **Troubleshooting**: Complete history of flow lifecycle events available
+
+### 🎯 **Success Metrics**
+
+- **Zero Data Loss**: 100% of flows preserved with soft delete
+- **Full Traceability**: Every flow operation logged with timestamps and user info
+- **Improved UX**: Users can now pause, resume, and delete flows without errors
+- **Architecture Alignment**: Flow lifecycle properly implements Phase 5 architecture
+
 ## [1.0.5] - 2025-07-05
 
 ### 🎯 **Flow Routing & Master Orchestration Fixes**

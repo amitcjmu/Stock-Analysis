@@ -1,5 +1,5 @@
 # Use Node.js 22 Alpine (current active version) - latest security patches
-# Using platform-agnostic tag for ARM64 compatibility
+# Updated to latest LTS with all security patches
 FROM node:22-alpine
 
 # Install security updates

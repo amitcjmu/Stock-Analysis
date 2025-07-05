@@ -24,9 +24,9 @@ RUN apt-get update \
 # Copy requirements first for better caching
 COPY requirements-docker.txt requirements.txt ./
 
-# Install Python dependencies
+# Install Python dependencies with security patches
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements-docker.txt
+    && pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .

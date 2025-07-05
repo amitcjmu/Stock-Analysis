@@ -1,5 +1,19 @@
 #!/usr/bin/env python3
 """
+⚠️ WARNING: DO NOT RUN THIS SCRIPT! ⚠️
+
+This script uses SHA256 password hashing which is incompatible with the 
+authentication service that expects bcrypt hashes. The password verification
+in this script will always fail because it compares SHA256 hashes against
+bcrypt hashes in the database.
+
+USE INSTEAD: python -m app.core.database_initialization
+
+The database initialization module correctly uses passlib with bcrypt and
+will set passwords that work with the authentication service.
+
+---
+
 Test platform admin login.
 """
 import asyncio

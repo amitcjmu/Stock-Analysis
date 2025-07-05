@@ -1,4 +1,17 @@
 """
+⚠️ WARNING: DO NOT RUN THIS SCRIPT! ⚠️
+
+This script uses SHA256 password hashing which is incompatible with the 
+authentication service that expects bcrypt hashes. Running this script will
+set invalid password hashes that will prevent login.
+
+USE INSTEAD: python -m app.core.database_initialization
+
+The database initialization module correctly uses passlib with bcrypt and
+will set passwords that work with the authentication service.
+
+---
+
 Fix multi-tenant data by adding additional client accounts and associations.
 This addresses Agent 4's validation issue where only one client account exists.
 """

@@ -1,4 +1,17 @@
 """
+⚠️ WARNING: DO NOT RUN THIS SCRIPT! ⚠️
+
+This script uses SHA256 password hashing which is incompatible with the 
+authentication service that expects bcrypt hashes. Running this script will
+set invalid password hashes that will prevent login.
+
+USE INSTEAD: python -m app.core.database_initialization
+
+The database initialization module correctly uses passlib with bcrypt and
+will set passwords that work with the authentication service.
+
+---
+
 Demo multi-tenant data setup with clearly identifiable demo UUIDs and naming.
 All demo UUIDs use pattern: XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX
 All emails use pattern: user@demo.company.com

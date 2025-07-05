@@ -59,7 +59,11 @@ export const useFlowResumptionV2 = () => {
   return useMutation({
     mutationFn: async (flowId: string) => {
       return await apiCall(`/api/v1/discovery/flow/${flowId}/resume`, {
-        method: 'POST'
+        method: 'POST',
+        body: JSON.stringify({
+          field_mappings: {},
+          notes: 'Resuming incomplete flow'
+        })
       });
     },
     onSuccess: (data, flowId) => {
@@ -94,10 +98,18 @@ export const useFlowDeletionV2 = () => {
   
   return useMutation({
     mutationFn: async (flowId: string) => {
-      // Use the master flows API for centralized flow management
-      return await apiCall(`/api/v1/master-flows/${flowId}`, {
-        method: 'DELETE'
-      });
+      try {
+        // First try to delete from discovery flows
+        return await apiCall(`/api/v1/discovery/flow/${flowId}`, {
+          method: 'DELETE'
+        });
+      } catch (error) {
+        // If that fails, try master flows API as fallback
+        console.warn('Discovery flow delete failed, trying master flows API');
+        return await apiCall(`/api/v1/master-flows/${flowId}`, {
+          method: 'DELETE'
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incomplete-flows'] });
@@ -129,10 +141,19 @@ export const useBulkFlowOperationsV2 = () => {
       setIsDeleting(true);
       try {
         const results = await Promise.all(
-          flowIds.map(flowId => 
-            apiCall(`/api/v1/discovery/flow/${flowId}`, { method: 'DELETE' })
-              .catch(error => ({ flowId, error }))
-          )
+          flowIds.map(async flowId => {
+            try {
+              // First try discovery flow endpoint
+              return await apiCall(`/api/v1/discovery/flow/${flowId}`, { method: 'DELETE' });
+            } catch (error) {
+              try {
+                // Fallback to master flows API
+                return await apiCall(`/api/v1/master-flows/${flowId}`, { method: 'DELETE' });
+              } catch (fallbackError) {
+                return { flowId, error: fallbackError };
+              }
+            }
+          })
         );
         return results;
       } finally {
