@@ -184,22 +184,22 @@ export const useAttributeMappingLogic = () => {
   // Action handlers
   const handleTriggerFieldMappingCrew = useCallback(async () => {
     try {
-      console.log('🔄 Resuming CrewAI Flow at attribute_mapping phase');
+      console.log('🔄 Executing CrewAI Flow at attribute_mapping phase');
       if (flow?.flow_id) {
-        // Use the new CrewAI Flow resume functionality instead of just marking phase complete
+        // Use the existing /flow/execute endpoint to run attribute mapping phase
         const unifiedDiscoveryService = (await import('../../services/discoveryUnifiedService')).default;
-        const result = await unifiedDiscoveryService.resumeFlowAtPhase(
-          flow.flow_id, 
-          'attribute_mapping',
-          { trigger: 'user_requested', phase: 'attribute_mapping' }
-        );
-        console.log('✅ CrewAI Flow resumed at attribute_mapping phase:', result);
+        const result = await unifiedDiscoveryService.executeFlow({
+          flow_id: flow.flow_id,
+          phase: 'attribute_mapping',
+          execution_mode: 'hybrid'
+        });
+        console.log('✅ CrewAI Flow executed at attribute_mapping phase:', result);
         
         // Refresh the flow data to get updated state
         await refresh();
       }
     } catch (error) {
-      console.error('❌ Failed to resume CrewAI Flow at attribute_mapping phase:', error);
+      console.error('❌ Failed to execute CrewAI Flow at attribute_mapping phase:', error);
     }
   }, [flow, refresh]);
 
