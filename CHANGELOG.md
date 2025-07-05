@@ -1,5 +1,63 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [1.0.5] - 2025-07-05
+
+### 🎯 **Flow Routing & Master Orchestration Fixes**
+
+This release fixes critical issues with flow routing, master flow orchestration authentication, and discovery dashboard functionality, ensuring proper flow management and visibility across the platform.
+
+### 🚀 **Critical Fixes & Enhancements**
+
+#### **Discovery Dashboard Flow Display Fix**
+- **Change Type**: Bug fix
+- **Impact**: Discovery dashboard now correctly displays active flows from database
+- **Technical Details**:
+  - Removed hardcoded placeholder flow ("placeholder-flow-001") from `/api/v1/discovery/flows/active`
+  - Updated endpoint to query actual database flows with proper multi-tenant filtering
+  - Fixed serialization error by using `flow_state` instead of non-existent `metadata` field
+  - Dashboard now shows real flows instead of "No Active Flows" message
+
+#### **Flow Navigation & Routing System**
+- **Change Type**: Architecture enhancement
+- **Impact**: Proper flow phase navigation and extensible routing for all flow types
+- **Technical Details**:
+  - Created centralized `/src/config/flowRoutes.ts` supporting 8 flow types
+  - Fixed navigation bug routing initialization phase flows to inventory page
+  - Implemented phase-aware routing (data_import → field_mapping → data_cleansing → etc.)
+  - Mirrors backend `RouteDecisionTool` for frontend-backend consistency
+
+#### **Master Flow Authentication & Security Fix**
+- **Change Type**: Security enhancement
+- **Impact**: Proper authentication enforcement for all master flow operations
+- **Technical Details**:
+  - Fixed hardcoded demo context (11111111-1111-1111-1111-111111111111) in master_flows.py
+  - Implemented proper user context retrieval from authenticated sessions
+  - Fixed database transaction errors in user context fetching
+  - All master flow endpoints now require valid authentication tokens
+
+#### **Route Configuration Fixes**
+- **Change Type**: Infrastructure fix
+- **Impact**: API endpoints accessible at correct paths
+- **Technical Details**:
+  - Fixed router prefix duplication issue causing 404 errors on DELETE `/api/v1/master-flows/{flow_id}`
+  - Updated React Router from `/discovery/import` to `/discovery/cmdb-import`
+  - Reordered routes to prevent static paths being interpreted as UUIDs
+  - Fixed route conflicts between static and dynamic endpoints
+
+### 📊 **Business Impact**
+
+- **Flow Visibility**: Users can now see and manage all active discovery flows
+- **Secure Operations**: Master flow operations properly secured with authentication
+- **Seamless Navigation**: Users correctly routed through discovery flow phases
+- **Platform Extensibility**: Routing system ready for 8 different flow types
+
+### 🎯 **Success Metrics**
+
+- **Bug Resolution**: 4 critical issues resolved (flow display, navigation, auth, routing)
+- **Security Enhancement**: 100% of master flow endpoints now authenticated
+- **Route Coverage**: Support for 8 flow types with 30+ phase routes configured
+- **User Experience**: Eliminated 404 errors and incorrect flow navigation
+
 ## [1.0.4] - 2025-07-05
 
 ### 🎯 **Master Flow Orchestration - Assessment Flow Integration**

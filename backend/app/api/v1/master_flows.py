@@ -34,8 +34,8 @@ async def get_current_user_context(
     
     return {
         "user_id": str(current_user.id),
-        "client_account_id": str(user_context.client_account_id) if user_context.client_account_id else None,
-        "engagement_id": str(user_context.engagement_id) if user_context.engagement_id else None
+        "client_account_id": str(user_context.client.id) if user_context.client else None,
+        "engagement_id": str(user_context.engagement.id) if user_context.engagement else None
     }
 
 router = APIRouter(tags=["Master Flow Coordination"])
@@ -60,11 +60,11 @@ class CrossPhaseAnalyticsResponse(BaseModel):
 
 class MasterFlowCoordinationResponse(BaseModel):
     """Master flow coordination summary response"""
-    total_discovery_flows: int
-    flows_with_master_coordination: int
-    unique_master_flows: int
-    coordination_percentage: float
-    phase_distribution: Dict[str, int]
+    flow_type_distribution: Dict[str, int]
+    master_flow_references: Dict[str, int]
+    assessment_readiness: Dict[str, int]
+    coordination_metrics: Dict[str, float]
+    error: Optional[str] = None
 
 
 class DiscoveryFlowResponse(BaseModel):
@@ -84,75 +84,7 @@ class DiscoveryFlowResponse(BaseModel):
         from_attributes = True
 
 
-@router.get("/{master_flow_id}/assets", response_model=List[AssetResponse])
-async def get_assets_by_master_flow(
-    master_flow_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user_context)
-) -> List[AssetResponse]:
-    """Get all assets for a specific master flow"""
-    
-    client_account_id = current_user.get("client_account_id")
-    if not client_account_id:
-        raise HTTPException(status_code=400, detail="Client account ID required")
-    
-    asset_repo = AssetRepository(db, client_account_id)
-    
-    try:
-        assets = await asset_repo.get_by_master_flow(master_flow_id)
-        return [AssetResponse.from_orm(asset) for asset in assets]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving assets: {str(e)}")
-
-
-@router.get("/{master_flow_id}/summary", response_model=MasterFlowSummaryResponse)
-async def get_master_flow_summary(
-    master_flow_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user_context)
-) -> MasterFlowSummaryResponse:
-    """Get comprehensive summary for a master flow"""
-    
-    client_account_id = current_user.get("client_account_id")
-    if not client_account_id:
-        raise HTTPException(status_code=400, detail="Client account ID required")
-    
-    asset_repo = AssetRepository(db, client_account_id)
-    
-    try:
-        summary = await asset_repo.get_master_flow_summary(master_flow_id)
-        return MasterFlowSummaryResponse(**summary)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving master flow summary: {str(e)}")
-
-
-@router.get("/{master_flow_id}/discovery-flow", response_model=DiscoveryFlowResponse)
-async def get_discovery_flow_by_master(
-    master_flow_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user_context)
-) -> DiscoveryFlowResponse:
-    """Get discovery flow associated with a master flow"""
-    
-    client_account_id = current_user.get("client_account_id")
-    engagement_id = current_user.get("engagement_id")
-    
-    if not client_account_id:
-        raise HTTPException(status_code=400, detail="Client account ID required")
-    
-    discovery_repo = DiscoveryFlowRepository(db, client_account_id, engagement_id, user_id=current_user.get("user_id"))
-    
-    try:
-        discovery_flow = await discovery_repo.get_by_master_flow_id(master_flow_id)
-        if not discovery_flow:
-            raise HTTPException(status_code=404, detail="Discovery flow not found for master flow")
-        
-        return DiscoveryFlowResponse.from_orm(discovery_flow)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving discovery flow: {str(e)}")
-
+# Static routes first (no path parameters)
 
 @router.get("/analytics/cross-phase", response_model=CrossPhaseAnalyticsResponse)
 async def get_cross_phase_analytics(
@@ -240,6 +172,78 @@ async def get_multi_phase_assets(
         return [AssetResponse.from_orm(asset) for asset in assets]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving multi-phase assets: {str(e)}")
+
+
+# Dynamic routes (with path parameters) - must come after static routes
+
+@router.get("/{master_flow_id}/assets", response_model=List[AssetResponse])
+async def get_assets_by_master_flow(
+    master_flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user_context)
+) -> List[AssetResponse]:
+    """Get all assets for a specific master flow"""
+    
+    client_account_id = current_user.get("client_account_id")
+    if not client_account_id:
+        raise HTTPException(status_code=400, detail="Client account ID required")
+    
+    asset_repo = AssetRepository(db, client_account_id)
+    
+    try:
+        assets = await asset_repo.get_by_master_flow(master_flow_id)
+        return [AssetResponse.from_orm(asset) for asset in assets]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving assets: {str(e)}")
+
+
+@router.get("/{master_flow_id}/summary", response_model=MasterFlowSummaryResponse)
+async def get_master_flow_summary(
+    master_flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user_context)
+) -> MasterFlowSummaryResponse:
+    """Get comprehensive summary for a master flow"""
+    
+    client_account_id = current_user.get("client_account_id")
+    if not client_account_id:
+        raise HTTPException(status_code=400, detail="Client account ID required")
+    
+    asset_repo = AssetRepository(db, client_account_id)
+    
+    try:
+        summary = await asset_repo.get_master_flow_summary(master_flow_id)
+        return MasterFlowSummaryResponse(**summary)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving master flow summary: {str(e)}")
+
+
+@router.get("/{master_flow_id}/discovery-flow", response_model=DiscoveryFlowResponse)
+async def get_discovery_flow_by_master(
+    master_flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user_context)
+) -> DiscoveryFlowResponse:
+    """Get discovery flow associated with a master flow"""
+    
+    client_account_id = current_user.get("client_account_id")
+    engagement_id = current_user.get("engagement_id")
+    
+    if not client_account_id:
+        raise HTTPException(status_code=400, detail="Client account ID required")
+    
+    discovery_repo = DiscoveryFlowRepository(db, client_account_id, engagement_id, user_id=current_user.get("user_id"))
+    
+    try:
+        discovery_flow = await discovery_repo.get_by_master_flow_id(master_flow_id)
+        if not discovery_flow:
+            raise HTTPException(status_code=404, detail="Discovery flow not found for master flow")
+        
+        return DiscoveryFlowResponse.from_orm(discovery_flow)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving discovery flow: {str(e)}")
 
 
 @router.post("/{discovery_flow_id}/transition-to-assessment")
@@ -352,4 +356,4 @@ async def delete_master_flow(
     except Exception as e:
         await db.rollback()
         logger.error(f"❌ Failed to delete master flow {flow_id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to delete flow: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Failed to delete flow: {str(e)}")
