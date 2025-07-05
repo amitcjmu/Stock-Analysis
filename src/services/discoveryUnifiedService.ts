@@ -55,7 +55,7 @@ class UnifiedDiscoveryError extends Error {
 const httpClient = {
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     try {
-      const response = await apiCall(`/discovery${endpoint}`, {
+      const response = await apiCall(`/unified-discovery${endpoint}`, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
