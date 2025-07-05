@@ -1,5 +1,54 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [1.0.9] - 2025-07-05
+
+### 🎯 **Discovery Flow Field Mapping Fix & Mock Orchestrator Removal**
+
+This release fixes the "Trigger Field Mapping" functionality by connecting it to real CrewAI flows and removes dangerous mock orchestrator code that was creating false success responses.
+
+### 🚀 **Critical Field Mapping Fixes**
+
+#### **Fixed Field Mapping Trigger to Use Real CrewAI Flows**
+- **Change Type**: Bug fix and architecture correction
+- **Impact**: "Trigger Field Mapping" button now actually generates field mappings instead of fake success
+- **Technical Details**:
+  - Changed frontend to call `/api/v1/discovery/flow/{flow_id}/resume` instead of mock `/unified-discovery/flow/execute`
+  - Fixed useAttributeMappingLogic to use proper CrewAI flow resumption with user approval context
+  - Removed dependency on non-existent `resumeFlowAtPhase` method
+  - Added proper auth headers and approval metadata to resume calls
+
+#### **Removed Dangerous Mock Discovery Orchestrator**
+- **Change Type**: Architecture cleanup and technical debt reduction
+- **Impact**: Eliminates false success responses that misled developers about flow execution
+- **Technical Details**:
+  - Archived entire `/unified-discovery` module to `backend/archive/legacy/mock_orchestrator/`
+  - Removed `DiscoveryOrchestrator` class that returned fake `{"status": "completed"}` responses
+  - Eliminated mock endpoints that didn't perform real CrewAI flow operations
+  - Updated API router to remove unified discovery routes and imports
+  - Added comprehensive README explaining why mock code was dangerous
+
+#### **Fixed Discovery Service URL Routing**
+- **Change Type**: Bug fix
+- **Impact**: Resolves 405 Method Not Allowed errors when triggering field mapping
+- **Technical Details**:
+  - Fixed discoveryUnifiedService to use correct `/unified-discovery` paths initially
+  - Then corrected approach to use real `/discovery` endpoints for actual functionality
+  - Ensures API calls reach working endpoints instead of non-existent routes
+
+### 📊 **Business Impact**
+
+- **Field Mapping Functionality**: Users can now successfully trigger field mapping and see actual agent-generated results
+- **Developer Productivity**: Eliminates confusing mock responses that made debugging impossible
+- **Code Quality**: Removes 500+ lines of misleading mock code that served no productive purpose
+- **System Reliability**: Ensures all discovery flow operations use real CrewAI implementations
+
+### 🎯 **Success Metrics**
+
+- **100% Real Flow Execution**: All field mapping triggers now use actual CrewAI flows instead of mocks
+- **Zero False Success Responses**: Eliminated mock orchestrator that returned fake completion status
+- **Proper Error Handling**: Users now see real errors from real systems instead of fake success
+- **Clean Architecture**: Removed architectural confusion between mock and real discovery endpoints
+
 ## [1.0.8] - 2025-07-05
 
 ### 🎯 **Discovery Flow State Synchronization & Legacy Cleanup**
