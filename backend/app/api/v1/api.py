@@ -45,13 +45,9 @@ except ImportError as e:
 # Import only existing endpoint files
 from app.api.v1.endpoints.context_establishment import router as context_establishment_router
 
-# Modular Unified Discovery Flow API 
-try:
-    from app.api.v1.unified_discovery_modular import router as unified_discovery_router
-    UNIFIED_DISCOVERY_AVAILABLE = True
-except ImportError as e:
-    UNIFIED_DISCOVERY_AVAILABLE = False
-    logging.warning(f"Unified Discovery router not available: {e}")
+# REMOVED: Modular Unified Discovery Flow API - was mock orchestrator
+# Real CrewAI flows are handled by /discovery endpoints
+UNIFIED_DISCOVERY_AVAILABLE = False
 
 # Assessment endpoints
 try:
@@ -256,12 +252,10 @@ try:
 except ImportError as e:
     logger.warning(f"⚠️ Discovery Flows router not available: {e}")
 
-# Unified Discovery API - Modular implementation with real CrewAI flows
-if UNIFIED_DISCOVERY_AVAILABLE:
-    api_router.include_router(unified_discovery_router, tags=["Unified Discovery"])
-    logger.info("✅ Unified Discovery router included (modular implementation)")
-else:
-    logger.warning("⚠️ Unified Discovery router not available")
+# REMOVED: Unified Discovery API - was mock orchestrator with fake responses
+# The real CrewAI flows are handled by /discovery endpoints in discovery_flows.py
+# TODO: Remove the entire unified_discovery_modular.py and associated mock files
+logger.info("📦 Unified Discovery mock orchestrator removed - use /discovery endpoints for real CrewAI flows")
 
 # ARCHIVED: Discovery Crew Escalation API - depended on pseudo-agents
 # Original discovery_escalation module imported DataImportValidationAgent and other pseudo-agents
