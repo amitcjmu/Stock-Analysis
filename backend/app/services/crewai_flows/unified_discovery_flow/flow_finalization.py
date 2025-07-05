@@ -38,9 +38,10 @@ class FlowFinalizer:
         approval_context = self.state_manager.prepare_approval_context()
         
         # Update state
-        self.state.status = "waiting_for_user"
+        self.state.status = "waiting_for_user_approval"
         self.state.current_phase = "attribute_mapping"
-        self.state.user_approval_context = approval_context
+        self.state.awaiting_user_approval = True
+        self.state.user_approval_data = approval_context
         
         # Update database
         await self.state_manager.safe_update_flow_state()
@@ -80,6 +81,9 @@ class FlowFinalizer:
             # Update database
             await self.state_manager.safe_update_flow_state()
             
+            # Update master flow table status
+            await self._update_master_flow_status("completed")
+            
             logger.info("✅ Discovery flow completed successfully")
             return "discovery_completed"
             
@@ -94,10 +98,47 @@ class FlowFinalizer:
             # Make sure to update the database with the failed status
             try:
                 await self.state_manager.safe_update_flow_state()
+                # Update master flow table status
+                await self._update_master_flow_status("failed")
             except Exception as update_error:
                 logger.error(f"❌ Failed to update flow state in database: {update_error}")
             
             return "discovery_failed"
+    
+    async def _update_master_flow_status(self, status: str) -> None:
+        """Update master flow table status"""
+        try:
+            from app.core.database import AsyncSessionLocal
+            from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
+            from app.core.context import RequestContext
+            
+            async with AsyncSessionLocal() as db:
+                context = RequestContext(
+                    client_account_id=self.state.client_account_id,
+                    engagement_id=self.state.engagement_id,
+                    user_id=self.state.user_id,
+                    flow_id=self.state.flow_id
+                )
+                
+                master_repo = CrewAIFlowStateExtensionsRepository(db, context)
+                await master_repo.update_flow_status(
+                    flow_id=self.state.flow_id,
+                    status=status,
+                    phase_data={
+                        "completed_at": self.state.completed_at,
+                        "final_result": self.state.final_result,
+                        "total_assets": self.state.total_assets,
+                        "total_dependencies": len(self.state.dependencies.get("app_server_dependencies", {}).get("hosting_relationships", [])),
+                        "total_insights": self.state.total_insights
+                    }
+                )
+                
+                await db.commit()
+                logger.info(f"✅ Updated master flow status to: {status}")
+                
+        except Exception as e:
+            logger.warning(f"Failed to update master flow status: {e}")
+            # Don't fail the flow if master update fails
     
     def _calculate_final_metrics(self) -> None:
         """Calculate final flow metrics"""
@@ -130,9 +171,11 @@ class FlowFinalizer:
                         scores.append(score)
                 
                 if scores:
-                    self.state.average_confidence = sum(scores) / len(scores)
+                    avg_confidence = sum(scores) / len(scores)
+                    # Store in metadata since average_confidence field doesn't exist
+                    self.state.metadata["average_confidence"] = avg_confidence
                 else:
-                    self.state.average_confidence = 0.0
+                    self.state.metadata["average_confidence"] = 0.0
             except (ValueError, TypeError) as e:
                 logger.warning(f"Could not calculate average confidence: {e}")
-                self.state.average_confidence = 0.0
+                self.state.metadata["average_confidence"] = 0.0

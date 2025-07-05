@@ -50,7 +50,8 @@ async def get_active_flows(
                     DiscoveryFlow.status == 'running',
                     DiscoveryFlow.status == 'paused',
                     DiscoveryFlow.status == 'processing',
-                    DiscoveryFlow.status == 'ready'
+                    DiscoveryFlow.status == 'ready',
+                    DiscoveryFlow.status == 'waiting_for_approval'
                 )
             )
         ).order_by(DiscoveryFlow.created_at.desc())
@@ -61,15 +62,44 @@ async def get_active_flows(
         # Convert to response format
         active_flows = []
         for flow in flows:
+            # Get current phase from flow state
+            current_phase = flow.current_phase
+            if not current_phase and flow.crewai_state_data:
+                current_phase = flow.crewai_state_data.get("current_phase", "field_mapping")
+            
+            # Build phase completion list
+            phases_completed = []
+            if flow.data_import_completed:
+                phases_completed.append("data_import")
+            if flow.field_mapping_completed:
+                phases_completed.append("field_mapping")
+            if flow.data_cleansing_completed:
+                phases_completed.append("data_cleansing")
+            if flow.asset_inventory_completed:
+                phases_completed.append("asset_inventory")
+            if flow.dependency_analysis_completed:
+                phases_completed.append("dependency_analysis")
+            if flow.tech_debt_assessment_completed:
+                phases_completed.append("tech_debt_assessment")
+            
             active_flows.append({
                 "flow_id": str(flow.flow_id),
                 "status": flow.status,
                 "type": "discovery",
+                "current_phase": current_phase or "field_mapping",
+                "next_phase": None,  # Could be calculated based on phase completion
+                "phases_completed": phases_completed,
+                "progress": flow.progress_percentage or 0,
+                "progress_percentage": flow.progress_percentage or 0,
                 "client_account_id": str(flow.client_account_id),
                 "engagement_id": str(flow.engagement_id),
                 "created_at": flow.created_at.isoformat() if flow.created_at else "",
                 "updated_at": flow.updated_at.isoformat() if flow.updated_at else "",
-                "metadata": flow.flow_state or {}
+                "metadata": flow.flow_state or {},
+                "error": None,
+                "flow_name": flow.flow_name,
+                "flow_description": flow.description if hasattr(flow, 'description') else None,
+                "can_resume": flow.status in ['paused', 'waiting_for_approval']
             })
         
         logger.info(f"Found {len(active_flows)} active flows")
@@ -140,39 +170,81 @@ async def get_flow_status(
                     current_phase = "completed"
                     steps_completed = 6
                 
-                # Also check CrewAI state extensions for additional data
+                # Check CrewAI state extensions for the REAL flow state
                 ext_stmt = select(CrewAIFlowStateExtensions).where(CrewAIFlowStateExtensions.flow_id == flow_uuid)
                 ext_result = await db.execute(ext_stmt)
                 extensions = ext_result.scalar_one_or_none()
                 
+                # Extract agent insights from discovery_flows table first
                 agent_insights = []
+                if flow.crewai_state_data and "agent_insights" in flow.crewai_state_data:
+                    agent_insights = flow.crewai_state_data["agent_insights"]
+                
+                # Get awaiting_user_approval from discovery_flows table JSONB
+                awaiting_approval = False
+                if flow.crewai_state_data:
+                    awaiting_approval = flow.crewai_state_data.get("awaiting_user_approval", False)
+                    logger.info(f"Flow {flow_id} - crewai_state_data awaiting_user_approval: {awaiting_approval}")
+                
+                actual_status = flow.status
+                actual_progress = flow.progress_percentage
+                actual_current_phase = flow.current_phase or current_phase
+                
+                logger.info(f"Flow {flow_id} - DB status: {flow.status}, awaiting_approval: {awaiting_approval}, current_phase: {actual_current_phase}")
+                
                 if extensions and extensions.flow_persistence_data:
-                    # Agent insights might be stored in flow_persistence_data
-                    agent_insights = extensions.flow_persistence_data.get("agent_insights", [])
+                    # Get additional state from master table if available
+                    persistence_data = extensions.flow_persistence_data
+                    
+                    # Only use master table insights if not found in child table
+                    if not agent_insights and "agent_insights" in persistence_data:
+                        agent_insights = persistence_data.get("agent_insights", [])
+                    
+                    # Update phase completion from persistence data
+                    if "phase_completion" in persistence_data:
+                        phase_completion = persistence_data["phase_completion"]
+                        steps_completed = len([p for p in phase_completion.values() if p])
+                
+                # Use actual values from persistence data if available
+                final_status = actual_status
+                
+                # Preserve special statuses like waiting_for_approval
+                if final_status == "active" and not awaiting_approval:
+                    final_status = "processing"
+                
+                # Build phase completion from discovery_flows table
+                phase_completion = {
+                    "data_import": flow.data_import_completed,
+                    "field_mapping": flow.field_mapping_completed,
+                    "data_cleansing": flow.data_cleansing_completed,
+                    "asset_inventory": flow.asset_inventory_completed,
+                    "dependency_analysis": flow.dependency_analysis_completed,
+                    "tech_debt_assessment": flow.tech_debt_assessment_completed
+                }
+                
+                # Override with persistence data if available
+                if extensions and extensions.flow_persistence_data and "phase_completion" in extensions.flow_persistence_data:
+                    phase_completion.update(extensions.flow_persistence_data["phase_completion"])
                 
                 return {
                     "flow_id": str(flow_id),
-                    "status": flow.status if flow.status != "active" else "processing",
+                    "status": final_status,
                     "type": "discovery",
+                    "current_phase": actual_current_phase,
+                    "progress_percentage": actual_progress,
+                    "awaiting_user_approval": awaiting_approval,
                     "client_account_id": str(flow.client_account_id),
                     "engagement_id": str(flow.engagement_id),
                     "progress": {
-                        "current_phase": current_phase,
-                        "completion_percentage": float(flow.progress_percentage),
+                        "current_phase": actual_current_phase,
+                        "completion_percentage": actual_progress,
                         "steps_completed": steps_completed,
                         "total_steps": 6
                     },
                     "metadata": {},
-                    "crewai_status": "active" if flow.status == "active" else flow.status,
+                    "crewai_status": final_status,
                     "agent_insights": agent_insights,
-                    "phase_completion": {
-                        "data_import": flow.data_import_completed,
-                        "field_mapping": flow.field_mapping_completed,
-                        "data_cleansing": flow.data_cleansing_completed,
-                        "asset_inventory": flow.asset_inventory_completed,
-                        "dependency_analysis": flow.dependency_analysis_completed,
-                        "tech_debt_assessment": flow.tech_debt_assessment_completed
-                    },
+                    "phase_completion": phase_completion,
                     "last_updated": flow.updated_at.isoformat() if flow.updated_at else ""
                 }
         except Exception as direct_error:
@@ -192,13 +264,12 @@ async def get_flow_status(
                 current_phase = state_dict.get("current_phase", "unknown")
                 status = state_dict.get("status", "running")
                 
-                # Determine if flow is complete
-                if progress_percentage >= 100 or status == "completed":
+                # Preserve special statuses, only override if generic
+                if progress_percentage >= 100 and status not in ["paused", "waiting_for_approval", "waiting_for_user_approval"]:
                     status = "completed"
-                elif status == "failed":
-                    status = "failed"
-                else:
+                elif status in ["running", "active", "initialized"] and status not in ["paused", "waiting_for_approval", "waiting_for_user_approval"]:
                     status = "processing"
+                # Keep status as-is for: failed, paused, waiting_for_approval, waiting_for_user_approval
                 
                 # Use context values for client_account_id and engagement_id since state_dict is just the persistence data
                 return {
@@ -207,6 +278,8 @@ async def get_flow_status(
                     "type": "discovery",
                     "client_account_id": str(context.client_account_id),
                     "engagement_id": str(context.engagement_id),
+                    "current_phase": current_phase,  # Add at top level for easier access
+                    "progress_percentage": progress_percentage,  # Add at top level
                     "progress": {
                         "current_phase": current_phase,
                         "completion_percentage": progress_percentage,
@@ -217,6 +290,7 @@ async def get_flow_status(
                     "crewai_status": "active" if status == "processing" else status,
                     "agent_insights": state_dict.get("agent_insights", []),
                     "phase_completion": state_dict.get("phase_completion", {}),
+                    "awaiting_user_approval": state_dict.get("awaiting_user_approval", False),
                     "last_updated": state_dict.get("updated_at", "")
                 }
         except Exception as store_error:

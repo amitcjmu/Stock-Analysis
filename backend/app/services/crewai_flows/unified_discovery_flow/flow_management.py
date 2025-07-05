@@ -101,8 +101,9 @@ class FlowManager:
         logger.info(f"👤 Processing user approval for flow: {self.state.flow_id}")
         
         # Update state with approval
-        self.state.user_approvals = self.state.user_approvals or []
-        self.state.user_approvals.append({
+        self.state.user_approval_received = True
+        self.state.user_approval_data["approvals"] = self.state.user_approval_data.get("approvals", [])
+        self.state.user_approval_data["approvals"].append({
             "phase": self.state.current_phase,
             "timestamp": datetime.utcnow().isoformat(),
             "data": approval_data
@@ -110,7 +111,7 @@ class FlowManager:
         
         # Clear waiting status
         self.state.status = "running"
-        self.state.user_approval_context = None
+        self.state.awaiting_user_approval = False
         
         await self.state_manager.safe_update_flow_state()
         

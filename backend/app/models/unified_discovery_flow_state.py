@@ -159,7 +159,7 @@ class UnifiedDiscoveryFlowState(BaseModel):
     # ========================================
     # FLOW CONTROL AND STATUS
     # ========================================
-    status: str = "running"  # running, completed, failed, paused, waiting_for_user
+    status: str = "running"  # running, completed, failed, paused, waiting_for_approval, waiting_for_user_approval
     progress_percentage: float = 0.0
     estimated_remaining_time: str = "Calculating..."
     

@@ -37,8 +37,11 @@ export const useFlowManagement = () => {
   }, [bulkFlowOperations]);
 
   const handleViewFlowDetails = useCallback((flowId: string, phase: string) => {
+    // If phase is undefined or empty, default to field_mapping since the flow is waiting for approval
+    const actualPhase = phase || 'field_mapping';
+    
     // Navigate to phase-specific page using centralized routing configuration
-    const route = getDiscoveryPhaseRoute(phase, flowId);
+    const route = getDiscoveryPhaseRoute(actualPhase, flowId);
     navigate(route);
   }, [navigate]);
 

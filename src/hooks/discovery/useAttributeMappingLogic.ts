@@ -30,21 +30,17 @@ export const useAttributeMappingLogic = () => {
     refreshFlow: refresh
   } = useUnifiedDiscoveryFlow(effectiveFlowId);
 
-  // Get real field mappings from database instead of flow state
-  const {
-    fieldMappings: realFieldMappings,
-    isLoading: isFieldMappingsLoading,
-    error: fieldMappingsError,
-    refetch: refetchFieldMappings
-  } = useRealFieldMappings();
-
-  // Get agent clarifications from database
-  const {
-    clarifications: agentClarifications,
-    isLoading: isClarificationsLoading,
-    error: clarificationsError,
-    refetch: refetchClarifications
-  } = useAgentClarifications();
+  // Legacy hooks removed - these endpoints don't exist
+  // Field mappings come from flow state instead
+  const realFieldMappings = null;
+  const isFieldMappingsLoading = false;
+  const fieldMappingsError = null;
+  const refetchFieldMappings = () => Promise.resolve();
+  
+  const agentClarifications = [];
+  const isClarificationsLoading = false;
+  const clarificationsError = null;
+  const refetchClarifications = () => Promise.resolve();
 
   // Get field mapping data from unified flow (for legacy compatibility)
   const fieldMappingData = flow?.field_mapping;
@@ -494,122 +490,5 @@ export const useAttributeMappingLogic = () => {
     isClarificationsLoading,
     clarificationsError,
     refetchClarifications
-  };
-};
-
-// New hook to fetch real field mappings from database
-const useRealFieldMappings = () => {
-  const { getAuthHeaders } = useAuth();
-  const [fieldMappings, setFieldMappings] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const fetchFieldMappings = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      const result = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.CONTEXT_FIELD_MAPPINGS, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders()
-        }
-      });
-      
-      if (result.success && result.mappings) {
-        // Transform the database mappings to match frontend interface
-        const transformedMappings = result.mappings.map((mapping: any) => ({
-          id: mapping.id,
-          sourceField: mapping.sourceField,
-          targetAttribute: mapping.targetAttribute,
-          confidence: mapping.confidence,
-          mapping_type: mapping.mapping_type || 'direct',
-          sample_values: mapping.sample_values || [],
-          status: mapping.status === 'suggested' ? 'pending' : mapping.status || 'pending', // Ensure editable
-          ai_reasoning: mapping.ai_reasoning || `AI suggested mapping based on field similarity`,
-          is_user_defined: mapping.is_user_defined || false,
-          user_feedback: mapping.user_feedback,
-          created_at: mapping.created_at,
-          validation_method: mapping.validation_method,
-          is_validated: mapping.is_validated || false
-        }));
-        
-        setFieldMappings(transformedMappings);
-        console.log(`✅ Loaded ${transformedMappings.length} real field mappings from database`);
-      } else {
-        console.warn('No field mappings returned from API');
-        setFieldMappings([]);
-      }
-      
-    } catch (err: any) {
-      console.error('❌ Failed to fetch field mappings:', err);
-      setError(err.message);
-      setFieldMappings([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [getAuthHeaders]);
-
-  // Auto-fetch on mount
-  useEffect(() => {
-    fetchFieldMappings();
-  }, [fetchFieldMappings]);
-
-  return {
-    fieldMappings,
-    isLoading,
-    error,
-    refetch: fetchFieldMappings
-  };
-};
-
-// New hook to fetch agent clarifications from database
-const useAgentClarifications = () => {
-  const { getAuthHeaders } = useAuth();
-  const [clarifications, setClarifications] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const fetchClarifications = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      const result = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_CLARIFICATIONS, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders()
-        }
-      });
-      
-      if (result.status === 'success' && result.page_data && result.page_data.pending_questions) {
-        setClarifications(result.page_data.pending_questions);
-        console.log(`✅ Loaded ${result.page_data.pending_questions.length} agent clarifications`);
-      } else {
-        console.warn('No agent clarifications returned from API');
-        setClarifications([]);
-      }
-      
-    } catch (err: any) {
-      console.error('❌ Failed to fetch agent clarifications:', err);
-      setError(err.message);
-      setClarifications([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [getAuthHeaders]);
-
-  // Auto-fetch on mount
-  useEffect(() => {
-    fetchClarifications();
-  }, [fetchClarifications]);
-
-  return {
-    clarifications,
-    isLoading,
-    error,
-    refetch: fetchClarifications
   };
 }; 

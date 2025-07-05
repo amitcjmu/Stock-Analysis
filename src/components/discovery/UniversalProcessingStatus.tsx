@@ -77,12 +77,24 @@ export const UniversalProcessingStatus: React.FC<UniversalProcessingStatusProps>
       
     const isAwaitingApproval = 
       processingStatus?.status === 'paused' || 
+      processingStatus?.status === 'waiting_for_approval' ||
       processingStatus?.status === 'waiting_for_user_approval' ||
+      processingStatus?.awaiting_user_approval === true ||
+      (processingStatus?.current_phase === 'field_mapping' && isDataImportComplete) ||
       (processingStatus?.phase === 'attribute_mapping' && 
        (processingStatus?.progress >= 90 || processingStatus?.progress_percentage >= 90)) ||
       (processingStatus?.current_phase === 'attribute_mapping' && 
        processingStatus?.progress_percentage >= 90) ||
       isDataImportComplete;
+    
+    console.log('[UniversalProcessingStatus] Approval check:', {
+      isAwaitingApproval,
+      status: processingStatus?.status,
+      current_phase: processingStatus?.current_phase,
+      awaiting_user_approval: processingStatus?.awaiting_user_approval,
+      isDataImportComplete,
+      progress_percentage: processingStatus?.progress_percentage
+    });
     
     if (isAwaitingApproval) {
       return {

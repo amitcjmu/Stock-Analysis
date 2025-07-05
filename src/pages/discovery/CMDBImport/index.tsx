@@ -1,5 +1,5 @@
 import React from 'react';
-import { Upload, Activity, Shield, AlertTriangle, Loader2 } from 'lucide-react';
+import { Upload, Activity, Shield, AlertTriangle, Loader2, FileText } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Components
@@ -8,7 +8,7 @@ import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 import { UploadBlocker } from '@/components/discovery/UploadBlocker';
 import { IncompleteFlowManager } from '@/components/discovery/IncompleteFlowManager';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import UniversalProcessingStatus from '@/components/discovery/UniversalProcessingStatus';
+import { SimplifiedFlowStatus } from '@/components/discovery/SimplifiedFlowStatus';
 import { PollingStatusIndicator } from '@/components/common/PollingControls';
 
 // Custom hooks and components
@@ -239,16 +239,27 @@ const CMDBImportContainer: React.FC = () => {
             onStartDiscoveryFlow={startDiscoveryFlow}
           />
 
-          {/* Universal Real-Time Processing Status */}
+          {/* Simplified Flow Status */}
           {uploadedFiles.length > 0 && uploadedFiles.some(f => f.flow_id) && (
             <div className="space-y-6 mt-8">
-              <h2 className="text-xl font-semibold text-gray-900">Real-Time Processing Monitor</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Discovery Flow Status</h2>
               {uploadedFiles.filter(f => f.flow_id).map((file) => (
-                <div key={file.id} className="bg-white rounded-lg border p-6">
-                  <UniversalProcessingStatus
+                <div key={file.id}>
+                  <div className="mb-2 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-purple-600" />
+                        <span className="font-medium text-purple-900">{file.name}</span>
+                      </div>
+                      <span className="text-sm text-purple-700">{file.size}</span>
+                    </div>
+                  </div>
+                  <SimplifiedFlowStatus
                     flow_id={file.flow_id!}
-                    page_context="data_import"
-                    className="w-full"
+                    onNavigateToMapping={() => {
+                      // Navigate to attribute mapping
+                      window.location.href = `/discovery/attribute-mapping/${file.flow_id}`;
+                    }}
                   />
                 </div>
               ))}

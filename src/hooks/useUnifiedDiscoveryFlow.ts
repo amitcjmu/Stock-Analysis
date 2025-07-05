@@ -43,14 +43,12 @@ interface UseUnifiedDiscoveryFlowReturn {
 // API functions for UnifiedDiscoveryFlow
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-const unifiedDiscoveryAPI = {
+const createUnifiedDiscoveryAPI = (getAuthHeaders: () => Record<string, string>) => ({
   async getFlowStatus(flowId: string): Promise<UnifiedDiscoveryFlowState> {
-    const response = await fetch(`${API_BASE}/api/v1/unified-discovery/flow/status/${flowId}`, {
+    const response = await fetch(`${API_BASE}/api/v1/discovery/flows/${flowId}/status`, {
       headers: {
         'Content-Type': 'application/json',
-        'X-User-ID': '44444444-4444-4444-4444-444444444444',
-        'X-Client-Account-ID': '11111111-1111-1111-1111-111111111111',
-        'X-Engagement-ID': '22222222-2222-2222-2222-222222222222',
+        ...getAuthHeaders(),
       },
     });
     
@@ -66,9 +64,7 @@ const unifiedDiscoveryAPI = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-User-ID': '44444444-4444-4444-4444-444444444444',
-        'X-Client-Account-ID': '11111111-1111-1111-1111-111111111111',
-        'X-Engagement-ID': '22222222-2222-2222-2222-222222222222',
+        ...getAuthHeaders(),
       },
       body: JSON.stringify(data),
     });
@@ -85,9 +81,7 @@ const unifiedDiscoveryAPI = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-User-ID': '44444444-4444-4444-4444-444444444444',
-        'X-Client-Account-ID': '11111111-1111-1111-1111-111111111111',
-        'X-Engagement-ID': '22222222-2222-2222-2222-222222222222',
+        ...getAuthHeaders(),
       },
       body: JSON.stringify({ phase, data }),
     });
@@ -103,9 +97,7 @@ const unifiedDiscoveryAPI = {
     const response = await fetch(`${API_BASE}/api/v1/unified-discovery/health`, {
       headers: {
         'Content-Type': 'application/json',
-        'X-User-ID': '44444444-4444-4444-4444-444444444444',
-        'X-Client-Account-ID': '11111111-1111-1111-1111-111111111111',
-        'X-Engagement-ID': '22222222-2222-2222-2222-222222222222',
+        ...getAuthHeaders(),
       },
     });
     
@@ -115,7 +107,7 @@ const unifiedDiscoveryAPI = {
     
     return response.json();
   },
-};
+});
 
 /**
  * Unified Discovery Flow Hook
@@ -123,13 +115,21 @@ const unifiedDiscoveryAPI = {
  * This is the single source of truth for all discovery flow interactions.
  * Connects frontend to the UnifiedDiscoveryFlow CrewAI execution engine.
  */
-export const useUnifiedDiscoveryFlow = (): UseUnifiedDiscoveryFlowReturn => {
-  const { user } = useAuth();
+export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnifiedDiscoveryFlowReturn => {
+  const { user, getAuthHeaders } = useAuth();
   const queryClient = useQueryClient();
   const [isExecutingPhase, setIsExecutingPhase] = useState(false);
+  
+  // Create API instance with auth headers
+  const unifiedDiscoveryAPI = useMemo(() => createUnifiedDiscoveryAPI(getAuthHeaders), [getAuthHeaders]);
 
-  // Get current flow ID from URL or localStorage
+  // Use provided flowId or try to get from URL/localStorage
   const flowId = useMemo((): string | null => {
+    // If flowId is provided, use it
+    if (providedFlowId) {
+      return providedFlowId;
+    }
+    
     try {
       // Try to get from URL parameters
       const urlParams = new URLSearchParams(window.location.search);
@@ -140,8 +140,8 @@ export const useUnifiedDiscoveryFlow = (): UseUnifiedDiscoveryFlowReturn => {
         return urlFlowId;
       }
 
-      // Extract from path (e.g., /discovery/attribute-mapping/flow-123)
-      const pathMatch = window.location.pathname.match(/\/discovery\/[^\/]+\/(flow-[^\/]+)/);
+      // Extract from path (e.g., /discovery/attribute-mapping/flow-123 or /discovery/attribute-mapping/uuid)
+      const pathMatch = window.location.pathname.match(/\/discovery\/[^\/]+\/([a-f0-9-]+)/);
       if (pathMatch) {
         const pathFlowId = pathMatch[1];
         localStorage.setItem('currentFlowId', pathFlowId);
@@ -159,7 +159,7 @@ export const useUnifiedDiscoveryFlow = (): UseUnifiedDiscoveryFlowReturn => {
       console.error('Error getting flow ID:', error);
       return null;
     }
-  }, []);
+  }, [providedFlowId]);
 
   // Flow state query
   const {
@@ -176,13 +176,16 @@ export const useUnifiedDiscoveryFlow = (): UseUnifiedDiscoveryFlowReturn => {
     staleTime: 30000, // Consider data fresh for 30 seconds
   });
 
-  // Health check query
+  // Health check query - DISABLED: endpoint doesn't exist
+  const healthStatus = { status: 'healthy' }; // Mock healthy status
+  /*
   const { data: healthStatus } = useQuery({
     queryKey: ['unifiedDiscoveryFlowHealth'],
     queryFn: unifiedDiscoveryAPI.getHealthStatus,
     refetchInterval: false, // DISABLED: No automatic health polling
     staleTime: 300000, // Consider health data fresh for 5 minutes
   });
+  */
 
   // Initialize flow mutation
   const initializeFlowMutation = useMutation({

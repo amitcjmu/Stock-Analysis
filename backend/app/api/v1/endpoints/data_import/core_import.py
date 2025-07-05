@@ -13,6 +13,7 @@ from .handlers.clean_api_handler import router as clean_api_router
 from .handlers.legacy_upload_handler import router as legacy_upload_router
 from .handlers.import_retrieval_handler import router as import_retrieval_router
 from .handlers.import_storage_handler import router as import_storage_handler
+from .handlers.field_handler import router as field_handler
 
 # Import agentic intelligence modules
 # ARCHIVED: agentic_critical_attributes_legacy.py moved to archive/legacy
@@ -29,6 +30,7 @@ router.include_router(clean_api_router, tags=["Clean API"])
 router.include_router(legacy_upload_router, tags=["Legacy Upload"])
 router.include_router(import_retrieval_router, tags=["Import Retrieval"])
 router.include_router(import_storage_handler, tags=["Import Storage"])
+router.include_router(field_handler, tags=["Field Mapping"])
 
 # ARCHIVED: Agentic Critical Attributes router - was pseudo-agent implementation
 # Original agentic_critical_attributes_router depended on pseudo-agents
@@ -43,7 +45,8 @@ async def health_check():
         "clean_api_handler",
         "legacy_upload_handler", 
         "import_retrieval_handler",
-        "import_storage_handler"
+        "import_storage_handler",
+        "field_handler"
     ]
     
     if AGENTIC_AVAILABLE:

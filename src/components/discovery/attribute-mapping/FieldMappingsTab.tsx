@@ -309,32 +309,8 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
       }
     } catch (error) {
       console.error('Failed to load available target fields:', error);
-      // Enhanced fallback with categories and deduplication
-      const fallbackFields = [
-        { name: 'name', type: 'string', required: true, description: 'Asset name or identifier', category: 'identification' },
-        { name: 'hostname', type: 'string', required: true, description: 'Asset hostname', category: 'identification' },
-        { name: 'owner', type: 'string', required: false, description: 'Asset owner', category: 'business' },
-        { name: 'asset_name', type: 'string', required: false, description: 'Asset name', category: 'identification' },
-        { name: 'asset_type', type: 'enum', required: true, description: 'Asset type', category: 'technical' },
-        { name: 'ip_address', type: 'string', required: false, description: 'IP address', category: 'network' },
-        { name: 'environment', type: 'string', required: true, description: 'Environment', category: 'environment' },
-        { name: 'operating_system', type: 'string', required: false, description: 'Operating system', category: 'technical' },
-        { name: 'cpu_cores', type: 'integer', required: false, description: 'CPU cores', category: 'technical' },
-        { name: 'memory_gb', type: 'number', required: false, description: 'Memory in GB', category: 'technical' },
-        { name: 'department', type: 'string', required: false, description: 'Department', category: 'business' },
-        { name: 'business_owner', type: 'string', required: false, description: 'Business owner', category: 'business' }
-      ];
-      
-      // Apply the same deduplication logic to fallback fields
-      const uniqueFallbackFields = fallbackFields.reduce((acc: TargetField[], field: TargetField) => {
-        const existingField = acc.find(f => f.name === field.name);
-        if (!existingField) {
-          acc.push(field);
-        }
-        return acc;
-      }, []);
-      
-      setAvailableFields(uniqueFallbackFields);
+      // Re-throw error so user knows there's an issue
+      throw error;
     } finally {
       setLoadingFields(false);
     }

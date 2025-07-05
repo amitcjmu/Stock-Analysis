@@ -102,6 +102,12 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         """Get the flow ID"""
         return self._flow_id
     
+    @property
+    def state(self):
+        """Get the flow state"""
+        # Return the internal flow state if available, otherwise return a default
+        return getattr(self, '_flow_state', UnifiedDiscoveryFlowState())
+    
     def _initialize_components(self):
         """Initialize flow components"""
         # Initialize flow bridge
@@ -318,7 +324,8 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         
         # Update status to waiting
         self.state.status = "waiting_for_approval"
-        self.state.user_approval_context = {
+        self.state.awaiting_user_approval = True
+        self.state.user_approval_data = {
             "phase": PhaseNames.FIELD_MAPPING,
             "reason": "Please review and approve the suggested field mappings",
             "data_preview": self.state.raw_data[:5] if self.state.raw_data else [],
@@ -328,6 +335,55 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         }
         
         await self.state_manager.safe_update_flow_state()
+        
+        # Update DiscoveryFlow table with current state
+        try:
+            from app.core.database import AsyncSessionLocal
+            from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+            from app.core.context import RequestContext
+            
+            async with AsyncSessionLocal() as db:
+                # Create context from state
+                context = RequestContext(
+                    client_account_id=self.state.client_account_id,
+                    engagement_id=self.state.engagement_id,
+                    user_id=self.state.user_id,
+                    flow_id=self.state.flow_id
+                )
+                
+                # Log state values for debugging
+                logger.info(f"State values - client: {getattr(self.state, 'client_account_id', 'MISSING')}, engagement: {getattr(self.state, 'engagement_id', 'MISSING')}, user: {getattr(self.state, 'user_id', 'MISSING')}")
+                
+                # Update flow status in discovery_flows table
+                repo = DiscoveryFlowRepository(
+                    db, 
+                    client_account_id=str(getattr(self.state, 'client_account_id', self.context.client_account_id)),
+                    engagement_id=str(getattr(self.state, 'engagement_id', self.context.engagement_id)),
+                    user_id=str(getattr(self.state, 'user_id', self.context.user_id))
+                )
+                await repo.flow_commands.update_flow_status(
+                    flow_id=self.state.flow_id,
+                    status="waiting_for_approval",
+                    progress_percentage=self.state.progress_percentage
+                )
+                
+                # Also update the current phase data
+                await repo.flow_commands.update_phase_completion(
+                    flow_id=self.state.flow_id,
+                    phase="field_mapping",
+                    data={
+                        "field_mappings": self.state.field_mappings,
+                        "confidence": self.state.field_mapping_confidence,
+                        "awaiting_user_approval": True
+                    },
+                    completed=False,
+                    agent_insights=self.state.agent_insights
+                )
+                
+                logger.info("✅ Updated DiscoveryFlow table with paused state")
+        except Exception as e:
+            logger.warning(f"Failed to update DiscoveryFlow table: {e}")
+        
         logger.info("⏸️ Flow paused - waiting for field mapping approval")
         
         return "paused_for_field_mapping_approval"

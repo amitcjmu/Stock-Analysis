@@ -43,7 +43,9 @@ class FlowStateValidator:
         'paused', 
         'completed',
         'failed',
-        'waiting_for_user'
+        'waiting_for_user',
+        'waiting_for_approval',
+        'waiting_for_user_approval'
     ]
     
     PHASE_DEPENDENCIES = {

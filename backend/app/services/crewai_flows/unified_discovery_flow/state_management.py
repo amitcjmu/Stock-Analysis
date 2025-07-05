@@ -143,7 +143,8 @@ class StateManager:
         logger.info(f"💡 Agent insight from '{agent_name}': {insight}")
     
     async def safe_update_flow_state(self):
-        """Safely update flow state with PostgreSQL persistence"""
+        """Safely update flow state with PostgreSQL persistence and discovery_flows table"""
+        # First sync to flow state persistence (for recovery)
         if self.flow_bridge:
             try:
                 await self.flow_bridge.sync_state_update(
@@ -154,6 +155,73 @@ class StateManager:
                 logger.info("✅ Flow state synchronized to PostgreSQL")
             except Exception as e:
                 logger.warning(f"⚠️ Failed to sync flow state: {e}")
+        
+        # Then update discovery_flows table (source of truth for discovery flows)
+        try:
+            from app.core.database import AsyncSessionLocal
+            from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+            from app.core.context import RequestContext
+            
+            async with AsyncSessionLocal() as db:
+                context = RequestContext(
+                    client_account_id=self.state.client_account_id,
+                    engagement_id=self.state.engagement_id,
+                    user_id=self.state.user_id,
+                    flow_id=self.state.flow_id
+                )
+                
+                repo = DiscoveryFlowRepository(
+                    db, 
+                    client_account_id=self.state.client_account_id,
+                    engagement_id=self.state.engagement_id,
+                    user_id=self.state.user_id
+                )
+                
+                # Update flow status and progress
+                await repo.flow_commands.update_flow_status(
+                    flow_id=self.state.flow_id,
+                    status=self.state.status,
+                    progress_percentage=self.state.progress_percentage
+                )
+                
+                # Update current phase data if needed
+                if hasattr(self.state, 'current_phase') and self.state.current_phase:
+                    phase_data = self._get_phase_data()
+                    if phase_data:
+                        await repo.flow_commands.update_phase_completion(
+                            flow_id=self.state.flow_id,
+                            phase=self.state.current_phase,
+                            data=phase_data,
+                            completed=self.state.phase_completion.get(self.state.current_phase, False),
+                            agent_insights=self.state.agent_insights
+                        )
+                
+                logger.info("✅ Discovery flows table updated")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to update discovery_flows table: {e}")
+    
+    def _get_phase_data(self) -> Dict[str, Any]:
+        """Get phase-specific data for storage"""
+        phase = self.state.current_phase
+        
+        if phase == PhaseNames.FIELD_MAPPING:
+            return {
+                "field_mappings": getattr(self.state, 'field_mappings', {}),
+                "confidence": getattr(self.state, 'field_mapping_confidence', 0),
+                "awaiting_user_approval": getattr(self.state, 'awaiting_user_approval', False)
+            }
+        elif phase == PhaseNames.DATA_CLEANSING:
+            return {
+                "cleaned_data": getattr(self.state, 'cleaned_data', []),
+                "data_quality_score": getattr(self.state, 'data_quality_score', 0)
+            }
+        elif phase == PhaseNames.ASSET_INVENTORY:
+            return {
+                "asset_inventory": getattr(self.state, 'asset_inventory', {})
+            }
+        # Add more phases as needed
+        
+        return {}
     
     def calculate_progress(self) -> float:
         """Calculate overall flow progress percentage"""
