@@ -184,24 +184,30 @@ export const useAttributeMappingLogic = () => {
   // Action handlers
   const handleTriggerFieldMappingCrew = useCallback(async () => {
     try {
-      console.log('🔄 Executing CrewAI Flow at attribute_mapping phase');
+      console.log('🔄 Resuming CrewAI Flow from field mapping approval');
       if (flow?.flow_id) {
-        // Use the existing /flow/execute endpoint to run attribute mapping phase
-        const unifiedDiscoveryService = (await import('../../services/discoveryUnifiedService')).default;
-        const result = await unifiedDiscoveryService.executeFlow({
-          flow_id: flow.flow_id,
-          phase: 'attribute_mapping',
-          execution_mode: 'hybrid'
+        // Use the correct resume endpoint for paused flows
+        const result = await apiCall(`/discovery/flow/${flow.flow_id}/resume`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
+          },
+          body: JSON.stringify({
+            user_approval: true,
+            approval_timestamp: new Date().toISOString(),
+            notes: 'User triggered field mapping continuation'
+          })
         });
-        console.log('✅ CrewAI Flow executed at attribute_mapping phase:', result);
+        console.log('✅ CrewAI Flow resumed successfully:', result);
         
         // Refresh the flow data to get updated state
         await refresh();
       }
     } catch (error) {
-      console.error('❌ Failed to execute CrewAI Flow at attribute_mapping phase:', error);
+      console.error('❌ Failed to resume CrewAI Flow:', error);
     }
-  }, [flow, refresh]);
+  }, [flow, refresh, getAuthHeaders]);
 
   const handleApproveMapping = useCallback(async (mappingId: string) => {
     try {
