@@ -373,8 +373,8 @@ describe('useAttributeMappingLogic', () => {
       refresh: mockRefresh
     });
 
-    // Mock the discoveryUnifiedService import
-    vi.doMock('../../services/discoveryUnifiedService', () => ({
+    // Mock the masterFlowService import
+    vi.doMock('../../services/api/masterFlowService', () => ({
       default: {
         resumeFlowAtPhase: vi.fn().mockResolvedValue({ success: true })
       }

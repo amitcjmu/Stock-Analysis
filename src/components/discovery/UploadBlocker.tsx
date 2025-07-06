@@ -21,7 +21,8 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { useBulkFlowOperationsV2, IncompleteFlowV2 } from '@/hooks/discovery/useFlowOperations';
 import { useToast } from '@/hooks/use-toast';
-import { unifiedDiscoveryService } from '@/services/discoveryUnifiedService';
+import { masterFlowService } from '@/services/api/masterFlowService';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface UploadBlockerProps {
   incompleteFlows: IncompleteFlowV2[];
@@ -45,6 +46,7 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
   const { toast } = useToast();
   const bulkFlowOperations = useBulkFlowOperationsV2();
   const [isCleaningUp, setIsCleaningUp] = useState(false);
+  const { client, engagement } = useAuth();
 
   const getPhaseDisplayName = (phase: string) => {
     if (!phase) return 'Unknown';
@@ -171,13 +173,25 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
       console.log('🤖 AGENTIC CLEANUP: Starting intelligent flow cleanup...');
       
       // Get all flows for analysis
-      const allFlows = await unifiedDiscoveryService.getActiveFlows();
+      if (!client?.id) {
+        toast({
+          title: "Error",
+          description: "Client context not available. Please refresh the page.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const allFlows = await masterFlowService.getActiveFlows(
+        parseInt(client.id), 
+        engagement?.id
+      );
       
       // Agentic analysis: Find flows that are truly complete but marked as active
       const flowsToCleanup = allFlows.filter(flow => 
         flow.status === 'active' && 
-        flow.current_phase === 'completed' && 
-        flow.progress_percentage >= 100
+        flow.currentPhase === 'completed' && 
+        flow.progress >= 100
       );
       
       if (flowsToCleanup.length === 0) {
@@ -196,7 +210,7 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
         `🤖 Agentic Flow Cleanup\n\n` +
         `Found ${flowsToCleanup.length} flows that appear to be completed but are marked as active.\n\n` +
         `These flows will be properly marked as completed:\n` +
-        flowsToCleanup.map(f => `• ${f.flow_id.substring(0, 8)}... (${f.progress_percentage}% complete)`).join('\n') +
+        flowsToCleanup.map(f => `• ${f.flowId.substring(0, 8)}... (${f.progress}% complete)`).join('\n') +
         `\n\nProceed with cleanup?`
       );
       
@@ -209,18 +223,18 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
       for (const flow of flowsToCleanup) {
         try {
           // Use the backend API to properly complete the flow
-          await fetch(`/api/v1/discovery/flow/${flow.flow_id}/complete`, {
+          await fetch(`/api/v1/discovery/flow/${flow.flowId}/complete`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'X-Client-Account-Id': flow.client_account_id,
-              'X-Engagement-Id': flow.engagement_id
+              'X-Client-Account-Id': client.id,
+              'X-Engagement-ID': engagement?.id || ''
             }
           });
           cleanedCount++;
-          console.log(`🤖 CLEANED: Flow ${flow.flow_id.substring(0, 8)}... marked as completed`);
+          console.log(`🤖 CLEANED: Flow ${flow.flowId.substring(0, 8)}... marked as completed`);
         } catch (error) {
-          console.error(`❌ Failed to cleanup flow ${flow.flow_id}:`, error);
+          console.error(`❌ Failed to cleanup flow ${flow.flowId}:`, error);
         }
       }
       

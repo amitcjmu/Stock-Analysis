@@ -1,9 +1,12 @@
 import { useState, useCallback } from 'react';
 import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
-import { unifiedDiscoveryService } from '../../services/discoveryUnifiedService';
+import { masterFlowService } from '../../services/api/masterFlowService';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useInventoryLogic = (flowId?: string) => {
+  const { client, engagement } = useAuth();
+  
   // Use the unified discovery flow
   const {
     flowState: flow,
@@ -34,17 +37,35 @@ export const useInventoryLogic = (flowId?: string) => {
 
   // Get real classification summary from backend
   const { data: classificationSummary, isLoading: isClassificationLoading } = useQuery({
-    queryKey: ['classification-summary', flowId],
-    queryFn: () => flowId ? unifiedDiscoveryService.getAssetClassificationSummary(flowId) : null,
-    enabled: !!flowId,
+    queryKey: ['classification-summary', flowId, client?.id],
+    queryFn: async () => {
+      if (!flowId || !client?.id) return null;
+      try {
+        const flowStatus = await masterFlowService.getFlowStatus(flowId, parseInt(client.id), engagement?.id);
+        return flowStatus.metadata?.classification_summary || null;
+      } catch (error) {
+        console.error('Failed to get classification summary:', error);
+        return null;
+      }
+    },
+    enabled: !!flowId && !!client?.id,
     staleTime: 30000
   });
 
   // Get real CrewAI insights from backend
   const { data: crewaiInsights, isLoading: isInsightsLoading } = useQuery({
-    queryKey: ['crewai-insights', flowId],
-    queryFn: () => flowId ? unifiedDiscoveryService.getCrewAIInsights(flowId) : null,
-    enabled: !!flowId,
+    queryKey: ['crewai-insights', flowId, client?.id],
+    queryFn: async () => {
+      if (!flowId || !client?.id) return null;
+      try {
+        const flowStatus = await masterFlowService.getFlowStatus(flowId, parseInt(client.id), engagement?.id);
+        return flowStatus.metadata?.crewai_insights || null;
+      } catch (error) {
+        console.error('Failed to get CrewAI insights:', error);
+        return null;
+      }
+    },
+    enabled: !!flowId && !!client?.id,
     staleTime: 30000
   });
 

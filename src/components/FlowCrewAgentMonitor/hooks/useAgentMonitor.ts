@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { unifiedDiscoveryService } from '../../../services/discoveryUnifiedService';
+import { masterFlowService } from '../../../services/api/masterFlowService';
 import type { 
   FlowCrewAgentData, 
   DiscoveryFlow, 
@@ -23,7 +23,7 @@ export const useAgentMonitor = () => {
     discoveryFlows: []
   });
 
-  const { getAuthHeaders } = useAuth();
+  const { getAuthHeaders, client, engagement } = useAuth();
 
   const fetchMonitoringData = useCallback(async () => {
     try {
@@ -41,16 +41,26 @@ export const useAgentMonitor = () => {
           headers: getAuthHeaders()
         });
         
-        // Get discovery flows using unified service
+        // Get discovery flows using master flow service
         let discoveryFlows: any[] = [];
         try {
-          const discoveryData = await unifiedDiscoveryService.getActiveFlows();
-          if (discoveryData.success && discoveryData.flow_details) {
-            const activeFlows = discoveryData.flow_details.filter(flow => 
-              flow.status === 'active' || flow.status === 'in_progress'
+          if (client?.id) {
+            const activeFlows = await masterFlowService.getActiveFlows(
+              parseInt(client.id),
+              engagement?.id,
+              'discovery'
             );
-            discoveryFlows = activeFlows;
-            setState(prev => ({ ...prev, discoveryFlows: activeFlows }));
+            // Transform to match expected format
+            discoveryFlows = activeFlows.map(flow => ({
+              flow_id: flow.flowId,
+              status: flow.status,
+              current_phase: flow.currentPhase,
+              progress_percentage: flow.progress,
+              created_at: flow.createdAt,
+              updated_at: flow.updatedAt,
+              metadata: flow.metadata
+            }));
+            setState(prev => ({ ...prev, discoveryFlows }));
           }
         } catch (error) {
           console.error('Failed to fetch discovery flows:', error);
@@ -221,7 +231,7 @@ export const useAgentMonitor = () => {
         refreshing: false
       }));
     }
-  }, [getAuthHeaders]);
+  }, [getAuthHeaders, client, engagement]);
 
   const updateState = useCallback((updates: Partial<AgentMonitorState>) => {
     setState(prev => ({ ...prev, ...updates }));

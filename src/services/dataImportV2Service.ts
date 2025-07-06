@@ -1,10 +1,6 @@
 import { apiCall } from '../config/api';
 import { getAuthHeaders } from '../utils/contextUtils';
-import { 
-  unifiedDiscoveryService,
-  UnifiedDiscoveryFlowRequest,
-  UnifiedDiscoveryFlowResponse
-} from './discoveryUnifiedService';
+import { masterFlowService, MasterFlowRequest, MasterFlowResponse } from './api/masterFlowService';
 
 /**
  * Data Import Service v2 - MIGRATED TO UNIFIED DISCOVERY API

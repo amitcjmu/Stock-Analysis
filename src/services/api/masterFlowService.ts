@@ -3,7 +3,9 @@
  * Replaces all legacy discovery, assessment, and other flow services
  */
 
-import apiClient from '../ApiClient';
+import { ApiClient } from '../ApiClient';
+
+const apiClient = ApiClient.getInstance();
 import { AuthService } from '../../contexts/AuthContext/services/authService';
 
 export interface MasterFlowRequest {
@@ -54,10 +56,10 @@ const getMultiTenantHeaders = (
  */
 const handleApiError = (error: any, operation: string) => {
   console.error(`MasterFlowService.${operation} failed:`, error);
-  if (error.response?.data?.message) {
-    throw new Error(error.response.data.message);
+  if (error instanceof Error) {
+    throw new Error(`${operation} failed: ${error.message}`);
   }
-  throw new Error(`${operation} failed: ${error.message}`);
+  throw new Error(`${operation} failed: Unknown error`);
 };
 
 /**
@@ -69,7 +71,7 @@ export const masterFlowService = {
    */
   async initializeFlow(request: MasterFlowRequest): Promise<MasterFlowResponse> {
     try {
-      const response = await apiClient.post(
+      const response = await apiClient.post<MasterFlowResponse>(
         '/api/v1/flows/',
         request,
         {
@@ -80,7 +82,7 @@ export const masterFlowService = {
           ),
         }
       );
-      return response.data;
+      return response;
     } catch (error) {
       handleApiError(error, 'initializeFlow');
       throw error;
@@ -96,13 +98,13 @@ export const masterFlowService = {
     engagementId?: string
   ): Promise<FlowStatusResponse> {
     try {
-      const response = await apiClient.get(
+      const response = await apiClient.get<FlowStatusResponse>(
         `/api/v1/flows/${flowId}/status`,
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
         }
       );
-      return response.data;
+      return response;
     } catch (error) {
       handleApiError(error, 'getFlowStatus');
       throw error;
@@ -121,13 +123,13 @@ export const masterFlowService = {
       const params = new URLSearchParams();
       if (flowType) params.append('flowType', flowType);
       
-      const response = await apiClient.get(
+      const response = await apiClient.get<MasterFlowResponse[]>(
         `/api/v1/flows/active${params.toString() ? `?${params}` : ''}`,
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
         }
       );
-      return response.data;
+      return response;
     } catch (error) {
       handleApiError(error, 'getActiveFlows');
       throw error;
@@ -231,13 +233,13 @@ export const masterFlowService = {
       const params = new URLSearchParams();
       if (flowType) params.append('flowType', flowType);
       
-      const response = await apiClient.get(
+      const response = await apiClient.get<any>(
         `/api/v1/flows/metrics${params.toString() ? `?${params}` : ''}`,
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
         }
       );
-      return response.data;
+      return response;
     } catch (error) {
       handleApiError(error, 'getFlowMetrics');
       throw error;
