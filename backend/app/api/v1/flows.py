@@ -191,7 +191,7 @@ async def create_flow(
 @router.get("/", response_model=FlowListResponse)
 async def list_flows(
     flow_type: Optional[str] = Query(None, description="Filter by flow type"),
-    status: Optional[str] = Query(None, description="Filter by status"),
+    status_filter: Optional[str] = Query(None, alias="status", description="Filter by status"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
     orchestrator: MasterFlowOrchestrator = Depends(get_orchestrator)
@@ -202,10 +202,15 @@ async def list_flows(
     Returns a paginated list of flows for the current tenant context.
     """
     try:
+        # Get flows filtered by type
         flows = await orchestrator.get_active_flows(
             flow_type=flow_type,
-            status=status
+            limit=100  # Get more flows for filtering
         )
+        
+        # Filter by status if provided
+        if status_filter:
+            flows = [f for f in flows if f.get("status") == status_filter]
         
         # Apply pagination
         start_idx = (page - 1) * page_size
