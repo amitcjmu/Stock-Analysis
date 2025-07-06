@@ -671,82 +671,27 @@ async def resume_discovery_flow(
                  "field_mapping" in str(master_flow.flow_persistence_data) or
                  "attribute_mapping" in str(master_flow.flow_persistence_data))):
                 
-                # First update the flow state with approval data
-                logger.info("📝 Updating flow state with user approval data")
+                # DELTA TEAM FIX: Use Master Flow Orchestrator as SINGLE SOURCE for state updates
+                logger.info("📝 Delegating ALL state updates to Master Flow Orchestrator")
                 try:
-                    # Update the flow persistence data with approval
-                    from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
-                    store = PostgresFlowStateStore(db, context)
-                    
-                    # Load current state
-                    current_state = await store.load_state(flow_id)
-                    if current_state:
-                        # Update with approval data
-                        current_state["user_approval_data"] = {
-                            "approved": True,
+                    # SINGLE state update through Master Flow Orchestrator
+                    phase_result = await orchestrator.execute_phase(
+                        flow_id=str(flow_id),
+                        phase_name="field_mapping_approval",  # Let MFO handle the approval logic
+                        phase_input={
+                            "user_approval": True,
                             "field_mappings": request.get("field_mappings", {}),
                             "approval_timestamp": resume_context.get("approval_timestamp"),
                             "approved_by": resume_context.get("approved_by"),
-                            "notes": resume_context.get("approval_notes", "")
-                        }
-                        current_state["awaiting_user_approval"] = False
-                        current_state["status"] = "processing"
-                        
-                        # Mark field mapping as completed and advance to next phase
-                        current_state["phase_completion"] = current_state.get("phase_completion", {})
-                        current_state["phase_completion"]["field_mapping"] = True
-                        current_state["phase_completion"]["attribute_mapping"] = True
-                        current_state["current_phase"] = "data_cleansing"
-                        current_state["progress_percentage"] = 33.3  # 2/6 phases complete
-                        
-                        # Save updated state with new phase
-                        await store.save_state(flow_id, current_state, "data_cleansing")
-                        logger.info("✅ Updated flow state with approval data and advanced to data_cleansing")
-                except Exception as e:
-                    logger.warning(f"⚠️ Failed to update flow state: {e}")
-                
-                # Update discovery flow table to reflect approval and trigger continuation
-                try:
-                    from app.models.discovery_flow import DiscoveryFlow
-                    from sqlalchemy import select
-                    
-                    # Get the discovery flow
-                    discovery_stmt = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_uuid)
-                    discovery_result = await db.execute(discovery_stmt)
-                    discovery_flow = discovery_result.scalar_one_or_none()
-                    
-                    if discovery_flow:
-                        # Update flow state
-                        discovery_flow.status = "processing"
-                        discovery_flow.current_phase = "data_cleansing"
-                        discovery_flow.field_mapping_completed = True
-                        discovery_flow.progress_percentage = 33.3
-                        discovery_flow.updated_at = datetime.utcnow()
-                        
-                        # Update JSONB data to clear approval flag
-                        if not discovery_flow.crewai_state_data:
-                            discovery_flow.crewai_state_data = {}
-                        discovery_flow.crewai_state_data["awaiting_user_approval"] = False
-                        discovery_flow.crewai_state_data["field_mappings_approved"] = True
-                        discovery_flow.crewai_state_data["approval_timestamp"] = datetime.utcnow().isoformat()
-                        
-                        await db.commit()
-                        logger.info("✅ Updated discovery flow table with approval")
-                    
-                    # Now try to execute the next phase via orchestrator
-                    phase_result = await orchestrator.execute_phase(
-                        flow_id=str(flow_id),
-                        phase_name="data_cleansing",  # Execute next phase directly
-                        phase_input={
-                            "field_mappings": request.get("field_mappings", {}),
-                            "raw_data": current_state.get("raw_data", []),
-                            "from_approval": True
+                            "notes": resume_context.get("approval_notes", ""),
+                            "advance_to_next_phase": True
                         }
                     )
-                    logger.info(f"✅ Started data cleansing phase: {phase_result}")
+                    logger.info(f"✅ Master Flow Orchestrator handled approval: {phase_result}")
                 except Exception as e:
-                    logger.error(f"Failed to advance flow: {e}")
-                    # Even if phase execution fails, state is updated so flow can continue
+                    logger.error(f"Master Flow Orchestrator approval failed: {e}")
+                    # FALLBACK: Only if MFO fails, do minimal direct update
+                    logger.info("⚠️ Using fallback direct database update")
                     
                     # Get the CrewAI flow service to handle this directly
                     from app.services.crewai_flow_service import CrewAIFlowService

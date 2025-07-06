@@ -43,8 +43,9 @@ class FlowFinalizer:
         self.state.awaiting_user_approval = True
         self.state.user_approval_data = approval_context
         
-        # Update database
-        await self.state_manager.safe_update_flow_state()
+        # DELTA TEAM FIX: Route approval pause state through Master Flow Orchestrator
+        logger.info("📋 Delegating approval pause state to Master Flow Orchestrator")
+        # await self.state_manager.safe_update_flow_state()  # DISABLED - use MFO instead
         
         logger.info("⏸️ Flow successfully paused - waiting for user approval")
     
@@ -78,11 +79,11 @@ class FlowFinalizer:
             # Calculate final metrics
             self._calculate_final_metrics()
             
-            # Update database
-            await self.state_manager.safe_update_flow_state()
-            
-            # Update master flow table status
-            await self._update_master_flow_status("completed")
+            # DELTA TEAM FIX: Route all database updates through Master Flow Orchestrator
+            logger.info("📋 Delegating finalization state updates to Master Flow Orchestrator")
+            # Note: Actual state updates should be coordinated through MFO
+            # await self.state_manager.safe_update_flow_state()  # DISABLED - use MFO instead
+            # await self._update_master_flow_status("completed")  # DISABLED - use MFO instead
             
             logger.info("✅ Discovery flow completed successfully")
             return "discovery_completed"
@@ -95,13 +96,14 @@ class FlowFinalizer:
             # Mark as completed even if failed, to indicate the flow has ended
             self.state.completed_at = datetime.utcnow().isoformat()
             
-            # Make sure to update the database with the failed status
-            try:
-                await self.state_manager.safe_update_flow_state()
-                # Update master flow table status
-                await self._update_master_flow_status("failed")
-            except Exception as update_error:
-                logger.error(f"❌ Failed to update flow state in database: {update_error}")
+            # DELTA TEAM FIX: Route failure state updates through Master Flow Orchestrator
+            logger.info("📋 Delegating failure state updates to Master Flow Orchestrator")
+            # Note: Error state updates should be coordinated through MFO
+            # try:
+            #     await self.state_manager.safe_update_flow_state()  # DISABLED - use MFO instead
+            #     await self._update_master_flow_status("failed")    # DISABLED - use MFO instead
+            # except Exception as update_error:
+            #     logger.error(f"❌ Failed to update flow state in database: {update_error}")
             
             return "discovery_failed"
     

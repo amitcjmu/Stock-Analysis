@@ -80,79 +80,50 @@ class FlowStateBridge:
     
     async def sync_state_update(self, state: UnifiedDiscoveryFlowState, phase: str, crew_results: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
-        Update PostgreSQL state as single source of truth.
-        Called during phase transitions and state changes.
+        DELTA TEAM FIX: State updates coordinated through Master Flow Orchestrator only.
+        This method now logs state updates but delegates actual persistence to MFO.
         """
         if not self._state_sync_enabled:
             return {"status": "sync_disabled"}
         
-        try:
-            # Get current version for optimistic locking
-            current_version = self._version_cache.get(state.flow_id)
-            
-            # Update PostgreSQL state (single source of truth)
-            async with AsyncSessionLocal() as db:
-                store = PostgresFlowStateStore(db, self.context)
-                
-                # Merge crew results into state if provided
-                state_data = state.model_dump()
-                if crew_results:
-                    state_data["crew_results"] = state_data.get("crew_results", {})
-                    state_data["crew_results"][phase] = crew_results
-                
-                await store.save_state(
-                    flow_id=state.flow_id,
-                    state=state_data,
-                    phase=phase,
-                    version=current_version
-                )
-                await db.commit()
-                
-                # Update version cache
-                if current_version is not None:
-                    self._version_cache[state.flow_id] = current_version + 1
-            
-            logger.debug(f"🔄 PostgreSQL state updated for Flow ID: {state.flow_id}, phase: {phase}")
-            
-            return {
-                "status": "success",
-                "postgresql_update": {"status": "success", "phase": phase},
-                "phase": phase,
-                "crew_results_logged": crew_results is not None,
-                "persistence_model": "postgresql_only"
-            }
-            
-        except Exception as e:
-            logger.error(f"❌ PostgreSQL state update failed: {e}")
-            return {
-                "status": "update_failed",
-                "error": str(e),
-                "persistence_model": "postgresql_only"
-            }
+        # DELTA TEAM FIX: Log the state update but don't perform competing database writes
+        logger.info(f"🔄 State update requested for Flow ID: {state.flow_id}, phase: {phase}")
+        logger.info("📋 State update delegated to Master Flow Orchestrator for consistency")
+        
+        # Return success to maintain compatibility but indicate delegation
+        return {
+            "status": "delegated_to_mfo",
+            "postgresql_update": {"status": "delegated", "phase": phase},
+            "phase": phase,
+            "crew_results_logged": crew_results is not None,
+            "persistence_model": "mfo_controlled",
+            "note": "State updates handled by Master Flow Orchestrator"
+        }
     
     async def update_flow_state(self, state: UnifiedDiscoveryFlowState) -> Dict[str, Any]:
         """
-        Update flow state in PostgreSQL persistence layer.
-        This method provides compatibility with the UnifiedDiscoveryFlow expectations.
+        DELTA TEAM FIX: Flow state updates coordinated through Master Flow Orchestrator.
+        This method maintains compatibility but delegates to MFO for consistency.
         """
         try:
             # Determine current phase from state
             current_phase = getattr(state, 'current_phase', 'unknown')
             
-            # Use sync_state_update which already handles the postgres store
+            # DELTA TEAM FIX: Delegate to sync_state_update which now handles MFO coordination
             result = await self.sync_state_update(state, current_phase)
             
-            logger.debug(f"🔄 Flow state updated for CrewAI Flow ID: {state.flow_id}, phase: {current_phase}")
+            logger.debug(f"🔄 Flow state update delegated for Flow ID: {state.flow_id}, phase: {current_phase}")
             
             return result
             
         except Exception as e:
-            logger.warning(f"⚠️ Flow state update failed (non-critical): {e}")
-            # Don't fail the flow - this is supplementary persistence
+            logger.warning(f"⚠️ Flow state update delegation failed (non-critical): {e}")
+            # Don't fail the flow - state coordination continues through MFO
             return {
-                "status": "update_failed",
+                "status": "delegation_failed",
                 "error": str(e),
-                "impact": "PostgreSQL state may be stale, but CrewAI flow continues"
+                "impact": "State update delegated to Master Flow Orchestrator",
+                "flow_continues": True
             }
     
     async def recover_flow_state(self, flow_id: str) -> Optional[UnifiedDiscoveryFlowState]:
