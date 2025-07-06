@@ -106,6 +106,8 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     def state(self):
         """Get the flow state"""
         # Return the internal flow state if available, otherwise return a default
+        if hasattr(self, '_flow_state'):
+            return self._flow_state
         return getattr(self, '_flow_state', UnifiedDiscoveryFlowState())
     
     def _initialize_components(self):
@@ -176,8 +178,44 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         
         try:
             # Initialize state using CrewAI Flow's built-in state management
-            # CrewAI Flow automatically manages state - we configure our data structure
-            initial_state = self.initializer.create_initial_state()
+            # Check if we should load existing state from database first
+            existing_state = None
+            if hasattr(self, '_flow_id') and self._flow_id and self.flow_bridge:
+                logger.info(f"🔍 Checking for existing flow state in database for flow {self._flow_id}")
+                try:
+                    existing_state = await self.flow_bridge.recover_flow_state(self._flow_id)
+                    if existing_state:
+                        logger.info(f"✅ Recovered existing flow state from database:")
+                        logger.info(f"   - Current phase: {existing_state.current_phase}")
+                        logger.info(f"   - Progress: {existing_state.progress_percentage}%")
+                        logger.info(f"   - Raw data records: {len(existing_state.raw_data) if existing_state.raw_data else 0}")
+                        logger.info(f"   - Field mappings exist: {bool(existing_state.field_mappings)}")
+                except Exception as e:
+                    logger.warning(f"⚠️ Could not recover existing state: {e}")
+            
+            # Use existing state if found, otherwise create initial state
+            if existing_state:
+                initial_state = existing_state
+                logger.info("🔄 Using recovered state from database")
+                
+                # If state doesn't have raw data but we passed it in, use the passed data
+                if (not existing_state.raw_data or len(existing_state.raw_data) == 0) and self.initializer.raw_data:
+                    logger.info(f"📋 State has no raw data, using {len(self.initializer.raw_data)} records passed to flow")
+                    initial_state.raw_data = self.initializer.raw_data
+                    
+                # Load raw data from database if still empty
+                if not initial_state.raw_data or len(initial_state.raw_data) == 0:
+                    await self._load_raw_data_from_database(initial_state)
+            else:
+                initial_state = self.initializer.create_initial_state()
+                logger.info("📋 Created new initial state")
+            
+            # Debug: Check if raw_data is in initial state
+            logger.info(f"🔍 DEBUG: Initial state has {len(initial_state.raw_data) if initial_state.raw_data else 0} raw data records")
+            if initial_state.raw_data and len(initial_state.raw_data) > 0:
+                logger.info(f"✅ Raw data already present in initial state")
+            else:
+                logger.warning(f"⚠️ No raw data in initial state - data should be passed during flow creation")
             
             # Configure CrewAI Flow state with our initial data
             # CrewAI Flow manages state internally - we need to work with its patterns
@@ -208,7 +246,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                 'dependency_analysis_agent': self.dependency_analysis_agent,
                 'tech_debt_analysis_agent': self.tech_debt_analysis_agent
             }
-            phases = self.initializer.initialize_phases(self.state, agents, self.flow_bridge)
+            phases = self.initializer.initialize_phases(self._flow_state, agents, self.flow_bridge)
             self.data_validation_phase = phases['data_validation_phase']
             self.field_mapping_phase = phases['field_mapping_phase']
             self.data_cleansing_phase = phases['data_cleansing_phase']
@@ -216,20 +254,42 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             self.dependency_analysis_phase = phases['dependency_analysis_phase']
             self.tech_debt_assessment_phase = phases['tech_debt_assessment_phase']
             
-            # Set initial state
-            self.state.status = "initializing"
-            self.state.current_phase = "initialization"
-            self.state.created_at = datetime.utcnow()
-            self.state.updated_at = datetime.utcnow()
+            # Update phase executor state references
+            if hasattr(self, 'phase_executor') and self.phase_executor:
+                self.phase_executor.state = self._flow_state
+                # Update all individual phase executors
+                for executor_name in ['data_import_validation_executor', 'field_mapping_executor', 
+                                    'data_cleansing_executor', 'asset_inventory_executor',
+                                    'dependency_analysis_executor', 'tech_debt_executor']:
+                    if hasattr(self.phase_executor, executor_name):
+                        executor = getattr(self.phase_executor, executor_name)
+                        if executor:
+                            executor.state = self._flow_state
+                            logger.info(f"✅ Updated {executor_name} state reference")
             
-            # Generate flow_id if not set
-            if not hasattr(self.state, 'flow_id') or not self.state.flow_id:
-                self.state.flow_id = self._init_context.get('flow_id') or str(uuid.uuid4())
+            # Set initial state only if we didn't load existing state
+            if not existing_state:
+                self.state.status = "initialized"
+                self.state.current_phase = "initialized"
+                self.state.created_at = datetime.utcnow()
+                self.state.updated_at = datetime.utcnow()
+                
+                # Generate flow_id if not set
+                if not hasattr(self.state, 'flow_id') or not self.state.flow_id:
+                    self.state.flow_id = self._init_context.get('flow_id') or str(uuid.uuid4())
+            else:
+                # Just update the timestamp for existing state
+                self.state.updated_at = datetime.utcnow()
+                logger.info(f"✅ Continuing existing flow from phase: {self.state.current_phase}")
             
-            # Initialize with flow bridge
-            if self.flow_bridge:
+            # Initialize with flow bridge only for new flows
+            if self.flow_bridge and not existing_state:
                 await self.flow_bridge.initialize_flow(self.state)
-                logger.info(f"✅ Flow initialized with PostgreSQL bridge - Flow ID: {self.state.flow_id}")
+                logger.info(f"✅ New flow initialized with PostgreSQL bridge - Flow ID: {self.state.flow_id}")
+            elif self.flow_bridge and existing_state:
+                # For existing flows, just update the state
+                await self.flow_bridge.update_flow_state(self.state)
+                logger.info(f"✅ Existing flow state updated in PostgreSQL - Flow ID: {self.state.flow_id}")
             
             # Update state
             await self.state_manager.safe_update_flow_state()
@@ -240,7 +300,7 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         except Exception as e:
             logger.error(f"❌ Discovery flow initialization failed: {e}")
             if hasattr(self, 'state_manager') and self.state_manager:
-                self.state_manager.add_error("initialization", str(e))
+                self.state_manager.add_error("initialized", str(e))
             return "initialization_failed"
     
     @listen(initialize_discovery)
@@ -249,6 +309,12 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         try:
             # Use PhaseExecutionManager with real CrewAI crews instead of pseudo-agents
             result = await self.phase_executor.execute_data_import_validation_phase(previous_result)
+            
+            # Mark data import as completed
+            self.state.phase_completion[PhaseNames.DATA_IMPORT_VALIDATION] = True
+            self.state.data_import_completed = True
+            self.state.progress_percentage = 16.7  # 1/6 phases complete
+            
             await self.state_manager.safe_update_flow_state()
             
             # Check if phase failed
@@ -271,6 +337,23 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     async def generate_field_mapping_suggestions(self, previous_result):
         """Generate initial field mapping suggestions before pausing for approval"""
         logger.info("🤖 Generating field mapping suggestions")
+        
+        # Debug: Check if raw_data is available
+        logger.info(f"🔍 DEBUG: Raw data available: {len(self.state.raw_data) if hasattr(self.state, 'raw_data') and self.state.raw_data else 0} records")
+        logger.info(f"🔍 DEBUG: Previous result: {previous_result}")
+        
+        # Debug: Check phase_data for data_import results
+        if hasattr(self.state, 'phase_data') and 'data_import' in self.state.phase_data:
+            data_import_results = self.state.phase_data['data_import']
+            logger.info(f"🔍 DEBUG: Data import phase results: {list(data_import_results.keys()) if isinstance(data_import_results, dict) else 'Not a dict'}")
+            logger.info(f"🔍 DEBUG: Total records from data import: {data_import_results.get('total_records', 0)}")
+        
+        if hasattr(self.state, 'raw_data') and self.state.raw_data and len(self.state.raw_data) > 0:
+            logger.info(f"🔍 DEBUG: First record keys: {list(self.state.raw_data[0].keys())}")
+        else:
+            logger.warning("⚠️ No raw_data available in state, attempting to load from database")
+            # Try to load from raw_import_records table
+            await self._load_raw_data_from_import_records()
         
         # Update phase
         self.state.current_phase = PhaseNames.FIELD_MAPPING
@@ -321,6 +404,42 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                     confidence=0.7
                 )
         
+        # Update progress
+        self.state.progress_percentage = 25.0  # Field mapping in progress
+        
+        # Store field mapping data in discovery_flows table
+        try:
+            from app.core.database import AsyncSessionLocal
+            from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+            
+            async with AsyncSessionLocal() as db:
+                repo = DiscoveryFlowRepository(
+                    db, 
+                    client_account_id=str(getattr(self.state, 'client_account_id', self.context.client_account_id)),
+                    engagement_id=str(getattr(self.state, 'engagement_id', self.context.engagement_id)),
+                    user_id=str(getattr(self.state, 'user_id', self.context.user_id))
+                )
+                
+                # Update the flow with field mappings
+                await repo.flow_commands.update_phase_completion(
+                    flow_id=self.state.flow_id,
+                    phase="field_mapping",
+                    data={
+                        "field_mappings": suggested_mappings,
+                        "confidence_scores": confidence_scores if isinstance(confidence_scores, dict) else {"overall": confidence_scores},
+                        "confidence": self.state.field_mapping_confidence,
+                        "total_fields": len(suggested_mappings),
+                        "clarifications": clarification_questions,
+                        "awaiting_approval": True
+                    },
+                    completed=False,  # Not completed yet, awaiting approval
+                    agent_insights=self.state.agent_insights
+                )
+                
+                logger.info("✅ Updated discovery_flows table with field mapping suggestions")
+        except Exception as e:
+            logger.warning(f"Failed to update discovery_flows table: {e}")
+        
         await self.state_manager.safe_update_flow_state()
         logger.info(f"✅ Generated {len(suggested_mappings)} mapping suggestions")
         
@@ -344,6 +463,19 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         }
         
         await self.state_manager.safe_update_flow_state()
+        
+        # Explicitly update Master Flow status to waiting_for_approval
+        if hasattr(self, '_flow_state_bridge') and self._flow_state_bridge:
+            try:
+                from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
+                from app.core.database import AsyncSessionLocal
+                
+                async with AsyncSessionLocal() as db:
+                    store = PostgresFlowStateStore(db, self.context)
+                    await store.update_flow_status(self._flow_id, "waiting_for_approval")
+                    logger.info("✅ Updated Master Flow status to waiting_for_approval")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to update Master Flow status: {e}")
         
         # Update DiscoveryFlow table with current state
         try:
@@ -400,17 +532,131 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     @listen(pause_for_field_mapping_approval)
     async def apply_approved_field_mappings(self, previous_result):
         """Apply user-approved field mappings and continue to data cleansing"""
+        # Check if we're being called directly during resume (not through normal flow)
+        if previous_result == "field_mapping_approved":
+            logger.info("✅ Called directly from resume - applying approved field mappings")
+            
+            # Clear approval flags
+            self.state.awaiting_user_approval = False
+            self.state.status = "processing"
+            
+            # Mark phase as completed
+            self.state.phase_completion[PhaseNames.FIELD_MAPPING] = True
+            self.state.field_mapping_completed = True
+            
+            # Update current phase to next phase
+            self.state.current_phase = PhaseNames.DATA_CLEANSING
+            
+            # Update progress
+            self.state.progress_percentage = 33.3  # 2/6 phases complete
+            
+            await self.state_manager.safe_update_flow_state()
+            
+            # Also update the Master Flow status
+            try:
+                from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
+                from app.core.database import AsyncSessionLocal
+                
+                async with AsyncSessionLocal() as db:
+                    store = PostgresFlowStateStore(db, self.context)
+                    await store.update_flow_status(self._flow_id, "processing")
+                    logger.info("✅ Updated Master Flow status to processing")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to update Master Flow status: {e}")
+            
+            # Also update DiscoveryFlow table
+            try:
+                from app.core.database import AsyncSessionLocal
+                from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+                
+                async with AsyncSessionLocal() as db:
+                    repo = DiscoveryFlowRepository(
+                        db, 
+                        client_account_id=str(getattr(self.state, 'client_account_id', self.context.client_account_id)),
+                        engagement_id=str(getattr(self.state, 'engagement_id', self.context.engagement_id)),
+                        user_id=str(getattr(self.state, 'user_id', self.context.user_id))
+                    )
+                    
+                    # Update flow status
+                    await repo.flow_commands.update_flow_status(
+                        flow_id=self.state.flow_id,
+                        status="processing",
+                        progress_percentage=33.3
+                    )
+                    
+                    # Mark field mapping as completed
+                    await repo.flow_commands.update_phase_completion(
+                        flow_id=self.state.flow_id,
+                        phase="field_mapping",
+                        data={
+                            "field_mappings": self.state.field_mappings,
+                            "confidence": self.state.field_mapping_confidence,
+                            "completed": True
+                        },
+                        completed=True,
+                        agent_insights=self.state.agent_insights
+                    )
+                    
+                    logger.info("✅ Updated DiscoveryFlow table with field mapping completion")
+            except Exception as e:
+                logger.warning(f"Failed to update DiscoveryFlow table: {e}")
+            
+            return "field_mapping_completed"
+        
+        # Check if we're resuming from approval
+        if self.state.awaiting_user_approval and self.state.current_phase in [PhaseNames.FIELD_MAPPING, "attribute_mapping"]:
+            # Check if mappings have been approved (user_approval_data should be updated)
+            if hasattr(self.state, 'user_approval_data') and self.state.user_approval_data:
+                approval_data = self.state.user_approval_data
+                if approval_data.get('approved', False):
+                    logger.info("✅ User approved field mappings - applying and continuing flow")
+                    
+                    # Clear approval flags
+                    self.state.awaiting_user_approval = False
+                    self.state.status = "processing"
+                    
+                    # Mark phase as completed
+                    self.state.phase_completion[PhaseNames.FIELD_MAPPING] = True
+                    self.state.field_mapping_completed = True
+                    
+                    # Update current phase to next phase
+                    self.state.current_phase = PhaseNames.DATA_CLEANSING
+                    
+                    # Update progress
+                    self.state.progress_percentage = 33.3  # 2/6 phases complete
+                    
+                    await self.state_manager.safe_update_flow_state()
+                    
+                    # Also update the Master Flow status
+                    try:
+                        from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
+                        from app.core.database import AsyncSessionLocal
+                        
+                        async with AsyncSessionLocal() as db:
+                            store = PostgresFlowStateStore(db, self.context)
+                            await store.update_flow_status(self._flow_id, "processing")
+                            logger.info("✅ Updated Master Flow status to processing")
+                    except Exception as e:
+                        logger.warning(f"⚠️ Failed to update Master Flow status: {e}")
+                    
+                    return "field_mapping_completed"
+        
         # This will only run when flow is resumed after approval
         if previous_result == "paused_for_field_mapping_approval":
-            logger.info("⏭️ Flow waiting for user approval - skipping application")
+            logger.info("⏭️ Flow is paused for approval - waiting for user action")
+            # Don't propagate the paused state - just return it
             return previous_result
         
-        # User has approved - apply the mappings
+        # Normal flow - user has approved, apply the mappings
         logger.info("✅ Applying approved field mappings")
         
         # The mappings are already in state from the suggestions phase
         # Just update the status
         self.state.phase_completion[PhaseNames.FIELD_MAPPING] = True
+        self.state.field_mapping_completed = True
+        self.state.current_phase = PhaseNames.DATA_CLEANSING
+        self.state.progress_percentage = 33.3  # 2/6 phases complete
+        
         await self.state_manager.safe_update_flow_state()
         
         return "field_mapping_completed"
@@ -520,6 +766,106 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     def get_flow_info(self) -> Dict[str, Any]:
         """Get comprehensive flow information"""
         return self.flow_manager.get_flow_info()
+    
+    async def _load_raw_data_from_database(self, state: UnifiedDiscoveryFlowState):
+        """Load raw data from database tables into flow state"""
+        try:
+            flow_id_to_use = self._flow_id
+            logger.info(f"🔍 Loading raw data for flow {flow_id_to_use}")
+            
+            from app.core.database import AsyncSessionLocal
+            from sqlalchemy import select, or_
+            from app.models.discovery_flow import DiscoveryFlow
+            from app.models.data_import import RawImportRecord, DataImport
+            
+            async with AsyncSessionLocal() as db:
+                # First, try to get the discovery flow record
+                flow_query = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id_to_use)
+                flow_result = await db.execute(flow_query)
+                discovery_flow = flow_result.scalar_one_or_none()
+                
+                data_import_id = None
+                
+                if discovery_flow and discovery_flow.data_import_id:
+                    data_import_id = discovery_flow.data_import_id
+                    logger.info(f"🔍 Found discovery flow with data_import_id: {data_import_id}")
+                else:
+                    # Fallback: Check if flow_id is actually a data_import_id
+                    logger.info(f"🔍 No discovery flow found, checking if {flow_id_to_use} is a data_import_id")
+                    import_query = select(DataImport).where(DataImport.id == flow_id_to_use)
+                    import_result = await db.execute(import_query)
+                    data_import = import_result.scalar_one_or_none()
+                    
+                    if data_import:
+                        data_import_id = data_import.id
+                        logger.info(f"✅ Found data import directly with id: {data_import_id}")
+                
+                if data_import_id:
+                    # Load raw records from raw_import_records table
+                    records_query = select(RawImportRecord).where(
+                        RawImportRecord.data_import_id == data_import_id
+                    ).order_by(RawImportRecord.row_number)
+                    
+                    records_result = await db.execute(records_query)
+                    raw_records = records_result.scalars().all()
+                    
+                    # Extract raw_data from records
+                    raw_data = [record.raw_data for record in raw_records]
+                    
+                    if raw_data:
+                        state.raw_data = raw_data
+                        logger.info(f"✅ Loaded {len(raw_data)} records from database")
+                        logger.info(f"🔍 Sample record keys: {list(raw_data[0].keys()) if raw_data else 'None'}")
+                        logger.info(f"🔍 First record sample: {raw_data[0] if raw_data else 'None'}")
+                    else:
+                        logger.warning(f"⚠️ No raw records found for data_import_id: {data_import_id}")
+                else:
+                    logger.warning(f"⚠️ Could not find data_import_id for flow: {flow_id_to_use}")
+                    
+        except Exception as e:
+            logger.error(f"❌ Failed to load raw data from database: {e}")
+            # Don't fail the flow initialization, just log the error
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+    
+    async def _load_raw_data_from_import_records(self):
+        """Load raw data from raw_import_records table when state doesn't have it"""
+        try:
+            from app.core.database import AsyncSessionLocal
+            from app.models.data_import import RawImportRecord
+            from sqlalchemy import select
+            
+            # Use flow_id as data_import_id (they're the same in the current implementation)
+            data_import_id = self._flow_id
+            logger.info(f"🔍 Loading raw data for data_import_id: {data_import_id}")
+            
+            async with AsyncSessionLocal() as db:
+                # Load raw records
+                records_result = await db.execute(
+                    select(RawImportRecord)
+                    .where(RawImportRecord.data_import_id == data_import_id)
+                    .order_by(RawImportRecord.row_number)
+                )
+                records = records_result.scalars().all()
+                
+                if records:
+                    # Extract raw_data from records
+                    raw_data = [record.raw_data for record in records]
+                    self.state.raw_data = raw_data
+                    logger.info(f"✅ Loaded {len(raw_data)} records from database")
+                    if raw_data and len(raw_data) > 0:
+                        logger.info(f"🔍 First record keys: {list(raw_data[0].keys())}")
+                        
+                    # Also update the flow persistence if bridge is available
+                    if self.flow_bridge:
+                        await self.state_manager.safe_update_flow_state()
+                else:
+                    logger.warning(f"⚠️ No raw records found for data_import_id: {data_import_id}")
+                    
+        except Exception as e:
+            logger.error(f"❌ Failed to load raw data from database: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
 
 
 def create_unified_discovery_flow(
@@ -540,9 +886,13 @@ def create_unified_discovery_flow(
     Returns:
         UnifiedDiscoveryFlow instance
     """
+    logger.info(f"🏗️ Creating UnifiedDiscoveryFlow with {len(raw_data) if raw_data else 0} records")
+    
+    # Ensure raw_data is included in kwargs
+    kwargs['raw_data'] = raw_data
+    
     return UnifiedDiscoveryFlow(
         crewai_service=crewai_service,
         context=context,
-        raw_data=raw_data,
         **kwargs
     )

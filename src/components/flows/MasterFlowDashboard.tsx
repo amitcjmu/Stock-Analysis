@@ -25,9 +25,9 @@ import {
   Filter,
   Search
 } from 'lucide-react';
-import { useFlows } from '../../../frontend/src/hooks/useFlow';
-import { FlowStatus, FlowType } from '../../../frontend/src/types/flow';
-import { flowToast } from '../../../frontend/src/utils/toast';
+import { useFlows } from '../../hooks/useFlow';
+import { FlowStatus, FlowType } from '../../types/flow';
+import { flowToast } from '../../utils/toast';
 import { getFlowPhaseRoute } from '@/config/flowRoutes';
 import { useNavigate } from 'react-router-dom';
 

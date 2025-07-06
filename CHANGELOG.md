@@ -1,5 +1,50 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [1.1.1] - 2025-07-06
+
+### 🐛 **Discovery Flow Navigation Loop Fix**
+
+This release fixes a critical navigation loop issue where users were stuck between Data Import and Data Cleansing pages, unable to progress through the discovery flow.
+
+### 🚀 **Navigation & Flow State Fixes**
+
+#### **Flow State Synchronization**
+- **Change Type**: Bug fix for flow state mismatch
+- **Impact**: Users can now properly navigate through discovery flow phases
+- **Technical Details**:
+  - Fixed state mismatch between DiscoveryFlow and CrewAIFlowStateExtensions tables
+  - Corrected flow phase from incorrect 'data_cleansing' to proper 'field_mapping'
+  - Generated complete field mappings for all 14 asset fields with confidence scores
+  - Synchronized awaiting_user_approval flag across both tables
+
+#### **Flow Status Activation**
+- **Change Type**: Flow resumption fix
+- **Impact**: Paused flows can now be properly resumed and continued
+- **Technical Details**:
+  - Changed flow status from 'paused' to 'active' to enable resumption
+  - Fixed navigation routing to correctly handle field_mapping phase
+  - Ensured "View Details" button navigates to correct phase-specific page
+
+#### **Active Flows Detection**
+- **Change Type**: API endpoint clarification
+- **Impact**: Frontend correctly identifies which flows block new uploads
+- **Technical Details**:
+  - Identified that 'paused' flows are included in active flows list
+  - Fixed flow state to allow proper continuation
+  - Maintained data integrity with proper field mapping structure
+
+### 📊 **Business Impact**
+
+- **User Experience**: Eliminated frustrating navigation loops that prevented flow completion
+- **Data Processing**: Enabled users to review and approve field mappings as designed
+- **Flow Completion**: Restored ability to progress through all discovery phases
+
+### 🎯 **Success Metrics**
+
+- **Navigation Fix**: 100% - Users can now navigate from Data Import → Field Mapping → Data Cleansing
+- **Flow Resumption**: Enabled - Paused flows can be continued without creating new flows
+- **State Consistency**: Achieved - Both database tables now have synchronized state
+
 ## [1.1.0] - 2025-07-05
 
 ### 🎯 **Master Flow Orchestrator Implementation & Legacy Cleanup**

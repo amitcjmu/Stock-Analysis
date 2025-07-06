@@ -56,6 +56,94 @@ const CMDBImportContainer: React.FC = () => {
     startDiscoveryFlow
   } = useCMDBImport();
 
+  // Poll for flow status updates
+  React.useEffect(() => {
+    const pollFlowStatus = async () => {
+      // Only poll for files that have a flow_id and are in processing state
+      const processingFiles = uploadedFiles.filter(f => 
+        f.flow_id && 
+        (f.status === 'processing' || f.flow_status === 'running' || f.flow_status === 'active')
+      );
+
+      for (const file of processingFiles) {
+        try {
+          const response = await apiCall(`/api/v1/discovery/flow/status/${file.flow_id}`, {
+            headers: getAuthHeaders()
+          });
+          
+          // Update file status based on flow status
+          if (response.status === 'waiting_for_approval' || response.awaiting_user_approval) {
+            setUploadedFiles(prev => prev.map(f => {
+              if (f.id === file.id) {
+                return {
+                  ...f,
+                  status: 'approved_with_warnings', // This will show yellow badge
+                  flow_status: 'waiting_for_approval',
+                  discovery_progress: response.progress_percentage || 25, // Show some progress
+                  current_phase: 'field_mapping',
+                  error_message: 'Field mapping suggestions ready. Review and approve to continue.'
+                };
+              }
+              return f;
+            }));
+            
+            // Show toast notification once
+            if (file.flow_status !== 'waiting_for_approval') {
+              toast({
+                title: "Action Required",
+                description: "Field mapping suggestions are ready for your review.",
+              });
+            }
+          } else if (response.status === 'completed') {
+            setUploadedFiles(prev => prev.map(f => {
+              if (f.id === file.id) {
+                return {
+                  ...f,
+                  status: 'approved',
+                  flow_status: 'completed',
+                  discovery_progress: 100
+                };
+              }
+              return f;
+            }));
+          } else if (response.status === 'failed' || response.status === 'error') {
+            setUploadedFiles(prev => prev.map(f => {
+              if (f.id === file.id) {
+                return {
+                  ...f,
+                  status: 'error',
+                  flow_status: 'failed',
+                  error_message: response.error || 'Processing failed'
+                };
+              }
+              return f;
+            }));
+          } else {
+            // Update progress for running flows
+            setUploadedFiles(prev => prev.map(f => {
+              if (f.id === file.id) {
+                return {
+                  ...f,
+                  discovery_progress: response.progress_percentage || f.discovery_progress,
+                  current_phase: response.current_phase || f.current_phase
+                };
+              }
+              return f;
+            }));
+          }
+        } catch (error) {
+          console.error(`Error polling flow status for ${file.flow_id}:`, error);
+        }
+      }
+    };
+
+    // Start polling if there are processing files
+    if (uploadedFiles.some(f => f.flow_id && (f.status === 'processing' || f.flow_status === 'running'))) {
+      const interval = setInterval(pollFlowStatus, 3000); // Poll every 3 seconds
+      return () => clearInterval(interval);
+    }
+  }, [uploadedFiles, setUploadedFiles, toast]);
+
   // Universal Real-Time Processing Status callbacks
   const handleProcessingComplete = async (file: any) => {
     if (file.status === 'approved' || file.flow_status === 'completed') {

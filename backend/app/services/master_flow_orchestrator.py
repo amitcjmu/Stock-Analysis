@@ -75,7 +75,7 @@ class MasterFlowOrchestrator:
         
         # Initialize registries and handlers
         self.flow_registry = FlowTypeRegistry()
-        self.state_manager = FlowStateManager(db)
+        self.state_manager = FlowStateManager(db, context)
         self.validator_registry = ValidatorRegistry()
         self.handler_registry = HandlerRegistry()
         self.error_handler = FlowErrorHandler()
@@ -508,6 +508,30 @@ class MasterFlowOrchestrator:
                 }
             )
             
+            # Delegate to actual flow implementation based on flow type
+            # TODO: Implement proper delegation based on flow type
+            # For now, discovery flows can use CrewAIFlowService
+            if master_flow.flow_type == "discovery":
+                try:
+                    from app.services.crewai_flow_service import CrewAIFlowService
+                    from app.core.database import AsyncSessionLocal
+                    
+                    # Create CrewAI service instance
+                    crewai_service = CrewAIFlowService()
+                    
+                    # Resume the actual CrewAI flow
+                    async with AsyncSessionLocal() as db:
+                        crew_result = await crewai_service.resume_flow(
+                            flow_id=str(flow_id),
+                            resume_context=resume_context
+                        )
+                        
+                        logger.info(f"✅ Delegated to CrewAI Flow Service: {crew_result}")
+                        
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to delegate to CrewAI Flow Service: {e}")
+                    # Continue with master flow tracking even if delegation fails
+            
             # Log resume audit
             await self._log_audit_event(
                 flow_id=flow_id,
@@ -770,27 +794,130 @@ class MasterFlowOrchestrator:
         phase_config,
         phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Execute a phase through CrewAI"""
-        # This is a placeholder for actual CrewAI integration
-        # In real implementation, this would:
-        # 1. Create/get the appropriate crew
-        # 2. Execute the crew with phase input
-        # 3. Collect and return results
+        """Execute a phase through CrewAI by delegating to the actual flow implementation
         
-        logger.info(f"Executing CrewAI phase: {phase_config.name}")
+        This method delegates to the actual CrewAI flow implementations based on flow type:
+        - "discovery" -> UnifiedDiscoveryFlow (via CrewAIFlowService)
+        - "assessment" -> AssessmentFlowService (when available)
+        - Other flow types -> Their respective flow service implementations
+        """
+        logger.info(f"🔄 Executing CrewAI phase: {phase_config.name} for flow type: {master_flow.flow_type}")
         
-        # Simulate crew execution
-        await asyncio.sleep(0.1)  # Simulate work
-        
-        return {
-            "phase": phase_config.name,
-            "status": "completed",
-            "crew_results": {
-                "agents_involved": phase_config.crew_config.get("agents", []),
-                "tasks_completed": phase_config.crew_config.get("tasks", []),
-                "output": phase_input  # In real implementation, this would be crew output
+        try:
+            # Delegate based on flow type
+            if master_flow.flow_type == "discovery":
+                # Use CrewAIFlowService for discovery flows
+                from app.services.crewai_flow_service import CrewAIFlowService
+                from app.core.database import AsyncSessionLocal
+                
+                async with AsyncSessionLocal() as db:
+                    crewai_service = CrewAIFlowService(db)
+                    
+                    # Create context from master flow
+                    context = {
+                        'client_account_id': master_flow.client_account_id,
+                        'engagement_id': master_flow.engagement_id,
+                        'user_id': master_flow.user_id,
+                        'approved_by': master_flow.user_id
+                    }
+                    
+                    # Map phase names to CrewAI flow phases
+                    phase_mapping = {
+                        "data_import": "data_import_validation",
+                        "field_mapping": "field_mapping",
+                        "data_cleansing": "data_cleansing",
+                        "asset_creation": "asset_inventory",
+                        "asset_inventory": "asset_inventory",
+                        "dependency_analysis": "dependency_analysis"
+                    }
+                    
+                    crewai_phase = phase_mapping.get(phase_config.name, phase_config.name)
+                    
+                    # Check if this is a resume from pause (e.g., field mapping approval)
+                    if phase_config.name == "field_mapping" and phase_input.get("user_approval"):
+                        # Resume flow with approval context
+                        resume_context = {
+                            **context,
+                            'user_approval': phase_input.get("user_approval"),
+                            'approval_timestamp': phase_input.get("approval_timestamp", datetime.utcnow().isoformat()),
+                            'notes': phase_input.get("notes", "")
+                        }
+                        
+                        result = await crewai_service.resume_flow(
+                            flow_id=str(master_flow.flow_id),
+                            resume_context=resume_context
+                        )
+                        
+                        logger.info(f"✅ Resumed discovery flow for field mapping approval: {result}")
+                        
+                        return {
+                            "phase": phase_config.name,
+                            "status": "completed",
+                            "crew_results": result.get("execution_result", {}),
+                            "method": "crewai_flow_resume"
+                        }
+                    else:
+                        # Advance to the next phase
+                        advance_result = await crewai_service.advance_flow_phase(
+                            flow_id=str(master_flow.flow_id),
+                            next_phase=crewai_phase,
+                            context=context
+                        )
+                        
+                        logger.info(f"✅ Advanced discovery flow to phase {crewai_phase}: {advance_result}")
+                        
+                        return {
+                            "phase": phase_config.name,
+                            "status": advance_result.get("status", "completed"),
+                            "crew_results": advance_result.get("result", {}),
+                            "method": "crewai_flow_advance"
+                        }
+                        
+            elif master_flow.flow_type == "assessment":
+                # TODO: Implement AssessmentFlowService delegation when available
+                logger.warning(f"⚠️ Assessment flow delegation not yet implemented")
+                
+                # For now, return a placeholder result
+                return {
+                    "phase": phase_config.name,
+                    "status": "completed",
+                    "crew_results": {
+                        "message": "Assessment flow delegation pending implementation",
+                        "flow_type": "assessment",
+                        "phase": phase_config.name
+                    },
+                    "warning": "Assessment flow service not yet implemented"
+                }
+                
+            else:
+                # For other flow types, use placeholder until services are implemented
+                logger.warning(f"⚠️ Flow type '{master_flow.flow_type}' delegation not yet implemented")
+                
+                return {
+                    "phase": phase_config.name,
+                    "status": "completed",
+                    "crew_results": {
+                        "message": f"{master_flow.flow_type} flow delegation pending implementation",
+                        "flow_type": master_flow.flow_type,
+                        "phase": phase_config.name,
+                        "phase_input": phase_input
+                    },
+                    "warning": f"{master_flow.flow_type} flow service not yet implemented"
+                }
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to execute crew phase: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            
+            # Return error result but don't raise - let the orchestrator handle it
+            return {
+                "phase": phase_config.name,
+                "status": "failed",
+                "error": str(e),
+                "crew_results": {},
+                "method": "error_during_delegation"
             }
-        }
     
     async def _log_audit_event(
         self,

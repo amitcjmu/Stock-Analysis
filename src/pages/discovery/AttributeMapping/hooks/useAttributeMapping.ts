@@ -48,7 +48,7 @@ export const useAttributeMapping = () => {
   const isLoading = (isFlowStateLoading && !flowState) || isAgenticLoading;
   const hasError = !!(flowStateError || agenticError);
   const errorMessage = flowStateError?.message || agenticError?.message;
-  const hasData = !!(agenticData?.attributes?.length);
+  const hasData = !!(agenticData?.attributes?.length || fieldMappings?.length);
   const isFlowNotFound = errorMessage?.includes('Flow not found') || errorMessage?.includes('404');
   const hasSessionData = flowId || flowState;
   const hasUploadedData = agenticData?.attributes && agenticData.attributes.length > 0;

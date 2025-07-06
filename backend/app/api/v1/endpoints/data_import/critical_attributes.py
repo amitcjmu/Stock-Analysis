@@ -136,17 +136,33 @@ async def _get_agentic_critical_attributes(
         # Check if there are existing discovery flow results for this import
         crewai_service = CrewAIFlowService()
         
-        # Look for existing flow results 
-        flow_id = data_import.id  # Use data import ID directly as flow ID
-        flow_state = crewai_service.get_flow_status(flow_id)
+        # Look for existing discovery flow 
+        from app.models.discovery_flow import DiscoveryFlow
+        from sqlalchemy import select
         
-        if flow_state and flow_state.get("agent_results", {}).get("field_mapping"):
-            logger.info("🤖 Found existing agentic discovery flow results")
+        # Get the discovery flow for this data import
+        flow_query = select(DiscoveryFlow).where(
+            DiscoveryFlow.data_import_id == data_import.id
+        )
+        flow_result = await db.execute(flow_query)
+        discovery_flow = flow_result.scalar_one_or_none()
+        
+        if discovery_flow and discovery_flow.field_mapping_data:
+            logger.info("🤖 Found existing discovery flow field mapping results")
             
-            # Extract agent-determined critical attributes
-            field_mapping_results = flow_state["agent_results"]["field_mapping"]
-            field_mappings = field_mapping_results.get("field_mappings", {})
-            enhanced_analysis = field_mapping_results.get("enhanced_analysis", {})
+            # Extract field mappings from discovery flow
+            field_mapping_data = discovery_flow.field_mapping_data
+            field_mappings = field_mapping_data.get("field_mappings", {})
+            confidence_scores = field_mapping_data.get("confidence_scores", {})
+            
+            # Remove non-field entries from mappings
+            if "confidence_scores" in field_mappings:
+                del field_mappings["confidence_scores"]
+                
+            enhanced_analysis = {
+                "confidence": field_mapping_data.get("confidence", 0.0),
+                "total_fields": field_mapping_data.get("total_fields", len(field_mappings))
+            }
             
             # Use agent intelligence to determine criticality
             attributes_status = []

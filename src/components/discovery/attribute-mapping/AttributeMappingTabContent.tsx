@@ -12,8 +12,9 @@ interface AttributeMappingTabContentProps {
   onApproveMapping: (mappingId: string) => void;
   onRejectMapping: (mappingId: string, rejectionReason?: string) => void;
   onMappingChange?: (mappingId: string, newTarget: string) => void;
-  refetchAgentic: () => void;
+  refetchAgentic?: () => void;
   onAttributeUpdate?: (attributeName: string, updates: Partial<any>) => void;
+  isLoading?: boolean;
   sessionInfo?: {
     flowId: string | null;
     availableDataImports: any[];
@@ -32,6 +33,7 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
   onMappingChange,
   refetchAgentic,
   onAttributeUpdate,
+  isLoading = false,
   sessionInfo
 }) => {
   const renderTabContent = () => {

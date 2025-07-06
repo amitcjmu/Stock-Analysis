@@ -48,6 +48,26 @@ class PostgresFlowStateStore:
         self.engagement_id = context.engagement_id
         self.user_id = context.user_id
     
+    def _map_phase_to_status(self, phase: str) -> str:
+        """Map phase names to valid flow statuses"""
+        # Valid statuses: initialized, active, processing, paused, completed, failed, cancelled, waiting_for_approval
+        phase_status_mapping = {
+            'initialization': 'initialized',
+            'initialized': 'initialized',
+            'data_import': 'processing',
+            'field_mapping': 'processing',  # Could be waiting_for_approval, but we'll handle that separately
+            'attribute_mapping': 'processing',
+            'data_cleansing': 'processing',
+            'asset_inventory': 'processing',
+            'dependency_analysis': 'processing',
+            'tech_debt_assessment': 'processing',
+            'completed': 'completed',
+            'failed': 'failed',
+            'cancelled': 'cancelled',
+            'paused': 'paused'
+        }
+        return phase_status_mapping.get(phase, 'active')
+    
     async def save_state(
         self, 
         flow_id: str, 
@@ -86,14 +106,18 @@ class PostgresFlowStateStore:
             current_config = existing.flow_configuration if existing else {}
             new_version = (current_config.get("version", 0) + 1) if existing else 1
             
+            # Ensure current_phase is in the state data for MFO compatibility
+            if isinstance(state_data, dict):
+                state_data["current_phase"] = phase
+            
             if existing:
                 # Update existing record
                 update_stmt = update(CrewAIFlowStateExtensions).where(
                     CrewAIFlowStateExtensions.id == existing.id
                 ).values(
                     flow_persistence_data=state_data,
-                    flow_status=phase,
-                    flow_configuration={"phase": phase, "version": new_version},
+                    flow_status=self._map_phase_to_status(phase),
+                    flow_configuration={"phase": phase, "version": new_version, "current_phase": phase},
                     updated_at=datetime.utcnow()
                 )
                 await self.db.execute(update_stmt)
@@ -106,8 +130,8 @@ class PostgresFlowStateStore:
                     user_id=self.user_id,
                     flow_type="discovery",
                     flow_persistence_data=state_data,
-                    flow_status=phase,
-                    flow_configuration={"phase": phase, "version": new_version},
+                    flow_status=self._map_phase_to_status(phase),
+                    flow_configuration={"phase": phase, "version": new_version, "current_phase": phase},
                     created_at=datetime.utcnow(),
                     updated_at=datetime.utcnow()
                 )
@@ -119,6 +143,46 @@ class PostgresFlowStateStore:
         except Exception as e:
             await self.db.rollback()
             logger.error(f"❌ Failed to save state for flow {flow_id}: {e}")
+            raise
+    
+    async def update_flow_status(self, flow_id: str, status: str, update_persistence_data: bool = True):
+        """Update just the flow status without changing the entire state"""
+        try:
+            stmt = select(CrewAIFlowStateExtensions).where(
+                and_(
+                    CrewAIFlowStateExtensions.flow_id == flow_id,
+                    CrewAIFlowStateExtensions.client_account_id == self.client_account_id
+                )
+            )
+            result = await self.db.execute(stmt)
+            existing = result.scalar_one_or_none()
+            
+            if existing:
+                # Prepare update values
+                update_values = {
+                    "flow_status": status,
+                    "updated_at": datetime.utcnow()
+                }
+                
+                # Also update status in persistence data if requested
+                if update_persistence_data and existing.flow_persistence_data:
+                    persistence_data = dict(existing.flow_persistence_data)
+                    persistence_data["status"] = status
+                    update_values["flow_persistence_data"] = persistence_data
+                
+                update_stmt = update(CrewAIFlowStateExtensions).where(
+                    CrewAIFlowStateExtensions.id == existing.id
+                ).values(**update_values)
+                
+                await self.db.execute(update_stmt)
+                await self.db.commit()
+                logger.info(f"✅ Flow status updated to '{status}' for flow {flow_id}")
+            else:
+                logger.warning(f"⚠️ No flow found to update status for {flow_id}")
+                
+        except Exception as e:
+            await self.db.rollback()
+            logger.error(f"❌ Failed to update flow status for {flow_id}: {e}")
             raise
     
     async def load_state(self, flow_id: str) -> Optional[Dict[str, Any]]:

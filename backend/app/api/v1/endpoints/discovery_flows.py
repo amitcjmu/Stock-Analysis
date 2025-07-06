@@ -84,6 +84,7 @@ async def get_active_flows(
             
             active_flows.append({
                 "flow_id": str(flow.flow_id),
+                "data_import_id": str(flow.data_import_id) if flow.data_import_id else str(flow.flow_id),  # Add data_import_id
                 "status": flow.status,
                 "type": "discovery",
                 "current_phase": current_phase or "field_mapping",
@@ -222,6 +223,22 @@ async def get_flow_status(
                     "tech_debt_assessment": flow.tech_debt_assessment_completed
                 }
                 
+                # Calculate actual progress based on completed phases
+                completed_phases = sum(1 for v in phase_completion.values() if v)
+                total_phases = 6
+                
+                # If we're in field mapping phase and have data imported, ensure minimum progress
+                if flow.data_import_completed and actual_current_phase in ["field_mapping", "attribute_mapping"]:
+                    # At least 1 phase complete (data import) + partial progress for field mapping
+                    min_progress = (1.0 / total_phases) * 100  # 16.7% for data import
+                    if not flow.field_mapping_completed:
+                        min_progress += (0.5 / total_phases) * 100  # Add 8.3% for in-progress field mapping
+                    actual_progress = max(actual_progress, min_progress)
+                elif completed_phases > 0:
+                    # Calculate progress based on completed phases
+                    calculated_progress = (completed_phases / total_phases) * 100
+                    actual_progress = max(actual_progress, calculated_progress)
+                
                 # Override with persistence data if available
                 if extensions and extensions.flow_persistence_data and "phase_completion" in extensions.flow_persistence_data:
                     phase_completion.update(extensions.flow_persistence_data["phase_completion"])
@@ -241,6 +258,7 @@ async def get_flow_status(
                 
                 return {
                     "flow_id": str(flow_id),
+                    "data_import_id": str(flow.data_import_id) if flow.data_import_id else str(flow_id),  # Add data_import_id
                     "status": final_status,
                     "type": "discovery",
                     "current_phase": actual_current_phase,
@@ -288,6 +306,7 @@ async def get_flow_status(
                 # Use context values for client_account_id and engagement_id since state_dict is just the persistence data
                 return {
                     "flow_id": flow_id,
+                    "data_import_id": flow_id,  # Use flow_id as data_import_id for compatibility
                     "status": status,
                     "type": "discovery",
                     "client_account_id": str(context.client_account_id),
@@ -321,6 +340,7 @@ async def get_flow_status(
         progress_percentage = float(result.get("progress_percentage", 0))
         return {
             "flow_id": flow_id,
+            "data_import_id": flow_id,  # Use flow_id as data_import_id for compatibility
             "status": result.get("status", "unknown"),
             "type": "discovery",
             "client_account_id": str(result.get("client_account_id", context.client_account_id)),
@@ -415,6 +435,28 @@ async def get_flow_agent_insights(
     except Exception as e:
         logger.error(f"Error getting agent insights: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get agent insights: {str(e)}")
+
+@router.get("/agents/discovery/agent-questions", response_model=List[Dict[str, Any]])
+async def get_agent_questions(
+    TypeErr: str = Query(None, description="TypeErr parameter from frontend"),
+    field_mappings: bool = Query(True),
+    context: RequestContext = Depends(get_current_context),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get agent questions/clarifications.
+    
+    This is a minimal implementation to support frontend compatibility.
+    """
+    try:
+        logger.info(f"Getting agent questions - TypeErr: {TypeErr}, field_mappings: {field_mappings}")
+        
+        # Return empty list for now to avoid 404 errors
+        return []
+        
+    except Exception as e:
+        logger.error(f"Error getting agent questions: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get agent questions: {str(e)}")
 
 @router.get("/flow/status/{flow_id}", response_model=Dict[str, Any])
 async def get_flow_status_v2(
@@ -558,10 +600,27 @@ async def resume_discovery_flow(
     """
     Resume a paused discovery flow after user approval.
     
-    This endpoint is used when the flow is waiting for field mapping approval.
+    This endpoint delegates to the Master Flow Orchestrator for unified flow management.
+    All flow types (discovery, assessment, plan, execute, etc.) should be resumed through
+    the Master Flow Orchestrator to ensure consistent state management and audit trails.
+    
+    IMPORTANT: New flows should be registered with the Master Flow Orchestrator at creation
+    time to ensure they can be managed through the unified flow system. Legacy flows that
+    were created before the Master Flow Orchestrator are handled with backward compatibility.
+    
+    For proper flow management:
+    1. Create flows via POST /api/v1/flows (Master Flow Orchestrator)
+    2. Resume flows via POST /api/v1/flows/{flow_id}/resume
+    3. This endpoint is maintained for backward compatibility only
     """
     try:
-        logger.info(f"Resuming discovery flow {flow_id}")
+        logger.info(f"Resuming discovery flow {flow_id} via Master Flow Orchestrator")
+        
+        # Import Master Flow Orchestrator
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+        
+        # Initialize Master Flow Orchestrator (it creates its own repository internally)
+        orchestrator = MasterFlowOrchestrator(db, context)
         
         # Prepare resume context with user approval data
         resume_context = {
@@ -570,114 +629,216 @@ async def resume_discovery_flow(
             "approval_timestamp": datetime.utcnow().isoformat(),
             "approved_by": context.user_id,
             "approval_notes": request.get("notes", ""),
-            "client_account_id": context.client_account_id,
-            "engagement_id": context.engagement_id
+            "client_account_id": str(context.client_account_id),
+            "engagement_id": str(context.engagement_id),
+            "flow_type": "discovery"  # Specify this is a discovery flow
         }
         
-        # Get the flow to check its current state
-        from sqlalchemy import select
-        from app.models.discovery_flow import DiscoveryFlow
+        # Check if this is a master flow or a child flow
+        # First try to get it as a master flow
         from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+        from sqlalchemy import select
         import uuid as uuid_lib
         
         try:
             flow_uuid = uuid_lib.UUID(flow_id)
         except ValueError:
             flow_uuid = flow_id
-        
-        # Get the flow
-        stmt = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_uuid)
-        result = await db.execute(stmt)
-        flow = result.scalar_one_or_none()
-        
-        if not flow:
-            raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found")
-        
-        if flow.status == "deleted":
-            raise HTTPException(status_code=400, detail="Cannot resume a deleted flow")
-        
-        # Determine the appropriate status to set
-        previous_status = "processing"
-        if flow.status == "paused" and flow.flow_state and "pause_metadata" in flow.flow_state:
-            # Restore to previous status if available
-            previous_status = flow.flow_state["pause_metadata"].get("previous_status", "processing")
-        
-        # Update flow status
-        flow.status = previous_status
-        flow.updated_at = datetime.utcnow()
-        
-        # Update resume metadata
-        if not flow.flow_state:
-            flow.flow_state = {}
-        flow.flow_state["resume_metadata"] = {
-            "resumed_at": datetime.utcnow().isoformat(),
-            "resumed_by": context.user_id,
-            "resumed_from_status": "paused"
-        }
-        
-        # Update master flow if exists
-        if flow.master_flow_id:
-            master_stmt = select(CrewAIFlowStateExtensions).where(
-                CrewAIFlowStateExtensions.flow_id == flow.master_flow_id
-            )
-            master_result = await db.execute(master_stmt)
-            master_flow = master_result.scalar_one_or_none()
             
-            if master_flow:
-                master_flow.flow_status = "active"
-                master_flow.updated_at = datetime.utcnow()
+        # Check if it's registered in the master flow system
+        master_stmt = select(CrewAIFlowStateExtensions).where(
+            CrewAIFlowStateExtensions.flow_id == flow_uuid
+        )
+        master_result = await db.execute(master_stmt)
+        master_flow = master_result.scalar_one_or_none()
+        
+        if master_flow:
+            # This is a master flow - use Master Flow Orchestrator
+            logger.info(f"🎯 Using Master Flow Orchestrator for flow {flow_id}")
+            logger.info(f"📊 Master flow status: {master_flow.flow_status}")
+            logger.info(f"📊 Master flow persistence data: {master_flow.flow_persistence_data}")
+            
+            # For field mapping approval, we need to execute the phase with user input
+            # The flow is in "processing" status waiting for user approval
+            # Check current phase from persistence data
+            current_phase = master_flow.flow_persistence_data.get("current_phase", "")
+            logger.info(f"📊 Current phase from persistence: {current_phase}")
+            
+            # For field mapping approval scenarios
+            # Note: The phase might be stored as "attribute_mapping" or "field_mapping"
+            if (master_flow.flow_status in ["processing", "running", "waiting_for_approval"] and 
+                (current_phase in ["field_mapping", "attribute_mapping"] or 
+                 "field_mapping" in str(master_flow.flow_persistence_data) or
+                 "attribute_mapping" in str(master_flow.flow_persistence_data))):
                 
-                # Add resume event to collaboration log
-                master_flow.add_agent_collaboration_entry(
-                    agent_name="system",
-                    action="resume_flow",
-                    details={
-                        "child_flow_id": str(flow_id),
-                        "child_flow_type": "discovery",
-                        "resumed_to_status": previous_status,
-                        "resumed_by": context.user_id
+                # First update the flow state with approval data
+                logger.info("📝 Updating flow state with user approval data")
+                try:
+                    # Update the flow persistence data with approval
+                    from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
+                    store = PostgresFlowStateStore(db, context)
+                    
+                    # Load current state
+                    current_state = await store.load_state(flow_id)
+                    if current_state:
+                        # Update with approval data
+                        current_state["user_approval_data"] = {
+                            "approved": True,
+                            "field_mappings": request.get("field_mappings", {}),
+                            "approval_timestamp": resume_context.get("approval_timestamp"),
+                            "approved_by": resume_context.get("approved_by"),
+                            "notes": resume_context.get("approval_notes", "")
+                        }
+                        current_state["awaiting_user_approval"] = False
+                        current_state["status"] = "processing"
+                        
+                        # Mark field mapping as completed and advance to next phase
+                        current_state["phase_completion"] = current_state.get("phase_completion", {})
+                        current_state["phase_completion"]["field_mapping"] = True
+                        current_state["phase_completion"]["attribute_mapping"] = True
+                        current_state["current_phase"] = "data_cleansing"
+                        current_state["progress_percentage"] = 33.3  # 2/6 phases complete
+                        
+                        # Save updated state with new phase
+                        await store.save_state(flow_id, current_state, "data_cleansing")
+                        logger.info("✅ Updated flow state with approval data and advanced to data_cleansing")
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to update flow state: {e}")
+                
+                # Update discovery flow table to reflect approval and trigger continuation
+                try:
+                    from app.models.discovery_flow import DiscoveryFlow
+                    from sqlalchemy import select
+                    
+                    # Get the discovery flow
+                    discovery_stmt = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_uuid)
+                    discovery_result = await db.execute(discovery_stmt)
+                    discovery_flow = discovery_result.scalar_one_or_none()
+                    
+                    if discovery_flow:
+                        # Update flow state
+                        discovery_flow.status = "processing"
+                        discovery_flow.current_phase = "data_cleansing"
+                        discovery_flow.field_mapping_completed = True
+                        discovery_flow.progress_percentage = 33.3
+                        discovery_flow.updated_at = datetime.utcnow()
+                        
+                        # Update JSONB data to clear approval flag
+                        if not discovery_flow.crewai_state_data:
+                            discovery_flow.crewai_state_data = {}
+                        discovery_flow.crewai_state_data["awaiting_user_approval"] = False
+                        discovery_flow.crewai_state_data["field_mappings_approved"] = True
+                        discovery_flow.crewai_state_data["approval_timestamp"] = datetime.utcnow().isoformat()
+                        
+                        await db.commit()
+                        logger.info("✅ Updated discovery flow table with approval")
+                    
+                    # Now try to execute the next phase via orchestrator
+                    phase_result = await orchestrator.execute_phase(
+                        flow_id=str(flow_id),
+                        phase_name="data_cleansing",  # Execute next phase directly
+                        phase_input={
+                            "field_mappings": request.get("field_mappings", {}),
+                            "raw_data": current_state.get("raw_data", []),
+                            "from_approval": True
+                        }
+                    )
+                    logger.info(f"✅ Started data cleansing phase: {phase_result}")
+                except Exception as e:
+                    logger.error(f"Failed to advance flow: {e}")
+                    # Even if phase execution fails, state is updated so flow can continue
+                    
+                    # Get the CrewAI flow service to handle this directly
+                    from app.services.crewai_flow_service import CrewAIFlowService
+                    
+                    crewai_service = CrewAIFlowService(db)
+                    crew_result = await crewai_service.resume_flow(
+                        flow_id=str(flow_id),
+                        resume_context=resume_context
+                    )
+                    
+                    return {
+                        "success": True,
+                        "flow_id": str(flow_id),
+                        "status": crew_result.get("status", "resumed"),
+                        "message": "Field mapping resumed via CrewAI service",
+                        "next_phase": "data_cleansing",
+                        "current_phase": "field_mapping",
+                        "method": "crewai_direct_fallback",
+                        "crew_result": crew_result
                     }
+                
+                return {
+                    "success": True,
+                    "flow_id": str(flow_id),
+                    "status": phase_result["status"],
+                    "message": "Field mapping approved and processed",
+                    "next_phase": phase_result.get("next_phase", "data_cleansing"),
+                    "current_phase": "field_mapping",
+                    "method": "master_flow_orchestrator_execute_phase",
+                    "phase_results": phase_result.get("results", {})
+                }
+            else:
+                # For paused flows, use resume
+                resume_result = await orchestrator.resume_flow(
+                    flow_id=str(flow_id),
+                    resume_context=resume_context
                 )
-        
-        # Determine next phase
-        next_phase = "unknown"
-        if not flow.data_import_completed:
-            next_phase = "data_import"
-        elif not flow.field_mapping_completed:
-            next_phase = "field_mapping"
-        elif not flow.data_cleansing_completed:
-            next_phase = "data_cleansing"
-        elif not flow.asset_inventory_completed:
-            next_phase = "asset_inventory"
-        elif not flow.dependency_analysis_completed:
-            next_phase = "dependency_analysis"
-        elif not flow.tech_debt_assessment_completed:
-            next_phase = "tech_debt_assessment"
+            
+                # The Master Flow Orchestrator will handle all state updates,
+                # audit logging, and CrewAI flow resumption
+                
+                return {
+                    "success": True,
+                    "flow_id": resume_result["flow_id"],
+                    "status": resume_result["status"],
+                    "message": "Flow resumed via Master Flow Orchestrator",
+                    "next_phase": resume_result.get("resume_phase", "unknown"),
+                    "current_phase": resume_result.get("resume_phase", "unknown"),
+                    "method": "master_flow_orchestrator"
+                }
         else:
-            next_phase = "completed"
-        
-        await db.commit()
-        
-        # Try to resume with CrewAI service if available
-        try:
-            logger.info(f"🔍 TESTING: About to call crewai_service.resume_flow({flow_id}, {resume_context})")
-            result = await crewai_service.resume_flow(flow_id, resume_context)
-            logger.info(f"🔍 TESTING: CrewAI service resume result: {result}")
-        except Exception as crewai_error:
-            logger.warning(f"🔍 TESTING: CrewAI service resume failed: {crewai_error}")
-            import traceback
-            logger.error(f"🔍 TESTING: Resume error traceback: {traceback.format_exc()}")
-        
-        logger.info(f"✅ Flow {flow_id} resumed successfully")
-        
-        return {
-            "success": True,
-            "flow_id": str(flow_id),
-            "status": "resumed",
-            "message": "Discovery flow resumed successfully",
-            "next_phase": next_phase,
-            "current_phase": next_phase
-        }
+            # Legacy discovery flow - try to resume via CrewAI service
+            # This maintains backward compatibility
+            logger.warning(f"⚠️ Flow {flow_id} not registered with Master Flow Orchestrator, using legacy resume")
+            
+            # Get the discovery flow
+            from app.models.discovery_flow import DiscoveryFlow
+            stmt = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_uuid)
+            result = await db.execute(stmt)
+            flow = result.scalar_one_or_none()
+            
+            if not flow:
+                raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found")
+            
+            if flow.status == "deleted":
+                raise HTTPException(status_code=400, detail="Cannot resume a deleted flow")
+            
+            # Update flow status
+            flow.status = "processing"
+            flow.updated_at = datetime.utcnow()
+            await db.commit()
+            
+            # Try to resume with CrewAI service
+            try:
+                result = await crewai_service.resume_flow(str(flow_id), resume_context)
+                logger.info(f"✅ Legacy flow {flow_id} resumed via CrewAI service")
+                
+                return {
+                    "success": True,
+                    "flow_id": str(flow_id),
+                    "status": "resumed",
+                    "message": "Discovery flow resumed successfully (legacy)",
+                    "next_phase": "field_mapping",
+                    "current_phase": flow.current_phase or "field_mapping",
+                    "method": "legacy_crewai_service"
+                }
+            except Exception as e:
+                logger.error(f"❌ Failed to resume legacy flow: {e}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to resume flow: {str(e)}"
+                )
             
     except Exception as e:
         logger.error(f"Error resuming flow {flow_id}: {e}")

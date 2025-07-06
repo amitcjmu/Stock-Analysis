@@ -43,9 +43,27 @@ class DataImportValidationExecutor(BasePhaseExecutor):
     
     def _store_results(self, results: Dict[str, Any]):
         """Store execution results in state"""
+        # Debug: Log what we're storing
+        logger.info(f"🔍 DEBUG: Storing data import validation results")
+        logger.info(f"🔍 DEBUG: Results keys: {list(results.keys())}")
+        logger.info(f"🔍 DEBUG: Raw data in state: {len(self.state.raw_data) if hasattr(self.state, 'raw_data') and self.state.raw_data else 0} records")
+        
+        # Store the phase results
         self.state.phase_data["data_import"] = results
+        
+        # IMPORTANT: Also update the data_validation_results field for backward compatibility
+        self.state.data_validation_results = results
+        
+        # Store validated data in raw_data if it's provided
+        if "validated_data" in results and results["validated_data"]:
+            logger.info(f"🔍 DEBUG: Storing validated_data in state.raw_data: {len(results['validated_data'])} records")
+            self.state.raw_data = results["validated_data"]
+        
         if results.get("is_valid", False):
             self.state.phase_completion["data_import"] = True
+            logger.info(f"✅ DEBUG: Data import phase marked as completed")
+        else:
+            logger.warning(f"⚠️ DEBUG: Data import validation failed: {results.get('reason', 'Unknown')}")
         
         # Add real-time insights from validation results
         if hasattr(self.state, 'agent_insights'):
@@ -136,11 +154,20 @@ class DataImportValidationExecutor(BasePhaseExecutor):
             logger.info("🔄 Executing fallback data import validation with agent patterns")
             start_time = time.time()
             
+            # Debug: Check data availability
+            logger.info(f"🔍 DEBUG: Raw data available before validation: {len(self.state.raw_data) if hasattr(self.state, 'raw_data') and self.state.raw_data else 0} records")
+            if hasattr(self.state, 'raw_data') and self.state.raw_data and len(self.state.raw_data) > 0:
+                logger.info(f"🔍 DEBUG: First record keys: {list(self.state.raw_data[0].keys())}")
+                logger.info(f"🔍 DEBUG: Sample data: {self.state.raw_data[0]}")
+            
             # Perform validation using agent-like analysis patterns
             validation_results = await self._perform_validation_checks()
             
             # Store results in state
             self._store_results(validation_results)
+            
+            # Persist the validated data
+            logger.info(f"🔍 DEBUG: Validation results: is_valid={validation_results.get('is_valid')}, total_records={validation_results.get('total_records')}")
             
             validation_time = time.time() - start_time
             logger.info(f"✅ Agent-pattern data validation completed in {validation_time:.2f} seconds")
@@ -242,7 +269,9 @@ class DataImportValidationExecutor(BasePhaseExecutor):
                 "execution_metadata": {
                     "timestamp": self._get_timestamp(),
                     "method": "comprehensive_agent_pattern_validation"
-                }
+                },
+                # IMPORTANT: Include the validated data for the next phase
+                "validated_data": self.state.raw_data
             })
             
             return results

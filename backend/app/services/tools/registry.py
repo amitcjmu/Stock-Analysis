@@ -7,7 +7,11 @@ import importlib
 import inspect
 from typing import Dict, List, Type, Optional, Any, Set
 from dataclasses import dataclass
-from crewai.tools import BaseTool
+# Optional CrewAI import
+try:
+    from crewai.tools import BaseTool
+except ImportError:
+    BaseTool = None
 import logging
 
 logger = logging.getLogger(__name__)
@@ -17,7 +21,7 @@ class ToolMetadata:
     """Metadata for registered tools"""
     name: str
     description: str
-    tool_class: Type[BaseTool]
+    tool_class: Type  # Type[BaseTool] when CrewAI available
     categories: List[str]
     required_params: List[str]
     optional_params: List[str]

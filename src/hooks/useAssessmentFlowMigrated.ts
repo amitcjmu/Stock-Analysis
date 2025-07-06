@@ -7,9 +7,9 @@
  */
 
 import { useMemo, useCallback } from 'react';
-import { useAssessmentFlow as useNewAssessmentFlow } from '../../frontend/src/hooks/useFlow';
-import { flowToast } from '../../frontend/src/utils/toast';
-import { FlowStatus } from '../../frontend/src/types/flow';
+import { useAssessmentFlow as useNewAssessmentFlow } from './useFlow';
+import { flowToast } from '../utils/toast';
+import { FlowStatus } from '../types/flow';
 
 interface AssessmentFlowState {
   flow_id: string;

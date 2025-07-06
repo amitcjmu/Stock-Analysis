@@ -461,11 +461,27 @@ class CrewAIFlowService:
                     
                     # Create and initialize real CrewAI flow
                     async with AsyncSessionLocal() as db:
-                        # Initialize the real UnifiedDiscoveryFlow
+                        # Get the flow's raw_data from the database
+                        raw_data = []
+                        if flow.data_import_id:
+                            from app.models.data_import import RawImportRecord
+                            from sqlalchemy import select
+                            
+                            records_query = select(RawImportRecord).where(
+                                RawImportRecord.data_import_id == flow.data_import_id
+                            ).order_by(RawImportRecord.row_number)
+                            
+                            records_result = await db.execute(records_query)
+                            raw_records = records_result.scalars().all()
+                            raw_data = [record.raw_data for record in raw_records]
+                            logger.info(f"✅ Loaded {len(raw_data)} raw data records for flow")
+                        
+                        # Initialize the real UnifiedDiscoveryFlow with raw data
                         crewai_flow = UnifiedDiscoveryFlow(
                             crewai_service=self,
                             context=context,
-                            flow_id=flow_id
+                            flow_id=flow_id,
+                            raw_data=raw_data
                         )
                         
                         # Load existing flow state (don't re-initialize if already exists)
@@ -478,8 +494,9 @@ class CrewAIFlowService:
                         
                         # Resume from field mapping approval using CrewAI event listener system
                         # Check for both 'waiting_for_approval' and other paused statuses where approval might be needed
+                        # Note: The phase might be stored as either 'field_mapping' or 'attribute_mapping'
                         if (flow.status in ['waiting_for_approval', 'processing'] and 
-                            flow.current_phase == 'field_mapping' and 
+                            flow.current_phase in ['field_mapping', 'attribute_mapping'] and 
                             resume_context.get('user_approval') == True):
                             logger.info(f"🔄 Resuming CrewAI Flow from field mapping approval: {flow_id}")
                             

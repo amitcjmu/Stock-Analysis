@@ -64,8 +64,13 @@ async def get_agent_status(
         comm_protocol = get_communication_protocol()
         protocol_status = comm_protocol.get_protocol_status()
         
-        # Get master orchestrator status
-        orchestrator_status = await master_orchestrator.get_flow_status('discovery')
+        # Get master orchestrator status - we need an actual flow ID, not just 'discovery'
+        # For now, return a placeholder status since we don't have a specific flow ID
+        orchestrator_status = {
+            "flow_type": "discovery",
+            "status": "ready",
+            "message": "Orchestrator ready"
+        }
         
         # Get individual agent statuses (scoped to client/engagement)
         agent_statuses = {}

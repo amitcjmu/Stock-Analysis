@@ -11,7 +11,12 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from pydantic import BaseModel
-from crewai import Flow
+
+# Optional CrewAI import - not required for registry functionality
+try:
+    from crewai import Flow
+except ImportError:
+    Flow = None
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +85,7 @@ class FlowTypeConfig:
     description: str                       # Human-readable description
     version: str = "1.0.0"                 # Flow version
     phases: List[PhaseConfig] = field(default_factory=list)
-    crew_class: Optional[Type[Flow]] = None
+    crew_class: Optional[Type] = None  # Type[Flow] when CrewAI available
     output_schema: Optional[Type[BaseModel]] = None
     input_schema: Optional[Type[BaseModel]] = None
     capabilities: FlowCapabilities = field(default_factory=FlowCapabilities)

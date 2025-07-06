@@ -178,19 +178,28 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0">
                     <div>
                       <p className="text-sm font-medium text-gray-900">
-                        {file.flow_summary ? 'Discovery Flow Complete' : 'Ready for Discovery Flow'}
+                        {file.flow_status === 'waiting_for_approval' 
+                          ? 'Action Required'
+                          : file.flow_summary 
+                            ? 'Discovery Flow Complete' 
+                            : 'Ready for Discovery Flow'}
                       </p>
                       <p className="text-sm text-gray-600">
-                        {file.flow_summary 
-                          ? 'Data analysis complete. Proceed to field mapping and detailed insights.'
-                          : 'Data validation complete. Proceed to field mapping and AI-powered analysis.'
+                        {file.flow_status === 'waiting_for_approval'
+                          ? 'Field mapping suggestions are ready for your review and approval.'
+                          : file.flow_summary 
+                            ? 'Data analysis complete. Proceed to field mapping and detailed insights.'
+                            : 'Data validation complete. Proceed to field mapping and AI-powered analysis.'
                         }
                       </p>
                     </div>
                     <Button
                       onClick={onStartDiscoveryFlow}
                       disabled={isStartingFlow}
-                      className="bg-green-600 hover:bg-green-700 flex items-center space-x-2"
+                      className={file.flow_status === 'waiting_for_approval' 
+                        ? "bg-orange-600 hover:bg-orange-700 flex items-center space-x-2"
+                        : "bg-green-600 hover:bg-green-700 flex items-center space-x-2"
+                      }
                     >
                       {isStartingFlow ? (
                         <>
@@ -200,7 +209,14 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
                       ) : (
                         <>
                           <Brain className="h-4 w-4" />
-                          <span>{file.flow_summary ? 'View Results' : 'Start Discovery Flow'}</span>
+                          <span>
+                            {file.flow_status === 'waiting_for_approval'
+                              ? 'Review Field Mappings'
+                              : file.flow_summary 
+                                ? 'View Results' 
+                                : 'Start Discovery Flow'
+                            }
+                          </span>
                           <ArrowRight className="h-4 w-4" />
                         </>
                       )}
@@ -213,7 +229,7 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
                 <Alert className="border-yellow-200 bg-yellow-50">
                   <AlertTriangle className="h-5 w-5 text-yellow-600" />
                   <AlertDescription className="text-yellow-800">
-                    File validation completed with warnings. Review agent feedback before proceeding to field mapping.
+                    {file.error_message || 'File validation completed with warnings. Review agent feedback before proceeding to field mapping.'}
                   </AlertDescription>
                 </Alert>
               )}

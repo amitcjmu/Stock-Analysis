@@ -141,6 +141,17 @@ export const useCMDBImport = () => {
         console.log(`Processing Discovery Flow with CrewAI Flow ID: ${uploadedFile.flow_id}`);
         console.log(`Flow Status: ${uploadedFile.flow_status}, Has Summary: ${!!uploadedFile.flow_summary}`);
         
+        // ✅ Handle waiting for approval state
+        if (uploadedFile.flow_status === 'waiting_for_approval') {
+            console.log('Flow is waiting for field mapping approval, navigating to attribute mapping');
+            navigate(`/discovery/attribute-mapping`);
+            toast({
+                title: "Review Required",
+                description: "Field mapping suggestions are ready for your review.",
+            });
+            return;
+        }
+        
         // ✅ SMART NAVIGATION: Handle both new flows and completed flows
         if (uploadedFile.flow_summary && uploadedFile.flow_status === 'completed') {
             // Flow is completed - navigate to results/next appropriate phase

@@ -61,12 +61,38 @@ class FlowInitializer:
         # Store raw data if provided
         self.raw_data = kwargs.get('raw_data', [])
         self.metadata = kwargs.get('metadata', {})
+        
+        # Debug logging
+        logger.info(f"🔍 DEBUG: FlowInitializer received {len(self.raw_data) if self.raw_data else 0} raw data records")
+        if self.raw_data and len(self.raw_data) > 0:
+            logger.info(f"🔍 DEBUG: First record keys in initializer: {list(self.raw_data[0].keys())}")
+            logger.info(f"🔍 DEBUG: First record sample: {self.raw_data[0]}")
     
     def create_initial_state(self) -> UnifiedDiscoveryFlowState:
         """Create the initial flow state"""
         state = UnifiedDiscoveryFlowState(**self.init_context)
         state.raw_data = self.raw_data
         state.metadata = self.metadata
+        
+        # If we have raw data, it means data import is already complete
+        if self.raw_data and len(self.raw_data) > 0:
+            # Mark data import as completed since we have data
+            state.data_import_completed = True
+            state.phase_completion = {'data_import': True}
+            state.progress_percentage = 16.7  # 1/6 phases complete
+            state.current_phase = 'field_mapping'  # Ready for field mapping
+            logger.info(f"✅ Data import already complete with {len(self.raw_data)} records, setting initial progress to 16.7%")
+        else:
+            state.phase_completion = {}
+            state.progress_percentage = 0.0
+            state.current_phase = 'data_import'
+        
+        # Debug logging
+        logger.info(f"🔍 DEBUG: Created initial state with {len(self.raw_data) if self.raw_data else 0} raw data records")
+        logger.info(f"🔍 DEBUG: Initial progress: {state.progress_percentage}%, current phase: {state.current_phase}")
+        if self.raw_data and len(self.raw_data) > 0:
+            logger.info(f"🔍 DEBUG: First record in initial state: {self.raw_data[0]}")
+        
         return state
     
     def initialize_flow_bridge(self) -> Optional[FlowStateBridge]:

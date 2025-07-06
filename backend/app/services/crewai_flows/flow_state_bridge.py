@@ -56,7 +56,7 @@ class FlowStateBridge:
                 await store.save_state(
                     flow_id=state.flow_id,
                     state=state.model_dump(),
-                    phase=state.current_phase or "initialization"
+                    phase=state.current_phase or "initialized"
                 )
                 await db.commit()
             
@@ -165,10 +165,44 @@ class FlowStateBridge:
             
             # Try to restore from PostgreSQL using postgres store
             async with AsyncSessionLocal() as db:
+                # First check DiscoveryFlow table for current phase and progress
+                from app.models.discovery_flow import DiscoveryFlow
+                from sqlalchemy import select
+                
+                flow_result = await db.execute(
+                    select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id)
+                )
+                discovery_flow = flow_result.scalar_one_or_none()
+                
+                # Load state from extensions
                 store = PostgresFlowStateStore(db, self.context)
                 state_data = await store.load_state(flow_id)
                 
                 if state_data:
+                    # If we have a discovery flow record, use its phase and progress
+                    if discovery_flow:
+                        state_data['current_phase'] = discovery_flow.current_phase or state_data.get('current_phase', 'initialized')
+                        state_data['progress_percentage'] = discovery_flow.progress_percentage or state_data.get('progress_percentage', 0.0)
+                        state_data['status'] = discovery_flow.status or state_data.get('status', 'initialized')
+                        
+                        # Update phase completion based on discovery flow flags
+                        phase_completion = state_data.get('phase_completion', {})
+                        if discovery_flow.data_import_completed:
+                            phase_completion['data_import'] = True
+                        if discovery_flow.field_mapping_completed:
+                            phase_completion['field_mapping'] = True
+                        if discovery_flow.data_cleansing_completed:
+                            phase_completion['data_cleansing'] = True
+                        if discovery_flow.asset_inventory_completed:
+                            phase_completion['asset_inventory'] = True
+                        if discovery_flow.dependency_analysis_completed:
+                            phase_completion['dependency_analysis'] = True
+                        if discovery_flow.tech_debt_assessment_completed:
+                            phase_completion['tech_debt_assessment'] = True
+                        state_data['phase_completion'] = phase_completion
+                        
+                        logger.info(f"✅ Merged state from DiscoveryFlow table - phase: {discovery_flow.current_phase}, progress: {discovery_flow.progress_percentage}%")
+                    
                     # Reconstruct UnifiedDiscoveryFlowState from recovered data
                     restored_state = UnifiedDiscoveryFlowState(**state_data)
                     logger.info(f"✅ Flow state recovered from PostgreSQL: {flow_id}")

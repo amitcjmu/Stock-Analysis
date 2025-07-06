@@ -229,7 +229,23 @@ class StateManager:
         phase_completion = getattr(self.state, 'phase_completion', {})
         completed_phases = len([p for p in FlowConfig.PHASE_ORDER if phase_completion.get(p, False)])
         
-        return round((completed_phases / total_phases) * 100, 1)
+        # Base progress from completed phases
+        base_progress = (completed_phases / total_phases) * 100
+        
+        # If we have a current phase that's in progress, add partial progress
+        current_phase = getattr(self.state, 'current_phase', None)
+        if current_phase and not phase_completion.get(current_phase, False):
+            # Add partial progress for current phase (50% of a phase's worth)
+            phase_progress = (1 / total_phases) * 50  # Half progress for in-progress phase
+            base_progress += phase_progress
+        
+        # Also check for specific phase completion flags
+        if hasattr(self.state, 'data_import_completed') and self.state.data_import_completed:
+            # Ensure at least one phase worth of progress for data import
+            min_progress = (1 / total_phases) * 100
+            base_progress = max(base_progress, min_progress)
+        
+        return round(base_progress, 1)
     
     def get_next_phase(self) -> Optional[str]:
         """Get the next phase to execute"""

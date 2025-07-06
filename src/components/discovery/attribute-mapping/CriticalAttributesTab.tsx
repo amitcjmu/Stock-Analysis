@@ -260,7 +260,7 @@ const CriticalAttributesTab: React.FC<CriticalAttributesTabProps> = ({
             source_field: relatedMapping.sourceField,
             target_field: relatedMapping.targetAttribute,
             confidence: relatedMapping.confidence,
-            data_import_id: "0b3c1932-78ac-4675-ba07-a50bbe4ca577" // use known import ID
+            data_import_id: sessionInfo?.selectedDataImportId || sessionInfo?.flowId || "0b3c1932-78ac-4675-ba07-a50bbe4ca577" // use session data or fallback
           }
         })
       });

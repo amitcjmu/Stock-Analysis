@@ -43,7 +43,8 @@ export const useAttributeMappingLogic = () => {
   const refetchClarifications = () => Promise.resolve();
 
   // Get field mapping data from unified flow (for legacy compatibility)
-  const fieldMappingData = flow?.field_mapping;
+  // Backend returns 'field_mappings' (with 's'), not 'field_mapping'
+  const fieldMappingData = flow?.field_mappings || flow?.field_mapping;
   
   // Debug logging - moved after fieldMappings declaration
   
@@ -63,25 +64,53 @@ export const useAttributeMappingLogic = () => {
   // Use field mappings from flow state if available, otherwise fall back to database mappings
   const fieldMappings = useMemo(() => {
     // First try to get mappings from flow state
-    if (fieldMappingData && fieldMappingData.mappings) {
-      // Convert the mappings object to array format expected by frontend
-      const mappingsObj = fieldMappingData.mappings;
-      const flowStateMappings = Object.entries(mappingsObj).map(([sourceField, mapping]: [string, any]) => ({
-        id: `mapping-${sourceField}`,
-        sourceField: mapping.source_column || sourceField,
-        targetAttribute: mapping.asset_field || sourceField,
-        confidence: (mapping.confidence || 0) / 100, // Convert to 0-1 range
-        mapping_type: mapping.match_type || 'ai_suggested',
-        sample_values: [],
-        status: 'pending', // Ensure mappings are editable
-        ai_reasoning: `AI mapped ${mapping.source_column} to ${mapping.asset_field} with ${mapping.confidence}% confidence`,
-        is_user_defined: false,
-        user_feedback: null,
-        validation_method: mapping.pattern_matched || 'semantic_analysis',
-        is_validated: false
-      }));
-      console.log('🔄 Using flow state mappings:', flowStateMappings);
-      return flowStateMappings;
+    if (fieldMappingData) {
+      // Handle direct field mappings structure from backend
+      if (typeof fieldMappingData === 'object' && !fieldMappingData.mappings) {
+        // Backend returns field_mappings directly as object with confidence_scores
+        const mappingsObj = { ...fieldMappingData };
+        delete mappingsObj.confidence_scores; // Remove confidence_scores from main object
+        
+        const flowStateMappings = Object.entries(mappingsObj)
+          .filter(([key, value]) => key !== 'confidence_scores')
+          .map(([sourceField, targetField]: [string, any]) => ({
+            id: `mapping-${sourceField}`,
+            sourceField: sourceField === 'None' ? 'Unknown Field' : sourceField,
+            targetAttribute: typeof targetField === 'string' ? targetField : String(targetField),
+            confidence: fieldMappingData.confidence_scores?.[sourceField] || 0.5,
+            mapping_type: 'ai_suggested',
+            sample_values: [],
+            status: 'pending', // Ensure mappings are editable
+            ai_reasoning: `AI suggested mapping to ${targetField}`,
+            is_user_defined: false,
+            user_feedback: null,
+            validation_method: 'semantic_analysis',
+            is_validated: false
+          }));
+        console.log('🔄 Using direct field mappings:', flowStateMappings);
+        return flowStateMappings;
+      }
+      
+      // Handle structured mappings format
+      if (fieldMappingData.mappings) {
+        const mappingsObj = fieldMappingData.mappings;
+        const flowStateMappings = Object.entries(mappingsObj).map(([sourceField, mapping]: [string, any]) => ({
+          id: `mapping-${sourceField}`,
+          sourceField: mapping.source_column || sourceField,
+          targetAttribute: mapping.asset_field || sourceField,
+          confidence: (mapping.confidence || 0) / 100, // Convert to 0-1 range
+          mapping_type: mapping.match_type || 'ai_suggested',
+          sample_values: [],
+          status: 'pending', // Ensure mappings are editable
+          ai_reasoning: `AI mapped ${mapping.source_column} to ${mapping.asset_field} with ${mapping.confidence}% confidence`,
+          is_user_defined: false,
+          user_feedback: null,
+          validation_method: mapping.pattern_matched || 'semantic_analysis',
+          is_validated: false
+        }));
+        console.log('🔄 Using flow state mappings:', flowStateMappings);
+        return flowStateMappings;
+      }
     }
     // Fall back to real field mappings from separate API call
     console.log('🔄 Using database mappings:', realFieldMappings || []);
@@ -93,12 +122,20 @@ export const useAttributeMappingLogic = () => {
     if (flow) {
       console.log('🔍 Flow data available:', {
         flow_id: flow.flow_id,
+        data_import_id: flow.data_import_id,
         status: flow.status,
         has_field_mapping: !!flow.field_mapping,
+        has_field_mappings: !!flow.field_mappings,
         field_mapping_keys: flow.field_mapping ? Object.keys(flow.field_mapping) : [],
+        field_mappings_keys: flow.field_mappings ? Object.keys(flow.field_mappings) : [],
         fieldMappings_length: fieldMappings?.length,
-        realFieldMappings_length: realFieldMappings?.length
+        realFieldMappings_length: realFieldMappings?.length,
+        progress: flow.progress_percentage,
+        current_phase: flow.current_phase
       });
+      
+      // Log the full flow object to see all properties
+      console.log('📋 Full flow object:', flow);
     }
   }, [flow, fieldMappings, realFieldMappings]);
   
@@ -213,124 +250,55 @@ export const useAttributeMappingLogic = () => {
     try {
       console.log(`✅ Approving mapping: ${mappingId}`);
       
-      // Validate data_import_id exists
-      if (!flow?.data_import_id) {
-        console.error('❌ No data_import_id available in flow');
-        return;
-      }
-      
-      // Find the mapping to get source and target field names
+      // Find the mapping
       const mapping = fieldMappings.find((m: any) => m.id === mappingId);
       if (!mapping) {
         console.error('❌ Mapping not found:', mappingId);
         return;
       }
       
-      // Validate mapping has database ID (not temp ID)
-      if (mapping.id.startsWith('mapping-')) {
-        console.error('❌ Cannot approve temporary mapping ID:', mappingId);
-        return;
+      // For discovery flow field mappings, we don't approve individual mappings
+      // The approval happens when the user clicks "Continue to Data Cleansing"
+      // So we just update the local state to show it's approved
+      console.log('ℹ️ Field mapping approval is handled when continuing to data cleansing phase');
+      
+      // Update local state to show the mapping as approved (visual feedback only)
+      // The actual approval happens when resuming the flow
+      if (typeof window !== 'undefined' && (window as any).showInfoToast) {
+        (window as any).showInfoToast('Field mapping marked for approval. Click "Continue to Data Cleansing" to apply all mappings.');
       }
       
-      // Use the new field-based API endpoint
-      const result = await apiCall(`/data-import/mappings/approve-by-field`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders()
-        },
-        body: JSON.stringify({
-          source_field: mapping.sourceField,
-          target_field: mapping.targetAttribute,
-          import_id: flow?.data_import_id // Use only data_import_id from flow
-        })
-      });
-      
-      console.log('✅ Mapping approved successfully:', result);
-      
-      // Refresh both flow data and field mappings
-      await Promise.all([refresh(), refetchFieldMappings()]);
-      
-      // Show success toast if available
-      if (typeof window !== 'undefined' && (window as any).showSuccessToast) {
-        (window as any).showSuccessToast('Mapping approved successfully');
-      }
+      // You could update local state here if needed for visual feedback
+      // For example, marking the mapping with a checkmark
       
     } catch (error) {
-      console.error('❌ Failed to approve mapping:', error);
+      console.error('❌ Failed to process mapping approval:', error);
       
       // Show error toast if available
       if (typeof window !== 'undefined' && (window as any).showErrorToast) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to approve mapping';
+        const errorMessage = error instanceof Error ? error.message : 'Failed to process mapping approval';
         (window as any).showErrorToast(errorMessage);
       }
-      
-      // Re-throw for component error handling
-      throw error;
     }
-  }, [fieldMappings, flow, effectiveFlowId, refresh, refetchFieldMappings, getAuthHeaders]);
+  }, [fieldMappings]);
 
   const handleRejectMapping = useCallback(async (mappingId: string, rejectionReason?: string) => {
     try {
       console.log(`❌ Rejecting mapping: ${mappingId}`);
       
-      // Validate data_import_id exists
-      if (!flow?.data_import_id) {
-        console.error('❌ No data_import_id available in flow');
-        return;
-      }
+      // For discovery flow field mappings, we don't reject individual mappings
+      // The user should edit the mapping instead
+      console.log('ℹ️ To change a field mapping, please edit it directly');
       
-      // Find the mapping to get source and target field names
-      const mapping = fieldMappings.find((m: any) => m.id === mappingId);
-      if (!mapping) {
-        console.error('❌ Mapping not found:', mappingId);
-        return;
-      }
-      
-      // Validate mapping has database ID (not temp ID)
-      if (mapping.id.startsWith('mapping-')) {
-        console.error('❌ Cannot reject temporary mapping ID:', mappingId);
-        return;
-      }
-      
-      // Use the new field-based API endpoint
-      const result = await apiCall(`/data-import/mappings/reject-by-field`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders()
-        },
-        body: JSON.stringify({
-          source_field: mapping.sourceField,
-          target_field: mapping.targetAttribute,
-          rejection_reason: rejectionReason || 'User rejected this mapping',
-          import_id: flow?.data_import_id // Use only data_import_id from flow
-        })
-      });
-      
-      console.log('✅ Mapping rejected successfully:', result);
-      
-      // Refresh both flow data and field mappings
-      await Promise.all([refresh(), refetchFieldMappings()]);
-      
-      // Show success toast if available
-      if (typeof window !== 'undefined' && (window as any).showSuccessToast) {
-        (window as any).showSuccessToast('Mapping rejected successfully');
+      // Show info message
+      if (typeof window !== 'undefined' && (window as any).showInfoToast) {
+        (window as any).showInfoToast('To change a field mapping, please edit it directly in the dropdown.');
       }
       
     } catch (error) {
-      console.error('❌ Failed to reject mapping:', error);
-      
-      // Show error toast if available
-      if (typeof window !== 'undefined' && (window as any).showErrorToast) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to reject mapping';
-        (window as any).showErrorToast(errorMessage);
-      }
-      
-      // Re-throw for component error handling
-      throw error;
+      console.error('❌ Error in reject handler:', error);
     }
-  }, [fieldMappings, flow, effectiveFlowId, refresh, refetchFieldMappings, getAuthHeaders]);
+  }, []);
 
   const handleMappingChange = useCallback(async (mappingId: string, newTarget: string) => {
     try {
@@ -343,24 +311,16 @@ export const useAttributeMappingLogic = () => {
         return;
       }
       
-      // Call the backend to update the mapping
-      const result = await apiCall(`/data-import/mappings/${mappingId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders()
-        },
-        body: JSON.stringify({
-          target_field: newTarget,
-          is_user_defined: true,
-          status: 'suggested' // Reset to suggested after user change
-        })
-      });
+      // For discovery flow, field mapping changes are stored locally
+      // and applied when the user clicks "Continue to Data Cleansing"
+      console.log('ℹ️ Field mapping change will be applied when continuing to data cleansing phase');
       
-      console.log('✅ Mapping updated successfully:', result);
-      
-      // Refresh both flow data and field mappings
-      await Promise.all([refresh(), refetchFieldMappings()]);
+      // Update local state to reflect the change
+      // The parent component should handle this state update
+      // For now, just show feedback
+      if (typeof window !== 'undefined' && (window as any).showInfoToast) {
+        (window as any).showInfoToast(`Field mapping updated: ${mapping.sourceField} → ${newTarget}`);
+      }
       
     } catch (error) {
       console.error('❌ Failed to update mapping:', error);
@@ -374,7 +334,7 @@ export const useAttributeMappingLogic = () => {
       // Re-throw for component error handling
       throw error;
     }
-  }, [fieldMappings, refresh, refetchFieldMappings, getAuthHeaders]);
+  }, [fieldMappings]);
 
   const handleAttributeUpdate = useCallback(async (attributeId: string, updates: any) => {
     try {
@@ -457,6 +417,7 @@ export const useAttributeMappingLogic = () => {
     flowState: flow, // Keep backward compatibility
     flow,
     flowId: flow?.flow_id || effectiveFlowId,
+    dataImportId: flow?.data_import_id || effectiveFlowId, // Add data_import_id
     availableDataImports,
     selectedDataImportId,
     

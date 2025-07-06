@@ -158,12 +158,21 @@ class FlowTypeConfigurator:
                 )
             ]
             
+            # Import the actual CrewAI Flow class
+            try:
+                from app.services.crewai_flows.unified_discovery_flow.base_flow import UnifiedDiscoveryFlow
+                discovery_crew_class = UnifiedDiscoveryFlow
+            except ImportError:
+                logger.warning("UnifiedDiscoveryFlow not available, flow will use placeholder")
+                discovery_crew_class = None
+            
             # Create discovery flow configuration
             discovery_config = FlowTypeConfig(
                 name="discovery",
                 display_name="Discovery Flow",
                 description="Comprehensive asset discovery and inventory flow",
                 phases=discovery_phases,
+                crew_class=discovery_crew_class,  # Link to actual CrewAI implementation
                 default_configuration={
                     "enable_real_time_validation": True,
                     "auto_retry_failed_phases": True,

@@ -128,6 +128,7 @@ const AttributeMappingContainer: React.FC = () => {
                   onMappingChange={handleMappingChange}
                   onAttributeUpdate={handleAttributeUpdate}
                   onDataImportSelection={handleDataImportSelection}
+                  refetchAgentic={refetchAgentic}
                 />
               </>
             )}

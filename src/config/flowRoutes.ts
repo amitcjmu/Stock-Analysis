@@ -266,7 +266,7 @@ export function getFlowTypeFromPath(pathname: string): FlowType | null {
 export async function getFlowInfo(flowId: string): Promise<{ flowType: FlowType; currentPhase: string } | null> {
   try {
     // Import FlowService dynamically to avoid circular dependencies
-    const { FlowService } = await import('../../frontend/src/services/FlowService');
+    const { FlowService } = await import('../services/FlowService');
     const flowService = FlowService.getInstance();
     
     const flowStatus = await flowService.getFlowStatus(flowId);
