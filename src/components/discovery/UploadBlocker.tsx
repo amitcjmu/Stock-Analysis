@@ -183,7 +183,7 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
       }
       
       const allFlows = await masterFlowService.getActiveFlows(
-        parseInt(client.id), 
+        client.id, 
         engagement?.id
       );
       

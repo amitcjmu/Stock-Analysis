@@ -44,12 +44,16 @@ const getMultiTenantHeaders = (
   clientAccountId: string,
   engagementId?: string,
   userId?: string
-) => ({
-  'X-Client-Account-ID': clientAccountId,
-  ...(engagementId && { 'X-Engagement-ID': engagementId }),
-  ...(userId && { 'X-User-ID': userId }),
-  'Content-Type': 'application/json',
-});
+) => {
+  const token = localStorage.getItem('auth_token');
+  return {
+    'X-Client-Account-ID': clientAccountId,
+    ...(engagementId && { 'X-Engagement-ID': engagementId }),
+    ...(userId && { 'X-User-ID': userId }),
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` }),
+  };
+};
 
 /**
  * Handle API errors consistently

@@ -5,6 +5,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
 import { apiCall } from '@/config/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Type definitions
 export interface IncompleteFlowV2 {
@@ -23,12 +24,18 @@ export interface IncompleteFlowV2 {
 
 // Hook to detect incomplete flows
 export const useIncompleteFlowDetectionV2 = () => {
+  const { client, engagement } = useAuth();
+  
   return useQuery({
-    queryKey: ['incomplete-flows'],
+    queryKey: ['incomplete-flows', client?.id, engagement?.id],
     queryFn: async () => {
       try {
+        // Use proper UUIDs from auth context with demo fallbacks
+        const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
+        const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+        
         // Try the active flows endpoint first
-        const response = await masterFlowService.getActiveFlows(1, undefined, 'discovery'); // Use default client_account_id
+        const response = await masterFlowService.getActiveFlows(clientAccountId, engagementId, 'discovery');
         const allFlows = Array.isArray(response) ? response : (response.flows || []);
         
         // Filter for incomplete flows (not completed or failed)
@@ -47,7 +54,8 @@ export const useIncompleteFlowDetectionV2 = () => {
       }
     },
     staleTime: 30000,
-    refetchInterval: false
+    refetchInterval: false,
+    enabled: !!client?.id // Only run query when we have a client ID
   });
 };
 

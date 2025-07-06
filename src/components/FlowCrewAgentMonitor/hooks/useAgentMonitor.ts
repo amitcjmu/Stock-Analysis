@@ -46,7 +46,7 @@ export const useAgentMonitor = () => {
         try {
           if (client?.id) {
             const activeFlows = await masterFlowService.getActiveFlows(
-              parseInt(client.id),
+              client.id,
               engagement?.id,
               'discovery'
             );

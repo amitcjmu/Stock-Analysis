@@ -41,7 +41,7 @@ export const useInventoryLogic = (flowId?: string) => {
     queryFn: async () => {
       if (!flowId || !client?.id) return null;
       try {
-        const flowStatus = await masterFlowService.getFlowStatus(flowId, parseInt(client.id), engagement?.id);
+        const flowStatus = await masterFlowService.getFlowStatus(flowId, client.id, engagement?.id);
         return flowStatus.metadata?.classification_summary || null;
       } catch (error) {
         console.error('Failed to get classification summary:', error);
@@ -58,7 +58,7 @@ export const useInventoryLogic = (flowId?: string) => {
     queryFn: async () => {
       if (!flowId || !client?.id) return null;
       try {
-        const flowStatus = await masterFlowService.getFlowStatus(flowId, parseInt(client.id), engagement?.id);
+        const flowStatus = await masterFlowService.getFlowStatus(flowId, client.id, engagement?.id);
         return flowStatus.metadata?.crewai_insights || null;
       } catch (error) {
         console.error('Failed to get CrewAI insights:', error);
