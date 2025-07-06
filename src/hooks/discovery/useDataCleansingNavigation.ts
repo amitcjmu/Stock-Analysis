@@ -13,7 +13,7 @@ export const useDataCleansingNavigation = (flowState: any, cleansingProgress: an
     navigate('/discovery/inventory', {
       replace: true,
       state: {
-        flow_session_id: flowState?.session_id || `session-${Date.now()}`,
+        flow_id: flowState?.flow_id || `flow-${Date.now()}`,
         from_phase: 'data_cleansing',
         cleansing_progress: cleansingProgress,
         client_account_id: client?.id,

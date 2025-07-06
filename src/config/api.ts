@@ -183,13 +183,13 @@ export const apiCall = async (
   const requestId = Math.random().toString(36).substring(2, 8);
   const startTime = performance.now();
   
-  // Normalize endpoint to handle both V1 and V2 APIs
+  // Normalize endpoint - NO double prefixes
   let normalizedEndpoint: string;
   if (endpoint.startsWith('/api/v1') || endpoint.startsWith('/api/v2')) {
-    // Endpoint already has version prefix
+    // Endpoint already has version prefix - use as is
     normalizedEndpoint = endpoint;
   } else {
-    // Add V1 prefix for legacy endpoints
+    // Add V1 prefix for legacy endpoints  
     normalizedEndpoint = `/api/v1${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
   }
   

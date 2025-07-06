@@ -14,7 +14,7 @@ TEST_FLOW_ID = "test-flow-123"
 def test_delete_without_auth():
     """Test DELETE request without authentication"""
     print("🧪 Testing DELETE without authentication...")
-    url = f"{API_URL}/api/v1/master-flows/{TEST_FLOW_ID}"
+    url = f"{API_URL}/api/v1/flows/{TEST_FLOW_ID}"
     
     response = requests.delete(url)
     print(f"   Status Code: {response.status_code}")
@@ -31,7 +31,7 @@ def test_delete_without_auth():
 def test_delete_with_invalid_auth():
     """Test DELETE request with invalid authentication"""
     print("\n🧪 Testing DELETE with invalid authentication...")
-    url = f"{API_URL}/api/v1/master-flows/{TEST_FLOW_ID}"
+    url = f"{API_URL}/api/v1/flows/{TEST_FLOW_ID}"
     headers = {"Authorization": "Bearer invalid-token-12345"}
     
     response = requests.delete(url, headers=headers)
@@ -58,7 +58,7 @@ def test_delete_with_valid_auth():
     import os
     token = os.environ.get('TOKEN')
     if token:
-        url = f"{API_URL}/api/v1/master-flows/{TEST_FLOW_ID}"
+        url = f"{API_URL}/api/v1/flows/{TEST_FLOW_ID}"
         headers = {"Authorization": f"Bearer {token}"}
         
         response = requests.delete(url, headers=headers)

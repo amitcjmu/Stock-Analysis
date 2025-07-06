@@ -1,7 +1,7 @@
 // TypeScript interfaces for Enhanced Discovery Dashboard
 export interface FlowSummary {
   flow_id: string;
-  session_id?: string;
+  // session_id removed - use flow_id only
   engagement_name: string;
   engagement_id: string;
   client_name: string;

@@ -508,7 +508,7 @@ class StagingDeployment:
                 "/health",
                 "/api/v1/health",
                 "/api/v1/flows",
-                "/api/v1/master-flows/active"
+                "/api/v1/flows/active"
             ]
             
             base_url = "http://localhost:8000"

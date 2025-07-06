@@ -26,7 +26,7 @@ interface SimpleFlow {
     data_to_delete: Record<string, number>;
     estimated_cleanup_time: string;
   };
-  session_id?: string;
+  flow_id?: string;
 }
 
 interface FlowDeletionConfirmDialogProps {

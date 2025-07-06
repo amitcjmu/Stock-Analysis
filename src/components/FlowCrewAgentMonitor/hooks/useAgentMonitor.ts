@@ -118,7 +118,7 @@ export const useAgentMonitor = () => {
           for (const flow of flowsData.crewai_flows.active_flows) {
             try {
               // Get detailed crew monitoring for this flow
-              const crewResponse = await fetch(`/api/v1/discovery/flow/crews/monitoring/${flow.session_id}`, {
+              const crewResponse = await fetch(`/api/v1/discovery/flow/crews/monitoring/${flow.flow_id}`, {
                 headers: getAuthHeaders()
               });
               
@@ -129,7 +129,7 @@ export const useAgentMonitor = () => {
               }
               
               activeFlows.push({
-                flow_id: flow.session_id,
+                flow_id: flow.flow_id,
                 status: flow.status,
                 current_phase: flow.current_phase || 'initialization',
                 progress: flow.progress_percentage || 0,
@@ -145,7 +145,7 @@ export const useAgentMonitor = () => {
                 last_event: flow.last_event || new Date().toISOString()
               });
             } catch (flowError) {
-              console.warn(`Failed to get details for flow ${flow.session_id}:`, flowError);
+              console.warn(`Failed to get details for flow ${flow.flow_id}:`, flowError);
             }
           }
         }

@@ -15,7 +15,7 @@ interface InventoryProgress {
 }
 
 interface InventoryNavigationOptions {
-  flow_session_id?: string;
+  flow_id?: string;
   inventory_progress: InventoryProgress;
   client_account_id: string;
   engagement_id: string;
@@ -26,7 +26,7 @@ export const useInventoryNavigation = (flowId?: string) => {
   const { flowState: flow, executeFlowPhase: updatePhase } = useUnifiedDiscoveryFlow(flowId);
 
   const handleContinueToAppServerDependencies = useCallback(async (options?: {
-    flow_session_id?: string;
+    flow_id?: string;
     inventory_progress?: any;
     client_account_id?: number;
     engagement_id?: number;

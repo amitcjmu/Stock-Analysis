@@ -51,7 +51,7 @@ class AgentFactory:
         # Gather required tools
         tools = []
         for tool_name in agent_metadata.required_tools:
-            tool = self.tool_registry.get_tool(tool_name)
+            tool = self.tool_registry.get_tool(tool_name, for_agent=True)
             if tool:
                 tools.append(tool)
             else:

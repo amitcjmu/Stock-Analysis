@@ -69,6 +69,7 @@ class ToolRegistry:
                     # Find all Tool subclasses in the module
                     for name, obj in inspect.getmembers(module):
                         if (inspect.isclass(obj) and 
+                            BaseTool is not None and
                             issubclass(obj, BaseTool) and 
                             obj != BaseTool and
                             obj.__name__ not in ['BaseDiscoveryTool', 'AsyncBaseDiscoveryTool'] and
@@ -98,6 +99,7 @@ class ToolRegistry:
     def get_tool(
         self, 
         name: str,
+        for_agent: bool = False,
         **kwargs
     ) -> Optional[BaseTool]:
         """Get an instantiated tool by name"""
@@ -108,18 +110,46 @@ class ToolRegistry:
         metadata = self._tools[name]
         
         try:
-            # Validate required parameters
-            missing_params = [
-                param for param in metadata.required_params 
-                if param not in kwargs
-            ]
-            if missing_params:
-                raise ValueError(f"Missing required parameters: {missing_params}")
-            
-            # Instantiate tool
-            tool = metadata.tool_class(**kwargs)
-            logger.debug(f"Instantiated tool: {name}")
-            return tool
+            # For agent creation, instantiate without parameters
+            # Tools will get parameters when called by the agent
+            if for_agent:
+                # Try to instantiate with empty parameters first
+                try:
+                    tool = metadata.tool_class()
+                    logger.debug(f"Instantiated tool for agent: {name}")
+                    return tool
+                except Exception:
+                    # If that fails, try with default values for required params
+                    default_kwargs = {}
+                    for param in metadata.required_params:
+                        if param not in kwargs:
+                            # Provide sensible defaults based on parameter names
+                            if 'data' in param:
+                                default_kwargs[param] = []
+                            elif 'field' in param:
+                                default_kwargs[param] = "example_field"
+                            elif 'mapping' in param:
+                                default_kwargs[param] = []
+                            else:
+                                default_kwargs[param] = ""
+                    
+                    default_kwargs.update(kwargs)
+                    tool = metadata.tool_class(**default_kwargs)
+                    logger.debug(f"Instantiated tool for agent with defaults: {name}")
+                    return tool
+            else:
+                # Normal tool instantiation - validate required parameters
+                missing_params = [
+                    param for param in metadata.required_params 
+                    if param not in kwargs
+                ]
+                if missing_params:
+                    raise ValueError(f"Missing required parameters: {missing_params}")
+                
+                # Instantiate tool
+                tool = metadata.tool_class(**kwargs)
+                logger.debug(f"Instantiated tool: {name}")
+                return tool
             
         except Exception as e:
             logger.error(f"Failed to instantiate tool {name}: {e}")

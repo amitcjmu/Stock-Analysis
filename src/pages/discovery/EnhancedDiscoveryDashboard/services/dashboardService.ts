@@ -66,7 +66,6 @@ export class DashboardService {
           
           allFlows.push({
             flow_id: flow.flow_id,
-            session_id: flow.session_id || flow.flow_id,
             engagement_name: metadata.engagement_name || flow.engagement_name || `${client?.name || 'Unknown'} - Discovery`,
             engagement_id: flow.engagement_id || engagement?.id || 'unknown',
             client_name: metadata.client_name || flow.client_name || client?.name || 'Unknown Client',
@@ -105,10 +104,10 @@ export class DashboardService {
         const dataImport = importData.data_import;
         
         // Check if this import has an active discovery flow
-        if (dataImport.id && !allFlows.find(f => f.session_id === dataImport.id)) {
+        if (dataImport.id && !allFlows.find(f => f.flow_id === dataImport.id)) {
           try {
             // Get flow status for this import session
-            const flowStatusResponse = await apiCall(`/api/v1/discovery/flow/status?session_id=${dataImport.id}`, {
+            const flowStatusResponse = await apiCall(`/api/v1/discovery/flow/status?flow_id=${dataImport.id}`, {
               method: 'GET',
               headers: getAuthHeaders()
             });
@@ -118,7 +117,7 @@ export class DashboardService {
               
               allFlows.push({
                 flow_id: dataImport.id,
-                session_id: dataImport.id,
+                flow_id: dataImport.id,
                 engagement_name: `${client?.name || 'Current'} - Discovery`,
                 engagement_id: engagement?.id || 'current',
                 client_name: client?.name || 'Current Client',

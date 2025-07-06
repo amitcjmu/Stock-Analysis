@@ -50,10 +50,10 @@ class FieldMappingAgent(BaseCrewAIAgent):
             description="Maps source data fields to target schema with semantic analysis",
             agent_class=cls,
             required_tools=[
-                "SemanticMatcherTool",
-                "SchemaAnalyzerTool",
-                "MappingValidatorTool",
-                "FieldSimilarityTool"
+                "semantic_matcher",
+                "schema_analyzer", 
+                "mapping_validator",
+                "field_similarity"
             ],
             capabilities=[
                 "field_mapping",

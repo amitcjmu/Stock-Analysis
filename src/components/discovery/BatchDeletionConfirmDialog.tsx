@@ -204,10 +204,10 @@ export const BatchDeletionConfirmDialog: React.FC<BatchDeletionConfirmDialogProp
               <h3 className="font-semibold mb-3">Flows to be Deleted</h3>
               <div className="space-y-2 max-h-40 overflow-y-auto">
                 {flows.map((flow, idx) => (
-                  <div key={flow.session_id} className="flex items-center justify-between text-sm bg-white p-2 rounded border">
+                  <div key={flow.flow_id} className="flex items-center justify-between text-sm bg-white p-2 rounded border">
                     <div className="flex items-center space-x-2">
                       <span className="text-gray-500">#{idx + 1}</span>
-                      <span className="font-mono text-xs">{flow.session_id.substring(0, 8)}...</span>
+                      <span className="font-mono text-xs">{flow.flow_id.substring(0, 8)}...</span>
                       <span className="capitalize">{getPhaseDisplayName(flow.current_phase)}</span>
                     </div>
                     <div className="flex items-center space-x-2">

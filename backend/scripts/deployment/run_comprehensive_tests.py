@@ -214,7 +214,7 @@ class ComprehensiveTestRunner:
             # Test Master Flow Orchestrator endpoints
             endpoints = [
                 "/api/v1/flows",
-                "/api/v1/master-flows/active",
+                "/api/v1/flows/active",
                 "/api/v1/flows/analytics"
             ]
             

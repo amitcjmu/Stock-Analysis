@@ -73,7 +73,7 @@ class LoadTestRunner:
             {
                 "name": "get_active_flows",
                 "weight": 25,
-                "endpoint": "/api/v1/master-flows/active",
+                "endpoint": "/api/v1/flows/active",
                 "method": "GET"
             },
             {
@@ -220,7 +220,7 @@ class LoadTestRunner:
             # Check Master Flow Orchestrator availability
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    f"{self.config['backend_url']}/api/v1/master-flows/active",
+                    f"{self.config['backend_url']}/api/v1/flows/active",
                     headers=self.session_headers,
                     timeout=aiohttp.ClientTimeout(total=10)
                 ) as response:

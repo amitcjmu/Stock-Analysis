@@ -14,7 +14,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { apiCall } from '@/config/api';
+import { masterFlowService } from '@/services/api/masterFlowService';
 
 interface SimplifiedFlowStatusProps {
   flow_id: string;
@@ -42,8 +42,8 @@ export const SimplifiedFlowStatus: React.FC<SimplifiedFlowStatusProps> = ({
 
   const fetchStatus = async () => {
     try {
-      const response = await apiCall(`/api/v1/discovery/flow/status/${flow_id}`);
-      setFlowStatus(response);
+      const response = await masterFlowService.getFlowStatus(flow_id, 1); // Use default client_account_id
+      setFlowStatus(response as any);
       setError(null);
     } catch (err) {
       setError('Failed to fetch flow status');

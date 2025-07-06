@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiCall } from '@/config/api';
+import { masterFlowService } from '@/services/api/masterFlowService';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
+import { apiCall } from '@/config/api';
 
 // Type definitions
 export interface IncompleteFlowV2 {
@@ -27,7 +28,7 @@ export const useIncompleteFlowDetectionV2 = () => {
     queryFn: async () => {
       try {
         // Try the active flows endpoint first
-        const response = await apiCall('/api/v1/discovery/flows/active');
+        const response = await masterFlowService.getActiveFlows(1, undefined, 'discovery'); // Use default client_account_id
         const allFlows = Array.isArray(response) ? response : (response.flows || []);
         
         // Filter for incomplete flows (not completed or failed)
@@ -106,7 +107,7 @@ export const useFlowDeletionV2 = () => {
       } catch (error) {
         // If that fails, try master flows API as fallback
         console.warn('Discovery flow delete failed, trying master flows API');
-        return await apiCall(`/api/v1/master-flows/${flowId}`, {
+        return await apiCall(`/api/v1/flows/${flowId}`, {
           method: 'DELETE'
         });
       }
@@ -148,7 +149,7 @@ export const useBulkFlowOperationsV2 = () => {
             } catch (error) {
               try {
                 // Fallback to master flows API
-                return await apiCall(`/api/v1/master-flows/${flowId}`, { method: 'DELETE' });
+                return await apiCall(`/api/v1/flows/${flowId}`, { method: 'DELETE' });
               } catch (fallbackError) {
                 return { flowId, error: fallbackError };
               }

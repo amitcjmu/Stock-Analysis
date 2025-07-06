@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { apiCall } from '@/config/api';
+import { masterFlowService } from '@/services/api/masterFlowService';
 import { UploadFile } from '../CMDBImport.types';
 import { useFileUpload } from './useFileUpload';
 import { useFlowManagement } from './useFlowManagement';
@@ -24,7 +24,7 @@ export const useCMDBImport = () => {
     }
     
     try {
-      const flowResponse = await apiCall(`/api/v1/discovery/flow/${file.flow_id}/processing-status`);
+      const flowResponse = await masterFlowService.getFlowStatus(file.flow_id, 1); // Use default client_account_id
       
       const flowSummary = {
         total_assets: flowResponse.total_records || 0,

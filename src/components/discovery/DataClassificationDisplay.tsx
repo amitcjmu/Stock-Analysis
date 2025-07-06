@@ -73,7 +73,7 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
         method: 'GET',
         params: { 
           page_context: pageContext,
-          session_id: session?.id
+          flow_id: session?.id
         }
       });
       

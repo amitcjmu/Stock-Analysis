@@ -39,7 +39,7 @@ export interface CrossApplicationMapping {
 export interface DependencyData {
   cross_application_mapping: CrossApplicationMapping;
   app_server_mapping: AppServerMapping;
-  session_id: string;
+  flow_id: string;
   crew_completion_status: Record<string, boolean>;
 }
 

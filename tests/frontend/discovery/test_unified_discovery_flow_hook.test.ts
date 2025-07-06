@@ -16,7 +16,7 @@ const mockUseUnifiedDiscoveryFlow = vi.fn();
 // Mock API responses
 const mockFlowState = {
   flow_id: 'test-flow-123',
-  session_id: 'test-session-456',
+  flow_type: 'discovery',
   client_account_id: 'client-789',
   engagement_id: 'engagement-101',
   user_id: 'user-202',

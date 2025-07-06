@@ -1,171 +1,151 @@
 # AI Force Migration Platform - Coding Agent Quick Reference
 
-> **🚨 IMPORTANT**: This platform has evolved through 6 architectural phases. For complete evolution journey and current state context, see `docs/development/PLATFORM_EVOLUTION_AND_CURRENT_STATE.md`. For archived/legacy documentation, see `docs/archive/ARCHIVE_INDEX.md`.
+> **🚨 IMPORTANT**: This platform is in a critical transition phase. A new `MasterFlowOrchestrator` has been implemented as the single source of truth for all workflows, but the frontend and some backend services still use a mix of legacy APIs. This creates a "competing controller" problem and is the source of known bugs.
 
-> **📍 Current State**: Phase 5 (Flow-Based Architecture) with Remediation Phase 1 in progress (75% complete). NOT all "Phase 1" work is complete as claimed in some documentation.
+> **📍 Current State**: **Hybrid Architecture**. The new `MasterFlowOrchestrator` is the target, but legacy `DiscoveryFlowService` and siloed APIs are still active and being called by the UI, causing state conflicts.
 
 ## 🚨 **CRITICAL RULES - READ FIRST**
 
-### **Architecture: CrewAI Flow-Based (NOT Individual Agents)**
-- ✅ **USE**: `UnifiedDiscoveryFlow` with `@start/@listen` decorators
-- ✅ **USE**: Specialized crews with manager agents
-- ❌ **NEVER**: Individual agents, hard-coded rules, or frontend agent simulation
+### **Architecture: Master Flow Orchestrator (MFO) is KING**
+- ✅ **USE**: `MasterFlowOrchestrator` via the unified `/api/v1/flows` endpoint for all flow operations.
+- ✅ **USE**: The `UnifiedDiscoveryFlow` is the underlying CrewAI implementation, but it should ONLY be driven by the MFO.
+- ❌ **NEVER**: Call legacy discovery endpoints (`/api/v1/discovery/...`). This bypasses the MFO and corrupts flow state.
+- ❌ **NEVER**: Use individual agents or hard-coded rules.
 
 ### **Database: Async PostgreSQL with Multi-Tenancy**
-- ✅ **USE**: `AsyncSessionLocal()` for all database operations
-- ✅ **USE**: `ContextAwareRepository` with `client_account_id` scoping
-- ❌ **NEVER**: Sync sessions in async context
+- ✅ **USE**: `AsyncSessionLocal()` for all database operations.
+- ✅ **USE**: `ContextAwareRepository` with `client_account_id` scoping.
+- ❌ **NEVER**: Sync sessions in async context.
 
 ### **Development: Docker-First**
-- ✅ **USE**: `docker-compose up -d --build` for all development
+- ✅ **USE**: `docker-compose up -d --build` for all development.
 - ✅ **USE**: `docker exec -it migration_backend python -c "code"`
-- ❌ **NEVER**: Run services locally (Next.js, Python, PostgreSQL)
+- ❌ **NEVER**: Run services locally (Next.js, Python, PostgreSQL).
 
 ---
 
-## 🏗️ **CURRENT ARCHITECTURE (In Remediation)**
+## 🏗️ **CURRENT ARCHITECTURE (Hybrid & In Transition)**
 
-### **Phase 5 Flow-Based + Remediation Phase 1 (75% Complete)**
+### **The Competing Controller Problem**
+
+The platform currently suffers from a "split-brain" problem. The diagram below shows the **correct** (target) architecture and the **incorrect** (legacy) architecture running in parallel.
+
+#### **✅ TARGET Architecture (Correct)**
 ```
-Frontend (Vercel) → API v3/v1 Mixed → DiscoveryFlowService → PostgreSQL
-                                    ↓
-                             UnifiedDiscoveryFlow → CrewAI Crews → True Agents
-                                    ↓
-                             Event Bus → Flow Coordination → Multi-Tenant Context
+Frontend (Vercel) → Unified API (/api/v1/flows) → MasterFlowOrchestrator
+                                                          ↓
+                                             CrewAIFlowService → UnifiedDiscoveryFlow
+                                                          ↓
+                                        PostgreSQL (managed by MFO)
+```
+
+#### **❌ LEGACY Architecture (Incorrect & Active)**
+```
+Frontend (Vercel) → Siloed APIs (/api/v1/discovery/...) → DiscoveryFlowService
+                                                                 ↓
+                                                    PostgreSQL (direct access, state conflicts)
 ```
 
 ⚠️ **Current Issues Being Fixed**:
-- 132+ files still have session_id references (migration incomplete)
-- Flow data sometimes written to wrong tables (context sync issues)
-- Field mapping UI shows "0 active flows" (API endpoint confusion)
-- Mix of v1 and v3 API usage in frontend
+- **The UI primarily calls legacy APIs**, bypassing the MFO.
+- State is managed by two different controllers, causing data corruption and navigation loops.
+- `session_id` logic from legacy systems conflicts with the new `flow_id` standard.
+- The field mapping UI shows "0 active flows" because it queries a legacy endpoint that doesn't understand MFO-managed flows.
 
 **Key Components**:
-- **UnifiedDiscoveryFlow**: CrewAI Flow with `@start/@listen` decorators (Phase 5)
-- **PostgreSQL-Only State**: SQLite eliminated, full PostgreSQL persistence
-- **Multi-Tenant Context**: `client_account_id` → `engagement_id` → `user_id` hierarchy
-- **Event-Driven Coordination**: Real-time flow communication (Remediation Phase 2)
-- **True CrewAI Agents**: Learning, memory, autonomous decision-making (Mixed implementation)
-- **Flow State Bridge**: Connects CrewAI execution to enterprise management
+- **MasterFlowOrchestrator**: The **single source of truth** for all flow management. It is the intended controller.
+- **UnifiedDiscoveryFlow**: The modern, underlying CrewAI implementation of the discovery process.
+- **`DiscoveryFlowService` (Legacy)**: The old controller that directly manages flows and is still being called by the UI.
+- **Unified API (`/api/v1/flows`)**: The correct, MFO-driven API.
+- **Siloed APIs (`/api/v1/discovery/...`)**: The incorrect, legacy APIs that must be phased out.
 
 ## 📚 **Essential Documentation**
 
-### **Platform Context (Required Reading)**
-- `docs/development/PLATFORM_EVOLUTION_AND_CURRENT_STATE.md` - **MUST READ** - Complete evolution journey
-- `docs/planning/CURRENT_ARCHITECTURE_STATUS.md` - Detailed current state analysis
-- `docs/planning/REMEDIATION_SUMMARY.md` - Remediation progress and timeline
+### **Platform Architecture (Required Reading)**
+- `docs/architecture/DISCOVERY_FLOW_COMPLETE_ARCHITECTURE.md` - **MUST READ** - Describes the target MFO-based architecture.
+- `docs/planning/master_flow_orchestrator/DESIGN_DOCUMENT.md` - The design and intent of the central orchestrator.
 
-### **Discovery Flow System (Consolidated)**
-- `docs/development/DISCOVERY_FLOW_ARCHITECTURE.md` - Current flow-based architecture
-- `docs/development/DISCOVERY_FLOW_IMPLEMENTATION_GUIDE.md` - Development patterns and remediation tasks
-- `docs/development/DISCOVERY_FLOW_TROUBLESHOOTING.md` - Known issues and working solutions
+### **Development & Migration Guides**
+- `docs/development/CrewAI_Development_Guide.md` - CrewAI implementation patterns.
+- `docs/api/v3-migration-guide.md` - API transition guidance (part of the ongoing cleanup).
+- `docs/troubleshooting/discovery-flow-sync-issues.md` - Critical issue resolution stemming from the competing controller problem.
 
-### **Development Guides**
-- `docs/development/CrewAI_Development_Guide.md` - CrewAI implementation patterns
-- `docs/api/v3-migration-guide.md` - API transition guidance (hybrid state)
-- `docs/troubleshooting/discovery-flow-sync-issues.md` - Critical issue resolution
-
-### **Data Flow: CMDBImport → UnifiedDiscoveryFlow**
-```
-CMDBImport.tsx → storeImportData() → /api/v1/data-import/store-import 
-→ _trigger_discovery_flow() → UnifiedDiscoveryFlow.kickoff() → CrewAI Crews
-```
+### **Data Flow: CMDBImport → UnifiedDiscoveryFlow (The Conflict)**
+The frontend *should* use the MFO, but often uses the legacy path:
+- **Legacy Path**: `CMDBImport.tsx` → `/api/v1/discovery/...` → `DiscoveryFlowService` (Bypasses MFO)
+- **Correct Path**: `CMDBImport.tsx` → `/api/v1/flows` → `MasterFlowOrchestrator` → `CrewAIFlowService` → `UnifiedDiscoveryFlow.kickoff()`
 
 ---
 
 ## 🛠️ **DEVELOPMENT PATTERNS**
 
-### **✅ DO: CrewAI Flow Patterns**
+### **✅ DO: Use the Master Flow Orchestrator**
 ```python
-# Correct: CrewAI Flow with crews
-class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
-    @start()
-    def initialize_discovery_flow(self):
-        return {"status": "initialized"}
-    
-    @listen(initialize_discovery_flow)
-    def execute_field_mapping_crew(self, previous_result):
-        crew = FieldMappingCrew(self.crewai_service, self.context)
-        return crew.kickoff()
-```
+# Correct: Use the MFO for all flow operations
+class YourService:
+    def __init__(self, db: AsyncSession, context: RequestContext):
+        self.orchestrator = MasterFlowOrchestrator(db, context)
 
-```python
-# Correct: Multi-tenant repository
-class YourRepository(ContextAwareRepository):
-    def __init__(self, db: Session, client_account_id: int):
-        super().__init__(db, client_account_id)
-    
-    async def get_data(self):
-        return await self.query_with_context(YourModel)
+    async def start_new_discovery(self, name: str):
+        flow_id, _ = await self.orchestrator.create_flow(
+            flow_type="discovery",
+            flow_name=name
+        )
+        return flow_id
 ```
 
 ```typescript
-// Correct: Direct flow integration
-const handleFileUpload = async (files: File[]) => {
-  const csvData = await parseCsvData(files[0]);
-  const { flow_id } = await storeImportData(csvData, files[0], sessionId);
-  if (flow_id) {
-    navigate(`/discovery/attribute-mapping/${flow_id}`);
-  }
+// Correct: Use the '/api/v1/flows' endpoint in the frontend
+import { flowApi } from 'src/api/flowApi'; // Hypothetical unified API client
+
+const createFlow = async () => {
+  const response = await flowApi.create({ flow_type: 'discovery' });
+  const { flow_id } = response.data;
+  navigate(`/discovery/flows/${flow_id}`); // Navigate to unified flow page
 };
 ```
 
-### **❌ DON'T: Anti-Patterns**
+### **❌ DON'T: Use Legacy Services or APIs**
 ```python
-# Wrong: Individual agents
-agent1 = CMDBAnalystAgent()
-result1 = agent1.analyze(data)
+# Wrong: Do not instantiate or use legacy services directly
+from app.services.discovery_flow_service import DiscoveryFlowService # AVOID THIS
 
-# Wrong: Hard-coded rules
-if field_name.lower() in ['hostname']:
-    mapping = 'asset_name'
-
-# Wrong: Sync sessions in async
-def wrong_pattern():
-    session = SessionLocal()  # Fails in async context!
+# This service bypasses the MFO and leads to state corruption
+service = DiscoveryFlowService(db, session_id) 
+service.advance_phase() # CAUSES BUGS
 ```
 
 ```typescript
-// Wrong: Independent frontend agents
-const createValidationAgents = () => [
-  { name: 'Format Validator' },  // Competes with UnifiedDiscoveryFlow
-  { name: 'Data Quality Agent' }
-];
-
-// Wrong: Fake agent simulation
-await new Promise(resolve => setTimeout(resolve, 1500)); // Fake delay
+// Wrong: Do not call discovery-specific APIs
+// This hits the legacy DiscoveryFlowService and bypasses the MFO
+const response = await api.post(`/api/v1/discovery/flow/${flowId}/resume`);
 ```
 
 ---
 
 ## 📁 **FILE STRUCTURE**
 
-### **✅ ACTIVE FILES**
+### **✅ ACTIVE & STRATEGIC FILES**
 ```
+backend/app/services/
+├── master_flow_orchestrator.py      # MAIN: The one and only orchestrator.
+└── crewai_flow_service.py           # Service layer called by MFO.
+
 backend/app/services/crewai_flows/
-├── unified_discovery_flow.py          # MAIN: CrewAI Flow execution
-├── crews/                             # Specialized crews
-│   ├── field_mapping_crew.py
-│   ├── data_cleansing_crew.py
-│   └── inventory_building_crew.py
-└── tools/                             # Agent tools
+└── unified_discovery_flow.py        # The underlying CrewAI flow logic.
 
-backend/app/models/
-├── unified_discovery_flow_state.py    # MAIN: Flow state model
-└── workflow_state.py                  # V2 database model
-
-backend/app/api/
-├── v1/unified_discovery.py            # MAIN: Unified API
-└── v2/discovery_flow_v2.py            # V2 management API
+backend/app/api/v1/
+└── flows.py                         # MAIN: The unified API for the MFO.
 
 src/hooks/
-└── useUnifiedDiscoveryFlow.ts         # MAIN: Single frontend hook
+└── useUnifiedDiscoveryFlow.ts       # A rare example of a hook using the correct, new API.
 ```
 
-### **❌ DEPRECATED/REMOVED**
-- `backend/app/services/discovery_agents/` (individual agents)
-- `backend/app/api/v1/discovery/discovery_flow.py` (competing implementation)
-- Frontend agent simulation components
+### **❌ DEPRECATED & DANGEROUS**
+- `backend/app/services/discovery_flow_service.py` (Legacy controller)
+- `backend/app/api/v1/endpoints/discovery_flows.py` (Legacy API implementation)
+- Most hooks in `src/hooks/discovery/` (They call legacy endpoints)
+- Most components in `src/pages/discovery/` (They use the legacy hooks)
 
 ---
 

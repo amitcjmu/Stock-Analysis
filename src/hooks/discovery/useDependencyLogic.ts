@@ -18,7 +18,7 @@ export const useDependencyLogic = (flowId?: string) => {
   const dependencyData = {
     cross_application_mapping: flow?.results?.dependency_analysis?.cross_application_mapping || flow?.dependency_analysis?.cross_application_mapping || [],
     app_server_mapping: flow?.results?.dependency_analysis?.app_server_mapping || flow?.dependency_analysis?.app_server_mapping || [],
-    session_id: flow?.flow_id,
+    flow_id: flow?.flow_id,
     crew_completion_status: flow?.phases || {},
     analysis_progress: {
       total_applications: flow?.results?.dependency_analysis?.total_applications || flow?.dependency_analysis?.total_applications || 0,

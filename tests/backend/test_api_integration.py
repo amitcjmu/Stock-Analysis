@@ -84,7 +84,7 @@ class TestCMDBAnalysisAPI:
             "fileType": "csv"
         }
         
-        response = await api_client.post("/api/v1/discovery/analyze-cmdb", json=request_data)
+        response = await api_client.post("/api/v1/flows/analyze-cmdb", json=request_data)
         
         assert response.status_code == 200
         data = response.json()
@@ -131,7 +131,7 @@ vmware-host-01,Virtualization,Production"""
             "fileType": "csv"
         }
         
-        response = await api_client.post("/api/v1/discovery/analyze-cmdb", json=request_data)
+        response = await api_client.post("/api/v1/flows/analyze-cmdb", json=request_data)
         assert response.status_code == 200
         
         data = response.json()
@@ -156,7 +156,7 @@ iot-sensor-network,Unknown,Temperature monitoring sensors,Production"""
             "fileType": "csv"
         }
         
-        response = await api_client.post("/api/v1/discovery/analyze-cmdb", json=request_data)
+        response = await api_client.post("/api/v1/flows/analyze-cmdb", json=request_data)
         assert response.status_code == 200
         
         data = response.json()
@@ -185,7 +185,7 @@ class TestCMDBProcessingAPI:
             }
         }
         
-        response = await api_client.post("/api/v1/discovery/process-cmdb", json=request_data)
+        response = await api_client.post("/api/v1/flows/process-cmdb", json=request_data)
         assert response.status_code == 200
         
         data = response.json()
@@ -234,7 +234,7 @@ class TestCMDBProcessingAPI:
             "data": device_assets
         }
         
-        response = await api_client.post("/api/v1/discovery/process-cmdb", json=request_data)
+        response = await api_client.post("/api/v1/flows/process-cmdb", json=request_data)
         assert response.status_code == 200
         
         data = response.json()
@@ -252,7 +252,7 @@ class TestAssetInventoryAPI:
     @pytest.mark.asyncio
     async def test_get_assets_endpoint(self, api_client):
         """Test getting assets from inventory."""
-        response = await api_client.get("/api/v1/discovery/assets")
+        response = await api_client.get("/api/v1/flows/assets")
         assert response.status_code == 200
         
         data = response.json()
@@ -284,7 +284,7 @@ class TestAssetInventoryAPI:
     @pytest.mark.asyncio
     async def test_suggested_headers_generation(self, api_client):
         """Test that suggested headers are generated correctly."""
-        response = await api_client.get("/api/v1/discovery/assets")
+        response = await api_client.get("/api/v1/flows/assets")
         assert response.status_code == 200
         
         data = response.json()
@@ -302,7 +302,7 @@ class TestAssetInventoryAPI:
     @pytest.mark.asyncio 
     async def test_assets_with_6r_readiness(self, api_client):
         """Test that assets include 6R readiness information."""
-        response = await api_client.get("/api/v1/discovery/assets")
+        response = await api_client.get("/api/v1/flows/assets")
         assert response.status_code == 200
         
         data = response.json()
@@ -349,7 +349,7 @@ class TestUserFeedbackAPI:
             "assetTypeOverride": "Application"
         }
         
-        response = await api_client.post("/api/v1/discovery/cmdb-feedback", json=feedback_data)
+        response = await api_client.post("/api/v1/flows/cmdb-feedback", json=feedback_data)
         assert response.status_code == 200
         
         data = response.json()
@@ -371,7 +371,7 @@ class TestFieldMappingAPI:
     @pytest.mark.asyncio
     async def test_field_mapping_endpoint(self, api_client):
         """Test field mapping tool integration."""
-        response = await api_client.get("/api/v1/discovery/test-field-mapping")
+        response = await api_client.get("/api/v1/flows/test-field-mapping")
         
         # This endpoint might not be available in production
         if response.status_code == 200:
@@ -382,7 +382,7 @@ class TestFieldMappingAPI:
     @pytest.mark.asyncio
     async def test_cmdb_templates_endpoint(self, api_client):
         """Test CMDB template endpoint."""
-        response = await api_client.get("/api/v1/discovery/cmdb-templates")
+        response = await api_client.get("/api/v1/flows/cmdb-templates")
         assert response.status_code == 200
         
         data = response.json()
@@ -435,7 +435,7 @@ class TestDockerContainerIntegration:
         }
         
         # Test preflight request
-        response = await api_client.options("/api/v1/discovery/assets", headers=headers)
+        response = await api_client.options("/api/v1/flows/assets", headers=headers)
         
         # Should not block CORS
         assert response.status_code in [200, 204, 404]  # 404 is OK if OPTIONS not implemented
@@ -521,7 +521,7 @@ class TestPerformance:
         }
         
         start_time = time.time()
-        response = await api_client.post("/api/v1/discovery/process-cmdb", json=request_data)
+        response = await api_client.post("/api/v1/flows/process-cmdb", json=request_data)
         processing_time = time.time() - start_time
         
         assert response.status_code == 200

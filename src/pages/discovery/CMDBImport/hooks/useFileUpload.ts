@@ -44,10 +44,10 @@ export const useFileUpload = () => {
     file: File, 
     uploadId: string, 
     categoryId: string
-  ): Promise<{import_session_id: string | null, flow_id: string | null}> => {
+  ): Promise<{import_flow_id: string | null, flow_id: string | null}> => {
     if (!uploadId) {
       console.error('No upload ID available for storing data.');
-      return { import_session_id: null, flow_id: null };
+      return { import_flow_id: null, flow_id: null };
     }
 
     // Use effective client and engagement (same logic as handleFileUpload)
@@ -88,7 +88,7 @@ export const useFileUpload = () => {
       console.log('📡 Store import response:', JSON.stringify(response, null, 2));
       
       if (response.success) {
-        console.log('✅ Data stored successfully, import session ID:', response.import_session_id);
+        console.log('✅ Data stored successfully, import flow ID:', response.import_flow_id);
         console.log('✅ CrewAI Flow ID:', response.flow_id);
         console.log('✅ Full response data:', response);
         
@@ -97,16 +97,16 @@ export const useFileUpload = () => {
         console.log('🎯 Using flow ID:', flowId);
         
         return { 
-          import_session_id: response.import_session_id,
+          import_flow_id: response.import_flow_id,
           flow_id: flowId
         };
       } else {
         console.error('❌ Failed to store data:', response.error);
-        return { import_session_id: null, flow_id: null };
+        return { import_flow_id: null, flow_id: null };
       }
     } catch (error: any) {
       console.error('❌ Error storing data:', error);
-      return { import_session_id: null, flow_id: null };
+      return { import_flow_id: null, flow_id: null };
     }
   }, [user, client, engagement, getAuthHeaders]);
 
@@ -194,14 +194,14 @@ export const useFileUpload = () => {
       
       // Store data and trigger UnifiedDiscoveryFlow directly
       console.log('Storing data and triggering UnifiedDiscoveryFlow...');
-      const { import_session_id, flow_id } = await storeImportData(csvData, file, uploadId, categoryId);
+      const { import_flow_id, flow_id } = await storeImportData(csvData, file, uploadId, categoryId);
       
       if (flow_id) {
         // Success - UnifiedDiscoveryFlow was triggered - START PROCESSING TRACKING
         setUploadedFiles(prev => prev.map(f => f.id === newFile.id ? { 
           ...f, 
           status: 'processing',  // Changed from 'approved' to 'processing'
-          importSessionId: import_session_id || undefined,
+          importFlowId: import_flow_id || undefined,
           flow_id: flow_id,
           discovery_progress: 0,
           current_phase: 'data_import',

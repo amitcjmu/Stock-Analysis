@@ -20,7 +20,7 @@ export const useTechDebtLogic = (flowId?: string) => {
     modernization_recommendations: flow?.results?.tech_debt_analysis?.modernization_recommendations || flow?.tech_debt_analysis?.modernization_recommendations || [],
     risk_assessments: flow?.results?.tech_debt_analysis?.risk_assessments || flow?.tech_debt_analysis?.risk_assessments || {},
     six_r_preparation: flow?.results?.tech_debt_analysis?.six_r_preparation || flow?.tech_debt_analysis?.six_r_preparation || {},
-    session_id: flow?.flow_id,
+    flow_id: flow?.flow_id,
     crew_completion_status: flow?.phases || {},
     analysis_progress: {
       total_assets: flow?.results?.tech_debt_analysis?.total_assets || flow?.tech_debt_analysis?.total_assets || 0,

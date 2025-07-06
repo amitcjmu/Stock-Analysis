@@ -51,7 +51,7 @@ export class DataImportValidationService {
     client_account_id: string;
     engagement_id: string;
     user_id: string;
-    session_id: string;
+    flow_id: string;
     headers: Record<string, string>;
   }): Promise<ValidationResponse> {
     const formData = new FormData();

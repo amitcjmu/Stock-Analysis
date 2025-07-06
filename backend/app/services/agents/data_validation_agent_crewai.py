@@ -49,10 +49,10 @@ class DataImportValidationAgent(BaseCrewAIAgent):
             description="Validates data quality and structure for migration readiness",
             agent_class=cls,
             required_tools=[
-                "SchemaValidatorTool",
-                "DataQualityAnalyzerTool",
-                "PIIScannerTool",
-                "FormatValidatorTool"
+                "schema_analyzer",
+                "data_quality_analyzer", 
+                "pii_scanner",
+                "format_validator"
             ],
             capabilities=[
                 "data_validation",

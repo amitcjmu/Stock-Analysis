@@ -105,9 +105,10 @@ class AgentRegistry:
         metadata = self._agents[name]
         
         # Filter tools based on agent requirements
+        # Tools have a 'name' attribute that matches the registry name
         agent_tools = [
             tool for tool in tools 
-            if tool.__class__.__name__ in metadata.required_tools
+            if hasattr(tool, 'name') and tool.name in metadata.required_tools
         ]
         
         try:

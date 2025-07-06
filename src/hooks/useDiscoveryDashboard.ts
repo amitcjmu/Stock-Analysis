@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { apiCall } from '@/config/api';
+import { masterFlowService } from '@/services/api/masterFlowService';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Types

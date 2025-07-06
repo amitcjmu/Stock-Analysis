@@ -14,7 +14,7 @@ import { apiClient } from '@/config/api';
 
 interface FlowStateValidationResponse {
   status: string;
-  session_id: string;
+  flow_id: string;
   overall_valid: boolean;
   crewai_validation: Record<string, any>;
   postgresql_validation: Record<string, any>;
@@ -25,7 +25,7 @@ interface FlowStateValidationResponse {
 
 interface FlowRecoveryResponse {
   status: string;
-  session_id: string;
+  flow_id: string;
   recovery_successful: boolean;
   recovered_state?: Record<string, any>;
   recovery_strategy_used: string;
@@ -36,14 +36,14 @@ interface FlowRecoveryResponse {
 interface FlowCleanupResponse {
   status: string;
   flows_cleaned: number;
-  session_ids_cleaned: string[];
+  flow_ids_cleaned: string[];
   dry_run: boolean;
   cleanup_timestamp: string;
   space_recovered?: string;
 }
 
 interface FlowPersistenceStatusResponse {
-  session_id: string;
+  flow_id: string;
   crewai_persistence: Record<string, any>;
   postgresql_persistence: Record<string, any>;
   bridge_status: Record<string, any>;
@@ -57,7 +57,7 @@ interface BulkValidationResponse {
   valid_flows: number;
   invalid_flows: number;
   results: Array<{
-    session_id: string;
+    flow_id: string;
     status: string;
     valid?: boolean;
     summary?: Record<string, any>;
@@ -94,12 +94,12 @@ const recoverFlowState = async (
 const cleanupExpiredFlows = async (
   expirationHours: number = 72,
   dryRun: boolean = false,
-  specificSessionIds?: string[]
+  specificFlowIds?: string[]
 ): Promise<FlowCleanupResponse> => {
   const response = await apiClient.post('/discovery/enhanced/flows/cleanup', {
     expiration_hours: expirationHours,
     dry_run: dryRun,
-    specific_session_ids: specificSessionIds
+    specific_flow_ids: specificFlowIds
   });
   return response.data;
 };
@@ -160,7 +160,7 @@ export const useEnhancedFlowManagement = () => {
     }: { 
       expirationHours?: number; 
       dryRun?: boolean; 
-      specificSessionIds?: string[]; 
+      specificFlowIds?: string[]; 
     }) => cleanupExpiredFlows(expirationHours, dryRun, specificSessionIds),
     onMutate: () => setIsCleaning(true),
     onSettled: () => setIsCleaning(false),
@@ -241,7 +241,7 @@ export const useEnhancedFlowManagement = () => {
       const result = await cleanupFlows.mutateAsync({
         expirationHours: options.expirationHours || 72,
         dryRun: options.dryRun || false,
-        specificSessionIds: options.specificSessions
+        specificFlowIds: options.specificSessions
       });
       
       return {

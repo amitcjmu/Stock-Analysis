@@ -17,7 +17,7 @@ export interface CreateDiscoveryFlowRequest {
   flow_id: string;
   raw_data: Array<Record<string, any>>;
   metadata?: Record<string, any>;
-  import_session_id?: string;
+  import_flow_id?: string;
   user_id?: string;
 }
 
@@ -70,7 +70,7 @@ export const createDiscoveryFlow = async (
         import_timestamp: new Date().toISOString(),
         ...metadata
       },
-      import_session_id: importSessionId,
+      import_flow_id: importSessionId,
       execution_mode: 'hybrid'
     };
 

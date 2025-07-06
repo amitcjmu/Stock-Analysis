@@ -40,7 +40,7 @@ export interface Flow {
   id: string;
   name: string;
   status: string;
-  session_id?: string; // For backward compatibility
+  flow_id?: string; // For backward compatibility
 }
 
 export interface User {

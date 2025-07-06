@@ -107,9 +107,9 @@ class TestDiscoveryFlowAPIEndpoints:
         """Test Discovery Flow initialization API endpoint (Task 63)"""
         # Act
         response = api_client.post(
-            "/api/v1/discovery/flow/initialize",
+            "/api/v1/flows/",
             headers=authenticated_headers,
-            json=mock_discovery_data
+            json={**mock_discovery_data, "flow_type": "discovery"}
         )
         
         # Assert
@@ -144,7 +144,7 @@ class TestDiscoveryFlowAPIEndpoints:
         
         # Act
         response = api_client.post(
-            "/api/v1/discovery/crews/field-mapping/execute",
+            "/api/v1/flows/crews/field-mapping/execute",
             headers=authenticated_headers,
             json=field_mapping_request
         )
@@ -192,7 +192,7 @@ class TestDiscoveryFlowAPIEndpoints:
         
         # Act
         response = api_client.post(
-            "/api/v1/discovery/crews/data-cleansing/execute",
+            "/api/v1/flows/crews/data-cleansing/execute",
             headers=authenticated_headers,
             json=cleansing_request
         )
@@ -215,9 +215,9 @@ class TestDiscoveryFlowAPIEndpoints:
         """Test complete Discovery Flow execution API endpoint (Task 63)"""
         # Act
         response = api_client.post(
-            "/api/v1/discovery/flow/execute",
+            "/api/v1/flows/execute",
             headers=authenticated_headers,
-            json=mock_discovery_data
+            json={**mock_discovery_data, "flow_type": "discovery"}
         )
         
         # Assert
@@ -252,7 +252,7 @@ class TestDiscoveryFlowAPIEndpoints:
         
         # Act
         response = api_client.get(
-            f"/api/v1/discovery/flow/{flow_id}/status",
+            f"/api/v1/flows/{flow_id}/status",
             headers=authenticated_headers
         )
         
@@ -281,7 +281,7 @@ class TestDiscoveryFlowAPIEndpoints:
         
         # Act
         response = api_client.get(
-            f"/api/v1/discovery/flow/{flow_id}/results",
+            f"/api/v1/flows/{flow_id}/results",
             headers=authenticated_headers
         )
         
@@ -328,16 +328,16 @@ class TestDiscoveryFlowAPIEndpoints:
         
         # Act
         response_1 = api_client.post(
-            "/api/v1/discovery/flow/initialize",
+            "/api/v1/flows/",
             headers=client_1_headers,
-            json=client_1_data
+            json={**client_1_data, "flow_type": "discovery"}
         )
         
         flow_id_1 = response_1.json()["flow_id"]
         
         # Client 2 tries to access client 1's flow
         response_2 = api_client.get(
-            f"/api/v1/discovery/flow/{flow_id_1}/status",
+            f"/api/v1/flows/{flow_id_1}/status",
             headers=client_2_headers
         )
         
@@ -353,8 +353,8 @@ class TestDiscoveryFlowAPIEndpoints:
         """Test API authentication and authorization (Task 63)"""
         # Test without authentication
         response_no_auth = api_client.post(
-            "/api/v1/discovery/flow/initialize",
-            json=mock_discovery_data
+            "/api/v1/flows/",
+            json={**mock_discovery_data, "flow_type": "discovery"}
         )
         
         # Test with invalid token
@@ -364,9 +364,9 @@ class TestDiscoveryFlowAPIEndpoints:
         }
         
         response_invalid_auth = api_client.post(
-            "/api/v1/discovery/flow/initialize", 
+            "/api/v1/flows/", 
             headers=invalid_headers,
-            json=mock_discovery_data
+            json={**mock_discovery_data, "flow_type": "discovery"}
         )
         
         # Test with valid token but insufficient permissions
@@ -377,9 +377,9 @@ class TestDiscoveryFlowAPIEndpoints:
         }
         
         response_limited_auth = api_client.post(
-            "/api/v1/discovery/flow/initialize",
+            "/api/v1/flows/",
             headers=limited_headers,
-            json=mock_discovery_data
+            json={**mock_discovery_data, "flow_type": "discovery"}
         )
         
         # Assert
@@ -492,9 +492,9 @@ class TestDiscoveryFlowAPIEndpoints:
         # Act
         start_time = datetime.now()
         response = api_client.post(
-            "/api/v1/discovery/flow/initialize",
+            "/api/v1/flows/",
             headers=authenticated_headers,
-            json=large_dataset,
+            json={**large_dataset, "flow_type": "discovery"},
             timeout=30  # 30 second timeout
         )
         end_time = datetime.now()
@@ -517,23 +517,23 @@ class TestDiscoveryFlowAPIEndpoints:
         """Test API data consistency and validation (Task 63)"""
         # Initialize flow
         init_response = api_client.post(
-            "/api/v1/discovery/flow/initialize",
+            "/api/v1/flows/",
             headers=authenticated_headers,
-            json=mock_discovery_data
+            json={**mock_discovery_data, "flow_type": "discovery"}
         )
         
         flow_id = init_response.json()["flow_id"]
         
         # Execute flow
         execute_response = api_client.post(
-            "/api/v1/discovery/flow/execute",
+            "/api/v1/flows/execute",
             headers=authenticated_headers,
-            json={"flow_id": flow_id}
+            json={"flow_id": flow_id, "flow_type": "discovery"}
         )
         
         # Get results
         results_response = api_client.get(
-            f"/api/v1/discovery/flow/{flow_id}/results",
+            f"/api/v1/flows/{flow_id}/results",
             headers=authenticated_headers
         )
         

@@ -34,7 +34,7 @@ const mockFieldMappings = [
 test.describe('Field Mapping Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Mock API responses for consistent testing
-    await page.route('**/api/v1/discovery/field-mappings**', async route => {
+    await page.route('**/api/v1/flows/field-mappings**', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -45,7 +45,7 @@ test.describe('Field Mapping Flow', () => {
       });
     });
 
-    await page.route('**/api/v1/discovery/clarifications**', async route => {
+    await page.route('**/api/v1/flows/clarifications**', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -58,7 +58,7 @@ test.describe('Field Mapping Flow', () => {
       });
     });
 
-    await page.route('**/api/v2/discovery-flows/flows/active**', async route => {
+    await page.route('**/api/v1/flows/active**', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -67,6 +67,7 @@ test.describe('Field Mapping Flow', () => {
             {
               flow_id: 'test-flow-123',
               name: 'Test Flow',
+              flow_type: 'discovery',
               status: 'attribute_mapping',
               data_import_id: 'import-123'
             }
@@ -75,12 +76,13 @@ test.describe('Field Mapping Flow', () => {
       });
     });
 
-    await page.route('**/api/v1/unified-discovery/flow/status/test-flow-123**', async route => {
+    await page.route('**/api/v1/flows/test-flow-123/status**', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
           flow_id: 'test-flow-123',
+          flow_type: 'discovery',
           status: 'attribute_mapping',
           data_import_id: 'import-123',
           field_mapping: {
@@ -337,12 +339,13 @@ test.describe('Field Mapping Flow', () => {
     await page.waitForSelector('[data-testid="field-mapping-table"]');
     
     // Mock all mappings as approved for continuation
-    await page.route('**/api/v1/unified-discovery/flow/status/test-flow-123**', async route => {
+    await page.route('**/api/v1/flows/test-flow-123/status**', async route => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
           flow_id: 'test-flow-123',
+          flow_type: 'discovery',
           status: 'attribute_mapping',
           field_mapping: {
             progress: {
