@@ -72,7 +72,7 @@ export const masterFlowService = {
   async initializeFlow(request: MasterFlowRequest): Promise<MasterFlowResponse> {
     try {
       const response = await apiClient.post<MasterFlowResponse>(
-        '/api/v1/flows/',
+        '/flows/',
         request,
         {
           headers: getMultiTenantHeaders(
@@ -99,7 +99,7 @@ export const masterFlowService = {
   ): Promise<FlowStatusResponse> {
     try {
       const response = await apiClient.get<FlowStatusResponse>(
-        `/api/v1/flows/${flowId}/status`,
+        `/flows/${flowId}/status`,
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
         }
@@ -124,7 +124,7 @@ export const masterFlowService = {
       if (flowType) params.append('flowType', flowType);
       
       const response = await apiClient.get<MasterFlowResponse[]>(
-        `/api/v1/flows/active${params.toString() ? `?${params}` : ''}`,
+        `/flows/${params.toString() ? `?${params}` : ''}`,
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
         }
@@ -145,7 +145,7 @@ export const masterFlowService = {
     engagementId?: string
   ): Promise<void> {
     try {
-      await apiClient.delete(`/api/v1/flows/${flowId}`, {
+      await apiClient.delete(`/flows/${flowId}`, {
         headers: getMultiTenantHeaders(clientAccountId, engagementId),
       });
     } catch (error) {
@@ -165,7 +165,7 @@ export const masterFlowService = {
   ): Promise<void> {
     try {
       await apiClient.put(
-        `/api/v1/flows/${flowId}/config`,
+        `/flows/${flowId}/config`,
         config,
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
@@ -187,7 +187,7 @@ export const masterFlowService = {
   ): Promise<void> {
     try {
       await apiClient.post(
-        `/api/v1/flows/${flowId}/pause`,
+        `/flows/${flowId}/pause`,
         {},
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
@@ -209,7 +209,7 @@ export const masterFlowService = {
   ): Promise<void> {
     try {
       await apiClient.post(
-        `/api/v1/flows/${flowId}/resume`,
+        `/flows/${flowId}/resume`,
         {},
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
@@ -234,7 +234,7 @@ export const masterFlowService = {
       if (flowType) params.append('flowType', flowType);
       
       const response = await apiClient.get<any>(
-        `/api/v1/flows/metrics${params.toString() ? `?${params}` : ''}`,
+        `/flows/metrics${params.toString() ? `?${params}` : ''}`,
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
         }
