@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { apiCall, updateApiContext } from '@/config/api';
 import { User, Client, Engagement, Session } from '../types';
 import { tokenStorage, contextStorage, getStoredClientData, getStoredEngagementData, getStoredSessionData } from '../storage';
+import { migrateAuthData } from '@/utils/authDataMigration';
 
 interface UseAuthInitializationProps {
   setUser: (user: User | null) => void;
@@ -29,6 +30,9 @@ export const useAuthInitialization = ({
     const initializeAuth = async () => {
       try {
         setIsLoading(true);
+        
+        // Run auth data migration first
+        migrateAuthData();
         
         const token = tokenStorage.getToken();
         if (!token) {

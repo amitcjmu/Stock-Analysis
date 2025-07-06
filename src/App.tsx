@@ -85,6 +85,7 @@ import UserProfile from "./pages/admin/UserProfile";
 import PlatformAdmin from "./pages/admin/PlatformAdmin";
 import AdminLayout from "./components/admin/AdminLayout";
 import AdminRoute from "./components/admin/AdminRoute";
+import DebugContext from "./pages/DebugContext";
 
 const queryClient = new QueryClient();
 
@@ -213,6 +214,7 @@ const AuthenticatedApp = () => {
               <Route path="/observability/agent-monitoring" element={<AgentMonitoring />} />
               <Route path="/feedback-view" element={<FeedbackView />} />
               <Route path="/profile" element={<UserProfile />} />
+              <Route path="/debug-context" element={<DebugContext />} />
               {/* Admin Routes - Protected */}
               <Route path="/admin" element={<AdminRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminRoute>} />
               <Route path="/admin/dashboard" element={<AdminRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminRoute>} />

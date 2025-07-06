@@ -42,7 +42,7 @@ interface UseUnifiedDiscoveryFlowReturn {
 }
 
 // Use master flow service for all API calls
-const createUnifiedDiscoveryAPI = (clientAccountId: number, engagementId: string) => ({
+const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string) => ({
   async getFlowStatus(flowId: string): Promise<UnifiedDiscoveryFlowState> {
     const response = await masterFlowService.getFlowStatus(flowId, clientAccountId, engagementId);
     return response as any; // Cast to expected type
@@ -69,16 +69,17 @@ const createUnifiedDiscoveryAPI = (clientAccountId: number, engagementId: string
  * Connects frontend to the UnifiedDiscoveryFlow CrewAI execution engine.
  */
 export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnifiedDiscoveryFlowReturn => {
-  const { user, getAuthHeaders } = useAuth();
+  const { user, client, engagement, getAuthHeaders } = useAuth();
   const queryClient = useQueryClient();
   const [isExecutingPhase, setIsExecutingPhase] = useState(false);
   
   // Create API instance with context
   const unifiedDiscoveryAPI = useMemo(() => {
-    const clientAccountId = user?.client_account_id || 1;
-    const engagementId = user?.engagement_id || 'default';
+    // Use demo UUIDs as fallback
+    const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
+    const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
     return createUnifiedDiscoveryAPI(clientAccountId, engagementId);
-  }, [user]);
+  }, [client, engagement]);
 
   // Use provided flowId or try to get from URL/localStorage
   const flowId = useMemo((): string | null => {

@@ -9,11 +9,11 @@ const apiClient = ApiClient.getInstance();
 import { AuthService } from '../../contexts/AuthContext/services/authService';
 
 export interface MasterFlowRequest {
-  clientAccountId: number;
+  clientAccountId: string;
   engagementId: string;
   flowType: 'discovery' | 'assessment' | 'planning' | 'execution' | 'modernize' | 'finops' | 'observability' | 'decommission';
   config?: Record<string, any>;
-  userId?: number;
+  userId?: string;
 }
 
 export interface MasterFlowResponse {
@@ -41,13 +41,13 @@ export interface FlowStatusResponse {
  * Get multi-tenant headers for API requests
  */
 const getMultiTenantHeaders = (
-  clientAccountId: number,
+  clientAccountId: string,
   engagementId?: string,
-  userId?: number
+  userId?: string
 ) => ({
-  'X-Client-Account-ID': clientAccountId.toString(),
+  'X-Client-Account-ID': clientAccountId,
   ...(engagementId && { 'X-Engagement-ID': engagementId }),
-  ...(userId && { 'X-User-ID': userId.toString() }),
+  ...(userId && { 'X-User-ID': userId }),
   'Content-Type': 'application/json',
 });
 
@@ -94,7 +94,7 @@ export const masterFlowService = {
    */
   async getFlowStatus(
     flowId: string,
-    clientAccountId: number,
+    clientAccountId: string,
     engagementId?: string
   ): Promise<FlowStatusResponse> {
     try {
@@ -115,7 +115,7 @@ export const masterFlowService = {
    * Get all active flows for a client
    */
   async getActiveFlows(
-    clientAccountId: number,
+    clientAccountId: string,
     engagementId?: string,
     flowType?: string
   ): Promise<MasterFlowResponse[]> {
@@ -141,7 +141,7 @@ export const masterFlowService = {
    */
   async deleteFlow(
     flowId: string,
-    clientAccountId: number,
+    clientAccountId: string,
     engagementId?: string
   ): Promise<void> {
     try {
@@ -160,7 +160,7 @@ export const masterFlowService = {
   async updateFlowConfig(
     flowId: string,
     config: Record<string, any>,
-    clientAccountId: number,
+    clientAccountId: string,
     engagementId?: string
   ): Promise<void> {
     try {
@@ -182,7 +182,7 @@ export const masterFlowService = {
    */
   async pauseFlow(
     flowId: string,
-    clientAccountId: number,
+    clientAccountId: string,
     engagementId?: string
   ): Promise<void> {
     try {
@@ -204,7 +204,7 @@ export const masterFlowService = {
    */
   async resumeFlow(
     flowId: string,
-    clientAccountId: number,
+    clientAccountId: string,
     engagementId?: string
   ): Promise<void> {
     try {
@@ -225,7 +225,7 @@ export const masterFlowService = {
    * Get flow metrics and analytics
    */
   async getFlowMetrics(
-    clientAccountId: number,
+    clientAccountId: string,
     engagementId?: string,
     flowType?: string
   ): Promise<any> {
@@ -252,7 +252,7 @@ export const masterFlowService = {
    * Initialize discovery flow (legacy compatibility)
    */
   async initializeDiscoveryFlow(
-    clientAccountId: number,
+    clientAccountId: string,
     engagementId: string,
     config?: Record<string, any>
   ): Promise<MasterFlowResponse> {
@@ -269,7 +269,7 @@ export const masterFlowService = {
    */
   async getDiscoveryFlowStatus(
     flowId: string,
-    clientAccountId: number,
+    clientAccountId: string,
     engagementId?: string
   ): Promise<FlowStatusResponse> {
     return this.getFlowStatus(flowId, clientAccountId, engagementId);
@@ -279,7 +279,7 @@ export const masterFlowService = {
    * Get active discovery flows (legacy compatibility)
    */
   async getActiveDiscoveryFlows(
-    clientAccountId: number,
+    clientAccountId: string,
     engagementId?: string
   ): Promise<MasterFlowResponse[]> {
     return this.getActiveFlows(clientAccountId, engagementId, 'discovery');
