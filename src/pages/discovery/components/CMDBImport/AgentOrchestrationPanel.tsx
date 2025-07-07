@@ -377,87 +377,8 @@ const AgentOrchestrationPanel: React.FC<AgentOrchestrationPanelProps> = ({
   const [overallProgress, setOverallProgress] = useState(0);
   const [currentPhase, setCurrentPhase] = useState('Initializing...');
 
-  // Fetch collaboration and planning data
-  useEffect(() => {
-    const fetchEnhancedData = async () => {
-      if (flowState?.flow_id) {
-        try {
-          // Fetch collaboration analytics
-          const collaborationResponse = await fetch(`/api/v1/discovery/flow/collaboration/analytics/${flowState.flow_id}`);
-          if (collaborationResponse.ok) {
-            const collaborationData = await collaborationResponse.json();
-            setCollaborationData({
-              total_collaborations: collaborationData.agent_collaboration?.total_events || 0,
-              active_collaborations: collaborationData.agent_collaboration?.active_collaborations || 0,
-              cross_crew_insights: collaborationData.cross_crew_sharing?.shared_insights || 0,
-              memory_utilization: collaborationData.cross_crew_sharing?.memory_utilization || 0,
-              knowledge_sharing_score: collaborationData.knowledge_utilization?.effectiveness_score || 0
-            });
-          }
+  // Removed legacy API calls - data now comes from props or flow state
 
-          // Fetch planning intelligence
-          const planningResponse = await fetch(`/api/v1/discovery/flow/planning/intelligence/${flowState.flow_id}`);
-          if (planningResponse.ok) {
-            const planningData = await planningResponse.json();
-            setPlanningData({
-              coordination_strategy: planningData.coordination_plan?.strategy || 'Not set',
-              success_criteria_met: planningData.coordination_plan?.success_criteria_met || 0,
-              adaptive_adjustments: planningData.dynamic_planning?.adjustments_count || 0,
-              optimization_score: planningData.planning_intelligence?.optimization_score || 0,
-              predicted_completion: planningData.planning_intelligence?.predicted_completion || 'Unknown'
-            });
-          }
-
-          // Fetch detailed crew monitoring
-          const crewResponse = await fetch(`/api/v1/discovery/flow/crews/monitoring/${flowState.flow_id}`);
-          if (crewResponse.ok) {
-            const crewData = await crewResponse.json();
-            updateCrewsWithMonitoringData(crewData);
-          }
-        } catch (error) {
-          console.error('Failed to fetch enhanced monitoring data:', error);
-        }
-      }
-    };
-
-    // Fetch once on mount only - no auto-polling to improve performance
-    fetchEnhancedData();
-  }, [flowState?.flow_id]);
-
-  const updateCrewsWithMonitoringData = (monitoringData: any) => {
-    const updatedCrews = crews.map(crew => {
-      const crewKey = crew.name.toLowerCase().replace(' crew', '').replace(' ', '_');
-      const crewMonitoring = monitoringData.crews?.[crewKey];
-      
-      if (crewMonitoring) {
-        return {
-          ...crew,
-          status: crewMonitoring.status === 'completed' ? 'completed' : 
-                 crewMonitoring.status === 'failed' ? 'failed' :
-                 crewMonitoring.progress > 0 ? 'running' : 'pending',
-          progress: crewMonitoring.progress || 0,
-          currentTask: crewMonitoring.current_task || crew.currentTask,
-          agents: crew.agents.map((agent, index) => ({
-            ...agent,
-            status: crewMonitoring.agents?.[index]?.status || agent.status,
-            currentTask: crewMonitoring.agents?.[index]?.current_task || agent.currentTask,
-            performance: crewMonitoring.agents?.[index]?.performance || agent.performance
-          })),
-          collaboration_status: {
-            intra_crew: crewMonitoring.performance_metrics?.collaboration_score || 0,
-            cross_crew: crewMonitoring.performance_metrics?.cross_crew_score || 0,
-            memory_sharing: crewMonitoring.performance_metrics?.memory_sharing || false,
-            knowledge_utilization: crewMonitoring.performance_metrics?.knowledge_score || 0
-          }
-        };
-      }
-      return crew;
-    });
-    
-    setCrews(updatedCrews);
-    setOverallProgress(monitoringData.overall_progress || 0);
-    setCurrentPhase(monitoringData.current_phase || 'Initializing...');
-  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {

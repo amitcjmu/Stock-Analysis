@@ -21,7 +21,7 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { useBulkFlowOperationsV2, IncompleteFlowV2 } from '@/hooks/discovery/useFlowOperations';
 import { useToast } from '@/hooks/use-toast';
-import { masterFlowService } from '@/services/api/masterFlowService';
+import masterFlowServiceExtended from '@/services/api/masterFlowService.extensions';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface UploadBlockerProps {
@@ -220,17 +220,17 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
       
       // Cleanup flows by marking them as completed
       let cleanedCount = 0;
+      const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
+      const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+      
       for (const flow of flowsToCleanup) {
         try {
-          // Use the backend API to properly complete the flow
-          await fetch(`/api/v1/discovery/flow/${flow.flowId}/complete`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Client-Account-Id': client.id,
-              'X-Engagement-ID': engagement?.id || ''
-            }
-          });
+          // Use master flow service to properly complete the flow
+          await masterFlowServiceExtended.completeFlow(
+            flow.flowId,
+            clientAccountId,
+            engagementId
+          );
           cleanedCount++;
           console.log(`🤖 CLEANED: Flow ${flow.flowId.substring(0, 8)}... marked as completed`);
         } catch (error) {

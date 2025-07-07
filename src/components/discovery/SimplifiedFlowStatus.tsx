@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { masterFlowService } from '@/services/api/masterFlowService';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SimplifiedFlowStatusProps {
   flow_id: string;
@@ -36,13 +37,18 @@ export const SimplifiedFlowStatus: React.FC<SimplifiedFlowStatusProps> = ({
   flow_id,
   onNavigateToMapping
 }) => {
+  const { client, engagement } = useAuth();
   const [flowStatus, setFlowStatus] = useState<FlowStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchStatus = async () => {
     try {
-      const response = await masterFlowService.getFlowStatus(flow_id, 1); // Use default client_account_id
+      // Use proper UUIDs from auth context with demo fallbacks
+      const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
+      const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+      
+      const response = await masterFlowService.getFlowStatus(flow_id, clientAccountId, engagementId);
       setFlowStatus(response as any);
       setError(null);
     } catch (err) {

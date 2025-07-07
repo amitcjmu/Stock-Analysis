@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { masterFlowService } from '@/services/api/masterFlowService';
+import masterFlowServiceExtended from '@/services/api/masterFlowService.extensions';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Types
@@ -57,20 +57,18 @@ export interface InfrastructureLandscape {
 }
 
 export const useDiscoveryMetrics = () => {
-  const { getAuthHeaders } = useAuth();
+  const { client, engagement } = useAuth();
   
   return useQuery<DiscoveryMetrics, Error>({
     queryKey: ['discovery', 'metrics'],
     queryFn: async () => {
-      const response = await apiCall(
-        '/api/v1/discovery/metrics',
-        { 
-          method: 'GET',
-          headers: getAuthHeaders()
-        },
-        true
+      const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
+      const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+      
+      return await masterFlowServiceExtended.getDiscoveryMetrics(
+        clientAccountId,
+        engagementId
       );
-      return response.data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
@@ -78,20 +76,18 @@ export const useDiscoveryMetrics = () => {
 };
 
 export const useApplicationLandscape = () => {
-  const { getAuthHeaders } = useAuth();
+  const { client, engagement } = useAuth();
   
   return useQuery<ApplicationLandscape, Error>({
     queryKey: ['discovery', 'application-landscape'],
     queryFn: async () => {
-      const response = await apiCall(
-        '/api/v1/discovery/application-landscape',
-        { 
-          method: 'GET',
-          headers: getAuthHeaders()
-        },
-        true
+      const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
+      const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+      
+      return await masterFlowServiceExtended.getApplicationLandscape(
+        clientAccountId,
+        engagementId
       );
-      return response.data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
@@ -99,20 +95,18 @@ export const useApplicationLandscape = () => {
 };
 
 export const useInfrastructureLandscape = () => {
-  const { getAuthHeaders } = useAuth();
+  const { client, engagement } = useAuth();
   
   return useQuery<InfrastructureLandscape, Error>({
     queryKey: ['discovery', 'infrastructure-landscape'],
     queryFn: async () => {
-      const response = await apiCall(
-        '/api/v1/discovery/infrastructure-landscape',
-        { 
-          method: 'GET',
-          headers: getAuthHeaders()
-        },
-        true
+      const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
+      const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+      
+      return await masterFlowServiceExtended.getInfrastructureLandscape(
+        clientAccountId,
+        engagementId
       );
-      return response.data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,

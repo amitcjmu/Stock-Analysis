@@ -1,0 +1,14 @@
+Name,Type,Status,Environment,IP_Address,OS,Department,Owner,Location,Description
+APP-WEB-001,Application,Active,Production,10.0.1.10,Linux,IT,John Doe,US-East,Customer portal web application
+APP-API-001,Application,Active,Production,10.0.1.11,Linux,IT,Jane Smith,US-East,REST API service
+APP-DB-001,Application,Active,Production,10.0.1.12,Linux,IT,Bob Wilson,US-East,Database application layer
+SRV-WEB-001,Server,Active,Production,10.0.2.10,Ubuntu 22.04,IT,John Doe,US-East,Web server hosting customer portal
+SRV-WEB-002,Server,Active,Production,10.0.2.11,Ubuntu 22.04,IT,John Doe,US-East,Web server hosting customer portal
+SRV-API-001,Server,Active,Production,10.0.2.20,Ubuntu 20.04,IT,Jane Smith,US-East,API server cluster node 1
+SRV-API-002,Server,Active,Production,10.0.2.21,Ubuntu 20.04,IT,Jane Smith,US-East,API server cluster node 2
+SRV-DB-001,Server,Active,Production,10.0.2.30,Red Hat 8,IT,Bob Wilson,US-East,Primary database server
+SRV-DB-002,Server,Standby,Production,10.0.2.31,Red Hat 8,IT,Bob Wilson,US-East,Standby database server
+DEV-LB-001,Device,Active,Production,10.0.3.10,Proprietary,Network,Alice Brown,US-East,Load balancer for web traffic
+DEV-FW-001,Device,Active,Production,10.0.3.20,Proprietary,Security,Charlie Davis,US-East,Main firewall appliance
+DEV-SW-001,Device,Active,Production,10.0.3.30,Cisco IOS,Network,Alice Brown,US-East,Core network switch
+DEV-STG-001,Device,Active,Production,10.0.3.40,Proprietary,IT,Bob Wilson,US-East,SAN storage device

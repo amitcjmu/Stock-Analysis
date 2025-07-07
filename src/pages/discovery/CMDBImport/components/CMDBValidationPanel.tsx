@@ -9,10 +9,8 @@ import {
   Clock 
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { UploadFile } from '../CMDBImport.types';
 import { getStatusStyling } from '../utils/statusUtils';
-import { useComprehensiveRealTimeMonitoring } from '@/hooks/useRealTimeProcessing';
 
 interface CMDBValidationPanelProps {
   file: UploadFile;
@@ -23,38 +21,15 @@ export const CMDBValidationPanel: React.FC<CMDBValidationPanelProps> = ({
   file, 
   onValidationUpdate 
 }) => {
-  const monitoring = file.flow_id ? useComprehensiveRealTimeMonitoring(file.flow_id, 'data_import', false) : null;
-  
-  // Get validation data from real-time monitoring or fallback to defaults
-  const validationData = monitoring?.data?.validationResult || {};
-  const hasRealTimeData = !!monitoring?.data;
-  
-  // Call update callback when we have new validation data
-  React.useEffect(() => {
-    if (hasRealTimeData && validationData) {
-      onValidationUpdate(validationData);
-    }
-  }, [hasRealTimeData, validationData, onValidationUpdate]);
-  
-  // Progress calculation
+  // Progress calculation from file state only
   const agentsCompleted = file.agents_completed || 0;
   const totalAgents = file.total_agents || 4;
-  const validationProgress = hasRealTimeData 
-    ? (validationData.validation_progress || 0) 
-    : Math.round((agentsCompleted / totalAgents) * 100);
+  const validationProgress = Math.round((agentsCompleted / totalAgents) * 100);
   
-  // Status determination from real-time data or file state
-  const formatStatus = hasRealTimeData 
-    ? (validationData.format_validation?.status || 'pending')
-    : (file.format_validation ? 'passed' : 'pending');
-    
-  const securityStatus = hasRealTimeData
-    ? (validationData.security_scan?.status || 'pending')
-    : (file.security_clearance ? 'passed' : 'pending');
-    
-  const privacyStatus = hasRealTimeData
-    ? (validationData.privacy_issues && validationData.privacy_issues.length > 0 ? 'warning' : 'passed')
-    : (file.privacy_clearance ? 'passed' : 'pending');
+  // Status determination from file state only
+  const formatStatus = file.format_validation ? 'passed' : 'pending';
+  const securityStatus = file.security_clearance ? 'passed' : 'pending';
+  const privacyStatus = file.privacy_clearance ? 'passed' : 'pending';
   
   const formatStyling = getStatusStyling(formatStatus);
   const securityStyling = getStatusStyling(securityStatus);
@@ -68,14 +43,9 @@ export const CMDBValidationPanel: React.FC<CMDBValidationPanelProps> = ({
           <span>{agentsCompleted}/{totalAgents} agents completed</span>
         </div>
         <Progress value={validationProgress} className="h-2" />
-        {hasRealTimeData && (
-          <div className="text-xs text-gray-500">
-            Real-time validation status • Last updated: {new Date().toLocaleTimeString()}
-          </div>
-        )}
       </div>
 
-      {/* Security Clearances with Real-time Status */}
+      {/* Security Clearances */}
       <div className="grid grid-cols-3 gap-4">
         <div className={`p-3 rounded-lg border ${formatStyling.bg}`}>
           <div className="flex items-center justify-between">
@@ -93,11 +63,6 @@ export const CMDBValidationPanel: React.FC<CMDBValidationPanelProps> = ({
               <Clock className="h-4 w-4 text-gray-400" />
             )}
           </div>
-          {hasRealTimeData && validationData.format_validation?.errors && validationData.format_validation.errors.length > 0 && (
-            <div className="mt-1 text-xs text-red-600">
-              {validationData.format_validation.errors.length} error(s) found
-            </div>
-          )}
         </div>
         
         <div className={`p-3 rounded-lg border ${securityStyling.bg}`}>
@@ -116,11 +81,6 @@ export const CMDBValidationPanel: React.FC<CMDBValidationPanelProps> = ({
               <Clock className="h-4 w-4 text-gray-400" />
             )}
           </div>
-          {hasRealTimeData && validationData.security_scan?.issues && validationData.security_scan.issues.length > 0 && (
-            <div className="mt-1 text-xs text-red-600">
-              {validationData.security_scan.issues.length} issue(s) found
-            </div>
-          )}
         </div>
         
         <div className={`p-3 rounded-lg border ${privacyStyling.bg}`}>
@@ -142,35 +102,8 @@ export const CMDBValidationPanel: React.FC<CMDBValidationPanelProps> = ({
               <Clock className="h-4 w-4 text-gray-400" />
             )}
           </div>
-          {hasRealTimeData && validationData.data_quality?.score && (
-            <div className="mt-1 text-xs text-gray-600">
-              Quality: {Math.round(validationData.data_quality.score * 100)}%
-            </div>
-          )}
         </div>
       </div>
-      
-      {/* Validation Error Details */}
-      {hasRealTimeData && (
-        <div className="space-y-2">
-          {validationData.format_validation?.errors && validationData.format_validation.errors.map((error: string, index: number) => (
-            <Alert key={index} variant="destructive" className="py-2">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-sm">
-                <strong>Format Error:</strong> {error}
-              </AlertDescription>
-            </Alert>
-          ))}
-          {validationData.security_scan?.issues && validationData.security_scan.issues.map((issue: string, index: number) => (
-            <Alert key={index} variant="destructive" className="py-2">
-              <Shield className="h-4 w-4" />
-              <AlertDescription className="text-sm">
-                <strong>Security Issue:</strong> {issue}
-              </AlertDescription>
-            </Alert>
-          ))}
-        </div>
-      )}
     </div>
   );
 };

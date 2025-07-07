@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
-import { apiCall } from '../../config/api';
+import masterFlowServiceExtended from '@/services/api/masterFlowService.extensions';
 import { useToast } from '../../hooks/use-toast';
 
 export const useAttributeMappingNavigation = (flowState?: any, mappingProgress?: any) => {
@@ -35,28 +35,20 @@ export const useAttributeMappingNavigation = (flowState?: any, mappingProgress?:
         });
         
         try {
-          const response = await apiCall(`/api/v1/discovery/flow/${flowId}/resume`, {
-            method: 'POST',
-            body: JSON.stringify({
-              field_mappings: flowState?.field_mappings || {},
-              notes: 'User approved field mappings from UI',
-              approval_timestamp: new Date().toISOString()
-            })
+          const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
+          const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+          
+          await masterFlowServiceExtended.resumeFlow(flowId, clientAccountId, engagementId);
+          
+          toast({
+            title: "Flow Resumed",
+            description: "Discovery flow is now continuing with data cleansing phase.",
           });
           
-          if (response.success) {
-            toast({
-              title: "Flow Resumed",
-              description: "Discovery flow is now continuing with data cleansing phase.",
-            });
-            
-            // Navigate to data cleansing after a short delay
-            setTimeout(() => {
-              navigate('/discovery/data-cleansing');
-            }, 1500);
-          } else {
-            throw new Error(response.message || 'Failed to resume flow');
-          }
+          // Navigate to data cleansing after a short delay
+          setTimeout(() => {
+            navigate('/discovery/data-cleansing');
+          }, 1500);
         } catch (resumeError) {
           console.error('Failed to resume flow:', resumeError);
           toast({

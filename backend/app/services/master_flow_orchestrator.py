@@ -664,7 +664,12 @@ class MasterFlowOrchestrator:
                 "flow_name": master_flow.flow_name,
                 "status": master_flow.flow_status,
                 "created_at": master_flow.created_at.isoformat(),
-                "updated_at": master_flow.updated_at.isoformat()
+                "updated_at": master_flow.updated_at.isoformat(),
+                "created_by": getattr(master_flow, 'created_by', self.context.user_id),
+                "current_phase": getattr(master_flow, 'current_phase', None),
+                "progress_percentage": getattr(master_flow, 'progress_percentage', 0.0),
+                "configuration": master_flow.flow_configuration if hasattr(master_flow, 'flow_configuration') and master_flow.flow_configuration else {},
+                "metadata": {}
             }
             
             if include_details:
@@ -735,7 +740,12 @@ class MasterFlowOrchestrator:
                     "flow_name": flow.flow_name,
                     "status": flow.flow_status,
                     "created_at": flow.created_at.isoformat(),
-                    "updated_at": flow.updated_at.isoformat()
+                    "updated_at": flow.updated_at.isoformat(),
+                    "created_by": getattr(flow, 'created_by', self.context.user_id),
+                    "current_phase": getattr(flow, 'current_phase', None),
+                    "progress_percentage": getattr(flow, 'progress_percentage', 0.0),
+                    "configuration": flow.flow_configuration if hasattr(flow, 'flow_configuration') and flow.flow_configuration else {},
+                    "metadata": {}
                 })
             
             # Log list operation audit

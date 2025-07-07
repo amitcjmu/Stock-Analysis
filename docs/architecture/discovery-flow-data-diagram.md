@@ -91,68 +91,68 @@ graph TB
     end
 
     %% Data Flow Paths
-    UI -->|1. Upload File| Upload
-    Upload -->|2. Check Incomplete Flows| Blocker
-    Blocker -->|3. If Clear| Gateway
+    UI -->|1 Upload File| Upload
+    Upload -->|2 Check Incomplete Flows| Blocker
+    Blocker -->|3 If Clear| Gateway
     
     Gateway --> Auth
     Auth --> Context
     Context --> CORS
     
-    CORS -->|4. /api/v1/data-import/upload| ImportService
-    ImportService -->|5. Store File| DataImports
+    CORS -->|4 /api/v1/data-import/upload| ImportService
+    ImportService -->|5 Store File| DataImports
     
-    ImportService -->|6. Create Flow| MFO
-    MFO -->|7. Initialize| UDF
-    UDF -->|8. Create State| FlowBridge
-    FlowBridge -->|9. Persist| PostgresStore
+    ImportService -->|6 Create Flow| MFO
+    MFO -->|7 Initialize| UDF
+    UDF -->|8 Create State| FlowBridge
+    FlowBridge -->|9 Persist| PostgresStore
     PostgresStore --> DiscoveryFlows
     PostgresStore --> CrewAIExt
     
     %% Phase 1: Data Import
-    MFO -->|10. Execute Phase| ImportExec
-    ImportExec -->|11. Validate Data| ImportAgent
-    ImportExec -->|12. Update State| StateManager
-    StateManager -->|13. Persist| PostgresStore
+    MFO -->|10 Execute Phase| ImportExec
+    ImportExec -->|11 Validate Data| ImportAgent
+    ImportExec -->|12 Update State| StateManager
+    StateManager -->|13 Persist| PostgresStore
     
     %% Phase 2: Field Mapping
-    UI -->|14. Navigate to Mapping| Mapping
-    Mapping -->|15. Get Mappings| MFO
-    MFO -->|16. Execute| MappingExec
-    MappingExec -->|17. Generate Mappings| MappingAgent
-    MappingExec -->|18. Await Approval| StateManager
+    UI -->|14 Navigate to Mapping| Mapping
+    Mapping -->|15 Get Mappings| MFO
+    MFO -->|16 Execute| MappingExec
+    MappingExec -->|17 Generate Mappings| MappingAgent
+    MappingExec -->|18 Await Approval| StateManager
     
     %% Phase 3: Data Cleansing
-    UI -->|19. Approve & Continue| Cleansing
-    Cleansing -->|20. Get Quality Issues| MFO
-    MFO -->|21. Execute| CleansingExec
-    CleansingExec -->|22. Clean Data| CleansingAgent
-    CleansingExec -->|23. Store Clean Data| Assets
+    UI -->|19 Approve & Continue| Cleansing
+    Cleansing -->|20 Get Quality Issues| MFO
+    MFO -->|21 Execute| CleansingExec
+    CleansingExec -->|22 Clean Data| CleansingAgent
+    CleansingExec -->|23 Store Clean Data| Assets
     
     %% Phase 4: Asset Inventory
-    UI -->|24. Continue| Inventory
-    Inventory -->|25. Get Assets| MFO
-    MFO -->|26. Execute| InventoryExec
-    InventoryExec -->|27. Build Inventory| InventoryAgent
-    InventoryExec -->|28. Categorize Assets| AssetService
-    AssetService -->|29. Store| Assets
+    UI -->|24 Continue| Inventory
+    Inventory -->|25 Get Assets| MFO
+    MFO -->|26 Execute| InventoryExec
+    InventoryExec -->|27 Build Inventory| InventoryAgent
+    InventoryExec -->|28 Categorize Assets| AssetService
+    AssetService -->|29 Store| Assets
     
     %% Phase 5: Dependency Analysis
-    UI -->|30. Continue| Dependencies
-    Dependencies -->|31. Get Dependencies| MFO
-    MFO -->|32. Execute| DependencyExec
-    DependencyExec -->|33. Analyze| DependencyAgent
-    DependencyExec -->|34. Map Dependencies| DependencyService
-    DependencyService -->|35. Store| AppDeps
+    UI -->|30 Continue| Dependencies
+    Dependencies -->|31 Get Dependencies| MFO
+    MFO -->|32 Execute| DependencyExec
+    DependencyExec -->|33 Analyze| DependencyAgent
+    DependencyExec -->|34 Map Dependencies| DependencyService
+    DependencyService -->|35 Store| AppDeps
     
     %% Phase 6: Tech Debt (Final)
-    MFO -->|36. Execute Final| TechDebtExec
-    TechDebtExec -->|37. Complete Flow| StateManager
-    StateManager -->|38. Mark Complete| PostgresStore
+    MFO -->|36 Execute Final| TechDebtExec
+    TechDebtExec -->|37 Complete Flow| StateManager
+    StateManager -->|38 Mark Complete| PostgresStore
     
     %% Assessment Flow Transition
-    MFO -->|39. Ready for Assessment| Registry
-    Registry -->|40. Create Assessment Flow| MFO
+    MFO -->|39 Ready for Assessment| Registry
+    Registry -->|40 Create Assessment Flow| MFO
 
     %% Style
     classDef frontend fill:#e1f5fe,stroke:#01579b,stroke-width:2px

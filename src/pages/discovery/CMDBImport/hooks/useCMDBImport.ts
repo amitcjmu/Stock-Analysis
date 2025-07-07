@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { apiCall } from '@/config/api';
 import { masterFlowService } from '@/services/api/masterFlowService';
 import { UploadFile } from '../CMDBImport.types';
 import { useFileUpload } from './useFileUpload';
@@ -10,7 +11,7 @@ import { useFlowManagement } from './useFlowManagement';
 export const useCMDBImport = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { getAuthHeaders } = useAuth();
+  const { getAuthHeaders, client, engagement } = useAuth();
   const [isStartingFlow, setIsStartingFlow] = useState(false);
   const [isLoadingFlowDetails, setIsLoadingFlowDetails] = useState(false);
 
@@ -24,7 +25,11 @@ export const useCMDBImport = () => {
     }
     
     try {
-      const flowResponse = await masterFlowService.getFlowStatus(file.flow_id, 1); // Use default client_account_id
+      // Use proper UUIDs from auth context with demo fallbacks
+      const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
+      const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+      
+      const flowResponse = await masterFlowService.getFlowStatus(file.flow_id, clientAccountId, engagementId);
       
       const flowSummary = {
         total_assets: flowResponse.total_records || 0,
@@ -58,7 +63,7 @@ export const useCMDBImport = () => {
     } catch (error) {
       console.error('Error fetching flow details for file:', file.name, error);
     }
-  }, [fileUpload.setUploadedFiles]);
+  }, [fileUpload.setUploadedFiles, client, engagement]);
 
   // Initialize flow details for existing uploaded files
   useEffect(() => {
@@ -82,15 +87,15 @@ export const useCMDBImport = () => {
   }, [fileUpload.uploadedFiles.length, fetchFlowDetails, isLoadingFlowDetails]);
 
   // Retrieve stored data for discovery flow
-  const getStoredImportData = useCallback(async (importSessionId: string | undefined): Promise<any[]> => {
-    console.log('getStoredImportData called with:', importSessionId);
-    if (!importSessionId) {
-      console.error("No import session ID provided");
+  const getStoredImportData = useCallback(async (flowId: string | undefined): Promise<any[]> => {
+    console.log('getStoredImportData called with flow_id:', flowId);
+    if (!flowId) {
+      console.error("No flow ID provided");
       return [];
     }
   
     try {
-      const response = await apiCall(`/data-import/import/${importSessionId}`, {
+      const response = await apiCall(`/data-import/flow/${flowId}/data`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
@@ -189,19 +194,19 @@ export const useCMDBImport = () => {
             
         } else {
             // New flow - verify data exists and start discovery process
-            if (!uploadedFile.importSessionId) {
-                throw new Error("No import session found. The discovery flow cannot start.");
+            if (!uploadedFile.flow_id) {
+                throw new Error("No flow ID found. The discovery flow cannot start.");
             }
             
             // Retrieve stored data to ensure it's available for the flow
-            const storedData = await getStoredImportData(uploadedFile.importSessionId);
+            const storedData = await getStoredImportData(uploadedFile.flow_id);
             console.log('Retrieved stored data for flow:', { 
               count: storedData.length,
               hasData: storedData.length > 0
             });
 
             if (storedData.length === 0) {
-              throw new Error("No data found for the import session. The discovery flow cannot start.");
+              throw new Error("No data found for the flow. The discovery flow cannot start.");
             }
 
             // ✅ Navigate to data import phase (new flows should start with data import)

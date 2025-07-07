@@ -52,7 +52,7 @@
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
         ],
-        "timeout": 300000
+        "timeout": 180000
       },
       {
         "outputDir": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/test-results",
@@ -68,7 +68,7 @@
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
         ],
-        "timeout": 300000
+        "timeout": 180000
       },
       {
         "outputDir": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/test-results",
@@ -84,7 +84,7 @@
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
         ],
-        "timeout": 300000
+        "timeout": 180000
       }
     ],
     "shard": null,
@@ -110,7 +110,7 @@
           "specs": [
             {
               "title": "Import CMDB file and complete attribute mapping",
-              "ok": false,
+              "ok": true,
               "tags": [],
               "tests": [
                 {
@@ -123,65 +123,103 @@
                     {
                       "workerIndex": 0,
                       "parallelIndex": 0,
-                      "status": "failed",
-                      "duration": 6986,
-                      "error": {
-                        "message": "Error: Login failed - still on login page",
-                        "stack": "Error: Login failed - still on login page\n    at /Users/chocka/CursorProjects/migrate-ui-orchestrator/tests/e2e/import-and-mapping.spec.ts:38:13",
-                        "location": {
-                          "file": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/tests/e2e/import-and-mapping.spec.ts",
-                          "column": 13,
-                          "line": 38
-                        },
-                        "snippet": "  36 |     const currentUrl = page.url();\n  37 |     if (currentUrl.includes('/login')) {\n> 38 |       throw new Error('Login failed - still on login page');\n     |             ^\n  39 |     }\n  40 |     console.log('✅ Login successful');\n  41 |     "
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/tests/e2e/import-and-mapping.spec.ts",
-                            "column": 13,
-                            "line": 38
-                          },
-                          "message": "Error: Login failed - still on login page\n\n  36 |     const currentUrl = page.url();\n  37 |     if (currentUrl.includes('/login')) {\n> 38 |       throw new Error('Login failed - still on login page');\n     |             ^\n  39 |     }\n  40 |     console.log('✅ Login successful');\n  41 |     \n    at /Users/chocka/CursorProjects/migrate-ui-orchestrator/tests/e2e/import-and-mapping.spec.ts:38:13"
-                        }
-                      ],
+                      "status": "passed",
+                      "duration": 45931,
+                      "errors": [],
                       "stdout": [
                         {
                           "text": "Starting import and mapping test...\n"
                         },
                         {
                           "text": "🔐 Step 1: Logging in...\n"
+                        },
+                        {
+                          "text": "✅ Login successful\n"
+                        },
+                        {
+                          "text": "📁 Step 2: Navigating to Data Import...\n"
+                        },
+                        {
+                          "text": "🔍 Step 3: Checking for existing flows...\n"
+                        },
+                        {
+                          "text": "⚠️ Upload blocked - clearing existing flows...\n"
+                        },
+                        {
+                          "text": "📤 Step 4: Uploading CMDB file...\n"
+                        },
+                        {
+                          "text": "Found 0 file inputs on page\n"
+                        },
+                        {
+                          "text": "Found 1 upload areas\n"
+                        },
+                        {
+                          "text": "Attempting to click upload area...\n"
+                        },
+                        {
+                          "text": "✅ Upload success indicator found: text=/upload.*complete/i\n"
+                        },
+                        {
+                          "text": "⏳ Step 5: Waiting for initial processing...\n"
+                        },
+                        {
+                          "text": "🗺️ Step 6: Going to Attribute Mapping...\n"
+                        },
+                        {
+                          "text": "📄 Current URL: http://localhost:8081/discovery/attribute-mapping\n"
+                        },
+                        {
+                          "text": "🔍 Step 7: Checking field mapping status...\n"
+                        },
+                        {
+                          "text": "🔄 Triggering field mapping...\n"
+                        },
+                        {
+                          "text": "📊 Step 8: Looking for mapping data...\n"
+                        },
+                        {
+                          "text": "✅ Found mapping indicator: text=/map.*to/i (1 elements)\n"
+                        },
+                        {
+                          "text": "🎯 Step 9: Looking for finalize button...\n"
+                        },
+                        {
+                          "text": "📋 Step 10: Checking final state...\n"
+                        },
+                        {
+                          "text": "📊 Final asset count: 0\n"
+                        },
+                        {
+                          "text": "\n=== Test Summary ===\n"
+                        },
+                        {
+                          "text": "Login: ✅\n"
+                        },
+                        {
+                          "text": "File Upload: ✅\n"
+                        },
+                        {
+                          "text": "Attribute Mapping Page: ✅\n"
+                        },
+                        {
+                          "text": "Mapping Data Found: ✅\n"
+                        },
+                        {
+                          "text": "Assets Created: ❌ (0 assets)\n"
+                        },
+                        {
+                          "text": "\n🧹 Cleaning up test artifacts...\n"
                         }
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-07-05T23:23:46.334Z",
+                      "startTime": "2025-07-06T23:25:14.740Z",
                       "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/test-results/import-and-mapping-Import--981f6--complete-attribute-mapping-chromium/test-failed-1.png"
-                        },
-                        {
-                          "name": "video",
-                          "contentType": "video/webm",
-                          "path": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/test-results/import-and-mapping-Import--981f6--complete-attribute-mapping-chromium/video.webm"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/test-results/import-and-mapping-Import--981f6--complete-attribute-mapping-chromium/error-context.md"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "/Users/chocka/CursorProjects/migrate-ui-orchestrator/tests/e2e/import-and-mapping.spec.ts",
-                        "column": 13,
-                        "line": 38
-                      }
+                      "attachments": []
                     }
                   ],
-                  "status": "unexpected"
+                  "status": "expected"
                 }
               ],
               "id": "4c8438fd41a3f82d67de-f03e4a216d61fdf22e74",
@@ -196,11 +234,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-07-05T23:23:45.731Z",
-    "duration": 8526.878,
-    "expected": 0,
+    "startTime": "2025-07-06T23:25:14.373Z",
+    "duration": 46600.062999999995,
+    "expected": 1,
     "skipped": 0,
-    "unexpected": 1,
+    "unexpected": 0,
     "flaky": 0
   }
 }

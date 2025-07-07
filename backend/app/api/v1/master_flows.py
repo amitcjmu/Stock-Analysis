@@ -473,8 +473,8 @@ async def delete_master_flow(
         
         # TODO: Add similar updates for AssessmentFlow, PlanningFlow, ExecutionFlow when implemented
         
-        # Mark master flow as having deleted children
-        master_flow.flow_status = "child_flows_deleted"
+        # Mark master flow as cancelled (soft delete)
+        master_flow.flow_status = "cancelled"
         master_flow.flow_persistence_data = master_flow.flow_persistence_data or {}
         master_flow.flow_persistence_data["deletion_timestamp"] = datetime.utcnow().isoformat()
         master_flow.flow_persistence_data["deleted_by"] = current_user.get("user_id")

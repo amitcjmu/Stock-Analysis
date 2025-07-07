@@ -8,8 +8,6 @@ export interface UploadFile {
   uploadedAt: Date;
   status: 'uploading' | 'validating' | 'processing' | 'approved' | 'approved_with_warnings' | 'rejected' | 'error';
   agentResults: ValidationAgentResult[];
-  validationSessionId?: string;
-  importSessionId?: string;
   flow_id?: string;  // ✅ CrewAI-generated flow ID
   // Additional progress tracking properties
   upload_progress?: number;

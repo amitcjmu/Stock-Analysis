@@ -64,16 +64,15 @@ export const useFlowResumptionV2 = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { client, engagement } = useAuth();
   
   return useMutation({
     mutationFn: async (flowId: string) => {
-      return await apiCall(`/api/v1/discovery/flow/${flowId}/resume`, {
-        method: 'POST',
-        body: JSON.stringify({
-          field_mappings: {},
-          notes: 'Resuming incomplete flow'
-        })
-      });
+      const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
+      const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+      
+      // Use masterFlowService for resuming flows
+      return await masterFlowService.resumeFlow(flowId, clientAccountId, engagementId);
     },
     onSuccess: (data, flowId) => {
       queryClient.invalidateQueries({ queryKey: ['incomplete-flows'] });
@@ -104,21 +103,15 @@ export const useFlowResumptionV2 = () => {
 export const useFlowDeletionV2 = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { client, engagement } = useAuth();
   
   return useMutation({
     mutationFn: async (flowId: string) => {
-      try {
-        // First try to delete from discovery flows
-        return await apiCall(`/api/v1/discovery/flow/${flowId}`, {
-          method: 'DELETE'
-        });
-      } catch (error) {
-        // If that fails, try master flows API as fallback
-        console.warn('Discovery flow delete failed, trying master flows API');
-        return await apiCall(`/api/v1/flows/${flowId}`, {
-          method: 'DELETE'
-        });
-      }
+      const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
+      const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+      
+      // Use masterFlowService for deletion (proper unified API)
+      return await masterFlowService.deleteFlow(flowId, clientAccountId, engagementId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incomplete-flows'] });
@@ -143,24 +136,24 @@ export const useFlowDeletionV2 = () => {
 export const useBulkFlowOperationsV2 = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { client, engagement } = useAuth();
   const [isDeleting, setIsDeleting] = useState(false);
   
   const bulkDelete = useMutation({
     mutationFn: async (flowIds: string[]) => {
       setIsDeleting(true);
+      const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
+      const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+      
       try {
         const results = await Promise.all(
           flowIds.map(async flowId => {
             try {
-              // First try discovery flow endpoint
-              return await apiCall(`/api/v1/discovery/flow/${flowId}`, { method: 'DELETE' });
+              // Use masterFlowService for all deletions
+              await masterFlowService.deleteFlow(flowId, clientAccountId, engagementId);
+              return { flowId, success: true };
             } catch (error) {
-              try {
-                // Fallback to master flows API
-                return await apiCall(`/api/v1/flows/${flowId}`, { method: 'DELETE' });
-              } catch (fallbackError) {
-                return { flowId, error: fallbackError };
-              }
+              return { flowId, error };
             }
           })
         );

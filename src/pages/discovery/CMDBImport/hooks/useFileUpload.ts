@@ -52,8 +52,8 @@ export const useFileUpload = () => {
 
     // Use effective client and engagement (same logic as handleFileUpload)
     const isAdmin = user?.role === 'admin' || user?.role === 'platform_admin';
-    const effectiveClient = client || (isAdmin ? { id: 'demo-client', name: 'Demo Client' } : null);
-    const effectiveEngagement = engagement || (isAdmin ? { id: 'demo-engagement', name: 'Demo Engagement' } : null);
+    const effectiveClient = client || (isAdmin ? { id: '11111111-1111-1111-1111-111111111111', name: 'Demo Client' } : null);
+    const effectiveEngagement = engagement || (isAdmin ? { id: '22222222-2222-2222-2222-222222222222', name: 'Demo Engagement' } : null);
 
     try {
       console.log(`Storing data for upload: ${uploadId}`);
@@ -144,9 +144,9 @@ export const useFileUpload = () => {
       return;
     }
 
-    // Provide demo context for admin users if needed
-    const effectiveClient = client || (isAdmin ? { id: 'demo-client', name: 'Demo Client' } : null);
-    const effectiveEngagement = engagement || (isAdmin ? { id: 'demo-engagement', name: 'Demo Engagement' } : null);
+    // Provide demo context for admin users if needed (use proper UUIDs)
+    const effectiveClient = client || (isAdmin ? { id: '11111111-1111-1111-1111-111111111111', name: 'Demo Client' } : null);
+    const effectiveEngagement = engagement || (isAdmin ? { id: '22222222-2222-2222-2222-222222222222', name: 'Demo Engagement' } : null);
 
     if (!effectiveClient || !effectiveEngagement) {
       toast({

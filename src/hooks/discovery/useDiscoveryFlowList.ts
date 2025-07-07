@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
+import masterFlowServiceExtended from '@/services/api/masterFlowService.extensions';
 
 export interface DiscoveryFlow {
   flow_id: string;
@@ -25,10 +25,31 @@ export const useDiscoveryFlowList = () => {
     queryKey: ['discovery-flows', client?.id, engagement?.id],
     queryFn: async () => {
       try {
-        // Use the active flows endpoint which is available
-        const response = await apiCall('/api/v1/discovery/flows/active');
-        // Handle both array response and object with flows array
-        return Array.isArray(response) ? response : (response.flows || []);
+        const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
+        const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+        
+        // Use master flow service to get active flows
+        const response = await masterFlowServiceExtended.getActiveFlows(
+          clientAccountId,
+          engagementId,
+          'discovery'
+        );
+        
+        // Transform to expected format
+        return response.map(flow => ({
+          flow_id: flow.flowId,
+          status: flow.status,
+          current_phase: flow.currentPhase || '',
+          created_at: flow.createdAt,
+          updated_at: flow.updatedAt,
+          // Map phase completion from metadata if available
+          data_import_completed: flow.metadata?.phases?.data_import === true,
+          attribute_mapping_completed: flow.metadata?.phases?.attribute_mapping === true,
+          data_cleansing_completed: flow.metadata?.phases?.data_cleansing === true,
+          inventory_completed: flow.metadata?.phases?.inventory === true,
+          dependencies_completed: flow.metadata?.phases?.dependencies === true,
+          tech_debt_completed: flow.metadata?.phases?.tech_debt === true,
+        }));
       } catch (error) {
         console.warn('Failed to fetch discovery flows, returning empty list:', error);
         return [];
@@ -46,8 +67,24 @@ export { useDiscoveryFlowList as useDiscoveryFlowListV2 };
 // Utility function to get flows (used by auto-detection)
 export const getFlows = async () => {
   try {
-    const response = await apiCall('/api/v1/discovery/flows/active');
-    return Array.isArray(response) ? response : (response.flows || []);
+    // Use default demo IDs for utility function
+    const clientAccountId = "11111111-1111-1111-1111-111111111111";
+    const engagementId = "22222222-2222-2222-2222-222222222222";
+    
+    const response = await masterFlowServiceExtended.getActiveFlows(
+      clientAccountId,
+      engagementId,
+      'discovery'
+    );
+    
+    // Transform to legacy format for compatibility
+    return response.map(flow => ({
+      flow_id: flow.flowId,
+      status: flow.status,
+      current_phase: flow.currentPhase || '',
+      created_at: flow.createdAt,
+      updated_at: flow.updatedAt
+    }));
   } catch (error) {
     console.warn('Failed to fetch discovery flows:', error);
     return [];

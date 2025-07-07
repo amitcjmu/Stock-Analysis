@@ -70,36 +70,89 @@ test.describe('Import and Attribute Mapping', () => {
     
     // Look for file input
     const fileInputs = await page.locator('input[type="file"]').all();
-    console.log(`Found ${fileInputs.length} file inputs`);
+    console.log(`Found ${fileInputs.length} file inputs on page`);
     
+    // Try to find visible file inputs or upload areas
+    const uploadButton = page.locator('button:has-text("Upload")').first();
+    const uploadAreas = await page.locator('.border-dashed, [data-testid*="upload"], .upload-zone, .dropzone').all();
+    
+    console.log(`Found ${uploadAreas.length} upload areas`);
+    
+    // Take screenshot before upload attempt
+    await page.screenshot({ path: 'test-results/before-upload-attempt.png', fullPage: true });
+    
+    let uploadSuccess = false;
+    
+    // Strategy 1: Direct file input if available
     if (fileInputs.length > 0) {
-      // Use the file input directly
       const testFilePath = path.join(__dirname, '../fixtures/enterprise-cmdb-data.csv');
-      console.log('Uploading file:', testFilePath);
+      console.log('Attempting direct file input upload:', testFilePath);
       
-      await fileInputs[0].setInputFiles(testFilePath);
-      await page.waitForTimeout(5000);
-      
-      console.log('✅ File uploaded');
-      await page.screenshot({ path: 'test-results/after-upload.png', fullPage: true });
-    } else {
-      // Try clicking upload area first
-      const uploadAreas = await page.locator('.border-dashed, [data-testid*="upload"], .upload-zone').all();
-      console.log(`Found ${uploadAreas.length} upload areas`);
-      
-      if (uploadAreas.length > 0) {
-        await uploadAreas[0].click();
-        await page.waitForTimeout(2000);
-        
-        // Now look for file input again
-        const fileInput = page.locator('input[type="file"]').first();
-        if (await fileInput.count() > 0) {
-          const testFilePath = path.join(__dirname, '../fixtures/enterprise-cmdb-data.csv');
-          await fileInput.setInputFiles(testFilePath);
-          await page.waitForTimeout(5000);
-          console.log('✅ File uploaded after clicking area');
-        }
+      try {
+        await fileInputs[0].setInputFiles(testFilePath);
+        await page.waitForTimeout(3000);
+        uploadSuccess = true;
+        console.log('✅ File set via direct input');
+      } catch (error) {
+        console.log('❌ Direct file input failed:', error.message);
       }
+    }
+    
+    // Strategy 2: Click upload area to reveal file input
+    if (!uploadSuccess && uploadAreas.length > 0) {
+      console.log('Attempting to click upload area...');
+      await uploadAreas[0].click();
+      await page.waitForTimeout(2000);
+      
+      // Check for file input again
+      const newFileInput = page.locator('input[type="file"]').first();
+      if (await newFileInput.count() > 0) {
+        const testFilePath = path.join(__dirname, '../fixtures/enterprise-cmdb-data.csv');
+        await newFileInput.setInputFiles(testFilePath);
+        await page.waitForTimeout(3000);
+        uploadSuccess = true;
+        console.log('✅ File uploaded after clicking area');
+      }
+    }
+    
+    // Strategy 3: Click upload button if available
+    if (!uploadSuccess && await uploadButton.isVisible()) {
+      console.log('Clicking upload button...');
+      await uploadButton.click();
+      await page.waitForTimeout(2000);
+      
+      const fileInput = page.locator('input[type="file"]').first();
+      if (await fileInput.count() > 0) {
+        const testFilePath = path.join(__dirname, '../fixtures/enterprise-cmdb-data.csv');
+        await fileInput.setInputFiles(testFilePath);
+        await page.waitForTimeout(3000);
+        uploadSuccess = true;
+        console.log('✅ File uploaded after clicking button');
+      }
+    }
+    
+    // Take screenshot after upload attempt
+    await page.screenshot({ path: 'test-results/after-upload-attempt.png', fullPage: true });
+    
+    // Check for upload success indicators
+    const successIndicators = [
+      'text=/upload.*complete/i',
+      'text=/processing/i',
+      'text=/success/i',
+      '.success-message',
+      'text=/file.*uploaded/i'
+    ];
+    
+    for (const indicator of successIndicators) {
+      if (await page.locator(indicator).first().count() > 0) {
+        console.log(`✅ Upload success indicator found: ${indicator}`);
+        uploadSuccess = true;
+        break;
+      }
+    }
+    
+    if (!uploadSuccess) {
+      console.log('⚠️ Upload status unclear - no clear success indicators found');
     }
     
     // Step 5: Wait for processing
@@ -110,7 +163,7 @@ test.describe('Import and Attribute Mapping', () => {
     console.log('🗺️ Step 6: Going to Attribute Mapping...');
     
     // Try multiple ways to get there
-    const mappingLink = page.locator('a[href*="attribute-mapping"], text="Attribute Mapping"').first();
+    const mappingLink = page.locator('a[href*="attribute-mapping"], a:has-text("Attribute Mapping")').first();
     if (await mappingLink.isVisible()) {
       await mappingLink.click();
     } else {

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
-import { masterFlowService } from '../services/api/masterFlowService';
+import masterFlowServiceExtended from '../services/api/masterFlowService.extensions';
 
 // Types for UnifiedDiscoveryFlow
 interface UnifiedDiscoveryFlowState {
@@ -41,20 +41,20 @@ interface UseUnifiedDiscoveryFlowReturn {
   flowId: string | null;
 }
 
-// Use master flow service for all API calls
+// Use extended master flow service for all API calls
 const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string) => ({
   async getFlowStatus(flowId: string): Promise<UnifiedDiscoveryFlowState> {
-    const response = await masterFlowService.getFlowStatus(flowId, clientAccountId, engagementId);
+    const response = await masterFlowServiceExtended.getFlowStatus(flowId, clientAccountId, engagementId);
     return response as any; // Cast to expected type
   },
 
   async initializeFlow(data: any): Promise<any> {
-    return masterFlowService.initializeDiscoveryFlow(clientAccountId, engagementId, data);
+    return masterFlowServiceExtended.initializeDiscoveryFlow(clientAccountId, engagementId, data);
   },
 
-  async executePhase(phase: string, data: any = {}): Promise<any> {
-    // Phase execution will be handled by master flow service in future
-    throw new Error('Phase execution not yet implemented in master flow service');
+  async executePhase(flowId: string, phase: string, data: any = {}): Promise<any> {
+    // Now using the extended service with proper phase execution
+    return masterFlowServiceExtended.executePhase(flowId, phase, data, clientAccountId, engagementId);
   },
 
   async getHealthStatus(): Promise<any> {
@@ -160,8 +160,10 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
 
   // Execute phase mutation
   const executePhhaseMutation = useMutation({
-    mutationFn: ({ phase, data }: { phase: string; data?: any }) => 
-      unifiedDiscoveryAPI.executePhase(phase, data),
+    mutationFn: ({ phase, data }: { phase: string; data?: any }) => {
+      if (!flowId) throw new Error('No flow ID available');
+      return unifiedDiscoveryAPI.executePhase(flowId, phase, data);
+    },
     onMutate: () => {
       setIsExecutingPhase(true);
     },

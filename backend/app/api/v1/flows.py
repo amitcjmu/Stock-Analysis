@@ -229,7 +229,7 @@ async def list_flows(
                 progress_percentage=flow.get("progress_percentage", 0.0),
                 created_at=flow["created_at"],
                 updated_at=flow["updated_at"],
-                created_by=flow["created_by"],
+                created_by=flow.get("created_by", "system"),
                 configuration=flow.get("configuration", {}),
                 metadata=flow.get("metadata", {})
             ))

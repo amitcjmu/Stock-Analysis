@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Flow Deletion</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin: 5px;
+        }
+        .button:hover {
+            background-color: #c82333;
+        }
+        .success {
+            color: green;
+            margin-top: 10px;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+        .flow-item {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .log {
+            background-color: #f5f5f5;
+            padding: 10px;
+            margin-top: 20px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Flow Deletion</h1>
+    
+    <div>
+        <h2>1. Login</h2>
+        <button id="loginBtn" class="button" style="background-color: #007bff;">Login as demo@demo-corp.com</button>
+        <div id="loginStatus"></div>
+    </div>
+    
+    <div>
+        <h2>2. List Flows</h2>
+        <button id="listFlowsBtn" class="button" style="background-color: #28a745;">List Discovery Flows</button>
+        <div id="flowsList"></div>
+    </div>
+    
+    <div>
+        <h2>3. Delete Flow</h2>
+        <input type="text" id="flowIdInput" placeholder="Enter flow ID to delete" style="width: 300px; padding: 5px;">
+        <button id="deleteFlowBtn" class="button">Delete Flow</button>
+        <div id="deleteStatus"></div>
+    </div>
+    
+    <div>
+        <h2>Console Log</h2>
+        <div id="consoleLog" class="log"></div>
+    </div>
+
+    <script>
+        let authToken = '';
+        const CLIENT_ID = '11111111-1111-1111-1111-111111111111';
+        const ENGAGEMENT_ID = '22222222-2222-2222-2222-222222222222';
+        const API_URL = 'http://localhost:8000';
+        
+        function log(message, isError = false) {
+            const logDiv = document.getElementById('consoleLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = isError ? 'color: red;' : '';
+            logDiv.innerHTML += `<div style="${color}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        // Login
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            try {
+                log('Attempting login...');
+                const response = await fetch(`${API_URL}/api/v1/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'demo@demo-corp.com',
+                        password: 'Demo123!'
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    authToken = data.access_token || data.token;
+                    document.getElementById('loginStatus').innerHTML = '<div class="success">✅ Login successful</div>';
+                    log('Login successful, token received');
+                } else {
+                    document.getElementById('loginStatus').innerHTML = '<div class="error">❌ Login failed</div>';
+                    log(`Login failed: ${response.status} ${response.statusText}`, true);
+                }
+            } catch (error) {
+                document.getElementById('loginStatus').innerHTML = '<div class="error">❌ ' + error.message + '</div>';
+                log(`Login error: ${error.message}`, true);
+            }
+        });
+        
+        // List flows
+        document.getElementById('listFlowsBtn').addEventListener('click', async () => {
+            if (!authToken) {
+                alert('Please login first');
+                return;
+            }
+            
+            try {
+                log('Fetching flows...');
+                const response = await fetch(`${API_URL}/api/v1/flows/?flowType=discovery`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'X-Client-Account-ID': CLIENT_ID,
+                        'X-Engagement-ID': ENGAGEMENT_ID
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const flows = data.flows || [];
+                    
+                    let html = `<h3>Found ${flows.length} flows:</h3>`;
+                    flows.forEach(flow => {
+                        html += `
+                            <div class="flow-item">
+                                <strong>ID:</strong> ${flow.flow_id}<br>
+                                <strong>Status:</strong> ${flow.status}<br>
+                                <strong>Name:</strong> ${flow.flow_name || 'N/A'}<br>
+                                <button class="button" onclick="document.getElementById('flowIdInput').value='${flow.flow_id}'">
+                                    Select for deletion
+                                </button>
+                            </div>
+                        `;
+                    });
+                    
+                    document.getElementById('flowsList').innerHTML = html;
+                    log(`Listed ${flows.length} flows`);
+                } else {
+                    const error = await response.text();
+                    log(`Failed to list flows: ${response.status} - ${error}`, true);
+                }
+            } catch (error) {
+                log(`List flows error: ${error.message}`, true);
+            }
+        });
+        
+        // Delete flow
+        document.getElementById('deleteFlowBtn').addEventListener('click', async () => {
+            if (!authToken) {
+                alert('Please login first');
+                return;
+            }
+            
+            const flowId = document.getElementById('flowIdInput').value;
+            if (!flowId) {
+                alert('Please enter a flow ID');
+                return;
+            }
+            
+            try {
+                log(`Attempting to delete flow: ${flowId}`);
+                const response = await fetch(`${API_URL}/api/v1/master-flows/${flowId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'X-Client-Account-ID': CLIENT_ID,
+                        'X-Engagement-ID': ENGAGEMENT_ID
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('deleteStatus').innerHTML = '<div class="success">✅ Flow deleted successfully</div>';
+                    log(`Delete successful: ${JSON.stringify(data)}`);
+                    
+                    // Refresh the flows list
+                    setTimeout(() => {
+                        document.getElementById('listFlowsBtn').click();
+                    }, 1000);
+                } else {
+                    const error = await response.text();
+                    document.getElementById('deleteStatus').innerHTML = '<div class="error">❌ Delete failed: ' + error + '</div>';
+                    log(`Delete failed: ${response.status} - ${error}`, true);
+                }
+            } catch (error) {
+                document.getElementById('deleteStatus').innerHTML = '<div class="error">❌ ' + error.message + '</div>';
+                log(`Delete error: ${error.message}`, true);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,40 +1,37 @@
-<testsuites id="" name="" tests="1" failures="1" skipped="0" errors="0" time="8.526878">
-<testsuite name="import-and-mapping.spec.ts" timestamp="2025-07-05T23:23:45.914Z" hostname="chromium" tests="1" failures="1" skipped="0" time="6.986" errors="0">
-<testcase name="Import and Attribute Mapping › Import CMDB file and complete attribute mapping" classname="import-and-mapping.spec.ts" time="6.986">
-<failure message="import-and-mapping.spec.ts:17:3 Import CMDB file and complete attribute mapping" type="FAILURE">
-<![CDATA[  [chromium] › import-and-mapping.spec.ts:17:3 › Import and Attribute Mapping › Import CMDB file and complete attribute mapping 
-
-    Error: Login failed - still on login page
-
-      36 |     const currentUrl = page.url();
-      37 |     if (currentUrl.includes('/login')) {
-    > 38 |       throw new Error('Login failed - still on login page');
-         |             ^
-      39 |     }
-      40 |     console.log('✅ Login successful');
-      41 |     
-        at /Users/chocka/CursorProjects/migrate-ui-orchestrator/tests/e2e/import-and-mapping.spec.ts:38:13
-
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    test-results/import-and-mapping-Import--981f6--complete-attribute-mapping-chromium/test-failed-1.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
-    test-results/import-and-mapping-Import--981f6--complete-attribute-mapping-chromium/video.webm
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    Error Context: ../../test-results/import-and-mapping-Import--981f6--complete-attribute-mapping-chromium/error-context.md
-]]>
-</failure>
+<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="0" time="46.60006299999999">
+<testsuite name="import-and-mapping.spec.ts" timestamp="2025-07-06T23:25:14.393Z" hostname="chromium" tests="1" failures="0" skipped="0" time="45.931" errors="0">
+<testcase name="Import and Attribute Mapping › Import CMDB file and complete attribute mapping" classname="import-and-mapping.spec.ts" time="45.931">
 <system-out>
 <![CDATA[Starting import and mapping test...
 🔐 Step 1: Logging in...
+✅ Login successful
+📁 Step 2: Navigating to Data Import...
+🔍 Step 3: Checking for existing flows...
+⚠️ Upload blocked - clearing existing flows...
+📤 Step 4: Uploading CMDB file...
+Found 0 file inputs on page
+Found 1 upload areas
+Attempting to click upload area...
+✅ Upload success indicator found: text=/upload.*complete/i
+⏳ Step 5: Waiting for initial processing...
+🗺️ Step 6: Going to Attribute Mapping...
+📄 Current URL: http://localhost:8081/discovery/attribute-mapping
+🔍 Step 7: Checking field mapping status...
+🔄 Triggering field mapping...
+📊 Step 8: Looking for mapping data...
+✅ Found mapping indicator: text=/map.*to/i (1 elements)
+🎯 Step 9: Looking for finalize button...
+📋 Step 10: Checking final state...
+📊 Final asset count: 0
 
-[[ATTACHMENT|import-and-mapping-Import--981f6--complete-attribute-mapping-chromium/test-failed-1.png]]
+=== Test Summary ===
+Login: ✅
+File Upload: ✅
+Attribute Mapping Page: ✅
+Mapping Data Found: ✅
+Assets Created: ❌ (0 assets)
 
-[[ATTACHMENT|import-and-mapping-Import--981f6--complete-attribute-mapping-chromium/video.webm]]
-
-[[ATTACHMENT|import-and-mapping-Import--981f6--complete-attribute-mapping-chromium/error-context.md]]
+🧹 Cleaning up test artifacts...
 ]]>
 </system-out>
 </testcase>

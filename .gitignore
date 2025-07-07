@@ -115,4 +115,8 @@ CLAUDE.md
 archive_*/
 
 # Postgres data volume
-postgres-data-volume/
+postgres-data-volume/*
+
+playwright-report/*
+playwright-debug/*
+security-reports*/*

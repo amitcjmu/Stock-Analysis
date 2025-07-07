@@ -157,18 +157,18 @@ export class DataImportValidationService {
   }
 
   /**
-   * Get validation session by ID
+   * Get validation data by flow ID
    */
-  static async getValidationSession(sessionId: string): Promise<any> {
+  static async getValidationByFlowId(flowId: string): Promise<any> {
     try {
-      const response = await apiCall(`/data-import/validation-session/${sessionId}`, {
+      const response = await apiCall(`/data-import/flow/${flowId}/validation`, {
         method: 'GET',
       }, true);
 
       return response;
     } catch (error) {
-      console.error('Failed to get validation session:', error);
-      throw new Error(`Failed to get validation session: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Failed to get validation data:', error);
+      throw new Error(`Failed to get validation data: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 } 
