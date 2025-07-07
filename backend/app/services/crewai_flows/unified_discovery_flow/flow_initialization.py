@@ -70,20 +70,41 @@ class FlowInitializer:
     
     def create_initial_state(self) -> UnifiedDiscoveryFlowState:
         """Create the initial flow state"""
-        state = UnifiedDiscoveryFlowState(**self.init_context)
+        # Create state with explicit field initialization
+        state = UnifiedDiscoveryFlowState()
+        
+        # Explicitly set all required fields from init_context
+        state.flow_id = self.init_context.get('flow_id', '')
+        state.client_account_id = self.init_context.get('client_account_id', '')
+        state.engagement_id = self.init_context.get('engagement_id', '')
+        state.user_id = self.init_context.get('user_id', '')
+        
+        # Set data fields
         state.raw_data = self.raw_data
         state.metadata = self.metadata
+        
+        # Log the initialized values
+        logger.info(f"🔍 State initialized with flow_id: {state.flow_id}, client: {state.client_account_id}, engagement: {state.engagement_id}, user: {state.user_id}")
         
         # If we have raw data, it means data import is already complete
         if self.raw_data and len(self.raw_data) > 0:
             # Mark data import as completed since we have data
-            state.data_import_completed = True
-            state.phase_completion = {'data_import': True}
+            # state.data_import_completed = True  # This field doesn't exist
+            state.phase_completion['data_import'] = True
             state.progress_percentage = 16.7  # 1/6 phases complete
             state.current_phase = 'field_mapping'  # Ready for field mapping
             logger.info(f"✅ Data import already complete with {len(self.raw_data)} records, setting initial progress to 16.7%")
         else:
-            state.phase_completion = {}
+            # Initialize with default phase_completion dictionary
+            state.phase_completion = {
+                "data_import": False,
+                "field_mapping": False,
+                "data_cleansing": False,
+                "asset_creation": False,
+                "asset_inventory": False,
+                "dependency_analysis": False,
+                "tech_debt_analysis": False
+            }
             state.progress_percentage = 0.0
             state.current_phase = 'data_import'
         

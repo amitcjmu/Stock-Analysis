@@ -163,38 +163,55 @@ class StateManager:
             from app.core.context import RequestContext
             
             async with AsyncSessionLocal() as db:
+                # Ensure all IDs are strings and not empty
+                client_account_id = str(getattr(self.state, 'client_account_id', '')) or ''
+                engagement_id = str(getattr(self.state, 'engagement_id', '')) or ''
+                user_id = str(getattr(self.state, 'user_id', '')) or ''
+                flow_id = str(getattr(self.state, 'flow_id', '')) or ''
+                
                 context = RequestContext(
-                    client_account_id=self.state.client_account_id,
-                    engagement_id=self.state.engagement_id,
-                    user_id=self.state.user_id,
-                    flow_id=self.state.flow_id
+                    client_account_id=client_account_id,
+                    engagement_id=engagement_id,
+                    user_id=user_id,
+                    flow_id=flow_id
                 )
                 
                 repo = DiscoveryFlowRepository(
                     db, 
-                    client_account_id=self.state.client_account_id,
-                    engagement_id=self.state.engagement_id,
-                    user_id=self.state.user_id
+                    client_account_id=client_account_id,
+                    engagement_id=engagement_id,
+                    user_id=user_id
                 )
                 
-                # Update flow status and progress
-                await repo.flow_commands.update_flow_status(
-                    flow_id=self.state.flow_id,
-                    status=self.state.status,
-                    progress_percentage=self.state.progress_percentage
-                )
+                # Update flow status and progress - only if flow_id exists
+                flow_id = getattr(self.state, 'flow_id', None)
+                if not flow_id:
+                    # Try to get from context as fallback
+                    flow_id = getattr(context, 'flow_id', None)
+                    
+                if flow_id:
+                    await repo.flow_commands.update_flow_status(
+                        flow_id=flow_id,
+                        status=self.state.status,
+                        progress_percentage=self.state.progress_percentage
+                    )
+                else:
+                    logger.warning(f"⚠️ Cannot update flow status - flow_id is missing in both state and context")
                 
                 # Update current phase data if needed
-                if hasattr(self.state, 'current_phase') and self.state.current_phase:
+                current_phase = getattr(self.state, 'current_phase', None)
+                if current_phase and flow_id:
                     phase_data = self._get_phase_data()
                     if phase_data:
                         await repo.flow_commands.update_phase_completion(
-                            flow_id=self.state.flow_id,
-                            phase=self.state.current_phase,
+                            flow_id=flow_id,
+                            phase=current_phase,
                             data=phase_data,
-                            completed=self.state.phase_completion.get(self.state.current_phase, False),
-                            agent_insights=self.state.agent_insights
+                            completed=self.state.phase_completion.get(current_phase, False),
+                            agent_insights=getattr(self.state, 'agent_insights', [])
                         )
+                elif not flow_id:
+                    logger.warning(f"⚠️ Cannot update phase completion - flow_id is missing")
                 
                 logger.info("✅ Discovery flows table updated")
         except Exception as e:
@@ -240,7 +257,8 @@ class StateManager:
             base_progress += phase_progress
         
         # Also check for specific phase completion flags
-        if hasattr(self.state, 'data_import_completed') and self.state.data_import_completed:
+        # Check if data_import phase is completed in phase_completion dict
+        if phase_completion.get('data_import', False):
             # Ensure at least one phase worth of progress for data import
             min_progress = (1 / total_phases) * 100
             base_progress = max(base_progress, min_progress)

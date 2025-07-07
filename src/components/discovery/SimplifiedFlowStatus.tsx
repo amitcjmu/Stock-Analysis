@@ -64,13 +64,16 @@ export const SimplifiedFlowStatus: React.FC<SimplifiedFlowStatusProps> = ({
       fetchStatus();
       // Poll every 5 seconds while processing
       const interval = setInterval(() => {
-        // Only poll if actually processing - not if waiting for approval or completed
+        // Only poll if actually processing - not if waiting for approval, completed, or paused
         const shouldPoll = flowStatus && 
           (flowStatus.status === 'running' || flowStatus.status === 'processing' || flowStatus.status === 'active') &&
           !flowStatus.awaiting_user_approval &&
           flowStatus.status !== 'waiting_for_approval' &&
           flowStatus.status !== 'completed' &&
-          flowStatus.status !== 'failed';
+          flowStatus.status !== 'failed' &&
+          flowStatus.status !== 'paused' &&
+          // Stop polling if in field_mapping phase (usually means waiting for approval)
+          !(flowStatus.current_phase === 'field_mapping' && flowStatus.progress_percentage > 10);
           
         if (shouldPoll) {
           fetchStatus();
@@ -105,6 +108,12 @@ export const SimplifiedFlowStatus: React.FC<SimplifiedFlowStatusProps> = ({
       bgColor = 'bg-red-50 border-red-200';
       statusText = 'Failed';
       description = 'An error occurred during processing';
+    } else if (status === 'paused') {
+      icon = Pause;
+      iconColor = 'text-yellow-600';
+      bgColor = 'bg-yellow-50 border-yellow-200';
+      statusText = 'Paused';
+      description = 'Flow is paused. Resume to continue processing.';
     } else if (status === 'waiting_for_approval' || awaiting_user_approval || 
                (current_phase === 'field_mapping' && progress_percentage > 10)) {
       icon = Pause;

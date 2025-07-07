@@ -106,9 +106,15 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     def state(self):
         """Get the flow state"""
         # Return the internal flow state if available, otherwise return a default
-        if hasattr(self, '_flow_state'):
+        if hasattr(self, '_flow_state') and self._flow_state:
             return self._flow_state
-        return getattr(self, '_flow_state', UnifiedDiscoveryFlowState())
+        # Create a default state with proper IDs if not yet initialized
+        default_state = UnifiedDiscoveryFlowState()
+        default_state.flow_id = self._flow_id
+        default_state.client_account_id = str(self.context.client_account_id) if self.context else ""
+        default_state.engagement_id = str(self.context.engagement_id) if self.context else ""
+        default_state.user_id = str(self.context.user_id) if self.context else ""
+        return default_state
     
     def _initialize_components(self):
         """Initialize flow components"""
@@ -120,20 +126,28 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         self.phase_executor = handlers['phase_executor']
         self.crew_manager = handlers['crew_manager']
         
-        # Initialize flow management separately (will use state when available)
-        self.flow_management = UnifiedFlowManagement(None)
+        # Create a temporary state with flow_id for component initialization
+        # This ensures components have access to flow_id even before full state initialization
+        temp_state = UnifiedDiscoveryFlowState()
+        temp_state.flow_id = self._flow_id
+        temp_state.client_account_id = str(self.context.client_account_id)
+        temp_state.engagement_id = str(self.context.engagement_id)
+        temp_state.user_id = str(self.context.user_id)
         
-        # Initialize state manager (will use state when available)
-        self.state_manager = StateManager(None, self.flow_bridge)
+        # Initialize flow management separately (with temp state)
+        self.flow_management = UnifiedFlowManagement(temp_state)
+        
+        # Initialize state manager (with temp state)
+        self.state_manager = StateManager(temp_state, self.flow_bridge)
         
         # Initialize crew coordinator
         self.crew_coordinator = CrewCoordinator(self.crewai_service, self.context)
         
-        # Initialize flow manager (will use state when available)
-        self.flow_manager = FlowManager(None, self.state_manager, self.flow_management)
+        # Initialize flow manager (with temp state)
+        self.flow_manager = FlowManager(temp_state, self.state_manager, self.flow_management)
         
-        # Initialize flow finalizer (will use state when available)
-        self.flow_finalizer = FlowFinalizer(None, self.state_manager)
+        # Initialize flow finalizer (with temp state)
+        self.flow_finalizer = FlowFinalizer(temp_state, self.state_manager)
         
         # Initialize agents
         agents = self.initializer.initialize_agents()
@@ -309,13 +323,20 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         """Execute data import validation phase using real CrewAI crews"""
         logger.info(f"📊 [TRACE] @listen(initialize_discovery) triggered - data import phase starting for flow {self._flow_id}")
         logger.info(f"🔍 [TRACE] Previous result from initialize_discovery: {previous_result}")
+        
+        # Debug: Log all flow IDs to trace the issue
+        logger.info(f"🔍 [DEBUG] self._flow_id: {self._flow_id}")
+        logger.info(f"🔍 [DEBUG] self.state.flow_id: {getattr(self.state, 'flow_id', 'NOT SET')}")
+        logger.info(f"🔍 [DEBUG] state_manager.state.flow_id: {getattr(self.state_manager.state, 'flow_id', 'NOT SET') if self.state_manager else 'NO STATE MANAGER'}")
+        
         try:
             # Use PhaseExecutionManager with real CrewAI crews instead of pseudo-agents
             result = await self.phase_executor.execute_data_import_validation_phase(previous_result)
             
             # Mark data import as completed
             self.state.phase_completion[PhaseNames.DATA_IMPORT_VALIDATION] = True
-            self.state.data_import_completed = True
+            # Remove invalid field assignment - data_import_completed doesn't exist
+            # self.state.data_import_completed = True
             self.state.progress_percentage = 16.7  # 1/6 phases complete
             
             await self.state_manager.safe_update_flow_state()
@@ -505,11 +526,16 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                     engagement_id=str(getattr(self.state, 'engagement_id', self.context.engagement_id)),
                     user_id=str(getattr(self.state, 'user_id', self.context.user_id))
                 )
-                await repo.flow_commands.update_flow_status(
-                    flow_id=self.state.flow_id,
-                    status="waiting_for_approval",
-                    progress_percentage=self.state.progress_percentage
-                )
+                # Ensure we have flow_id before updating
+                flow_id_to_use = getattr(self.state, 'flow_id', None) or self._flow_id
+                if flow_id_to_use:
+                    await repo.flow_commands.update_flow_status(
+                        flow_id=flow_id_to_use,
+                        status="waiting_for_approval",
+                        progress_percentage=self.state.progress_percentage
+                    )
+                else:
+                    logger.warning("⚠️ Cannot update flow status - no flow_id available")
                 
                 # Also update the current phase data
                 await repo.flow_commands.update_phase_completion(
