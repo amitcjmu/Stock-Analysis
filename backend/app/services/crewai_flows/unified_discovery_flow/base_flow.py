@@ -105,17 +105,24 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     
     @property
     def state(self):
-        """Get the flow state"""
-        # Return the internal flow state if available, otherwise return a default
+        """Get the flow state - always return our managed state"""
+        # Always return the internal flow state if available
         if hasattr(self, '_flow_state') and self._flow_state:
             return self._flow_state
-        # Create a default state with proper IDs if not yet initialized
+        
+        # If we don't have _flow_state yet, create a default with proper IDs
+        # This should only happen during initialization
         default_state = UnifiedDiscoveryFlowState()
-        default_state.flow_id = self._flow_id
-        default_state.client_account_id = str(self.context.client_account_id) if self.context else ""
-        default_state.engagement_id = str(self.context.engagement_id) if self.context else ""
-        default_state.user_id = str(self.context.user_id) if self.context else ""
-        return default_state
+        if hasattr(self, '_flow_id'):
+            default_state.flow_id = self._flow_id
+        if hasattr(self, 'context') and self.context:
+            default_state.client_account_id = str(self.context.client_account_id) if self.context.client_account_id else ""
+            default_state.engagement_id = str(self.context.engagement_id) if self.context.engagement_id else ""
+            default_state.user_id = str(self.context.user_id) if self.context.user_id else ""
+        
+        # Store it as _flow_state for consistency
+        self._flow_state = default_state
+        return self._flow_state
     
     def _initialize_components(self):
         """Initialize flow components"""
@@ -238,6 +245,13 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             # Instead of setting self.state directly, we'll store our state separately
             self._flow_state = initial_state
             logger.info("✅ CrewAI Flow state initialized with structured state management")
+            
+            # Debug: Log the state IDs to ensure they're set
+            logger.info(f"🔍 DEBUG: State IDs after initialization:")
+            logger.info(f"   - flow_id: {getattr(self._flow_state, 'flow_id', 'NOT SET')}")
+            logger.info(f"   - client_account_id: {getattr(self._flow_state, 'client_account_id', 'NOT SET')}")
+            logger.info(f"   - engagement_id: {getattr(self._flow_state, 'engagement_id', 'NOT SET')}")
+            logger.info(f"   - user_id: {getattr(self._flow_state, 'user_id', 'NOT SET')}")
             
             # Update component references to use actual state
             self.flow_management.state = self._flow_state
@@ -380,6 +394,11 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
             # Try to load from raw_import_records table
             await self._load_raw_data_from_import_records()
         
+        # Debug: Check state IDs before updating phase
+        logger.info(f"🔍 DEBUG: Before phase update - State IDs:")
+        logger.info(f"   - self.state.flow_id: {getattr(self.state, 'flow_id', 'NOT SET')}")
+        logger.info(f"   - self._flow_state.flow_id: {getattr(self._flow_state, 'flow_id', 'NOT SET') if hasattr(self, '_flow_state') else 'NO _flow_state'}")
+        
         # Update phase
         self.state.current_phase = PhaseNames.FIELD_MAPPING
         
@@ -474,6 +493,13 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     async def pause_for_field_mapping_approval(self, previous_result):
         """Pause flow for user to review and approve field mappings"""
         logger.info("⏸️ Pausing for field mapping approval")
+        
+        # Debug: Log state IDs at pause time
+        logger.info(f"🔍 DEBUG: State IDs at pause:")
+        logger.info(f"   - flow_id: {getattr(self.state, 'flow_id', 'NOT SET')}")
+        logger.info(f"   - client_account_id: {getattr(self.state, 'client_account_id', 'NOT SET')}")
+        logger.info(f"   - engagement_id: {getattr(self.state, 'engagement_id', 'NOT SET')}")
+        logger.info(f"   - user_id: {getattr(self.state, 'user_id', 'NOT SET')}")
         
         # Update status to waiting
         self.state.status = "waiting_for_approval"

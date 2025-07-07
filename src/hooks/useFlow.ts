@@ -67,7 +67,7 @@ export interface FlowHookActions {
 export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookActions] {
   const {
     autoRefresh = false,
-    refreshInterval = 5000,
+    refreshInterval = 30000, // 30 seconds
     onError,
     onSuccess
   } = options;

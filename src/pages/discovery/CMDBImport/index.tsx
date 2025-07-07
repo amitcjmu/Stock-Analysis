@@ -155,7 +155,7 @@ const CMDBImportContainer: React.FC = () => {
 
     // Start polling if there are processing files
     if (uploadedFiles.some(f => f.flow_id && (f.status === 'processing' || f.flow_status === 'running'))) {
-      const interval = setInterval(pollFlowStatus, 3000); // Poll every 3 seconds
+      const interval = setInterval(pollFlowStatus, 30000); // Poll every 30 seconds
       return () => clearInterval(interval);
     }
   }, [uploadedFiles, setUploadedFiles, toast]);

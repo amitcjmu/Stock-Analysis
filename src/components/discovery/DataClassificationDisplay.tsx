@@ -113,7 +113,7 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
   useEffect(() => {
     if (!isProcessing) return;
     
-    const interval = setInterval(fetchClassifications, 8000); // Poll every 8 seconds when processing
+    const interval = setInterval(fetchClassifications, 30000); // Poll every 30 seconds when processing
     return () => clearInterval(interval);
   }, [isProcessing, fetchClassifications]);
   
