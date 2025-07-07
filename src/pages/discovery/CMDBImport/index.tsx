@@ -62,12 +62,16 @@ const CMDBImportContainer: React.FC = () => {
       // Only poll for files that have a flow_id and are in processing state
       const processingFiles = uploadedFiles.filter(f => 
         f.flow_id && 
-        (f.status === 'processing' || f.flow_status === 'running' || f.flow_status === 'active')
+        (f.status === 'processing' || f.flow_status === 'running' || f.flow_status === 'active') &&
+        f.flow_status !== 'paused' &&
+        f.flow_status !== 'waiting_for_approval' &&
+        f.flow_status !== 'completed' &&
+        f.flow_status !== 'failed'
       );
 
       for (const file of processingFiles) {
         try {
-          const response = await apiCall(`/api/v1/discovery/flow/status/${file.flow_id}`, {
+          const response = await apiCall(`/api/v1/flows/${file.flow_id}/status`, {
             headers: getAuthHeaders()
           });
           
@@ -102,6 +106,18 @@ const CMDBImportContainer: React.FC = () => {
                   status: 'approved',
                   flow_status: 'completed',
                   discovery_progress: 100
+                };
+              }
+              return f;
+            }));
+          } else if (response.status === 'paused') {
+            setUploadedFiles(prev => prev.map(f => {
+              if (f.id === file.id) {
+                return {
+                  ...f,
+                  flow_status: 'paused',
+                  discovery_progress: response.progress_percentage || f.discovery_progress,
+                  current_phase: response.current_phase || f.current_phase
                 };
               }
               return f;
@@ -153,7 +169,7 @@ const CMDBImportContainer: React.FC = () => {
     console.log(`Processing completed for file: ${file.name}`);
     
     try {
-      const flowResponse = await apiCall(`/api/v1/discovery/flow/${file.flow_id}/processing-status`);
+      const flowResponse = await apiCall(`/api/v1/flows/${file.flow_id}/status`);
       
       const flowSummary = {
         total_assets: flowResponse.total_records || 0,

@@ -314,6 +314,9 @@ async def _trigger_discovery_flow(
         
         # Create proper flow using the factory function
         logger.info(f"🔍 DEBUG: Creating discovery flow...")
+        logger.info(f"🔍 DEBUG: Parameters - flow_id: {data_import_id}, client: {client_account_id}, engagement: {engagement_id}, user: {user_id}")
+        logger.info(f"🔍 DEBUG: Raw data count: {len(file_data) if file_data else 0}")
+        
         discovery_flow = create_unified_discovery_flow(
             flow_id=data_import_id,  # Use data_import_id as the flow_id - ONE flow for entire process
             client_account_id=client_account_id,
@@ -329,22 +332,32 @@ async def _trigger_discovery_flow(
             context=context
         )
         logger.info(f"✅ DEBUG: Discovery flow created: {type(discovery_flow)}")
+        logger.info(f"🔍 DEBUG: Discovery flow attributes: {[attr for attr in dir(discovery_flow) if not attr.startswith('_')][:10]}")
         
         # ✅ CRITICAL FIX: Get the REAL CrewAI Flow ID immediately after creation
-        # The CrewAI Flow generates its ID upon instantiation, not during kickoff
-        actual_crewai_flow_id = getattr(discovery_flow, 'flow_id', None)
+        # The UnifiedDiscoveryFlow has a flow_id property that returns _flow_id
+        actual_crewai_flow_id = None
+        
+        # Try the flow_id property first (this is the correct way)
+        if hasattr(discovery_flow, 'flow_id'):
+            try:
+                actual_crewai_flow_id = discovery_flow.flow_id
+                logger.info(f"✅ Got flow_id from property: {actual_crewai_flow_id}")
+            except Exception as e:
+                logger.warning(f"⚠️ Error accessing flow_id property: {e}")
         
         if not actual_crewai_flow_id:
-            # Fallback: try other possible flow ID attributes
-            for attr in ['id', '_id', '_flow_id', 'execution_id']:
+            # Fallback: try direct attribute access
+            for attr in ['_flow_id', 'id', '_id', 'execution_id']:
                 if hasattr(discovery_flow, attr):
                     actual_crewai_flow_id = getattr(discovery_flow, attr)
+                    logger.info(f"✅ Got flow_id from attribute {attr}: {actual_crewai_flow_id}")
                     break
         
         if not actual_crewai_flow_id:
-            # Last resort: generate a fallback ID
-            actual_crewai_flow_id = f"flow-{data_import_id}"
-            logger.warning(f"⚠️ Could not extract CrewAI Flow ID, using fallback: {actual_crewai_flow_id}")
+            # Use the data_import_id that was passed in (should match what we set)
+            actual_crewai_flow_id = data_import_id
+            logger.info(f"✅ Using data_import_id as flow_id: {actual_crewai_flow_id}")
         
         logger.info(f"🎯 REAL CrewAI Flow ID captured: {actual_crewai_flow_id}")
         
@@ -391,9 +404,10 @@ async def _trigger_discovery_flow(
                 
         except Exception as db_error:
             logger.error(f"❌ Failed to create discovery flow database record: {db_error}")
-            # Don't fail the entire process if database record creation fails
-            # The CrewAI flow can still run, but V2 API won't work
-            pass
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            # Return None to indicate failure
+            return None
         
         # 🚀 Start the CrewAI Flow in the background using kickoff() method
         logger.info(f"🎯 Starting CrewAI Flow kickoff for session: {data_import_id}")
@@ -415,10 +429,12 @@ async def _trigger_discovery_flow(
                     # CrewAI Flow kickoff() is synchronous, so we run it in a thread
                     result = await asyncio.to_thread(discovery_flow.kickoff)
                     logger.info(f"✅ CrewAI Flow completed with result: {result}")
+                    return result
                 except Exception as e:
                     logger.error(f"❌ Error during flow execution: {e}")
                     import traceback
                     logger.error(f"Traceback: {traceback.format_exc()}")
+                    raise
             
             # Create the task but don't await it
             task = asyncio.create_task(run_flow())
@@ -429,21 +445,26 @@ async def _trigger_discovery_flow(
             
         except Exception as kickoff_error:
             logger.error(f"⚠️ Failed to start flow in background: {kickoff_error}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             # Still return the flow_id since the flow object was created successfully
             # The flow state can be checked later via the flow management APIs
         
         return actual_crewai_flow_id
         
     except ImportError as e:
-        logger.warning(f"CrewAI Discovery Flow service not available: {e}")
+        logger.error(f"❌ CrewAI Discovery Flow service not available: {e}")
         logger.error(f"🚨 DEBUG: ImportError details: {e}")
-        return None
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise Exception(f"CrewAI Flow import error: {str(e)}")
     except Exception as e:
-        logger.error(f"Failed to trigger CrewAI Discovery Flow: {e}")
+        logger.error(f"❌ Failed to trigger CrewAI Discovery Flow: {e}")
+        logger.error(f"🚨 DEBUG: Exception type: {type(e).__name__}")
         logger.error(f"🚨 DEBUG: Exception details: {e}")
         import traceback
         logger.error(f"🚨 DEBUG: Full traceback: {traceback.format_exc()}")
-        return None
+        raise Exception(f"Discovery Flow trigger error: {str(e)}")
 
 async def _validate_no_incomplete_discovery_flow(
     client_account_id: str,

@@ -70,15 +70,16 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         # Initialize flow_id early to avoid attribute errors
         self._flow_id = kwargs.get('flow_id') or str(uuid.uuid4())
         
+        # Store context and service BEFORE calling super().__init__()
+        # This is critical because the base class initialization may access properties
+        self.crewai_service = crewai_service
+        self.context = context
+        
         # Initialize base CrewAI Flow - REAL AGENTS ONLY
         super().__init__()
         logger.info("✅ CrewAI Flow base class initialized - real agents active")
             
         logger.info("🚀 Initializing Unified Discovery Flow with Agent-First Architecture")
-        
-        # Store context and service
-        self.crewai_service = crewai_service
-        self.context = context
         
         # Use initializer for setup
         self.initializer = FlowInitializer(crewai_service, context, **kwargs)
