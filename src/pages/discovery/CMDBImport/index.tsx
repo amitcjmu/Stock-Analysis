@@ -1,10 +1,14 @@
 import React from 'react';
-import { Shield, AlertTriangle, Loader2 } from 'lucide-react';
+import { Upload, Activity, Shield, AlertTriangle, Loader2, FileText } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Components
 import Sidebar from '../../../components/Sidebar';
 import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
+import { UploadBlocker } from '@/components/discovery/UploadBlocker';
+import { IncompleteFlowManager } from '@/components/discovery/IncompleteFlowManager';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { SimplifiedFlowStatus } from '@/components/discovery/SimplifiedFlowStatus';
 import { PollingStatusIndicator } from '@/components/common/PollingControls';
 import { AgentActivityViewer } from '@/components/discovery/AgentActivityViewer';
 
@@ -18,31 +22,43 @@ import { CMDBDataTable } from './components/CMDBDataTable';
 import { useAuth } from '@/contexts/AuthContext';
 
 const CMDBImportContainer: React.FC = () => {
-  const { client, engagement } = useAuth();
+  const { user, client, engagement } = useAuth();
   
   const {
     // File upload state
     uploadedFiles,
     setUploadedFiles,
     selectedCategory,
-    setSelectedCategory,
     isDragging,
-    onFileUpload,
-    onDragOver,
-    onDragLeave,
-    onDrop,
+    handleFileUpload,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    
+    // Flow management
+    showFlowManager,
+    setShowFlowManager,
+    conflictFlows,
+    incompleteFlows,
+    hasIncompleteFlows,
+    checkingFlows,
+    handleContinueFlow,
+    handleDeleteFlow,
+    handleBatchDeleteFlows,
+    handleViewFlowDetails,
     
     // Loading states
     isStartingFlow,
     
     // Actions
-    startFlow,
+    startDiscoveryFlow,
 
     // Unified Flow State
     activeFlowId,
     flowState,
     isFlowStateLoading,
-    flowStateError
+    flowStateError,
+    pollingStatus,
   } = useCMDBImport();
 
   return (
@@ -58,19 +74,39 @@ const CMDBImportContainer: React.FC = () => {
           {/* Context Breadcrumbs */}
           <ContextBreadcrumbs />
 
-          {/* Page Header */}
-          <div className="my-6 md:flex md:items-center md:justify-between">
-            <div className="flex-1 min-w-0">
-                <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-                    CMDB Data Import
-                </h2>
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <Upload className="h-8 w-8 text-blue-600" />
+                <h1 className="text-3xl font-bold text-gray-900">Secure Data Import</h1>
+              </div>
+              
+              {/* Authentication Context Status */}
+              <div className="flex items-center space-x-3">
+                <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
+                  client && engagement ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                }`}>
+                  <Activity className="h-4 w-4" />
+                  <span>
+                    {client && engagement 
+                      ? `${client.name} • ${engagement.name}` 
+                      : 'Select Client & Engagement'
+                    }
+                  </span>
+                </div>
+                {user && (
+                  <div className="flex items-center space-x-2 px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
+                    <span>{user.full_name}</span>
+                  </div>
+                )}
+                <PollingStatusIndicator />
+              </div>
             </div>
-            <div className="mt-4 flex md:mt-0 md:ml-4">
-              <PollingStatusIndicator 
-                flowId={activeFlowId}
-              />
-            </div>
-          </div>
+            <p className="mt-2 text-gray-600 max-w-3xl">
+              Upload migration data files for AI-powered validation and security analysis. 
+              Our specialized agents ensure data quality, security, and privacy compliance before processing.
+            </p>
           
             {/* Context Warning */}
             {(!client || !engagement) && (
@@ -89,59 +125,87 @@ const CMDBImportContainer: React.FC = () => {
                 <strong>Enterprise Security:</strong> All uploaded data is analyzed by specialized validation agents for compliance, security, and data quality.
               </AlertDescription>
             </Alert>
-
-          {/* Main Content */}
-          <div className="space-y-6">
-            {/* Conditional Upload Blocker */}
-            {uploadedFiles.length > 0 && (
-                <Alert variant="default" className="bg-orange-50 border-orange-200 text-orange-800">
-                    <AlertTriangle className="h-4 w-4 !text-orange-600" />
-                    <AlertDescription>
-                        A file is already being processed. Please wait for the flow to complete before uploading a new file.
-                    </AlertDescription>
-              </Alert>
-            )}
-            
-            {/* CMDB Upload Section */}
-            {!isStartingFlow && uploadedFiles.length === 0 && (
-                <CMDBUploadSection 
-                  isDragging={isDragging}
-                  selectedCategory={selectedCategory}
-                  categories={uploadCategories}
-                  setSelectedCategory={setSelectedCategory}
-                  onDragLeave={onDragLeave}
-                  onDragOver={onDragOver}
-                  onDrop={onDrop}
-                  onFileUpload={onFileUpload}
-                  disabled={isStartingFlow || uploadedFiles.length > 0 || !client || !engagement}
-                />
-            )}
-            
-            {/* Loading Indicator for Initial Flow Start */}
-            {isStartingFlow && (
-              <div className="flex items-center justify-center p-8 border-2 border-dashed rounded-lg bg-gray-50">
-                <Loader2 className="mr-2 h-6 w-6 animate-spin text-blue-500" />
-                <p className="text-lg text-gray-600">Starting discovery flow...</p>
-              </div>
-            )}
-            
-            {/* CMDB Data Table */}
-            {uploadedFiles.length > 0 && (
-              <CMDBDataTable 
-                files={uploadedFiles} 
-                setFiles={setUploadedFiles}
-                onStartFlow={startFlow}
-                isFlowRunning={!!activeFlowId}
-                flowState={flowState}
-              />
-            )}
-
-            {/* Agent Activity Viewer */}
-            {activeFlowId && flowState && (
-              <AgentActivityViewer insights={flowState.agent_insights || []} />
-            )}
-            
           </div>
+
+          {/* Conditional Upload Interface */}
+          {checkingFlows ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              <span className="ml-3 text-gray-600">Checking for incomplete discovery flows...</span>
+            </div>
+          ) : hasIncompleteFlows ? (
+            <UploadBlocker 
+              incompleteFlows={incompleteFlows}
+              onContinueFlow={handleContinueFlow}
+              onDeleteFlow={handleDeleteFlow}
+              onViewDetails={handleViewFlowDetails}
+              onManageFlows={() => setShowFlowManager(true)}
+              isLoading={false}
+            />
+          ) : (
+            <CMDBUploadSection
+              categories={uploadCategories}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={() => {}} // This will be handled by the hook
+              isDragging={isDragging}
+              onFileUpload={handleFileUpload}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            />
+          )}
+            
+          {/* Upload Progress & Validation */}
+          <CMDBDataTable
+            uploadedFiles={uploadedFiles}
+            setUploadedFiles={setUploadedFiles}
+            isStartingFlow={isStartingFlow}
+            onStartDiscoveryFlow={startDiscoveryFlow}
+          />
+
+          {/* Simplified Flow Status */}
+          {uploadedFiles.length > 0 && uploadedFiles.some(f => f.flow_id) && (
+            <div className="space-y-6 mt-8">
+              <h2 className="text-xl font-semibold text-gray-900">Discovery Flow Status</h2>
+              {uploadedFiles.filter(f => f.flow_id).map((file) => (
+                <div key={file.id}>
+                  <div className="mb-2 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-purple-600" />
+                        <span className="font-medium text-purple-900">{file.name}</span>
+                      </div>
+                      <span className="text-sm text-purple-700">{file.size}</span>
+                    </div>
+                  </div>
+                  <SimplifiedFlowStatus
+                    flow_id={file.flow_id!}
+                    onNavigateToMapping={() => {
+                      // Navigate to attribute mapping
+                      window.location.href = `/discovery/attribute-mapping/${file.flow_id}`;
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Flow Manager Dialog */}
+          <Dialog open={showFlowManager} onOpenChange={setShowFlowManager}>
+            <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Manage Discovery Flows</DialogTitle>
+              </DialogHeader>
+              <IncompleteFlowManager
+                flows={incompleteFlows}
+                onContinueFlow={handleContinueFlow}
+                onDeleteFlow={handleDeleteFlow}
+                onBatchDelete={handleBatchDeleteFlows}
+                onViewDetails={handleViewFlowDetails}
+                isLoading={isStartingFlow}
+              />
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>

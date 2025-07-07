@@ -35,7 +35,7 @@ class DataImport(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid_pkg.uuid4)
     client_account_id = Column(UUID(as_uuid=True), ForeignKey("client_accounts.id", ondelete="CASCADE"), nullable=True)
     engagement_id = Column(UUID(as_uuid=True), ForeignKey("engagements.id", ondelete="CASCADE"), nullable=True)
-    master_flow_id = Column(UUID(as_uuid=True), ForeignKey("crewai_flow_state_extensions.id", ondelete="CASCADE"), nullable=True)
+    master_flow_id = Column(UUID(as_uuid=True), ForeignKey("crewai_flow_state_extensions.flow_id", ondelete="CASCADE"), nullable=True)
 
     import_name = Column(String(255), nullable=False)
     import_type = Column(String(50), nullable=False)  # e.g., 'cmdb', 'asset_inventory'
@@ -73,6 +73,11 @@ class DataImport(Base):
     field_mappings = relationship("ImportFieldMapping", back_populates="data_import", cascade="all, delete-orphan")
     discovery_flows = relationship("DiscoveryFlow", back_populates="data_import")
     
+    # Master flow relationship
+    master_flow = relationship("CrewAIFlowStateExtensions", foreign_keys=[master_flow_id],
+                              primaryjoin="DataImport.master_flow_id == CrewAIFlowStateExtensions.flow_id",
+                              back_populates="data_imports")
+    
     user = relationship("User")
     client_account = relationship("ClientAccount")
     engagement = relationship("Engagement")
@@ -93,7 +98,7 @@ class RawImportRecord(Base):
     # Context IDs for direct querying
     client_account_id = Column(UUID(as_uuid=True), ForeignKey("client_accounts.id"), nullable=True)
     engagement_id = Column(UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=True)
-    master_flow_id = Column(UUID(as_uuid=True), ForeignKey("crewai_flow_state_extensions.id"), nullable=True)
+    master_flow_id = Column(UUID(as_uuid=True), ForeignKey("crewai_flow_state_extensions.flow_id", ondelete="CASCADE"), nullable=True)
 
     row_number = Column(Integer, nullable=False)  # temporarily using old name until migration
     raw_data = Column(JSON, nullable=False)
@@ -114,6 +119,11 @@ class RawImportRecord(Base):
 
     # Relationships
     data_import = relationship("DataImport", back_populates="raw_records")
+    
+    # Master flow relationship
+    master_flow = relationship("CrewAIFlowStateExtensions", foreign_keys=[master_flow_id],
+                              primaryjoin="RawImportRecord.master_flow_id == CrewAIFlowStateExtensions.flow_id",
+                              back_populates="raw_import_records")
     
     __table_args__ = (
         {"comment": "Stores individual raw data records from imported files before processing."},

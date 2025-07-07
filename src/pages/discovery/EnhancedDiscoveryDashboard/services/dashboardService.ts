@@ -117,7 +117,6 @@ export class DashboardService {
               
               allFlows.push({
                 flow_id: dataImport.id,
-                flow_id: dataImport.id,
                 engagement_name: `${client?.name || 'Current'} - Discovery`,
                 engagement_id: engagement?.id || 'current',
                 client_name: client?.name || 'Current Client',

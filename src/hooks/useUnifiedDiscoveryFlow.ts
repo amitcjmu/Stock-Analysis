@@ -120,6 +120,11 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
     }
   }, [providedFlowId]);
 
+  // Track polling attempts
+  const [pollingAttempts, setPollingAttempts] = useState(0);
+  const [pollingEnabled, setPollingEnabled] = useState(true);
+  const MAX_POLLING_ATTEMPTS = 15; // 15 attempts * 5 seconds = 75 seconds max
+
   // Flow state query
   const {
     data: flowState,
@@ -131,16 +136,42 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
     queryFn: () => flowId ? unifiedDiscoveryAPI.getFlowStatus(flowId) : null,
     enabled: !!flowId,
     refetchInterval: (query) => {
-      // Poll more frequently when flow is running
-      const state = query.state.data as any;
-      if (state?.status === 'running' || state?.status === 'in_progress') {
-        return 2000; // Poll every 2 seconds when running
+      // Stop polling if disabled or max attempts reached
+      if (!pollingEnabled || pollingAttempts >= MAX_POLLING_ATTEMPTS) {
+        return false;
       }
-      return false; // Stop polling when not running
+
+      const state = query.state.data as any;
+      
+      // Poll when flow is active
+      if (state?.status === 'running' || state?.status === 'in_progress' || 
+          state?.status === 'processing' || state?.status === 'active') {
+        setPollingAttempts(prev => prev + 1);
+        return 5000; // Poll every 5 seconds when flow is active
+      }
+      
+      // Stop polling for completed/failed states
+      if (state?.status === 'completed' || state?.status === 'failed' || 
+          state?.status === 'cancelled') {
+        setPollingEnabled(false);
+        return false;
+      }
+      
+      return false; // Stop polling for other states
     },
-    refetchIntervalInBackground: true,
+    refetchIntervalInBackground: false, // Don't poll in background
     staleTime: 1000, // Consider data stale after 1 second for real-time updates
+    onError: () => {
+      // Stop polling on error
+      setPollingEnabled(false);
+    }
   });
+
+  // Reset polling when flow ID changes
+  useEffect(() => {
+    setPollingAttempts(0);
+    setPollingEnabled(true);
+  }, [flowId]);
 
   // Health check query - DISABLED: endpoint doesn't exist
   const healthStatus = { status: 'healthy' }; // Mock healthy status
@@ -254,5 +285,11 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
     },
     isExecutingPhase,
     flowId,
+    pollingStatus: {
+      enabled: pollingEnabled,
+      attempts: pollingAttempts,
+      maxAttempts: MAX_POLLING_ATTEMPTS,
+      hasReachedMax: pollingAttempts >= MAX_POLLING_ATTEMPTS
+    }
   };
 }; 

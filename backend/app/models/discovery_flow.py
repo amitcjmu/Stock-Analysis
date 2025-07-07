@@ -23,7 +23,7 @@ class DiscoveryFlow(Base):
     flow_id = Column(UUID(as_uuid=True), unique=True, nullable=False, index=True)  # CrewAI Flow ID
     
     # Master Flow Coordination (Phase 2)
-    master_flow_id = Column(UUID(as_uuid=True), nullable=True, index=True)
+    master_flow_id = Column(UUID(as_uuid=True), ForeignKey("crewai_flow_state_extensions.flow_id", ondelete="CASCADE"), nullable=True, index=True)
     
     # Multi-tenant isolation
     client_account_id = Column(UUID(as_uuid=True), nullable=False, index=True)
@@ -84,8 +84,12 @@ class DiscoveryFlow(Base):
     # Relationships
     # Note: discovery_assets table was consolidated into main assets table
     # Use assets table with discovery_flow_id foreign key instead
-    # Note: CrewAIFlowStateExtensions is now the master table, so no direct relationship needed
     data_import = relationship("DataImport", back_populates="discovery_flows")
+    
+    # Master flow relationship
+    master_flow = relationship("CrewAIFlowStateExtensions", foreign_keys=[master_flow_id],
+                              primaryjoin="DiscoveryFlow.master_flow_id == CrewAIFlowStateExtensions.flow_id",
+                              back_populates="discovery_flows")
 
     def __repr__(self):
         return f"<DiscoveryFlow(flow_id={self.flow_id}, name='{self.flow_name}', status='{self.status}')>"

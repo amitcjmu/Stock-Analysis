@@ -55,6 +55,9 @@ services:
       - ASSESSMENT_MAX_CONCURRENT_FLOWS=5
       - ASSESSMENT_COMPONENT_BATCH_SIZE=10
       
+      # Discovery Flow Configuration (temporary for debugging)
+      - USE_FAST_DISCOVERY_MODE=true
+      
       # Disable OpenTelemetry to prevent connection errors
       - OTEL_SDK_DISABLED=true
       - OTEL_TRACES_EXPORTER=none

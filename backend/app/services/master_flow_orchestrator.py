@@ -187,6 +187,61 @@ class MasterFlowOrchestrator:
                     # Prepare raw data from initial state
                     raw_data = initial_state.get("raw_data", []) if initial_state else []
                     
+                    # PHASE 2 FIX: Create DiscoveryFlow record with proper master flow linkage
+                    # Transaction safety for DiscoveryFlow creation
+                    discovery_savepoint = None
+                    try:
+                        from app.models.discovery_flow import DiscoveryFlow
+                        from sqlalchemy import select
+                        import uuid
+                        
+                        # Create savepoint for DiscoveryFlow operations
+                        discovery_savepoint = await self.db.begin_nested()
+                        
+                        # Check if DiscoveryFlow already exists for this flow_id
+                        existing_discovery_query = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id)
+                        existing_discovery_result = await self.db.execute(existing_discovery_query)
+                        existing_discovery = existing_discovery_result.scalar_one_or_none()
+                        
+                        if not existing_discovery:
+                            # Create DiscoveryFlow record with master flow linkage
+                            discovery_flow_record = DiscoveryFlow(
+                                flow_id=flow_id,
+                                flow_name=flow_name or f"Discovery Flow {flow_id}",
+                                client_account_id=uuid.UUID(str(self.context.client_account_id)),
+                                engagement_id=uuid.UUID(str(self.context.engagement_id)),
+                                status="initialized",
+                                current_phase="initialization",
+                                progress_percentage=0.0,
+                                created_by=self.context.user_id or "system",
+                                master_flow_id=flow_id,  # Link to master flow
+                                data_import_id=initial_state.get("data_import_id") if initial_state else None
+                            )
+                            
+                            self.db.add(discovery_flow_record)
+                            await self.db.flush()  # Ensure the record is created
+                            logger.info(f"✅ Created DiscoveryFlow record with master_flow_id: {flow_id}")
+                        else:
+                            logger.info(f"✅ DiscoveryFlow record already exists for flow_id: {flow_id}")
+                            # Update master_flow_id if not set
+                            if not existing_discovery.master_flow_id:
+                                existing_discovery.master_flow_id = flow_id
+                                logger.info(f"✅ Updated existing DiscoveryFlow with master_flow_id: {flow_id}")
+                        
+                        # Commit the DiscoveryFlow transaction
+                        await discovery_savepoint.commit()
+                        logger.info(f"✅ DiscoveryFlow transaction committed successfully")
+                        
+                    except Exception as discovery_record_error:
+                        logger.error(f"❌ Failed to create DiscoveryFlow record: {discovery_record_error}")
+                        if discovery_savepoint:
+                            try:
+                                await discovery_savepoint.rollback()
+                                logger.info(f"🔄 Rolled back DiscoveryFlow transaction")
+                            except Exception as rollback_error:
+                                logger.error(f"❌ Failed to rollback DiscoveryFlow transaction: {rollback_error}")
+                        # Don't fail the entire flow creation, just log the error
+                    
                     # Create the UnifiedDiscoveryFlow instance
                     # Add master flow ID to metadata so discovery flow can link back
                     flow_metadata = configuration or {}
@@ -200,7 +255,8 @@ class MasterFlowOrchestrator:
                         raw_data=raw_data,
                         metadata=flow_metadata,
                         crewai_service=crewai_service,
-                        context=self.context
+                        context=self.context,
+                        master_flow_id=flow_id  # Pass master_flow_id explicitly
                     )
                     
                     logger.info(f"✅ [FIX] CrewAI Discovery Flow created, starting kickoff in background")
@@ -1049,13 +1105,13 @@ class MasterFlowOrchestrator:
                             "agent_name": "Flow Orchestrator",
                             "insight_type": "flow_status",
                             "title": f"Flow Status: {master_flow.flow_status.title()}",
-                            "description": f"Flow is currently in {master_flow.current_phase} phase with {master_flow.flow_status} status",
+                            "description": f"Flow is currently in {getattr(master_flow, 'current_phase', 'unknown')} phase with {master_flow.flow_status} status",
                             "confidence": "high",
                             "supporting_data": {
                                 "flow_id": flow_id,
                                 "flow_type": flow_type,
                                 "status": master_flow.flow_status,
-                                "phase": master_flow.current_phase,
+                                "phase": getattr(master_flow, 'current_phase', 'unknown'),
                                 "progress": getattr(master_flow, 'progress_percentage', 0.0)
                             },
                             "actionable": master_flow.flow_status in ["paused", "error"],

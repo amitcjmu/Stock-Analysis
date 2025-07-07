@@ -156,12 +156,12 @@ export const IncompleteFlowManager: React.FC<IncompleteFlowManagerProps> = ({
 
       {/* Flow list */}
       <div className="space-y-4">
-        {flows.map((flow) => {
+        {flows.map((flow, index) => {
           const PhaseIcon = getPhaseIcon(flow.current_phase);
           const isSelected = selectedFlows.includes(flow.flow_id);
           
           return (
-            <Card key={flow.flow_id} className={`${isSelected ? 'ring-2 ring-blue-500' : ''}`}>
+            <Card key={flow.flow_id || `flow-${index}`} className={`${isSelected ? 'ring-2 ring-blue-500' : ''}`}>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start space-x-3">
@@ -223,7 +223,10 @@ export const IncompleteFlowManager: React.FC<IncompleteFlowManagerProps> = ({
                         Latest Agent Insight
                       </p>
                       <p className="text-sm text-blue-700">
-                        {flow.agent_insights[0]?.description || flow.agent_insights[0]?.insight || 'Processing...'}
+                        {(() => {
+                          const latestInsight = flow.agent_insights[0];
+                          return latestInsight?.description || latestInsight?.insight || 'Processing...';
+                        })()}
                       </p>
                     </div>
                   )}

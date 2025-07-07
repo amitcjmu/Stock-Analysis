@@ -36,6 +36,7 @@ export const useIncompleteFlowDetectionV2 = () => {
         
         // Try the active flows endpoint first
         const response = await masterFlowService.getActiveFlows(clientAccountId, engagementId, 'discovery');
+        console.log('Active flows response:', response);
         const allFlows = Array.isArray(response) ? response : (response.flows || []);
         
         // Filter for incomplete flows (not completed or failed)
@@ -43,8 +44,41 @@ export const useIncompleteFlowDetectionV2 = () => {
           flow.status !== 'completed' && 
           flow.status !== 'failed' &&
           flow.status !== 'error'
-        );
+        ).map((flow: any, index: number) => {
+          // Generate a demo-pattern UUID as fallback if no flow ID exists
+          // Uses the demo pattern: XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX
+          const generateDemoFallbackUuid = (index: number) => {
+            const indexPadded = index.toString().padStart(8, '0');
+            const timestamp = Date.now().toString().slice(-12).padStart(12, '0');
+            return `${indexPadded}-def0-def0-def0-${timestamp}`;
+          };
+          
+          const fallbackId = generateDemoFallbackUuid(index);
+          
+          return ({
+            flowId: flow.master_flow_id || flow.flowId || flow.flow_id || fallbackId,
+            flow_id: flow.master_flow_id || flow.flowId || flow.flow_id || fallbackId, // Add flow_id for component compatibility
+            status: flow.status,
+          current_phase: flow.currentPhase || flow.current_phase || 'unknown',
+          next_phase: flow.nextPhase || flow.next_phase,
+          phases_completed: flow.phasesCompleted || flow.phases_completed || [],
+          progress: flow.progress || flow.progress_percentage || 0,
+          progress_percentage: flow.progress_percentage || flow.progress || 0,
+          created_at: flow.createdAt || flow.created_at,
+          updated_at: flow.updatedAt || flow.updated_at,
+          error: flow.error,
+          client_account_id: flow.client_account_id,
+          engagement_id: flow.engagement_id,
+          // Additional fields for compatibility
+          flow_name: flow.flowType || 'Discovery Flow',
+          flow_description: flow.metadata?.description || '',
+          can_resume: flow.status !== 'failed',
+          // Add agent_insights field to prevent undefined errors
+          agent_insights: flow.agent_insights || [],
+        });
+        });
         
+        console.log('Transformed incomplete flows:', incompleteFlows);
         return {
           flows: incompleteFlows
         };
@@ -140,7 +174,9 @@ export const useBulkFlowOperationsV2 = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   
   const bulkDelete = useMutation({
-    mutationFn: async (flowIds: string[]) => {
+    mutationFn: async (params: { flow_ids: string[] } | string[]) => {
+      // Support both formats for compatibility
+      const flowIds = Array.isArray(params) ? params : params.flow_ids;
       setIsDeleting(true);
       const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
       const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
@@ -194,10 +230,12 @@ export const useBulkFlowOperationsV2 = () => {
   });
   
   return {
-    mutate: bulkDelete.mutate,
-    mutateAsync: bulkDelete.mutateAsync,
-    isLoading: isDeleting,
-    isError: bulkDelete.isError,
-    error: bulkDelete.error
+    bulkDelete: {
+      mutate: bulkDelete.mutate,
+      mutateAsync: bulkDelete.mutateAsync,
+      isLoading: isDeleting,
+      isError: bulkDelete.isError,
+      error: bulkDelete.error
+    }
   };
 };

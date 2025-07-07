@@ -1,0 +1,85 @@
+{
+  "report_timestamp": "2025-07-07T23:48:20.737093",
+  "phase": "Phase 3 - Data Integrity Fixes",
+  "objectives": [
+    "Fix orphaned DataImport records (master_flow_id = NULL)",
+    "Fix orphaned RawImportRecord records (master_flow_id = NULL)",
+    "Fix orphaned DiscoveryFlow records (master_flow_id = NULL)",
+    "Validate all foreign key relationships",
+    "Improve overall system health score"
+  ],
+  "before_state": {
+    "data_imports": {
+      "total": 16,
+      "with_master_flow_id": 0,
+      "orphaned": 16,
+      "health_percentage": 0
+    },
+    "raw_import_records": {
+      "total": 265,
+      "with_master_flow_id": 0,
+      "orphaned": 265,
+      "health_percentage": 0
+    },
+    "discovery_flows": {
+      "total": 20,
+      "with_master_flow_id": 7,
+      "orphaned": 13,
+      "health_percentage": 35
+    },
+    "master_flows": {
+      "total": 32,
+      "with_children": 0,
+      "orphaned": 32,
+      "utilization_percentage": 0
+    }
+  },
+  "after_state": {
+    "data_imports": {
+      "total": 16,
+      "with_master_flow_id": 16,
+      "orphaned": 0,
+      "health_percentage": 100.0
+    },
+    "raw_import_records": {
+      "total": 265,
+      "with_master_flow_id": 265,
+      "orphaned": 0,
+      "health_percentage": 100.0
+    },
+    "discovery_flows": {
+      "total": 20,
+      "with_master_flow_id": 18,
+      "orphaned": 2,
+      "health_percentage": 90.0
+    },
+    "master_flows": {
+      "total": 32,
+      "with_children": 16,
+      "orphaned": 16,
+      "utilization_percentage": 50.0
+    }
+  },
+  "achievements": {
+    "data_imports_fixed": 16,
+    "raw_records_fixed": 265,
+    "discovery_flows_fixed": 11,
+    "health_improvement": {
+      "data_imports": 100.0,
+      "raw_records": 100.0,
+      "discovery_flows": 55.0
+    },
+    "total_records_fixed": 292
+  },
+  "remaining_issues": [
+    "2 orphaned discovery flows",
+    "16 unused master flows"
+  ],
+  "next_steps": [
+    "Investigate remaining orphaned records",
+    "Consider creating master flows for orphaned discovery flows",
+    "Review master flows without children for potential cleanup",
+    "Implement monitoring to prevent future orphaned records"
+  ],
+  "overall_success_rate": 99.31972789115646
+}

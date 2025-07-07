@@ -16,25 +16,39 @@ import { UploadFile } from '../CMDBImport.types';
 import { getStatusIcon, getStatusColor } from '../utils/statusUtils';
 
 interface CMDBDataTableProps {
-  files: UploadFile[];
-  setFiles: (files: UploadFile[] | ((prev: UploadFile[]) => UploadFile[])) => void;
-  onStartFlow: () => void;
-  isFlowRunning: boolean;
-  flowState: any; // Replace with a proper type later
+  files?: UploadFile[]; // Legacy prop name
+  uploadedFiles?: UploadFile[]; // New prop name
+  setFiles?: (files: UploadFile[] | ((prev: UploadFile[]) => UploadFile[])) => void; // Legacy
+  setUploadedFiles?: (files: UploadFile[] | ((prev: UploadFile[]) => UploadFile[])) => void; // New
+  onStartFlow?: () => void; // Legacy
+  onStartDiscoveryFlow?: () => void; // New
+  isFlowRunning?: boolean;
+  isStartingFlow?: boolean;
+  flowState?: any;
 }
 
 export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
   files,
+  uploadedFiles,
   setFiles,
+  setUploadedFiles,
   onStartFlow,
+  onStartDiscoveryFlow,
   isFlowRunning,
+  isStartingFlow,
   flowState,
 }) => {
-  if (files.length === 0) {
+  // Support both prop names for compatibility
+  const actualFiles = uploadedFiles || files || [];
+  const actualSetFiles = setUploadedFiles || setFiles;
+  const actualOnStartFlow = onStartDiscoveryFlow || onStartFlow;
+  const actualIsFlowRunning = isStartingFlow || isFlowRunning;
+  
+  if (actualFiles.length === 0) {
     return null;
   }
 
-  const file = files[0]; // Assuming one file at a time for now
+  const file = actualFiles[0]; // Assuming one file at a time for now
   const currentStatus = flowState?.status || file.status;
   const progress = flowState?.progress_percentage || 0;
   const currentPhase = flowState?.current_phase || file.current_phase;
@@ -110,11 +124,11 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
                 </p>
               </div>
               <Button
-                onClick={onStartFlow}
-                disabled={isFlowRunning || currentStatus === 'completed'}
+                onClick={actualOnStartFlow}
+                disabled={actualIsFlowRunning || currentStatus === 'completed'}
                 className="bg-blue-600 hover:bg-blue-700 flex items-center space-x-2"
               >
-                {isFlowRunning ? (
+                {actualIsFlowRunning ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span>Flow in Progress...</span>

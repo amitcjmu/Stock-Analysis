@@ -22,6 +22,7 @@ import { Separator } from '@/components/ui/separator';
 import { useBulkFlowOperationsV2, IncompleteFlowV2 } from '@/hooks/discovery/useFlowOperations';
 import { useToast } from '@/hooks/use-toast';
 import masterFlowServiceExtended from '@/services/api/masterFlowService.extensions';
+import { masterFlowService } from '@/services/api/masterFlowService';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface UploadBlockerProps {

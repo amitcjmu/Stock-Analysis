@@ -62,19 +62,21 @@ class BasePhaseExecutor(ABC):
             from app.services.agent_ui_bridge import agent_ui_bridge
             flow_id = getattr(self.state, 'flow_id', None)
             
+            from app.services.agent_ui_bridge_models import ConfidenceLevel
             agent_ui_bridge.add_agent_insight(
                 agent_id=f"{phase_name}_executor",
                 agent_name=f"{phase_name.replace('_', ' ').title()} Phase",
                 insight_type="phase_start",
                 title=f"Starting {phase_name.replace('_', ' ').title()}",
                 description=f"Beginning execution of {phase_name.replace('_', ' ')} phase",
-                page=f"flow_{flow_id}",
-                flow_id=flow_id,
+                confidence=ConfidenceLevel.HIGH,
                 supporting_data={
                     "phase": phase_name,
                     "status": "starting",
                     "progress": self.get_progress_percentage()
-                }
+                },
+                page=f"flow_{flow_id}",
+                flow_id=flow_id
             )
         except Exception as e:
             logger.warning(f"Failed to send phase start notification: {e}")
@@ -149,20 +151,22 @@ class BasePhaseExecutor(ABC):
                 from app.services.agent_ui_bridge import agent_ui_bridge
                 flow_id = getattr(self.state, 'flow_id', None)
                 
+                from app.services.agent_ui_bridge_models import ConfidenceLevel
                 agent_ui_bridge.add_agent_insight(
                     agent_id=f"{phase_name}_executor",
                     agent_name=f"{phase_name.replace('_', ' ').title()} Phase",
                     insight_type="phase_complete",
                     title=f"Completed {phase_name.replace('_', ' ').title()}",
                     description=f"Successfully completed {phase_name.replace('_', ' ')} phase",
-                    page=f"flow_{flow_id}",
-                    flow_id=flow_id,
+                    confidence=ConfidenceLevel.HIGH,
                     supporting_data={
                         "phase": phase_name,
                         "status": "completed",
                         "progress": self.state.progress_percentage,
                         "results_summary": results.get("summary", "Phase completed successfully")
-                    }
+                    },
+                    page=f"flow_{flow_id}",
+                    flow_id=flow_id
                 )
             except Exception as e:
                 logger.warning(f"Failed to send phase completion notification: {e}")

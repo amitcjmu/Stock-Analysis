@@ -70,6 +70,11 @@ class UnifiedDiscoveryFlow(Flow):
         # Initialize flow_id early to avoid attribute errors
         self._flow_id = kwargs.get('flow_id') or str(uuid.uuid4())
         
+        # PHASE 2 FIX: Store master_flow_id if provided
+        self._master_flow_id = kwargs.get('master_flow_id')
+        if self._master_flow_id:
+            logger.info(f"🔗 UnifiedDiscoveryFlow initialized with master_flow_id: {self._master_flow_id}")
+        
         # Store context and service BEFORE calling super().__init__()
         # This is critical because the base class initialization may access properties
         self.crewai_service = crewai_service
@@ -104,6 +109,11 @@ class UnifiedDiscoveryFlow(Flow):
         return self._flow_id
     
     @property
+    def master_flow_id(self):
+        """Get the master flow ID"""
+        return getattr(self, '_master_flow_id', None)
+    
+    @property
     def state(self):
         """Get the flow state - always return our managed state"""
         # Always return the internal flow state if available
@@ -132,12 +142,17 @@ class UnifiedDiscoveryFlow(Flow):
             self.state.client_account_id = str(self.context.client_account_id) if self.context.client_account_id else ""
             self.state.engagement_id = str(self.context.engagement_id) if self.context.engagement_id else ""
             self.state.user_id = str(self.context.user_id) if self.context.user_id else ""
+        
+        # PHASE 2 FIX: Ensure master_flow_id is set in state if available
+        if self._master_flow_id and hasattr(self.state, 'master_flow_id'):
+            self.state.master_flow_id = self._master_flow_id
+            logger.info(f"🔗 Set master_flow_id in state: {self._master_flow_id}")
             
         # Also update state manager reference
         if hasattr(self, 'state_manager') and self.state_manager:
             self.state_manager.state = self.state
             
-        logger.info(f"🔧 State IDs enforced: flow_id={self.state.flow_id}, client={getattr(self.state, 'client_account_id', 'none')}")
+        logger.info(f"🔧 State IDs enforced: flow_id={self.state.flow_id}, client={getattr(self.state, 'client_account_id', 'none')}, master_flow_id={getattr(self.state, 'master_flow_id', 'none')}")
     
     def _initialize_components(self):
         """Initialize flow components"""
@@ -223,7 +238,7 @@ class UnifiedDiscoveryFlow(Flow):
                 
                 async with AsyncSessionLocal() as db:
                     store = PostgresFlowStateStore(db, self.context)
-                    await store.update_flow_status(self._flow_id, "running")
+                    await store.update_flow_status(self._flow_id, "processing")
                     logger.info(f"✅ [ECHO] Updated flow status to 'running' at start of kickoff")
         except Exception as e:
             logger.warning(f"⚠️ [ECHO] Failed to update initial flow status: {e}")
@@ -242,21 +257,23 @@ class UnifiedDiscoveryFlow(Flow):
                 "supporting_data": {
                     "phase": "initialization",
                     "progress": 0,
-                    "status": "running",
+                    "status": "processing",
                     "flow_id": self._flow_id
                 }
             }
             
             # Add to agent-ui-bridge
+            from app.services.agent_ui_bridge_models import ConfidenceLevel
             agent_ui_bridge.add_agent_insight(
                 agent_id=insight["agent_id"],
                 agent_name=insight["agent_name"],
                 insight_type=insight["insight_type"],
                 title=insight["title"],
                 description=insight["description"],
+                confidence=ConfidenceLevel.HIGH,
+                supporting_data=insight["supporting_data"],
                 page=f"flow_{self._flow_id}",
-                flow_id=self._flow_id,
-                supporting_data=insight["supporting_data"]
+                flow_id=self._flow_id
             )
             
             # Also add to flow state for persistence
@@ -435,7 +452,7 @@ class UnifiedDiscoveryFlow(Flow):
                 
                 async with AsyncSessionLocal() as db:
                     store = PostgresFlowStateStore(db, self.context)
-                    await store.update_flow_status(self._flow_id, "running")
+                    await store.update_flow_status(self._flow_id, "processing")
                     logger.info(f"✅ [ECHO] Confirmed flow status is 'running' in data import phase")
         except Exception as e:
             logger.warning(f"⚠️ [ECHO] Failed to update flow state in data import: {e}")
@@ -529,15 +546,17 @@ class UnifiedDiscoveryFlow(Flow):
             }
             
             # Add to both agent-ui-bridge and flow state
+            from app.services.agent_ui_bridge_models import ConfidenceLevel
             agent_ui_bridge.add_agent_insight(
                 agent_id=insight["agent_id"],
                 agent_name=insight["agent_name"],
                 insight_type=insight["insight_type"],
                 title=insight["title"],
                 description=insight["description"],
+                confidence=ConfidenceLevel.HIGH,
+                supporting_data=insight["supporting_data"],
                 page=f"flow_{self._flow_id}",
-                flow_id=self._flow_id,
-                supporting_data=insight["supporting_data"]
+                flow_id=self._flow_id
             )
             
             self.state_manager.add_agent_insight(
@@ -1083,6 +1102,7 @@ def create_unified_discovery_flow(
     crewai_service,
     context: RequestContext,
     raw_data: List[Dict[str, Any]],
+    master_flow_id: Optional[str] = None,
     **kwargs
 ) -> UnifiedDiscoveryFlow:
     """
@@ -1092,6 +1112,7 @@ def create_unified_discovery_flow(
         crewai_service: The CrewAI service instance
         context: Request context for multi-tenant operations
         raw_data: Raw data to process
+        master_flow_id: Optional master flow ID for linkage
         **kwargs: Additional flow configuration
         
     Returns:
@@ -1099,11 +1120,34 @@ def create_unified_discovery_flow(
     """
     logger.info(f"🏗️ Creating UnifiedDiscoveryFlow with {len(raw_data) if raw_data else 0} records")
     
+    # PHASE 2 FIX: Add master_flow_id handling
+    if master_flow_id:
+        logger.info(f"🔗 Linking UnifiedDiscoveryFlow to master flow: {master_flow_id}")
+        kwargs['master_flow_id'] = master_flow_id
+        
+        # Also add to metadata for reference
+        if 'metadata' not in kwargs:
+            kwargs['metadata'] = {}
+        kwargs['metadata']['master_flow_id'] = master_flow_id
+    
     # Ensure raw_data is included in kwargs
     kwargs['raw_data'] = raw_data
     
-    return UnifiedDiscoveryFlow(
+    # Create the flow instance
+    flow_instance = UnifiedDiscoveryFlow(
         crewai_service=crewai_service,
         context=context,
         **kwargs
     )
+    
+    # PHASE 2 FIX: Update DiscoveryFlow record with master flow linkage if provided
+    if master_flow_id:
+        try:
+            # Store master_flow_id in the flow state for persistence
+            if hasattr(flow_instance, 'state') and flow_instance.state:
+                flow_instance.state.master_flow_id = master_flow_id
+                logger.info(f"✅ Set master_flow_id in flow state: {master_flow_id}")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to set master_flow_id in flow state: {e}")
+    
+    return flow_instance

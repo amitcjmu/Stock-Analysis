@@ -69,6 +69,24 @@ class CrewAIFlowStateExtensions(Base):
     # Note: Subordinate flow tables (discovery_flows, assessment_flows, etc.) 
     # should have master_flow_id foreign keys pointing to this table's flow_id
     
+    # Child flow relationships (referencing this table's flow_id)
+    discovery_flows = relationship("DiscoveryFlow", foreign_keys="DiscoveryFlow.master_flow_id", 
+                                 primaryjoin="CrewAIFlowStateExtensions.flow_id == DiscoveryFlow.master_flow_id",
+                                 back_populates="master_flow", cascade="all, delete-orphan")
+    
+    data_imports = relationship("DataImport", foreign_keys="DataImport.master_flow_id",
+                               primaryjoin="CrewAIFlowStateExtensions.flow_id == DataImport.master_flow_id",
+                               back_populates="master_flow", cascade="all, delete-orphan")
+    
+    raw_import_records = relationship("RawImportRecord", foreign_keys="RawImportRecord.master_flow_id",
+                                    primaryjoin="CrewAIFlowStateExtensions.flow_id == RawImportRecord.master_flow_id",
+                                    back_populates="master_flow", cascade="all, delete-orphan")
+    
+    # Parent-child flow relationships (hierarchical flows)
+    parent_flow = relationship("CrewAIFlowStateExtensions", remote_side=[flow_id], 
+                              foreign_keys=[parent_flow_id], back_populates="child_flows")
+    child_flows = relationship("CrewAIFlowStateExtensions", back_populates="parent_flow")
+    
     def __repr__(self):
         return f"<CrewAIFlowStateExtensions(flow_id={self.flow_id}, flow_type={self.flow_type}, status={self.flow_status})>"
     

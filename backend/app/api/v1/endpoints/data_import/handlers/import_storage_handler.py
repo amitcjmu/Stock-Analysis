@@ -290,6 +290,7 @@ async def _trigger_discovery_flow(
     
     FIXED: Use MasterFlowOrchestrator instead of bypassing with direct creation.
     This ensures proper flow management, tracking, and orchestration.
+    Also updates DataImport and RawImportRecord with proper master_flow_id linkage.
     
     Returns:
         Optional[str]: The flow_id if successful, None otherwise
@@ -300,6 +301,8 @@ async def _trigger_discovery_flow(
         # ARCHITECTURAL FIX: Use MasterFlowOrchestrator instead of direct creation
         from app.services.master_flow_orchestrator import MasterFlowOrchestrator
         from app.core.database import AsyncSessionLocal
+        from sqlalchemy import select, update
+        from app.models.data_import import DataImport, RawImportRecord
         
         async with AsyncSessionLocal() as db:
             # Initialize Master Flow Orchestrator
@@ -327,12 +330,84 @@ async def _trigger_discovery_flow(
             
             # Extract flow_id from result tuple
             if isinstance(flow_result, tuple) and len(flow_result) >= 1:
-                flow_id = flow_result[0]
-                logger.info(f"✅ Discovery flow created via orchestrator: {flow_id}")
-                return flow_id
+                master_flow_id = flow_result[0]
+                logger.info(f"✅ Discovery flow created via orchestrator: {master_flow_id}")
+                
+                # PHASE 2 FIX: Link DataImport and RawImportRecord back to master flow
+                # Transaction safety for linking operations
+                link_savepoint = None
+                try:
+                    # Create savepoint for linking operations
+                    link_savepoint = await db.begin_nested()
+                    logger.info(f"🔗 Starting master flow linkage transaction for import {data_import_id}")
+                    
+                    # Update DataImport with master_flow_id if the column exists
+                    logger.info(f"🔗 Linking DataImport {data_import_id} to master flow {master_flow_id}")
+                    
+                    # Check if master_flow_id column exists in DataImport
+                    data_import_query = select(DataImport).where(DataImport.id == data_import_id)
+                    data_import_result = await db.execute(data_import_query)
+                    data_import = data_import_result.scalar_one_or_none()
+                    
+                    if data_import:
+                        # Try to set master_flow_id if the attribute exists
+                        if hasattr(data_import, 'master_flow_id'):
+                            data_import.master_flow_id = master_flow_id
+                            logger.info(f"✅ Updated DataImport.master_flow_id to {master_flow_id}")
+                        else:
+                            logger.info(f"ℹ️ DataImport.master_flow_id column not yet available (schema pending)")
+                        
+                        # Update with discovery flow linkage data
+                        data_import.discovery_flow_id = master_flow_id
+                        data_import.status = "discovery_initiated"
+                        data_import.updated_at = datetime.utcnow()
+                        
+                        # Update RawImportRecord entries with master_flow_id if column exists
+                        logger.info(f"🔗 Linking RawImportRecord entries to master flow {master_flow_id}")
+                        
+                        raw_records_query = select(RawImportRecord).where(
+                            RawImportRecord.data_import_id == data_import_id
+                        )
+                        raw_records_result = await db.execute(raw_records_query)
+                        raw_records = raw_records_result.scalars().all()
+                        
+                        updated_records = 0
+                        for record in raw_records:
+                            # Try to set master_flow_id if the attribute exists
+                            if hasattr(record, 'master_flow_id'):
+                                record.master_flow_id = master_flow_id
+                                updated_records += 1
+                            else:
+                                logger.debug(f"ℹ️ RawImportRecord.master_flow_id column not yet available (schema pending)")
+                        
+                        if updated_records > 0:
+                            logger.info(f"✅ Updated {updated_records} RawImportRecord entries with master_flow_id")
+                        
+                        # Commit the linking transaction
+                        await link_savepoint.commit()
+                        logger.info(f"✅ Successfully linked import data to master flow {master_flow_id}")
+                        
+                    else:
+                        logger.error(f"❌ DataImport record not found: {data_import_id}")
+                        await link_savepoint.rollback()
+                        
+                except Exception as link_error:
+                    logger.error(f"❌ Failed to link import data to master flow: {link_error}")
+                    if link_savepoint:
+                        try:
+                            await link_savepoint.rollback()
+                            logger.info(f"🔄 Rolled back master flow linkage transaction")
+                        except Exception as rollback_error:
+                            logger.error(f"❌ Failed to rollback linkage transaction: {rollback_error}")
+                    # Don't fail the entire operation, just log the error
+                    # The flow will still work, just without the linkage
+                    logger.warning(f"⚠️ Continuing without master flow linkage due to error")
+                
+                return master_flow_id
             else:
                 logger.error(f"❌ Unexpected flow creation result: {flow_result}")
                 return None
+                
     except Exception as e:
         logger.error(f"❌ Discovery Flow trigger failed: {e}")
         import traceback
