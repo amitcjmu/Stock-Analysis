@@ -174,13 +174,17 @@ class MasterFlowOrchestrator:
                     raw_data = initial_state.get("raw_data", []) if initial_state else []
                     
                     # Create the UnifiedDiscoveryFlow instance
+                    # Add master flow ID to metadata so discovery flow can link back
+                    flow_metadata = configuration or {}
+                    flow_metadata['master_flow_id'] = flow_id
+                    
                     discovery_flow = create_unified_discovery_flow(
                         flow_id=flow_id,
                         client_account_id=self.context.client_account_id,
                         engagement_id=self.context.engagement_id,
                         user_id=self.context.user_id or "system",
                         raw_data=raw_data,
-                        metadata=configuration or {},
+                        metadata=flow_metadata,
                         crewai_service=crewai_service,
                         context=self.context
                     )
@@ -296,17 +300,24 @@ class MasterFlowOrchestrator:
             
         except Exception as e:
             # Handle error with retry logic
+            from app.services.flow_error_handler import ErrorContext, RetryConfig
+            
+            error_context = ErrorContext(
+                operation="create_flow",
+                flow_type=flow_type,
+                flow_id=flow_id,
+                user_id=self.context.user_id
+            )
+            
+            retry_config = RetryConfig(
+                max_retries=3,
+                backoff_multiplier=2
+            )
+            
             error_result = await self.error_handler.handle_error(
                 error=e,
-                context={
-                    "operation": "create_flow",
-                    "flow_type": flow_type,
-                    "flow_id": flow_id
-                },
-                retry_config={
-                    "max_retries": 3,
-                    "backoff_multiplier": 2
-                }
+                context=error_context,
+                retry_config=retry_config
             )
             
             if error_result.should_retry:
@@ -473,17 +484,24 @@ class MasterFlowOrchestrator:
             
         except Exception as e:
             # Handle error with retry logic
+            from app.services.flow_error_handler import ErrorContext, RetryConfig
+            
+            error_context = ErrorContext(
+                operation="execute_phase",
+                flow_id=flow_id,
+                phase=phase_name,
+                user_id=self.context.user_id
+            )
+            
+            retry_config = RetryConfig(
+                max_retries=2,
+                backoff_multiplier=2
+            )
+            
             error_result = await self.error_handler.handle_error(
                 error=e,
-                context={
-                    "operation": "execute_phase",
-                    "flow_id": flow_id,
-                    "phase_name": phase_name
-                },
-                retry_config={
-                    "max_retries": 2,
-                    "backoff_multiplier": 2
-                }
+                context=error_context,
+                retry_config=retry_config
             )
             
             if error_result.should_retry:

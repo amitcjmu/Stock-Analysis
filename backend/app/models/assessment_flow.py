@@ -386,17 +386,7 @@ class AssessmentStatus(str, Enum):
     ERROR = "error"
 
 
-class AssessmentPhase(str, Enum):
-    """Assessment flow phases for in-memory state management"""
-    INITIALIZATION = "initialization"
-    ARCHITECTURE_MINIMUMS = "architecture_minimums"
-    TECH_DEBT_ANALYSIS = "tech_debt_analysis"
-    COMPONENT_SIXR_STRATEGIES = "component_sixr_strategies"
-    APP_ON_PAGE_GENERATION = "app_on_page_generation"
-    FINALIZATION = "finalization"
-
-
-class SixRDecision:
+class InMemorySixRDecision:
     """In-memory model for 6R decisions"""
     
     def __init__(
@@ -510,7 +500,7 @@ class AssessmentFlowState:
         self.application_components: Dict[str, List[Dict[str, Any]]] = {}
         self.tech_debt_analysis: Dict[str, List[Dict[str, Any]]] = {}
         self.component_tech_debt: Dict[str, Dict[str, float]] = {}
-        self.sixr_decisions: Dict[str, SixRDecision] = {}
+        self.sixr_decisions: Dict[str, InMemorySixRDecision] = {}
         self.apps_ready_for_planning: List[str] = []
         
         # Interaction tracking

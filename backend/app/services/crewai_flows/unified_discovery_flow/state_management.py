@@ -183,20 +183,39 @@ class StateManager:
                     user_id=user_id
                 )
                 
-                # Update flow status and progress - only if flow_id exists
+                # First check if the flow exists, create if not
                 flow_id = getattr(self.state, 'flow_id', None)
-                if not flow_id:
-                    # Try to get from context as fallback
-                    flow_id = getattr(context, 'flow_id', None)
-                    
                 if flow_id:
+                    existing_flow = await repo.get_by_flow_id(flow_id)
+                    if not existing_flow:
+                        logger.info(f"🆕 Creating discovery flow record for {flow_id}")
+                        # Get master flow ID from state metadata
+                        master_flow_id = getattr(self.state, 'master_flow_id', None) or self.state.metadata.get('master_flow_id')
+                        
+                        await repo.flow_commands.create_discovery_flow(
+                            flow_id=flow_id,
+                            master_flow_id=master_flow_id,
+                            flow_type="primary",
+                            description=f"Discovery Flow {flow_id[:8]}",
+                            initial_state_data={
+                                "status": getattr(self.state, 'status', 'initialized'),
+                                "current_phase": getattr(self.state, 'current_phase', 'initialization'),
+                                "progress_percentage": getattr(self.state, 'progress_percentage', 0.0)
+                            },
+                            user_id=user_id,
+                            raw_data=getattr(self.state, 'raw_data', []),
+                            metadata=getattr(self.state, 'metadata', {})
+                        )
+                        logger.info(f"✅ Discovery flow record created for {flow_id}")
+                    
+                    # Now update the flow
                     await repo.flow_commands.update_flow_status(
                         flow_id=flow_id,
                         status=self.state.status,
                         progress_percentage=self.state.progress_percentage
                     )
                 else:
-                    logger.warning(f"⚠️ Cannot update flow status - flow_id is missing in both state and context")
+                    logger.warning(f"⚠️ Cannot create/update flow - flow_id is missing")
                 
                 # Update current phase data if needed
                 current_phase = getattr(self.state, 'current_phase', None)

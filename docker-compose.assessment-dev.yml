@@ -1,4 +1,4 @@
-version: '3.8'
+#version: '3.8'
 
 # Development Docker Compose for Assessment Flow Development
 # Usage: docker-compose -f docker-compose.yml -f docker-compose.assessment-dev.yml up

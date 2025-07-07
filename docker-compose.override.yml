@@ -2,7 +2,7 @@
 # This file is automatically loaded by docker-compose and overrides base settings
 # Use this for local development to ensure data persistence
 
-version: '3.8'
+#version: '3.8'
 
 services:
   postgres:
