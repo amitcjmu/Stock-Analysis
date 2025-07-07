@@ -158,6 +158,72 @@ class MasterFlowOrchestrator:
                         phase_data={"initialization": init_result}
                     )
             
+            # CRITICAL FIX: For discovery flows, kick off the CrewAI flow immediately
+            if flow_type == "discovery":
+                logger.info(f"🚀 [FIX] Kicking off CrewAI Discovery Flow for {flow_id}")
+                
+                # Delegate to CrewAI flow service to start execution
+                try:
+                    from app.services.crewai_flow_service import CrewAIFlowService
+                    from app.services.crewai_flows.unified_discovery_flow import create_unified_discovery_flow
+                    
+                    # Create CrewAI service
+                    crewai_service = CrewAIFlowService(self.db)
+                    
+                    # Prepare raw data from initial state
+                    raw_data = initial_state.get("raw_data", []) if initial_state else []
+                    
+                    # Create the UnifiedDiscoveryFlow instance
+                    discovery_flow = create_unified_discovery_flow(
+                        flow_id=flow_id,
+                        client_account_id=self.context.client_account_id,
+                        engagement_id=self.context.engagement_id,
+                        user_id=self.context.user_id or "system",
+                        raw_data=raw_data,
+                        metadata=configuration or {},
+                        crewai_service=crewai_service,
+                        context=self.context
+                    )
+                    
+                    logger.info(f"✅ [FIX] CrewAI Discovery Flow created, starting kickoff in background")
+                    
+                    # Start the flow execution in background
+                    import asyncio
+                    
+                    async def run_discovery_flow():
+                        try:
+                            logger.info(f"🎯 [FIX] Starting CrewAI Discovery Flow kickoff for {flow_id}")
+                            # CrewAI Flow kickoff() is synchronous, so run it in a thread
+                            result = await asyncio.to_thread(discovery_flow.kickoff)
+                            logger.info(f"✅ [FIX] CrewAI Discovery Flow completed: {result}")
+                            
+                            # Update flow status to completed
+                            await self.master_repo.update_flow_status(
+                                flow_id=flow_id,
+                                status="completed",
+                                phase_data={"completion": result}
+                            )
+                        except Exception as e:
+                            logger.error(f"❌ [FIX] CrewAI Discovery Flow execution failed: {e}")
+                            import traceback
+                            logger.error(f"Traceback: {traceback.format_exc()}")
+                            
+                            # Update flow status to failed
+                            await self.master_repo.update_flow_status(
+                                flow_id=flow_id,
+                                status="failed",
+                                phase_data={"error": str(e)}
+                            )
+                    
+                    # Create the task but don't await it - let it run in background
+                    task = asyncio.create_task(run_discovery_flow())
+                    logger.info(f"🚀 [FIX] CrewAI Discovery Flow task created and running in background")
+                    
+                except Exception as e:
+                    logger.error(f"❌ [FIX] Failed to start CrewAI Discovery Flow: {e}")
+                    # Don't fail the flow creation, just log the error
+                    # The flow can still be executed later via execute_phase
+            
             # Log creation audit
             await self._log_audit_event(
                 flow_id=flow_id,
@@ -867,7 +933,69 @@ class MasterFlowOrchestrator:
                             "method": "crewai_flow_resume"
                         }
                     else:
-                        # Advance to the next phase
+                        # For discovery flows created via master orchestrator, ensure CrewAI flow is running
+                        logger.info(f"🔄 [FIX] Ensuring CrewAI flow is running for phase execution")
+                        
+                        # Check if flow exists and is running
+                        flow_status = await crewai_service.get_flow_status(
+                            flow_id=str(master_flow.flow_id),
+                            context=context
+                        )
+                        
+                        if flow_status.get("flow_status") == "not_found" or flow_status.get("current_phase") == "initialization":
+                            logger.warning(f"⚠️ [FIX] CrewAI flow not active, need to start it first")
+                            
+                            # The flow should have been started during create_flow, but if not, we can't
+                            # start it here without the raw data. Return error status.
+                            if not phase_input or not phase_input.get("raw_data"):
+                                return {
+                                    "phase": phase_config.name,
+                                    "status": "failed",
+                                    "error": "CrewAI flow not initialized. Please provide raw_data in phase_input.",
+                                    "crew_results": {},
+                                    "method": "crewai_flow_not_initialized"
+                                }
+                            
+                            # If we have raw data, create and start the flow
+                            from app.services.crewai_flows.unified_discovery_flow import create_unified_discovery_flow
+                            from app.core.context import RequestContext
+                            
+                            discovery_flow = create_unified_discovery_flow(
+                                flow_id=str(master_flow.flow_id),
+                                client_account_id=master_flow.client_account_id,
+                                engagement_id=master_flow.engagement_id,
+                                user_id=master_flow.user_id or "system",
+                                raw_data=phase_input["raw_data"],
+                                metadata={
+                                    "source": "master_flow_orchestrator",
+                                    "phase": phase_config.name
+                                },
+                                crewai_service=crewai_service,
+                                context=RequestContext(
+                                    client_account_id=master_flow.client_account_id,
+                                    engagement_id=master_flow.engagement_id,
+                                    user_id=master_flow.user_id
+                                )
+                            )
+                            
+                            # Start the flow
+                            logger.info(f"🚀 [FIX] Starting CrewAI flow kickoff for phase execution")
+                            
+                            try:
+                                import asyncio
+                                result = await asyncio.to_thread(discovery_flow.kickoff)
+                                logger.info(f"✅ [FIX] CrewAI flow kickoff completed: {result}")
+                            except Exception as e:
+                                logger.error(f"❌ [FIX] CrewAI flow kickoff failed: {e}")
+                                return {
+                                    "phase": phase_config.name,
+                                    "status": "failed",
+                                    "error": str(e),
+                                    "crew_results": {},
+                                    "method": "crewai_flow_kickoff_failed"
+                                }
+                        
+                        # Now advance to the next phase
                         advance_result = await crewai_service.advance_flow_phase(
                             flow_id=str(master_flow.flow_id),
                             next_phase=crewai_phase,

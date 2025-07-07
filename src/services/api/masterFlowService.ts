@@ -149,7 +149,7 @@ export const masterFlowService = {
     engagementId?: string
   ): Promise<void> {
     try {
-      await apiClient.delete(`/flows/${flowId}`, {
+      await apiClient.delete(`/master-flows/${flowId}`, undefined, {
         headers: getMultiTenantHeaders(clientAccountId, engagementId),
       });
     } catch (error) {

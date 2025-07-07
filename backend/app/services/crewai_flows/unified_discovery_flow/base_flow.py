@@ -174,7 +174,8 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     @start()
     async def initialize_discovery(self):
         """Initialize the discovery flow"""
-        logger.info("🎯 Starting Unified Discovery Flow")
+        logger.info(f"🎯 [TRACE] Starting Unified Discovery Flow - @start method called for flow {self._flow_id}")
+        logger.info(f"🔍 [TRACE] Flow kickoff initiated - this should trigger the entire flow chain")
         
         try:
             # Initialize state using CrewAI Flow's built-in state management
@@ -306,6 +307,8 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     @listen(initialize_discovery)
     async def execute_data_import_validation_agent(self, previous_result):
         """Execute data import validation phase using real CrewAI crews"""
+        logger.info(f"📊 [TRACE] @listen(initialize_discovery) triggered - data import phase starting for flow {self._flow_id}")
+        logger.info(f"🔍 [TRACE] Previous result from initialize_discovery: {previous_result}")
         try:
             # Use PhaseExecutionManager with real CrewAI crews instead of pseudo-agents
             result = await self.phase_executor.execute_data_import_validation_phase(previous_result)
