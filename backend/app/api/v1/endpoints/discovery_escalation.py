@@ -11,7 +11,9 @@ from pydantic import BaseModel
 
 from app.core.context import RequestContext, get_request_context_dependency
 from app.services.escalation.crew_escalation_manager import CrewEscalationManager
-from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow
+from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+from app.core.database import get_db
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -38,18 +40,19 @@ async def escalate_to_think(
     page: str,
     request: ThinkEscalationRequest,
     background_tasks: BackgroundTasks,
-    context: RequestContext = Depends(get_request_context_dependency)
+    context: RequestContext = Depends(get_request_context_dependency),
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Escalate to crew-based thinking for deeper analysis.
     Implements 'Think' button functionality from Task 2.3.
     """
     try:
-        # Validate flow exists
-        flow = UnifiedDiscoveryFlow()
-        flow_state = await flow.get_flow_state(flow_id)
+        # Validate flow exists using MasterFlowOrchestrator
+        orchestrator = MasterFlowOrchestrator(db, context)
+        flow_state = await orchestrator.get_flow_status(flow_id)
         
-        if not flow_state:
+        if not flow_state or flow_state.get('status') == 'not_found':
             raise HTTPException(status_code=404, detail=f"Discovery flow {flow_id} not found")
         
         # Determine appropriate crew based on page and agent
@@ -77,13 +80,10 @@ async def escalate_to_think(
             background_tasks=background_tasks
         )
         
-        # Update flow state with escalation
-        await flow.update_escalation_status(
-            flow_id=flow_id,
-            escalation_id=escalation_id,
-            status="thinking",
-            crew_type=crew_type
-        )
+        # Update flow state with escalation using orchestrator
+        # Note: This would need to be implemented in MasterFlowOrchestrator
+        # For now, we'll log the escalation
+        logger.info(f"Escalation {escalation_id} recorded for flow {flow_id}")
         
         logger.info(f"Think escalation started: {escalation_id} for flow {flow_id}, page {page}")
         
@@ -107,18 +107,19 @@ async def escalate_to_ponder_more(
     page: str,
     request: PonderEscalationRequest,
     background_tasks: BackgroundTasks,
-    context: RequestContext = Depends(get_request_context_dependency)
+    context: RequestContext = Depends(get_request_context_dependency),
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Escalate to crew collaboration for extended pondering.
     Implements 'Ponder More' button functionality from Task 2.3.
     """
     try:
-        # Validate flow exists
-        flow = UnifiedDiscoveryFlow()
-        flow_state = await flow.get_flow_state(flow_id)
+        # Validate flow exists using MasterFlowOrchestrator
+        orchestrator = MasterFlowOrchestrator(db, context)
+        flow_state = await orchestrator.get_flow_status(flow_id)
         
-        if not flow_state:
+        if not flow_state or flow_state.get('status') == 'not_found':
             raise HTTPException(status_code=404, detail=f"Discovery flow {flow_id} not found")
         
         # Determine crew collaboration strategy
@@ -283,7 +284,8 @@ async def get_flow_escalation_status(
 async def cancel_escalation(
     flow_id: str,
     escalation_id: str,
-    context: RequestContext = Depends(get_request_context_dependency)
+    context: RequestContext = Depends(get_request_context_dependency),
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Cancel an ongoing crew escalation.

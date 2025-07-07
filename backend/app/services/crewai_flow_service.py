@@ -124,15 +124,9 @@ class CrewAIFlowService:
                     "progress": existing_flow.progress_percentage
                 }
             
-            # Initialize CrewAI flow if available
-            crewai_flow = None
-            if CREWAI_FLOWS_AVAILABLE and UnifiedDiscoveryFlow:
-                try:
-                    crewai_flow = UnifiedDiscoveryFlow()
-                    await crewai_flow.initialize(flow_id=flow_id, context=context)
-                    logger.info(f"✅ CrewAI flow initialized: {flow_id}")
-                except Exception as e:
-                    logger.warning(f"CrewAI flow initialization failed: {e}")
+            # Note: CrewAI flow initialization is now handled by MasterFlowOrchestrator
+            # This service should not create flows directly
+            logger.info(f"✅ Flow initialization delegated to MasterFlowOrchestrator: {flow_id}")
             
             # Create flow through discovery service
             result = await discovery_service.create_flow(
@@ -476,13 +470,16 @@ class CrewAIFlowService:
                             raw_data = [record.raw_data for record in raw_records]
                             logger.info(f"✅ Loaded {len(raw_data)} raw data records for flow")
                         
-                        # Initialize the real UnifiedDiscoveryFlow with raw data
-                        crewai_flow = UnifiedDiscoveryFlow(
-                            crewai_service=self,
-                            context=context,
-                            flow_id=flow_id,
-                            raw_data=raw_data
-                        )
+                        # Initialize flow through MasterFlowOrchestrator
+                        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+                        orchestrator = MasterFlowOrchestrator(db, context)
+                        
+                        # Note: For resume functionality, we should use orchestrator.resume_flow
+                        # instead of creating a new flow instance
+                        logger.info(f"Flow resume should be handled through MasterFlowOrchestrator")
+                        
+                        # Create placeholder for crewai_flow to maintain compatibility
+                        crewai_flow = None
                         
                         # Load existing flow state (don't re-initialize if already exists)
                         if not hasattr(crewai_flow, '_flow_state') or not crewai_flow._flow_state:

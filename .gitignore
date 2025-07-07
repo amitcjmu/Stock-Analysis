@@ -110,13 +110,13 @@ Thumbs.db
 .claude/
 CLAUDE.md
 
-# Archive directories (legacy code from migrations)
-**/archive_*/
-archive_*/
 
 # Postgres data volume
-postgres-data-volume/*
+/postgres-data-volume/
 
-playwright-report/*
-playwright-debug/*
-security-reports*/*
+# Playwright reports and debug artifacts
+/playwright-report/
+/playwright-debug/
+
+# Security reports
+/security-reports*/

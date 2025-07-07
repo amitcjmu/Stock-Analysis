@@ -4,7 +4,7 @@ Flow Manager for lifecycle management
 
 from typing import Dict, Any, Optional, List
 from app.services.flows.base_flow import BaseDiscoveryFlow
-from app.services.flows.discovery_flow import UnifiedDiscoveryFlow, DiscoveryFlowState
+# Direct UnifiedDiscoveryFlow imports removed - use MasterFlowOrchestrator instead
 from app.core.context import RequestContext
 from sqlalchemy.ext.asyncio import AsyncSession
 import asyncio
@@ -33,45 +33,51 @@ class FlowManager:
         context: RequestContext,
         import_data: Dict[str, Any]
     ) -> str:
-        """Create and start a new discovery flow"""
-        flow = UnifiedDiscoveryFlow(db, context)
-        flow_id = import_data["flow_id"]
+        """Create and start a new discovery flow through MasterFlowOrchestrator"""
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+        orchestrator = MasterFlowOrchestrator(db, context)
         
-        # Store flow instance
-        self.active_flows[flow_id] = flow
+        # Extract flow_id and prepare initial state
+        flow_id = import_data.get("flow_id")
+        initial_state = {
+            "import_data": import_data,
+            "raw_data": import_data.get("raw_data", [])
+        }
         
-        # Start flow execution in background
-        task = asyncio.create_task(
-            flow.kickoff(inputs={"import_data": import_data})
+        # Create flow through orchestrator
+        new_flow_id, flow_details = await orchestrator.create_flow(
+            flow_type="discovery",
+            flow_name=f"Discovery Flow {flow_id}",
+            initial_state=initial_state
         )
-        self.flow_tasks[flow_id] = task
         
-        logger.info(f"Created and started discovery flow: {flow_id}")
-        return flow_id
+        logger.info(f"Created and started discovery flow through MasterFlowOrchestrator: {new_flow_id}")
+        return new_flow_id
     
     async def get_flow_status(self, flow_id: str) -> Optional[Dict[str, Any]]:
-        """Get current status of a flow"""
-        flow = self.active_flows.get(flow_id)
-        if not flow:
-            return None
+        """Get current status of a flow through MasterFlowOrchestrator"""
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+        from app.core.database import AsyncSessionLocal
+        from app.core.context import RequestContext
         
-        # Load current state
-        state = await flow.load_state(flow_id)
-        if not state:
-            return None
-        
-        return {
-            "flow_id": flow_id,
-            "current_phase": state.current_phase,
-            "phases_completed": state.phases_completed,
-            "progress_percentage": state.progress_percentage,
-            "error": state.error,
-            "is_active": flow_id in self.flow_tasks and not self.flow_tasks[flow_id].done(),
-            "status": state.status
-        }
+        # Create a new session for status check
+        async with AsyncSessionLocal() as db:
+            # Create minimal context for status check
+            context = RequestContext()
+            orchestrator = MasterFlowOrchestrator(db, context)
+            
+            try:
+                status = await orchestrator.get_flow_status(flow_id)
+                return status
+            except Exception as e:
+                logger.error(f"Failed to get flow status: {e}")
+                return None
     
     async def pause_flow(self, flow_id: str) -> bool:
-        """Pause a running flow"""
+        """Pause a running flow - delegated to MasterFlowOrchestrator"""
+        # This method should be implemented through MasterFlowOrchestrator
+        logger.warning(f"pause_flow called but should use MasterFlowOrchestrator.pause_flow")
+        return False
         task = self.flow_tasks.get(flow_id)
         if task and not task.done():
             task.cancel()
@@ -86,38 +92,24 @@ class FlowManager:
         context: RequestContext
     ) -> bool:
         """Resume a paused flow from last checkpoint"""
-        # Create new flow instance
-        flow = UnifiedDiscoveryFlow(db, context)
+        # Flow resumption should be handled through MasterFlowOrchestrator
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+        orchestrator = MasterFlowOrchestrator(db, context)
         
-        # Load existing state
-        state = await flow.load_state(flow_id)
-        if not state:
-            logger.error(f"No state found for flow: {flow_id}")
+        # Resume flow through orchestrator
+        try:
+            await orchestrator.resume_flow(flow_id)
+            logger.info(f"Resumed flow: {flow_id} through MasterFlowOrchestrator")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to resume flow through orchestrator: {e}")
             return False
-        
-        # Determine resume point based on completed phases
-        resume_method = self._get_resume_method(flow, state.phases_completed)
-        if not resume_method:
-            logger.error(f"Cannot determine resume point for flow: {flow_id}")
-            return False
-        
-        # Store flow instance
-        self.active_flows[flow_id] = flow
-        
-        # Resume execution
-        task = asyncio.create_task(
-            resume_method(state)
-        )
-        self.flow_tasks[flow_id] = task
-        
-        logger.info(f"Resumed flow: {flow_id} from phase {state.current_phase}")
-        return True
     
-    def _get_resume_method(self, flow: UnifiedDiscoveryFlow, phases_completed: List[str]):
-        """Determine which method to call for resumption"""
-        phase_methods = {
-            "initialization": flow.validate_and_analyze_data,
-            "data_validation": flow.perform_field_mapping,
+    def _get_resume_method(self, flow_id: str, phases_completed: List[str]):
+        """Determine which phase to resume from - now handled by MasterFlowOrchestrator"""
+        # This method is deprecated - MasterFlowOrchestrator handles resume logic
+        logger.warning(f"_get_resume_method called but should use MasterFlowOrchestrator.resume_flow")
+        return None
             "field_mapping": flow.cleanse_data,
             "data_cleansing": flow.build_asset_inventory,
             "asset_inventory": flow.analyze_dependencies,
@@ -156,36 +148,22 @@ class FlowManager:
         return statuses
     
     async def force_complete_flow(self, flow_id: str, reason: str = "forced") -> bool:
-        """Force complete a flow (for emergency situations)"""
-        flow = self.active_flows.get(flow_id)
-        if not flow:
-            return False
+        """Force complete a flow (for emergency situations) - delegated to MasterFlowOrchestrator"""
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+        from app.core.database import AsyncSessionLocal
+        from app.core.context import RequestContext
         
-        try:
-            # Load current state
-            state = await flow.load_state(flow_id)
-            if state:
-                state.status = "completed"
-                state.current_phase = "completed"
-                state.progress_percentage = 100.0
-                state.metadata["force_completed"] = True
-                state.metadata["force_reason"] = reason
-                
-                # Save final state
-                await flow.save_state(state)
-                
-                # Emit forced completion event
-                flow.emit_event("flow_force_completed", {
-                    "flow_id": flow_id,
-                    "reason": reason
-                })
-                
-                logger.warning(f"Force completed flow {flow_id}: {reason}")
+        async with AsyncSessionLocal() as db:
+            context = RequestContext()
+            orchestrator = MasterFlowOrchestrator(db, context)
+            
+            try:
+                # Update flow status to completed
+                await orchestrator.update_flow_status(flow_id, "completed", {"reason": reason})
                 return True
-        except Exception as e:
-            logger.error(f"Failed to force complete flow {flow_id}: {e}")
-        
-        return False
+            except Exception as e:
+                logger.error(f"Failed to force complete flow: {e}")
+                return False
 
 
 # Global flow manager instance

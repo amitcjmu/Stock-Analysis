@@ -1281,30 +1281,43 @@ async def resume_flow_intelligent(
                 
                 raw_data = [record.raw_data for record in raw_records]
                 
-                # Restart flow processing
-                from app.services.crewai_flows.unified_discovery_flow.base_flow import UnifiedDiscoveryFlow
-                discovery_flow = UnifiedDiscoveryFlow()
+                # Restart flow processing using MasterFlowOrchestrator
+                from app.services.master_flow_orchestrator import MasterFlowOrchestrator
                 
-                # Kickoff the flow
-                logger.info(f"🚀 Kicking off flow with {len(raw_data)} records")
+                # Create orchestrator instance
+                orchestrator = MasterFlowOrchestrator(db, context)
                 
-                async def run_flow():
-                    try:
-                        result = await asyncio.to_thread(discovery_flow.kickoff)
-                        logger.info(f"✅ Flow completed: {result}")
-                    except Exception as e:
-                        logger.error(f"❌ Flow execution error: {e}")
+                # Prepare initial state with raw data
+                initial_state = {
+                    "raw_data": raw_data,
+                    "data_import_id": str(data_import.id) if data_import else None
+                }
                 
-                # Start flow execution in background
-                import asyncio
-                asyncio.create_task(run_flow())
+                # Create new discovery flow through orchestrator
+                logger.info(f"🚀 Creating new discovery flow through MasterFlowOrchestrator with {len(raw_data)} records")
+                new_flow_id, flow_details = await orchestrator.create_flow(
+                    flow_type="discovery",
+                    flow_name=f"Restarted Discovery Flow (from {flow_id})",
+                    initial_state=initial_state
+                )
+                
+                logger.info(f"✅ New discovery flow created: {new_flow_id}")
+                
+                # Update the old flow to mark it as superseded
+                flow.status = "superseded"
+                flow.metadata = flow.metadata or {}
+                flow.metadata["superseded_by"] = new_flow_id
+                flow.metadata["superseded_at"] = datetime.utcnow().isoformat()
+                await db.commit()
                 
                 return {
                     "success": True,
-                    "flow_id": str(flow_id),
+                    "flow_id": new_flow_id,
                     "message": f"Flow restarted from {raw_data_count} raw records",
                     "strategy": resume_strategy,
-                    "flow_status": "processing"
+                    "flow_status": "processing",
+                    "old_flow_id": str(flow_id),
+                    "note": "New flow created through MasterFlowOrchestrator"
                 }
         
         # Default: Update status and let normal flow resume
