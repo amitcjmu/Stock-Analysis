@@ -16,6 +16,15 @@ import json
 import os
 from pydantic import BaseModel, ValidationError
 
+from app.core.logging import get_logger
+from app.core.exceptions import (
+    DataImportError,
+    ValidationError as AppValidationError,
+    DatabaseError,
+    FlowError
+)
+from app.middleware.error_tracking import track_async_errors
+
 from app.core.database import get_db, AsyncSessionLocal
 from app.core.context import get_current_context, RequestContext
 from app.models.data_import import DataImport, RawImportRecord, ImportStatus, ImportFieldMapping
@@ -41,7 +50,7 @@ except ImportError:
     DiscoveryFlowRepository = None
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Validation sessions directory
 VALIDATION_SESSIONS_PATH = os.path.join("backend", "data", "validation_sessions")
@@ -58,6 +67,7 @@ class ImportStorageResponse(BaseModel):
     records_stored: int = 0
 
 @router.post("/store-import")
+@track_async_errors("store_import_data")
 async def store_import_data(
     request: Request,
     db: AsyncSession = Depends(get_db),
@@ -100,16 +110,36 @@ async def store_import_data(
             request_data = json.loads(raw_body)
             logger.info(f"🔍 DEBUG: Parsed JSON: {json.dumps(request_data, indent=2, default=str)}")
         except json.JSONDecodeError as e:
-            logger.error(f"🚨 JSON decode error: {e}")
-            raise HTTPException(status_code=400, detail=f"Invalid JSON: {e}")
+            logger.error(
+                f"🚨 JSON decode error: {e}",
+                extra={"error_type": "json_decode", "client_id": context.client_account_id}
+            )
+            raise DataImportError(
+                message=f"Failed to parse request data: {e}",
+                file_name="request_body",
+                details={"error_type": "json_decode"}
+            )
         
         # Try to create StoreImportRequest from parsed data
         try:
             store_request = StoreImportRequest(**request_data)
             logger.info(f"🔄 Starting data storage for session: {store_request.upload_context.validation_id}")
         except ValidationError as e:
-            logger.error(f"🚨 Pydantic validation error: {e}")
-            raise HTTPException(status_code=422, detail=f"Validation error: {e.errors()}")
+            logger.error(
+                f"🚨 Pydantic validation error: {e}",
+                extra={
+                    "error_type": "pydantic_validation",
+                    "validation_errors": e.errors(),
+                    "client_id": context.client_account_id
+                }
+            )
+            # Convert Pydantic validation error to our app validation error
+            first_error = e.errors()[0] if e.errors() else {}
+            raise AppValidationError(
+                message="Invalid import request format",
+                field=first_error.get("loc", [""])[0] if first_error else None,
+                details={"validation_errors": e.errors()}
+            )
         
         # Extract data from request
         file_data = store_request.file_data
@@ -134,9 +164,13 @@ async def store_import_data(
         user_id = context.user_id
         
         if not client_account_id or not engagement_id:
-            raise HTTPException(
-                status_code=400, 
-                detail="Client account and engagement context required"
+            raise AppValidationError(
+                message="Client account and engagement context required",
+                field="context",
+                details={
+                    "client_account_id": client_account_id,
+                    "engagement_id": engagement_id
+                }
             )
         
         # Try to find existing DataImport record, or create one if it doesn't exist

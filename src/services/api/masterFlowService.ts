@@ -128,7 +128,7 @@ export const masterFlowService = {
       if (flowType) params.append('flowType', flowType);
       
       const response = await apiClient.get<MasterFlowResponse[]>(
-        `/flows/${params.toString() ? `?${params}` : ''}`,
+        `/master-flows/active${params.toString() ? `?${params}` : ''}`,
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
         }
@@ -210,15 +210,16 @@ export const masterFlowService = {
     flowId: string,
     clientAccountId: string,
     engagementId?: string
-  ): Promise<void> {
+  ): Promise<any> {
     try {
-      await apiClient.post(
+      const response = await apiClient.post(
         `/flows/${flowId}/resume`,
         {},
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
         }
       );
+      return response;
     } catch (error) {
       handleApiError(error, 'resumeFlow');
       throw error;

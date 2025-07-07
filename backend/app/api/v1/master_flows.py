@@ -460,9 +460,16 @@ async def delete_master_flow(
         child_flows_deleted = 0
         
         # Mark discovery flows
+        # Handle both cases: flows linked by master_flow_id OR flows with same flow_id
+        from sqlalchemy import or_
         discovery_update = update(DiscoveryFlow).where(
-            DiscoveryFlow.master_flow_id == flow_uuid,
-            DiscoveryFlow.status != "deleted"
+            and_(
+                or_(
+                    DiscoveryFlow.master_flow_id == flow_uuid,
+                    DiscoveryFlow.flow_id == flow_uuid
+                ),
+                DiscoveryFlow.status != "deleted"
+            )
         ).values(
             status="deleted",
             updated_at=datetime.utcnow()

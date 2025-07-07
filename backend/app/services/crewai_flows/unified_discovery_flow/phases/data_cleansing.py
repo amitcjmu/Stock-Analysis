@@ -8,11 +8,19 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
 
+from app.core.logging import get_logger
+from app.core.exceptions import (
+    DataProcessingError,
+    CrewAIExecutionError,
+    BackgroundTaskError
+)
+from app.middleware.error_tracking import track_async_errors
+
 # from app.services.agents.data_cleansing_agent import DataCleansingAgent
 # Handled by MasterFlowOrchestrator with real CrewAI agents
 from ..flow_config import PhaseNames
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class DataCleansingPhase:
@@ -33,6 +41,7 @@ class DataCleansingPhase:
         self._init_context = init_context
         self.flow_bridge = flow_bridge
     
+    @track_async_errors("data_cleansing_phase")
     async def execute(self, previous_result: str) -> str:
         """
         Execute the data cleansing phase
@@ -43,7 +52,14 @@ class DataCleansingPhase:
         Returns:
             Phase result status
         """
-        logger.info("🤖 Starting Data Cleansing with Agent-First Architecture")
+        logger.info(
+            "🤖 Starting Data Cleansing with Agent-First Architecture",
+            extra={
+                "phase": PhaseNames.DATA_CLEANSING,
+                "flow_id": self.state.flow_id,
+                "previous_result": previous_result
+            }
+        )
         self.state.current_phase = PhaseNames.DATA_CLEANSING
         
         # Update database immediately when phase starts
@@ -65,17 +81,56 @@ class DataCleansingPhase:
             # Persist state with agent insights and progress
             await self._update_flow_state()
             
-            logger.info(f"✅ Data cleansing agent completed (confidence: {cleansing_result.confidence_score:.1f}%)")
+            logger.info(
+                f"✅ Data cleansing agent completed (confidence: {cleansing_result.confidence_score:.1f}%)",
+                extra={
+                    "phase": PhaseNames.DATA_CLEANSING,
+                    "flow_id": self.state.flow_id,
+                    "confidence_score": cleansing_result.confidence_score,
+                    "records_cleaned": len(self.state.cleaned_data) if hasattr(self.state, 'cleaned_data') else 0
+                }
+            )
             return "data_cleansing_completed"
             
         except Exception as e:
-            logger.error(f"❌ Data cleansing agent failed: {e}")
+            # Enhanced error logging
+            logger.error(
+                f"❌ Data cleansing agent failed: {e}",
+                extra={
+                    "phase": PhaseNames.DATA_CLEANSING,
+                    "flow_id": self.state.flow_id,
+                    "error_type": type(e).__name__,
+                    "agent": "data_cleansing_agent"
+                },
+                exc_info=True
+            )
+            
+            # Add error to state
             self.state.add_error("data_cleansing", f"Agent execution failed: {str(e)}")
             
             # Update database even on failure
             await self._update_flow_state()
             
-            return "data_cleansing_failed"
+            # Re-raise as specific error type
+            if "agent" in str(e).lower() or "crew" in str(e).lower():
+                raise CrewAIExecutionError(
+                    message=f"Data cleansing agent execution failed: {str(e)}",
+                    crew_name="data_cleansing_crew",
+                    phase="data_cleansing",
+                    details={
+                        "flow_id": self.state.flow_id,
+                        "records_processed": len(self.state.raw_data) if self.state.raw_data else 0
+                    }
+                )
+            else:
+                raise DataProcessingError(
+                    message=f"Data cleansing phase failed: {str(e)}",
+                    stage="data_cleansing",
+                    details={
+                        "flow_id": self.state.flow_id,
+                        "phase": PhaseNames.DATA_CLEANSING
+                    }
+                )
     
     def _prepare_agent_data(self) -> Dict[str, Any]:
         """Prepare data for agent execution"""

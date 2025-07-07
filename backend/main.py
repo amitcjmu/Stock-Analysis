@@ -14,6 +14,7 @@ os.environ.setdefault("OTEL_PYTHON_DISABLED_INSTRUMENTATIONS", "all")
 import sys
 import traceback
 import logging
+import uuid
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -25,114 +26,94 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from app.core.context import get_current_context, RequestContext
 
+# Import error handlers
+try:
+    from app.api.error_handlers import register_error_handlers
+    ERROR_HANDLERS_AVAILABLE = True
+except ImportError:
+    ERROR_HANDLERS_AVAILABLE = False
+    logger.warning("Error handlers not available")
+
 # Load environment variables
 load_dotenv()
 
-# Configure logging to suppress verbose LLM logs
-def configure_logging():
-    """Configure logging levels to suppress verbose LLM library logs."""
-    # Set up basic logging configuration
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        datefmt='%H:%M:%S'
-    )
-    
-    # Suppress verbose LLM-related logs - set to ERROR to only show critical issues
-    logging.getLogger("httpx").setLevel(logging.ERROR)
-    # LiteLLM references removed - using custom DeepInfra implementation
-    logging.getLogger("openai").setLevel(logging.ERROR)
-    
-    # Keep CrewAI agent conversation logs visible (commented out to see agent discussions)
-    #logging.getLogger("crewai").setLevel(logging.ERROR)
-    #logging.getLogger("CrewAI").setLevel(logging.ERROR)
-    
-    # Disable LLM cost tracking and usage logs (these create chatter)
-    logging.getLogger("app.services.llm_usage_tracker").setLevel(logging.ERROR)
-    logging.getLogger("app.services.deepinfra_llm").setLevel(logging.WARNING)  # Keep warnings
-    logging.getLogger("app.services.llm_config").setLevel(logging.WARNING)    # Keep warnings
-    logging.getLogger("litellm").setLevel(logging.ERROR)                       # Disable LiteLLM cost tracking
-    logging.getLogger("LiteLLM").setLevel(logging.ERROR)                       # Disable LiteLLM cost tracking
-    
-    # Keep these at ERROR to reduce noise
-    logging.getLogger("deepinfra").setLevel(logging.ERROR)
-    
-    # Additional LLM-related loggers
-    logging.getLogger("urllib3").setLevel(logging.ERROR)
-    logging.getLogger("requests").setLevel(logging.ERROR)
-    logging.getLogger("httpcore").setLevel(logging.ERROR)
-    logging.getLogger("h11").setLevel(logging.ERROR)
-    
-    # Suppress SQL query logs unless they're errors
-    logging.getLogger("sqlalchemy.engine").setLevel(logging.ERROR)
-    logging.getLogger("sqlalchemy.pool").setLevel(logging.ERROR)
-    
-    # Keep application logs visible at INFO level
-    logging.getLogger("app").setLevel(logging.INFO)
-    logging.getLogger("uvicorn").setLevel(logging.INFO)
-    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)  # Reduce access logs
-    
-    # Root logger
-    logging.getLogger().setLevel(logging.INFO)
-    
-    print("✅ Logging configured - Cost tracking logs suppressed, agent conversations visible")
+# Import our structured logging module
+try:
+    from app.core.logging import configure_logging, get_logger, set_trace_id
+    STRUCTURED_LOGGING_AVAILABLE = True
+except ImportError:
+    STRUCTURED_LOGGING_AVAILABLE = False
+    # Fallback to basic logging
+    def configure_logging():
+        """Fallback logging configuration"""
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            datefmt='%H:%M:%S'
+        )
+        print("⚠️  Using fallback logging configuration")
 
 # Configure logging before any other imports
-configure_logging()
+if STRUCTURED_LOGGING_AVAILABLE:
+    # Use structured JSON logging in production
+    env = os.getenv("ENVIRONMENT", "production")
+    log_format = "json" if env == "production" else "text"
+    configure_logging(level="INFO", format=log_format, enable_security_filter=True)
+    logger = get_logger(__name__)
+    logger.info("✅ Structured logging configured", extra={"environment": env})
+else:
+    configure_logging()
+    logger = logging.getLogger(__name__)
 
 # Lifespan event handler (replaces deprecated @app.on_event)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup logic
-    print("🚀 Application starting up...")
+    logger.info("🚀 Application starting up...")
     
     # Initialize RBAC system
     try:
         from app.api.v1.auth.rbac import initialize_rbac_system
         await initialize_rbac_system()
     except Exception as e:
-        print(f"⚠️  RBAC initialization warning: {e}")
+        logger.warning(f"RBAC initialization warning: {e}")
     
     # Initialize Master Flow Orchestrator configurations
     try:
         from app.core.flow_initialization import initialize_flows_on_startup
-        print("🔄 Initializing Master Flow Orchestrator configurations...")
+        logger.info("🔄 Initializing Master Flow Orchestrator configurations...")
         flow_init_results = initialize_flows_on_startup()
         if flow_init_results.get("success", False):
-            print("✅ Master Flow Orchestrator initialized successfully")
+            logger.info("✅ Master Flow Orchestrator initialized successfully")
         else:
-            print(f"⚠️  Flow initialization completed with issues: {flow_init_results.get('initialization', {}).get('errors', [])}")
+            logger.warning(f"Flow initialization completed with issues: {flow_init_results.get('initialization', {}).get('errors', [])}")
     except Exception as e:
-        print(f"⚠️  Flow initialization warning: {e}")
+        logger.warning(f"Flow initialization warning: {e}", exc_info=True)
         # Don't fail startup on flow initialization issues
-        import traceback
-        traceback.print_exc()
     
-    print("✅ Startup logic completed.")
+    logger.info("✅ Startup logic completed.")
 
     # Test database connection
     if DATABASE_ENABLED:
         try:
-            print("🔧 Testing database connection...")
+            logger.info("🔧 Testing database connection...")
             from app.core.database import db_manager
             health_check_result = await db_manager.health_check()
             if health_check_result:
-                print("✅✅✅ Database connection test successful.")
+                logger.info("✅✅✅ Database connection test successful.")
             else:
-                print("⚠️⚠️⚠️ Database connection test failed, but continuing...")
+                logger.warning("⚠️⚠️⚠️ Database connection test failed, but continuing...")
             
         except Exception as e:
-            print(f"⚠️⚠️⚠️ Database connection test failed: {e}")
+            logger.warning(f"⚠️⚠️⚠️ Database connection test failed: {e}", exc_info=True)
             # Don't fail startup on database connection issues
-            import traceback
-            traceback.print_exc()
     
     # Yield control to the application
     yield
     
     # Shutdown logic (if needed)
-    print("🔄 Application shutting down...")
-    print("✅ Shutdown logic completed.")
+    logger.info("🔄 Application shutting down...")
+    logger.info("✅ Shutdown logic completed.")
 
 # Initialize basic app first to ensure health check is always available
 app = FastAPI(
@@ -175,10 +156,10 @@ API_ROUTES_ERROR = None
 
 try:
     from app.core.config import settings, get_database_url
-    print("✅ Configuration loaded successfully")
+    logger.info("✅ Configuration loaded successfully")
     CONFIG_LOADED = True
 except Exception as e:
-    print(f"⚠️  Configuration error: {e}")
+    logger.warning(f"Configuration error: {e}")
     # Create minimal settings
     class MinimalSettings:
         FRONTEND_URL = "http://localhost:8081"
@@ -201,9 +182,9 @@ try:
     app.title = API_TITLE
     app.description = API_DESCRIPTION
     app.version = __version__
-    print("✅ Version information loaded")
+    logger.info("✅ Version information loaded")
 except Exception as e:
-    print(f"⚠️  Version info error: {e}")
+    logger.warning(f"Version info error: {e}")
 
 # Try to import database components
 try:
@@ -211,9 +192,9 @@ try:
     from app.models.client_account import ClientAccount
     from app.models.data_import import *
     DATABASE_ENABLED = SQLALCHEMY_AVAILABLE
-    print("✅ Database components loaded")
+    logger.info("✅ Database components loaded")
 except Exception as e:
-    print(f"⚠️  Database components not available: {e}")
+    logger.warning(f"Database components not available: {e}")
     DATABASE_ENABLED = False
     engine = None
     Base = None
@@ -223,19 +204,19 @@ try:
     from app.api.v1.api import api_router
     app.include_router(api_router, prefix="/api/v1")
     API_ROUTES_ENABLED = True
-    print("✅ API v1 routes loaded successfully")
+    logger.info("✅ API v1 routes loaded successfully")
 except Exception as e:
-    print(f"⚠️  API v1 routes error: {e}")
+    logger.warning(f"API v1 routes error: {e}")
     API_ROUTES_ERROR = str(e)
 
 # V3 API routes removed - replaced by unified API
 API_V3_ROUTES_ENABLED = False
 API_V3_ROUTES_ERROR = "V3 API archived - was legacy database abstraction layer"
-print("✅ V3 API routes archived - legacy database abstraction removed")
+logger.info("✅ V3 API routes archived - legacy database abstraction removed")
 
 # WebSocket support removed for Vercel+Railway compatibility
 WEBSOCKET_ENABLED = False
-print("ℹ️  WebSocket support disabled - using HTTP polling for Vercel+Railway compatibility")
+logger.info("ℹ️  WebSocket support disabled - using HTTP polling for Vercel+Railway compatibility")
 
 # CORS middleware configuration
 # Build origins list from multiple sources
@@ -265,11 +246,37 @@ cors_origins.extend([
 # Remove duplicates and filter out empty strings
 cors_origins = list(set(filter(None, cors_origins)))
 
-print(f"🌐 CORS Origins configured: {cors_origins}")
+logger.info(f"🌐 CORS Origins configured: {cors_origins}")
 
 # Add context middleware (Task 1.2.3)
 try:
     from app.core.middleware import ContextMiddleware, RequestLoggingMiddleware
+    
+    # Import request tracking middleware
+    from starlette.middleware.base import BaseHTTPMiddleware
+    from starlette.requests import Request
+    
+    class TraceIDMiddleware(BaseHTTPMiddleware):
+        """Middleware to add trace ID to all requests"""
+        async def dispatch(self, request: Request, call_next):
+            # Generate or extract trace ID
+            trace_id = request.headers.get("X-Trace-ID") or str(uuid.uuid4())
+            
+            # Set trace ID in context
+            if STRUCTURED_LOGGING_AVAILABLE:
+                set_trace_id(trace_id)
+            
+            # Process request
+            response = await call_next(request)
+            
+            # Add trace ID to response headers
+            response.headers["X-Trace-ID"] = trace_id
+            
+            return response
+    
+    # Add trace ID middleware first (executes last)
+    app.add_middleware(TraceIDMiddleware)
+    logger.info("✅ Trace ID middleware added")
     
     # CRITICAL: Middleware is executed in REVERSE order of addition.
     # Actual execution order will be: CORS -> Context -> RequestLogging
@@ -313,10 +320,9 @@ try:
         excluded_paths=["/health"]
     )
 
-    print("✅ Middleware loaded successfully")
+    logger.info("✅ Middleware loaded successfully")
 except Exception as e:
-    print(f"⚠️  Middleware could not be loaded: {e}")
-    print(f"📋 Traceback: {traceback.format_exc()}")
+    logger.warning(f"Middleware could not be loaded: {e}", exc_info=True)
 
 # Add CORS middleware LAST so it executes FIRST (middleware runs in reverse order)
 # This ensures CORS headers are added to ALL responses, including error responses
@@ -327,7 +333,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-print("✅ CORS middleware added - will process all responses including errors")
+logger.info("✅ CORS middleware added - will process all responses including errors")
+
+# Register error handlers if available
+if ERROR_HANDLERS_AVAILABLE:
+    register_error_handlers(app)
+    logger.info("✅ Error handlers registered")
+else:
+    logger.warning("⚠️  Error handlers not available")
 
 @app.get("/debug/routes")
 async def debug_routes():
@@ -456,7 +469,7 @@ async def health_check():
 if __name__ == "__main__":
     # Port assignment - Use Railway PORT or default to 8000 for local development
     port = int(os.getenv("PORT", 8000))
-    print(f"🚀 Starting server on port {port}")
+    logger.info(f"🚀 Starting server on port {port}")
     uvicorn.run(
         "main:app",
         host="0.0.0.0",

@@ -51,7 +51,14 @@ class FlowQueries:
             return None
     
     async def get_by_flow_id_global(self, flow_id: str) -> Optional[DiscoveryFlow]:
-        """Get discovery flow by ID without tenant filtering (for duplicate checking)"""
+        """Get discovery flow by ID without tenant filtering (for duplicate checking)
+        
+        SECURITY WARNING: This method bypasses tenant isolation and should only be used
+        for system-level operations like duplicate checking. Never expose this to user-facing APIs.
+        """
+        # Log security audit trail
+        logger.warning(f"🔒 SECURITY AUDIT: Global query attempted for flow_id={flow_id} by client={self.client_account_id}")
+        
         try:
             # Convert flow_id to UUID
             try:
@@ -60,12 +67,22 @@ class FlowQueries:
                 logger.error(f"❌ Invalid flow_id UUID format: {flow_id}, error: {e}")
                 return None
             
-            stmt = select(DiscoveryFlow).where(
-                DiscoveryFlow.flow_id == flow_uuid
+            # SECURITY: First check if the flow belongs to the current client
+            tenant_check = select(DiscoveryFlow).where(
+                and_(
+                    DiscoveryFlow.flow_id == flow_uuid,
+                    DiscoveryFlow.client_account_id == self.client_account_id
+                )
             )
+            result = await self.db.execute(tenant_check)
+            if result.scalar_one_or_none():
+                # Flow belongs to current client, safe to return
+                return result.scalar_one_or_none()
             
-            result = await self.db.execute(stmt)
-            return result.scalar_one_or_none()
+            # SECURITY: Only allow global query for system operations
+            # In production, this should check for system/admin privileges
+            logger.warning(f"🔒 SECURITY: Denying global query for flow {flow_id} - does not belong to client {self.client_account_id}")
+            return None
             
         except Exception as e:
             logger.error(f"❌ Database error in get_by_flow_id_global: {e}")

@@ -211,8 +211,22 @@ class UnifiedDiscoveryFlow(Flow):
     @start()
     async def initialize_discovery(self):
         """Initialize the discovery flow"""
-        logger.info(f"🎯 [TRACE] Starting Unified Discovery Flow - @start method called for flow {self._flow_id}")
-        logger.info(f"🔍 [TRACE] Flow kickoff initiated - this should trigger the entire flow chain")
+        logger.info(f"🎯 [ECHO] Starting Unified Discovery Flow - @start method called for flow {self._flow_id}")
+        logger.info(f"🔍 [ECHO] Flow kickoff initiated - this should trigger the entire flow chain")
+        logger.info(f"📊 [ECHO] Current state before initialization: status={getattr(self, '_flow_state', {}).get('status', 'N/A') if hasattr(self, '_flow_state') else 'NO STATE'}")
+        
+        # [ECHO] Update status to running immediately
+        try:
+            if hasattr(self, 'flow_bridge') and self.flow_bridge:
+                from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
+                from app.core.database import AsyncSessionLocal
+                
+                async with AsyncSessionLocal() as db:
+                    store = PostgresFlowStateStore(db, self.context)
+                    await store.update_flow_status(self._flow_id, "running")
+                    logger.info(f"✅ [ECHO] Updated flow status to 'running' at start of kickoff")
+        except Exception as e:
+            logger.warning(f"⚠️ [ECHO] Failed to update initial flow status: {e}")
         
         try:
             # Initialize state using CrewAI Flow's built-in state management
@@ -357,8 +371,26 @@ class UnifiedDiscoveryFlow(Flow):
     @listen(initialize_discovery)
     async def execute_data_import_validation_agent(self, previous_result):
         """Execute data import validation phase using real CrewAI crews"""
-        logger.info(f"📊 [TRACE] @listen(initialize_discovery) triggered - data import phase starting for flow {self._flow_id}")
-        logger.info(f"🔍 [TRACE] Previous result from initialize_discovery: {previous_result}")
+        logger.info(f"📊 [ECHO] @listen(initialize_discovery) triggered - data import phase starting for flow {self._flow_id}")
+        logger.info(f"🔍 [ECHO] Previous result from initialize_discovery: {previous_result}")
+        logger.info(f"🎯 [ECHO] Data import phase STARTED - flow is now executing!")
+        
+        # [ECHO] Update phase in database
+        try:
+            if hasattr(self, 'flow_bridge') and self.flow_bridge:
+                await self.flow_bridge.update_flow_state(self.state)
+                logger.info(f"✅ [ECHO] Updated flow state to data_import phase")
+                
+                # Also update master flow status
+                from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
+                from app.core.database import AsyncSessionLocal
+                
+                async with AsyncSessionLocal() as db:
+                    store = PostgresFlowStateStore(db, self.context)
+                    await store.update_flow_status(self._flow_id, "running")
+                    logger.info(f"✅ [ECHO] Confirmed flow status is 'running' in data import phase")
+        except Exception as e:
+            logger.warning(f"⚠️ [ECHO] Failed to update flow state in data import: {e}")
         
         # Ensure state has IDs
         self._ensure_state_ids()

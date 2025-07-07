@@ -162,7 +162,14 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             return None
     
     async def get_by_flow_id_global(self, flow_id: str) -> Optional[CrewAIFlowStateExtensions]:
-        """Get master flow by CrewAI Flow ID without tenant filtering (for duplicate checking)"""
+        """Get master flow by CrewAI Flow ID without tenant filtering (for duplicate checking)
+        
+        SECURITY WARNING: This method bypasses tenant isolation and should only be used
+        for system-level operations like duplicate checking. Never expose this to user-facing APIs.
+        """
+        # Log security audit trail
+        logger.warning(f"🔒 SECURITY AUDIT: Global query attempted for master flow_id={flow_id} by client={self.client_account_id}")
+        
         try:
             # Convert flow_id to UUID for database query
             try:
@@ -171,12 +178,24 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
                 logger.error(f"❌ Invalid flow_id UUID format: {flow_id}, error: {e}")
                 return None
             
-            stmt = select(CrewAIFlowStateExtensions).where(
-                CrewAIFlowStateExtensions.flow_id == flow_uuid
+            # SECURITY: First check if the flow belongs to the current client
+            tenant_check = select(CrewAIFlowStateExtensions).where(
+                and_(
+                    CrewAIFlowStateExtensions.flow_id == flow_uuid,
+                    CrewAIFlowStateExtensions.client_account_id == uuid.UUID(self.client_account_id)
+                )
             )
+            result = await self.db.execute(tenant_check)
+            flow = result.scalar_one_or_none()
             
-            result = await self.db.execute(stmt)
-            return result.scalar_one_or_none()
+            if flow:
+                # Flow belongs to current client, safe to return
+                return flow
+            
+            # SECURITY: Only allow global query for system operations
+            # In production, this should check for system/admin privileges
+            logger.warning(f"🔒 SECURITY: Denying global query for master flow {flow_id} - does not belong to client {self.client_account_id}")
+            return None
             
         except Exception as e:
             logger.error(f"❌ Database error in get_by_flow_id_global: {e}")
@@ -265,7 +284,7 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             client_uuid = uuid.UUID(self.client_account_id)
             engagement_uuid = uuid.UUID(self.engagement_id)
             
-            active_statuses = ["initialized", "running", "paused"]
+            active_statuses = ["initialized", "active", "processing", "paused"]
             
             stmt = select(CrewAIFlowStateExtensions).where(
                 and_(

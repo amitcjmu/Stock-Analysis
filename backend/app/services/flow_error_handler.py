@@ -13,7 +13,17 @@ from enum import Enum
 from datetime import datetime, timedelta
 import traceback
 
-logger = logging.getLogger(__name__)
+from app.core.logging import get_logger
+from app.core.exceptions import (
+    CrewAIExecutionError,
+    NetworkTimeoutError,
+    ResourceExhaustedError,
+    FlowNotFoundError,
+    InvalidFlowStateError,
+    BackgroundTaskError
+)
+
+logger = get_logger(__name__)
 
 
 class ErrorSeverity(Enum):
@@ -102,16 +112,23 @@ class FlowErrorHandler:
             PermissionError: self._handle_permission_error,
             RuntimeError: self._handle_runtime_error,
             asyncio.TimeoutError: self._handle_timeout_error,
+            CrewAIExecutionError: self._handle_crewai_error,
+            NetworkTimeoutError: self._handle_network_timeout_error,
+            ResourceExhaustedError: self._handle_resource_error,
+            FlowNotFoundError: self._handle_flow_not_found_error,
+            InvalidFlowStateError: self._handle_invalid_state_error,
+            BackgroundTaskError: self._handle_background_task_error,
         }
         
         # Error category classifiers
         self._category_classifiers = {
             ErrorCategory.VALIDATION: [ValueError, TypeError, AttributeError],
-            ErrorCategory.NETWORK: [ConnectionError, TimeoutError, asyncio.TimeoutError],
+            ErrorCategory.NETWORK: [ConnectionError, TimeoutError, asyncio.TimeoutError, NetworkTimeoutError],
             ErrorCategory.DATABASE: [],  # Add specific DB exceptions
             ErrorCategory.PERMISSION: [PermissionError],
-            ErrorCategory.RESOURCE: [MemoryError, OSError],
-            ErrorCategory.CREW_AI: [],  # Add CrewAI specific exceptions
+            ErrorCategory.RESOURCE: [MemoryError, OSError, ResourceExhaustedError],
+            ErrorCategory.CREW_AI: [CrewAIExecutionError, RuntimeError],  # RuntimeError often from CrewAI
+            ErrorCategory.BUSINESS_LOGIC: [FlowNotFoundError, InvalidFlowStateError],
         }
         
         # Retry attempts tracking
@@ -226,10 +243,20 @@ class FlowErrorHandler:
             f"{type(error).__name__}: {str(error)}"
         )
         
-        logger.error(log_message)
-        
-        if logger.isEnabledFor(logging.DEBUG):
-            logger.debug(f"Error traceback:\n{traceback.format_exc()}")
+        # Use structured logging with context
+        logger.error(
+            log_message,
+            extra={
+                "error_type": type(error).__name__,
+                "operation": context.operation,
+                "flow_id": context.flow_id,
+                "flow_type": context.flow_type,
+                "phase": context.phase,
+                "user_id": context.user_id,
+                "additional_context": context.additional_context,
+                "stack_trace": traceback.format_exc()
+            }
+        )
     
     def _classify_error(self, error: Exception) -> ErrorCategory:
         """Classify error into category"""
@@ -398,3 +425,124 @@ class FlowErrorHandler:
         
         self._category_classifiers[category].extend(error_types)
         logger.info(f"✅ Added {len(error_types)} error types to category {category.value}")
+    
+    async def _handle_crewai_error(
+        self,
+        error: CrewAIExecutionError,
+        context: ErrorContext,
+        category: ErrorCategory
+    ) -> ErrorResolution:
+        """Handle CrewAI execution errors"""
+        # CrewAI errors often benefit from retry
+        return ErrorResolution(
+            action="retry",
+            should_retry=True,
+            message=f"AI agent execution failed: {str(error)}",
+            user_action_required=False,
+            severity=ErrorSeverity.MEDIUM,
+            update_flow_status=False,
+            metadata={
+                "crew_name": getattr(error, 'crew_name', None),
+                "phase": getattr(error, 'phase', None)
+            }
+        )
+    
+    async def _handle_network_timeout_error(
+        self,
+        error: NetworkTimeoutError,
+        context: ErrorContext,
+        category: ErrorCategory
+    ) -> ErrorResolution:
+        """Handle network timeout errors"""
+        return ErrorResolution(
+            action="retry",
+            should_retry=True,
+            message=error.user_message,
+            user_action_required=False,
+            severity=ErrorSeverity.MEDIUM,
+            update_flow_status=False,
+            metadata={
+                "operation": error.operation,
+                "timeout_seconds": error.timeout_seconds
+            }
+        )
+    
+    async def _handle_resource_error(
+        self,
+        error: ResourceExhaustedError,
+        context: ErrorContext,
+        category: ErrorCategory
+    ) -> ErrorResolution:
+        """Handle resource exhaustion errors"""
+        return ErrorResolution(
+            action="pause",
+            should_retry=True,
+            message=error.user_message,
+            user_action_required=False,
+            severity=ErrorSeverity.HIGH,
+            new_status="paused",
+            retry_delay=300.0,  # Wait 5 minutes before retry
+            metadata={
+                "resource_type": error.resource_type
+            }
+        )
+    
+    async def _handle_flow_not_found_error(
+        self,
+        error: FlowNotFoundError,
+        context: ErrorContext,
+        category: ErrorCategory
+    ) -> ErrorResolution:
+        """Handle flow not found errors"""
+        return ErrorResolution(
+            action="fail",
+            should_retry=False,
+            message=error.user_message,
+            user_action_required=True,
+            severity=ErrorSeverity.HIGH,
+            new_status="failed",
+            metadata={
+                "requested_flow_id": error.flow_id
+            }
+        )
+    
+    async def _handle_invalid_state_error(
+        self,
+        error: InvalidFlowStateError,
+        context: ErrorContext,
+        category: ErrorCategory
+    ) -> ErrorResolution:
+        """Handle invalid flow state errors"""
+        return ErrorResolution(
+            action="pause",
+            should_retry=False,
+            message=error.user_message,
+            user_action_required=True,
+            severity=ErrorSeverity.MEDIUM,
+            update_flow_status=False,
+            metadata={
+                "current_state": error.details.get("current_state"),
+                "target_state": error.details.get("target_state")
+            }
+        )
+    
+    async def _handle_background_task_error(
+        self,
+        error: BackgroundTaskError,
+        context: ErrorContext,
+        category: ErrorCategory
+    ) -> ErrorResolution:
+        """Handle background task errors"""
+        return ErrorResolution(
+            action="retry",
+            should_retry=True,
+            message=error.user_message,
+            user_action_required=False,
+            severity=ErrorSeverity.MEDIUM,
+            update_flow_status=True,
+            new_status="retrying",
+            metadata={
+                "task_name": error.task_name,
+                "task_id": error.task_id
+            }
+        )

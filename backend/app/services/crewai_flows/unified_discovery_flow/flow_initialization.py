@@ -76,6 +76,8 @@ class FlowInitializer:
         
         # Debug logging
         logger.info(f"🔍 DEBUG: FlowInitializer received {len(self.raw_data) if self.raw_data else 0} raw data records")
+        logger.info(f"🔍 DEBUG: Metadata received: {self.metadata}")
+        logger.info(f"🔍 DEBUG: Master flow ID in metadata: {self.metadata.get('master_flow_id', 'NOT FOUND')}")
         if self.raw_data and len(self.raw_data) > 0:
             logger.info(f"🔍 DEBUG: First record keys in initializer: {list(self.raw_data[0].keys())}")
             logger.info(f"🔍 DEBUG: First record sample: {self.raw_data[0]}")

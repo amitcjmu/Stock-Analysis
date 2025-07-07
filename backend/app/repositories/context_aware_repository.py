@@ -48,6 +48,13 @@ class ContextAwareRepository(Generic[ModelType]):
         self.has_client_account = hasattr(model_class, 'client_account_id')
         self.has_engagement = hasattr(model_class, 'engagement_id')
         
+        # SECURITY: Enforce client context for multi-tenant models
+        if self.has_client_account and not client_account_id:
+            raise ValueError(
+                f"SECURITY: Client account ID is required for multi-tenant model {model_class.__name__}. "
+                f"This is a critical security requirement to prevent cross-tenant data access."
+            )
+        
         logger.debug(f"Initialized {model_class.__name__} repository with context: "
                     f"client_account_id={client_account_id}, engagement_id={engagement_id}")
     
@@ -63,8 +70,14 @@ class ContextAwareRepository(Generic[ModelType]):
         """
         filters = []
         
-        # Apply client account filter if supported and provided
-        if self.has_client_account and self.client_account_id:
+        # SECURITY: Always apply client account filter for multi-tenant models
+        if self.has_client_account:
+            if not self.client_account_id:
+                # This should never happen due to __init__ check, but double-check for security
+                raise RuntimeError(
+                    f"SECURITY: Attempted to query {self.model_class.__name__} without client context. "
+                    f"This is a critical security violation."
+                )
             filters.append(self.model_class.client_account_id == self.client_account_id)
         
         # Apply engagement filter if supported and provided

@@ -161,9 +161,14 @@ class FlowConfigurationManager:
     """
     
     def __init__(self):
-        self.flow_registry = FlowTypeRegistry()
-        self.validator_registry = ValidatorRegistry()
-        self.handler_registry = HandlerRegistry()
+        # [ECHO] Use global singleton instances instead of creating new ones
+        from app.services.flow_type_registry import flow_type_registry
+        from app.services.validator_registry import validator_registry  
+        from app.services.handler_registry import handler_registry
+        
+        self.flow_registry = flow_type_registry  # Use global singleton
+        self.validator_registry = validator_registry  # Use global singleton
+        self.handler_registry = handler_registry  # Use global singleton
         self._initialized = False
     
     def initialize_all_flows(self) -> Dict[str, Any]:

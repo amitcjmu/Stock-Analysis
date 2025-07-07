@@ -17,6 +17,15 @@ from enum import Enum
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.core.logging import get_logger
+from app.core.exceptions import (
+    FlowNotFoundError,
+    InvalidFlowStateError,
+    CrewAIExecutionError,
+    BackgroundTaskError,
+    FlowError
+)
+
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
 from app.services.crewai_flows.flow_state_manager import FlowStateManager
@@ -27,7 +36,7 @@ from app.services.handler_registry import HandlerRegistry
 from app.services.flow_error_handler import FlowErrorHandler
 from app.services.performance_tracker import PerformanceTracker
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class FlowOperationType(Enum):
@@ -73,11 +82,16 @@ class MasterFlowOrchestrator:
             context.user_id
         )
         
+        # [ECHO] Use global singleton registries
+        from app.services.flow_type_registry import flow_type_registry
+        from app.services.validator_registry import validator_registry
+        from app.services.handler_registry import handler_registry
+        
         # Initialize registries and handlers
-        self.flow_registry = FlowTypeRegistry()
+        self.flow_registry = flow_type_registry  # Use global singleton
         self.state_manager = FlowStateManager(db, context)
-        self.validator_registry = ValidatorRegistry()
-        self.handler_registry = HandlerRegistry()
+        self.validator_registry = validator_registry  # Use global singleton
+        self.handler_registry = handler_registry  # Use global singleton
         self.error_handler = FlowErrorHandler()
         self.performance_tracker = PerformanceTracker()
         
@@ -196,32 +210,98 @@ class MasterFlowOrchestrator:
                     
                     async def run_discovery_flow():
                         try:
-                            logger.info(f"🎯 [FIX] Starting CrewAI Discovery Flow kickoff for {flow_id}")
+                            logger.info(f"🎯 [ECHO] Starting CrewAI Discovery Flow kickoff for {flow_id}")
+                            
+                            # [ECHO] Use a fresh database session for the background task
+                            from app.core.database import AsyncSessionLocal
+                            from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
+                            
+                            async with AsyncSessionLocal() as fresh_db:
+                                # Create a fresh repository for the background task
+                                fresh_repo = CrewAIFlowStateExtensionsRepository(
+                                    fresh_db, 
+                                    self.context.client_account_id,
+                                    self.context.engagement_id,
+                                    self.context.user_id
+                                )
+                                
+                                # [ECHO] First update status to processing (DB constraint)
+                                await fresh_repo.update_flow_status(
+                                    flow_id=flow_id,
+                                    status="processing",  # Changed from "running" to match DB constraint
+                                    phase_data={"message": "CrewAI flow kickoff starting"}
+                                )
+                            
+                            # [ECHO] Log the discovery_flow object details
+                            logger.info(f"🔍 [ECHO] Discovery flow object: {discovery_flow}")
+                            logger.info(f"🔍 [ECHO] Discovery flow class: {type(discovery_flow)}")
+                            logger.info(f"🔍 [ECHO] Has kickoff method: {hasattr(discovery_flow, 'kickoff')}")
+                            
                             # CrewAI Flow kickoff() is synchronous, so run it in a thread
+                            logger.info(f"🚀 [ECHO] Calling discovery_flow.kickoff() in thread...")
                             result = await asyncio.to_thread(discovery_flow.kickoff)
-                            logger.info(f"✅ [FIX] CrewAI Discovery Flow completed: {result}")
+                            logger.info(f"✅ [ECHO] CrewAI Discovery Flow kickoff returned: {result}")
                             
                             # Update flow status to completed
-                            await self.master_repo.update_flow_status(
-                                flow_id=flow_id,
-                                status="completed",
-                                phase_data={"completion": result}
-                            )
+                            async with AsyncSessionLocal() as fresh_db:
+                                fresh_repo = CrewAIFlowStateExtensionsRepository(
+                                    fresh_db, 
+                                    self.context.client_account_id,
+                                    self.context.engagement_id,
+                                    self.context.user_id
+                                )
+                                await fresh_repo.update_flow_status(
+                                    flow_id=flow_id,
+                                    status="completed",
+                                    phase_data={"completion": result}
+                                )
                         except Exception as e:
-                            logger.error(f"❌ [FIX] CrewAI Discovery Flow execution failed: {e}")
+                            logger.error(f"❌ [ECHO] CrewAI Discovery Flow execution failed: {e}")
                             import traceback
-                            logger.error(f"Traceback: {traceback.format_exc()}")
+                            logger.error(f"[ECHO] Full traceback: {traceback.format_exc()}")
                             
                             # Update flow status to failed
-                            await self.master_repo.update_flow_status(
-                                flow_id=flow_id,
-                                status="failed",
-                                phase_data={"error": str(e)}
-                            )
+                            try:
+                                async with AsyncSessionLocal() as fresh_db:
+                                    fresh_repo = CrewAIFlowStateExtensionsRepository(
+                                        fresh_db, 
+                                        self.context.client_account_id,
+                                        self.context.engagement_id,
+                                        self.context.user_id
+                                    )
+                                    await fresh_repo.update_flow_status(
+                                        flow_id=flow_id,
+                                        status="failed",
+                                        phase_data={"error": str(e), "traceback": traceback.format_exc()}
+                                    )
+                            except Exception as update_error:
+                                logger.error(f"❌ [ECHO] Failed to update flow status to failed: {update_error}")
                     
                     # Create the task but don't await it - let it run in background
                     task = asyncio.create_task(run_discovery_flow())
-                    logger.info(f"🚀 [FIX] CrewAI Discovery Flow task created and running in background")
+                    
+                    # [ECHO] Store task reference to prevent garbage collection
+                    if not hasattr(self, '_active_flow_tasks'):
+                        self._active_flow_tasks = {}
+                    self._active_flow_tasks[flow_id] = task
+                    
+                    logger.info(f"🚀 [ECHO] CrewAI Discovery Flow task created and running in background")
+                    logger.info(f"🔍 [ECHO] Task reference stored to prevent GC: {task}")
+                    
+                    # [ECHO] Update flow status to running after a short delay to ensure kickoff started
+                    async def update_status_after_kickoff():
+                        await asyncio.sleep(0.5)  # Short delay to let kickoff start
+                        try:
+                            await self.master_repo.update_flow_status(
+                                flow_id=flow_id,
+                                status="processing",  # Changed from "running" to match DB constraint
+                                phase_data={"message": "Discovery flow kickoff initiated"}
+                            )
+                            logger.info(f"✅ [ECHO] Updated flow status to 'running' after kickoff start")
+                        except Exception as e:
+                            logger.warning(f"⚠️ [ECHO] Failed to update flow status after kickoff: {e}")
+                    
+                    asyncio.create_task(update_status_after_kickoff())
                     
                 except Exception as e:
                     logger.error(f"❌ [FIX] Failed to start CrewAI Discovery Flow: {e}")
@@ -268,7 +348,7 @@ class MasterFlowOrchestrator:
                         # Update master flow status with assessment result
                         await self.master_repo.update_flow_status(
                             flow_id=flow_id,
-                            status="running",
+                            status="processing",  # Changed from "running" to match DB constraint
                             phase_data={"assessment_creation": assessment_result}
                         )
                         
@@ -294,7 +374,14 @@ class MasterFlowOrchestrator:
                 result_metadata={"flow_id": flow_id}
             )
             
-            logger.info(f"✅ Created {flow_type} flow: {flow_id}")
+            logger.info(
+                f"✅ Created {flow_type} flow: {flow_id}",
+                extra={
+                    "flow_id": flow_id,
+                    "flow_type": flow_type,
+                    "flow_name": flow_name
+                }
+            )
             
             return flow_id, master_flow.to_dict()
             
@@ -306,7 +393,11 @@ class MasterFlowOrchestrator:
                 operation="create_flow",
                 flow_type=flow_type,
                 flow_id=flow_id,
-                user_id=self.context.user_id
+                user_id=self.context.user_id,
+                additional_context={
+                    "flow_name": flow_name,
+                    "configuration": configuration
+                }
             )
             
             retry_config = RetryConfig(
@@ -330,10 +421,20 @@ class MasterFlowOrchestrator:
                 flow_id=flow_id or "unknown",
                 operation=FlowOperationType.CREATE,
                 success=False,
-                error=str(e)
+                error=str(e),
+                error_details=error_result.metadata
             )
             
-            raise RuntimeError(f"Failed to create flow: {str(e)}")
+            # Re-raise as FlowError with context
+            raise FlowError(
+                message=f"Failed to create {flow_type} flow: {str(e)}",
+                flow_name=flow_name,
+                flow_id=flow_id,
+                details={
+                    "flow_type": flow_type,
+                    "original_error": type(e).__name__
+                }
+            )
     
     async def execute_phase(
         self,
@@ -373,7 +474,7 @@ class MasterFlowOrchestrator:
             # Get flow and validate
             master_flow = await self.master_repo.get_by_flow_id(flow_id)
             if not master_flow:
-                raise ValueError(f"Flow not found: {flow_id}")
+                raise FlowNotFoundError(flow_id)
             
             # Get flow configuration
             flow_config = self.flow_registry.get_flow_config(master_flow.flow_type)
@@ -383,9 +484,13 @@ class MasterFlowOrchestrator:
             if not phase_config:
                 raise ValueError(f"Phase '{phase_name}' not found in flow type '{master_flow.flow_type}'")
             
-            # Check flow status
-            if master_flow.flow_status not in ["initialized", "running", "resumed"]:
-                raise RuntimeError(f"Cannot execute phase in status: {master_flow.flow_status}")
+            # Check flow status - use valid statuses from DB constraint
+            if master_flow.flow_status not in ["initialized", "active", "processing"]:
+                raise InvalidFlowStateError(
+                    current_state=master_flow.flow_status,
+                    target_state="processing",
+                    flow_id=flow_id
+                )
             
             # Run phase validators
             validation_results = await self._run_phase_validators(
@@ -398,10 +503,10 @@ class MasterFlowOrchestrator:
             if not validation_results["valid"]:
                 raise ValueError(f"Phase validation failed: {validation_results['errors']}")
             
-            # Update flow status
+            # Update flow status - use 'processing' instead of 'running' for DB constraint
             await self.master_repo.update_flow_status(
                 flow_id=flow_id,
-                status="running",
+                status="processing",  # Changed from "running" to match DB constraint
                 collaboration_entry={
                     "timestamp": datetime.utcnow().isoformat(),
                     "phase": phase_name,
@@ -433,10 +538,10 @@ class MasterFlowOrchestrator:
             execution_time = (datetime.utcnow() - start_time).total_seconds() * 1000
             master_flow.update_phase_execution_time(phase_name, execution_time)
             
-            # Update flow state
+            # Update flow state - use 'processing' instead of 'running' for DB constraint
             await self.master_repo.update_flow_status(
                 flow_id=flow_id,
-                status="running",
+                status="processing",  # Changed from "running" to match DB constraint
                 phase_data={
                     f"phase_{phase_name}": crew_result,
                     "last_completed_phase": phase_name
@@ -553,8 +658,8 @@ class MasterFlowOrchestrator:
             if not master_flow:
                 raise ValueError(f"Flow not found: {flow_id}")
             
-            # Validate flow can be paused
-            if master_flow.flow_status not in ["running", "initialized"]:
+            # Validate flow can be paused - use valid statuses from DB constraint
+            if master_flow.flow_status not in ["active", "processing", "initialized"]:
                 raise ValueError(f"Cannot pause flow in status: {master_flow.flow_status}")
             
             # Update flow status
@@ -611,11 +716,15 @@ class MasterFlowOrchestrator:
             # Get flow
             master_flow = await self.master_repo.get_by_flow_id(flow_id)
             if not master_flow:
-                raise ValueError(f"Flow not found: {flow_id}")
+                raise FlowNotFoundError(flow_id)
             
             # Validate flow can be resumed
             if master_flow.flow_status != "paused":
-                raise ValueError(f"Cannot resume flow in status: {master_flow.flow_status}")
+                raise InvalidFlowStateError(
+                    current_state=master_flow.flow_status,
+                    target_state="active",
+                    flow_id=flow_id
+                )
             
             # Get flow configuration
             flow_config = self.flow_registry.get_flow_config(master_flow.flow_type)
@@ -624,10 +733,10 @@ class MasterFlowOrchestrator:
             last_phase = master_flow.flow_persistence_data.get("last_completed_phase")
             next_phase = flow_config.get_next_phase(last_phase) if last_phase else flow_config.phases[0].name
             
-            # Update flow status
+            # Update flow status - use 'active' instead of 'resumed' for DB constraint
             await self.master_repo.update_flow_status(
                 flow_id=flow_id,
-                status="resumed",
+                status="active",  # Changed from "resumed" to match DB constraint
                 phase_data={
                     "resumed_at": datetime.utcnow().isoformat(),
                     "resume_phase": next_phase,
@@ -658,10 +767,24 @@ class MasterFlowOrchestrator:
                             resume_context=resume_context
                         )
                         
-                        logger.info(f"✅ Delegated to CrewAI Flow Service: {crew_result}")
+                        logger.info(
+                            f"✅ Delegated to CrewAI Flow Service: {crew_result}",
+                            extra={
+                                "flow_id": flow_id,
+                                "flow_type": "discovery",
+                                "action": "resume"
+                            }
+                        )
                         
                 except Exception as e:
-                    logger.warning(f"⚠️ Failed to delegate to CrewAI Flow Service: {e}")
+                    logger.warning(
+                        f"⚠️ Failed to delegate to CrewAI Flow Service: {e}",
+                        extra={
+                            "flow_id": flow_id,
+                            "error_type": type(e).__name__,
+                            "action": "resume_delegation"
+                        }
+                    )
                     # Continue with master flow tracking even if delegation fails
             
             # Log resume audit
@@ -674,18 +797,44 @@ class MasterFlowOrchestrator:
                 }
             )
             
-            logger.info(f"▶️ Resumed flow {flow_id} at phase: {next_phase}")
+            logger.info(
+                f"▶️ Resumed flow {flow_id} at phase: {next_phase}",
+                extra={
+                    "flow_id": flow_id,
+                    "flow_type": master_flow.flow_type,
+                    "resume_phase": next_phase
+                }
+            )
             
             return {
                 "flow_id": flow_id,
-                "status": "resumed",
+                "status": "active",  # Changed from "resumed" to match what's stored in DB
                 "resume_phase": next_phase,
                 "resumed_at": datetime.utcnow().isoformat()
             }
             
         except Exception as e:
-            logger.error(f"Failed to resume flow {flow_id}: {e}")
-            raise RuntimeError(f"Failed to resume flow: {str(e)}")
+            logger.error(
+                f"Failed to resume flow {flow_id}: {e}",
+                extra={
+                    "flow_id": flow_id,
+                    "error_type": type(e).__name__,
+                    "operation": "resume_flow"
+                },
+                exc_info=True
+            )
+            
+            # Re-raise as FlowError with context
+            if not isinstance(e, (FlowNotFoundError, InvalidFlowStateError)):
+                raise FlowError(
+                    message=f"Failed to resume flow: {str(e)}",
+                    flow_id=flow_id,
+                    details={
+                        "operation": "resume",
+                        "original_error": type(e).__name__
+                    }
+                )
+            raise
     
     async def delete_flow(
         self,
@@ -711,10 +860,10 @@ class MasterFlowOrchestrator:
                 raise ValueError(f"Flow not found: {flow_id}")
             
             if soft_delete:
-                # Soft delete - update status
+                # Soft delete - use 'cancelled' instead of 'deleted' for DB constraint
                 await self.master_repo.update_flow_status(
                     flow_id=flow_id,
-                    status="deleted",
+                    status="cancelled",  # Changed from "deleted" to match DB constraint
                     phase_data={
                         "deleted_at": datetime.utcnow().isoformat(),
                         "deletion_reason": reason or "user_requested",

@@ -191,6 +191,8 @@ class StateManager:
                         logger.info(f"🆕 Creating discovery flow record for {flow_id}")
                         # Get master flow ID from state metadata
                         master_flow_id = getattr(self.state, 'master_flow_id', None) or self.state.metadata.get('master_flow_id')
+                        logger.info(f"🔍 Master flow ID for discovery flow: {master_flow_id}")
+                        logger.info(f"🔍 State metadata: {self.state.metadata}")
                         
                         await repo.flow_commands.create_discovery_flow(
                             flow_id=flow_id,

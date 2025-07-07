@@ -290,14 +290,14 @@ def validate_context(context: RequestContext, require_client: bool = True, requi
     """
     if require_client and not context.client_account_id:
         raise HTTPException(
-            status_code=400,
-            detail="Client account context is required. Please provide X-Client-Account-Id header."
+            status_code=403,  # Changed from 400 to 403 for security
+            detail="Client account context is required for multi-tenant security. Please provide X-Client-Account-Id header."
         )
     
     if require_engagement and not context.engagement_id:
         raise HTTPException(
-            status_code=400,
-            detail="Engagement context is required. Please provide X-Engagement-Id header."
+            status_code=403,  # Changed from 400 to 403 for security
+            detail="Engagement context is required for multi-tenant security. Please provide X-Engagement-Id header."
         )
 
 
