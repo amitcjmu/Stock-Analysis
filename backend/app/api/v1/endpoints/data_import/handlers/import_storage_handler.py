@@ -69,6 +69,7 @@ class ImportStorageResponse(BaseModel):
 @router.post("/store-import")
 @track_async_errors("store_import_data")
 async def store_import_data(
+    store_request: StoreImportRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context)
@@ -101,45 +102,9 @@ async def store_import_data(
                 }
             )
         
-        # Get raw request body and log it
-        raw_body = await request.body()
-        logger.info(f"🔍 DEBUG: Raw request body: {raw_body.decode()}")
-        
-        # Parse JSON manually
-        try:
-            request_data = json.loads(raw_body)
-            logger.info(f"🔍 DEBUG: Parsed JSON: {json.dumps(request_data, indent=2, default=str)}")
-        except json.JSONDecodeError as e:
-            logger.error(
-                f"🚨 JSON decode error: {e}",
-                extra={"error_type": "json_decode", "client_id": context.client_account_id}
-            )
-            raise DataImportError(
-                message=f"Failed to parse request data: {e}",
-                file_name="request_body",
-                details={"error_type": "json_decode"}
-            )
-        
-        # Try to create StoreImportRequest from parsed data
-        try:
-            store_request = StoreImportRequest(**request_data)
-            logger.info(f"🔄 Starting data storage for session: {store_request.upload_context.validation_id}")
-        except ValidationError as e:
-            logger.error(
-                f"🚨 Pydantic validation error: {e}",
-                extra={
-                    "error_type": "pydantic_validation",
-                    "validation_errors": e.errors(),
-                    "client_id": context.client_account_id
-                }
-            )
-            # Convert Pydantic validation error to our app validation error
-            first_error = e.errors()[0] if e.errors() else {}
-            raise AppValidationError(
-                message="Invalid import request format",
-                field=first_error.get("loc", [""])[0] if first_error else None,
-                details={"validation_errors": e.errors()}
-            )
+        # Request has already been validated by FastAPI and Pydantic
+        logger.info(f"🔄 Starting data storage for session: {store_request.upload_context.validation_id}")
+        logger.info(f"🔍 DEBUG: Validated request data - file_data count: {len(store_request.file_data) if store_request.file_data else 0}")
         
         # Extract data from request
         file_data = store_request.file_data

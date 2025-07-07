@@ -14,6 +14,7 @@ interface CMDBUploadSectionProps {
   onDragOver: (e: React.DragEvent) => void;
   onDragLeave: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent, categoryId: string) => void;
+  disabled?: boolean;
 }
 
 export const CMDBUploadSection: React.FC<CMDBUploadSectionProps> = ({
@@ -24,7 +25,8 @@ export const CMDBUploadSection: React.FC<CMDBUploadSectionProps> = ({
   onFileUpload,
   onDragOver,
   onDragLeave,
-  onDrop
+  onDrop,
+  disabled = false
 }) => {
   return (
     <div className="mb-8">
@@ -113,6 +115,7 @@ export const CMDBUploadSection: React.FC<CMDBUploadSectionProps> = ({
                   }}
                   variant="outline"
                   className="w-full"
+                  disabled={disabled}
                 >
                   <Upload className="h-4 w-4 mr-2" />
                   Upload {category.title}

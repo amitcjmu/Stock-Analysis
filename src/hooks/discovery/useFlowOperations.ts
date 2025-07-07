@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 // Type definitions
 export interface IncompleteFlowV2 {
-  flow_id: string;
+  flowId: string;
   status: string;
   current_phase: string;
   next_phase?: string;

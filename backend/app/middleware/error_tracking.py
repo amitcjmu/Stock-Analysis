@@ -203,6 +203,10 @@ def track_async_errors(task_name: str):
         task_name: Name of the task for tracking
     """
     def decorator(func: Callable):
+        # Import functools to preserve function signature for FastAPI
+        import functools
+        
+        @functools.wraps(func)
         async def wrapper(*args, **kwargs):
             task_id = str(uuid.uuid4())
             start_time = datetime.utcnow()

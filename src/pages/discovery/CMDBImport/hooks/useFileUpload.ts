@@ -66,7 +66,10 @@ export const useFileUpload = () => {
         method: 'POST',
         headers: {
           ...getAuthHeaders(),
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          // Add effective client and engagement to headers for admin users
+          ...(effectiveClient?.id && { 'X-Client-Account-ID': effectiveClient.id }),
+          ...(effectiveEngagement?.id && { 'X-Engagement-ID': effectiveEngagement.id })
         },
         body: JSON.stringify({
           file_data: csvData,
@@ -193,7 +196,39 @@ export const useFileUpload = () => {
       const uploadId = crypto.randomUUID();
       
       // Store data and trigger UnifiedDiscoveryFlow directly
-      console.log('Storing data and triggering UnifiedDiscoveryFlow...');
+      console.log('Storing data and triggering UnifiedDiscoveryFlow with validation_upload_id:', uploadId);
+
+      const payload = {
+        file_data: csvData,
+        metadata: {
+          filename: file.name,
+          size: file.size,
+          type: file.type,
+        },
+        upload_context: {
+          intended_type: categoryId,
+          validation_upload_id: uploadId,
+          upload_timestamp: new Date().toISOString(),
+        },
+        client_id: effectiveClient?.id || null,
+        engagement_id: effectiveEngagement?.id || null,
+      };
+
+      // AGGRESSIVE DEBUGGING: Log payload and types
+      console.log('Final Payload:', JSON.stringify(payload, null, 2));
+      console.log('Payload Field Types:', {
+        'metadata.filename': typeof payload.metadata.filename,
+        'metadata.size': typeof payload.metadata.size,
+        'metadata.type': typeof payload.metadata.type,
+        'upload_context.intended_type': typeof payload.upload_context.intended_type,
+        'upload_context.validation_upload_id': typeof payload.upload_context.validation_upload_id,
+        'upload_context.upload_timestamp': typeof payload.upload_context.upload_timestamp,
+        'client_id': typeof payload.client_id,
+        'engagement_id': typeof payload.engagement_id,
+        'file_data_length': payload.file_data.length,
+      });
+
+
       const { import_flow_id, flow_id } = await storeImportData(csvData, file, uploadId, categoryId);
       
       if (flow_id) {
@@ -227,7 +262,7 @@ export const useFileUpload = () => {
         });
         
       } else {
-        throw new Error("Failed to trigger UnifiedDiscoveryFlow - no flow ID returned");
+        throw new Error("Failed to trigger UnifiedDiscoveryFlow - no flow ID returned. Check backend logs for validation errors on /data-import/store-import.");
       }
       
     } catch (error) {
@@ -259,8 +294,10 @@ export const useFileUpload = () => {
   const handleDrop = useCallback((e: React.DragEvent, categoryId: string) => {
     e.preventDefault();
     setIsDragging(false);
-    const files = Array.from(e.dataTransfer.files);
-    handleFileUpload(files, categoryId);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFileUpload(Array.from(e.dataTransfer.files), categoryId);
+      e.dataTransfer.clearData();
+    }
   }, [handleFileUpload]);
 
   return {
@@ -269,11 +306,9 @@ export const useFileUpload = () => {
     selectedCategory,
     setSelectedCategory,
     isDragging,
-    handleFileUpload,
-    handleDragOver,
-    handleDragLeave,
-    handleDrop,
-    parseCsvData,
-    storeImportData
+    onFileUpload: handleFileUpload,
+    onDragOver: handleDragOver,
+    onDragLeave: handleDragLeave,
+    onDrop: handleDrop,
   };
 };

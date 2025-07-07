@@ -1,258 +1,92 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { apiCall } from '@/config/api';
-import { masterFlowService } from '@/services/api/masterFlowService';
-import { UploadFile } from '../CMDBImport.types';
+import { useUnifiedDiscoveryFlow } from '@/hooks/useUnifiedDiscoveryFlow';
 import { useFileUpload } from './useFileUpload';
-import { useFlowManagement } from './useFlowManagement';
+import { useToast } from '@/hooks/use-toast';
 
 export const useCMDBImport = () => {
-  const navigate = useNavigate();
   const { toast } = useToast();
-  const { getAuthHeaders, client, engagement } = useAuth();
-  const [isStartingFlow, setIsStartingFlow] = useState(false);
-  const [isLoadingFlowDetails, setIsLoadingFlowDetails] = useState(false);
+  const {
+    uploadedFiles,
+    setUploadedFiles,
+    selectedCategory,
+    setSelectedCategory,
+    isDragging,
+    onFileUpload,
+    onDragOver,
+    onDragLeave,
+    onDrop,
+  } = useFileUpload();
 
-  const fileUpload = useFileUpload();
-  const flowManagement = useFlowManagement();
+  const [activeFlowId, setActiveFlowId] = useState<string | null>(null);
 
-  // Fetch flow details for existing flows
-  const fetchFlowDetails = useCallback(async (file: UploadFile) => {
-    if (!file.flow_id || file.flow_summary) {
-      return; // Skip if no flow_id or already has summary
-    }
-    
-    try {
-      // Use proper UUIDs from auth context with demo fallbacks
-      const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
-      const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
-      
-      const flowResponse = await masterFlowService.getFlowStatus(file.flow_id, clientAccountId, engagementId);
-      
-      const flowSummary = {
-        total_assets: flowResponse.total_records || 0,
-        errors: flowResponse.errors || 0,
-        warnings: flowResponse.warnings || 0,
-        phases_completed: [
-          ...(flowResponse.data_import_completed ? ['data_import'] : []),
-          ...(flowResponse.attribute_mapping_completed ? ['attribute_mapping'] : []),
-          ...(flowResponse.data_cleansing_completed ? ['data_cleansing'] : []),
-          ...(flowResponse.inventory_completed ? ['inventory'] : []),
-          ...(flowResponse.dependencies_completed ? ['dependencies'] : []),
-          ...(flowResponse.tech_debt_completed ? ['tech_debt'] : [])
-        ],
-        agent_insights: flowResponse.agent_insights || []
-      };
-      
-      // Update the file with flow details
-      fileUpload.setUploadedFiles(prev => prev.map(f => 
-        f.id === file.id 
-          ? { 
-              ...f, 
-              flow_status: flowResponse.status,
-              flow_summary: flowSummary,
-              current_phase: flowResponse.current_phase || 'inventory',
-              discovery_progress: flowResponse.progress || 0,
-              status: flowResponse.status === 'completed' ? 'approved' : f.status
-            }
-          : f
-      ));
-      
-    } catch (error) {
-      console.error('Error fetching flow details for file:', file.name, error);
-    }
-  }, [fileUpload.setUploadedFiles, client, engagement]);
-
-  // Initialize flow details for existing uploaded files
+  const {
+    flowState,
+    isLoading: isFlowStateLoading,
+    error: flowStateError,
+    refreshFlow,
+    initializeFlow,
+    isInitializing,
+  } = useUnifiedDiscoveryFlow(activeFlowId);
+  
+  // Effect to set active flow ID once upload is done
   useEffect(() => {
-    const initializeFlowDetails = async () => {
-      if (fileUpload.uploadedFiles.length > 0 && !isLoadingFlowDetails) {
-        setIsLoadingFlowDetails(true);
-        
-        // Fetch details for all files with flow_id but no flow_summary
-        const filesToUpdate = fileUpload.uploadedFiles.filter(f => f.flow_id && !f.flow_summary);
-        
-        if (filesToUpdate.length > 0) {
-          console.log(`Initializing flow details for ${filesToUpdate.length} files`);
-          await Promise.all(filesToUpdate.map(fetchFlowDetails));
-        }
-        
-        setIsLoadingFlowDetails(false);
-      }
-    };
-    
-    initializeFlowDetails();
-  }, [fileUpload.uploadedFiles.length, fetchFlowDetails, isLoadingFlowDetails]);
-
-  // Retrieve stored data for discovery flow
-  const getStoredImportData = useCallback(async (flowId: string | undefined): Promise<any[]> => {
-    console.log('getStoredImportData called with flow_id:', flowId);
-    if (!flowId) {
-      console.error("No flow ID provided");
-      return [];
+    if (uploadedFiles.length > 0 && uploadedFiles[0].flow_id) {
+      setActiveFlowId(uploadedFiles[0].flow_id);
     }
-  
-    try {
-      const response = await apiCall(`/data-import/flow/${flowId}/data`, {
-        method: 'GET',
-        headers: getAuthHeaders()
-      });
-  
-      if (response.data && Array.isArray(response.data)) {
-        console.log(`Retrieved ${response.data.length} records.`);
-        return response.data;
-      } else {
-        console.warn("No data array found in the response:", response);
-        return [];
-      }
-    } catch (error) {
-      console.error("Error retrieving stored import data:", error);
-      toast({
-        title: "Data Retrieval Error",
-        description: "Could not retrieve processed data for the discovery flow.",
-        variant: "destructive",
-      });
-      return [];
-    }
-  }, [getAuthHeaders, toast]);
+  }, [uploadedFiles]);
 
-  // Start Discovery Flow or Navigate to Results
-  const startDiscoveryFlow = useCallback(async () => {
-    const uploadedFile = fileUpload.uploadedFiles[0];
+
+  const handleStartFlow = useCallback(async () => {
+    const uploadedFile = uploadedFiles[0];
     if (!uploadedFile) {
         toast({
-            title: "Error",
-            description: "No uploaded file found. Please upload a file first.",
-            variant: "destructive",
+            title: 'No file found',
+            description: 'Please upload a file first.',
+            variant: 'destructive',
         });
         return;
     }
-
-    // ✅ Check for CrewAI flow_id first (preferred for navigation)
+    
     if (!uploadedFile.flow_id) {
         toast({
-            title: "Error",
-            description: "No CrewAI Flow ID found. The discovery flow may not have been created properly.",
-            variant: "destructive",
+            title: 'Flow not ready',
+            description: 'The discovery flow has not been initialized yet. Please wait.',
+            variant: 'destructive',
         });
         return;
     }
 
-    setIsStartingFlow(true); // ✅ Set loading state
-
-    try {
-        console.log(`Processing Discovery Flow with CrewAI Flow ID: ${uploadedFile.flow_id}`);
-        console.log(`Flow Status: ${uploadedFile.flow_status}, Has Summary: ${!!uploadedFile.flow_summary}`);
-        
-        // ✅ Handle waiting for approval state
-        if (uploadedFile.flow_status === 'waiting_for_approval') {
-            console.log('Flow is waiting for field mapping approval, navigating to attribute mapping');
-            navigate(`/discovery/attribute-mapping`);
-            toast({
-                title: "Review Required",
-                description: "Field mapping suggestions are ready for your review.",
-            });
-            return;
-        }
-        
-        // ✅ SMART NAVIGATION: Handle both new flows and completed flows
-        if (uploadedFile.flow_summary && uploadedFile.flow_status === 'completed') {
-            // Flow is completed - navigate to results/next appropriate phase
-            console.log('Flow is completed, navigating to results phase');
-            
-            // Check current phase from the flow summary or default to inventory
-            const currentPhase = uploadedFile.current_phase || 'inventory';
-            
-            // Navigate to the appropriate discovery phase based on completion status
-            switch (currentPhase) {
-                case 'inventory':
-                    navigate(`/discovery/inventory`);
-                    break;
-                case 'dependencies': 
-                    navigate(`/discovery/dependencies`);
-                    break;
-                case 'tech_debt':
-                    navigate(`/discovery/tech-debt`);
-                    break;
-                case 'attribute_mapping':
-                    navigate(`/discovery/attribute-mapping`);
-                    break;
-                case 'data_cleansing':
-                    navigate(`/discovery/data-cleansing`);
-                    break;
-                default:
-                    // Default to inventory phase for completed flows
-                    navigate(`/discovery/inventory`);
-            }
-            
-            toast({
-                title: "Navigating to Results",
-                description: `Proceeding to ${currentPhase.replace('_', ' ')} phase with your completed flow.`,
-            });
-            
-        } else {
-            // New flow - verify data exists and start discovery process
-            if (!uploadedFile.flow_id) {
-                throw new Error("No flow ID found. The discovery flow cannot start.");
-            }
-            
-            // Retrieve stored data to ensure it's available for the flow
-            const storedData = await getStoredImportData(uploadedFile.flow_id);
-            console.log('Retrieved stored data for flow:', { 
-              count: storedData.length,
-              hasData: storedData.length > 0
-            });
-
-            if (storedData.length === 0) {
-              throw new Error("No data found for the flow. The discovery flow cannot start.");
-            }
-
-            // ✅ Navigate to data import phase (new flows should start with data import)
-            console.log('Starting new discovery flow');
-            navigate(`/discovery/data-import`);
-            
-            toast({
-                title: "Starting Discovery Flow",
-                description: "Initiating AI-powered analysis of your uploaded data.",
-            });
-        }
-
-    } catch (error) {
-        const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
-        console.error("Failed to process Discovery Flow:", error);
-        toast({
-            title: "Failed to Process Discovery Flow",
-            description: errorMessage,
-            variant: "destructive",
-        });
-    } finally {
-      setIsStartingFlow(false); // ✅ Reset loading state
-    }
-  }, [fileUpload.uploadedFiles, navigate, toast, getStoredImportData]);
+    // The flow is already started by the backend, this is just for UI sync
+    setActiveFlowId(uploadedFile.flow_id);
+    toast({
+        title: 'Monitoring Discovery Flow',
+        description: 'AI agents are analyzing your data. See progress below.',
+    });
+  }, [uploadedFiles, toast]);
 
   return {
-    // File upload state and actions
-    uploadedFiles: fileUpload.uploadedFiles,
-    setUploadedFiles: fileUpload.setUploadedFiles,
-    selectedCategory: fileUpload.selectedCategory,
-    isDragging: fileUpload.isDragging,
-    handleFileUpload: fileUpload.handleFileUpload,
-    handleDragOver: fileUpload.handleDragOver,
-    handleDragLeave: fileUpload.handleDragLeave,
-    handleDrop: fileUpload.handleDrop,
-    
-    // Flow management
-    ...flowManagement,
+    // File upload state and handlers
+    uploadedFiles,
+    setUploadedFiles,
+    selectedCategory,
+    setSelectedCategory,
+    isDragging,
+    onFileUpload,
+    onDragOver,
+    onDragLeave,
+    onDrop,
     
     // Loading states
-    isStartingFlow,
-    isLoadingFlowDetails,
+    isStartingFlow: isInitializing,
     
     // Actions
-    startDiscoveryFlow,
-    fetchFlowDetails,
-    getStoredImportData
+    startFlow: handleStartFlow,
+
+    // Unified Flow State
+    activeFlowId,
+    flowState,
+    isFlowStateLoading,
+    flowStateError,
+    refreshFlow,
   };
 };

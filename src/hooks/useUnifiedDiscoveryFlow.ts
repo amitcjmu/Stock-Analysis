@@ -18,6 +18,7 @@ interface UnifiedDiscoveryFlowState {
   asset_inventory: Record<string, any>;
   dependencies: Record<string, any>;
   technical_debt: Record<string, any>;
+  agent_insights: any[];
   status: string;
   progress_percentage: number;
   errors: string[];

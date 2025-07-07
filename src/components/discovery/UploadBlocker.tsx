@@ -110,9 +110,9 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
     // Filter out invalid flows first
     const validFlows = incompleteFlows.filter(flow => 
       flow && 
-      flow.flow_id && 
-      typeof flow.flow_id === 'string' && 
-      flow.flow_id.length > 0
+      flow.flowId && 
+      typeof flow.flowId === 'string' && 
+      flow.flowId.length > 0
     );
     
     if (validFlows.length === 0) return null;
@@ -145,7 +145,7 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
     }
 
     try {
-      const flowIds = completedFlows.map(flow => flow.flow_id);
+      const flowIds = completedFlows.map(flow => flow.flowId);
       await bulkFlowOperations.bulkDelete.mutateAsync({ 
         flow_ids: flowIds,
         force_delete: true 
@@ -210,7 +210,7 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
         `🤖 Agentic Flow Cleanup\n\n` +
         `Found ${flowsToCleanup.length} flows that appear to be completed but are marked as active.\n\n` +
         `These flows will be properly marked as completed:\n` +
-        flowsToCleanup.map(f => `• ${f.flowId.substring(0, 8)}... (${f.progress}% complete)`).join('\n') +
+        flowsToCleanup.map(f => `• ${safeSubstring(f.flowId, 0, 8)} (${f.progress}% complete)`).join('\n') +
         `\n\nProceed with cleanup?`
       );
       
@@ -232,9 +232,9 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
             engagementId
           );
           cleanedCount++;
-          console.log(`🤖 CLEANED: Flow ${flow.flowId.substring(0, 8)}... marked as completed`);
+          console.log(`🤖 CLEANED: Flow ${safeSubstring(flow.flowId, 0, 8)} marked as completed`);
         } catch (error) {
-          console.error(`❌ Failed to cleanup flow ${flow.flowId}:`, error);
+          console.error(`❌ Failed to cleanup flow ${safeSubstring(flow.flowId, 0, 8)}:`, error);
         }
       }
       
@@ -282,8 +282,9 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
   }
 
   // Debug: Show flow statuses for troubleshooting
-  const debugInfo = incompleteFlows.map(flow => ({
-    id: flow.flow_id.substring(0, 8),
+  const debugInfo = incompleteFlows.map((flow, index) => ({
+    id: safeSubstring(flow.flowId, 0, 8),
+    uniqueKey: flow.flowId ? `${flow.flowId}-${index}` : `unknown-${index}`,
     status: flow.status,
     phase: flow.current_phase,
     progress: flow.progress_percentage
@@ -342,7 +343,7 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
                 <div>
                   <span className="text-gray-600">Flow ID:</span>
                   <p className="font-mono text-xs">
-                    {safeSubstring(primaryFlow.flow_id, 0, 12)}
+                    {safeSubstring(primaryFlow.flowId, 0, 12)}
                   </p>
                 </div>
                 <div>
@@ -366,10 +367,10 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  {primaryFlow.can_resume && primaryFlow.flow_id && (
+                  {primaryFlow.can_resume && primaryFlow.flowId && (
                     <Button
                       size="sm"
-                      onClick={() => onContinueFlow(primaryFlow.flow_id)}
+                      onClick={() => onContinueFlow(primaryFlow.flowId)}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
                       <Play className="h-4 w-4 mr-2" />
@@ -377,11 +378,11 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
                     </Button>
                   )}
                   
-                  {primaryFlow.flow_id && (
+                  {primaryFlow.flowId && (
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => onViewDetails(primaryFlow.flow_id, primaryFlow.current_phase || 'unknown')}
+                      onClick={() => onViewDetails(primaryFlow.flowId, primaryFlow.current_phase || 'unknown')}
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       View Details
@@ -389,11 +390,11 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
                   )}
                 </div>
                 
-                {primaryFlow.flow_id && (
+                {primaryFlow.flowId && (
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => onDeleteFlow(primaryFlow.flow_id)}
+                    onClick={() => onDeleteFlow(primaryFlow.flowId)}
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete
@@ -426,7 +427,7 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
           </h4>
           <div className="text-xs text-blue-700 space-y-1">
             {debugInfo.map(flow => (
-              <div key={flow.id} className="flex justify-between">
+              <div key={flow.uniqueKey} className="flex justify-between">
                 <span>Flow {flow.id}:</span>
                 <span>{flow.status} | {flow.phase} | {flow.progress}%</span>
               </div>
