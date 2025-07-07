@@ -316,6 +316,7 @@ async def _trigger_discovery_flow(
         logger.info(f"🔍 DEBUG: Creating discovery flow...")
         logger.info(f"🔍 DEBUG: Parameters - flow_id: {data_import_id}, client: {client_account_id}, engagement: {engagement_id}, user: {user_id}")
         logger.info(f"🔍 DEBUG: Raw data count: {len(file_data) if file_data else 0}")
+        logger.info(f"🔍 DEBUG: Context object: client_account_id={context.client_account_id}, engagement_id={context.engagement_id}, user_id={context.user_id}")
         
         discovery_flow = create_unified_discovery_flow(
             flow_id=data_import_id,  # Use data_import_id as the flow_id - ONE flow for entire process

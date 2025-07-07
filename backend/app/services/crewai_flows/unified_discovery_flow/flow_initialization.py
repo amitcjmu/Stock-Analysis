@@ -49,6 +49,12 @@ class FlowInitializer:
         self.context = context
         
         # Extract initialization parameters
+        logger.info(f"🔍 DEBUG: FlowInitializer context values:")
+        logger.info(f"   - context.client_account_id: {context.client_account_id}")
+        logger.info(f"   - context.engagement_id: {context.engagement_id}")
+        logger.info(f"   - context.user_id: {context.user_id}")
+        logger.info(f"   - kwargs.flow_id: {kwargs.get('flow_id', 'NOT PROVIDED')}")
+        
         self.init_context = {
             'client_account_id': str(context.client_account_id),
             'engagement_id': str(context.engagement_id),
@@ -57,6 +63,12 @@ class FlowInitializer:
             'flow_name': kwargs.get('flow_name', 'Unified Discovery Flow'),
             'metadata': kwargs.get('metadata', {})
         }
+        
+        logger.info(f"🔍 DEBUG: FlowInitializer init_context:")
+        logger.info(f"   - client_account_id: {self.init_context['client_account_id']}")
+        logger.info(f"   - engagement_id: {self.init_context['engagement_id']}")
+        logger.info(f"   - user_id: {self.init_context['user_id']}")
+        logger.info(f"   - flow_id: {self.init_context['flow_id']}")
         
         # Store raw data if provided
         self.raw_data = kwargs.get('raw_data', [])

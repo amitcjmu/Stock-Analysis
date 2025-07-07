@@ -52,7 +52,7 @@ from .phases import (
 from ..handlers.unified_flow_management import UnifiedFlowManagement
 
 
-class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
+class UnifiedDiscoveryFlow(Flow):
     """
     Unified Discovery Flow with PostgreSQL-only persistence.
     Single source of truth for all discovery flow operations.
@@ -123,6 +123,21 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         # Store it as _flow_state for consistency
         self._flow_state = default_state
         return self._flow_state
+    
+    def _ensure_state_ids(self):
+        """Ensure state has all required IDs - call this at the start of each phase"""
+        # Force set the IDs every time, don't just check if they're missing
+        self.state.flow_id = self._flow_id
+        if self.context:
+            self.state.client_account_id = str(self.context.client_account_id) if self.context.client_account_id else ""
+            self.state.engagement_id = str(self.context.engagement_id) if self.context.engagement_id else ""
+            self.state.user_id = str(self.context.user_id) if self.context.user_id else ""
+            
+        # Also update state manager reference
+        if hasattr(self, 'state_manager') and self.state_manager:
+            self.state_manager.state = self.state
+            
+        logger.info(f"🔧 State IDs enforced: flow_id={self.state.flow_id}, client={getattr(self.state, 'client_account_id', 'none')}")
     
     def _initialize_components(self):
         """Initialize flow components"""
@@ -241,9 +256,15 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
                 logger.warning(f"⚠️ No raw data in initial state - data should be passed during flow creation")
             
             # Configure CrewAI Flow state with our initial data
-            # CrewAI Flow manages state internally - we need to work with its patterns
-            # Instead of setting self.state directly, we'll store our state separately
+            # Store our state and also set it as the CrewAI state if possible
             self._flow_state = initial_state
+            
+            # Try to set the state in CrewAI's expected way
+            if hasattr(self, '_state'):
+                self._state = initial_state
+            if hasattr(self, 'state_'):
+                self.state_ = initial_state
+                
             logger.info("✅ CrewAI Flow state initialized with structured state management")
             
             # Debug: Log the state IDs to ensure they're set
@@ -339,6 +360,9 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
         logger.info(f"📊 [TRACE] @listen(initialize_discovery) triggered - data import phase starting for flow {self._flow_id}")
         logger.info(f"🔍 [TRACE] Previous result from initialize_discovery: {previous_result}")
         
+        # Ensure state has IDs
+        self._ensure_state_ids()
+        
         # Debug: Log all flow IDs to trace the issue
         logger.info(f"🔍 [DEBUG] self._flow_id: {self._flow_id}")
         logger.info(f"🔍 [DEBUG] self.state.flow_id: {getattr(self.state, 'flow_id', 'NOT SET')}")
@@ -376,6 +400,9 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     async def generate_field_mapping_suggestions(self, previous_result):
         """Generate initial field mapping suggestions before pausing for approval"""
         logger.info("🤖 Generating field mapping suggestions")
+        
+        # Ensure state has IDs
+        self._ensure_state_ids()
         
         # Debug: Check if raw_data is available
         logger.info(f"🔍 DEBUG: Raw data available: {len(self.state.raw_data) if hasattr(self.state, 'raw_data') and self.state.raw_data else 0} records")
@@ -493,6 +520,9 @@ class UnifiedDiscoveryFlow(Flow[UnifiedDiscoveryFlowState]):
     async def pause_for_field_mapping_approval(self, previous_result):
         """Pause flow for user to review and approve field mappings"""
         logger.info("⏸️ Pausing for field mapping approval")
+        
+        # Ensure state has IDs
+        self._ensure_state_ids()
         
         # Debug: Log state IDs at pause time
         logger.info(f"🔍 DEBUG: State IDs at pause:")
