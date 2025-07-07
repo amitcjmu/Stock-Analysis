@@ -130,9 +130,16 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
     queryKey: ['unifiedDiscoveryFlow', flowId],
     queryFn: () => flowId ? unifiedDiscoveryAPI.getFlowStatus(flowId) : null,
     enabled: !!flowId,
-    refetchInterval: false, // DISABLED: No automatic polling - use manual refresh
-    refetchIntervalInBackground: false,
-    staleTime: 30000, // Consider data fresh for 30 seconds
+    refetchInterval: (query) => {
+      // Poll more frequently when flow is running
+      const state = query.state.data as any;
+      if (state?.status === 'running' || state?.status === 'in_progress') {
+        return 2000; // Poll every 2 seconds when running
+      }
+      return false; // Stop polling when not running
+    },
+    refetchIntervalInBackground: true,
+    staleTime: 1000, // Consider data stale after 1 second for real-time updates
   });
 
   // Health check query - DISABLED: endpoint doesn't exist

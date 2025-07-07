@@ -494,3 +494,71 @@ async def _get_data_classifications(db: AsyncSession, context: RequestContext):
     except Exception as e:
         logger.error(f"Error getting data classifications: {e}")
         return []
+
+
+@router.get("/agent-status")
+async def get_agent_status(
+    page_context: str = "discovery",
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+) -> Dict[str, Any]:
+    """
+    Get agent status with insights for a specific page context.
+    This endpoint provides real-time agent insights for the frontend.
+    """
+    try:
+        logger.info(f"🔍 Getting agent status for page context: {page_context}")
+        
+        # Get dynamic agent insights based on actual data
+        agent_insights = await _get_dynamic_agent_insights(db, context)
+        
+        # Get data classifications 
+        data_classifications = await _get_data_classifications(db, context)
+        
+        # Try to get agent insights from the agent_ui_bridge service
+        try:
+            from app.services.agent_ui_bridge import AgentUIBridge
+            bridge = AgentUIBridge(data_dir="backend/data")
+            bridge_insights = bridge.get_insights_for_page(page_context)
+            
+            # Merge insights from both sources
+            if bridge_insights:
+                logger.info(f"🔗 Found {len(bridge_insights)} insights from agent_ui_bridge")
+                agent_insights.extend(bridge_insights)
+        except Exception as e:
+            logger.warning(f"⚠️ Could not get insights from agent_ui_bridge: {e}")
+        
+        # Format response to match frontend expectations
+        response = {
+            "success": True,
+            "status": "active",
+            "page_context": page_context,
+            "timestamp": datetime.utcnow().isoformat(),
+            "page_data": {
+                "agent_insights": agent_insights,
+                "data_classifications": data_classifications
+            },
+            "agent_status": {
+                "total_agents": len(set(insight.get("agent_name", "Unknown") for insight in agent_insights)),
+                "active_agents": len([insight for insight in agent_insights if insight.get("actionable", False)]),
+                "insights_count": len(agent_insights),
+                "classifications_count": len(data_classifications)
+            }
+        }
+        
+        logger.info(f"✅ Returning {len(agent_insights)} agent insights for {page_context}")
+        return response
+        
+    except Exception as e:
+        logger.error(f"❌ Error getting agent status: {e}")
+        return {
+            "success": False,
+            "status": "error",
+            "error": str(e),
+            "page_context": page_context,
+            "timestamp": datetime.utcnow().isoformat(),
+            "page_data": {
+                "agent_insights": [],
+                "data_classifications": []
+            }
+        }

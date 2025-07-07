@@ -213,7 +213,7 @@ class UnifiedDiscoveryFlow(Flow):
         """Initialize the discovery flow"""
         logger.info(f"🎯 [ECHO] Starting Unified Discovery Flow - @start method called for flow {self._flow_id}")
         logger.info(f"🔍 [ECHO] Flow kickoff initiated - this should trigger the entire flow chain")
-        logger.info(f"📊 [ECHO] Current state before initialization: status={getattr(self, '_flow_state', {}).get('status', 'N/A') if hasattr(self, '_flow_state') else 'NO STATE'}")
+        logger.info(f"📊 [ECHO] Current state before initialization: status={getattr(self._flow_state, 'status', 'N/A') if hasattr(self, '_flow_state') else 'NO STATE'}")
         
         # [ECHO] Update status to running immediately
         try:
@@ -227,6 +227,54 @@ class UnifiedDiscoveryFlow(Flow):
                     logger.info(f"✅ [ECHO] Updated flow status to 'running' at start of kickoff")
         except Exception as e:
             logger.warning(f"⚠️ [ECHO] Failed to update initial flow status: {e}")
+        
+        # Send real-time update via agent-ui-bridge and sync to state
+        try:
+            from app.services.agent_ui_bridge import agent_ui_bridge
+            
+            insight = {
+                "agent_id": "unified_discovery_flow",
+                "agent_name": "Discovery Flow Orchestrator",
+                "insight_type": "flow_start",
+                "title": "Discovery Flow Started",
+                "description": f"Initializing discovery flow with ID {self._flow_id}",
+                "timestamp": datetime.now().isoformat(),
+                "supporting_data": {
+                    "phase": "initialization",
+                    "progress": 0,
+                    "status": "running",
+                    "flow_id": self._flow_id
+                }
+            }
+            
+            # Add to agent-ui-bridge
+            agent_ui_bridge.add_agent_insight(
+                agent_id=insight["agent_id"],
+                agent_name=insight["agent_name"],
+                insight_type=insight["insight_type"],
+                title=insight["title"],
+                description=insight["description"],
+                page=f"flow_{self._flow_id}",
+                flow_id=self._flow_id,
+                supporting_data=insight["supporting_data"]
+            )
+            
+            # Also add to flow state for persistence
+            self.state_manager.add_agent_insight(
+                insight["agent_id"],
+                insight["agent_name"],
+                insight["insight_type"],
+                insight["title"],
+                insight["description"],
+                insight["supporting_data"]
+            )
+            
+            # Persist the insight immediately
+            await self.state_manager.safe_update_flow_state()
+            
+            logger.info(f"📡 [ECHO] Sent flow start notification via agent-ui-bridge and persisted to database")
+        except Exception as e:
+            logger.warning(f"⚠️ [ECHO] Failed to send agent-ui-bridge notification: {e}")
         
         try:
             # Initialize state using CrewAI Flow's built-in state management
@@ -460,6 +508,51 @@ class UnifiedDiscoveryFlow(Flow):
         
         # Update phase
         self.state.current_phase = PhaseNames.FIELD_MAPPING
+        
+        # Send phase transition update
+        try:
+            from app.services.agent_ui_bridge import agent_ui_bridge
+            
+            insight = {
+                "agent_id": "unified_discovery_flow",
+                "agent_name": "Discovery Flow Orchestrator",
+                "insight_type": "phase_transition",
+                "title": "Moving to Field Mapping Phase",
+                "description": "Data validation complete. Starting field mapping suggestions generation.",
+                "timestamp": datetime.now().isoformat(),
+                "supporting_data": {
+                    "previous_phase": PhaseNames.DATA_IMPORT_VALIDATION,
+                    "current_phase": PhaseNames.FIELD_MAPPING,
+                    "progress": 16.7,
+                    "status": "running"
+                }
+            }
+            
+            # Add to both agent-ui-bridge and flow state
+            agent_ui_bridge.add_agent_insight(
+                agent_id=insight["agent_id"],
+                agent_name=insight["agent_name"],
+                insight_type=insight["insight_type"],
+                title=insight["title"],
+                description=insight["description"],
+                page=f"flow_{self._flow_id}",
+                flow_id=self._flow_id,
+                supporting_data=insight["supporting_data"]
+            )
+            
+            self.state_manager.add_agent_insight(
+                insight["agent_id"],
+                insight["agent_name"],
+                insight["insight_type"],
+                insight["title"],
+                insight["description"],
+                insight["supporting_data"]
+            )
+            
+            await self.state_manager.safe_update_flow_state()
+            logger.info(f"📡 Sent phase transition notification")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to send phase transition notification: {e}")
         
         # Execute field mapping crew to generate suggestions
         mapping_result = await self.phase_executor.execute_field_mapping_phase(

@@ -954,6 +954,9 @@ class MasterFlowOrchestrator:
             }
             
             if include_details:
+                # Get agent insights for this flow
+                agent_insights = await self._get_flow_agent_insights(flow_id, master_flow.flow_type)
+                
                 # Add detailed information
                 status.update({
                     "configuration": master_flow.flow_configuration,
@@ -967,7 +970,8 @@ class MasterFlowOrchestrator:
                     },
                     "performance": master_flow.get_performance_summary(),
                     "collaboration_log": master_flow.agent_collaboration_log[-10:],  # Last 10 entries
-                    "state_data": master_flow.flow_persistence_data
+                    "state_data": master_flow.flow_persistence_data,
+                    "agent_insights": agent_insights
                 })
             
             # Log status check audit
@@ -988,6 +992,102 @@ class MasterFlowOrchestrator:
         except Exception as e:
             logger.error(f"Failed to get flow status for {flow_id}: {e}")
             raise RuntimeError(f"Failed to get flow status: {str(e)}")
+    
+    async def _get_flow_agent_insights(self, flow_id: str, flow_type: str) -> List[Dict[str, Any]]:
+        """
+        Get agent insights for a specific flow from multiple sources.
+        
+        Args:
+            flow_id: Flow identifier
+            flow_type: Type of flow (discovery, assessment, etc.)
+            
+        Returns:
+            List of agent insights
+        """
+        try:
+            insights = []
+            
+            # Try to get insights from agent_ui_bridge service
+            try:
+                from app.services.agent_ui_bridge import AgentUIBridge
+                bridge = AgentUIBridge(data_dir="backend/data")
+                
+                # Get insights by page context based on flow type
+                page_context = "discovery" if flow_type == "discovery" else "assessment" if flow_type == "assessment" else "general"
+                bridge_insights = bridge.get_insights_for_page(page_context)
+                
+                if bridge_insights:
+                    logger.info(f"🔗 Found {len(bridge_insights)} insights from agent_ui_bridge for {flow_type} flow")
+                    # Filter insights by flow_id if available
+                    flow_specific_insights = [
+                        insight for insight in bridge_insights 
+                        if insight.get("flow_id") == flow_id or insight.get("flow_id") is None
+                    ]
+                    insights.extend(flow_specific_insights)
+                    
+            except Exception as e:
+                logger.warning(f"⚠️ Could not get insights from agent_ui_bridge: {e}")
+            
+            # Get insights from flow persistence data if available
+            try:
+                master_flow = await self.master_repo.get_by_flow_id(flow_id)
+                if master_flow and master_flow.flow_persistence_data:
+                    flow_data = master_flow.flow_persistence_data
+                    
+                    # Check if there are agent insights stored in the flow data
+                    if "agent_insights" in flow_data:
+                        flow_insights = flow_data["agent_insights"]
+                        if isinstance(flow_insights, list):
+                            insights.extend(flow_insights)
+                            logger.info(f"📊 Found {len(flow_insights)} insights from flow persistence data")
+                    
+                    # Generate insights from flow state
+                    if master_flow.flow_status and master_flow.current_phase:
+                        insights.append({
+                            "id": f"flow-status-{flow_id}",
+                            "agent_id": "flow-orchestrator",
+                            "agent_name": "Flow Orchestrator",
+                            "insight_type": "flow_status",
+                            "title": f"Flow Status: {master_flow.flow_status.title()}",
+                            "description": f"Flow is currently in {master_flow.current_phase} phase with {master_flow.flow_status} status",
+                            "confidence": "high",
+                            "supporting_data": {
+                                "flow_id": flow_id,
+                                "flow_type": flow_type,
+                                "status": master_flow.flow_status,
+                                "phase": master_flow.current_phase,
+                                "progress": getattr(master_flow, 'progress_percentage', 0.0)
+                            },
+                            "actionable": master_flow.flow_status in ["paused", "error"],
+                            "page": "discovery" if flow_type == "discovery" else "assessment",
+                            "created_at": master_flow.updated_at.isoformat() if master_flow.updated_at else None
+                        })
+                        
+            except Exception as e:
+                logger.warning(f"⚠️ Could not get insights from flow persistence data: {e}")
+            
+            # If no insights found, provide a default message
+            if not insights:
+                insights.append({
+                    "id": f"no-insights-{flow_id}",
+                    "agent_id": "system-monitor",
+                    "agent_name": "System Monitor",
+                    "insight_type": "system_status",
+                    "title": "Flow Monitoring Active",
+                    "description": f"Flow {flow_id} is being monitored - agents will provide insights as they analyze your data",
+                    "confidence": "medium",
+                    "supporting_data": {"flow_id": flow_id, "flow_type": flow_type},
+                    "actionable": False,
+                    "page": "discovery" if flow_type == "discovery" else "assessment",
+                    "created_at": datetime.utcnow().isoformat()
+                })
+            
+            logger.info(f"✅ Returning {len(insights)} agent insights for flow {flow_id}")
+            return insights
+            
+        except Exception as e:
+            logger.error(f"❌ Error getting agent insights for flow {flow_id}: {e}")
+            return []
     
     async def get_active_flows(
         self,

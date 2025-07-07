@@ -1,5 +1,54 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [1.4.4] - 2025-01-07
+
+### 🚀 **Real-time Agent Insights** - Enhanced Discovery Flow Monitoring
+
+This release enhances the discovery flow with real-time agent insights, enabling users to see live updates from AI agents during data processing and validation phases.
+
+### 🚀 **New Features**
+
+#### **Real-time Agent Activity Monitoring**
+- **Change Type**: Added agent-ui-bridge integration to UnifiedDiscoveryFlow and all phase executors
+- **Impact**: Users can now see real-time updates from agents during discovery flow execution
+- **Technical Details**: Integrated agent insights with database persistence and enabled 2-second polling
+
+#### **Dynamic Polling for Active Flows**
+- **Change Type**: Enabled automatic polling when flows are in running/in_progress state
+- **Impact**: Frontend automatically refreshes every 2 seconds to show latest agent insights
+- **Technical Details**: Smart polling that stops when flow completes to reduce server load
+
+### 🔧 **Technical Improvements**
+
+#### **Agent-UI Bridge Integration**
+- **Change Type**: Added phase start/completion notifications via agent-ui-bridge
+- **Impact**: All discovery phases now send real-time progress updates
+- **Technical Details**: Base phase executor enhanced with agent insight notifications
+
+#### **Flow State Persistence**
+- **Change Type**: Synchronized agent insights between agent-ui-bridge and database
+- **Impact**: Agent insights are persisted and available across page refreshes
+- **Technical Details**: Insights stored in both crewai_state_data JSONB field and agent-ui-bridge service
+
+### 🐛 **Bug Fixes**
+
+#### **Flow State Attribute Error**
+- **Change Type**: Fixed UnifiedDiscoveryFlowState attribute access error
+- **Impact**: Discovery flow can now execute without crashing
+- **Technical Details**: Changed from dictionary .get() to proper Pydantic attribute access
+
+### 📊 **Business Impact**
+
+- **User Experience**: Live visibility into AI agent processing activities
+- **Transparency**: Users can see what agents are doing and their insights in real-time
+- **Confidence**: Progress updates and agent insights build trust in the automation
+
+### 🎯 **Success Metrics**
+
+- **Real-time Updates**: 2-second polling provides near real-time agent insights
+- **Phase Coverage**: 100% of discovery phases now send progress notifications
+- **Error Reduction**: Fixed critical flow execution error that was blocking all discoveries
+
 ## [1.4.3] - 2025-01-07
 
 ### 🐛 **CMDB Data Import Validation** - Fixed 422 Error for Multi-tenant Context

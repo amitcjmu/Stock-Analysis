@@ -80,6 +80,7 @@ class FlowStatusResponse(BaseModel):
     current_state: Dict[str, Any]
     error_details: Optional[Dict[str, Any]]
     performance_metrics: Dict[str, Any]
+    agent_insights: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Real-time agent insights for this flow")
 
 
 class FlowListResponse(BaseModel):
@@ -165,13 +166,13 @@ async def create_flow(
             flow_id=flow_id,
             flow_type=flow_data["flow_type"],
             flow_name=flow_data.get("flow_name"),
-            status=flow_data["status"],
+            status=flow_data.get("flow_status", "unknown"),
             phase=flow_data.get("current_phase"),
             progress_percentage=flow_data.get("progress_percentage", 0.0),
             created_at=flow_data["created_at"],
             updated_at=flow_data["updated_at"],
-            created_by=flow_data["created_by"],
-            configuration=flow_data.get("configuration", {}),
+            created_by=flow_data.get("created_by", "system"),
+            configuration=flow_data.get("flow_configuration", {}),
             metadata=flow_data.get("metadata", {})
         )
         
@@ -224,13 +225,13 @@ async def list_flows(
                 flow_id=flow["flow_id"],
                 flow_type=flow["flow_type"],
                 flow_name=flow.get("flow_name"),
-                status=flow["status"],
+                status=flow.get("flow_status", "unknown"),
                 phase=flow.get("current_phase"),
                 progress_percentage=flow.get("progress_percentage", 0.0),
                 created_at=flow["created_at"],
                 updated_at=flow["updated_at"],
                 created_by=flow.get("created_by", "system"),
-                configuration=flow.get("configuration", {}),
+                configuration=flow.get("flow_configuration", {}),
                 metadata=flow.get("metadata", {})
             ))
         
@@ -272,13 +273,13 @@ async def get_flow(
             flow_id=flow_data["flow_id"],
             flow_type=flow_data["flow_type"],
             flow_name=flow_data.get("flow_name"),
-            status=flow_data["status"],
+            status=flow_data.get("flow_status", "unknown"),
             phase=flow_data.get("current_phase"),
             progress_percentage=flow_data.get("progress_percentage", 0.0),
             created_at=flow_data["created_at"],
             updated_at=flow_data["updated_at"],
-            created_by=flow_data["created_by"],
-            configuration=flow_data.get("configuration", {}),
+            created_by=flow_data.get("created_by", "system"),
+            configuration=flow_data.get("flow_configuration", {}),
             metadata=flow_data.get("metadata", {})
         )
         
@@ -324,13 +325,13 @@ async def execute_phase(
             flow_id=flow_data["flow_id"],
             flow_type=flow_data["flow_type"],
             flow_name=flow_data.get("flow_name"),
-            status=flow_data["status"],
+            status=flow_data.get("status", "unknown"),
             phase=flow_data.get("current_phase"),
             progress_percentage=flow_data.get("progress_percentage", 0.0),
             created_at=flow_data["created_at"],
             updated_at=flow_data["updated_at"],
-            created_by=flow_data["created_by"],
-            configuration=flow_data.get("configuration", {}),
+            created_by=flow_data.get("created_by", "system"),
+            configuration=flow_data.get("flow_configuration", {}),
             metadata=flow_data.get("metadata", {})
         )
         
@@ -370,13 +371,13 @@ async def pause_flow(
             flow_id=flow_data["flow_id"],
             flow_type=flow_data["flow_type"],
             flow_name=flow_data.get("flow_name"),
-            status=flow_data["status"],
+            status=flow_data.get("status", "unknown"),
             phase=flow_data.get("current_phase"),
             progress_percentage=flow_data.get("progress_percentage", 0.0),
             created_at=flow_data["created_at"],
             updated_at=flow_data["updated_at"],
-            created_by=flow_data["created_by"],
-            configuration=flow_data.get("configuration", {}),
+            created_by=flow_data.get("created_by", "system"),
+            configuration=flow_data.get("flow_configuration", {}),
             metadata=flow_data.get("metadata", {})
         )
         
@@ -416,13 +417,13 @@ async def resume_flow(
             flow_id=flow_data["flow_id"],
             flow_type=flow_data["flow_type"],
             flow_name=flow_data.get("flow_name"),
-            status=flow_data["status"],
+            status=flow_data.get("status", "unknown"),
             phase=flow_data.get("current_phase"),
             progress_percentage=flow_data.get("progress_percentage", 0.0),
             created_at=flow_data["created_at"],
             updated_at=flow_data["updated_at"],
-            created_by=flow_data["created_by"],
-            configuration=flow_data.get("configuration", {}),
+            created_by=flow_data.get("created_by", "system"),
+            configuration=flow_data.get("flow_configuration", {}),
             metadata=flow_data.get("metadata", {})
         )
         
@@ -490,7 +491,7 @@ async def get_flow_status(
             flow_id=flow_data["flow_id"],
             flow_type=flow_data["flow_type"],
             flow_name=flow_data.get("flow_name"),
-            status=flow_data["status"],
+            status=flow_data.get("status", "unknown"),
             phase=flow_data.get("current_phase"),
             progress_percentage=flow_data.get("progress_percentage", 0.0),
             created_at=flow_data["created_at"],
@@ -498,7 +499,8 @@ async def get_flow_status(
             execution_history=flow_data.get("execution_history", []),
             current_state=flow_data.get("current_state", {}),
             error_details=flow_data.get("error_details"),
-            performance_metrics=flow_data.get("performance_metrics", {})
+            performance_metrics=flow_data.get("performance_metrics", {}),
+            agent_insights=flow_data.get("agent_insights", [])
         )
         
     except HTTPException:
