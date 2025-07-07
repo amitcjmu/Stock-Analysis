@@ -76,7 +76,7 @@ const CrewStatusCard: React.FC<CrewStatusCardProps> = ({
   crewData,
   onAction,
   showDetailedView = false,
-  refreshInterval = 5000
+  refreshInterval = 30000 // 30 seconds for production performance
 }) => {
   const [isExpanded, setIsExpanded] = useState(showDetailedView);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());

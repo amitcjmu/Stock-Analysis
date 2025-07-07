@@ -44,10 +44,10 @@ interface UseAssessmentFlowReturn {
  * Provides backward compatibility while using new Master Flow Orchestrator
  */
 export function useAssessmentFlow(): UseAssessmentFlowReturn {
-  // Use the new unified assessment flow hook
+  // Use the new unified assessment flow hook with production-optimized polling
   const [state, actions] = useNewAssessmentFlow({
     autoRefresh: true,
-    refreshInterval: 5000,
+    refreshInterval: 30000, // 30 seconds for production performance
     onError: (error) => flowToast.error(error),
     onSuccess: (data) => console.log('Assessment operation successful:', data)
   });

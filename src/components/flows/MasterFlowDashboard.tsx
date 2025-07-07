@@ -55,12 +55,12 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
   const [selectedType, setSelectedType] = useState<FlowType | 'all'>(filterByType || 'all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Use the unified flows hook
+  // Use the unified flows hook with production-optimized polling
   const [state, actions] = useFlows(
     selectedType === 'all' ? undefined : selectedType,
     {
       autoRefresh: true,
-      refreshInterval: 10000,
+      refreshInterval: 30000, // 30 seconds for production performance
       onError: (error) => flowToast.error(error)
     }
   );

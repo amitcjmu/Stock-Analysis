@@ -2,6 +2,20 @@
 
 ## Issues Addressed
 
+### ARCHITECTURAL FIX: Master Flow Orchestrator Bypass
+**Problem**: Data import flow was bypassing MasterFlowOrchestrator and creating flows directly.
+
+**Root Cause**: 
+- DFD shows: File upload → `/api/v1/unified-discovery/flow/initialize` → MasterFlowOrchestrator → UnifiedDiscoveryFlow  
+- Actual code: File upload → `/api/v1/data-import/store-import` → `create_unified_discovery_flow()` → UnifiedDiscoveryFlow
+
+**Solution**:
+1. **Fixed data import handler** to use MasterFlowOrchestrator in `import_storage_handler.py:301-336`
+2. **Created missing API endpoint** `/api/v1/unified-discovery/flow/initialize` as shown in DFD
+3. **All flows now go through orchestrator** ensuring proper tracking and management
+
+## Issues Addressed
+
 ### 1. Frontend Polling Interval
 **Problem**: Frontend was polling every 3-5 seconds, causing excessive backend load.
 

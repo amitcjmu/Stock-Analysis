@@ -1,27 +1,90 @@
 """
-Discovery Flows API - Minimal implementation for frontend compatibility
-Provides basic flow management endpoints until real CrewAI flows are implemented
+Discovery Flows API - Standardized implementation with consistent response models
+Provides discovery flow management endpoints with unified response formats
 """
 
 import logging
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import JSONB
+from pydantic import BaseModel, Field
 
 from app.core.database import get_db
 from app.core.context import RequestContext, get_current_context
 from app.api.v1.dependencies import get_crewai_flow_service
 from app.services.crewai_flow_service import CrewAIFlowService
 
+# Standardized Response Models for Discovery Flows API
+class DiscoveryFlowResponse(BaseModel):
+    """Standardized discovery flow response model"""
+    flow_id: str
+    data_import_id: Optional[str] = None
+    status: str
+    type: str = "discovery"
+    current_phase: Optional[str] = None
+    next_phase: Optional[str] = None
+    phases_completed: List[str] = Field(default_factory=list)
+    progress: float = 0.0
+    progress_percentage: float = 0.0
+    client_account_id: str
+    engagement_id: str
+    created_at: str
+    updated_at: str
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    error: Optional[str] = None
+    flow_name: Optional[str] = None
+    flow_description: Optional[str] = None
+    can_resume: bool = False
+
+class DiscoveryFlowStatusResponse(BaseModel):
+    """Detailed discovery flow status response"""
+    flow_id: str
+    data_import_id: Optional[str] = None
+    status: str
+    type: str = "discovery"
+    client_account_id: str
+    engagement_id: str
+    current_phase: Optional[str] = None
+    progress_percentage: float = 0.0
+    awaiting_user_approval: bool = False
+    progress: Dict[str, Any] = Field(default_factory=dict)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    crewai_status: str
+    agent_insights: List[Dict[str, Any]] = Field(default_factory=list)
+    phase_completion: Dict[str, bool] = Field(default_factory=dict)
+    field_mappings: Dict[str, Any] = Field(default_factory=dict)
+    last_updated: str
+
+class FlowInitializeResponse(BaseModel):
+    """Flow initialization response"""
+    flow_id: str
+    status: str
+    type: str = "discovery"
+    client_account_id: str
+    engagement_id: str
+    message: str
+    next_steps: List[str] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+class FlowOperationResponse(BaseModel):
+    """Generic flow operation response"""
+    success: bool
+    flow_id: str
+    status: str
+    message: str
+    next_phase: Optional[str] = None
+    current_phase: Optional[str] = None
+    method: Optional[str] = None
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-@router.get("/flows/active", response_model=List[Dict[str, Any]])
-@router.get("/flow/active", response_model=List[Dict[str, Any]])  # Alias for frontend compatibility
+@router.get("/flows/active", response_model=List[DiscoveryFlowResponse])
+@router.get("/flow/active", response_model=List[DiscoveryFlowResponse])  # Alias for frontend compatibility
 async def get_active_flows(
     context: RequestContext = Depends(get_current_context),
     db: AsyncSession = Depends(get_db)
@@ -110,7 +173,7 @@ async def get_active_flows(
         logger.error(f"Error getting active flows: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get active flows: {str(e)}")
 
-@router.get("/flows/{flow_id}/status", response_model=Dict[str, Any])
+@router.get("/flows/{flow_id}/status", response_model=DiscoveryFlowStatusResponse)
 async def get_flow_status(
     flow_id: str,
     context: RequestContext = Depends(get_current_context),
@@ -360,7 +423,7 @@ async def get_flow_status(
         logger.error(f"Error getting flow status: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get flow status: {str(e)}")
 
-@router.post("/flows/initialize", response_model=Dict[str, Any])
+@router.post("/flows/initialize", response_model=FlowInitializeResponse)
 async def initialize_flow(
     context: RequestContext = Depends(get_current_context),
     db: AsyncSession = Depends(get_db)
@@ -589,7 +652,7 @@ async def get_flow_validation_status(
         logger.error(f"Error getting validation status: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get validation status: {str(e)}")
 
-@router.post("/flow/{flow_id}/resume", response_model=Dict[str, Any])
+@router.post("/flow/{flow_id}/resume", response_model=FlowOperationResponse)
 async def resume_discovery_flow(
     flow_id: str,
     request: Dict[str, Any] = {},
@@ -789,7 +852,7 @@ async def resume_discovery_flow(
         logger.error(f"Error resuming flow {flow_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to resume flow: {str(e)}")
 
-@router.post("/flow/{flow_id}/pause", response_model=Dict[str, Any])
+@router.post("/flow/{flow_id}/pause", response_model=FlowOperationResponse)
 async def pause_discovery_flow(
     flow_id: str,
     request: Dict[str, Any] = {},
@@ -895,7 +958,7 @@ async def pause_discovery_flow(
         logger.error(f"Error pausing flow {flow_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to pause flow: {str(e)}")
 
-@router.delete("/flow/{flow_id}", response_model=Dict[str, Any])
+@router.delete("/flow/{flow_id}", response_model=FlowOperationResponse)
 async def delete_discovery_flow(
     flow_id: str,
     context: RequestContext = Depends(get_current_context),

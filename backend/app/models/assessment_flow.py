@@ -1,6 +1,8 @@
 """
 Assessment Flow Models - Database Foundation
 Complete SQLAlchemy models for assessment flow architecture with multi-tenant support
+
+Includes both database models and in-memory state models for CrewAI flow compatibility.
 """
 import uuid
 from datetime import datetime
@@ -75,7 +77,7 @@ class AssessmentFlow(Base):
         CheckConstraint('progress >= 0 AND progress <= 100', name='valid_progress'),
     )
     
-    # Relationships
+    # Relationships (using string references to avoid forward reference issues)
     # Note: architecture_standards are linked via engagement_id, not directly
     application_overrides = relationship("ApplicationArchitectureOverride", back_populates="assessment_flow", cascade="all, delete-orphan")
     application_components = relationship("ApplicationComponent", back_populates="assessment_flow", cascade="all, delete-orphan")
@@ -368,3 +370,213 @@ class AssessmentLearningFeedback(Base):
 
     def __repr__(self):
         return f"<AssessmentLearningFeedback(original='{self.original_strategy}', override='{self.override_strategy}')>"
+
+
+# ========================================
+# IN-MEMORY STATE MODELS FOR CREWAI FLOW
+# ========================================
+
+class AssessmentStatus(str, Enum):
+    """Assessment flow status for in-memory state management"""
+    INITIALIZING = "initializing"
+    PROCESSING = "processing"
+    PAUSED_FOR_USER_INPUT = "paused_for_user_input"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    ERROR = "error"
+
+
+class AssessmentPhase(str, Enum):
+    """Assessment flow phases for in-memory state management"""
+    INITIALIZATION = "initialization"
+    ARCHITECTURE_MINIMUMS = "architecture_minimums"
+    TECH_DEBT_ANALYSIS = "tech_debt_analysis"
+    COMPONENT_SIXR_STRATEGIES = "component_sixr_strategies"
+    APP_ON_PAGE_GENERATION = "app_on_page_generation"
+    FINALIZATION = "finalization"
+
+
+class SixRDecision:
+    """In-memory model for 6R decisions"""
+    
+    def __init__(
+        self,
+        application_id: str,
+        application_name: str,
+        component_treatments: List[Dict[str, Any]] = None,
+        overall_strategy: str = None,
+        confidence_score: float = 0.0,
+        rationale: str = "",
+        move_group_hints: List[str] = None,
+        tech_debt_score: float = 0.0,
+        architecture_exceptions: List[Dict[str, Any]] = None,
+        risk_factors: List[str] = None,
+        app_on_page_data: Dict[str, Any] = None
+    ):
+        self.application_id = application_id
+        self.application_name = application_name
+        self.component_treatments = component_treatments or []
+        self.overall_strategy = overall_strategy
+        self.confidence_score = confidence_score
+        self.rationale = rationale
+        self.move_group_hints = move_group_hints or []
+        self.tech_debt_score = tech_debt_score
+        self.architecture_exceptions = architecture_exceptions or []
+        self.risk_factors = risk_factors or []
+        self.app_on_page_data = app_on_page_data or {}
+
+
+class ArchitectureRequirementType(str, Enum):
+    """Types of architecture requirements"""
+    TECHNOLOGY_VERSION = "technology_version"
+    SECURITY_STANDARD = "security_standard"
+    COMPLIANCE_REQUIREMENT = "compliance_requirement"
+    PERFORMANCE_STANDARD = "performance_standard"
+    INTEGRATION_PATTERN = "integration_pattern"
+
+
+class ComponentType(str, Enum):
+    """Types of application components"""
+    WEB_FRONTEND = "web_frontend"
+    API_GATEWAY = "api_gateway"
+    MICROSERVICE = "microservice"
+    DATABASE = "database"
+    MESSAGE_QUEUE = "message_queue"
+    CACHE = "cache"
+    FILE_STORAGE = "file_storage"
+    BATCH_PROCESSOR = "batch_processor"
+    INTEGRATION_LAYER = "integration_layer"
+    MONITORING = "monitoring"
+    REST_API = "rest_api"
+    RELATIONAL_DATABASE = "relational_database"
+    CUSTOM = "custom"
+
+
+class TechDebtSeverity(str, Enum):
+    """Severity levels for technical debt"""
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
+class AssessmentFlowError(Exception):
+    """Custom exception for assessment flow errors"""
+    pass
+
+
+class CrewExecutionError(Exception):
+    """Custom exception for crew execution errors"""
+    pass
+
+
+class AssessmentFlowState:
+    """In-memory state model for assessment flow execution"""
+    
+    def __init__(
+        self,
+        flow_id: str,
+        client_account_id: str,
+        engagement_id: str,
+        user_id: Optional[str] = None,
+        current_phase: AssessmentPhase = AssessmentPhase.INITIALIZATION,
+        next_phase: AssessmentPhase = None,
+        status: AssessmentStatus = AssessmentStatus.INITIALIZING,
+        progress: float = 0.0,
+        selected_application_ids: List[str] = None,
+        created_at: datetime = None,
+        updated_at: datetime = None
+    ):
+        self.flow_id = flow_id
+        self.client_account_id = client_account_id
+        self.engagement_id = engagement_id
+        self.user_id = user_id
+        self.current_phase = current_phase
+        self.next_phase = next_phase
+        self.status = status
+        self.progress = progress
+        self.selected_application_ids = selected_application_ids or []
+        self.created_at = created_at or datetime.utcnow()
+        self.updated_at = updated_at or datetime.utcnow()
+        self.completed_at: Optional[datetime] = None
+        
+        # Phase-specific data
+        self.phase_results: Dict[str, Any] = {}
+        self.user_inputs: Dict[str, Any] = {}
+        self.pause_points: List[str] = []
+        
+        # Assessment-specific data
+        self.engagement_architecture_standards: List[Dict[str, Any]] = []
+        self.application_components: Dict[str, List[Dict[str, Any]]] = {}
+        self.tech_debt_analysis: Dict[str, List[Dict[str, Any]]] = {}
+        self.component_tech_debt: Dict[str, Dict[str, float]] = {}
+        self.sixr_decisions: Dict[str, SixRDecision] = {}
+        self.apps_ready_for_planning: List[str] = []
+        
+        # Interaction tracking
+        self.last_user_interaction: Optional[datetime] = None
+        self.errors: List[Dict[str, Any]] = []
+    
+    def add_error(self, phase: str, error_message: str):
+        """Add an error to the flow state"""
+        self.errors.append({
+            "phase": phase,
+            "error": error_message,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+        self.status = AssessmentStatus.ERROR
+        self.updated_at = datetime.utcnow()
+    
+    def validate_component_compatibility(self, application_id: str) -> List[str]:
+        """Validate component compatibility for an application"""
+        # Placeholder implementation
+        issues = []
+        
+        components = self.application_components.get(application_id, [])
+        if len(components) > 10:
+            issues.append("High component count may indicate complexity")
+        
+        return issues
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert state to dictionary for serialization"""
+        return {
+            "flow_id": self.flow_id,
+            "client_account_id": self.client_account_id,
+            "engagement_id": self.engagement_id,
+            "user_id": self.user_id,
+            "current_phase": self.current_phase.value if self.current_phase else None,
+            "next_phase": self.next_phase.value if self.next_phase else None,
+            "status": self.status.value if self.status else None,
+            "progress": self.progress,
+            "selected_application_ids": self.selected_application_ids,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "phase_results": self.phase_results,
+            "user_inputs": self.user_inputs,
+            "pause_points": self.pause_points,
+            "engagement_architecture_standards": self.engagement_architecture_standards,
+            "application_components": self.application_components,
+            "tech_debt_analysis": self.tech_debt_analysis,
+            "component_tech_debt": self.component_tech_debt,
+            "sixr_decisions": {
+                app_id: {
+                    "application_id": decision.application_id,
+                    "application_name": decision.application_name,
+                    "component_treatments": decision.component_treatments,
+                    "overall_strategy": decision.overall_strategy,
+                    "confidence_score": decision.confidence_score,
+                    "rationale": decision.rationale,
+                    "move_group_hints": decision.move_group_hints,
+                    "tech_debt_score": decision.tech_debt_score,
+                    "architecture_exceptions": decision.architecture_exceptions,
+                    "risk_factors": decision.risk_factors,
+                    "app_on_page_data": decision.app_on_page_data
+                }
+                for app_id, decision in self.sixr_decisions.items()
+            },
+            "apps_ready_for_planning": self.apps_ready_for_planning,
+            "last_user_interaction": self.last_user_interaction.isoformat() if self.last_user_interaction else None,
+            "errors": self.errors
+        }

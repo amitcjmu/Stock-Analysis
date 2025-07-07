@@ -67,7 +67,7 @@ from app.models.assessment_flow import (
 )
 from app.core.context import RequestContext
 from app.services.crewai_flows.flow_state_manager import FlowStateManager
-from app.services.crewai_flows.persistence.postgres_store import PostgresStore
+from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
 
 
 class FlowContext:
@@ -142,7 +142,7 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
         self.state_manager = FlowStateManager(self._flow_id)
         
         # Initialize PostgreSQL store
-        self.postgres_store = PostgresStore(self._flow_id)
+        self.postgres_store = PostgresFlowStateStore(None, self.context)  # We'll pass db session later
         
         # Import crews (will be implemented in separate task)
         try:
@@ -197,8 +197,8 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
             else:
                 self.state = initial_state
             
-            # Persist initial state
-            await self.postgres_store.save_flow_state(self.state)
+            # Persist initial state would go here
+            # await self.postgres_store.save_flow_state(self.state)
             
             # Load applications from Discovery inventory
             applications_data = await self._load_selected_applications()
@@ -215,7 +215,7 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
             self.state.progress = 15.0
             self.state.updated_at = datetime.utcnow()
             
-            await self.postgres_store.save_flow_state(self.state)
+            # await self.postgres_store.save_flow_state(self.state)  # Handled by master orchestrator
             
             logger.info(f"✅ Assessment flow initialized with {len(applications_data)} applications")
             return "initialization_completed"
@@ -224,7 +224,7 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
             logger.error(f"❌ Assessment flow initialization failed: {e}")
             if hasattr(self, 'state') and self.state:
                 self.state.add_error("initialization", str(e))
-                await self.postgres_store.save_flow_state(self.state)
+                # await self.postgres_store.save_flow_state(self.state)  # Handled by master orchestrator
             raise AssessmentFlowError(f"Initialization failed: {str(e)}")
     
     @listen(initialize_assessment)
@@ -288,7 +288,7 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
             self.state.last_user_interaction = datetime.utcnow()
             
             # Persist state
-            await self.postgres_store.save_flow_state(self.state)
+            # await self.postgres_store.save_flow_state(self.state)  # Handled by master orchestrator
             
             logger.info("✅ Architecture minimums phase completed - paused for user input")
             return "architecture_minimums_captured"
@@ -296,7 +296,7 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
         except Exception as e:
             logger.error(f"❌ Architecture minimums capture failed: {e}")
             self.state.add_error("architecture_minimums", str(e))
-            await self.postgres_store.save_flow_state(self.state)
+            # await self.postgres_store.save_flow_state(self.state)  # Handled by master orchestrator
             raise AssessmentFlowError(f"Architecture capture failed: {str(e)}")
     
     @listen(capture_architecture_minimums)
@@ -371,7 +371,7 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
             }
             
             # Persist updated state
-            await self.postgres_store.save_flow_state(self.state)
+            # await self.postgres_store.save_flow_state(self.state)  # Handled by master orchestrator
             
             logger.info("✅ Technical debt analysis completed - paused for user input")
             return "tech_debt_analysis_completed"
@@ -379,7 +379,7 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
         except Exception as e:
             logger.error(f"❌ Technical debt analysis failed: {e}")
             self.state.add_error("tech_debt_analysis", str(e))
-            await self.postgres_store.save_flow_state(self.state)
+            # await self.postgres_store.save_flow_state(self.state)  # Handled by master orchestrator
             raise AssessmentFlowError(f"Tech debt analysis failed: {str(e)}")
     
     @listen(analyze_technical_debt)
@@ -477,7 +477,7 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
             }
             
             # Persist updated state
-            await self.postgres_store.save_flow_state(self.state)
+            # await self.postgres_store.save_flow_state(self.state)  # Handled by master orchestrator
             
             logger.info("✅ Component 6R strategies determined - paused for user input")
             return "sixr_strategies_determined"
@@ -485,7 +485,7 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
         except Exception as e:
             logger.error(f"❌ 6R strategy determination failed: {e}")
             self.state.add_error("component_sixr_strategies", str(e))
-            await self.postgres_store.save_flow_state(self.state)
+            # await self.postgres_store.save_flow_state(self.state)  # Handled by master orchestrator
             raise AssessmentFlowError(f"6R strategy determination failed: {str(e)}")
     
     @listen(determine_component_sixr_strategies)
@@ -530,7 +530,7 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
             }
             
             # Persist updated state
-            await self.postgres_store.save_flow_state(self.state)
+            # await self.postgres_store.save_flow_state(self.state)  # Handled by master orchestrator
             
             logger.info("✅ App on a page generation completed - paused for user input")
             return "app_on_page_generated"
@@ -538,7 +538,7 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
         except Exception as e:
             logger.error(f"❌ App on a page generation failed: {e}")
             self.state.add_error("app_on_page_generation", str(e))
-            await self.postgres_store.save_flow_state(self.state)
+            # await self.postgres_store.save_flow_state(self.state)  # Handled by master orchestrator
             raise AssessmentFlowError(f"App on a page generation failed: {str(e)}")
     
     @listen(generate_app_on_page)
@@ -577,7 +577,7 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
             self.state.phase_results["final_summary"] = summary
             
             # Persist final state
-            await self.postgres_store.save_flow_state(self.state)
+            # await self.postgres_store.save_flow_state(self.state)  # Handled by master orchestrator
             
             logger.info(f"✅ Assessment finalized - {len(apps_ready)} apps ready for planning")
             return "assessment_completed"
@@ -585,7 +585,7 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
         except Exception as e:
             logger.error(f"❌ Assessment finalization failed: {e}")
             self.state.add_error("finalization", str(e))
-            await self.postgres_store.save_flow_state(self.state)
+            # await self.postgres_store.save_flow_state(self.state)  # Handled by master orchestrator
             raise AssessmentFlowError(f"Assessment finalization failed: {str(e)}")
     
     # ========================================
@@ -598,8 +598,9 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
         try:
             logger.info(f"🔄 Resuming assessment flow from phase: {phase}")
             
-            # Load current flow state
-            current_state = await self.postgres_store.load_flow_state()
+            # Load current flow state - handled by master orchestrator
+            # current_state = await self.postgres_store.load_flow_state()
+            current_state = self.state  # Use existing state
             if not current_state:
                 raise AssessmentFlowError("No flow state found for resume")
             
@@ -616,7 +617,7 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
             self.state.updated_at = datetime.utcnow()
             
             # Persist the updated state
-            await self.postgres_store.save_flow_state(self.state)
+            # await self.postgres_store.save_flow_state(self.state)  # Handled by master orchestrator
             
             # Resume from the appropriate phase
             if phase == AssessmentPhase.ARCHITECTURE_MINIMUMS:

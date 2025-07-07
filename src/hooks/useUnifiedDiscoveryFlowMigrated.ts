@@ -31,10 +31,10 @@ interface UseUnifiedDiscoveryFlowReturn {
  * Maps the old API to the new Master Flow Orchestrator API
  */
 export function useUnifiedDiscoveryFlow(): UseUnifiedDiscoveryFlowReturn {
-  // Use the new unified flow hook
+  // Use the new unified flow hook with production-optimized polling
   const [state, actions] = useDiscoveryFlow({
     autoRefresh: true,
-    refreshInterval: 5000,
+    refreshInterval: 30000, // 30 seconds for production performance
     onError: (error) => flowToast.error(error),
     onSuccess: (data) => console.log('Flow operation successful:', data)
   });

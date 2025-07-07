@@ -45,9 +45,13 @@ except ImportError as e:
 # Import only existing endpoint files
 from app.api.v1.endpoints.context_establishment import router as context_establishment_router
 
-# REMOVED: Modular Unified Discovery Flow API - was mock orchestrator
-# Real CrewAI flows are handled by /discovery endpoints
-UNIFIED_DISCOVERY_AVAILABLE = False
+# Unified Discovery Flow API - Master Flow Orchestrator Integration
+try:
+    from app.api.v1.endpoints.unified_discovery import router as unified_discovery_router
+    UNIFIED_DISCOVERY_AVAILABLE = True
+except ImportError as e:
+    UNIFIED_DISCOVERY_AVAILABLE = False
+    logger.warning(f"Unified Discovery API not available: {e}")
 
 # Assessment endpoints
 try:
@@ -190,9 +194,12 @@ api_router.include_router(sixr_router, prefix="/6r", tags=["6R Analysis"])
 # TODO: Create proper CrewAI-only discovery flow endpoint
 logger.info("⚠️ Discovery Flow API archived - needs pure CrewAI implementation")
 
-# Legacy Unified Discovery Flow endpoints (REMOVED - redirects to /discovery)
-# Old /unified-discovery endpoints have been consolidated into /discovery
-logger.info("✅ Legacy /unified-discovery endpoints consolidated into /discovery")
+# Unified Discovery Flow API - Master Flow Orchestrator Integration  
+if UNIFIED_DISCOVERY_AVAILABLE:
+    api_router.include_router(unified_discovery_router, prefix="/unified-discovery", tags=["Unified Discovery Flow"])
+    logger.info("✅ Unified Discovery Flow API router included at /unified-discovery")
+else:
+    logger.warning("⚠️ Unified Discovery Flow API router not available")
 
 # V2 Discovery Flow Management - MOVED TO /api/v2/ for proper versioning
 # if DISCOVERY_FLOW_V2_AVAILABLE:

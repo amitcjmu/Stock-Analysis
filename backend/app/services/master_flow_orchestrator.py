@@ -158,7 +158,7 @@ class MasterFlowOrchestrator:
                         phase_data={"initialization": init_result}
                     )
             
-            # CRITICAL FIX: For discovery flows, kick off the CrewAI flow immediately
+            # CRITICAL FIX: For discovery and assessment flows, kick off the CrewAI flow immediately
             if flow_type == "discovery":
                 logger.info(f"🚀 [FIX] Kicking off CrewAI Discovery Flow for {flow_id}")
                 
@@ -223,6 +223,54 @@ class MasterFlowOrchestrator:
                     logger.error(f"❌ [FIX] Failed to start CrewAI Discovery Flow: {e}")
                     # Don't fail the flow creation, just log the error
                     # The flow can still be executed later via execute_phase
+                    
+            elif flow_type == "assessment":
+                logger.info(f"🚀 [FIX] Kicking off CrewAI Assessment Flow for {flow_id}")
+                
+                # Delegate to Assessment flow service to start execution
+                try:
+                    from app.services.unified_assessment_flow_service import AssessmentFlowService
+                    from app.core.context import RequestContext
+                    from app.core.database import AsyncSessionLocal
+                    
+                    # Create Assessment service
+                    async with AsyncSessionLocal() as db:
+                        assessment_service = AssessmentFlowService(db)
+                        
+                        # Create context for assessment
+                        context = RequestContext(
+                            client_account_id=self.context.client_account_id,
+                            engagement_id=self.context.engagement_id,
+                            user_id=self.context.user_id
+                        )
+                        
+                        # Get selected applications from initial state
+                        selected_apps = initial_state.get("selected_application_ids", []) if initial_state else []
+                        if not selected_apps:
+                            logger.warning(f"⚠️ [FIX] No selected applications provided for assessment flow {flow_id}")
+                            # Don't fail, flow can be configured later
+                            selected_apps = []
+                        
+                        # Create the assessment flow
+                        assessment_result = await assessment_service.create_assessment_flow(
+                            context=context,
+                            selected_application_ids=selected_apps,
+                            flow_name=flow_name or f"Assessment Flow {flow_id}",
+                            configuration=configuration or {}
+                        )
+                        
+                        logger.info(f"✅ [FIX] CrewAI Assessment Flow created: {assessment_result}")
+                        
+                        # Update master flow status with assessment result
+                        await self.master_repo.update_flow_status(
+                            flow_id=flow_id,
+                            status="running",
+                            phase_data={"assessment_creation": assessment_result}
+                        )
+                        
+                except Exception as e:
+                    logger.error(f"❌ [FIX] Failed to start CrewAI Assessment Flow: {e}")
+                    # Don't fail the flow creation, just log the error
             
             # Log creation audit
             await self._log_audit_event(
@@ -1012,20 +1060,124 @@ class MasterFlowOrchestrator:
                         }
                         
             elif master_flow.flow_type == "assessment":
-                # TODO: Implement AssessmentFlowService delegation when available
-                logger.warning(f"⚠️ Assessment flow delegation not yet implemented")
+                # Use AssessmentFlowService for assessment flows
+                logger.info("🎯 Delegating to Assessment Flow Service")
                 
-                # For now, return a placeholder result
-                return {
-                    "phase": phase_config.name,
-                    "status": "completed",
-                    "crew_results": {
-                        "message": "Assessment flow delegation pending implementation",
-                        "flow_type": "assessment",
-                        "phase": phase_config.name
-                    },
-                    "warning": "Assessment flow service not yet implemented"
-                }
+                try:
+                    from app.services.unified_assessment_flow_service import AssessmentFlowService
+                    from app.core.database import AsyncSessionLocal
+                    
+                    async with AsyncSessionLocal() as db:
+                        assessment_service = AssessmentFlowService(db)
+                        
+                        # Create context from master flow
+                        context = RequestContext(
+                            client_account_id=master_flow.client_account_id,
+                            engagement_id=master_flow.engagement_id,
+                            user_id=master_flow.user_id
+                        )
+                        
+                        # Check if this is a resume from pause (user input)
+                        if phase_input and phase_input.get("user_input"):
+                            logger.info("🔄 Resuming assessment flow with user input")
+                            
+                            # Resume flow with user input
+                            resume_context = {
+                                **phase_input,
+                                'user_input': phase_input.get("user_input"),
+                                'approval_timestamp': phase_input.get("approval_timestamp", datetime.utcnow().isoformat()),
+                                'notes': phase_input.get("notes", "")
+                            }
+                            
+                            result = await assessment_service.resume_flow(
+                                flow_id=str(master_flow.flow_id),
+                                resume_context=resume_context,
+                                context=context
+                            )
+                            
+                            logger.info(f"✅ Resumed assessment flow: {result}")
+                            
+                            return {
+                                "phase": phase_config.name,
+                                "status": "completed",
+                                "crew_results": result,
+                                "method": "assessment_flow_resume"
+                            }
+                        else:
+                            # Check if assessment flow exists and is running
+                            flow_status = await assessment_service.get_flow_status(
+                                flow_id=str(master_flow.flow_id),
+                                context=context
+                            )
+                            
+                            if flow_status.get("flow_status") == "not_found":
+                                logger.info("🚀 Creating new assessment flow")
+                                
+                                # Create new assessment flow
+                                selected_apps = phase_input.get("selected_application_ids", []) if phase_input else []
+                                if not selected_apps:
+                                    return {
+                                        "phase": phase_config.name,
+                                        "status": "failed",
+                                        "error": "No selected applications provided for assessment flow",
+                                        "crew_results": {},
+                                        "method": "assessment_flow_creation_failed"
+                                    }
+                                
+                                creation_result = await assessment_service.create_assessment_flow(
+                                    context=context,
+                                    selected_application_ids=selected_apps,
+                                    flow_name=f"Assessment for Master Flow {master_flow.flow_id}",
+                                    configuration=phase_input.get("configuration", {})
+                                )
+                                
+                                logger.info(f"✅ Created assessment flow: {creation_result}")
+                                
+                                return {
+                                    "phase": phase_config.name,
+                                    "status": "initialized",
+                                    "crew_results": creation_result,
+                                    "method": "assessment_flow_created"
+                                }
+                            else:
+                                # Advance to the next phase
+                                phase_mapping = {
+                                    "readiness_assessment": "architecture_minimums",
+                                    "complexity_analysis": "tech_debt_analysis", 
+                                    "risk_assessment": "component_sixr_strategies",
+                                    "recommendation_generation": "app_on_page_generation"
+                                }
+                                
+                                assessment_phase = phase_mapping.get(phase_config.name, phase_config.name)
+                                
+                                advance_result = await assessment_service.advance_flow_phase(
+                                    flow_id=str(master_flow.flow_id),
+                                    next_phase=assessment_phase,
+                                    context=context,
+                                    phase_input=phase_input
+                                )
+                                
+                                logger.info(f"✅ Advanced assessment flow to phase {assessment_phase}: {advance_result}")
+                                
+                                return {
+                                    "phase": phase_config.name,
+                                    "status": advance_result.get("status", "completed"),
+                                    "crew_results": advance_result.get("result", {}),
+                                    "method": "assessment_flow_advance"
+                                }
+                                
+                except Exception as e:
+                    logger.error(f"❌ Assessment flow delegation failed: {e}")
+                    import traceback
+                    logger.error(f"Traceback: {traceback.format_exc()}")
+                    
+                    return {
+                        "phase": phase_config.name,
+                        "status": "failed",
+                        "error": str(e),
+                        "crew_results": {},
+                        "method": "assessment_flow_error"
+                    }
                 
             else:
                 # For other flow types, use placeholder until services are implemented
