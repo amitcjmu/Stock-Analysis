@@ -17,7 +17,6 @@ from app.models.discovery_flow import DiscoveryFlow
 # Data Import Models
 from app.models.data_import.core import DataImport, RawImportRecord
 from app.models.data_import.mapping import ImportFieldMapping
-from app.models.data_import_session import DataImportSession
 
 # Assessment Models
 from app.models.assessment import Assessment, WavePlan
@@ -108,7 +107,6 @@ __all__ = [
     "DataImport",
     "RawImportRecord",
     "ImportFieldMapping",
-    "DataImportSession",
     
     # Assessment Models
     "Assessment",

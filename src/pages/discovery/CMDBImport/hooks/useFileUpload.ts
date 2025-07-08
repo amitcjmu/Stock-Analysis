@@ -232,6 +232,8 @@ export const useFileUpload = () => {
       const { import_flow_id, flow_id } = await storeImportData(csvData, file, uploadId, categoryId);
       
       if (flow_id) {
+        const recordCount = csvData.length;
+        
         // Success - UnifiedDiscoveryFlow was triggered - START PROCESSING TRACKING
         setUploadedFiles(prev => prev.map(f => f.id === newFile.id ? { 
           ...f, 
@@ -241,6 +243,17 @@ export const useFileUpload = () => {
           discovery_progress: 0,
           current_phase: 'data_import',
           flow_status: 'running',
+          // Will be populated by agent insights via flow status updates
+          security_clearance: undefined,  // Will be populated by agents
+          privacy_clearance: undefined,   // Will be populated by agents
+          format_validation: true,
+          flow_summary: {
+            total_assets: recordCount,
+            errors: 0,
+            warnings: 0,  // Will be updated by agents
+            phases_completed: ['data_import'],
+            agent_insights: []  // Will be populated via flow status
+          },
           agentResults: [{
             agent_id: 'unified_flow',
             agent_name: 'UnifiedDiscoveryFlow',
@@ -299,6 +312,7 @@ export const useFileUpload = () => {
       e.dataTransfer.clearData();
     }
   }, [handleFileUpload]);
+
 
   return {
     uploadedFiles,

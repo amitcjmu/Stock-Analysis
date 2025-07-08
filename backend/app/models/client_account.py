@@ -187,8 +187,7 @@ class Engagement(Base):
     llm_usage_logs = relationship("LLMUsageLog", back_populates="engagement", cascade="all, delete-orphan", lazy="select")
     llm_usage_summaries = relationship("LLMUsageSummary", back_populates="engagement", cascade="all, delete-orphan", lazy="select")
     
-    # Data import session relationships (string reference to avoid circular imports)
-    sessions = relationship("DataImportSession", back_populates="engagement", cascade="all, delete-orphan", lazy="select")
+    # Data import session relationships removed - legacy functionality
     
     def __repr__(self):
         return f"<Engagement(id={self.id}, name='{self.name}', client_account_id={self.client_account_id})>"

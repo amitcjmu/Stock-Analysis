@@ -438,9 +438,13 @@ async def _validate_no_incomplete_discovery_flow(
         # Use V2 discovery flow service to check for incomplete flows
         if DISCOVERY_FLOW_AVAILABLE:
             discovery_service = DiscoveryFlowService(db, context)
-            incomplete_flows = await discovery_service.get_incomplete_flows_for_engagement(
-                client_account_id, engagement_id
-            )
+            # Get active flows and filter for incomplete ones
+            active_flows = await discovery_service.get_active_flows()
+            # Filter for incomplete flows (not completed/cancelled)
+            incomplete_flows = [
+                flow for flow in active_flows 
+                if flow.status not in ['completed', 'cancelled', 'deleted']
+            ]
         else:
             incomplete_flows = []
         

@@ -193,7 +193,6 @@ class MasterFlowOrchestrator:
                     try:
                         from app.models.discovery_flow import DiscoveryFlow
                         from sqlalchemy import select
-                        import uuid
                         
                         # Create savepoint for DiscoveryFlow operations
                         discovery_savepoint = await self.db.begin_nested()
@@ -439,6 +438,10 @@ class MasterFlowOrchestrator:
                 }
             )
             
+            # CRITICAL FIX: Commit the transaction to ensure flow is visible for foreign key references
+            await self.db.commit()
+            logger.info(f"✅ Master flow transaction committed - flow {flow_id} is now available for linking")
+            
             return flow_id, master_flow.to_dict()
             
         except Exception as e:
@@ -478,7 +481,7 @@ class MasterFlowOrchestrator:
                 operation=FlowOperationType.CREATE,
                 success=False,
                 error=str(e),
-                error_details=error_result.metadata
+                details=error_result.metadata
             )
             
             # Re-raise as FlowError with context
@@ -1072,6 +1075,10 @@ class MasterFlowOrchestrator:
                 page_context = "discovery" if flow_type == "discovery" else "assessment" if flow_type == "assessment" else "general"
                 bridge_insights = bridge.get_insights_for_page(page_context)
                 
+                # Also get flow-specific insights
+                flow_page_context = f"flow_{flow_id}"
+                flow_insights = bridge.get_insights_for_page(flow_page_context)
+                
                 if bridge_insights:
                     logger.info(f"🔗 Found {len(bridge_insights)} insights from agent_ui_bridge for {flow_type} flow")
                     # Filter insights by flow_id if available
@@ -1080,6 +1087,10 @@ class MasterFlowOrchestrator:
                         if insight.get("flow_id") == flow_id or insight.get("flow_id") is None
                     ]
                     insights.extend(flow_specific_insights)
+                
+                if flow_insights:
+                    logger.info(f"🔗 Found {len(flow_insights)} flow-specific insights for flow {flow_id}")
+                    insights.extend(flow_insights)
                     
             except Exception as e:
                 logger.warning(f"⚠️ Could not get insights from agent_ui_bridge: {e}")

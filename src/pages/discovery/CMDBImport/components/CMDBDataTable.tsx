@@ -5,7 +5,11 @@ import {
   Cog, 
   CheckCircle, 
   AlertTriangle, 
-  ArrowRight 
+  ArrowRight,
+  FileText,
+  Shield,
+  Database,
+  Info
 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -53,6 +57,32 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
   const progress = flowState?.progress_percentage || 0;
   const currentPhase = flowState?.current_phase || file.current_phase;
   const StatusIcon = getStatusIcon(currentStatus);
+  
+  // Extract agent insights from flow state
+  const agentInsights = flowState?.agent_insights || [];
+  const flowSummary = file.flow_summary || {};
+  
+  // Parse agent insights for security, privacy, and quality analysis
+  const getInsightsByType = (type: string) => 
+    agentInsights.filter(insight => 
+      insight.category === type || 
+      insight.agent_name?.toLowerCase().includes(type) ||
+      insight.message?.toLowerCase().includes(type)
+    );
+  
+  const securityInsights = getInsightsByType('security');
+  const privacyInsights = getInsightsByType('privacy');
+  const qualityInsights = getInsightsByType('quality');
+  const validationInsights = getInsightsByType('validation');
+  
+  // Determine security and privacy status from agent insights
+  const securityStatus = securityInsights.length > 0 ? 
+    (securityInsights.some(i => i.severity === 'high' || i.confidence < 0.7) ? false : true) : 
+    undefined;
+    
+  const privacyStatus = privacyInsights.length > 0 ? 
+    (privacyInsights.some(i => i.severity === 'high' || i.confidence < 0.7) ? false : true) : 
+    undefined;
 
   return (
     <div className="space-y-6">
@@ -81,6 +111,142 @@ export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({
           </div>
         </CardHeader>
         <CardContent>
+          {/* Data Statistics Section */}
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <h4 className="font-medium text-blue-900 mb-3 flex items-center">
+              <Info className="h-4 w-4 mr-2" />
+              File Analysis Summary
+            </h4>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Records Count */}
+              <div className="flex items-center space-x-3">
+                <div className="bg-blue-100 p-2 rounded-lg">
+                  <Database className="h-4 w-4 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    {flowSummary.total_assets || flowState?.raw_data?.length || 'Analyzing...'}
+                  </p>
+                  <p className="text-xs text-gray-600">Records Found</p>
+                </div>
+              </div>
+              
+              {/* File Type */}
+              <div className="flex items-center space-x-3">
+                <div className="bg-green-100 p-2 rounded-lg">
+                  <FileText className="h-4 w-4 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    {file.type === 'text/csv' ? 'CSV Data' : 
+                     file.type === 'application/json' ? 'JSON Data' :
+                     file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ? 'Excel Data' :
+                     'Data File'}
+                  </p>
+                  <p className="text-xs text-gray-600">File Type</p>
+                </div>
+              </div>
+              
+              {/* Security Status */}
+              <div className="flex items-center space-x-3">
+                <div className={`p-2 rounded-lg ${
+                  securityStatus === false ? 'bg-red-100' :
+                  securityStatus === true ? 'bg-green-100' : 'bg-yellow-100'
+                }`}>
+                  <Shield className={`h-4 w-4 ${
+                    securityStatus === false ? 'text-red-600' :
+                    securityStatus === true ? 'text-green-600' : 'text-yellow-600'
+                  }`} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    {securityStatus === false ? 'Issues Found' :
+                     securityStatus === true ? 'Secure' : 'Analyzing...'}
+                  </p>
+                  <p className="text-xs text-gray-600">Security Status</p>
+                </div>
+              </div>
+              
+              {/* Data Quality */}
+              <div className="flex items-center space-x-3">
+                <div className={`p-2 rounded-lg ${
+                  (flowState?.errors?.length || 0) > 0 ? 'bg-red-100' :
+                  (flowState?.warnings?.length || 0) > 0 ? 'bg-yellow-100' : 
+                  qualityInsights.length > 0 ? 'bg-green-100' : 'bg-yellow-100'
+                }`}>
+                  <CheckCircle className={`h-4 w-4 ${
+                    (flowState?.errors?.length || 0) > 0 ? 'text-red-600' :
+                    (flowState?.warnings?.length || 0) > 0 ? 'text-yellow-600' : 
+                    qualityInsights.length > 0 ? 'text-green-600' : 'text-yellow-600'
+                  }`} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    {(flowState?.errors?.length || 0) > 0 ? `${flowState.errors.length} Errors` :
+                     (flowState?.warnings?.length || 0) > 0 ? `${flowState.warnings.length} Warnings` : 
+                     qualityInsights.length > 0 ? 'Good Quality' : 'Analyzing...'}
+                  </p>
+                  <p className="text-xs text-gray-600">Data Quality</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Agent Insights & Concerns */}
+            {(securityInsights.length > 0 || privacyInsights.length > 0 || qualityInsights.length > 0) && (
+              <div className="mt-4 space-y-3">
+                {/* Security Insights */}
+                {securityInsights.length > 0 && (
+                  <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                    <div className="flex items-start space-x-2">
+                      <Shield className="h-4 w-4 text-orange-600 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-orange-900">Security Analysis</p>
+                        <ul className="text-xs text-orange-700 mt-1 space-y-1">
+                          {securityInsights.slice(0, 3).map((insight, idx) => (
+                            <li key={idx}>• {insight.message || insight.recommendation}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Privacy Insights */}
+                {privacyInsights.length > 0 && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-start space-x-2">
+                      <Info className="h-4 w-4 text-blue-600 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-blue-900">Privacy Analysis</p>
+                        <ul className="text-xs text-blue-700 mt-1 space-y-1">
+                          {privacyInsights.slice(0, 3).map((insight, idx) => (
+                            <li key={idx}>• {insight.message || insight.recommendation}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Quality Insights */}
+                {qualityInsights.length > 0 && (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-start space-x-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-green-900">Quality Analysis</p>
+                        <ul className="text-xs text-green-700 mt-1 space-y-1">
+                          {qualityInsights.slice(0, 3).map((insight, idx) => (
+                            <li key={idx}>• {insight.message || insight.recommendation}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
           {/* CrewAI Discovery Flow Progress */}
           {isFlowRunning && (
             <div className="space-y-4">

@@ -168,8 +168,9 @@ class DataValidationPhase:
             logger.warning(f"⚠️ Could not send progress update: {e}")
     
     async def _send_completion_update(self, validation_result):
-        """Send completion update with results"""
+        """Send completion update with results and detailed insights"""
         try:
+            # Main completion insight
             agent_ui_bridge.add_agent_insight(
                 agent_id="data_import_agent",
                 agent_name="Data Import Agent",
@@ -188,8 +189,63 @@ class DataValidationPhase:
                 },
                 confidence="high"
             )
+            
+            # Send detailed analysis insights
+            await self._send_detailed_analysis_insights(validation_result)
+            
         except Exception as e:
             logger.warning(f"⚠️ Could not send completion update: {e}")
+    
+    async def _send_detailed_analysis_insights(self, validation_result):
+        """Send specific insights for security, privacy, and quality analysis"""
+        try:
+            # Analyze the data for security concerns
+            security_analysis = self._analyze_security_aspects()
+            if security_analysis:
+                agent_ui_bridge.add_agent_insight(
+                    agent_id="security_analysis_agent",
+                    agent_name="Security Analysis Agent",
+                    insight_type="security",
+                    page=f"flow_{self.state.flow_id}",
+                    title="Security Analysis",
+                    description=security_analysis['description'],
+                    supporting_data=security_analysis['data'],
+                    confidence=security_analysis['confidence'],
+                    category="security"
+                )
+            
+            # Analyze for privacy concerns
+            privacy_analysis = self._analyze_privacy_aspects()
+            if privacy_analysis:
+                agent_ui_bridge.add_agent_insight(
+                    agent_id="privacy_analysis_agent",
+                    agent_name="Privacy Analysis Agent",
+                    insight_type="privacy",
+                    page=f"flow_{self.state.flow_id}",
+                    title="Privacy Analysis",
+                    description=privacy_analysis['description'],
+                    supporting_data=privacy_analysis['data'],
+                    confidence=privacy_analysis['confidence'],
+                    category="privacy"
+                )
+            
+            # Analyze data quality
+            quality_analysis = self._analyze_quality_aspects(validation_result)
+            if quality_analysis:
+                agent_ui_bridge.add_agent_insight(
+                    agent_id="quality_analysis_agent",
+                    agent_name="Data Quality Agent",
+                    insight_type="quality",
+                    page=f"flow_{self.state.flow_id}",
+                    title="Data Quality Analysis",
+                    description=quality_analysis['description'],
+                    supporting_data=quality_analysis['data'],
+                    confidence=quality_analysis['confidence'],
+                    category="quality"
+                )
+                
+        except Exception as e:
+            logger.warning(f"⚠️ Could not send detailed analysis insights: {e}")
     
     async def _send_error_update(self, error_message: str):
         """Send error update when phase fails"""
@@ -211,3 +267,189 @@ class DataValidationPhase:
             )
         except Exception as e:
             logger.warning(f"⚠️ Could not send error update: {e}")
+    
+    def _analyze_security_aspects(self) -> Optional[Dict[str, Any]]:
+        """Analyze data for security-related concerns"""
+        if not self.state.raw_data:
+            return None
+            
+        security_issues = []
+        security_score = 100
+        
+        # Get field names from the first record
+        if len(self.state.raw_data) > 0:
+            field_names = list(self.state.raw_data[0].keys())
+            field_names_lower = [name.lower() for name in field_names]
+            
+            # Check for security-sensitive field patterns
+            security_patterns = [
+                'password', 'pwd', 'secret', 'key', 'token', 'auth', 'credential',
+                'admin', 'root', 'service_account', 'api_key', 'private'
+            ]
+            
+            for pattern in security_patterns:
+                matching_fields = [field for field in field_names_lower if pattern in field]
+                if matching_fields:
+                    security_issues.append(f"Detected potential security-sensitive fields: {', '.join(matching_fields)}")
+                    security_score -= 20
+        
+        # Sample data analysis for sensitive content
+        sample_size = min(5, len(self.state.raw_data))
+        for i in range(sample_size):
+            record = self.state.raw_data[i]
+            for key, value in record.items():
+                if isinstance(value, str) and len(value) > 8:
+                    # Check for potential credential patterns
+                    if any(char in value for char in ['!', '@', '#', '$', '%', '^', '&', '*']) and value.count(' ') == 0:
+                        security_issues.append(f"Field '{key}' contains potential credential-like data")
+                        security_score -= 10
+                        break
+        
+        if not security_issues:
+            return {
+                'description': f"No security concerns detected in {len(self.state.raw_data)} records",
+                'data': {
+                    'security_score': 100,
+                    'issues_found': 0,
+                    'recommendations': ['Data appears to be free of obvious security concerns']
+                },
+                'confidence': 'high'
+            }
+        else:
+            return {
+                'description': f"Found {len(security_issues)} potential security concerns",
+                'data': {
+                    'security_score': max(security_score, 0),
+                    'issues_found': len(security_issues),
+                    'issues': security_issues[:3],  # Limit to first 3 issues
+                    'recommendations': [
+                        'Review fields containing sensitive data',
+                        'Consider data masking or encryption for production use',
+                        'Implement access controls for sensitive information'
+                    ]
+                },
+                'confidence': 'medium'
+            }
+    
+    def _analyze_privacy_aspects(self) -> Optional[Dict[str, Any]]:
+        """Analyze data for privacy-related concerns"""
+        if not self.state.raw_data:
+            return None
+            
+        privacy_issues = []
+        privacy_score = 100
+        
+        # Get field names from the first record
+        if len(self.state.raw_data) > 0:
+            field_names = list(self.state.raw_data[0].keys())
+            field_names_lower = [name.lower() for name in field_names]
+            
+            # Check for privacy-sensitive field patterns
+            privacy_patterns = [
+                'email', 'phone', 'ssn', 'social', 'address', 'personal',
+                'credit_card', 'bank', 'account_number', 'dob', 'birth',
+                'name', 'contact', 'mobile', 'telephone'
+            ]
+            
+            for pattern in privacy_patterns:
+                matching_fields = [field for field in field_names_lower if pattern in field]
+                if matching_fields:
+                    privacy_issues.append(f"Detected potential PII fields: {', '.join(matching_fields)}")
+                    privacy_score -= 15
+        
+        # Sample data analysis for email patterns and other PII
+        sample_size = min(5, len(self.state.raw_data))
+        email_found = False
+        for i in range(sample_size):
+            record = self.state.raw_data[i]
+            for key, value in record.items():
+                if isinstance(value, str):
+                    # Check for email patterns
+                    if '@' in value and '.' in value and not email_found:
+                        privacy_issues.append(f"Email addresses detected in field '{key}'")
+                        privacy_score -= 20
+                        email_found = True
+                    # Check for phone patterns
+                    if len(value.replace('-', '').replace('(', '').replace(')', '').replace(' ', '')) == 10 and value.replace('-', '').replace('(', '').replace(')', '').replace(' ', '').isdigit():
+                        privacy_issues.append(f"Phone numbers detected in field '{key}'")
+                        privacy_score -= 15
+                        break
+        
+        if not privacy_issues:
+            return {
+                'description': f"No privacy concerns detected in {len(self.state.raw_data)} records",
+                'data': {
+                    'privacy_score': 100,
+                    'issues_found': 0,
+                    'recommendations': ['Data appears to be free of obvious PII concerns']
+                },
+                'confidence': 'high'
+            }
+        else:
+            return {
+                'description': f"Found {len(privacy_issues)} potential privacy concerns",
+                'data': {
+                    'privacy_score': max(privacy_score, 0),
+                    'issues_found': len(privacy_issues),
+                    'issues': privacy_issues[:3],  # Limit to first 3 issues
+                    'recommendations': [
+                        'Consider data anonymization for non-production environments',
+                        'Implement data retention policies',
+                        'Review compliance with privacy regulations (GDPR, CCPA, etc.)'
+                    ]
+                },
+                'confidence': 'medium'
+            }
+    
+    def _analyze_quality_aspects(self, validation_result) -> Optional[Dict[str, Any]]:
+        """Analyze data quality aspects"""
+        if not self.state.raw_data:
+            return None
+            
+        quality_issues = []
+        quality_score = validation_result.confidence_score
+        
+        # Check for data completeness
+        if len(self.state.raw_data) > 0:
+            total_fields = len(self.state.raw_data[0].keys())
+            empty_counts = {}
+            
+            for record in self.state.raw_data:
+                for key, value in record.items():
+                    if not value or (isinstance(value, str) and value.strip() == ''):
+                        empty_counts[key] = empty_counts.get(key, 0) + 1
+            
+            # Report fields with high empty rates
+            for field, empty_count in empty_counts.items():
+                empty_rate = (empty_count / len(self.state.raw_data)) * 100
+                if empty_rate > 20:  # More than 20% empty
+                    quality_issues.append(f"Field '{field}' has {empty_rate:.1f}% missing values")
+        
+        # Check data consistency
+        if len(self.state.raw_data) > 1:
+            # Check if all records have same fields
+            first_keys = set(self.state.raw_data[0].keys())
+            for i, record in enumerate(self.state.raw_data[1:], 1):
+                if set(record.keys()) != first_keys:
+                    quality_issues.append(f"Inconsistent field structure detected in record {i+1}")
+                    break
+        
+        return {
+            'description': f"Data quality analysis completed for {len(self.state.raw_data)} records",
+            'data': {
+                'quality_score': quality_score,
+                'total_records': len(self.state.raw_data),
+                'issues_found': len(quality_issues),
+                'issues': quality_issues[:3] if quality_issues else [],
+                'recommendations': [
+                    'Data structure appears consistent',
+                    'Consider data validation rules for production use',
+                    'Monitor data quality over time'
+                ] if not quality_issues else [
+                    'Address missing value patterns',
+                    'Implement data validation at source',
+                    'Consider data cleansing procedures'
+                ]
+            },
+            'confidence': 'high' if quality_score > 80 else 'medium'
+        }

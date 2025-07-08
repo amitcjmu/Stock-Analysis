@@ -461,7 +461,7 @@ async def delete_master_flow(
         
         # Mark discovery flows
         # Handle both cases: flows linked by master_flow_id OR flows with same flow_id
-        from sqlalchemy import or_
+        from sqlalchemy import or_, and_
         discovery_update = update(DiscoveryFlow).where(
             and_(
                 or_(
