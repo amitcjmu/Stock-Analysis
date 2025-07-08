@@ -161,7 +161,7 @@ const Sidebar = () => {
       submenu: [
         { name: 'Overview', path: '/decommission/overview', icon: Archive },
         { name: 'Planning', path: '/decommission/planning', icon: FileText },
-        { name: 'Data Retention', path: '/decommission/dataretention', icon: Database },
+        { name: 'Data Retention', path: '/decommission/data-retention', icon: Database },
         { name: 'Execution', path: '/decommission/execution', icon: Trash2 },
         { name: 'Validation', path: '/decommission/validation', icon: CheckCircle }
       ]

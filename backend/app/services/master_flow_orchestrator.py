@@ -823,7 +823,12 @@ class MasterFlowOrchestrator:
                 raise FlowNotFoundError(flow_id)
             
             # Validate flow can be resumed
-            if master_flow.flow_status not in ["paused", "waiting_for_approval"]:
+            # Check if flow is in a resumable state
+            is_paused_or_waiting = master_flow.flow_status in ["paused", "waiting_for_approval"]
+            is_awaiting_user_approval = master_flow.flow_persistence_data.get("awaiting_user_approval", False)
+            is_paused_for_approval = "paused_for" in str(master_flow.flow_persistence_data.get("completion", ""))
+            
+            if not (is_paused_or_waiting or is_awaiting_user_approval or is_paused_for_approval):
                 raise InvalidFlowStateError(
                     current_state=master_flow.flow_status,
                     target_state="active",
@@ -838,18 +843,23 @@ class MasterFlowOrchestrator:
             next_phase = flow_config.get_next_phase(last_phase) if last_phase else flow_config.phases[0].name
             
             # Update flow status - use 'active' instead of 'resumed' for DB constraint
+            # Clear awaiting user approval flag when resuming
+            resume_phase_data = {
+                "resumed_at": datetime.utcnow().isoformat(),
+                "resume_phase": next_phase,
+                "resume_context": resume_context,
+                "awaiting_user_approval": False  # Clear approval flag
+            }
+            
             await self.master_repo.update_flow_status(
                 flow_id=flow_id,
                 status="active",  # Changed from "resumed" to match DB constraint
-                phase_data={
-                    "resumed_at": datetime.utcnow().isoformat(),
-                    "resume_phase": next_phase,
-                    "resume_context": resume_context
-                },
+                phase_data=resume_phase_data,
                 collaboration_entry={
                     "timestamp": datetime.utcnow().isoformat(),
                     "action": "flow_resumed",
-                    "resume_phase": next_phase
+                    "resume_phase": next_phase,
+                    "cleared_approval_flag": True
                 }
             )
             
@@ -861,8 +871,8 @@ class MasterFlowOrchestrator:
                     from app.services.crewai_flow_service import CrewAIFlowService
                     from app.core.database import AsyncSessionLocal
                     
-                    # Create CrewAI service instance
-                    crewai_service = CrewAIFlowService()
+                    # Create CrewAI service instance with database session
+                    crewai_service = CrewAIFlowService(self.db)
                     
                     # Resume the actual CrewAI flow
                     async with AsyncSessionLocal() as db:
@@ -1074,6 +1084,52 @@ class MasterFlowOrchestrator:
                 agent_insights = await self._get_flow_agent_insights(flow_id, master_flow.flow_type)
                 logger.info(f"🔍 Retrieved {len(agent_insights)} agent insights for flow {flow_id}")
                 
+                # Get field mappings for discovery flows
+                field_mappings = []
+                if master_flow.flow_type == "discovery":
+                    try:
+                        # Get data_import_id from flow persistence data
+                        persistence_data = master_flow.flow_persistence_data or {}
+                        data_import_id = persistence_data.get('data_import_id')
+                        
+                        if data_import_id:
+                            from app.models.data_import.mapping import ImportFieldMapping
+                            from sqlalchemy import select
+                            
+                            logger.info(f"🔍 Loading field mappings for data_import_id: {data_import_id}")
+                            
+                            query = select(ImportFieldMapping).where(
+                                ImportFieldMapping.data_import_id == data_import_id
+                            )
+                            result = await self.db.execute(query)
+                            mappings = result.scalars().all()
+                            
+                            # Convert to frontend format
+                            field_mappings = [
+                                {
+                                    "id": str(mapping.id),
+                                    "source_field": mapping.source_field,
+                                    "target_field": mapping.target_field,
+                                    "status": mapping.status,
+                                    "confidence_score": mapping.confidence_score,
+                                    "match_type": mapping.match_type,
+                                    "suggested_by": mapping.suggested_by,
+                                    "approved_by": mapping.approved_by,
+                                    "approved_at": mapping.approved_at.isoformat() if mapping.approved_at else None,
+                                    "transformation_rules": mapping.transformation_rules,
+                                    "created_at": mapping.created_at.isoformat() if mapping.created_at else None,
+                                    "updated_at": mapping.updated_at.isoformat() if mapping.updated_at else None
+                                }
+                                for mapping in mappings
+                            ]
+                            
+                            logger.info(f"✅ Loaded {len(field_mappings)} field mappings for flow {flow_id}")
+                        else:
+                            logger.warning(f"⚠️ No data_import_id found in flow persistence data for flow {flow_id}")
+                    except Exception as e:
+                        logger.error(f"❌ Failed to load field mappings for flow {flow_id}: {e}")
+                        field_mappings = []
+                
                 # Add detailed information
                 status.update({
                     "configuration": master_flow.flow_configuration,
@@ -1088,7 +1144,8 @@ class MasterFlowOrchestrator:
                     "performance": master_flow.get_performance_summary(),
                     "collaboration_log": master_flow.agent_collaboration_log[-10:],  # Last 10 entries
                     "state_data": master_flow.flow_persistence_data,
-                    "agent_insights": agent_insights
+                    "agent_insights": agent_insights,
+                    "field_mappings": field_mappings  # Add field mappings for frontend
                 })
             
             # Log status check audit

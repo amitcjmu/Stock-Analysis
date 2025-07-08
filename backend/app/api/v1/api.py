@@ -21,6 +21,13 @@ from app.api.v1.endpoints import (
     assessment_events_router,
 )
 
+# Decommission endpoints
+try:
+    from app.api.v1.endpoints.decommission import router as decommission_router
+    DECOMMISSION_AVAILABLE = True
+except ImportError:
+    DECOMMISSION_AVAILABLE = False
+
 # Admin endpoints
 try:
     from app.api.v1.admin.security_monitoring_handlers.security_audit_handler import router as security_audit_router
@@ -298,6 +305,13 @@ if WAVE_PLANNING_AVAILABLE:
     logger.info("✅ Wave Planning router included")
 else:
     logger.warning("⚠️ Wave Planning router not available")
+
+# Decommission Management
+if DECOMMISSION_AVAILABLE:
+    api_router.include_router(decommission_router, prefix="/decommission", tags=["Decommission"])
+    logger.info("✅ Decommission router included")
+else:
+    logger.warning("⚠️ Decommission router not available")
 
 # Data Management
 api_router.include_router(data_import_router, prefix="/data-import", tags=["Data Import"])

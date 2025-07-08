@@ -402,9 +402,9 @@ async def resume_flow(
     Resumes a paused flow from its last saved state.
     """
     try:
-        success, result = await orchestrator.resume_flow(flow_id)
+        result = await orchestrator.resume_flow(flow_id)
         
-        if not success:
+        if result.get("status") == "resume_failed":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=result.get("error", "Failed to resume flow")

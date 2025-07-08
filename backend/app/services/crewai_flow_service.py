@@ -60,8 +60,11 @@ class CrewAIFlowService:
     async def _get_discovery_flow_service(self, context: Dict[str, Any]) -> DiscoveryFlowService:
         """Get or create discovery flow service with context."""
         if not self._discovery_flow_service:
+            # Create a new database session if one wasn't provided
+            from app.core.database import AsyncSessionLocal
             if not self.db:
-                raise ValueError("Database session required for V2 Discovery Flow service")
+                logger.info("🔍 Creating new database session for V2 Discovery Flow service")
+                self.db = AsyncSessionLocal()
             
             # Create RequestContext from the context dict
             from app.core.context import RequestContext

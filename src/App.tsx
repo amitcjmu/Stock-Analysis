@@ -199,7 +199,7 @@ const AuthenticatedApp = () => {
               <Route path="/decommission" element={<Decommission />} />
               <Route path="/decommission/overview" element={<DecommissionIndex />} />
               <Route path="/decommission/planning" element={<DecommissionPlanning />} />
-              <Route path="/decommission/dataretention" element={<DataRetention />} />
+              <Route path="/decommission/data-retention" element={<DataRetention />} />
               <Route path="/decommission/execution" element={<DecommissionExecution />} />
               <Route path="/decommission/validation" element={<DecommissionValidation />} />
               <Route path="/finops" element={<FinOps />} />
