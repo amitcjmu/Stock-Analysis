@@ -246,8 +246,11 @@ async def store_import_data(
                 ).values(master_flow_id=crewai_flow_id)
                 await db.execute(update_stmt)
                 
+                # CRITICAL: Flush to ensure data is visible within transaction
+                await db.flush()
+                logger.info(f"✅ Created master flow and updated field mappings atomically (flushed): {crewai_flow_id}")
+                
                 flow_success = True
-                logger.info(f"✅ Created master flow and updated field mappings atomically: {crewai_flow_id}")
             else:
                 logger.error("❌ CrewAI Discovery Flow FAILED - no flow_id returned")
                 flow_success = False

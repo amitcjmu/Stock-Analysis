@@ -417,7 +417,7 @@ class CrewAIFlowService:
     async def resume_flow(
         self,
         flow_id: str,
-        resume_context: Dict[str, Any]
+        resume_context: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Resume a paused CrewAI discovery flow from the last saved state.
@@ -425,12 +425,17 @@ class CrewAIFlowService:
         
         Args:
             flow_id: Discovery Flow ID
-            resume_context: Context for resumption (user input, etc.)
+            resume_context: Optional context for resumption (user input, etc.)
         """
         try:
             logger.info(f"🔍 TESTING: CrewAIFlowService.resume_flow called for {flow_id}")
             logger.info(f"🔍 TESTING: CREWAI_FLOWS_AVAILABLE = {CREWAI_FLOWS_AVAILABLE}")
             logger.info(f"🔍 TESTING: resume_context = {resume_context}")
+            
+            # Ensure resume_context is not None - provide defaults
+            if resume_context is None:
+                logger.info(f"🔍 resume_context is None, need to fetch flow context from database")
+                resume_context = {}
             
             # Try to resume the actual CrewAI Flow instance
             if CREWAI_FLOWS_AVAILABLE:
@@ -438,12 +443,27 @@ class CrewAIFlowService:
                     from app.services.crewai_flows.unified_discovery_flow.base_flow import UnifiedDiscoveryFlow
                     from app.core.context import RequestContext
                     from app.core.database import AsyncSessionLocal
+                    from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
+                    
+                    # If context fields are missing, fetch from master flow record
+                    if not resume_context.get('client_account_id'):
+                        async with AsyncSessionLocal() as temp_db:
+                            temp_repo = CrewAIFlowStateExtensionsRepository(temp_db, None, None, None)
+                            master_flow = await temp_repo.get_by_flow_id(flow_id)
+                            if master_flow:
+                                resume_context.update({
+                                    'client_account_id': str(master_flow.client_account_id),
+                                    'engagement_id': str(master_flow.engagement_id), 
+                                    'user_id': master_flow.user_id,
+                                    'approved_by': master_flow.user_id
+                                })
+                                logger.info(f"🔍 Populated resume_context from master flow: {resume_context}")
                     
                     # Create request context from resume_context
                     context = RequestContext(
                         client_account_id=resume_context.get('client_account_id'),
                         engagement_id=resume_context.get('engagement_id'),
-                        user_id=resume_context.get('approved_by')
+                        user_id=resume_context.get('approved_by') or resume_context.get('user_id')
                     )
                     
                     # Get current flow state to determine where to resume

@@ -136,8 +136,18 @@ class UnifiedDiscoveryFlow(Flow):
     
     def _ensure_state_ids(self):
         """Ensure state has all required IDs - call this at the start of each phase"""
+        # Check if state exists
+        if not hasattr(self, 'state') or not self.state:
+            logger.warning("⚠️ State not available in _ensure_state_ids - skipping")
+            return
+        
         # Force set the IDs every time, don't just check if they're missing
+        old_flow_id = getattr(self.state, 'flow_id', None)
         self.state.flow_id = self._flow_id
+        
+        if old_flow_id != self._flow_id:
+            logger.info(f"🔧 Flow ID updated in state: {old_flow_id} -> {self._flow_id}")
+        
         if self.context:
             self.state.client_account_id = str(self.context.client_account_id) if self.context.client_account_id else ""
             self.state.engagement_id = str(self.context.engagement_id) if self.context.engagement_id else ""
@@ -276,18 +286,7 @@ class UnifiedDiscoveryFlow(Flow):
                 flow_id=self._flow_id
             )
             
-            # Also add to flow state for persistence
-            insight_text = f"{insight['title']}: {insight['description']}"
-            self.state_manager.add_agent_insight(
-                insight["agent_name"],
-                insight_text,
-                0.8  # Default confidence
-            )
-            
-            # Persist the insight immediately
-            await self.state_manager.safe_update_flow_state()
-            
-            logger.info(f"📡 [ECHO] Sent flow start notification via agent-ui-bridge and persisted to database")
+            logger.info(f"📡 [ECHO] Sent flow start notification via agent-ui-bridge")
         except Exception as e:
             logger.warning(f"⚠️ [ECHO] Failed to send agent-ui-bridge notification: {e}")
         
@@ -336,6 +335,19 @@ class UnifiedDiscoveryFlow(Flow):
             # Store our state and also set it as the CrewAI state if possible
             self._flow_state = initial_state
             
+            # CRITICAL FIX: Ensure flow_id is ALWAYS set in the state
+            # This must be done BEFORE any state management operations
+            self._flow_state.flow_id = self._flow_id
+            if self.context:
+                self._flow_state.client_account_id = str(self.context.client_account_id) if self.context.client_account_id else ""
+                self._flow_state.engagement_id = str(self.context.engagement_id) if self.context.engagement_id else ""
+                self._flow_state.user_id = str(self.context.user_id) if self.context.user_id else ""
+            
+            # PHASE 2 FIX: Ensure master_flow_id is set in state if available
+            if self._master_flow_id and hasattr(self._flow_state, 'master_flow_id'):
+                self._flow_state.master_flow_id = self._master_flow_id
+                logger.info(f"🔗 Set master_flow_id in state: {self._master_flow_id}")
+            
             # Try to set the state in CrewAI's expected way
             if hasattr(self, '_state'):
                 self._state = initial_state
@@ -356,6 +368,9 @@ class UnifiedDiscoveryFlow(Flow):
             self.state_manager.state = self._flow_state
             self.flow_manager.state = self._flow_state
             self.flow_finalizer.state = self._flow_state
+            
+            # CRITICAL: Verify state manager has correct flow_id
+            logger.info(f"🔍 DEBUG: State manager state flow_id: {getattr(self.state_manager.state, 'flow_id', 'NOT SET')}")
             
             # Initialize UnifiedFlowCrewManager now that we have state
             from ..handlers.unified_flow_crew_manager import UnifiedFlowCrewManager
@@ -419,6 +434,9 @@ class UnifiedDiscoveryFlow(Flow):
                 await self.flow_bridge.update_flow_state(self.state)
                 logger.info(f"✅ Existing flow state updated in PostgreSQL - Flow ID: {self.state.flow_id}")
             
+            # CRITICAL: Ensure state IDs are set before any state operations
+            self._ensure_state_ids()
+            
             # Update state
             await self.state_manager.safe_update_flow_state()
             
@@ -473,6 +491,8 @@ class UnifiedDiscoveryFlow(Flow):
             # self.state.data_import_completed = True
             self.state.progress_percentage = 16.7  # 1/6 phases complete
             
+            # CRITICAL: Ensure state IDs before state operations
+            self._ensure_state_ids()
             await self.state_manager.safe_update_flow_state()
             
             # Check if phase failed
@@ -564,6 +584,8 @@ class UnifiedDiscoveryFlow(Flow):
                 0.8  # Default confidence
             )
             
+            # CRITICAL: Ensure state IDs before state operations
+            self._ensure_state_ids()
             await self.state_manager.safe_update_flow_state()
             logger.info(f"📡 Sent phase transition notification")
         except Exception as e:

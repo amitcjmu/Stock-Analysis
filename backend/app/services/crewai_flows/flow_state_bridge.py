@@ -86,8 +86,15 @@ class FlowStateBridge:
         if not self._state_sync_enabled:
             return {"status": "sync_disabled"}
         
+        # FIX: Ensure flow_id is available from state before logging
+        flow_id = getattr(state, 'flow_id', None) or "MISSING_FLOW_ID"
+        if flow_id == "MISSING_FLOW_ID":
+            logger.warning(f"⚠️ Cannot create/update flow - flow_id is missing from state")
+            logger.warning(f"⚠️ State attributes: {list(vars(state).keys()) if hasattr(state, '__dict__') else 'No __dict__'}")
+            return {"status": "missing_flow_id", "error": "flow_id not found in state"}
+
         # DELTA TEAM FIX: Log the state update but don't perform competing database writes
-        logger.info(f"🔄 State update requested for Flow ID: {state.flow_id}, phase: {phase}")
+        logger.info(f"🔄 State update requested for Flow ID: {flow_id}, phase: {phase}")
         logger.info("📋 State update delegated to Master Flow Orchestrator for consistency")
         
         # Return success to maintain compatibility but indicate delegation

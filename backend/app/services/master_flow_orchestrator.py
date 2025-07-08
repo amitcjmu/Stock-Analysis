@@ -861,6 +861,17 @@ class MasterFlowOrchestrator:
                     
                     # Resume the actual CrewAI flow
                     async with AsyncSessionLocal() as db:
+                        # If no resume_context provided, create one from master flow
+                        if resume_context is None:
+                            resume_context = {
+                                'client_account_id': str(master_flow.client_account_id),
+                                'engagement_id': str(master_flow.engagement_id),
+                                'user_id': master_flow.user_id,
+                                'approved_by': master_flow.user_id,
+                                'resume_from': 'master_flow_orchestrator'
+                            }
+                            logger.info(f"🔍 Created resume_context from master flow: {resume_context}")
+                        
                         crew_result = await crewai_service.resume_flow(
                             flow_id=str(flow_id),
                             resume_context=resume_context

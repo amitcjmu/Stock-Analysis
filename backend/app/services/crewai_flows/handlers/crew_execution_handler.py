@@ -458,9 +458,16 @@ class CrewExecutionHandler:
                 field_mappings = state.field_mappings.get("mappings", {})
                 confidence_scores = state.field_mappings.get("confidence_scores", {})
                 
+                # CRITICAL: Get master_flow_id from state for field mapping linkage
+                master_flow_id = getattr(state, 'master_flow_id', None) or getattr(state, '_master_flow_id', None)
+                logger.info(f"🔗 Using master_flow_id for field mappings: {master_flow_id}")
+                logger.info(f"🔍 Creating {len(field_mappings)} field mappings for data_import_id: {import_session.id}")
+                
                 for source_field, target_field in field_mappings.items():
                     field_mapping = ImportFieldMapping(
                         data_import_id=import_session.id,
+                        client_account_id=state.client_account_id,  # Add missing field
+                        master_flow_id=master_flow_id,  # CRITICAL FIX: Add master_flow_id
                         source_field=source_field,
                         target_field=target_field,
                         confidence_score=confidence_scores.get(source_field, 0.8),

@@ -198,8 +198,8 @@ class AssessmentFlowService:
     async def resume_flow(
         self,
         flow_id: str,
-        resume_context: Dict[str, Any],
-        context: RequestContext
+        resume_context: Optional[Dict[str, Any]] = None,
+        context: RequestContext = None
     ) -> Dict[str, Any]:
         """
         Resume a paused assessment flow with user input
@@ -244,6 +244,12 @@ class AssessmentFlowService:
             
             # Get current phase and user input
             current_phase = assessment_flow.state.current_phase
+            
+            # Ensure resume_context is not None
+            if resume_context is None:
+                resume_context = {}
+                logger.info(f"🔍 resume_context was None for assessment flow {flow_id}, using empty dict")
+            
             user_input = resume_context.get('user_input', {})
             
             # Resume from the current phase
