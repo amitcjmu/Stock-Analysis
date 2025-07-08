@@ -50,6 +50,7 @@ class UnifiedDiscoveryFlowState(BaseModel):
     client_account_id: str = ""
     engagement_id: str = ""
     user_id: str = ""
+    master_flow_id: Optional[str] = None  # Links to master flow orchestrator record
     
     # ========================================
     # CREWAI FLOW STATE MANAGEMENT

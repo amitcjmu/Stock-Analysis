@@ -310,21 +310,46 @@ class MasterFlowOrchestrator:
                                 if result in ["paused_for_field_mapping_approval", "awaiting_user_approval_in_attribute_mapping"]:
                                     flow_status = "waiting_for_approval"
                                     logger.info(f"✅ [ECHO] Flow paused for user approval, setting status: {flow_status}")
+                                    # Set phase and progress for frontend recognition
+                                    phase_data = {
+                                        "completion": result,
+                                        "current_phase": "attribute_mapping",
+                                        "progress_percentage": 60.0,  # Data import done, awaiting user approval
+                                        "paused_at": datetime.utcnow().isoformat(),
+                                        "awaiting_user_approval": True
+                                    }
                                 elif result in ["discovery_completed"]:
                                     flow_status = "completed"
                                     logger.info(f"✅ [ECHO] Flow completed successfully, setting status: {flow_status}")
+                                    phase_data = {
+                                        "completion": result,
+                                        "current_phase": "completed",
+                                        "progress_percentage": 100.0,
+                                        "completed_at": datetime.utcnow().isoformat()
+                                    }
                                 elif result in ["discovery_failed"]:
                                     flow_status = "failed"
                                     logger.info(f"❌ [ECHO] Flow failed, setting status: {flow_status}")
+                                    phase_data = {
+                                        "completion": result,
+                                        "current_phase": "failed",
+                                        "progress_percentage": 0.0,
+                                        "failed_at": datetime.utcnow().isoformat()
+                                    }
                                 else:
                                     # Default to processing for other results
                                     flow_status = "processing"
                                     logger.info(f"🔄 [ECHO] Flow result '{result}', setting status: {flow_status}")
+                                    phase_data = {
+                                        "completion": result,
+                                        "current_phase": "processing",
+                                        "progress_percentage": 30.0
+                                    }
                                 
                                 await fresh_repo.update_flow_status(
                                     flow_id=flow_id,
                                     status=flow_status,
-                                    phase_data={"completion": result}
+                                    phase_data=phase_data
                                 )
                         except Exception as e:
                             logger.error(f"❌ [ECHO] CrewAI Discovery Flow execution failed: {e}")
@@ -454,9 +479,8 @@ class MasterFlowOrchestrator:
                 }
             )
             
-            # CRITICAL FIX: Commit the transaction to ensure flow is visible for foreign key references
-            await self.db.commit()
-            logger.info(f"✅ Master flow transaction committed - flow {flow_id} is now available for linking")
+            # NOTE: Transaction commit is now managed by the calling code for atomicity
+            logger.info(f"✅ Master flow created - transaction will be committed by caller for atomicity")
             
             return flow_id, master_flow.to_dict()
             
@@ -1189,6 +1213,17 @@ class MasterFlowOrchestrator:
                             current_phase = crewai_data.get("current_phase")
                             if not progress_percentage:
                                 progress_percentage = crewai_data.get("progress_percentage", 0.0)
+                    
+                    # Check phase_execution_times for phase information
+                    if not current_phase and master_flow.phase_execution_times:
+                        try:
+                            phase_times = master_flow.phase_execution_times
+                            if isinstance(phase_times, dict):
+                                current_phase = phase_times.get("current_phase")
+                                if not progress_percentage:
+                                    progress_percentage = phase_times.get("progress_percentage", 0.0)
+                        except Exception as e:
+                            logger.debug(f"Could not extract phase from phase_execution_times: {e}")
                     
                     # Default if still not found
                     current_phase = current_phase or "unknown"

@@ -221,17 +221,15 @@ async def store_import_data(
         data_import.processed_records = records_stored
         data_import.completed_at = datetime.utcnow()
         
-        # Commit data import and field mappings before triggering flow
-        await db.commit()
-        logger.info("✅ Committed data import and field mappings to database")
-        
-        # 🚀 Trigger Discovery Flow immediately after successful storage
+        # 🚀 Create Discovery Flow within same transaction for atomicity
         crewai_flow_id = None  # Initialize to None
         flow_success = False
         flow_error_message = None
         
         try:
-            crewai_flow_id = await _trigger_discovery_flow(
+            # ARCHITECTURAL FIX: Create flow within same transaction (no commit yet)
+            crewai_flow_id = await _trigger_discovery_flow_atomic(
+                db=db,  # Pass the existing database session
                 data_import_id=str(data_import.id),
                 client_account_id=client_account_id,
                 engagement_id=engagement_id,
@@ -239,15 +237,24 @@ async def store_import_data(
                 file_data=file_data,
                 context=context
             )
+            
             if crewai_flow_id:
-                logger.info(f"✅ CrewAI Discovery Flow triggered with flow_id: {crewai_flow_id}")
+                # Update field mappings with master_flow_id in same transaction
+                from sqlalchemy import update
+                update_stmt = update(ImportFieldMapping).where(
+                    ImportFieldMapping.data_import_id == data_import.id
+                ).values(master_flow_id=crewai_flow_id)
+                await db.execute(update_stmt)
+                
                 flow_success = True
+                logger.info(f"✅ Created master flow and updated field mappings atomically: {crewai_flow_id}")
             else:
                 logger.error("❌ CrewAI Discovery Flow FAILED - no flow_id returned")
                 flow_success = False
                 flow_error_message = "Discovery Flow initialization failed. No assets were processed."
+                
         except Exception as flow_error:
-            logger.error(f"❌ Discovery Flow trigger failed: {flow_error}")
+            logger.error(f"❌ Discovery Flow creation failed: {flow_error}")
             flow_success = False
             flow_error_message = f"Discovery Flow failed: {str(flow_error)}"
             crewai_flow_id = None
@@ -258,37 +265,19 @@ async def store_import_data(
             message = f"Successfully stored {records_stored} records and initiated Discovery Flow"
             logger.info(f"✅ Successfully stored {records_stored} field mappings and initiated discovery flow for import {data_import.id}")
             
-            # Update field mappings with master_flow_id using fresh session
-            if crewai_flow_id:
-                from sqlalchemy import update
-                try:
-                    async with AsyncSessionLocal() as fresh_db:
-                        update_stmt = update(ImportFieldMapping).where(
-                            ImportFieldMapping.data_import_id == data_import.id
-                        ).values(master_flow_id=crewai_flow_id)
-                        await fresh_db.execute(update_stmt)
-                        await fresh_db.commit()
-                        logger.info(f"✅ Updated field mappings with master_flow_id: {crewai_flow_id}")
-                except Exception as e:
-                    logger.warning(f"⚠️ Failed to update field mappings with master_flow_id: {e}")
+            # Field mappings already updated atomically above - no additional processing needed
         else:
             data_import.status = "discovery_failed"
             message = f"Data stored ({records_stored} records) but Discovery Flow failed: {flow_error_message}"
             logger.error(f"❌ Data import stored but discovery flow failed for import {data_import.id}: {flow_error_message}")
         
-        # Update status using fresh session since main transaction was already committed
-        try:
-            async with AsyncSessionLocal() as fresh_db:
-                from sqlalchemy import select
-                fresh_import_query = select(DataImport).where(DataImport.id == data_import.id)
-                fresh_import_result = await fresh_db.execute(fresh_import_query)
-                fresh_import = fresh_import_result.scalar_one_or_none()
-                if fresh_import:
-                    fresh_import.status = data_import.status
-                    await fresh_db.commit()
-                    logger.info(f"✅ Updated import status to: {data_import.status}")
-        except Exception as e:
-            logger.warning(f"⚠️ Failed to update final import status: {e}")
+        # ATOMIC COMMIT: Commit all operations (import, flow, field mappings) as single transaction
+        await db.commit()
+        logger.info(f"✅ Atomic commit completed - import status: {data_import.status}, flow_id: {crewai_flow_id}")
+        
+        # Start background flow execution AFTER successful commit
+        if flow_success and crewai_flow_id:
+            await _start_background_flow_execution(crewai_flow_id, file_data, context)
         
         return ImportStorageResponse(
             success=flow_success,  # Only success if flow succeeded
@@ -305,6 +294,213 @@ async def store_import_data(
         logger.error(f"Failed to store import data: {e}")
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to store import data: {str(e)}")
+
+async def _trigger_discovery_flow_atomic(
+    db: AsyncSession,  # Accept existing database session for atomicity
+    data_import_id: str,
+    client_account_id: str,
+    engagement_id: str,
+    user_id: str,
+    file_data: List[Dict[str, Any]],
+    context: RequestContext
+) -> Optional[str]:
+    """
+    Trigger Discovery Flow through MasterFlowOrchestrator with atomic transaction.
+    
+    ARCHITECTURAL FIX: Accepts existing database session to ensure atomicity.
+    All operations (import, flow creation, field mapping) happen in single transaction.
+    
+    Args:
+        db: Existing database session to use (for atomicity)
+        ... (other parameters same as original)
+    
+    Returns:
+        Optional[str]: The flow_id if successful, None otherwise
+    """
+    try:
+        logger.info(f"🚀 Creating Discovery Flow atomically for import {data_import_id}")
+        
+        # ARCHITECTURAL FIX: Use existing session for atomicity
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+        
+        # Initialize Master Flow Orchestrator with existing session
+        orchestrator = MasterFlowOrchestrator(db, context)
+        
+        logger.info(f"🔍 Creating discovery flow through orchestrator...")
+        logger.info(f"🔍 Parameters - import_id: {data_import_id}, client: {client_account_id}, engagement: {engagement_id}, user: {user_id}")
+        logger.info(f"🔍 Raw data count: {len(file_data) if file_data else 0}")
+        
+        # Create flow through orchestrator (no commit - transaction stays open)
+        flow_result = await orchestrator.create_flow(
+            flow_type="discovery",
+            flow_name=f"Discovery Import {data_import_id}",
+            configuration={
+                "source": "data_import",
+                "import_id": data_import_id,
+                "filename": f"import_{data_import_id}",
+                "import_timestamp": datetime.utcnow().isoformat()
+            },
+            initial_state={
+                "raw_data": file_data,
+                "data_import_id": data_import_id
+            }
+        )
+        
+        # Extract flow_id from result tuple
+        if isinstance(flow_result, tuple) and len(flow_result) >= 1:
+            master_flow_id = flow_result[0]
+            logger.info(f"✅ Discovery flow created atomically: {master_flow_id}")
+            return master_flow_id
+        else:
+            logger.error(f"❌ Unexpected flow creation result: {flow_result}")
+            return None
+            
+    except Exception as e:
+        logger.error(f"❌ Atomic discovery flow creation failed: {e}")
+        import traceback
+        logger.error(f"Full traceback: {traceback.format_exc()}")
+        return None
+
+
+async def _start_background_flow_execution(
+    flow_id: str,
+    file_data: List[Dict[str, Any]],
+    context: RequestContext
+) -> None:
+    """
+    Start CrewAI flow execution in background after successful database commit.
+    
+    This function runs the actual CrewAI flow kickoff after all database operations
+    have been committed atomically. It uses fresh database sessions since it runs
+    independently from the main transaction.
+    
+    Args:
+        flow_id: The master flow ID to execute
+        file_data: Raw import data for the flow
+        context: Request context for the flow
+    """
+    try:
+        logger.info(f"🚀 Starting background flow execution for {flow_id}")
+        
+        # This runs after commit, so we can use fresh sessions safely
+        from app.services.crewai_flow_service import CrewAIFlowService
+        from app.services.crewai_flows.unified_discovery_flow import create_unified_discovery_flow
+        from app.core.database import AsyncSessionLocal
+        import asyncio
+        
+        async def run_discovery_flow():
+            try:
+                logger.info(f"🎯 Background CrewAI Discovery Flow kickoff starting for {flow_id}")
+                
+                # Create CrewAI service with fresh session (safe after commit)
+                async with AsyncSessionLocal() as fresh_db:
+                    crewai_service = CrewAIFlowService(fresh_db)
+                    
+                    # Create the UnifiedDiscoveryFlow instance
+                    discovery_flow = create_unified_discovery_flow(
+                        flow_id=flow_id,
+                        client_account_id=context.client_account_id,
+                        engagement_id=context.engagement_id,
+                        user_id=context.user_id or "system",
+                        raw_data=file_data,
+                        metadata={
+                            "source": "data_import_background",
+                            "master_flow_id": flow_id
+                        },
+                        crewai_service=crewai_service,
+                        context=context,
+                        master_flow_id=flow_id
+                    )
+                    
+                    # Update flow status to processing
+                    from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
+                    fresh_repo = CrewAIFlowStateExtensionsRepository(
+                        fresh_db,
+                        context.client_account_id,
+                        context.engagement_id,
+                        context.user_id
+                    )
+                    
+                    await fresh_repo.update_flow_status(
+                        flow_id=flow_id,
+                        status="processing",
+                        phase_data={"message": "Background CrewAI flow execution starting"}
+                    )
+                    await fresh_db.commit()
+                
+                # Run CrewAI flow kickoff (outside session since it's long-running)
+                logger.info(f"🚀 Calling discovery_flow.kickoff() for {flow_id}")
+                result = await asyncio.to_thread(discovery_flow.kickoff)
+                logger.info(f"✅ CrewAI Discovery Flow kickoff completed: {result}")
+                
+                # Update final status
+                async with AsyncSessionLocal() as fresh_db:
+                    fresh_repo = CrewAIFlowStateExtensionsRepository(
+                        fresh_db,
+                        context.client_account_id,
+                        context.engagement_id,
+                        context.user_id
+                    )
+                    
+                    # Determine final status based on result
+                    if result in ["paused_for_field_mapping_approval", "awaiting_user_approval_in_attribute_mapping"]:
+                        final_status = "waiting_for_approval"
+                        phase_data = {
+                            "completion": result,
+                            "current_phase": "attribute_mapping", 
+                            "progress_percentage": 60.0,
+                            "awaiting_user_approval": True
+                        }
+                    elif result in ["discovery_completed"]:
+                        final_status = "completed"
+                        phase_data = {
+                            "completion": result,
+                            "current_phase": "completed",
+                            "progress_percentage": 100.0
+                        }
+                    else:
+                        final_status = "processing"
+                        phase_data = {
+                            "completion": result,
+                            "current_phase": "processing",
+                            "progress_percentage": 30.0
+                        }
+                    
+                    await fresh_repo.update_flow_status(
+                        flow_id=flow_id,
+                        status=final_status,
+                        phase_data=phase_data
+                    )
+                    await fresh_db.commit()
+                    
+            except Exception as e:
+                logger.error(f"❌ Background flow execution failed for {flow_id}: {e}")
+                
+                # Update status to failed
+                try:
+                    async with AsyncSessionLocal() as fresh_db:
+                        fresh_repo = CrewAIFlowStateExtensionsRepository(
+                            fresh_db,
+                            context.client_account_id,
+                            context.engagement_id,
+                            context.user_id
+                        )
+                        await fresh_repo.update_flow_status(
+                            flow_id=flow_id,
+                            status="failed",
+                            phase_data={"error": str(e)}
+                        )
+                        await fresh_db.commit()
+                except Exception as update_error:
+                    logger.error(f"❌ Failed to update flow status to failed: {update_error}")
+        
+        # Start the background task
+        asyncio.create_task(run_discovery_flow())
+        logger.info(f"✅ Background flow execution task created for {flow_id}")
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to start background flow execution: {e}")
+
 
 async def _trigger_discovery_flow(
     data_import_id: str,
