@@ -277,13 +277,11 @@ class UnifiedDiscoveryFlow(Flow):
             )
             
             # Also add to flow state for persistence
+            insight_text = f"{insight['title']}: {insight['description']}"
             self.state_manager.add_agent_insight(
-                insight["agent_id"],
                 insight["agent_name"],
-                insight["insight_type"],
-                insight["title"],
-                insight["description"],
-                insight["supporting_data"]
+                insight_text,
+                0.8  # Default confidence
             )
             
             # Persist the insight immediately
@@ -559,13 +557,11 @@ class UnifiedDiscoveryFlow(Flow):
                 flow_id=self._flow_id
             )
             
+            insight_text = f"{insight['title']}: {insight['description']}"
             self.state_manager.add_agent_insight(
-                insight["agent_id"],
                 insight["agent_name"],
-                insight["insight_type"],
-                insight["title"],
-                insight["description"],
-                insight["supporting_data"]
+                insight_text,
+                0.8  # Default confidence
             )
             
             await self.state_manager.safe_update_flow_state()
