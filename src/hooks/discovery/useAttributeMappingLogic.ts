@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
 import { useDiscoveryFlowList, useAttributeMappingFlowDetection } from './useDiscoveryFlowAutoDetection';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -55,12 +56,72 @@ export const useAttributeMappingLogic = () => {
     refreshFlow: refresh
   } = useUnifiedDiscoveryFlow(effectiveFlowId);
 
-  // Legacy hooks removed - these endpoints don't exist
-  // Field mappings come from flow state instead
-  const realFieldMappings = null;
-  const isFieldMappingsLoading = false;
-  const fieldMappingsError = null;
-  const refetchFieldMappings = () => Promise.resolve();
+  // Get import data for this flow to get the import ID
+  const { data: importData } = useQuery({
+    queryKey: ['import-data', effectiveFlowId],
+    queryFn: async () => {
+      if (!effectiveFlowId) return null;
+      
+      try {
+        const response = await fetch(`/api/v1/data-import/flow/${effectiveFlowId}/import-data`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Client-Account-ID': '21990f3a-abb6-4862-be06-cb6f854e167b', // TODO: Get from context
+            'X-Engagement-ID': '58467010-6a72-44e8-ba37-cc0238724455',   // TODO: Get from context
+            'X-User-ID': '33333333-3333-3333-3333-333333333333'            // TODO: Get from context
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch import data: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('🎯 Fetched import data for flow:', data);
+        return data;
+      } catch (error) {
+        console.error('❌ Error fetching import data:', error);
+        return null;
+      }
+    },
+    enabled: !!effectiveFlowId,
+    staleTime: 30000 // Cache for 30 seconds
+  });
+
+  // Get field mappings using the import ID
+  const { data: realFieldMappings, isLoading: isFieldMappingsLoading, error: fieldMappingsError, refetch: refetchFieldMappings } = useQuery({
+    queryKey: ['field-mappings', importData?.import_metadata?.import_id],
+    queryFn: async () => {
+      const importId = importData?.import_metadata?.import_id;
+      if (!importId) return [];
+      
+      try {
+        const response = await fetch(`/api/v1/data-import/field-mapping/imports/${importId}/field-mappings`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Client-Account-ID': importData?.import_metadata?.client_account_id || '21990f3a-abb6-4862-be06-cb6f854e167b',
+            'X-Engagement-ID': importData?.import_metadata?.engagement_id || '58467010-6a72-44e8-ba37-cc0238724455',
+            'X-User-ID': '33333333-3333-3333-3333-333333333333'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch field mappings: ${response.statusText}`);
+        }
+        
+        const mappings = await response.json();
+        console.log('🎯 Fetched field mappings from API:', mappings);
+        return mappings;
+      } catch (error) {
+        console.error('❌ Error fetching field mappings:', error);
+        return [];
+      }
+    },
+    enabled: !!importData?.import_metadata?.import_id,
+    staleTime: 30000 // Cache for 30 seconds
+  });
   
   const agentClarifications = [];
   const isClarificationsLoading = false;
@@ -76,7 +137,22 @@ export const useAttributeMappingLogic = () => {
   // Extract data with proper type checking and safe access
   const agenticData = useMemo(() => {
     try {
-      // Check multiple possible data structures for attributes
+      // Primary: Use API field mappings data
+      if (realFieldMappings && Array.isArray(realFieldMappings)) {
+        const attributes = realFieldMappings.map((mapping, index) => ({
+          id: mapping.id,
+          name: mapping.source_field,
+          type: 'string',
+          required: false,
+          description: `Field: ${mapping.source_field} → ${mapping.target_field}`,
+          targetField: mapping.target_field,
+          confidence: mapping.confidence,
+          isApproved: mapping.is_approved
+        }));
+        return { attributes };
+      }
+      
+      // Fallback: Check flow state data structures for attributes
       if (fieldMappingData) {
         // Case 1: Direct attributes array
         if (fieldMappingData.attributes && Array.isArray(fieldMappingData.attributes)) {
@@ -108,11 +184,29 @@ export const useAttributeMappingLogic = () => {
       console.error('Error extracting agenticData:', error);
       return { attributes: [] };
     }
-  }, [fieldMappingData]);
+  }, [realFieldMappings, fieldMappingData]);
   
-  // Use field mappings from flow state if available, otherwise fall back to database mappings
+  // Use field mappings from API data instead of flow state
   const fieldMappings = useMemo(() => {
-    // First try to get mappings from flow state
+    // Use the API field mappings data
+    if (realFieldMappings && Array.isArray(realFieldMappings)) {
+      return realFieldMappings.map(mapping => ({
+        id: mapping.id,
+        sourceField: mapping.source_field,
+        targetAttribute: mapping.target_field,
+        confidence: mapping.confidence,
+        mapping_type: 'ai_suggested',
+        sample_values: [],
+        status: mapping.is_approved ? 'approved' : 'pending',
+        ai_reasoning: `AI suggested mapping to ${mapping.target_field}`,
+        is_user_defined: false,
+        user_feedback: null,
+        validation_method: 'semantic_analysis',
+        is_validated: mapping.is_approved
+      }));
+    }
+    
+    // Fallback to flow state data if API data is not available
     if (fieldMappingData) {
       // Case 1: Handle direct field mappings structure from backend
       if (typeof fieldMappingData === 'object' && !fieldMappingData.mappings && !fieldMappingData.attributes) {
@@ -162,9 +256,9 @@ export const useAttributeMappingLogic = () => {
         return flowStateMappings;
       }
     }
-    // Fall back to real field mappings from separate API call
-    console.log('🔄 Using database mappings:', realFieldMappings || []);
-    return realFieldMappings || [];
+    // Return empty array if no data available
+    console.log('🔄 No field mappings available');
+    return [];
   }, [fieldMappingData, realFieldMappings]);
   
   // Debug logging - moved here after fieldMappings is declared
@@ -183,6 +277,8 @@ export const useAttributeMappingLogic = () => {
         fieldMappings_length: fieldMappings?.length,
         agenticData_length: agenticData?.attributes?.length,
         realFieldMappings_length: realFieldMappings?.length,
+        importData_available: !!importData,
+        import_id: importData?.import_metadata?.import_id,
         fieldMappingData_structure: fieldMappingData ? {
           type: typeof fieldMappingData,
           hasAttributes: !!fieldMappingData.attributes,
@@ -194,6 +290,19 @@ export const useAttributeMappingLogic = () => {
       
       // Log the full flow object to see all properties
       console.log('📋 Full flow object:', flow);
+      
+      // Additional debugging for validation errors
+      if (flow.validation_errors) {
+        console.error('❌ Flow validation errors:', flow.validation_errors);
+      }
+      
+      // Check if data import phase is actually completed
+      if (flow.phase_completion?.data_import) {
+        console.log('✅ Data import phase is marked as completed');
+      } else {
+        console.warn('⚠️ Data import phase is NOT completed - this might be why no data is available');
+        console.log('🔍 Phase completion status:', flow.phase_completion);
+      }
     }
   }, [flow, fieldMappings, realFieldMappings]);
   

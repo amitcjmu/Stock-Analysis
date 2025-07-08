@@ -3,13 +3,26 @@ Modular field mapping router that combines all field mapping functionality.
 This replaces the monolithic field_mapping.py file.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Import all modular routers
 from .field_mapping.routes.mapping_routes import router as mapping_router
 from .field_mapping.routes.suggestion_routes import router as suggestion_router
 from .field_mapping.routes.validation_routes import router as validation_router  
 from .field_mapping.routes.approval_routes import router as approval_router
+
+# Import service dependencies
+from .field_mapping.services.mapping_service import MappingService
+from app.core.database import get_db
+from app.core.context import get_current_context, RequestContext
+
+def get_mapping_service(
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+) -> MappingService:
+    """Dependency injection for mapping service."""
+    return MappingService(db, context)
 
 # Create main router
 router = APIRouter(prefix="/field-mapping", tags=["field-mapping"])
@@ -33,9 +46,9 @@ from .field_mapping.routes.suggestion_routes import (
 
 # Add legacy routes for backward compatibility
 @router.get("/imports/{import_id}/field-mappings")
-async def get_field_mappings_legacy(import_id: str, **kwargs):
+async def get_field_mappings_legacy(import_id: str, service: MappingService = Depends(get_mapping_service)):
     """Legacy compatibility route."""
-    return await legacy_get_mappings(import_id, **kwargs)
+    return await legacy_get_mappings(import_id, service)
 
 @router.post("/imports/{import_id}/field-mappings") 
 async def create_field_mappings_legacy(import_id: str, **kwargs):

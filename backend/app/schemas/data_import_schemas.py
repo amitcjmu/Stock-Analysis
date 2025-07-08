@@ -54,12 +54,15 @@ class UploadContext(BaseModel):
     intended_type: str
     validation_session_id: Optional[str] = None  # Legacy field name
     validation_upload_id: Optional[str] = None  # New field name
+    validation_id: Optional[str] = None  # Direct field name
     upload_timestamp: str
     
-    @property
-    def validation_id(self) -> str:
-        """Get validation ID from either field name"""
-        return self.validation_upload_id or self.validation_session_id or ""
+    def get_validation_id(self) -> str:
+        """Get validation ID from any of the field names"""
+        return (self.validation_id or 
+                self.validation_upload_id or 
+                self.validation_session_id or 
+                "")
 
 class StoreImportRequest(BaseModel):
     """Request schema for storing import data"""

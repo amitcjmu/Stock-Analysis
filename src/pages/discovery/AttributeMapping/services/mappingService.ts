@@ -120,9 +120,17 @@ export class MappingService {
     }
   }
 
-  static async getFieldMappings(flowId: string) {
+  static async getFieldMappings(importId: string) {
     try {
-      const response = await fetch(`/api/v1/field-mapping/mappings/${flowId}`);
+      const response = await fetch(`/api/v1/data-import/field-mapping/imports/${importId}/field-mappings`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Client-Account-ID': '11111111-1111-1111-1111-111111111111',  // TODO: Get from context
+          'X-Engagement-ID': '22222222-2222-2222-2222-222222222222',      // TODO: Get from context
+          'X-User-ID': '33333333-3333-3333-3333-333333333333'              // TODO: Get from context
+        }
+      });
       
       if (!response.ok) {
         throw new Error(`Failed to get field mappings: ${response.statusText}`);

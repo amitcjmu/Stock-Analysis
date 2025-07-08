@@ -44,9 +44,9 @@ class MappingService:
                 id=mapping.id,
                 source_field=mapping.source_field,
                 target_field=mapping.target_field,
-                transformation_rule=mapping.transformation_logic,
-                validation_rule=mapping.validation_rules,
-                is_required=mapping.is_required or False,
+                transformation_rule=mapping.transformation_rules,
+                validation_rule=mapping.transformation_rules,  # Using transformation_rules for now
+                is_required=getattr(mapping, 'is_required', False),
                 is_approved=mapping.status == "approved",
                 confidence=mapping.confidence_score or 0.7,
                 created_at=mapping.created_at,

@@ -112,16 +112,8 @@ async def store_import_data(
         file_size = store_request.metadata.size
         file_type = store_request.metadata.type
         intended_type = store_request.upload_context.intended_type
-        validation_session_id = store_request.upload_context.validation_id  # Use the property that handles both field names
+        import_validation_id = store_request.upload_context.get_validation_id()  # Use the method that handles all field names
         upload_timestamp = store_request.upload_context.upload_timestamp
-        
-        # 🔍 DEBUG: Log the actual data being received
-        logger.info(f"🔍 DEBUG: file_data type: {type(file_data)}, length: {len(file_data) if file_data else 'None'}")
-        if file_data and len(file_data) > 0:
-            logger.info(f"🔍 DEBUG: First record sample: {file_data[0] if file_data else 'Empty'}")
-            logger.info(f"🔍 DEBUG: First record keys: {list(file_data[0].keys()) if file_data and len(file_data) > 0 else 'No keys'}")
-        else:
-            logger.error(f"🚨 DEBUG: file_data is empty or None - this will cause flow failure!")
         
         # Use context for client/engagement IDs
         client_account_id = context.client_account_id
@@ -138,22 +130,33 @@ async def store_import_data(
                 }
             )
         
+        # Ensure user_id is not None for imported_by field
+        if not user_id:
+            raise AppValidationError(
+                message="User ID is required for data import authentication",
+                field="user_id",
+                details={
+                    "user_id": user_id,
+                    "context": str(context)
+                }
+            )
+        
         # Try to find existing DataImport record, or create one if it doesn't exist
         from sqlalchemy import select
         import uuid as uuid_pkg
         
         try:
-            # Validate that validation_session_id is a proper UUID
-            uuid_obj = uuid_pkg.UUID(validation_session_id)
-            logger.info(f"Looking for existing import record {validation_session_id}")
+            # Validate that import_validation_id is a proper UUID
+            uuid_obj = uuid_pkg.UUID(import_validation_id)
+            logger.info(f"Looking for existing import record {import_validation_id}")
             
-            existing_import_query = select(DataImport).where(DataImport.id == validation_session_id)
+            existing_import_query = select(DataImport).where(DataImport.id == import_validation_id)
             result = await db.execute(existing_import_query)
             data_import = result.scalar_one_or_none()
             
             if not data_import:
                 # Create new DataImport record since none exists
-                logger.info(f"No existing import record found. Creating new DataImport record with ID: {validation_session_id}")
+                logger.info(f"No existing import record found. Creating new DataImport record with ID: {import_validation_id}")
                 data_import = DataImport(
                     id=uuid_obj,
                     client_account_id=client_account_id,
@@ -174,10 +177,10 @@ async def store_import_data(
                 logger.info(f"✅ Found existing DataImport record: {data_import.id}")
                 
         except ValueError as e:
-            logger.error(f"Invalid UUID format for validation_session_id: {validation_session_id}")
+            logger.error(f"Invalid UUID format for import_validation_id: {import_validation_id}")
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid session ID format. Expected UUID, got: {validation_session_id}"
+                detail=f"Invalid import ID format. Expected UUID, got: {import_validation_id}"
             )
         
         # Update the existing import record instead of creating a new one

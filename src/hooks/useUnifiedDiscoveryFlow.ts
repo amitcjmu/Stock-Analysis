@@ -171,7 +171,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
       if (state?.status === 'running' || state?.status === 'in_progress' || 
           state?.status === 'processing' || state?.status === 'active') {
         setPollingAttempts(prev => prev + 1);
-        return 30000; // Poll every 30 seconds when flow is active (reduced from 5s for performance)
+        return 60000; // Poll every 60 seconds when flow is active (reduced from 30s for performance)
       }
       
       // Stop polling for completed/failed states

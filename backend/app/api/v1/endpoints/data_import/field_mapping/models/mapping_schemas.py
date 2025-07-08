@@ -5,6 +5,7 @@ Pydantic schemas for field mapping operations.
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field, validator
+from uuid import UUID
 
 
 class FieldMappingCreate(BaseModel):
@@ -28,7 +29,7 @@ class FieldMappingUpdate(BaseModel):
 
 class FieldMappingResponse(BaseModel):
     """Schema for field mapping responses."""
-    id: int
+    id: UUID
     source_field: str
     target_field: str
     transformation_rule: Optional[str] = None

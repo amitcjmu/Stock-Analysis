@@ -59,11 +59,25 @@ class DataImportValidationExecutor(BasePhaseExecutor):
             logger.info(f"🔍 DEBUG: Storing validated_data in state.raw_data: {len(results['validated_data'])} records")
             self.state.raw_data = results["validated_data"]
         
-        if results.get("is_valid", False):
+        is_valid = results.get("is_valid", False)
+        reason = results.get("reason", "Unknown validation failure")
+        
+        if is_valid:
             self.state.phase_completion["data_import"] = True
             logger.info(f"✅ DEBUG: Data import phase marked as completed")
         else:
-            logger.warning(f"⚠️ DEBUG: Data import validation failed: {results.get('reason', 'Unknown')}")
+            logger.warning(f"⚠️ DEBUG: Data import validation failed: {reason}")
+            logger.warning(f"⚠️ DEBUG: Full validation results: {results}")
+            
+            # Store validation failure in state for debugging
+            if not hasattr(self.state, 'validation_errors'):
+                self.state.validation_errors = []
+            self.state.validation_errors.append({
+                "phase": "data_import",
+                "error": reason,
+                "timestamp": self._get_timestamp(),
+                "full_results": results
+            })
         
         # Add real-time insights from validation results
         if hasattr(self.state, 'agent_insights'):
@@ -439,26 +453,41 @@ class DataImportValidationExecutor(BasePhaseExecutor):
     def _check_data_structure(self) -> Dict[str, Any]:
         """Check basic data structure validity"""
         try:
+            # Enhanced debugging for data structure validation
+            logger.info(f"🔍 DEBUG: Checking data structure...")
+            logger.info(f"🔍 DEBUG: Has raw_data attribute: {hasattr(self.state, 'raw_data')}")
+            
+            if not hasattr(self.state, 'raw_data'):
+                logger.error("❌ DEBUG: State has no raw_data attribute")
+                return {"valid": False, "reason": "State has no raw_data attribute"}
+            
             if not self.state.raw_data:
-                return {"valid": False, "reason": "No data provided"}
+                logger.error("❌ DEBUG: raw_data is None or empty")
+                return {"valid": False, "reason": "No data provided - raw_data is None or empty"}
             
             if not isinstance(self.state.raw_data, list):
-                return {"valid": False, "reason": "Data must be a list of records"}
+                logger.error(f"❌ DEBUG: raw_data is not a list, type: {type(self.state.raw_data)}")
+                return {"valid": False, "reason": f"Data must be a list of records, got {type(self.state.raw_data)}"}
             
             if len(self.state.raw_data) == 0:
-                return {"valid": False, "reason": "Empty data set"}
+                logger.error("❌ DEBUG: raw_data is empty list")
+                return {"valid": False, "reason": "Empty data set - no records to validate"}
             
             # Check first record structure
             first_record = self.state.raw_data[0]
             if not isinstance(first_record, dict):
-                return {"valid": False, "reason": "Records must be dictionaries"}
+                logger.error(f"❌ DEBUG: First record is not a dict, type: {type(first_record)}")
+                return {"valid": False, "reason": f"Records must be dictionaries, got {type(first_record)}"}
             
             if len(first_record.keys()) == 0:
-                return {"valid": False, "reason": "Records must have fields"}
+                logger.error("❌ DEBUG: First record has no keys")
+                return {"valid": False, "reason": "Records must have fields - first record is empty"}
             
+            logger.info(f"✅ DEBUG: Data structure is valid - {len(self.state.raw_data)} records, first record has {len(first_record.keys())} fields")
             return {"valid": True, "reason": "Data structure is valid"}
             
         except Exception as e:
+            logger.error(f"❌ DEBUG: Structure validation exception: {str(e)}")
             return {"valid": False, "reason": f"Structure validation error: {str(e)}"}
     
     def _detect_pii(self) -> Dict[str, Any]:

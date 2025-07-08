@@ -11,6 +11,7 @@ from .core_import import router as core_router
 from .critical_attributes import router as critical_router
 from .learning_integration import router as learning_router
 from .asset_processing import router as processing_router
+from .field_mapping_modular import router as field_mapping_router
 
 # Create main router that combines all modules
 router = APIRouter()
@@ -21,6 +22,7 @@ router.include_router(core_router, tags=["Data Import Core"])
 router.include_router(critical_router, tags=["Critical Attributes"])
 router.include_router(learning_router, tags=["AI Learning"])
 router.include_router(processing_router, tags=["Asset Processing"])
+router.include_router(field_mapping_router, tags=["Field Mapping"])
 
 __all__ = [
     "router",
@@ -28,5 +30,6 @@ __all__ = [
     # "quality_router",  # Disabled - DataQualityIssue model removed
     "critical_router",
     "learning_router", 
-    "processing_router"
+    "processing_router",
+    "field_mapping_router"
 ] 
