@@ -107,39 +107,83 @@ class SuggestionService:
         )
     
     async def _get_available_target_fields(self) -> List[Dict[str, Any]]:
-        """Get list of available target fields for mapping."""
-        # Define standard target fields
+        """Get list of available target fields for mapping based on Asset model."""
+        # Define all available target fields based on Asset model
         standard_fields = [
-            {"name": "asset_id", "type": "string", "description": "Unique asset identifier", "category": "identity"},
-            {"name": "name", "type": "string", "description": "Asset name", "category": "identity"},
-            {"name": "asset_name", "type": "string", "description": "Asset display name", "category": "identity"},
-            {"name": "hostname", "type": "string", "description": "Network hostname", "category": "network"},
-            {"name": "fqdn", "type": "string", "description": "Fully qualified domain name", "category": "network"},
-            {"name": "ip_address", "type": "string", "description": "IP address", "category": "network"},
-            {"name": "mac_address", "type": "string", "description": "MAC address", "category": "network"},
-            {"name": "asset_type", "type": "string", "description": "Type of asset", "category": "classification"},
-            {"name": "operating_system", "type": "string", "description": "Operating system", "category": "system"},
-            {"name": "os_version", "type": "string", "description": "OS version", "category": "system"},
-            {"name": "cpu_cores", "type": "integer", "description": "Number of CPU cores", "category": "hardware"},
-            {"name": "memory_gb", "type": "number", "description": "Memory in GB", "category": "hardware"},
-            {"name": "storage_gb", "type": "number", "description": "Storage in GB", "category": "hardware"},
-            {"name": "environment", "type": "string", "description": "Environment (prod, dev, test)", "category": "business"},
-            {"name": "location", "type": "string", "description": "Physical location", "category": "business"},
-            {"name": "datacenter", "type": "string", "description": "Data center", "category": "business"},
-            {"name": "business_owner", "type": "string", "description": "Business owner", "category": "business"},
-            {"name": "technical_owner", "type": "string", "description": "Technical owner", "category": "business"},
-            {"name": "department", "type": "string", "description": "Department", "category": "business"},
-            {"name": "application_name", "type": "string", "description": "Application name", "category": "application"},
-            {"name": "technology_stack", "type": "string", "description": "Technology stack", "category": "application"},
-            {"name": "migration_priority", "type": "integer", "description": "Migration priority (1-10)", "category": "migration"},
-            {"name": "migration_complexity", "type": "string", "description": "Migration complexity", "category": "migration"},
-            {"name": "criticality", "type": "string", "description": "Business criticality", "category": "business"},
-            {"name": "description", "type": "string", "description": "Asset description", "category": "metadata"}
+            # Identity fields (Critical for migration)
+            {"name": "name", "type": "string", "description": "Asset name", "category": "identification", "required": True},
+            {"name": "asset_name", "type": "string", "description": "Asset display name", "category": "identification", "required": False},
+            {"name": "hostname", "type": "string", "description": "Network hostname", "category": "identification", "required": True},
+            {"name": "fqdn", "type": "string", "description": "Fully qualified domain name", "category": "identification", "required": False},
+            {"name": "asset_type", "type": "string", "description": "Type of asset (server, database, application, etc.)", "category": "identification", "required": True},
+            {"name": "description", "type": "string", "description": "Asset description", "category": "identification", "required": False},
+            
+            # Network fields (Critical for migration)
+            {"name": "ip_address", "type": "string", "description": "IP address", "category": "network", "required": True},
+            {"name": "mac_address", "type": "string", "description": "MAC address", "category": "network", "required": False},
+            
+            # System fields (Critical for migration)
+            {"name": "operating_system", "type": "string", "description": "Operating system", "category": "technical", "required": True},
+            {"name": "os_version", "type": "string", "description": "OS version", "category": "technical", "required": False},
+            {"name": "cpu_cores", "type": "integer", "description": "Number of CPU cores", "category": "technical", "required": True},
+            {"name": "memory_gb", "type": "number", "description": "Memory in GB", "category": "technical", "required": True},
+            {"name": "storage_gb", "type": "number", "description": "Storage in GB", "category": "technical", "required": True},
+            
+            # Location and Environment fields (Critical for migration)
+            {"name": "environment", "type": "string", "description": "Environment (prod, dev, test)", "category": "environment", "required": True},
+            {"name": "location", "type": "string", "description": "Physical location", "category": "environment", "required": False},
+            {"name": "datacenter", "type": "string", "description": "Data center", "category": "environment", "required": False},
+            {"name": "rack_location", "type": "string", "description": "Rack location", "category": "environment", "required": False},
+            {"name": "availability_zone", "type": "string", "description": "Availability zone", "category": "environment", "required": False},
+            
+            # Business fields (Critical for migration)
+            {"name": "business_owner", "type": "string", "description": "Business owner", "category": "business", "required": True},
+            {"name": "technical_owner", "type": "string", "description": "Technical owner", "category": "business", "required": True},
+            {"name": "department", "type": "string", "description": "Department", "category": "business", "required": True},
+            {"name": "application_name", "type": "string", "description": "Application name", "category": "application", "required": True},
+            {"name": "technology_stack", "type": "string", "description": "Technology stack", "category": "application", "required": False},
+            {"name": "criticality", "type": "string", "description": "Business criticality (low, medium, high, critical)", "category": "business", "required": True},
+            {"name": "business_criticality", "type": "string", "description": "Business criticality level", "category": "business", "required": True},
+            
+            # Migration fields (Critical for migration)
+            {"name": "six_r_strategy", "type": "string", "description": "6R migration strategy", "category": "migration", "required": True},
+            {"name": "migration_priority", "type": "integer", "description": "Migration priority (1-10)", "category": "migration", "required": True},
+            {"name": "migration_complexity", "type": "string", "description": "Migration complexity (low, medium, high)", "category": "migration", "required": True},
+            {"name": "migration_wave", "type": "integer", "description": "Migration wave number", "category": "migration", "required": False},
+            {"name": "sixr_ready", "type": "string", "description": "6R readiness status", "category": "migration", "required": False},
+            
+            # Status fields
+            {"name": "status", "type": "string", "description": "Operational status", "category": "status", "required": False},
+            {"name": "migration_status", "type": "string", "description": "Migration status", "category": "status", "required": False},
+            {"name": "mapping_status", "type": "string", "description": "Mapping status", "category": "status", "required": False},
+            
+            # Dependencies (Critical for migration)
+            {"name": "dependencies", "type": "json", "description": "List of dependent assets", "category": "dependencies", "required": True},
+            {"name": "related_assets", "type": "json", "description": "Related CI items", "category": "dependencies", "required": False},
+            
+            # Discovery metadata
+            {"name": "discovery_method", "type": "string", "description": "Discovery method", "category": "discovery", "required": False},
+            {"name": "discovery_source", "type": "string", "description": "Discovery source", "category": "discovery", "required": False},
+            {"name": "discovery_timestamp", "type": "datetime", "description": "Discovery timestamp", "category": "discovery", "required": False},
+            
+            # Performance metrics
+            {"name": "cpu_utilization_percent", "type": "number", "description": "CPU utilization percentage", "category": "performance", "required": False},
+            {"name": "memory_utilization_percent", "type": "number", "description": "Memory utilization percentage", "category": "performance", "required": False},
+            {"name": "disk_iops", "type": "number", "description": "Disk IOPS", "category": "performance", "required": False},
+            {"name": "network_throughput_mbps", "type": "number", "description": "Network throughput in Mbps", "category": "performance", "required": False},
+            
+            # Data quality
+            {"name": "completeness_score", "type": "number", "description": "Data completeness score", "category": "ai_insights", "required": False},
+            {"name": "quality_score", "type": "number", "description": "Data quality score", "category": "ai_insights", "required": False},
+            
+            # Cost information
+            {"name": "current_monthly_cost", "type": "number", "description": "Current monthly cost", "category": "cost", "required": False},
+            {"name": "estimated_cloud_cost", "type": "number", "description": "Estimated cloud cost", "category": "cost", "required": False},
+            
+            # Import metadata
+            {"name": "source_filename", "type": "string", "description": "Source filename", "category": "metadata", "required": False},
+            {"name": "custom_attributes", "type": "json", "description": "Custom attributes", "category": "metadata", "required": False}
         ]
-        
-        # TODO: Add custom fields from database if needed
-        # custom_fields = await self._get_custom_fields()
-        # return standard_fields + custom_fields
         
         return standard_fields
     

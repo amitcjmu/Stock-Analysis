@@ -22,12 +22,12 @@ def intelligent_field_mapping(source_field: str) -> str:
     
     source_lower = source_field.lower().strip()
     
-    # Common field mapping patterns with priorities
+    # Common field mapping patterns with priorities - only valid Asset model fields
     field_patterns = {
         # Identity fields (highest priority)
-        'id': ['asset_id', 'name', 'hostname'],
-        'identifier': ['asset_id', 'name'],
-        'uuid': ['asset_id'],
+        'id': ['name', 'hostname'],
+        'identifier': ['name', 'hostname'],
+        'uuid': ['name'],
         
         # Name fields
         'name': ['name', 'asset_name', 'hostname'],
@@ -40,7 +40,7 @@ def intelligent_field_mapping(source_field: str) -> str:
         'computer': ['hostname', 'name'],
         
         # Asset type
-        'type': ['asset_type', 'intelligent_asset_type'],
+        'type': ['asset_type'],
         'category': ['asset_type'],
         'kind': ['asset_type'],
         'class': ['asset_type'],
@@ -83,6 +83,8 @@ def intelligent_field_mapping(source_field: str) -> str:
         'datacenter': ['datacenter'],
         'dc': ['datacenter'],
         'facility': ['datacenter'],
+        'rack': ['rack_location'],
+        'zone': ['availability_zone'],
         
         # Business info
         'owner': ['business_owner', 'technical_owner'],
@@ -101,11 +103,42 @@ def intelligent_field_mapping(source_field: str) -> str:
         'critical': ['criticality', 'business_criticality'],
         'priority': ['migration_priority'],
         'complexity': ['migration_complexity'],
+        'sixr': ['six_r_strategy'],
+        'wave': ['migration_wave'],
         
         # Status
         'status': ['status'],
         'state': ['status'],
-        'condition': ['status']
+        'condition': ['status'],
+        
+        # Performance
+        'cpu_util': ['cpu_utilization_percent'],
+        'memory_util': ['memory_utilization_percent'],
+        'iops': ['disk_iops'],
+        'throughput': ['network_throughput_mbps'],
+        
+        # Cost
+        'cost': ['current_monthly_cost'],
+        'price': ['current_monthly_cost'],
+        'cloud_cost': ['estimated_cloud_cost'],
+        
+        # Dependencies
+        'depends': ['dependencies'],
+        'dependency': ['dependencies'],
+        'related': ['related_assets'],
+        
+        # Discovery
+        'method': ['discovery_method'],
+        'source': ['discovery_source'],
+        'timestamp': ['discovery_timestamp'],
+        
+        # Quality
+        'quality': ['quality_score'],
+        'completeness': ['completeness_score'],
+        
+        # Metadata
+        'filename': ['source_filename'],
+        'custom': ['custom_attributes']
     }
     
     # Direct exact matches first
@@ -212,16 +245,62 @@ def _fuzzy_field_match(source_field: str, field_patterns: Dict[str, List[str]]) 
 def get_field_patterns() -> Dict[str, List[str]]:
     """Get all available field mapping patterns."""
     return {
-        'identity': ['asset_id', 'name', 'hostname'],
-        'names': ['name', 'asset_name', 'hostname', 'fqdn'],
+        'identity': ['name', 'hostname', 'asset_name', 'fqdn'],
         'network': ['ip_address', 'mac_address', 'hostname'],
         'hardware': ['cpu_cores', 'memory_gb', 'storage_gb'],
         'system': ['operating_system', 'os_version', 'asset_type'],
         'business': ['business_owner', 'technical_owner', 'department'],
         'location': ['location', 'datacenter', 'environment'],
         'application': ['application_name', 'technology_stack'],
-        'migration': ['migration_priority', 'migration_complexity', 'criticality']
+        'migration': ['migration_priority', 'migration_complexity', 'criticality', 'six_r_strategy']
     }
+
+
+def get_critical_fields_for_migration() -> List[str]:
+    """Get the list of critical fields required for migration treatment decisions."""
+    return [
+        # Identity fields (Critical for asset tracking)
+        'name',
+        'hostname', 
+        'asset_type',
+        'ip_address',
+        
+        # Business context (Critical for prioritization)
+        'environment',
+        'business_owner',
+        'technical_owner',
+        'department',
+        'application_name',
+        'criticality',
+        'business_criticality',
+        
+        # Technical specifications (Critical for sizing)
+        'operating_system',
+        'cpu_cores',
+        'memory_gb',
+        'storage_gb',
+        
+        # Migration strategy (Critical for treatment)
+        'six_r_strategy',
+        'migration_priority',
+        'migration_complexity',
+        
+        # Dependencies (Critical for sequencing)
+        'dependencies'
+    ]
+
+
+def count_critical_fields_mapped(field_mappings: List[Dict[str, Any]]) -> int:
+    """Count how many critical fields are mapped."""
+    critical_fields = get_critical_fields_for_migration()
+    mapped_critical_fields = set()
+    
+    for mapping in field_mappings:
+        target_field = mapping.get('target_field', mapping.get('targetAttribute'))
+        if target_field in critical_fields:
+            mapped_critical_fields.add(target_field)
+    
+    return len(mapped_critical_fields)
 
 
 def normalize_field_name(field_name: str) -> str:

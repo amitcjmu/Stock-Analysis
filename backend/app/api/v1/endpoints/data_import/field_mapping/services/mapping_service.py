@@ -39,8 +39,17 @@ class MappingService:
         result = await self.db.execute(query)
         mappings = result.scalars().all()
         
-        return [
-            FieldMappingResponse(
+        # Get valid target fields from Asset model
+        valid_target_fields = self._get_valid_target_fields()
+        
+        valid_mappings = []
+        for mapping in mappings:
+            # Skip mappings to invalid target fields
+            if mapping.target_field not in valid_target_fields:
+                logger.warning(f"Skipping invalid target field mapping: {mapping.source_field} -> {mapping.target_field}")
+                continue
+                
+            valid_mappings.append(FieldMappingResponse(
                 id=mapping.id,
                 source_field=mapping.source_field,
                 target_field=mapping.target_field,
@@ -51,9 +60,9 @@ class MappingService:
                 confidence=mapping.confidence_score or 0.7,
                 created_at=mapping.created_at,
                 updated_at=mapping.updated_at
-            )
-            for mapping in mappings
-        ]
+            ))
+        
+        return valid_mappings
     
     async def create_field_mapping(
         self, 
@@ -302,3 +311,49 @@ class MappingService:
             warnings=warnings,
             validated_mappings=validated_mappings
         )
+    
+    def _get_valid_target_fields(self) -> set:
+        """Get set of valid target fields from Asset model."""
+        return {
+            # Identity fields
+            'name', 'asset_name', 'hostname', 'fqdn', 'asset_type', 'description',
+            
+            # Network fields
+            'ip_address', 'mac_address',
+            
+            # System fields
+            'operating_system', 'os_version', 'cpu_cores', 'memory_gb', 'storage_gb',
+            
+            # Location and Environment fields
+            'environment', 'location', 'datacenter', 'rack_location', 'availability_zone',
+            
+            # Business fields
+            'business_owner', 'technical_owner', 'department', 'application_name', 
+            'technology_stack', 'criticality', 'business_criticality',
+            
+            # Migration fields
+            'six_r_strategy', 'migration_priority', 'migration_complexity', 
+            'migration_wave', 'sixr_ready',
+            
+            # Status fields
+            'status', 'migration_status', 'mapping_status',
+            
+            # Dependencies
+            'dependencies', 'related_assets',
+            
+            # Discovery metadata
+            'discovery_method', 'discovery_source', 'discovery_timestamp',
+            
+            # Performance metrics
+            'cpu_utilization_percent', 'memory_utilization_percent', 'disk_iops', 
+            'network_throughput_mbps',
+            
+            # Data quality
+            'completeness_score', 'quality_score',
+            
+            # Cost information
+            'current_monthly_cost', 'estimated_cloud_cost',
+            
+            # Import metadata
+            'source_filename', 'custom_attributes'
+        }

@@ -67,9 +67,7 @@ export const useAttributeMappingLogic = () => {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'X-Client-Account-ID': '21990f3a-abb6-4862-be06-cb6f854e167b', // TODO: Get from context
-            'X-Engagement-ID': '58467010-6a72-44e8-ba37-cc0238724455',   // TODO: Get from context
-            'X-User-ID': '33333333-3333-3333-3333-333333333333'            // TODO: Get from context
+            ...getAuthHeaders() // Use auth context instead of hardcoded values
           }
         });
         
@@ -86,7 +84,8 @@ export const useAttributeMappingLogic = () => {
       }
     },
     enabled: !!effectiveFlowId,
-    staleTime: 30000 // Cache for 30 seconds
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    cacheTime: 10 * 60 * 1000 // Keep in cache for 10 minutes
   });
 
   // Get field mappings using the import ID
@@ -101,9 +100,7 @@ export const useAttributeMappingLogic = () => {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'X-Client-Account-ID': importData?.import_metadata?.client_account_id || '21990f3a-abb6-4862-be06-cb6f854e167b',
-            'X-Engagement-ID': importData?.import_metadata?.engagement_id || '58467010-6a72-44e8-ba37-cc0238724455',
-            'X-User-ID': '33333333-3333-3333-3333-333333333333'
+            ...getAuthHeaders() // Use auth context instead of hardcoded values
           }
         });
         
@@ -112,7 +109,11 @@ export const useAttributeMappingLogic = () => {
         }
         
         const mappings = await response.json();
-        console.log('🎯 Fetched field mappings from API:', mappings);
+        console.log('🎯 Fetched field mappings from API:', {
+          import_id: importId,
+          mappings_count: Array.isArray(mappings) ? mappings.length : 'not an array',
+          mappings_sample: Array.isArray(mappings) ? mappings.slice(0, 2) : mappings
+        });
         return mappings;
       } catch (error) {
         console.error('❌ Error fetching field mappings:', error);
@@ -120,7 +121,8 @@ export const useAttributeMappingLogic = () => {
       }
     },
     enabled: !!importData?.import_metadata?.import_id,
-    staleTime: 30000 // Cache for 30 seconds
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    cacheTime: 10 * 60 * 1000 // Keep in cache for 10 minutes
   });
   
   const agentClarifications = [];
@@ -197,7 +199,7 @@ export const useAttributeMappingLogic = () => {
         confidence: mapping.confidence,
         mapping_type: 'ai_suggested',
         sample_values: [],
-        status: mapping.is_approved ? 'approved' : 'pending',
+        status: mapping.is_approved ? 'approved' : 'suggested', // Use 'suggested' to match backend data
         ai_reasoning: `AI suggested mapping to ${mapping.target_field}`,
         is_user_defined: false,
         user_feedback: null,
@@ -334,15 +336,52 @@ export const useAttributeMappingLogic = () => {
       const suggested = fieldMappings?.filter((m: any) => m.status === 'suggested').length || 0;
       const pending = fieldMappings?.filter((m: any) => m.status === 'pending').length || 0;
       
-      return {
+      // Count suggested and approved as "mapped" since suggested mappings are AI-generated and ready for use
+      const totalMapped = approved + suggested;
+      
+      // Critical fields for migration treatment decisions - must match backend
+      const criticalFields = [
+        'name', 'hostname', 'asset_type', 'ip_address', 'environment',
+        'business_owner', 'technical_owner', 'department', 'application_name',
+        'criticality', 'business_criticality', 'operating_system', 'cpu_cores',
+        'memory_gb', 'storage_gb', 'six_r_strategy', 'migration_priority',
+        'migration_complexity', 'dependencies'
+      ];
+      
+      // Count how many critical fields are mapped (including suggested mappings)
+      const criticalMapped = fieldMappings?.filter((m: any) => 
+        criticalFields.includes(m.targetAttribute) && (m.status === 'approved' || m.status === 'suggested')
+      ).length || 0;
+      
+      const progress = {
         total: total,
-        mapped: approved,
-        critical_mapped: approved, // Assume all approved mappings are critical for now
-        pending: suggested + pending
+        mapped: totalMapped,
+        critical_mapped: criticalMapped,
+        pending: pending, // Only truly pending/unmapped items
+        accuracy: total > 0 ? Math.round((totalMapped / total) * 100) : 0
       };
+      
+      console.log('📊 Mapping Progress Calculation:', {
+        field_mappings_count: fieldMappings?.length || 0,
+        status_breakdown: {
+          approved,
+          suggested,
+          pending
+        },
+        critical_fields_mapped: criticalMapped,
+        total_critical_fields: criticalFields.length,
+        final_progress: progress,
+        sample_mappings: fieldMappings?.slice(0, 3)?.map(m => ({
+          source: m.sourceField,
+          target: m.targetAttribute,
+          status: m.status
+        }))
+      });
+      
+      return progress;
     } catch (error) {
       console.error('Error calculating mappingProgress:', error);
-      return { total: 0, mapped: 0, critical_mapped: 0, pending: 0 };
+      return { total: 0, mapped: 0, critical_mapped: 0, pending: 0, accuracy: 0 };
     }
   }, [fieldMappingData, fieldMappings]);
   
@@ -552,14 +591,16 @@ export const useAttributeMappingLogic = () => {
       return true;
     }
     
-    // Check if sufficient field mappings are approved
+    // Check if sufficient field mappings are approved or suggested
     if (Array.isArray(fieldMappings) && fieldMappings.length > 0) {
       const approvedMappings = fieldMappings.filter(m => m.status === 'approved').length;
+      const suggestedMappings = fieldMappings.filter(m => m.status === 'suggested').length;
+      const readyMappings = approvedMappings + suggestedMappings; // Both are ready for use
       const totalMappings = fieldMappings.length;
-      const completionPercentage = (approvedMappings / totalMappings) * 100;
+      const completionPercentage = (readyMappings / totalMappings) * 100;
       
-      // Allow continuation if at least 80% of mappings are approved
-      console.log(`🔍 Field mapping completion: ${approvedMappings}/${totalMappings} (${completionPercentage.toFixed(1)}%)`);
+      // Allow continuation if at least 80% of mappings are ready (approved or suggested)
+      console.log(`🔍 Field mapping completion: ${readyMappings}/${totalMappings} (${completionPercentage.toFixed(1)}%) - Approved: ${approvedMappings}, Suggested: ${suggestedMappings}`);
       return completionPercentage >= 80;
     }
     
