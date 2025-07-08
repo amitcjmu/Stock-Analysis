@@ -297,7 +297,7 @@ class MasterFlowOrchestrator:
                             result = await asyncio.to_thread(discovery_flow.kickoff)
                             logger.info(f"✅ [ECHO] CrewAI Discovery Flow kickoff returned: {result}")
                             
-                            # Update flow status to completed
+                            # Update flow status based on result
                             async with AsyncSessionLocal() as fresh_db:
                                 fresh_repo = CrewAIFlowStateExtensionsRepository(
                                     fresh_db, 
@@ -305,9 +305,25 @@ class MasterFlowOrchestrator:
                                     self.context.engagement_id,
                                     self.context.user_id
                                 )
+                                
+                                # Determine appropriate status based on flow result
+                                if result in ["paused_for_field_mapping_approval", "awaiting_user_approval_in_attribute_mapping"]:
+                                    flow_status = "waiting_for_approval"
+                                    logger.info(f"✅ [ECHO] Flow paused for user approval, setting status: {flow_status}")
+                                elif result in ["discovery_completed"]:
+                                    flow_status = "completed"
+                                    logger.info(f"✅ [ECHO] Flow completed successfully, setting status: {flow_status}")
+                                elif result in ["discovery_failed"]:
+                                    flow_status = "failed"
+                                    logger.info(f"❌ [ECHO] Flow failed, setting status: {flow_status}")
+                                else:
+                                    # Default to processing for other results
+                                    flow_status = "processing"
+                                    logger.info(f"🔄 [ECHO] Flow result '{result}', setting status: {flow_status}")
+                                
                                 await fresh_repo.update_flow_status(
                                     flow_id=flow_id,
-                                    status="completed",
+                                    status=flow_status,
                                     phase_data={"completion": result}
                                 )
                         except Exception as e:
@@ -544,7 +560,7 @@ class MasterFlowOrchestrator:
                 raise ValueError(f"Phase '{phase_name}' not found in flow type '{master_flow.flow_type}'")
             
             # Check flow status - use valid statuses from DB constraint
-            if master_flow.flow_status not in ["initialized", "active", "processing"]:
+            if master_flow.flow_status not in ["initialized", "active", "processing", "waiting_for_approval"]:
                 raise InvalidFlowStateError(
                     current_state=master_flow.flow_status,
                     target_state="processing",
@@ -778,7 +794,7 @@ class MasterFlowOrchestrator:
                 raise FlowNotFoundError(flow_id)
             
             # Validate flow can be resumed
-            if master_flow.flow_status != "paused":
+            if master_flow.flow_status not in ["paused", "waiting_for_approval"]:
                 raise InvalidFlowStateError(
                     current_state=master_flow.flow_status,
                     target_state="active",
