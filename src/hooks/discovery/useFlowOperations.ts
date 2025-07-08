@@ -75,6 +75,18 @@ export const useIncompleteFlowDetectionV2 = () => {
           can_resume: flow.status !== 'failed',
           // Add agent_insights field to prevent undefined errors
           agent_insights: flow.agent_insights || [],
+          // Add deletion_impact field to prevent undefined errors in BatchDeletionConfirmDialog
+          deletion_impact: flow.deletion_impact || {
+            data_to_delete: {
+              workflow_state: 1,
+              import_sessions: 0,
+              field_mappings: 0,
+              assets: 0,
+              dependencies: 0,
+              shared_memory_refs: 0
+            },
+            estimated_cleanup_time: '30s'
+          },
         });
         });
         

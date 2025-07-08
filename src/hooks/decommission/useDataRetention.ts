@@ -55,7 +55,7 @@ export const useDataRetention = () => {
     queryFn: async () => {
       const headers = getAuthHeaders();
       const response = await apiCall('decommission/data-retention', { headers });
-      return response.data;
+      return response; // apiCall returns data directly, not wrapped in .data
     },
   });
 };
@@ -72,7 +72,7 @@ export const useCreateArchiveJob = () => {
         headers,
         body: JSON.stringify(data),
       });
-      return response.data;
+      return response; // apiCall returns data directly, not wrapped in .data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['data-retention'] });
@@ -92,7 +92,7 @@ export const useUpdateRetentionPolicy = () => {
         headers,
         body: JSON.stringify(data),
       });
-      return response.data;
+      return response; // apiCall returns data directly, not wrapped in .data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['data-retention'] });

@@ -84,7 +84,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.get("/flows/active", response_model=List[DiscoveryFlowResponse])
-@router.get("/flow/active", response_model=List[DiscoveryFlowResponse])  # Alias for frontend compatibility
 async def get_active_flows(
     context: RequestContext = Depends(get_current_context),
     db: AsyncSession = Depends(get_db)
@@ -521,18 +520,7 @@ async def get_agent_questions(
         logger.error(f"Error getting agent questions: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get agent questions: {str(e)}")
 
-@router.get("/flow/status/{flow_id}", response_model=Dict[str, Any])
-async def get_flow_status_v2(
-    flow_id: str,
-    context: RequestContext = Depends(get_current_context),
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Get status of a specific discovery flow (alternate endpoint).
-    Uses the same direct database query as the main status endpoint.
-    """
-    # Use the same implementation as get_flow_status
-    return await get_flow_status(flow_id, context, db)
+# Removed duplicate status endpoint - use /flows/{flow_id}/status instead
 
 @router.get("/flow/{flow_id}/processing-status", response_model=Dict[str, Any])
 async def get_flow_processing_status(

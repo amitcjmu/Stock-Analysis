@@ -171,7 +171,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
       if (state?.status === 'running' || state?.status === 'in_progress' || 
           state?.status === 'processing' || state?.status === 'active') {
         setPollingAttempts(prev => prev + 1);
-        return 5000; // Poll every 5 seconds when flow is active
+        return 30000; // Poll every 30 seconds when flow is active (reduced from 5s for performance)
       }
       
       // Stop polling for completed/failed states
@@ -184,7 +184,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
       return false; // Stop polling for other states
     },
     refetchIntervalInBackground: false, // Don't poll in background
-    staleTime: 1000, // Consider data stale after 1 second for real-time updates
+    staleTime: 30000, // Consider data stale after 30 seconds (increased from 1s to reduce load)
     onError: () => {
       // Stop polling on error
       setPollingEnabled(false);

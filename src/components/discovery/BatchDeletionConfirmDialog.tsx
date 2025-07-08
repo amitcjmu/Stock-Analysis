@@ -45,18 +45,20 @@ export const BatchDeletionConfirmDialog: React.FC<BatchDeletionConfirmDialogProp
     let estimatedTotalTime = 0;
 
     flows.forEach(flow => {
-      // Aggregate data deletion counts
-      Object.entries(flow.deletion_impact.data_to_delete).forEach(([key, count]) => {
-        if (typeof count === 'number') {
-          aggregated[key] = (aggregated[key] || 0) + count;
-        }
-      });
+      // Aggregate data deletion counts with safety checks
+      if (flow.deletion_impact?.data_to_delete) {
+        Object.entries(flow.deletion_impact.data_to_delete).forEach(([key, count]) => {
+          if (typeof count === 'number') {
+            aggregated[key] = (aggregated[key] || 0) + count;
+          }
+        });
+      }
 
-      // Count total insights
-      totalInsights += flow.agent_insights.length;
+      // Count total insights with safety check
+      totalInsights += flow.agent_insights?.length || 0;
 
-      // Estimate total cleanup time (rough approximation in seconds)
-      const timeStr = flow.deletion_impact.estimated_cleanup_time;
+      // Estimate total cleanup time (rough approximation in seconds) with safety checks
+      const timeStr = flow.deletion_impact?.estimated_cleanup_time || '30s';
       if (timeStr.includes('s')) {
         estimatedTotalTime += parseInt(timeStr.replace('s', '')) || 0;
       } else if (timeStr.includes('m')) {

@@ -273,13 +273,29 @@ async def store_import_data(
         if flow_success and crewai_flow_id:
             try:
                 async with AsyncSessionLocal() as update_db:
-                    from sqlalchemy import update
-                    update_stmt = update(ImportFieldMapping).where(
-                        ImportFieldMapping.data_import_id == data_import.id
-                    ).values(master_flow_id=crewai_flow_id)
-                    await update_db.execute(update_stmt)
-                    await update_db.commit()
-                    logger.info(f"✅ Updated field mappings with master_flow_id after commit: {crewai_flow_id}")
+                    # First verify the master flow exists in crewai_flow_state_extensions
+                    from sqlalchemy import select, update, func
+                    from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+                    
+                    # Check if master flow exists
+                    check_query = select(CrewAIFlowStateExtensions.flow_id).where(
+                        CrewAIFlowStateExtensions.flow_id == crewai_flow_id,
+                        CrewAIFlowStateExtensions.client_account_id == client_account_id,
+                        CrewAIFlowStateExtensions.engagement_id == engagement_id
+                    )
+                    result = await update_db.execute(check_query)
+                    master_flow_exists = result.scalar() is not None
+                    
+                    if master_flow_exists:
+                        update_stmt = update(ImportFieldMapping).where(
+                            ImportFieldMapping.data_import_id == data_import.id
+                        ).values(master_flow_id=crewai_flow_id, updated_at=func.now())
+                        await update_db.execute(update_stmt)
+                        await update_db.commit()
+                        logger.info(f"✅ Updated field mappings with master_flow_id after commit: {crewai_flow_id}")
+                    else:
+                        logger.warning(f"⚠️ Master flow {crewai_flow_id} not found in crewai_flow_state_extensions - skipping field mapping update")
+                        
             except Exception as e:
                 logger.warning(f"⚠️ Failed to update field mappings after commit (non-critical): {e}")
         

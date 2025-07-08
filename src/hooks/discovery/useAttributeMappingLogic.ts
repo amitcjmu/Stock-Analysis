@@ -20,6 +20,31 @@ export const useAttributeMappingLogic = () => {
     flowListError,
     hasEffectiveFlow
   } = useAttributeMappingFlowDetection();
+  
+  // Enhanced debugging for flow detection
+  useEffect(() => {
+    console.log('🎯 Flow Detection Debug:', {
+      urlFlowId,
+      autoDetectedFlowId,
+      effectiveFlowId,
+      hasEffectiveFlow,
+      flowListLength: flowList?.length,
+      isFlowListLoading,
+      flowListError: flowListError?.message,
+      pathname
+    });
+    
+    if (flowList && flowList.length > 0) {
+      console.log('📋 Available flows for attribute mapping:', flowList.map(f => ({
+        flow_id: f.flow_id,
+        status: f.status,
+        current_phase: f.current_phase,
+        next_phase: f.next_phase,
+        data_import_completed: f.data_import_completed,
+        attribute_mapping_completed: f.attribute_mapping_completed
+      })));
+    }
+  }, [urlFlowId, autoDetectedFlowId, effectiveFlowId, flowList, isFlowListLoading, flowListError, pathname]);
 
   // Use unified discovery flow with effective flow ID
   const {
@@ -51,9 +76,33 @@ export const useAttributeMappingLogic = () => {
   // Extract data with proper type checking and safe access
   const agenticData = useMemo(() => {
     try {
-      if (fieldMappingData && !Array.isArray(fieldMappingData) && fieldMappingData.attributes) {
-        return { attributes: Array.isArray(fieldMappingData.attributes) ? fieldMappingData.attributes : [] };
+      // Check multiple possible data structures for attributes
+      if (fieldMappingData) {
+        // Case 1: Direct attributes array
+        if (fieldMappingData.attributes && Array.isArray(fieldMappingData.attributes)) {
+          return { attributes: fieldMappingData.attributes };
+        }
+        
+        // Case 2: Flow state data with nested attributes
+        if (fieldMappingData.data?.attributes && Array.isArray(fieldMappingData.data.attributes)) {
+          return { attributes: fieldMappingData.data.attributes };
+        }
+        
+        // Case 3: Check if we have any field mapping data at all and create mock attributes
+        if (fieldMappingData.mappings || (typeof fieldMappingData === 'object' && Object.keys(fieldMappingData).length > 0)) {
+          // Generate attributes from available field mappings
+          const mappingKeys = Object.keys(fieldMappingData.mappings || fieldMappingData);
+          const mockAttributes = mappingKeys.map((key, index) => ({
+            id: `attr-${index}`,
+            name: key,
+            type: 'string',
+            required: false,
+            description: `Field: ${key}`
+          }));
+          return { attributes: mockAttributes };
+        }
       }
+      
       return { attributes: [] };
     } catch (error) {
       console.error('Error extracting agenticData:', error);
@@ -65,11 +114,12 @@ export const useAttributeMappingLogic = () => {
   const fieldMappings = useMemo(() => {
     // First try to get mappings from flow state
     if (fieldMappingData) {
-      // Handle direct field mappings structure from backend
-      if (typeof fieldMappingData === 'object' && !fieldMappingData.mappings) {
+      // Case 1: Handle direct field mappings structure from backend
+      if (typeof fieldMappingData === 'object' && !fieldMappingData.mappings && !fieldMappingData.attributes) {
         // Backend returns field_mappings directly as object with confidence_scores
         const mappingsObj = { ...fieldMappingData };
         delete mappingsObj.confidence_scores; // Remove confidence_scores from main object
+        delete mappingsObj.data; // Remove data object if present
         
         const flowStateMappings = Object.entries(mappingsObj)
           .filter(([key, value]) => key !== 'confidence_scores')
@@ -124,14 +174,22 @@ export const useAttributeMappingLogic = () => {
         flow_id: flow.flow_id,
         data_import_id: flow.data_import_id,
         status: flow.status,
+        current_phase: flow.current_phase,
+        progress: flow.progress_percentage,
         has_field_mapping: !!flow.field_mapping,
         has_field_mappings: !!flow.field_mappings,
         field_mapping_keys: flow.field_mapping ? Object.keys(flow.field_mapping) : [],
         field_mappings_keys: flow.field_mappings ? Object.keys(flow.field_mappings) : [],
         fieldMappings_length: fieldMappings?.length,
+        agenticData_length: agenticData?.attributes?.length,
         realFieldMappings_length: realFieldMappings?.length,
-        progress: flow.progress_percentage,
-        current_phase: flow.current_phase
+        fieldMappingData_structure: fieldMappingData ? {
+          type: typeof fieldMappingData,
+          hasAttributes: !!fieldMappingData.attributes,
+          hasMappings: !!fieldMappingData.mappings,
+          hasData: !!fieldMappingData.data,
+          keys: Object.keys(fieldMappingData)
+        } : null
       });
       
       // Log the full flow object to see all properties

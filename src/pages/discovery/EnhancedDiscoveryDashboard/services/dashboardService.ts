@@ -107,7 +107,7 @@ export class DashboardService {
         if (dataImport.id && !allFlows.find(f => f.flow_id === dataImport.id)) {
           try {
             // Get flow status for this import session
-            const flowStatusResponse = await apiCall(`/api/v1/discovery/flow/status?flow_id=${dataImport.id}`, {
+            const flowStatusResponse = await apiCall(`/api/v1/discovery/flows/${dataImport.id}/status`, {
               method: 'GET',
               headers: getAuthHeaders()
             });
