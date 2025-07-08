@@ -141,7 +141,8 @@ class DataValidationPhase:
                     'start_time': datetime.utcnow().isoformat(),
                     'estimated_duration': '2-3 minutes'
                 },
-                confidence="high"
+                confidence="high",
+                flow_id=self.state.flow_id
             )
         except Exception as e:
             logger.warning(f"⚠️ Could not send phase start update: {e}")
@@ -162,7 +163,8 @@ class DataValidationPhase:
                     'records_processed': total_records // 2,  # Mock progress
                     'validation_checks': ['format', 'security', 'quality']
                 },
-                confidence="high"
+                confidence="high",
+                flow_id=self.state.flow_id
             )
         except Exception as e:
             logger.warning(f"⚠️ Could not send progress update: {e}")
@@ -187,7 +189,8 @@ class DataValidationPhase:
                     'validation_results': validation_result.data,
                     'completion_time': datetime.utcnow().isoformat()
                 },
-                confidence="high"
+                confidence="high",
+                flow_id=self.state.flow_id
             )
             
             # Send detailed analysis insights
@@ -211,7 +214,7 @@ class DataValidationPhase:
                     description=security_analysis['description'],
                     supporting_data=security_analysis['data'],
                     confidence=security_analysis['confidence'],
-                    category="security"
+                    flow_id=self.state.flow_id
                 )
             
             # Analyze for privacy concerns
@@ -226,7 +229,7 @@ class DataValidationPhase:
                     description=privacy_analysis['description'],
                     supporting_data=privacy_analysis['data'],
                     confidence=privacy_analysis['confidence'],
-                    category="privacy"
+                    flow_id=self.state.flow_id
                 )
             
             # Analyze data quality
@@ -241,7 +244,7 @@ class DataValidationPhase:
                     description=quality_analysis['description'],
                     supporting_data=quality_analysis['data'],
                     confidence=quality_analysis['confidence'],
-                    category="quality"
+                    flow_id=self.state.flow_id
                 )
                 
         except Exception as e:
@@ -263,7 +266,8 @@ class DataValidationPhase:
                     'error_message': error_message,
                     'failure_time': datetime.utcnow().isoformat()
                 },
-                confidence="high"
+                confidence="high",
+                flow_id=self.state.flow_id
             )
         except Exception as e:
             logger.warning(f"⚠️ Could not send error update: {e}")

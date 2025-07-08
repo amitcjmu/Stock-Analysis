@@ -210,7 +210,8 @@ async def store_import_data(
                     target_field=field_name.lower().replace(' ', '_'),
                     confidence_score=0.8,  # Default confidence
                     match_type="direct",  # Changed from mapping_type to match_type
-                    status="suggested"  # Default status is suggested, not pending
+                    status="suggested",  # Default status is suggested, not pending
+                    master_flow_id=None  # Will be updated after flow creation
                 )
                 db.add(field_mapping)
         
@@ -220,7 +221,9 @@ async def store_import_data(
         data_import.processed_records = records_stored
         data_import.completed_at = datetime.utcnow()
         
+        # Commit data import and field mappings before triggering flow
         await db.commit()
+        logger.info("✅ Committed data import and field mappings to database")
         
         # 🚀 Trigger Discovery Flow immediately after successful storage
         crewai_flow_id = None  # Initialize to None
@@ -254,12 +257,38 @@ async def store_import_data(
             data_import.status = "discovery_initiated"
             message = f"Successfully stored {records_stored} records and initiated Discovery Flow"
             logger.info(f"✅ Successfully stored {records_stored} field mappings and initiated discovery flow for import {data_import.id}")
+            
+            # Update field mappings with master_flow_id using fresh session
+            if crewai_flow_id:
+                from sqlalchemy import update
+                try:
+                    async with AsyncSessionLocal() as fresh_db:
+                        update_stmt = update(ImportFieldMapping).where(
+                            ImportFieldMapping.data_import_id == data_import.id
+                        ).values(master_flow_id=crewai_flow_id)
+                        await fresh_db.execute(update_stmt)
+                        await fresh_db.commit()
+                        logger.info(f"✅ Updated field mappings with master_flow_id: {crewai_flow_id}")
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to update field mappings with master_flow_id: {e}")
         else:
             data_import.status = "discovery_failed"
             message = f"Data stored ({records_stored} records) but Discovery Flow failed: {flow_error_message}"
             logger.error(f"❌ Data import stored but discovery flow failed for import {data_import.id}: {flow_error_message}")
         
-        await db.commit()
+        # Update status using fresh session since main transaction was already committed
+        try:
+            async with AsyncSessionLocal() as fresh_db:
+                from sqlalchemy import select
+                fresh_import_query = select(DataImport).where(DataImport.id == data_import.id)
+                fresh_import_result = await fresh_db.execute(fresh_import_query)
+                fresh_import = fresh_import_result.scalar_one_or_none()
+                if fresh_import:
+                    fresh_import.status = data_import.status
+                    await fresh_db.commit()
+                    logger.info(f"✅ Updated import status to: {data_import.status}")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to update final import status: {e}")
         
         return ImportStorageResponse(
             success=flow_success,  # Only success if flow succeeded
@@ -333,75 +362,9 @@ async def _trigger_discovery_flow(
                 master_flow_id = flow_result[0]
                 logger.info(f"✅ Discovery flow created via orchestrator: {master_flow_id}")
                 
-                # PHASE 2 FIX: Link DataImport and RawImportRecord back to master flow
-                # Transaction safety for linking operations
-                link_savepoint = None
-                try:
-                    # Create savepoint for linking operations
-                    link_savepoint = await db.begin_nested()
-                    logger.info(f"🔗 Starting master flow linkage transaction for import {data_import_id}")
-                    
-                    # Update DataImport with master_flow_id if the column exists
-                    logger.info(f"🔗 Linking DataImport {data_import_id} to master flow {master_flow_id}")
-                    
-                    # Check if master_flow_id column exists in DataImport
-                    data_import_query = select(DataImport).where(DataImport.id == data_import_id)
-                    data_import_result = await db.execute(data_import_query)
-                    data_import = data_import_result.scalar_one_or_none()
-                    
-                    if data_import:
-                        # Try to set master_flow_id if the attribute exists
-                        if hasattr(data_import, 'master_flow_id'):
-                            data_import.master_flow_id = master_flow_id
-                            logger.info(f"✅ Updated DataImport.master_flow_id to {master_flow_id}")
-                        else:
-                            logger.info(f"ℹ️ DataImport.master_flow_id column not yet available (schema pending)")
-                        
-                        # Update with discovery flow linkage data
-                        data_import.discovery_flow_id = master_flow_id
-                        data_import.status = "discovery_initiated"
-                        data_import.updated_at = datetime.utcnow()
-                        
-                        # Update RawImportRecord entries with master_flow_id if column exists
-                        logger.info(f"🔗 Linking RawImportRecord entries to master flow {master_flow_id}")
-                        
-                        raw_records_query = select(RawImportRecord).where(
-                            RawImportRecord.data_import_id == data_import_id
-                        )
-                        raw_records_result = await db.execute(raw_records_query)
-                        raw_records = raw_records_result.scalars().all()
-                        
-                        updated_records = 0
-                        for record in raw_records:
-                            # Try to set master_flow_id if the attribute exists
-                            if hasattr(record, 'master_flow_id'):
-                                record.master_flow_id = master_flow_id
-                                updated_records += 1
-                            else:
-                                logger.debug(f"ℹ️ RawImportRecord.master_flow_id column not yet available (schema pending)")
-                        
-                        if updated_records > 0:
-                            logger.info(f"✅ Updated {updated_records} RawImportRecord entries with master_flow_id")
-                        
-                        # Commit the linking transaction
-                        await link_savepoint.commit()
-                        logger.info(f"✅ Successfully linked import data to master flow {master_flow_id}")
-                        
-                    else:
-                        logger.error(f"❌ DataImport record not found: {data_import_id}")
-                        await link_savepoint.rollback()
-                        
-                except Exception as link_error:
-                    logger.error(f"❌ Failed to link import data to master flow: {link_error}")
-                    if link_savepoint:
-                        try:
-                            await link_savepoint.rollback()
-                            logger.info(f"🔄 Rolled back master flow linkage transaction")
-                        except Exception as rollback_error:
-                            logger.error(f"❌ Failed to rollback linkage transaction: {rollback_error}")
-                    # Don't fail the entire operation, just log the error
-                    # The flow will still work, just without the linkage
-                    logger.warning(f"⚠️ Continuing without master flow linkage due to error")
+                # Master flow created successfully - linkage will be handled by caller
+                logger.info(f"✅ Master flow {master_flow_id} created successfully for import {data_import_id}")
+                logger.info(f"ℹ️ Data import linkage will be handled by caller using fresh database session")
                 
                 return master_flow_id
             else:

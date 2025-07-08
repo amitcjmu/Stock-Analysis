@@ -62,7 +62,7 @@ class BasePhaseExecutor(ABC):
             from app.services.agent_ui_bridge import agent_ui_bridge
             flow_id = getattr(self.state, 'flow_id', None)
             
-            from app.services.agent_ui_bridge_models import ConfidenceLevel
+            from app.services.models.agent_communication import ConfidenceLevel
             agent_ui_bridge.add_agent_insight(
                 agent_id=f"{phase_name}_executor",
                 agent_name=f"{phase_name.replace('_', ' ').title()} Phase",
@@ -151,7 +151,7 @@ class BasePhaseExecutor(ABC):
                 from app.services.agent_ui_bridge import agent_ui_bridge
                 flow_id = getattr(self.state, 'flow_id', None)
                 
-                from app.services.agent_ui_bridge_models import ConfidenceLevel
+                from app.services.models.agent_communication import ConfidenceLevel
                 agent_ui_bridge.add_agent_insight(
                     agent_id=f"{phase_name}_executor",
                     agent_name=f"{phase_name.replace('_', ' ').title()} Phase",

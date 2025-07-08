@@ -212,7 +212,7 @@ class MasterFlowOrchestrator:
                                 status="initialized",
                                 current_phase="initialization",
                                 progress_percentage=0.0,
-                                created_by=self.context.user_id or "system",
+                                user_id=self.context.user_id or "system",
                                 master_flow_id=flow_id,  # Link to master flow
                                 data_import_id=initial_state.get("data_import_id") if initial_state else None
                             )
@@ -1014,7 +1014,9 @@ class MasterFlowOrchestrator:
             
             if include_details:
                 # Get agent insights for this flow
+                logger.info(f"🔍 Getting agent insights for flow {flow_id} (type: {master_flow.flow_type})")
                 agent_insights = await self._get_flow_agent_insights(flow_id, master_flow.flow_type)
+                logger.info(f"🔍 Retrieved {len(agent_insights)} agent insights for flow {flow_id}")
                 
                 # Add detailed information
                 status.update({
@@ -1065,6 +1067,7 @@ class MasterFlowOrchestrator:
         """
         try:
             insights = []
+            logger.info(f"🔍 _get_flow_agent_insights called for flow_id={flow_id}, flow_type={flow_type}")
             
             # Try to get insights from agent_ui_bridge service
             try:
@@ -1073,24 +1076,36 @@ class MasterFlowOrchestrator:
                 
                 # Get insights by page context based on flow type
                 page_context = "discovery" if flow_type == "discovery" else "assessment" if flow_type == "assessment" else "general"
+                logger.info(f"🔍 Searching for insights with page_context: {page_context}")
                 bridge_insights = bridge.get_insights_for_page(page_context)
                 
                 # Also get flow-specific insights
                 flow_page_context = f"flow_{flow_id}"
+                logger.info(f"🔍 Searching for flow-specific insights with page_context: {flow_page_context}")
                 flow_insights = bridge.get_insights_for_page(flow_page_context)
                 
                 if bridge_insights:
                     logger.info(f"🔗 Found {len(bridge_insights)} insights from agent_ui_bridge for {flow_type} flow")
-                    # Filter insights by flow_id if available
+                    # Filter insights by flow_id if available, or include those with null flow_id for the flow type
                     flow_specific_insights = [
                         insight for insight in bridge_insights 
-                        if insight.get("flow_id") == flow_id or insight.get("flow_id") is None
+                        if insight.get("flow_id") == flow_id or 
+                           (insight.get("flow_id") is None and insight.get("page") == page_context)
                     ]
                     insights.extend(flow_specific_insights)
+                    logger.info(f"🔍 Filtered {len(flow_specific_insights)} flow-specific insights for flow {flow_id} from {len(bridge_insights)} total insights")
+                    if len(flow_specific_insights) > 0:
+                        logger.info(f"🔍 Sample insight: {flow_specific_insights[0]}")
+                else:
+                    logger.info(f"🔍 No bridge insights found for page_context: {page_context}")
                 
                 if flow_insights:
                     logger.info(f"🔗 Found {len(flow_insights)} flow-specific insights for flow {flow_id}")
                     insights.extend(flow_insights)
+                    if len(flow_insights) > 0:
+                        logger.info(f"🔍 Sample flow insight: {flow_insights[0]}")
+                else:
+                    logger.info(f"🔍 No flow-specific insights found for page_context: {flow_page_context}")
                     
             except Exception as e:
                 logger.warning(f"⚠️ Could not get insights from agent_ui_bridge: {e}")
@@ -1102,28 +1117,83 @@ class MasterFlowOrchestrator:
                     flow_data = master_flow.flow_persistence_data
                     
                     # Check if there are agent insights stored in the flow data
+                    flow_insights_found = []
+                    
+                    # Look for agent insights in multiple possible locations
                     if "agent_insights" in flow_data:
                         flow_insights = flow_data["agent_insights"]
                         if isinstance(flow_insights, list):
-                            insights.extend(flow_insights)
-                            logger.info(f"📊 Found {len(flow_insights)} insights from flow persistence data")
+                            flow_insights_found.extend(flow_insights)
+                            logger.info(f"📊 Found {len(flow_insights)} insights from flow_data.agent_insights")
+                    
+                    # Check for insights in nested structures (like crewai_state_data)
+                    if "crewai_state_data" in flow_data and isinstance(flow_data["crewai_state_data"], dict):
+                        crewai_data = flow_data["crewai_state_data"]
+                        if "agent_insights" in crewai_data and isinstance(crewai_data["agent_insights"], list):
+                            nested_insights = crewai_data["agent_insights"]
+                            # Transform nested insights to standard format
+                            for insight in nested_insights:
+                                if isinstance(insight, dict):
+                                    # Convert from nested format to standard format
+                                    standardized_insight = {
+                                        "id": f"nested-{flow_id}-{len(flow_insights_found)}",
+                                        "agent_id": insight.get("agent", "unknown").lower().replace(" ", "_"),
+                                        "agent_name": insight.get("agent", "Unknown Agent"),
+                                        "insight_type": "agent_analysis",
+                                        "title": insight.get("insight", "")[:50] + "..." if len(insight.get("insight", "")) > 50 else insight.get("insight", ""),
+                                        "description": insight.get("insight", "No description available"),
+                                        "confidence": insight.get("confidence", 0.5),
+                                        "supporting_data": {
+                                            "flow_id": flow_id,
+                                            "timestamp": insight.get("timestamp"),
+                                            "original_data": insight
+                                        },
+                                        "actionable": True,
+                                        "page": f"flow_{flow_id}",
+                                        "created_at": insight.get("timestamp"),
+                                        "flow_id": flow_id
+                                    }
+                                    flow_insights_found.append(standardized_insight)
+                            logger.info(f"📊 Found {len(nested_insights)} insights from crewai_state_data.agent_insights")
+                    
+                    # Add all found insights
+                    if flow_insights_found:
+                        insights.extend(flow_insights_found)
+                        logger.info(f"📊 Total {len(flow_insights_found)} insights extracted from flow persistence data")
                     
                     # Generate insights from flow state
-                    if master_flow.flow_status and master_flow.current_phase:
+                    # Check multiple locations for current phase and progress
+                    current_phase = flow_data.get("current_phase")
+                    progress_percentage = flow_data.get("progress_percentage", 0.0)
+                    
+                    # Also check nested crewai_state_data
+                    if not current_phase and "crewai_state_data" in flow_data:
+                        crewai_data = flow_data["crewai_state_data"]
+                        if isinstance(crewai_data, dict):
+                            current_phase = crewai_data.get("current_phase")
+                            if not progress_percentage:
+                                progress_percentage = crewai_data.get("progress_percentage", 0.0)
+                    
+                    # Default if still not found
+                    current_phase = current_phase or "unknown"
+                    
+                    logger.info(f"🔍 Flow status insight: phase={current_phase}, progress={progress_percentage}, status={master_flow.flow_status}")
+                    
+                    if master_flow.flow_status:
                         insights.append({
                             "id": f"flow-status-{flow_id}",
                             "agent_id": "flow-orchestrator",
                             "agent_name": "Flow Orchestrator",
                             "insight_type": "flow_status",
                             "title": f"Flow Status: {master_flow.flow_status.title()}",
-                            "description": f"Flow is currently in {getattr(master_flow, 'current_phase', 'unknown')} phase with {master_flow.flow_status} status",
+                            "description": f"Flow is currently in {current_phase} phase with {master_flow.flow_status} status",
                             "confidence": "high",
                             "supporting_data": {
                                 "flow_id": flow_id,
                                 "flow_type": flow_type,
                                 "status": master_flow.flow_status,
-                                "phase": getattr(master_flow, 'current_phase', 'unknown'),
-                                "progress": getattr(master_flow, 'progress_percentage', 0.0)
+                                "phase": current_phase,
+                                "progress": progress_percentage
                             },
                             "actionable": master_flow.flow_status in ["paused", "error"],
                             "page": "discovery" if flow_type == "discovery" else "assessment",

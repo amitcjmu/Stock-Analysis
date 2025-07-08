@@ -263,7 +263,7 @@ class UnifiedDiscoveryFlow(Flow):
             }
             
             # Add to agent-ui-bridge
-            from app.services.agent_ui_bridge_models import ConfidenceLevel
+            from app.services.models.agent_communication import ConfidenceLevel
             agent_ui_bridge.add_agent_insight(
                 agent_id=insight["agent_id"],
                 agent_name=insight["agent_name"],
@@ -546,7 +546,7 @@ class UnifiedDiscoveryFlow(Flow):
             }
             
             # Add to both agent-ui-bridge and flow state
-            from app.services.agent_ui_bridge_models import ConfidenceLevel
+            from app.services.models.agent_communication import ConfidenceLevel
             agent_ui_bridge.add_agent_insight(
                 agent_id=insight["agent_id"],
                 agent_name=insight["agent_name"],

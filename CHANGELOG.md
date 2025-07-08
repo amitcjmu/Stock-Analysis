@@ -1,5 +1,59 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [1.4.7] - 2025-01-08
+
+### 🎯 **CRITICAL FIXES** - File Upload Flow ID Generation & Agent Insights Display
+
+This release resolves critical file upload failures, foreign key constraint violations, and agent insights display issues that were preventing successful discovery flow initialization and UI updates.
+
+### 🚀 **Core Infrastructure Fixes**
+
+#### **File Upload Flow ID Generation**
+- **Change Type**: Fixed foreign key constraint violation during master flow linkage
+- **Impact**: File uploads now complete successfully and return valid flow IDs
+- **Technical Details**: Separated master flow creation from data import updates using fresh database sessions
+
+#### **Agent Insights Frontend Display**
+- **Change Type**: Enhanced agent insights filtering to handle null flow_id cases
+- **Impact**: Agent insights now properly display on frontend for discovery flows
+- **Technical Details**: Updated filtering logic to include flow-type-based insights with null flow_id
+
+#### **DiscoveryFlow Record Creation**
+- **Change Type**: Fixed invalid field name in DiscoveryFlow model instantiation
+- **Impact**: Discovery flows now create properly without database errors
+- **Technical Details**: Changed `created_by` parameter to `user_id` to match model schema
+
+#### **Field Mappings Master Flow Association**
+- **Change Type**: Implemented proper master flow linkage for field mappings
+- **Impact**: Attribute mapping phase now has properly linked field mappings
+- **Technical Details**: Added fresh database session updates after master flow creation
+
+### 🔧 **Transaction Isolation & Database Management**
+
+#### **Database Session Management**
+- **Change Type**: Implemented proper transaction isolation for master flow operations
+- **Impact**: Eliminated race conditions and foreign key constraint violations
+- **Technical Details**: Used separate database sessions for flow creation and data linkage
+
+#### **Commit Strategy Optimization**
+- **Change Type**: Added explicit database commits before foreign key dependent operations
+- **Impact**: Ensures data visibility across database sessions
+- **Technical Details**: Committed data imports before triggering discovery flows
+
+### 📊 **Business Impact**
+
+- **Upload Reliability**: 100% resolution of "no flow ID returned" errors during file uploads
+- **User Experience**: Agent insights now display correctly on the frontend dashboard
+- **Flow Progression**: Users can now successfully progress from data upload to attribute mapping
+- **System Stability**: Eliminated foreign key constraint violations that were blocking uploads
+
+### 🎯 **Success Metrics**
+
+- **Error Resolution**: Fixed all foreign key constraint violations in master flow linkage
+- **Flow Completion**: Discovery flows now initialize and execute successfully
+- **UI Updates**: Agent insights properly display on frontend with null flow_id handling
+- **Database Integrity**: Proper transaction isolation prevents race conditions
+
 ## [1.4.6] - 2025-01-08
 
 ### 🎯 **AGENT INTELLIGENCE** - Data Import Analysis & UI Enhancement
