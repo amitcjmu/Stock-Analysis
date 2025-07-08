@@ -74,7 +74,8 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
         user_id: str = None,
         flow_name: str = None,
         flow_configuration: Dict[str, Any] = None,
-        initial_state: Dict[str, Any] = None
+        initial_state: Dict[str, Any] = None,
+        auto_commit: bool = True  # Allow controlling transaction behavior
     ) -> CrewAIFlowStateExtensions:
         """Create master flow record - this must be called before creating specific flow types"""
         
@@ -122,10 +123,17 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
         )
         
         self.db.add(master_flow)
-        await self.db.commit()
-        await self.db.refresh(master_flow)
         
-        logger.info(f"✅ Master flow created: flow_id={flow_id}, type={flow_type}")
+        # FIX: Allow controlling transaction behavior for atomic operations
+        if auto_commit:
+            await self.db.commit()
+            await self.db.refresh(master_flow)
+            logger.info(f"✅ Master flow created with commit: flow_id={flow_id}, type={flow_type}")
+        else:
+            await self.db.flush()
+            await self.db.refresh(master_flow)
+            logger.info(f"✅ Master flow created with flush: flow_id={flow_id}, type={flow_type}")
+        
         return master_flow
     
     async def get_by_flow_id(self, flow_id: str) -> Optional[CrewAIFlowStateExtensions]:

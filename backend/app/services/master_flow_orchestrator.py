@@ -143,15 +143,20 @@ class MasterFlowOrchestrator:
             # Generate CrewAI flow ID
             flow_id = str(uuid.uuid4())
             
-            # Create master flow record
+            # Create master flow record (without auto-commit for atomic operations)
             master_flow = await self.master_repo.create_master_flow(
                 flow_id=flow_id,
                 flow_type=flow_type,
                 user_id=self.context.user_id or "system",
                 flow_name=flow_name or flow_config.display_name,
                 flow_configuration=configuration or flow_config.default_configuration,
-                initial_state=initial_state or {}
+                initial_state=initial_state or {},
+                auto_commit=False  # FIX: Don't commit here - let the calling transaction manage commits
             )
+            
+            # CRITICAL: Ensure the master flow record is flushed and visible for foreign key references
+            await self.db.flush()
+            logger.info(f"✅ Master flow record flushed for foreign key visibility: {flow_id}")
             
             # Execute flow-specific initialization
             if flow_config.initialization_handler:

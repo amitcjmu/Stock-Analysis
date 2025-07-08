@@ -239,18 +239,9 @@ async def store_import_data(
             )
             
             if crewai_flow_id:
-                # Update field mappings with master_flow_id in same transaction
-                from sqlalchemy import update
-                update_stmt = update(ImportFieldMapping).where(
-                    ImportFieldMapping.data_import_id == data_import.id
-                ).values(master_flow_id=crewai_flow_id)
-                await db.execute(update_stmt)
-                
-                # CRITICAL: Flush to ensure data is visible within transaction
-                await db.flush()
-                logger.info(f"✅ Created master flow and updated field mappings atomically (flushed): {crewai_flow_id}")
-                
+                # FIX: Don't update field mappings here - defer to after commit to avoid FK constraint issues
                 flow_success = True
+                logger.info(f"✅ Master flow created successfully - field mappings will be updated after commit: {crewai_flow_id}")
             else:
                 logger.error("❌ CrewAI Discovery Flow FAILED - no flow_id returned")
                 flow_success = False
@@ -277,6 +268,20 @@ async def store_import_data(
         # ATOMIC COMMIT: Commit all operations (import, flow, field mappings) as single transaction
         await db.commit()
         logger.info(f"✅ Atomic commit completed - import status: {data_import.status}, flow_id: {crewai_flow_id}")
+        
+        # Update field mappings with master_flow_id AFTER successful commit to avoid FK constraint issues
+        if flow_success and crewai_flow_id:
+            try:
+                async with AsyncSessionLocal() as update_db:
+                    from sqlalchemy import update
+                    update_stmt = update(ImportFieldMapping).where(
+                        ImportFieldMapping.data_import_id == data_import.id
+                    ).values(master_flow_id=crewai_flow_id)
+                    await update_db.execute(update_stmt)
+                    await update_db.commit()
+                    logger.info(f"✅ Updated field mappings with master_flow_id after commit: {crewai_flow_id}")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to update field mappings after commit (non-critical): {e}")
         
         # Start background flow execution AFTER successful commit
         if flow_success and crewai_flow_id:
