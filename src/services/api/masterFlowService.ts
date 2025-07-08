@@ -35,6 +35,24 @@ export interface FlowStatusResponse {
   phaseDetails: Record<string, any>;
   errors: string[];
   metadata: Record<string, any>;
+  agent_insights?: Array<{
+    id: string;
+    agent_id: string;
+    agent_name: string;
+    insight_type: string;
+    title: string;
+    description: string;
+    confidence: string | number;
+    supporting_data: Record<string, any>;
+    actionable: boolean;
+    page: string;
+    created_at: string;
+    flow_id?: string;
+    category?: string;
+    message?: string;
+    recommendation?: string;
+    severity?: string;
+  }>;
 }
 
 /**

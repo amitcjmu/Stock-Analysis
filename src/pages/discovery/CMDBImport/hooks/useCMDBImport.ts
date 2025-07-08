@@ -206,10 +206,12 @@ export const useCMDBImport = () => {
       return;
     }
 
-    navigate(`/discovery/data-import`);
+    // Navigate to attribute mapping phase (next step after data import)
+    const route = getDiscoveryPhaseRoute('attribute_mapping', uploadedFile.flow_id);
+    navigate(route);
     toast({
       title: "Starting Discovery Flow",
-      description: "Initiating AI-powered analysis of your uploaded data.",
+      description: "Navigating to attribute mapping phase.",
     });
   }, [uploadedFiles, navigate, toast]);
 

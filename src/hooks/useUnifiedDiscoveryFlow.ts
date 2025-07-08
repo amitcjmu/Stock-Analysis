@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import masterFlowServiceExtended from '../services/api/masterFlowService.extensions';
+import type { FlowStatusResponse } from '../services/api/masterFlowService';
 
 // Types for UnifiedDiscoveryFlow
 interface UnifiedDiscoveryFlowState {
@@ -45,8 +46,31 @@ interface UseUnifiedDiscoveryFlowReturn {
 // Use extended master flow service for all API calls
 const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string) => ({
   async getFlowStatus(flowId: string): Promise<UnifiedDiscoveryFlowState> {
-    const response = await masterFlowServiceExtended.getFlowStatus(flowId, clientAccountId, engagementId);
-    return response as any; // Cast to expected type
+    const response: FlowStatusResponse = await masterFlowServiceExtended.getFlowStatus(flowId, clientAccountId, engagementId);
+    
+    // Map backend response to frontend format
+    return {
+      flow_id: response.flow_id || response.flowId || flowId,
+      client_account_id: clientAccountId,
+      engagement_id: engagementId || '',
+      user_id: '',
+      current_phase: response.phase || response.currentPhase || '',
+      phase_completion: {},
+      crew_status: {},
+      raw_data: [],
+      field_mappings: {},
+      cleaned_data: [],
+      asset_inventory: {},
+      dependencies: {},
+      technical_debt: {},
+      agent_insights: response.agent_insights || [],
+      status: response.status || 'unknown',
+      progress_percentage: response.progress_percentage || response.progress || 0,
+      errors: response.errors || [],
+      warnings: [],
+      created_at: response.created_at || '',
+      updated_at: response.updated_at || ''
+    };
   },
 
   async initializeFlow(data: any): Promise<any> {
