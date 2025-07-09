@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiCall } from '@/config/api';
 import { useRef } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AgentQuestion {
   id: string;
@@ -34,6 +35,7 @@ interface AgentQuestionResponse {
 export const useAgentQuestions = (page: string = "dependencies") => {
   const consecutiveErrors = useRef<number>(0);
   const maxConsecutiveErrors = 3;
+  const { isAuthenticated, client, engagement } = useAuth();
 
   return useQuery<AgentQuestionsResponse>({
     queryKey: ['agent-questions', page],
@@ -52,6 +54,12 @@ export const useAgentQuestions = (page: string = "dependencies") => {
           return { questions: [], total: 0 };
         }
         
+        // Handle 403 auth errors gracefully - auth context may not be ready
+        if (err.status === 403 || err.response?.status === 403) {
+          console.log('Agent questions endpoint requires authentication - context may not be ready yet');
+          return { questions: [], total: 0 };
+        }
+        
         // Stop polling after max consecutive errors
         if (consecutiveErrors.current >= maxConsecutiveErrors) {
           console.warn(`🚫 Stopping agent questions polling after ${maxConsecutiveErrors} consecutive failures`);
@@ -60,12 +68,13 @@ export const useAgentQuestions = (page: string = "dependencies") => {
         throw err;
       }
     },
+    enabled: isAuthenticated && !!client && !!engagement, // Only run query when authenticated with context
     staleTime: 30 * 1000, // 30 seconds
     refetchInterval: consecutiveErrors.current >= maxConsecutiveErrors ? false : 30 * 1000, // Stop polling on errors
     refetchOnWindowFocus: false,
     retry: (failureCount, error) => {
-      // Don't retry 404 errors
-      if (error && ('status' in error && error.status === 404)) {
+      // Don't retry 404 or 403 errors
+      if (error && ('status' in error && (error.status === 404 || error.status === 403))) {
         return false;
       }
       return failureCount < 2 && consecutiveErrors.current < maxConsecutiveErrors;
@@ -98,6 +107,7 @@ export const useAnswerAgentQuestion = () => {
 export const useAgentInsights = (page: string = "dependencies") => {
   const consecutiveErrors = useRef<number>(0);
   const maxConsecutiveErrors = 3;
+  const { isAuthenticated, client, engagement } = useAuth();
 
   return useQuery({
     queryKey: ['agent-insights', page],
@@ -116,6 +126,12 @@ export const useAgentInsights = (page: string = "dependencies") => {
           return { insights: [], total: 0 };
         }
         
+        // Handle 403 auth errors gracefully - auth context may not be ready
+        if (err.status === 403 || err.response?.status === 403) {
+          console.log('Agent insights endpoint requires authentication - context may not be ready yet');
+          return { insights: [], total: 0 };
+        }
+        
         // Stop polling after max consecutive errors
         if (consecutiveErrors.current >= maxConsecutiveErrors) {
           console.warn(`🚫 Stopping agent insights polling after ${maxConsecutiveErrors} consecutive failures`);
@@ -124,12 +140,13 @@ export const useAgentInsights = (page: string = "dependencies") => {
         throw err;
       }
     },
+    enabled: isAuthenticated && !!client && !!engagement, // Only run query when authenticated with context
     staleTime: 60 * 1000, // 1 minute
     refetchInterval: consecutiveErrors.current >= maxConsecutiveErrors ? false : 60 * 1000, // Stop polling on errors
     refetchOnWindowFocus: false,
     retry: (failureCount, error) => {
-      // Don't retry 404 errors
-      if (error && ('status' in error && error.status === 404)) {
+      // Don't retry 404 or 403 errors
+      if (error && ('status' in error && (error.status === 404 || error.status === 403))) {
         return false;
       }
       return failureCount < 2 && consecutiveErrors.current < maxConsecutiveErrors;
@@ -142,6 +159,7 @@ export const useAgentInsights = (page: string = "dependencies") => {
 export const useAgentStatus = () => {
   const consecutiveErrors = useRef<number>(0);
   const maxConsecutiveErrors = 3;
+  const { isAuthenticated, client, engagement } = useAuth();
 
   return useQuery({
     queryKey: ['agent-status'],
@@ -160,6 +178,12 @@ export const useAgentStatus = () => {
           return { agents: [], status: 'unknown' };
         }
         
+        // Handle 403 auth errors gracefully - auth context may not be ready
+        if (err.status === 403 || err.response?.status === 403) {
+          console.log('Agent status endpoint requires authentication - context may not be ready yet');
+          return { agents: [], status: 'unknown' };
+        }
+        
         // Stop polling after max consecutive errors
         if (consecutiveErrors.current >= maxConsecutiveErrors) {
           console.warn(`🚫 Stopping agent status polling after ${maxConsecutiveErrors} consecutive failures`);
@@ -168,12 +192,13 @@ export const useAgentStatus = () => {
         throw err;
       }
     },
+    enabled: isAuthenticated && !!client && !!engagement, // Only run query when authenticated with context
     staleTime: 30 * 1000, // 30 seconds
     refetchInterval: consecutiveErrors.current >= maxConsecutiveErrors ? false : 30 * 1000, // Stop polling on errors
     refetchOnWindowFocus: false,
     retry: (failureCount, error) => {
-      // Don't retry 404 errors
-      if (error && ('status' in error && error.status === 404)) {
+      // Don't retry 404 or 403 errors
+      if (error && ('status' in error && (error.status === 404 || error.status === 403))) {
         return false;
       }
       return failureCount < 2 && consecutiveErrors.current < maxConsecutiveErrors;
@@ -186,6 +211,7 @@ export const useAgentStatus = () => {
 export const useConfidenceScores = (page: string = "dependencies") => {
   const consecutiveErrors = useRef<number>(0);
   const maxConsecutiveErrors = 3;
+  const { isAuthenticated, client, engagement } = useAuth();
 
   return useQuery({
     queryKey: ['confidence-scores', page],
@@ -198,6 +224,12 @@ export const useConfidenceScores = (page: string = "dependencies") => {
         consecutiveErrors.current += 1;
         console.error(`❌ Confidence scores fetch error (attempt ${consecutiveErrors.current}):`, err);
         
+        // Handle 403 auth errors gracefully - auth context may not be ready
+        if (err.status === 403 || err.response?.status === 403) {
+          console.log('Confidence scores endpoint requires authentication - context may not be ready yet');
+          return { confidence_scores: [], total: 0 };
+        }
+        
         // Stop polling after max consecutive errors
         if (consecutiveErrors.current >= maxConsecutiveErrors) {
           console.warn(`🚫 Stopping confidence scores polling after ${maxConsecutiveErrors} consecutive failures`);
@@ -206,10 +238,15 @@ export const useConfidenceScores = (page: string = "dependencies") => {
         throw err;
       }
     },
+    enabled: isAuthenticated && !!client && !!engagement, // Only run query when authenticated with context
     staleTime: 45 * 1000, // 45 seconds
     refetchInterval: consecutiveErrors.current >= maxConsecutiveErrors ? false : 45 * 1000, // Stop polling on errors
     refetchOnWindowFocus: false,
     retry: (failureCount, error) => {
+      // Don't retry 403 errors
+      if (error && ('status' in error && error.status === 403)) {
+        return false;
+      }
       return failureCount < 2 && consecutiveErrors.current < maxConsecutiveErrors;
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),

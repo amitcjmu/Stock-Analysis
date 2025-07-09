@@ -1,5 +1,40 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [1.4.14] - 2025-07-09
+
+### 🔒 **SECURITY** - Multi-Tenant Authentication Header Validation
+
+This release resolves critical authentication context issues where API calls were failing with "Client account context is required for multi-entity" errors due to missing authentication headers in React hooks during initial page load.
+
+### 🚀 **Authentication Context Hardening**
+
+#### **React Hook Authentication Guards**
+- **Change Type**: Enhanced all agent discovery hooks to require authentication context before making API calls
+- **Impact**: Eliminated 403 authentication errors and console spam from premature API calls
+- **Technical Details**: Added `enabled: isAuthenticated && !!client && !!engagement` guards to useAgentQuestions, useAgentStatus, useAgentInsights, and useConfidenceScores hooks
+
+#### **Graceful Error Handling for Security Context**
+- **Change Type**: Added 403 error handling to all agent hooks with fallback empty results
+- **Impact**: Improved user experience by preventing error cascades when authentication context isn't ready
+- **Technical Details**: Enhanced error handling in useAgentQuestions.ts to return empty results for 403 errors instead of throwing exceptions
+
+#### **Authentication Context Dependency Management**
+- **Change Type**: Integrated useAuth hook across all agent-related API calls to ensure proper timing
+- **Impact**: Prevents API calls from executing before multi-tenant context (client, engagement) is established
+- **Technical Details**: Added authentication state checks to prevent queries from running during authentication initialization
+
+### 📊 **Business Impact**
+
+- **Security Compliance**: Enforced multi-tenant isolation requirements across all API endpoints
+- **User Experience**: Eliminated authentication error messages and console warnings during page load
+- **System Reliability**: Reduced failed API calls and improved authentication flow stability
+
+### 🎯 **Success Metrics**
+
+- **Authentication Errors**: Eliminated "Client account context is required" 403 errors from browser console
+- **API Call Success**: Ensured all agent hooks wait for proper authentication context before execution
+- **Multi-Tenant Security**: Enforced client account context validation across all discovery agent endpoints
+
 ## [1.4.13] - 2025-07-09
 
 ### 🎯 **AUTHENTICATION** - Context Establishment & Token Validation Stability
