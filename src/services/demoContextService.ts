@@ -82,7 +82,7 @@ class DemoContextService {
       console.log('🔄 Fetching demo context from backend...');
       
       // Try to fetch user's available contexts
-      const clientsResponse = await apiCall('/context/clients', {}, false);
+      const clientsResponse = await apiCall('/api/v1/context-establishment/clients', {}, false);
       
       if (clientsResponse && Array.isArray(clientsResponse)) {
         // Check if user has access to demo client
@@ -96,7 +96,7 @@ class DemoContextService {
           
           // Fetch engagements for demo client
           const engagementsResponse = await apiCall(
-            `/context/engagements?client_account_id=${demoClient.id}`,
+            `/api/v1/context-establishment/engagements?client_id=${demoClient.id}`,
             {},
             false
           );

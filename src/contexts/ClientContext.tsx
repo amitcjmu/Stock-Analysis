@@ -70,7 +70,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         
         if (clientId) {
           // Try to get the specific client
-          const response = await apiCall(`/context/clients/${clientId}`);
+          const response = await apiCall(`/api/v1/context-establishment/clients/${clientId}`);
 
         if (response.client) {
           setCurrentClient(response.client);
@@ -79,12 +79,13 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           }
         }
 
-        // If no client ID in session or client not found, get default client
-        const defaultResponse = await apiCall('/context/clients/default');
+        // If no client ID in session or client not found, fetch all clients to get first one
+        const response = await apiCall('/api/v1/context-establishment/clients', {}, false);
 
-        if (defaultResponse) {
-          sessionStorage.setItem(CLIENT_KEY, defaultResponse.id);
-          setCurrentClient(defaultResponse);
+        if (response.clients && response.clients.length > 0) {
+          const firstClient = response.clients[0];
+          sessionStorage.setItem(CLIENT_KEY, firstClient.id);
+          setCurrentClient(firstClient);
         } else {
           sessionStorage.removeItem(CLIENT_KEY);
           setCurrentClient(null);
@@ -120,20 +121,11 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const fetchClients = async () => {
         setIsLoading(true);
         try {
-          // First try to get default client
-          try {
-            const defaultResponse = await apiCall('/context/clients/default', {}, false);
-            if (defaultResponse && defaultResponse.id) {
-              console.log('✅ Got default client:', defaultResponse.name);
-              setCurrentClient(defaultResponse);
-              sessionStorage.setItem(CLIENT_KEY, defaultResponse.id);
-            }
-          } catch (defaultErr) {
-            console.log('ℹ️ No default client found, fetching all clients');
-          }
+          // Skip default client fetch - endpoint doesn't exist
+          // We'll set the first available client as default instead
 
           // Also fetch all available clients
-          const response = await apiCall('/context/clients', {}, false); // Don't include context headers when fetching clients 
+          const response = await apiCall('/api/v1/context-establishment/clients', {}, false); // Don't include context headers when fetching clients 
           if (response.clients) {
             setAvailableClients(response.clients);
             
@@ -185,7 +177,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setIsLoading(true);
       setError(null);
 
-      const response = await apiCall(`/api/v1/context/clients/${id}`);
+      const response = await apiCall(`/api/v1/context-establishment/clients/${id}`);
 
       if (response.client) {
         sessionStorage.setItem(CLIENT_KEY, id);

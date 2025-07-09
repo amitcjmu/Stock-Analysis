@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { apiCall } from "@/lib/api";
+import { apiCall } from "@/config/api";
 import { useAuth } from "@/contexts/AuthContext";
 
 export interface Client {
@@ -25,9 +25,9 @@ export const useClients = () => {
           if (response && response.items && response.items.length > 0) return response.items;
         }
 
-        // For non-admin users or if no clients found, get default client
-        const defaultClient = await apiCall("/clients/default");
-        return defaultClient ? [defaultClient] : [];
+        // For non-admin users or if no clients found, get all available clients
+        const response = await apiCall("/context-establishment/clients", {}, false);
+        return response.clients || [];
       } catch (error) {
         console.error("Error fetching clients:", error);
         throw error; // Let React Query handle the error

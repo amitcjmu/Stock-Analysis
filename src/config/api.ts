@@ -28,15 +28,22 @@ export const updateApiContext = (context: AppContextType) => {
 
 // Get the backend URL from environment variables with proper fallbacks
 const getBackendUrl = (): string => {
+  // Force proxy usage for development - Docker container on port 8081
+  if (typeof window !== 'undefined' && window.location.port === '8081') {
+    console.log('🔧 Docker development mode detected - using Vite proxy');
+    return '';
+  }
+  
   // Priority 1: Explicit VITE_BACKEND_URL (for production deployments)
   if (import.meta.env.VITE_BACKEND_URL) {
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
-    // Remove /api/v1 suffix if it exists to get the base URL
+    console.log('🔧 Using VITE_BACKEND_URL:', backendUrl);
     return backendUrl;
   }
   
   // Priority 2: Legacy VITE_API_BASE_URL
   if (import.meta.env.VITE_API_BASE_URL) {
+    console.log('🔧 Using VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
     return import.meta.env.VITE_API_BASE_URL;
   }
   
@@ -46,37 +53,45 @@ const getBackendUrl = (): string => {
     
     // If running on Vercel (vercel.app domain), use Railway backend
     if (hostname.includes('.vercel.app')) {
-      // This should be set as VITE_BACKEND_URL in Vercel environment variables
-      // pointing to your Railway.com backend URL
       console.warn('Production deployment detected. Ensure VITE_BACKEND_URL is set to your Railway backend URL.');
-      // Fallback to same origin (not recommended for Vercel + Railway setup)
       return window.location.origin;
     }
   }
   
   // Priority 4: Development mode - use empty string to utilize Vite proxy
   if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
+    console.log('🔧 Vite development mode detected - using proxy');
     return '';  // Empty string means use same origin with proxy
   }
   
-  // Priority 5: Docker development mode - detect if running on port 8081 (frontend container)
-  if (typeof window !== 'undefined' && window.location.port === '8081') {
-    // Running in Docker development mode - use Vite proxy (empty string)
-    return '';
-  }
-  
-  // Priority 6: Final fallback - same origin
+  // Priority 5: Final fallback - use proxy for development
   if (typeof window !== 'undefined') {
+    // In development, always use proxy to avoid CORS issues
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      console.log('🔧 Localhost development detected - using proxy');
+      return '';
+    }
     console.warn('No VITE_BACKEND_URL environment variable found. Using same origin as fallback.');
     return window.location.origin;
   }
   
   // Fallback for SSR or build time - use empty string for proxy
+  console.log('🔧 SSR/build fallback - using proxy');
   return '';
 };
 
+// Get backend URL dynamically at request time
+const getBaseUrl = (): string => {
+  const url = getBackendUrl();
+  console.log('🔧 API_CONFIG.BASE_URL resolved to:', url);
+  return url;
+};
+
 export const API_CONFIG = {
-  BASE_URL: getBackendUrl(),
+  get BASE_URL() {
+    return getBaseUrl();
+  },
   ENDPOINTS: {
     DISCOVERY: {
       AGENT_ANALYSIS: '/discovery/flow/agent/analysis', // Updated to use CrewAI Flow endpoint
@@ -141,7 +156,7 @@ export const API_CONFIG = {
     },
     ADMIN: {
       CLIENTS: '/admin/clients',
-      DEFAULT_CLIENT: '/context/clients/default',
+      DEFAULT_CLIENT: '/context-establishment/clients', // Changed from /default to get all clients
       ENGAGEMENTS: '/admin/engagements',
       USERS: '/admin/users',
       USER_PROFILES: '/admin/user-profiles',
@@ -189,6 +204,9 @@ export const apiCall = async (
   const requestId = Math.random().toString(36).substring(2, 8);
   const startTime = performance.now();
   
+  // Log API call parameters for debugging
+  console.log(`🔍 API Call [${requestId}] - endpoint="${endpoint}", includeContext=${includeContext}`);
+  
   // Normalize endpoint - NO double prefixes
   let normalizedEndpoint: string;
   if (endpoint.startsWith('/api/v1') || endpoint.startsWith('/api/v2')) {
@@ -199,8 +217,21 @@ export const apiCall = async (
     normalizedEndpoint = `/api/v1${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
   }
   
-  const url = `${API_CONFIG.BASE_URL}${normalizedEndpoint}`;
+  const baseUrl = API_CONFIG.BASE_URL;
+  const url = `${baseUrl}${normalizedEndpoint}`;
   const method = (options.method || 'GET').toUpperCase();
+  
+  // Debug: Log the URL being called
+  console.log(`🔗 API Call [${requestId}] - baseUrl="${baseUrl}", url="${url}"`);
+  
+  // Safety check: If we're in development and the URL contains localhost:8000, force proxy
+  if (typeof window !== 'undefined' && window.location.port === '8081' && url.includes('localhost:8000')) {
+    console.warn(`⚠️ API Call [${requestId}] - Detected direct backend URL, forcing proxy`);
+    const urlObj = new URL(url);
+    const proxyUrl = urlObj.pathname + urlObj.search;
+    console.log(`🔧 API Call [${requestId}] - Rewritten URL: ${proxyUrl}`);
+    return apiCall(proxyUrl, options, includeContext);
+  }
   
   // Create a unique key for this request to prevent duplicates
   // Exclude POST/PUT/PATCH/DELETE requests from deduplication as they can have side effects
@@ -281,6 +312,8 @@ export const apiCall = async (
           if (currentContext?.flow?.id && currentContext.flow.id !== 'null') {
             headers['X-Flow-ID'] = currentContext.flow.id;
             console.log(`🔄 API Call [${requestId}] - Added flow ID: ${currentContext.flow.id}`);
+          } else {
+            console.log(`ℹ️ API Call [${requestId}] - No flow ID available, skipping X-Flow-ID header`);
           }
         } catch (contextError) {
           console.warn(`⚠️ API Call [${requestId}] - Failed to add context headers:`, contextError);

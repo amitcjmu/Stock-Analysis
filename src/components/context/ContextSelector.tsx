@@ -63,19 +63,10 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: async () => {
-      const response = await apiCall('clients', {
+      const response = await apiCall('/api/v1/context-establishment/clients', {
         method: 'GET',
-        headers: {
-          ...auth.getAuthHeaders(),
-          ...getContextHeaders({
-            client: auth.client,
-            engagement: auth.engagement,
-            session: auth.session,
-            currentEngagementId: auth.currentEngagementId,
-            currentSessionId: auth.currentSessionId
-          })
-        }
-      });
+        headers: auth.getAuthHeaders()
+      }, false); // Don't include context - we're establishing it
       return response.clients;
     }
   });
@@ -84,19 +75,10 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
     queryKey: ['engagements', stagedClient?.id],
     queryFn: async () => {
       if (!stagedClient?.id) return [];
-      const response = await apiCall(`/context/clients/${stagedClient.id}/engagements`, {
+      const response = await apiCall(`/api/v1/context-establishment/engagements?client_id=${stagedClient.id}`, {
         method: 'GET',
-        headers: {
-          ...auth.getAuthHeaders(),
-          ...getContextHeaders({
-            client: stagedClient,
-            engagement: auth.engagement,
-            session: auth.session,
-            currentEngagementId: auth.currentEngagementId,
-            currentSessionId: auth.currentSessionId
-          })
-        }
-      });
+        headers: auth.getAuthHeaders()
+      }, false); // Don't include context - we're establishing it
       return response.engagements;
     },
     enabled: !!stagedClient?.id
@@ -106,19 +88,10 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
     queryKey: ['sessions', stagedEngagement?.id],
     queryFn: async () => {
       if (!stagedEngagement?.id) return [];
-      const response = await apiCall(`/context/engagements/${stagedEngagement.id}/sessions`, {
+      const response = await apiCall(`/api/v1/context-establishment/engagements/${stagedEngagement.id}/sessions`, {
         method: 'GET',
-        headers: {
-          ...auth.getAuthHeaders(),
-          ...getContextHeaders({
-            client: stagedClient,
-            engagement: stagedEngagement,
-            session: auth.session,
-            currentEngagementId: auth.currentEngagementId,
-            currentSessionId: auth.currentSessionId
-          })
-        }
-      });
+        headers: auth.getAuthHeaders()
+      }, false); // Don't include context - we're establishing it
       return response.sessions;
     },
     enabled: !!stagedEngagement?.id

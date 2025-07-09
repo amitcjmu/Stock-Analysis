@@ -84,9 +84,14 @@ const AdminDashboard: React.FC = () => {
       const token = localStorage.getItem('auth_token');
       console.log('📊 Admin Dashboard - Token available:', !!token);
       console.log('📊 Admin Dashboard - User:', user);
+      console.log('📊 Admin Dashboard - isAuthenticated:', isAuthenticated);
       
       if (!token) {
         throw new Error('No authentication token found');
+      }
+      
+      if (!isAuthenticated) {
+        throw new Error('User is not authenticated');
       }
       
       console.log('📊 Admin Dashboard - Making API calls...');
@@ -104,8 +109,10 @@ const AdminDashboard: React.FC = () => {
         usersData
       });
       
-      const transformedClients = clientsData.dashboard_stats || clientsData;
-      const transformedEngagements = engagementsData.dashboard_stats || engagementsData;
+      // The API responses don't wrap data in dashboard_stats, use the data directly
+      const transformedClients = clientsData;
+      const transformedEngagements = engagementsData;
+      const transformedUsers = usersData;
       
       const result = {
         clients: {
@@ -118,13 +125,18 @@ const AdminDashboard: React.FC = () => {
         engagements: {
           total: transformedEngagements.total_engagements || 0,
           active: transformedEngagements.active_engagements || 0,
-          byPhase: transformedEngagements.engagements_by_phase || {},
-          byScope: transformedEngagements.engagements_by_scope || {},
+          byPhase: transformedEngagements.engagements_by_type || {}, // Use engagements_by_type as phase
+          byScope: transformedEngagements.engagements_by_status || {}, // Use status as scope
           completionRate: transformedEngagements.completion_rate_average || 0,
           budgetUtilization: transformedEngagements.budget_utilization_average || 0,
-          recentActivity: transformedEngagements.recent_engagement_activity || []
+          recentActivity: transformedEngagements.recent_engagements || []
         },
-        users: usersData.dashboard_stats || usersData
+        users: {
+          total: transformedUsers.total_users || 0,
+          pending: transformedUsers.pending_users || 0, // This field doesn't exist in the API response
+          approved: transformedUsers.active_users || 0,
+          recentRequests: transformedUsers.recent_requests || []
+        }
       };
       
       console.log('📊 Admin Dashboard - Transformed result:', result);

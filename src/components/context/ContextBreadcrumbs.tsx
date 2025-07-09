@@ -70,10 +70,10 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
     queryKey: ['context-clients'],
     queryFn: async () => {
       try {
-        const response = await apiCall('/api/v1/context/clients', {
+        const response = await apiCall('/api/v1/context-establishment/clients', {
           method: 'GET',
           headers: getAuthHeaders()
-        });
+        }, false); // Don't include context - we're establishing it
         return response.clients || [];
       } catch (error) {
         console.error('Failed to fetch clients:', error);
@@ -89,10 +89,10 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
     queryFn: async () => {
       if (!selectedClientId) return [];
       try {
-        const response = await apiCall(`/context/clients/${selectedClientId}/engagements`, {
+        const response = await apiCall(`/api/v1/context-establishment/engagements?client_id=${selectedClientId}`, {
           method: 'GET',
           headers: getAuthHeaders()
-        });
+        }, false); // Don't include context - we're establishing it
         return response.engagements || [];
       } catch (error) {
         console.error('Failed to fetch engagements:', error);

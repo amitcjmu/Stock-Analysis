@@ -41,7 +41,7 @@ export const DebugContext: React.FC = () => {
     setLoading(true);
     try {
       const token = window.localStorage.getItem('auth_token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/context/clients`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/context-establishment/clients`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
