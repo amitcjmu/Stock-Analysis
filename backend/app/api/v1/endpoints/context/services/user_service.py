@@ -14,7 +14,8 @@ from sqlalchemy import select, and_, update
 from app.models import User
 from app.models.client_account import ClientAccount, Engagement
 from app.models.rbac import UserRole, ClientAccess
-from app.schemas.context import UserContext, ClientBase, EngagementBase, SessionBase
+from app.schemas.context import UserContext, ClientBase, EngagementBase
+from app.schemas.flow import FlowBase
 from .client_service import (
     DEMO_USER_ID, DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, DEMO_SESSION_ID
 )
@@ -28,6 +29,62 @@ class UserService:
     def __init__(self, db: AsyncSession):
         self.db = db
     
+    async def get_user_context_with_flows(self, current_user: User) -> UserContext:
+        """
+        Get complete context for the current user including active flows.
+        This is the new flow-based method that replaces session-based context.
+        """
+        # Get the basic user context first
+        basic_context = await self.get_user_context(current_user)
+        
+        # Get active flows for the user's engagement
+        active_flows = []
+        primary_flow_id = None
+        
+        if basic_context.engagement:
+            try:
+                # Import here to avoid circular dependencies
+                from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+                from app.core.database import AsyncSessionLocal
+                
+                async with AsyncSessionLocal() as db:
+                    orchestrator = MasterFlowOrchestrator(db)
+                    
+                    # Get active flows for the engagement
+                    flows = await orchestrator.list_flows_by_engagement(
+                        engagement_id=basic_context.engagement.id
+                    )
+                    
+                    for flow in flows:
+                        if flow.get("status") in ["active", "in_progress", "pending"]:
+                            flow_info = FlowBase(
+                                id=flow["id"],
+                                name=flow["name"],
+                                flow_type=flow["flow_type"],
+                                status=flow["status"],
+                                engagement_id=flow["engagement_id"],
+                                created_by=flow.get("created_by", current_user.id),
+                                metadata=flow.get("metadata", {})
+                            )
+                            active_flows.append(flow_info)
+                            
+                            # Set primary flow (first active discovery flow)
+                            if flow["flow_type"] == "discovery" and not primary_flow_id:
+                                primary_flow_id = flow["id"]
+                
+            except Exception as e:
+                logger.warning(f"Failed to get active flows for user {current_user.id}: {e}")
+                # Continue with empty flows list
+        
+        # Create enhanced user context with flows
+        return UserContext(
+            user=basic_context.user,
+            client=basic_context.client,
+            engagement=basic_context.engagement,
+            active_flows=active_flows,
+            current_flow=active_flows[0] if active_flows else None
+        )
+
     async def get_user_context(self, current_user: User) -> UserContext:
         """
         Get complete context for the current user.
@@ -65,8 +122,8 @@ class UserService:
                 user={"id": str(current_user.id), "email": current_user.email, "role": user_role},
                 client=None,
                 engagement=None,
-                session=None,
-                available_sessions=[]
+                active_flows=[],
+                current_flow=None
             )
         else:
             # Regular users get demo context as fallback
@@ -264,8 +321,8 @@ class UserService:
             user={"id": str(user.id), "email": user.email, "role": user_role},
             client=client_base,
             engagement=engagement_base,
-            session=session_base,
-            available_sessions=[session_base]
+            active_flows=[],  # Will be populated by get_user_context_with_flows
+            current_flow=None
         )
     
     def _create_demo_context(self, user: User, user_role: str, now: datetime) -> UserContext:
@@ -304,8 +361,8 @@ class UserService:
             user={"id": str(user.id), "email": user.email, "role": user_role},
             client=demo_client,
             engagement=demo_engagement,
-            session=demo_session,
-            available_sessions=[demo_session]
+            active_flows=[],  # Will be populated by get_user_context_with_flows
+            current_flow=None
         )
     
     async def update_user_defaults(

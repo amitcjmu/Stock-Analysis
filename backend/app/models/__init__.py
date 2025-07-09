@@ -11,6 +11,9 @@ V2 Discovery Flow Architecture:
 # Core Models
 from app.models.client_account import ClientAccount, Engagement, User, UserAccountAssociation
 
+# User Flow Management Models
+from app.models.user_active_flows import UserActiveFlow
+
 # V2 Discovery Flow Models (Primary)
 from app.models.discovery_flow import DiscoveryFlow
 
@@ -99,6 +102,9 @@ __all__ = [
     "ClientAccount",
     "Engagement", 
     "User",
+    
+    # User Flow Management Models
+    "UserActiveFlow",
     
     # V2 Discovery Flow Models (Primary)
     "DiscoveryFlow",

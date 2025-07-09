@@ -1,6 +1,6 @@
 """
-Session Comparison API - Modular Implementation
-Admin endpoints for session comparison and analysis.
+Flow Comparison API - Modular Implementation
+Admin endpoints for flow comparison and analysis.
 """
 
 import logging
@@ -14,76 +14,76 @@ from app.core.rbac_middleware import require_admin_access
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(prefix="/admin/session-comparison", tags=["Session Comparison"])
+router = APIRouter(prefix="/admin/flow-comparison", tags=["Flow Comparison"])
 
 @router.get("/health")
-async def session_comparison_health():
-    """Health check for session comparison service."""
+async def flow_comparison_health():
+    """Health check for flow comparison service."""
     return {
         "status": "healthy",
-        "service": "session-comparison-modular",
+        "service": "flow-comparison-modular",
         "version": "2.0.0",
         "capabilities": {
-            "session_comparison": True,
+            "flow_comparison": True,
             "diff_analysis": True,
             "metrics_tracking": True,
             "modular_architecture": True
         }
     }
 
-@router.get("/engagement/{engagement_id}/sessions")
-async def get_sessions_for_comparison(
+@router.get("/engagement/{engagement_id}/flows")
+async def get_flows_for_comparison(
     engagement_id: str,
     db: AsyncSession = Depends(get_db),
     admin_user: str = Depends(require_admin_access)
 ):
-    """Get sessions available for comparison."""
+    """Get flows available for comparison."""
     try:
-        # Demo data
-        demo_sessions = [
-            {
-                "flow_id": "1",
-                "session_name": "Initial Discovery Session",
-                "created_at": "2025-01-10T10:30:00Z",
-                "status": "completed",
-                "total_assets": 1250,
-                "quality_score": 78.5,
-                "estimated_cost_savings": 2500000,
-                "processing_time_hours": 2.5,
-                "can_compare": True
-            },
-            {
-                "flow_id": "2",
-                "session_name": "Enhanced Data Import",
-                "created_at": "2025-01-15T14:20:00Z",
-                "status": "completed",
-                "total_assets": 1380,
-                "quality_score": 85.2,
-                "estimated_cost_savings": 2750000,
-                "processing_time_hours": 3.1,
-                "can_compare": True
-            }
-        ]
+        # Import here to avoid circular dependencies
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+        
+        # Initialize the orchestrator
+        orchestrator = MasterFlowOrchestrator(db)
+        
+        # Get flows for the engagement
+        flows = await orchestrator.list_flows_by_engagement(engagement_id)
+        
+        # Transform flows for comparison
+        comparison_flows = []
+        for flow in flows:
+            if flow.get("status") in ["completed", "active", "in_progress"]:
+                comparison_flows.append({
+                    "flow_id": flow["id"],
+                    "flow_name": flow["name"],
+                    "flow_type": flow["flow_type"],
+                    "created_at": flow["created_at"],
+                    "status": flow["status"],
+                    "total_assets": flow.get("metadata", {}).get("total_assets", 0),
+                    "quality_score": flow.get("metadata", {}).get("quality_score", 0),
+                    "estimated_cost_savings": flow.get("metadata", {}).get("estimated_cost_savings", 0),
+                    "processing_time_hours": flow.get("metadata", {}).get("processing_time_hours", 0),
+                    "can_compare": True
+                })
         
         return {
             "success": True,
             "data": {
-                "sessions": demo_sessions
+                "flows": comparison_flows
             }
         }
         
     except Exception as e:
-        logger.error(f"Error getting sessions for comparison: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get sessions: {str(e)}")
+        logger.error(f"Error getting flows for comparison: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get flows: {str(e)}")
 
 @router.post("/compare")
-async def perform_session_comparison(
+async def perform_flow_comparison(
     comparison_request: dict,
     request: Request,
     db: AsyncSession = Depends(get_db),
     admin_user: str = Depends(require_admin_access)
 ):
-    """Perform session comparison."""
+    """Perform flow comparison."""
     try:
         source_flow_id = comparison_request.get("source_flow_id")
         target_flow_id = comparison_request.get("target_flow_id")
@@ -92,7 +92,20 @@ async def perform_session_comparison(
         if not source_flow_id or not target_flow_id:
             raise HTTPException(status_code=400, detail="Both source and target flow IDs are required")
         
-        # Demo comparison result
+        # Import here to avoid circular dependencies
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+        
+        # Initialize the orchestrator
+        orchestrator = MasterFlowOrchestrator(db)
+        
+        # Get source and target flow information
+        source_flow = await orchestrator.get_flow_status(source_flow_id)
+        target_flow = await orchestrator.get_flow_status(target_flow_id)
+        
+        if not source_flow or not target_flow:
+            raise HTTPException(status_code=404, detail="One or both flows not found")
+        
+        # Generate comparison result
         comparison_result = {
             "comparison_id": f"comp_{source_flow_id}_{target_flow_id}",
             "source_flow_id": source_flow_id,
@@ -108,20 +121,20 @@ async def perform_session_comparison(
                 ],
                 "overall_improvement": 8.5,
                 "overall_regression": 1.2,
-                "source_session": "Initial Discovery Session",
-                "target_session": "Enhanced Data Import"
+                "source_flow": source_flow.get("name", "Unknown Flow"),
+                "target_flow": target_flow.get("name", "Unknown Flow")
             },
             "key_metrics_diff": {
                 "quality_score": {
-                    "source_value": 78.5,
-                    "target_value": 85.2,
+                    "source_value": source_flow.get("metadata", {}).get("quality_score", 0),
+                    "target_value": target_flow.get("metadata", {}).get("quality_score", 0),
                     "difference": 6.7,
                     "percentage_change": 8.5,
                     "improvement": True
                 },
                 "total_assets": {
-                    "source_value": 1250,
-                    "target_value": 1380,
+                    "source_value": source_flow.get("metadata", {}).get("total_assets", 0),
+                    "target_value": target_flow.get("metadata", {}).get("total_assets", 0),
                     "difference": 130,
                     "percentage_change": 10.4,
                     "improvement": True
@@ -141,7 +154,7 @@ async def perform_session_comparison(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error performing session comparison: {e}")
+        logger.error(f"Error performing flow comparison: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to perform comparison: {str(e)}")
 
 @router.get("/history")
@@ -158,8 +171,8 @@ async def get_comparison_history(
         demo_history = [
             {
                 "comparison_id": "comp_1_2",
-                "source_session_name": "Initial Discovery Session",
-                "target_session_name": "Enhanced Data Import",
+                "source_flow_name": "Initial Discovery Flow",
+                "target_flow_name": "Enhanced Data Import Flow",
                 "comparison_type": "full_comparison",
                 "created_at": "2025-01-16T09:00:00Z",
                 "created_by": admin_user,

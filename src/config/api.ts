@@ -59,14 +59,20 @@ const getBackendUrl = (): string => {
     return '';  // Empty string means use same origin with proxy
   }
   
-  // Priority 5: Final fallback - same origin
+  // Priority 5: Docker development mode - detect if running on port 8081 (frontend container)
+  if (typeof window !== 'undefined' && window.location.port === '8081') {
+    // Running in Docker development mode - use localhost:8000 for backend
+    return 'http://localhost:8000';
+  }
+  
+  // Priority 6: Final fallback - same origin
   if (typeof window !== 'undefined') {
     console.warn('No VITE_BACKEND_URL environment variable found. Using same origin as fallback.');
     return window.location.origin;
   }
   
-  // Fallback for SSR or build time
-  return 'http://localhost:8000';
+  // Fallback for SSR or build time - use empty string for proxy
+  return '';
 };
 
 export const API_CONFIG = {
@@ -230,38 +236,61 @@ export const apiCall = async (
       // Merge user headers last to allow overrides
       Object.assign(headers, options.headers);
       
-      // Add auth token if available
+      // Add auth token if available (don't override if user provided one)
       try {
         const token = localStorage.getItem('auth_token');
-        if (token) {
+        if (token && !headers['Authorization']) {
           headers['Authorization'] = `Bearer ${token}`;
+          console.log(`🔐 API Call [${requestId}] - Added auth token to headers`);
+        } else if (!token) {
+          console.warn(`⚠️ API Call [${requestId}] - No auth token found in localStorage`);
         } else {
-          console.warn('No auth token found in localStorage');
+          console.log(`🔐 API Call [${requestId}] - User provided Authorization header, not overriding`);
         }
       } catch (storageError) {
-        console.warn('Failed to access localStorage for auth token:', storageError);
+        console.warn(`⚠️ API Call [${requestId}] - Failed to access localStorage for auth token:`, storageError);
       }
       
       // Add context headers if needed
       if (includeContext) {
         try {
+          console.log(`🏢 API Call [${requestId}] - Current context:`, currentContext);
+          
           // Only add headers if the value exists and is not "null" string
           if (currentContext?.user?.id && currentContext.user.id !== 'null') {
             headers['X-User-ID'] = currentContext.user.id;
+            console.log(`👤 API Call [${requestId}] - Added user ID: ${currentContext.user.id}`);
+          } else {
+            console.warn(`⚠️ API Call [${requestId}] - No user ID available for X-User-ID header`);
           }
+          
           if (currentContext?.client?.id && currentContext.client.id !== 'null') {
             headers['X-Client-Account-ID'] = currentContext.client.id;
+            console.log(`🏢 API Call [${requestId}] - Added client ID: ${currentContext.client.id}`);
+          } else {
+            console.warn(`⚠️ API Call [${requestId}] - No client or client_id available for X-Client-Account-ID header`);
           }
+          
           if (currentContext?.engagement?.id && currentContext.engagement.id !== 'null') {
             headers['X-Engagement-ID'] = currentContext.engagement.id;
+            console.log(`📋 API Call [${requestId}] - Added engagement ID: ${currentContext.engagement.id}`);
+          } else {
+            console.warn(`⚠️ API Call [${requestId}] - No engagement or engagement_id available for X-Engagement-ID header`);
           }
+          
           if (currentContext?.flow?.id && currentContext.flow.id !== 'null') {
             headers['X-Flow-ID'] = currentContext.flow.id;
+            console.log(`🔄 API Call [${requestId}] - Added flow ID: ${currentContext.flow.id}`);
           }
         } catch (contextError) {
-          console.warn('Failed to add context headers:', contextError);
+          console.warn(`⚠️ API Call [${requestId}] - Failed to add context headers:`, contextError);
         }
+      } else {
+        console.log(`🚫 API Call [${requestId}] - Context headers skipped (includeContext=false)`);
       }
+      
+      // Log final headers being sent
+      console.log(`🔗 API Call [${requestId}] - Final headers:`, headers);
       
       // Make the request
       const response = await fetch(url, {

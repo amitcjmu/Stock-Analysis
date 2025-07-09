@@ -187,6 +187,9 @@ class Engagement(Base):
     llm_usage_logs = relationship("LLMUsageLog", back_populates="engagement", cascade="all, delete-orphan", lazy="select")
     llm_usage_summaries = relationship("LLMUsageSummary", back_populates="engagement", cascade="all, delete-orphan", lazy="select")
     
+    # User active flows relationships
+    user_active_flows = relationship("UserActiveFlow", back_populates="engagement", cascade="all, delete-orphan", lazy="select")
+    
     # Data import session relationships removed - legacy functionality
     
     def __repr__(self):
@@ -221,6 +224,7 @@ class User(Base):
     user_associations = relationship("UserAccountAssociation", foreign_keys="[UserAccountAssociation.user_id]", back_populates="user", cascade="all, delete-orphan")
     default_client = relationship("ClientAccount", foreign_keys=[default_client_id])
     default_engagement = relationship("Engagement", foreign_keys=[default_engagement_id])
+    active_flows = relationship("UserActiveFlow", back_populates="user", cascade="all, delete-orphan")
     client_accounts = association_proxy(
         "user_associations", "client_account",
         creator=lambda client_account: UserAccountAssociation(client_account=client_account)

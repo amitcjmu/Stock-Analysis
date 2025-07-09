@@ -136,6 +136,15 @@ async def health_check():
         "timestamp": "2025-01-27"
     }
 
+@app.get("/cors-test")
+async def cors_test():
+    """Simple endpoint to test CORS configuration."""
+    return {
+        "message": "CORS is working!",
+        "timestamp": "2025-07-08",
+        "status": "success"
+    }
+
 # Basic root endpoint
 @app.get("/")
 async def root():
@@ -218,120 +227,182 @@ logger.info("✅ V3 API routes archived - legacy database abstraction removed")
 WEBSOCKET_ENABLED = False
 logger.info("ℹ️  WebSocket support disabled - using HTTP polling for Vercel+Railway compatibility")
 
-# CORS middleware configuration
-# Build origins list from multiple sources
-cors_origins = [
-    "http://localhost:8081",  # Fixed frontend port
-    "http://localhost:3000",  # React dev server (fallback)
-    "http://localhost:5173",  # Vite dev server (fallback)
-    getattr(settings, 'FRONTEND_URL', "http://localhost:8081")
-]
+# CORS middleware configuration - Secure setup based on environment
+def get_cors_origins():
+    """Get CORS origins based on environment."""
+    cors_origins = []
+    
+    # Get environment - check multiple possible values
+    env = getattr(settings, 'ENVIRONMENT', 'development').lower()
+    is_dev = env in ['development', 'dev', 'local', 'localhost']
+    
+    logger.info(f"Environment detected: {env}, is_development: {is_dev}")
+    
+    # Development environment (default to development for safety)
+    if is_dev or env not in ['production', 'prod']:
+        cors_origins.extend([
+            "http://localhost:3000",
+            "http://localhost:5173", 
+            "http://localhost:8080",
+            "http://localhost:8081",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:8080", 
+            "http://127.0.0.1:8081"
+        ])
+        logger.info("Using development CORS origins")
+    
+    # Production environment - only specific domains
+    else:
+        cors_origins.extend([
+            "https://aiforce-assess.vercel.app",
+            "https://migrate-ui-orchestrator-production.up.railway.app"
+        ])
+        logger.info("Using production CORS origins")
+    
+    # Add frontend URL from settings if specified
+    if hasattr(settings, 'FRONTEND_URL') and settings.FRONTEND_URL:
+        cors_origins.append(settings.FRONTEND_URL)
+    
+    # Add explicit allowed origins from environment
+    if hasattr(settings, 'allowed_origins_list'):
+        cors_origins.extend(settings.allowed_origins_list)
+    
+    # Remove duplicates and filter out empty strings
+    return list(set(filter(None, cors_origins)))
 
-# Add origins from environment variable
-if hasattr(settings, 'allowed_origins_list'):
-    cors_origins.extend(settings.allowed_origins_list)
-
-# Add specific Vercel domains (wildcard patterns don't work with FastAPI CORS)
-cors_origins.extend([
-    "https://aiforce-assess.vercel.app",  # Specific Vercel domain
-    "https://aiforce-assess-git-main-chockas-projects.vercel.app",  # Git branch deployments
-    "https://aiforce-assess-chockas-projects.vercel.app",  # Project-specific domain
-])
-
-# Add Railway deployment patterns
-cors_origins.extend([
-    "https://migrate-ui-orchestrator-production.up.railway.app",  # Specific Railway domain
-])
-
-# Remove duplicates and filter out empty strings
-cors_origins = list(set(filter(None, cors_origins)))
+cors_origins = get_cors_origins()
 
 logger.info(f"🌐 CORS Origins configured: {cors_origins}")
+logger.info(f"🌐 Total CORS origins: {len(cors_origins)}")
+
+# Debug: Print each origin
+for i, origin in enumerate(cors_origins):
+    logger.info(f"🌐 CORS Origin {i+1}: {origin}")
 
 # Add context middleware (Task 1.2.3)
-try:
-    from app.core.middleware import ContextMiddleware, RequestLoggingMiddleware
-    
-    # Import request tracking middleware
-    from starlette.middleware.base import BaseHTTPMiddleware
-    from starlette.requests import Request
-    
-    class TraceIDMiddleware(BaseHTTPMiddleware):
-        """Middleware to add trace ID to all requests"""
-        async def dispatch(self, request: Request, call_next):
-            # Generate or extract trace ID
-            trace_id = request.headers.get("X-Trace-ID") or str(uuid.uuid4())
-            
-            # Set trace ID in context
-            if STRUCTURED_LOGGING_AVAILABLE:
-                set_trace_id(trace_id)
-            
-            # Process request
-            response = await call_next(request)
-            
-            # Add trace ID to response headers
-            response.headers["X-Trace-ID"] = trace_id
-            
-            return response
-    
-    # Add trace ID middleware first (executes last)
-    app.add_middleware(TraceIDMiddleware)
-    logger.info("✅ Trace ID middleware added")
-    
-    # CRITICAL: Middleware is executed in REVERSE order of addition.
-    # Actual execution order will be: CORS -> Context -> RequestLogging
-    # This ensures CORS headers are added to ALL responses, including errors
-    
-    # Add context middleware with app-specific additional exempt paths
-    # Core paths (health, auth, docs) are handled by middleware defaults
-    app_specific_exempt_paths = [
-        # Context establishment endpoints - these are needed to establish context
-        "/api/v1/context/me",  # User context endpoint - needed before client context
-        "/api/v1/clients/default",  # Allow default client endpoint
-        "/api/v1/clients",  # Allow clients list endpoint for context establishment
-        "/api/v1/clients/",  # Allow clients list endpoint with trailing slash
-        "/api/v1/context/clients",  # New dedicated context establishment endpoint
-        "/api/v1/context/clients/",  # With trailing slash
-        "/api/v1/context/engagements",  # New dedicated context establishment endpoint
-        "/api/v1/context/engagements/",  # With trailing slash
-        "/api/v1/context-establishment/clients",  # Correct context establishment endpoint
-        "/api/v1/context-establishment/engagements",  # Correct context establishment endpoint
-        # NO DEMO FALLBACK - All users must be authenticated
-        # Data import endpoints that need to work before context is established
-        "/api/v1/data-import/latest-import",  # Allow checking for existing data
-        "/api/v1/data-import/status",  # Allow checking import status
-        # Discovery flow status endpoints that may be called before context
-        "/api/v1/discovery/flow/status",  # Allow checking flow status
-        "/api/v1/unified-discovery/flow/health",  # Allow health checks
-        "/api/v1/unified-discovery/flow/status",  # Allow flow status checks
-        # Note: Auth and health endpoints are handled by middleware defaults
-    ]
-    
-    app.add_middleware(
-        ContextMiddleware,
-        require_client=True,
-        require_engagement=True,  # SECURITY: Require engagement context for multi-tenancy
-        additional_exempt_paths=app_specific_exempt_paths  # Extend defaults, don't replace
-    )
-    
-    # Add request logging middleware last
-    app.add_middleware(
-        RequestLoggingMiddleware,
-        excluded_paths=["/health"]
-    )
+ENABLE_MIDDLEWARE = True  # Production setting
 
-    logger.info("✅ Middleware loaded successfully")
-except Exception as e:
-    logger.warning(f"Middleware could not be loaded: {e}", exc_info=True)
+if ENABLE_MIDDLEWARE:
+    try:
+        from app.core.middleware import ContextMiddleware, RequestLoggingMiddleware
+        from app.middleware.rate_limiter import RateLimitMiddleware
+        from app.middleware.security_headers import SecurityHeadersMiddleware, SecurityAuditMiddleware
+        
+        # Import request tracking middleware
+        from starlette.middleware.base import BaseHTTPMiddleware
+        from starlette.requests import Request
+        
+        class TraceIDMiddleware(BaseHTTPMiddleware):
+            """Middleware to add trace ID to all requests"""
+            async def dispatch(self, request: Request, call_next):
+                # Generate or extract trace ID
+                trace_id = request.headers.get("X-Trace-ID") or str(uuid.uuid4())
+                
+                # Set trace ID in context
+                if STRUCTURED_LOGGING_AVAILABLE:
+                    set_trace_id(trace_id)
+                
+                # Process request
+                response = await call_next(request)
+                
+                # Add trace ID to response headers
+                response.headers["X-Trace-ID"] = trace_id
+                
+                return response
+        
+        # Add trace ID middleware first (executes last)
+        app.add_middleware(TraceIDMiddleware)
+        logger.info("✅ Trace ID middleware added")
+        
+        # CRITICAL: Middleware is executed in REVERSE order of addition.
+        # Actual execution order will be: CORS -> Context -> RequestLogging
+        # This ensures CORS headers are added to ALL responses, including errors
+        
+        # Add context middleware with app-specific additional exempt paths
+        # Core paths (health, auth, docs) are handled by middleware defaults
+        app_specific_exempt_paths = [
+            # Context establishment endpoints - these are needed to establish context
+            "/api/v1/context/me",  # User context endpoint - needed before client context
+            "/api/v1/clients/default",  # Allow default client endpoint
+            "/api/v1/clients",  # Allow clients list endpoint for context establishment
+            "/api/v1/clients/",  # Allow clients list endpoint with trailing slash
+            "/api/v1/context/clients",  # New dedicated context establishment endpoint
+            "/api/v1/context/clients/",  # With trailing slash
+            "/api/v1/context/engagements",  # New dedicated context establishment endpoint
+            "/api/v1/context/engagements/",  # With trailing slash
+            "/api/v1/context-establishment/clients",  # Correct context establishment endpoint
+            "/api/v1/context-establishment/engagements",  # Correct context establishment endpoint
+            # Admin endpoints - these handle their own authentication via RBAC
+            "/api/v1/admin/clients/dashboard/stats",  # Admin dashboard stats
+            "/api/v1/admin/engagements/dashboard/stats",  # Admin engagement stats
+            "/api/v1/auth/admin/dashboard-stats",  # Admin user stats
+            # NO DEMO FALLBACK - All users must be authenticated
+            # Data import endpoints that need to work before context is established
+            "/api/v1/data-import/latest-import",  # Allow checking for existing data
+            "/api/v1/data-import/status",  # Allow checking import status
+            # Discovery flow status endpoints that may be called before context
+            "/api/v1/discovery/flow/status",  # Allow checking flow status
+            "/api/v1/unified-discovery/flow/health",  # Allow health checks
+            "/api/v1/unified-discovery/flow/status",  # Allow flow status checks
+            # Note: Auth and health endpoints are handled by middleware defaults
+        ]
+        
+        app.add_middleware(
+            ContextMiddleware,
+            require_client=True,
+            require_engagement=True,  # SECURITY: Require engagement context for multi-tenancy
+            additional_exempt_paths=app_specific_exempt_paths  # Extend defaults, don't replace
+        )
+        
+        # Add request logging middleware first (will execute last)
+        app.add_middleware(
+            RequestLoggingMiddleware,
+            excluded_paths=["/health"]
+        )
+        
+        # Add rate limiting middleware
+        app.add_middleware(RateLimitMiddleware)
+        
+        # Add security audit middleware
+        app.add_middleware(SecurityAuditMiddleware)
+        
+        # Add security headers middleware last (will execute first after CORS)
+        app.add_middleware(SecurityHeadersMiddleware)
+
+        logger.info("✅ Middleware loaded successfully")
+    except Exception as e:
+        logger.warning(f"Middleware could not be loaded: {e}", exc_info=True)
+else:
+    logger.info("🚫 Middleware disabled for CORS debugging")
 
 # Add CORS middleware LAST so it executes FIRST (middleware runs in reverse order)
 # This ensures CORS headers are added to ALL responses, including error responses
+logger.info("🌐 Adding CORS middleware with the following configuration:")
+logger.info(f"🌐 allow_origins: {cors_origins}")
+logger.info(f"🌐 allow_credentials: True")
+logger.info(f"🌐 allow_methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH']")
+
+# Production-safe CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=[
+        "Authorization", 
+        "Content-Type", 
+        "X-Client-Account-ID", 
+        "X-Engagement-ID",
+        "X-Trace-ID",
+        "Cache-Control",
+        "Pragma",
+        "Accept",
+        "Accept-Language",
+        "Accept-Encoding"
+    ],
+    expose_headers=["X-Trace-ID", "X-RateLimit-Limit", "X-RateLimit-Reset"],
+    max_age=3600,
 )
 logger.info("✅ CORS middleware added - will process all responses including errors")
 
@@ -381,7 +452,7 @@ async def debug_test_dependency(
                 "client_account_id": context.client_account_id,
                 "engagement_id": context.engagement_id,
                 "user_id": context.user_id,
-                "session_id": context.session_id
+                "flow_id": getattr(context, 'flow_id', None)
             },
             "validation_status": "dependency_success"
         }
@@ -407,7 +478,7 @@ async def debug_context_middleware(request: Request):
                 "client_account_id": context.client_account_id,
                 "engagement_id": context.engagement_id,
                 "user_id": context.user_id,
-                "session_id": context.session_id
+                "flow_id": getattr(context, 'flow_id', None)
             },
             "validation_status": "middleware_success"
         }
@@ -432,7 +503,7 @@ async def debug_context(request: Request):
                 "client_account_id": context.client_account_id,
                 "engagement_id": context.engagement_id,
                 "user_id": context.user_id,
-                "session_id": context.session_id
+                "flow_id": getattr(context, 'flow_id', None)
             },
             "validation_status": "success"
         }

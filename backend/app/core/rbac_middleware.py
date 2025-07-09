@@ -121,10 +121,32 @@ class RBACMiddleware:
         # Check various common authentication header patterns
         auth_header = request.headers.get("Authorization")
         if auth_header:
-            # Extract from Bearer token (simplified)
+            # Extract from Bearer token
             if auth_header.startswith("Bearer "):
-                # In real implementation, decode JWT token
-                return "demo_user"  # For development
+                token = auth_header.split(" ", 1)[1]
+                
+                # Try JWT token first
+                try:
+                    from app.services.auth_services.jwt_service import JWTService
+                    jwt_service = JWTService()
+                    payload = jwt_service.verify_token(token)
+                    if payload:
+                        return payload.get("sub")
+                except Exception as jwt_error:
+                    logger.debug(f"JWT token verification failed: {jwt_error}")
+                
+                # Fallback to db-token format for backward compatibility
+                if token.startswith("db-token-"):
+                    try:
+                        # Remove the "db-token-" prefix
+                        token_content = token[9:]
+                        # Find the last dash to separate user_id from hash
+                        last_dash_index = token_content.rfind("-")
+                        if last_dash_index > 0:
+                            user_id_str = token_content[:last_dash_index]
+                            return user_id_str
+                    except Exception:
+                        pass
         
         # Check custom headers
         user_id = request.headers.get("X-User-ID")
@@ -146,6 +168,10 @@ class RBACMiddleware:
     
     def _allow_anonymous_access(self, path: str, method: str) -> bool:
         """Check if anonymous access is allowed for this path/method."""
+        # Allow OPTIONS requests for CORS preflight (no authentication needed)
+        if method == "OPTIONS":
+            return True
+            
         # Allow GET requests to certain read-only endpoints in demo mode
         if method == "GET":
             demo_paths = ["/api/v1/demo", "/api/v1/health"]

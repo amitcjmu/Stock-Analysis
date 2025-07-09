@@ -76,18 +76,38 @@ const demoStats: DashboardStats = {
 };
 
 const AdminDashboard: React.FC = () => {
+  const { isAuthenticated, user } = useAuth();
+  
   const fetchDashboardStats = async (): Promise<DashboardStats> => {
     try {
+      // Get token from localStorage to verify it exists
+      const token = localStorage.getItem('auth_token');
+      console.log('📊 Admin Dashboard - Token available:', !!token);
+      console.log('📊 Admin Dashboard - User:', user);
+      
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+      
+      console.log('📊 Admin Dashboard - Making API calls...');
+      
+      // Test fixed apiCall function - admin calls don't need tenant context
       const [clientsData, engagementsData, usersData] = await Promise.all([
-        apiCall('/admin/clients/dashboard/stats'),
-        apiCall('/admin/engagements/dashboard/stats'),
-        apiCall('/auth/admin/dashboard-stats')
+        apiCall('/admin/clients/dashboard/stats', { method: 'GET' }, false),
+        apiCall('/admin/engagements/dashboard/stats', { method: 'GET' }, false),
+        apiCall('/auth/admin/dashboard-stats', { method: 'GET' }, false)
       ]);
+      
+      console.log('📊 Admin Dashboard - Raw API responses:', {
+        clientsData,
+        engagementsData, 
+        usersData
+      });
       
       const transformedClients = clientsData.dashboard_stats || clientsData;
       const transformedEngagements = engagementsData.dashboard_stats || engagementsData;
       
-      return {
+      const result = {
         clients: {
           total: transformedClients.total_clients || 0,
           active: transformedClients.active_clients || 0,
@@ -106,6 +126,9 @@ const AdminDashboard: React.FC = () => {
         },
         users: usersData.dashboard_stats || usersData
       };
+      
+      console.log('📊 Admin Dashboard - Transformed result:', result);
+      return result;
     } catch (apiError) {
       console.warn('API endpoints not available, using demo data:', apiError);
       throw apiError; // Rethrow to let useQuery handle the error state
@@ -117,6 +140,17 @@ const AdminDashboard: React.FC = () => {
     queryFn: fetchDashboardStats,
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: isAuthenticated && !!user, // Only run query when authenticated
+  });
+
+  // Debug the query state
+  console.log('📊 Admin Dashboard Query State:', {
+    isLoading,
+    isError,
+    hasData: !!data,
+    error: error?.message,
+    isAuthenticated,
+    hasUser: !!user
   });
 
   const stats = isError ? demoStats : data;

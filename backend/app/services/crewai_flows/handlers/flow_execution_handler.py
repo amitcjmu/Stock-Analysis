@@ -299,7 +299,7 @@ class FlowExecutionHandler:
                 "data_quality": getattr(state, 'data_quality_metrics', {}),
                 "field_mappings": getattr(state, 'field_mappings', {}),
                 "discovery_metadata": {
-                    "flow_id": getattr(state, 'session_id', ''),
+                    "flow_id": getattr(state, 'flow_id', ''),
                     "client_account_id": getattr(state, 'client_account_id', ''),
                     "engagement_id": getattr(state, 'engagement_id', ''),
                     "completed_at": datetime.utcnow().isoformat()

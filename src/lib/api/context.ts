@@ -35,7 +35,7 @@ export const updateUserDefaults = async (
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(request),
-    });
+    }, false); // Don't include context - we're setting user defaults
 
     console.log('✅ User defaults updated successfully:', response);
     return response;
@@ -64,13 +64,24 @@ export const updateUserDefaults = async (
 };
 
 /**
- * Get current user context including client, engagement, and session
+ * Get current user context including client, engagement, and flow
+ * Note: Backend still returns session, so we convert it to flow format
  */
 export const getUserContext = async () => {
   try {
     const response = await apiCall('/api/v1/context/me', {
       method: 'GET',
-    });
+    }, false); // Don't include context - we're trying to get it
+
+    // Backend returns session, convert to flow format for frontend
+    if (response?.session && !response?.flow) {
+      response.flow = {
+        id: response.session.id,
+        name: response.session.name || `Flow ${response.session.id.slice(-8)}`,
+        status: 'active',
+        engagement_id: response.session.engagement_id
+      };
+    }
 
     return response;
   } catch (error) {
@@ -86,7 +97,7 @@ export const getUserClients = async () => {
   try {
     const response = await apiCall('/api/v1/context/clients', {
       method: 'GET',
-    });
+    }, false); // Don't include context - we're establishing it
 
     return response;
   } catch (error) {
@@ -102,7 +113,7 @@ export const getClientEngagements = async (clientId: string) => {
   try {
     const response = await apiCall(`/api/v1/context/clients/${clientId}/engagements`, {
       method: 'GET',
-    });
+    }, false); // Don't include context - we're establishing it
 
     return response;
   } catch (error) {

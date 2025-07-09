@@ -113,7 +113,7 @@ class PhaseExecutionManager:
             "postgresql_bridge_available": self.flow_bridge is not None
         }
     
-    async def validate_phase_integrity(self, session_id: str) -> Dict[str, Any]:
+    async def validate_phase_integrity(self, flow_id: str) -> Dict[str, Any]:
         """
         Validate integrity of all phases using the Flow State Bridge.
         Comprehensive health check across all phase executors.
@@ -125,7 +125,7 @@ class PhaseExecutionManager:
             }
         
         try:
-            validation_result = await self.flow_bridge.validate_state_integrity(session_id)
+            validation_result = await self.flow_bridge.validate_state_integrity(flow_id)
             
             # Add phase-specific validation
             phase_status = {}
@@ -152,7 +152,7 @@ class PhaseExecutionManager:
                 "error": str(e)
             }
     
-    async def cleanup_phase_states(self, session_id: str, expiration_hours: int = 72) -> Dict[str, Any]:
+    async def cleanup_phase_states(self, flow_id: str, expiration_hours: int = 72) -> Dict[str, Any]:
         """
         Clean up expired phase states using the Flow State Bridge.
         Removes stale state data across all phases.
@@ -166,7 +166,7 @@ class PhaseExecutionManager:
         try:
             cleanup_result = await self.flow_bridge.cleanup_expired_states(expiration_hours)
             
-            logger.info(f"✅ Phase states cleanup completed for session: {session_id}")
+            logger.info(f"✅ Phase states cleanup completed for flow: {flow_id}")
             return cleanup_result
             
         except Exception as e:

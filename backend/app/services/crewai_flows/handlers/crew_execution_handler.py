@@ -336,7 +336,7 @@ class CrewExecutionHandler:
         
         # Prepare Assessment Flow package
         assessment_flow_package = {
-            "discovery_session_id": state.session_id,
+            "discovery_flow_id": state.flow_id,
             "asset_inventory": state.asset_inventory,
             "dependencies": {
                 "app_server": state.app_server_dependencies,
@@ -409,7 +409,7 @@ class CrewExecutionHandler:
                     id=uuid_pkg.uuid4(),
                     client_account_id=uuid_pkg.UUID(state.client_account_id) if state.client_account_id else None,
                     engagement_id=uuid_pkg.UUID(state.engagement_id) if state.engagement_id else None,
-                    session_id=uuid_pkg.UUID(state.session_id) if state.session_id else None,
+                    session_id=uuid_pkg.UUID(state.flow_id) if state.flow_id else None,
                     import_name=f"CrewAI Discovery Flow - {datetime.now().strftime('%Y-%m-%d %H:%M')}",
                     import_type="discovery_flow",
                     description="Data processed by CrewAI Discovery Flow with specialized crews",

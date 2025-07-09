@@ -75,6 +75,16 @@ if SQLALCHEMY_AVAILABLE:
             "poolclass": QueuePool,
             **OPTIMIZED_POOL_CONFIG
         }
+        
+        # Additional security configurations for production
+        if settings.ENVIRONMENT == "production":
+            # Enhanced security for production
+            pool_config["connect_args"]["server_settings"].update({
+                "log_statement": "none",  # Disable SQL statement logging for security
+                "log_min_duration_statement": "1000",  # Only log slow queries
+                "ssl_prefer_server_ciphers": "on",
+                "ssl_ciphers": "ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384",
+            })
     
     logger.info(f"⚡ Creating unified pgvector database engine with {pool_class.__name__} pool")
     

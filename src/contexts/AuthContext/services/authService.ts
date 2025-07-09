@@ -2,18 +2,18 @@ import { useNavigate } from 'react-router-dom';
 import { authApi } from '@/lib/api/auth';
 import { apiCall, updateApiContext } from '@/config/api';
 import { updateUserDefaults } from '@/lib/api/context';
-import { User, Client, Engagement, Session } from '../types';
-import { tokenStorage, contextStorage, persistClientData, persistEngagementData, persistSessionData } from '../storage';
+import { User, Client, Engagement, Flow } from '../types';
+import { tokenStorage, contextStorage, persistClientData, persistEngagementData } from '../storage';
 
 export const useAuthService = (
   user: User | null,
   client: Client | null,
   engagement: Engagement | null,
-  session: Session | null,
+  flow: Flow | null,
   setUser: (user: User | null) => void,
   setClient: (client: Client | null) => void,
   setEngagement: (engagement: Engagement | null) => void,
-  setSession: (session: Session | null) => void,
+  setFlow: (flow: Flow | null) => void,
   setIsLoading: (loading: boolean) => void,
   setError: (error: string | null) => void,
   setIsLoginInProgress: (loading: boolean) => void,
@@ -28,7 +28,7 @@ export const useAuthService = (
     setUser(null);
     setClient(null);
     setEngagement(null);
-    setSession(null);
+    setFlow(null);
     navigate('/login');
   };
 
@@ -157,7 +157,7 @@ export const useAuthService = (
         const response = await apiCall(`/context/clients/${clientId}`, {
           method: 'GET',
           headers: getAuthHeaders()
-        });
+        }, false); // Don't include context - we're establishing it
         fullClientData = response.client;
       }
       
@@ -178,7 +178,7 @@ export const useAuthService = (
       const engagementsResponse = await apiCall(`/context/clients/${clientId}/engagements`, {
         method: 'GET',
         headers: getAuthHeaders()
-      });
+      }, false); // Don't include context - we're establishing it
       
       if (engagementsResponse?.engagements && engagementsResponse.engagements.length > 0) {
         const defaultEngagement = engagementsResponse.engagements[0];
@@ -218,7 +218,7 @@ export const useAuthService = (
           const response = await apiCall(`/context/clients/${client.id}/engagements`, {
             method: 'GET',
             headers: getAuthHeaders()
-          });
+          }, false); // Don't include context - we're establishing it
           if (response.engagements) {
             fullEngagementData = response.engagements.find(e => e.id === engagementId);
           }
@@ -293,34 +293,55 @@ export const useAuthService = (
     }
   };
 
-  const switchSession = async (sessionId: string) => {
+  const switchFlow = async (flowId: string, flowData?: Flow) => {
     try {
-      const response = await apiCall(`/sessions/${sessionId}`);
-      if (response) {
-        setSession(response);
+      console.log('🔄 Switching to flow:', flowId, flowData);
+      
+      let fullFlowData = flowData;
+      
+      if (!fullFlowData) {
+        // For now, just create a basic flow object
+        // In a real implementation, you might fetch from `/flows/${flowId}`
+        fullFlowData = {
+          id: flowId,
+          name: `Flow ${flowId.slice(-8)}`,
+          status: 'active',
+          engagement_id: engagement?.id
+        };
       }
+      
+      setFlow(fullFlowData);
+      
+      updateApiContext({ 
+        user, 
+        client, 
+        engagement, 
+        flow: fullFlowData 
+      });
+      
+      console.log('✅ Switched to flow:', fullFlowData.id);
     } catch (error) {
-      console.error('Error switching session:', error);
+      console.error('Error switching flow:', error);
       throw error;
     }
   };
 
   const fetchDefaultContext = async () => {
     try {
-      if (client && engagement && session) {
+      if (client && engagement) {
         console.log('🔄 Context already complete, skipping default fetch');
         return;
       }
       
       console.log('🔄 Fetching default context...');
       
-      const clientsResponse = await apiCall('/api/v1/context/clients', {
+      const clientsResponse = await apiCall('/context/clients', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${tokenStorage.getToken()}`,
           'Content-Type': 'application/json'
         }
-      });
+      }, false); // Don't include context - we're trying to establish it
       
       if (!clientsResponse?.clients || clientsResponse.clients.length === 0) {
         console.warn('No clients available');
@@ -369,7 +390,7 @@ export const useAuthService = (
     logout,
     switchClient,
     switchEngagement,
-    switchSession,
+    switchFlow,
     fetchDefaultContext
   };
 };

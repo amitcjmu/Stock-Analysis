@@ -75,7 +75,6 @@ class FlowManager:
         """
         return {
             "flow_id": self.state.flow_id,
-            "session_id": self.state.session_id,
             "status": self.state.status,
             "current_phase": self.state.current_phase,
             "progress": self.state_manager.calculate_progress(),

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { AuthContextType, User, Client, Engagement, Session, Flow } from './types';
+import { AuthContextType, User, Client, Engagement, Flow } from './types';
 import { tokenStorage } from './storage';
 import { useAuthHeaders } from './hooks/useAuthHeaders';
 import { useAuthInitialization } from './hooks/useAuthInitialization';
@@ -13,7 +13,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(() => tokenStorage.getUser());
   const [client, setClient] = useState<Client | null>(null);
   const [engagement, setEngagement] = useState<Engagement | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [flow, setFlow] = useState<Flow | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,17 +30,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     switchClient,
     switchEngagement,
-    switchSession,
+    switchFlow,
     fetchDefaultContext
   } = useAuthService(
     user,
     client,
     engagement,
-    session,
+    flow,
     setUser,
     setClient,
     setEngagement,
-    setSession,
+    setFlow,
     setIsLoading,
     setError,
     setIsLoginInProgress,
@@ -52,37 +51,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser,
     setClient,
     setEngagement,
-    setSession,
+    setFlow,
     setIsLoading,
     switchClient,
     fetchDefaultContext
   });
 
   useDebugLogging(user, isAuthenticated, isAdmin, isDemoMode, getAuthHeaders);
-  useApiContextSync(user, client, engagement, session, flow);
-
-  const setCurrentSession = useCallback((session: Session | null) => {
-    setSession(session);
-  }, []);
+  useApiContextSync(user, client, engagement, flow);
 
   const setCurrentFlow = useCallback((flow: Flow | null) => {
     setFlow(flow);
   }, []);
-
-  const switchFlow = async (flowId: string, flowData?: Flow) => {
-    // Placeholder for flow switching implementation
-    console.log('Switching to flow:', flowId, flowData);
-    if (flowData) {
-      setFlow(flowData);
-    }
-  };
 
   return (
     <AuthContext.Provider value={{
       user,
       client,
       engagement,
-      session,
       flow,
       isLoading,
       error,
@@ -94,12 +80,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       logout,
       switchClient,
       switchEngagement,
-      switchSession,
       switchFlow,
-      setCurrentSession,
       setCurrentFlow,
       currentEngagementId: engagement?.id || null,
-      currentSessionId: session?.id || null,
       currentFlowId: flow?.id || null,
       getAuthHeaders,
     }}>

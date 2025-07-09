@@ -140,6 +140,12 @@ except ImportError:
     PLATFORM_ADMIN_AVAILABLE = False
 
 try:
+    from app.api.v1.admin.session_comparison import router as flow_comparison_router
+    FLOW_COMPARISON_AVAILABLE = True
+except ImportError:
+    FLOW_COMPARISON_AVAILABLE = False
+
+try:
     from app.api.v1.auth.handlers.user_management_handlers import user_management_router as user_approvals_router
     USER_APPROVALS_AVAILABLE = True
 except ImportError:
@@ -182,7 +188,7 @@ api_router = APIRouter()
     "/me",
     response_model=UserContext,
     summary="Get current user context",
-    description="Get complete context for the current user including client, engagement, and session."
+    description="Get complete context for the current user including client, engagement, session, and active flows."
 )
 async def get_me_endpoint(
     db = Depends(get_db),
@@ -351,6 +357,12 @@ if ENGAGEMENT_MANAGEMENT_AVAILABLE:
 if PLATFORM_ADMIN_AVAILABLE:
     api_router.include_router(platform_admin_router, prefix="/admin/platform", tags=["Admin - Platform Management"])
     logger.info("✅ Platform admin router included")
+
+if FLOW_COMPARISON_AVAILABLE:
+    api_router.include_router(flow_comparison_router, tags=["Admin - Flow Comparison"])
+    logger.info("✅ Flow comparison router included")
+else:
+    logger.warning("⚠️ Flow comparison router not available")
 
 if USER_APPROVALS_AVAILABLE:
     api_router.include_router(user_approvals_router, prefix="/admin/approvals", tags=["Admin - User Approvals"])

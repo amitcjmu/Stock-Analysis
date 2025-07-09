@@ -107,11 +107,33 @@ class AuthenticationService:
                 user_profile.failed_login_attempts = 0
                 await self.db.commit()
             
-            # Create a proper Token object
-            token = Token(
-                access_token=f"db-token-{user.id}-{uuid.uuid4().hex[:8]}",
-                token_type="bearer"
-            )
+            # Create a proper JWT token with security
+            try:
+                from app.services.auth_services.jwt_service import JWTService
+                jwt_service = JWTService()
+                
+                # Create JWT token with user information
+                jwt_token = jwt_service.create_access_token(
+                    data={
+                        "sub": str(user.id),
+                        "email": user.email,
+                        "role": "admin" if is_admin else "user",
+                        "is_admin": is_admin
+                    }
+                )
+                
+                token = Token(
+                    access_token=jwt_token,
+                    token_type="bearer"
+                )
+                
+            except Exception as jwt_error:
+                logger.warning(f"JWT token creation failed, falling back to db-token: {jwt_error}")
+                # Fallback to db-token for backward compatibility during transition
+                token = Token(
+                    access_token=f"db-token-{user.id}-{uuid.uuid4().hex[:8]}",
+                    token_type="bearer"
+                )
             
             return LoginResponse(
                 status="success",
@@ -173,7 +195,31 @@ class AuthenticationService:
         Validate authentication token and return user information.
         """
         try:
-            # Simple token validation for demo purposes
+            # Try JWT token first
+            try:
+                from app.services.auth_services.jwt_service import JWTService
+                jwt_service = JWTService()
+                payload = jwt_service.verify_token(token)
+                if payload:
+                    user_id = payload.get("sub")
+                    if user_id:
+                        # Find user by ID
+                        user_query = select(User).where(User.id == uuid.UUID(user_id))
+                        result = await self.db.execute(user_query)
+                        user = result.scalar_one_or_none()
+                        
+                        if user and user.is_active:
+                            return {
+                                "id": str(user.id),
+                                "email": user.email,
+                                "is_active": user.is_active,
+                                "role": payload.get("role", "user"),
+                                "is_admin": payload.get("is_admin", False)
+                            }
+            except Exception as jwt_error:
+                logger.debug(f"JWT token validation failed: {jwt_error}")
+            
+            # Fallback to db-token validation for backward compatibility
             if token.startswith("db-token-"):
                 # Remove the "db-token-" prefix
                 token_content = token[9:]  # Remove "db-token-"

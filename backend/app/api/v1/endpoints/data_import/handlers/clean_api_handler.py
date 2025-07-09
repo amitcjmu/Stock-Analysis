@@ -17,7 +17,7 @@ from app.core.database import get_db
 from app.core.context import get_current_context, RequestContext
 from app.schemas.data_import_schemas import (
     StoreImportRequest,
-    ValidationSession,
+    ValidationFlow,
     FileMetadata
 )
 from pydantic import BaseModel

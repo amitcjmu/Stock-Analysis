@@ -5,6 +5,7 @@ Data Import Validation Schemas
 from pydantic import BaseModel, Field
 from typing import Dict, List, Any, Optional, Literal
 from datetime import datetime
+from .flow import FlowType, FlowStatus
 
 class ValidationAgentResult(BaseModel):
     """Result from a single validation agent"""
@@ -36,7 +37,7 @@ class DataImportValidationResponse(BaseModel):
     """Response from data import validation"""
     success: bool
     file_status: Literal['approved', 'rejected', 'approved_with_warnings']
-    validation_session_id: str
+    validation_flow_id: str
     agent_results: List[ValidationAgentResult]
     security_clearances: Dict[str, bool]
     next_step: str
@@ -52,8 +53,8 @@ class FileMetadata(BaseModel):
 class UploadContext(BaseModel):
     """Context information for data upload"""
     intended_type: str
-    validation_session_id: Optional[str] = None  # Legacy field name
-    validation_upload_id: Optional[str] = None  # New field name
+    validation_flow_id: Optional[str] = None  # Flow-based field name
+    validation_upload_id: Optional[str] = None  # Alternative field name
     validation_id: Optional[str] = None  # Direct field name
     upload_timestamp: str
     
@@ -61,7 +62,7 @@ class UploadContext(BaseModel):
         """Get validation ID from any of the field names"""
         return (self.validation_id or 
                 self.validation_upload_id or 
-                self.validation_session_id or 
+                self.validation_flow_id or 
                 "")
 
 class StoreImportRequest(BaseModel):
@@ -72,16 +73,17 @@ class StoreImportRequest(BaseModel):
     client_id: Optional[str] = None
     engagement_id: Optional[str] = None
 
-class ValidationSession(BaseModel):
-    """Complete validation session data"""
-    file_id: str
+class ValidationFlow(BaseModel):
+    """Complete validation flow data"""
+    flow_id: str
     filename: str
     size_mb: float
     content_type: str
     category: str
     uploaded_by: int
     uploaded_at: datetime
-    status: Literal['validating', 'approved', 'rejected', 'approved_with_warnings', 'error']
+    flow_type: FlowType = FlowType.DISCOVERY
+    status: FlowStatus
     agent_results: List[ValidationAgentResult] = []
     security_analysis: Optional[SecurityAnalysisResult] = None
     completion_time: Optional[datetime] = None

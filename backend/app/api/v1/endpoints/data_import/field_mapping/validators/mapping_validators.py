@@ -104,14 +104,112 @@ class MappingValidator:
         return bool(re.match(pattern, field_name))
     
     def _validate_transformation_rule(self, rule: str) -> bool:
-        """Validate transformation rule syntax."""
+        """Enhanced transformation rule validation using AST parsing."""
         if not rule:
             return True
         
-        # Basic validation - check for potentially dangerous operations
+        # Length check
+        if len(rule) > 500:
+            return False
+        
+        # Strict whitelist approach using AST parsing
+        try:
+            import ast
+            
+            # Parse as AST to check for dangerous constructs
+            tree = ast.parse(rule, mode='eval')
+            
+            # Check for dangerous node types
+            for node in ast.walk(tree):
+                # Block dangerous imports and executions
+                if isinstance(node, (ast.Import, ast.ImportFrom, ast.Exec)):
+                    return False
+                
+                # Block dangerous function calls
+                if isinstance(node, ast.Call):
+                    if isinstance(node.func, ast.Name):
+                        dangerous_functions = {
+                            'exec', 'eval', 'compile', '__import__', 
+                            'getattr', 'setattr', 'delattr', 'hasattr',
+                            'globals', 'locals', 'vars', 'dir',
+                            'open', 'file', 'input', 'raw_input'
+                        }
+                        if node.func.id in dangerous_functions:
+                            return False
+                    
+                    # Block attribute access to dangerous methods
+                    elif isinstance(node.func, ast.Attribute):
+                        dangerous_attrs = {
+                            '__import__', '__builtins__', '__globals__',
+                            '__locals__', '__dict__', '__class__'
+                        }
+                        if node.func.attr in dangerous_attrs:
+                            return False
+                
+                # Block attribute access to dangerous attributes
+                if isinstance(node, ast.Attribute):
+                    dangerous_attrs = {
+                        '__import__', '__builtins__', '__globals__',
+                        '__locals__', '__dict__', '__class__', '__bases__',
+                        '__subclasses__', '__mro__'
+                    }
+                    if node.attr in dangerous_attrs:
+                        return False
+                
+                # Block subscript access to dangerous items
+                if isinstance(node, ast.Subscript):
+                    if isinstance(node.slice, ast.Str):
+                        dangerous_keys = {
+                            '__builtins__', '__globals__', '__locals__'
+                        }
+                        if node.slice.s in dangerous_keys:
+                            return False
+            
+            # If we get here, the rule passed AST validation
+            # Now check if it contains valid transformation patterns
+            valid_patterns = [
+                'upper()', 'lower()', 'strip()', 'replace(',
+                'split(', 'join(', 'format(', 'int(', 'float(',
+                'str(', 'len(', 'sum(', 'max(', 'min(',
+                'round(', 'abs(', 'bool(', 'list(', 'tuple(',
+                'set(', 'sorted(', 'reversed('
+            ]
+            
+            rule_lower = rule.lower()
+            has_valid_pattern = any(pattern in rule_lower for pattern in valid_patterns)
+            
+            # Simple expressions without function calls are also valid
+            # (e.g., "value * 2", "value + 1", etc.)
+            has_only_safe_operations = all(
+                not isinstance(node, ast.Call) or 
+                (isinstance(node.func, ast.Name) and 
+                 node.func.id in ['int', 'float', 'str', 'len', 'bool'])
+                for node in ast.walk(tree)
+            )
+            
+            return has_valid_pattern or has_only_safe_operations
+            
+        except SyntaxError:
+            # Invalid syntax
+            return False
+        except Exception:
+            # Any other error during parsing
+            return False
+    
+    def _validate_validation_rule(self, rule: str) -> bool:
+        """Enhanced validation rule syntax validation."""
+        if not rule:
+            return True
+        
+        # Length check
+        if len(rule) > 300:
+            return False
+        
+        # Check for dangerous patterns
         dangerous_patterns = [
             'exec', 'eval', 'import', '__', 'getattr', 'setattr',
-            'delattr', 'globals', 'locals'
+            'delattr', 'globals', 'locals', 'open', 'file',
+            'subprocess', 'os.', 'sys.', 'shutil.'
         ]
         
         rule_lower = rule.lower()
@@ -119,31 +217,26 @@ class MappingValidator:
             if pattern in rule_lower:
                 return False
         
-        # Check for basic transformation patterns
+        # Valid validation rule patterns
         valid_patterns = [
-            'upper()', 'lower()', 'strip()', 'replace(',
-            'split(', 'join(', 'format(', 'int(', 'float(',
-            'str(', 'len(', 'sum(', 'max(', 'min('
+            'not null', 'not empty', 'not blank',
+            'length >', 'length <', 'length >=', 'length <=', 'length ==',
+            'matches pattern', 'matches regex', 'in range', 'type is',
+            'format:', 'regex:', 'min:', 'max:', 'between:',
+            'contains:', 'starts with:', 'ends with:',
+            'is number', 'is integer', 'is float', 'is string',
+            'is boolean', 'is email', 'is url', 'is date',
+            'required', 'optional', 'default:'
         ]
         
-        # If it contains any valid pattern, consider it valid
-        # This is a basic check - in production, you'd want more sophisticated parsing
-        return any(pattern in rule_lower for pattern in valid_patterns) or len(rule) < 100
-    
-    def _validate_validation_rule(self, rule: str) -> bool:
-        """Validate validation rule syntax."""
-        if not rule:
-            return True
+        # Check if rule contains valid patterns
+        has_valid_pattern = any(pattern in rule_lower for pattern in valid_patterns)
         
-        # Basic validation rule patterns
-        valid_patterns = [
-            'not null', 'not empty', 'length >', 'length <',
-            'matches pattern', 'in range', 'type is',
-            'format:', 'regex:', 'min:', 'max:'
-        ]
+        # Simple comparison operators are also valid
+        comparison_operators = ['>', '<', '>=', '<=', '==', '!=', 'in ', 'not in ']
+        has_comparison = any(op in rule_lower for op in comparison_operators)
         
-        rule_lower = rule.lower()
-        return any(pattern in rule_lower for pattern in valid_patterns) or len(rule) < 200
+        return has_valid_pattern or has_comparison
     
     def validate_field_compatibility(
         self, 

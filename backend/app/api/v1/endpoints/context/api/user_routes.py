@@ -24,7 +24,7 @@ router = APIRouter()
     "/me",
     response_model=UserContext,
     summary="Get current user context",
-    description="Get complete context for the current user including client, engagement, and session."
+    description="Get complete context for the current user including client, engagement, session, and active flows."
 )
 async def get_user_context(
     db: AsyncSession = Depends(get_db),
@@ -33,7 +33,7 @@ async def get_user_context(
     """Get complete context for the current user"""
     try:
         service = UserService(db)
-        return await service.get_user_context(current_user)
+        return await service.get_user_context_with_flows(current_user)
     except HTTPException:
         raise
     except Exception as e:
@@ -71,52 +71,76 @@ async def update_user_defaults(
 
 
 @router.post(
-    "/session/switch",
-    summary="Switch user session",
-    description="Switch the current user's active session."
+    "/flow/activate",
+    summary="Activate a flow",
+    description="Activate a specific flow for the current user."
 )
-async def switch_session(
+async def activate_flow(
     request: Dict[str, Any] = Body(...),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """
-    Switch the current user's active session.
+    Activate a specific flow for the current user.
     
-    This updates the user's context and returns the new session information.
+    This sets the primary flow for the user and returns flow information.
     """
-    engagement_id = request.get("engagement_id")
+    flow_id = request.get("flow_id")
     
-    if not engagement_id:
+    if not flow_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="engagement_id is required"
+            detail="flow_id is required"
         )
     
     try:
-        # Create repository and service instances
-        flow_repository = DiscoveryFlowRepository(db, client_account_id="11111111-1111-1111-1111-111111111111", engagement_id=engagement_id, user_id=current_user)
-        flow_service = DiscoveryFlowService(flow_repository)
+        # Import here to avoid circular dependencies
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
         
-        # Get flows for the new engagement
-        flows = await flow_service.get_flows_by_engagement(engagement_id)
+        # Initialize the orchestrator
+        orchestrator = MasterFlowOrchestrator(db)
         
-        # Update user defaults
+        # Get flow information
+        flow_info = await orchestrator.get_flow_status(flow_id)
+        
+        if not flow_info:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Flow {flow_id} not found"
+            )
+        
+        # Verify the user has access to this flow's engagement
         service = UserService(db)
+        user_context = await service.get_user_context_with_flows(current_user)
+        
+        if (not user_context.engagement or 
+            str(user_context.engagement.id) != str(flow_info.get("engagement_id"))):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied to this flow"
+            )
+        
+        # Update user defaults to set primary flow
+        # For now, we'll update the engagement_id to ensure proper context
         await service.update_user_defaults(
             current_user,
-            engagement_id=engagement_id
+            engagement_id=str(flow_info.get("engagement_id"))
         )
         
         return {
             "status": "success",
-            "message": "Session switched successfully",
-            "engagement_id": engagement_id,
-            "active_flows": len(flows) if flows else 0
+            "message": "Flow activated successfully",
+            "flow_id": flow_id,
+            "flow_name": flow_info.get("name"),
+            "flow_type": flow_info.get("flow_type"),
+            "flow_status": flow_info.get("status"),
+            "engagement_id": flow_info.get("engagement_id")
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error switching session: {str(e)}"
+            detail=f"Error activating flow: {str(e)}"
         )

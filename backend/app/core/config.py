@@ -9,7 +9,7 @@ except ImportError:
     # Fallback for older pydantic versions
     from pydantic import BaseSettings
 
-from pydantic import Field, ConfigDict
+from pydantic import Field, ConfigDict, field_validator
 import os
 from typing import Optional
 
@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     
     # DeepInfra API Configuration
     DEEPINFRA_API_KEY: str = Field(
-        default="U8JskPYWXprQvw2PGbv4lyxfcJQggI48", 
+        default="", 
         env="DEEPINFRA_API_KEY"
     )
     DEEPINFRA_MODEL: str = Field(
@@ -68,8 +68,37 @@ class Settings(BaseSettings):
     # Removed OpenAI support - using DeepInfra exclusively
     
     # Security settings
-    SECRET_KEY: str = "your-secret-key-here"
+    SECRET_KEY: str = Field(default="", env="SECRET_KEY")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, env="ACCESS_TOKEN_EXPIRE_MINUTES")
+    ALGORITHM: str = "HS256"
+    
+    # Cookie security settings
+    COOKIE_SECURE: bool = Field(default=True, env="COOKIE_SECURE")
+    COOKIE_SAMESITE: str = Field(default="lax", env="COOKIE_SAMESITE")
+    COOKIE_HTTPONLY: bool = Field(default=True, env="COOKIE_HTTPONLY")
+    
+    @field_validator('DEEPINFRA_API_KEY')
+    @classmethod
+    def validate_api_key(cls, v):
+        if not v:
+            print("⚠️ WARNING: No DEEPINFRA_API_KEY environment variable set.")
+            print("⚠️ AI features may not work properly. Set DEEPINFRA_API_KEY for full functionality.")
+            return "dummy_key_for_development"
+        return v
+    
+    @field_validator('SECRET_KEY')
+    @classmethod
+    def validate_secret_key(cls, v):
+        if not v or v == "your-secret-key-here":
+            # For development, generate a temporary secret key
+            import secrets
+            temp_key = secrets.token_urlsafe(32)
+            print(f"⚠️ WARNING: No SECRET_KEY environment variable set. Using temporary key: {temp_key}")
+            print("⚠️ Set SECRET_KEY environment variable for production!")
+            return temp_key
+        if len(v) < 32:
+            raise ValueError("SECRET_KEY must be at least 32 characters")
+        return v
     
     # CORS settings
     ALLOWED_ORIGINS: str = Field(

@@ -267,7 +267,17 @@ class ContextMiddleware(BaseHTTPMiddleware):
         if auth_header and auth_header.startswith("Bearer "):
             token = auth_header.split(" ", 1)[1]
             
-            # Handle db-token format: db-token-{user_id}-{suffix}
+            # Try JWT token first
+            try:
+                from app.services.auth_services.jwt_service import JWTService
+                jwt_service = JWTService()
+                payload = jwt_service.verify_token(token)
+                if payload:
+                    return payload.get("sub")
+            except Exception as jwt_error:
+                logger.debug(f"JWT token verification failed in middleware: {jwt_error}")
+            
+            # Handle db-token format: db-token-{user_id}-{suffix} (backward compatibility)
             if token.startswith("db-token-"):
                 try:
                     # Remove the "db-token-" prefix

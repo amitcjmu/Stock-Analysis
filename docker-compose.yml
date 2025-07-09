@@ -85,7 +85,7 @@ services:
     container_name: migration_frontend
     working_dir: /app
     environment:
-      - VITE_BACKEND_URL=http://localhost:8000
+      # Use Vite proxy (configured to use http://backend:8000)
       - VITE_WS_BASE_URL=ws://localhost:8000/ws
     ports:
       - "8081:8081"

@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Any
 from uuid import UUID
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
+from .flow import FlowBase
 
 class ClientBase(BaseModel):
     """Client account information."""
@@ -44,12 +45,13 @@ class SessionBase(BaseModel):
     updated_at: datetime
     metadata: Optional[Dict[str, Any]] = None
 
+
 class UserContext(BaseModel):
-    """Complete user context including client, engagement, and session."""
+    """Complete user context including client, engagement, and flows."""
     model_config = ConfigDict(from_attributes=True)
     
     user: Dict[str, Any]
     client: Optional[ClientBase] = None
     engagement: Optional[EngagementBase] = None
-    session: Optional[SessionBase] = None
-    available_sessions: List[SessionBase] = Field(default_factory=list)
+    active_flows: List[FlowBase] = Field(default_factory=list)
+    current_flow: Optional[FlowBase] = None

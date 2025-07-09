@@ -3,6 +3,7 @@ Authentication Utilities
 """
 from typing import Annotated, Optional
 from uuid import UUID
+import logging
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -13,6 +14,9 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.models.client_account import User
 from app.schemas.auth_schemas import TokenPayload
+from app.services.auth_services.jwt_service import JWTService
+
+logger = logging.getLogger(__name__)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/token")
 oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/token", auto_error=False)
@@ -30,67 +34,48 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db = D
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    
     try:
-        # Handle db-token format (from AuthenticationService)
-        if token.startswith("db-token-"):
-            # Token format: db-token-{uuid}-{random_suffix}
-            # Extract the UUID part (everything between "db-token-" and the last "-")
-            token_without_prefix = token[9:]  # Remove "db-token-"
-            parts = token_without_prefix.split("-")
-            
-            # The UUID should be the first 5 parts (standard UUID format: 8-4-4-4-12)
-            if len(parts) >= 5:
-                user_id_str = "-".join(parts[:5])  # Reconstruct the UUID
-                try:
-                    user_id = UUID(user_id_str)
-                    
-                    # Find user by ID
-                    user = await db.get(User, user_id)
-                    if user:
-                        # Return user even if not active - let the endpoint handle it
-                        return user
-                except ValueError as e:
-                    pass
+        # Use JWT service for token validation
+        try:
+            jwt_service = JWTService()
+            payload = jwt_service.verify_token(token)
+        except Exception as jwt_error:
+            logger.error(f"JWT service error: {jwt_error}")
+            raise credentials_exception
         
-        # Handle JWT token format
-        else:
-            payload = jwt.decode(
-                token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-            )
-            token_data = TokenPayload(**payload)
-            user_id = UUID(token_data.sub)
+        if payload is None:
+            raise credentials_exception
             
+        user_id_str = payload.get("sub")
+        if user_id_str is None:
+            raise credentials_exception
+            
+        try:
+            user_id = UUID(user_id_str)
+            
+            # Find user by ID
             user = await db.get(User, user_id)
-            if user:
-                return user
-
-            # If user not found in DB, create a mock user object based on ID
-            # SECURITY: Only create demo user mock - no admin@democorp fallback
-            mock_user = User(id=DEMO_USER_ID, email=DEMO_USER_EMAIL, is_active=True)
-            mock_user.role = "demo"
+            if user is None:
+                raise credentials_exception
+                
+            # Check if user is active
+            if not user.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="User account is inactive"
+                )
+                
+            return user
             
-            # Attach required relationship data to the mock object
-            mock_user.client_accounts = [{"id": str(DEMO_CLIENT_ID), "name": "Democorp"}]
-            mock_user.engagements = [{"id": str(DEMO_ENGAGEMENT_ID), "name": "Cloud Migration 2024"}]
-            return mock_user
-
-    except (JWTError, ValidationError):
+        except ValueError:
+            raise credentials_exception
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Authentication error: {e}")
         raise credentials_exception
-    except Exception:
-        # Fallback for any other error during token processing or DB access
-        # This ensures the app can run in a "demo" mode even if DB is down
-        mock_user = User(id=DEMO_USER_ID, email=DEMO_USER_EMAIL, is_active=True)
-        mock_user.role = "demo"
-        mock_user.client_accounts = [{"id": str(DEMO_CLIENT_ID), "name": "Democorp"}]
-        mock_user.engagements = [{"id": str(DEMO_ENGAGEMENT_ID), "name": "Cloud Migration 2024"}]
-        return mock_user
-
-    # Fallback for any error during token processing or DB access
-    mock_user = User(id=DEMO_USER_ID, email=DEMO_USER_EMAIL, is_active=True)
-    mock_user.role = "demo"
-    mock_user.client_accounts = [{"id": str(DEMO_CLIENT_ID), "name": "Democorp"}]
-    mock_user.engagements = [{"id": str(DEMO_ENGAGEMENT_ID), "name": "Cloud Migration 2024"}]
-    return mock_user
 
 
 def get_current_active_user(

@@ -22,25 +22,16 @@ export interface Engagement {
   client_id?: string;
 }
 
-export interface Session {
-  id: string;
-  name: string;
-  status: string;
-  session_display_name?: string;
-  session_name?: string;
-  engagement_id?: string;
-  is_default?: boolean;
-  session_type?: string;
-  auto_created?: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
-
 export interface Flow {
   id: string;
   name: string;
   status: string;
-  flow_id?: string; // For backward compatibility
+  engagement_id?: string;
+  is_default?: boolean;
+  flow_type?: string;
+  auto_created?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface User {
@@ -54,7 +45,6 @@ export interface AuthContextType {
   user: User | null;
   client: Client | null;
   engagement: Engagement | null;
-  session: Session | null;
   flow: Flow | null;
   isLoading: boolean;
   error: string | null;
@@ -66,12 +56,9 @@ export interface AuthContextType {
   logout: () => void;
   switchClient: (clientId: string, clientData?: Client) => Promise<void>;
   switchEngagement: (engagementId: string, engagementData?: Engagement) => Promise<void>;
-  switchSession: (sessionId: string) => Promise<void>;
   switchFlow: (flowId: string, flowData?: Flow) => Promise<void>;
-  setCurrentSession: (session: Session | null) => void;
   setCurrentFlow: (flow: Flow | null) => void;
   currentEngagementId: string | null;
-  currentSessionId: string | null;
   currentFlowId: string | null;
   getAuthHeaders: () => Record<string, string>;
 }
@@ -80,7 +67,7 @@ export interface ContextData {
   user?: User;
   client?: Client;
   engagement?: Engagement;
-  session?: Session;
+  flow?: Flow;
   timestamp?: number;
   source?: string;
 }
