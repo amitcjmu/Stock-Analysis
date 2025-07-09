@@ -12,7 +12,26 @@ export function useAnalysisQueue() {
 
   const { data: queues = [], isLoading } = useQuery<AnalysisQueueItem[]>({
     queryKey: ['analysis-queues'],
-    queryFn: () => apiCall('analysis/queues'),
+    queryFn: async () => {
+      try {
+        return await apiCall('analysis/queues');
+      } catch (error: any) {
+        // Handle 404 errors gracefully - endpoint may not exist yet
+        if (error.status === 404 || error.response?.status === 404) {
+          console.log('Analysis queues endpoint not available yet');
+          return [];
+        }
+        throw error;
+      }
+    },
+    retry: (failureCount, error) => {
+      // Don't retry 404 errors
+      if (error && ('status' in error && error.status === 404)) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const createQueue = async (request: CreateQueueRequest) => {

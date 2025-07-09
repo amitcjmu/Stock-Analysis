@@ -33,9 +33,25 @@ export const useWavePlanning = () => {
   return useQuery<WavePlanningData>({
     queryKey: ['wave-planning'],
     queryFn: async () => {
-      const headers = getAuthHeaders();
-      const response = await apiCall('ave-planning', { headers });
-      return response;
+      try {
+        const headers = getAuthHeaders();
+        const response = await apiCall('ave-planning', { headers });
+        return response;
+      } catch (error: any) {
+        // Handle 404 errors gracefully - endpoint may not exist yet
+        if (error.status === 404 || error.response?.status === 404) {
+          console.log('Wave planning endpoint not available yet');
+          return { waves: [], summary: { totalWaves: 0, totalApps: 0, totalGroups: 0 } };
+        }
+        throw error;
+      }
+    },
+    retry: (failureCount, error) => {
+      // Don't retry 404 errors
+      if (error && ('status' in error && error.status === 404)) {
+        return false;
+      }
+      return failureCount < 2;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

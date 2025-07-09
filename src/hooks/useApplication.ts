@@ -29,12 +29,28 @@ export const useApplication = (applicationId: string) => {
   return useQuery<Application>({
     queryKey: ['application', applicationId],
     queryFn: async () => {
-      const response = await apiCall(`/api/v1/discovery/applications/${applicationId}`, {
-        headers: getAuthHeaders()
-      });
-      return response.data;
+      try {
+        const response = await apiCall(`/api/v1/discovery/applications/${applicationId}`, {
+          headers: getAuthHeaders()
+        });
+        return response.data;
+      } catch (error: any) {
+        // Handle 404 errors gracefully - endpoint may not exist yet
+        if (error.status === 404 || error.response?.status === 404) {
+          console.log('Discovery applications endpoint not available yet');
+          return null;
+        }
+        throw error;
+      }
     },
     enabled: !!applicationId,
+    retry: (failureCount, error) => {
+      // Don't retry 404 errors
+      if (error && ('status' in error && error.status === 404)) {
+        return false;
+      }
+      return failureCount < 2;
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
