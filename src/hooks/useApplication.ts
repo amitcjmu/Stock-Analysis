@@ -24,29 +24,27 @@ export interface Application {
 }
 
 export const useApplication = (applicationId: string) => {
-  const { getAuthHeaders } = useAuth();
+  const { isAuthenticated, client, engagement } = useAuth();
   
   return useQuery<Application>({
     queryKey: ['application', applicationId],
     queryFn: async () => {
       try {
-        const response = await apiCall(`/api/v1/discovery/applications/${applicationId}`, {
-          headers: getAuthHeaders()
-        });
+        const response = await apiCall(`/api/v1/discovery/applications/${applicationId}`);
         return response.data;
       } catch (error: any) {
-        // Handle 404 errors gracefully - endpoint may not exist yet
-        if (error.status === 404 || error.response?.status === 404) {
+        // Handle 404 and 403 errors gracefully - endpoint may not exist yet
+        if (error.status === 404 || error.response?.status === 404 || error.status === 403) {
           console.log('Discovery applications endpoint not available yet');
           return null;
         }
         throw error;
       }
     },
-    enabled: !!applicationId,
+    enabled: isAuthenticated && !!client && !!engagement && !!applicationId,
     retry: (failureCount, error) => {
-      // Don't retry 404 errors
-      if (error && ('status' in error && error.status === 404)) {
+      // Don't retry 404 or 403 errors
+      if (error && ('status' in error && (error.status === 404 || error.status === 403))) {
         return false;
       }
       return failureCount < 2;
@@ -56,14 +54,12 @@ export const useApplication = (applicationId: string) => {
 };
 
 export const useUpdateApplication = () => {
-  const { getAuthHeaders } = useAuth();
   const queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: async ({ applicationId, data }: { applicationId: string; data: Partial<Application> }) => {
       const response = await apiCall(`/api/v1/discovery/applications/${applicationId}`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
         body: JSON.stringify(data)
       });
       return response.data;

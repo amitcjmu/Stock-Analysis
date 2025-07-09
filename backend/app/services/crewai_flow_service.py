@@ -505,7 +505,7 @@ class CrewAIFlowService:
                         crewai_flow = None
                         
                         # Load existing flow state (don't re-initialize if already exists)
-                        if not hasattr(crewai_flow, '_flow_state') or not crewai_flow._flow_state:
+                        if crewai_flow and (not hasattr(crewai_flow, '_flow_state') or not crewai_flow._flow_state):
                             await crewai_flow.initialize_discovery()
                         
                         # Debug: Log the current flow status to understand the condition

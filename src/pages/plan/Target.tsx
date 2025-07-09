@@ -1,7 +1,7 @@
 import React from 'react';
 import { Cloud, Loader2, AlertTriangle, Plus, DollarSign, Shield, Server } from 'lucide-react';
 import { useTarget } from '@/hooks/useTarget';
-import { Sidebar } from '@/components/ui/sidebar';
+import { Sidebar, SidebarProvider } from '@/components/ui/sidebar';
 import { Alert } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -30,15 +30,17 @@ const Target = () => {
 
   if (isError) {
     return (
-      <div className="min-h-screen bg-gray-50 flex">
-        <Sidebar />
-        <div className="flex-1 ml-64 p-8">
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <p>Error loading target environment data: {error?.message}</p>
-          </Alert>
+      <SidebarProvider>
+        <div className="min-h-screen bg-gray-50 flex">
+          <Sidebar />
+          <div className="flex-1 ml-64 p-8">
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <p>Error loading target environment data: {error?.message}</p>
+            </Alert>
+          </div>
         </div>
-      </div>
+      </SidebarProvider>
     );
   }
 
@@ -64,10 +66,11 @@ const Target = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <Sidebar />
-      <div className="flex-1 ml-64">
-        <main className="p-8">
+    <SidebarProvider>
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64">
+          <main className="p-8">
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
               <div className="flex items-center justify-between">
@@ -253,9 +256,10 @@ const Target = () => {
               ))}
             </div>
           </div>
-        </main>
+          </main>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 

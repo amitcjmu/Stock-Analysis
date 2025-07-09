@@ -27,7 +27,7 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
       preferredStatuses,
       fallbackToAnyRunning,
       sampleFlow: flowList.length > 0 ? {
-        flow_id: flowList[0].flow_id,
+        flow_id: flowList[0].id,
         status: flowList[0].status,
         next_phase: flowList[0].next_phase,
         phases: flowList[0].phases,
@@ -41,8 +41,8 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
         flow.next_phase === currentPhase
       );
       if (currentPhaseFlow) {
-        console.log(`✅ Found flow needing ${currentPhase} phase:`, currentPhaseFlow.flow_id);
-        return currentPhaseFlow.flow_id;
+        console.log(`✅ Found flow needing ${currentPhase} phase:`, currentPhaseFlow.id);
+        return currentPhaseFlow.id;
       }
     }
     
@@ -65,8 +65,8 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
       });
       
       if (dataImportCompleteFlow) {
-        console.log(`✅ Found flow with completed data_import ready for attribute_mapping:`, dataImportCompleteFlow.flow_id);
-        return dataImportCompleteFlow.flow_id;
+        console.log(`✅ Found flow with completed data_import ready for attribute_mapping:`, dataImportCompleteFlow.id);
+        return dataImportCompleteFlow.id;
       }
     }
     
@@ -80,7 +80,7 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
         
         const isPreferredStatus = preferredStatuses.includes(flow.status);
         
-        console.log(`🔍 Checking flow ${flow.flow_id} for completed ${currentPhase}:`, {
+        console.log(`🔍 Checking flow ${flow.id} for completed ${currentPhase}:`, {
           directField,
           phasesField,
           isPhaseCompleted,
@@ -92,8 +92,8 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
       });
       
       if (completedPhaseFlow) {
-        console.log(`✅ Found flow with completed ${currentPhase} phase:`, completedPhaseFlow.flow_id);
-        return completedPhaseFlow.flow_id;
+        console.log(`✅ Found flow with completed ${currentPhase} phase:`, completedPhaseFlow.id);
+        return completedPhaseFlow.id;
       }
     }
     
@@ -103,8 +103,8 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
         preferredStatuses.includes(flow.status)
       );
       if (runningFlow) {
-        console.log(`✅ Found flow in preferred status:`, runningFlow.flow_id);
-        return runningFlow.flow_id;
+        console.log(`✅ Found flow in preferred status:`, runningFlow.id);
+        return runningFlow.id;
       }
     }
     
@@ -114,8 +114,8 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
     );
     
     if (sortedFlows.length > 0) {
-      console.log(`✅ Using most recent flow:`, sortedFlows[0].flow_id);
-      return sortedFlows[0].flow_id;
+      console.log(`✅ Using most recent flow:`, sortedFlows[0].id);
+      return sortedFlows[0].id;
     }
     
     console.log('❌ No suitable flow found');

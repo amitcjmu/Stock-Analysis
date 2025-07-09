@@ -28,27 +28,27 @@ export interface WavePlanningData {
 }
 
 export const useWavePlanning = () => {
-  const { getAuthHeaders } = useAuth();
+  const { isAuthenticated, client, engagement } = useAuth();
   
   return useQuery<WavePlanningData>({
     queryKey: ['wave-planning'],
     queryFn: async () => {
       try {
-        const headers = getAuthHeaders();
-        const response = await apiCall('ave-planning', { headers });
+        const response = await apiCall('/api/v1/wave-planning');
         return response;
       } catch (error: any) {
-        // Handle 404 errors gracefully - endpoint may not exist yet
-        if (error.status === 404 || error.response?.status === 404) {
+        // Handle 404 and 403 errors gracefully - endpoint may not exist yet
+        if (error.status === 404 || error.response?.status === 404 || error.status === 403) {
           console.log('Wave planning endpoint not available yet');
           return { waves: [], summary: { totalWaves: 0, totalApps: 0, totalGroups: 0 } };
         }
         throw error;
       }
     },
+    enabled: isAuthenticated && !!client && !!engagement,
     retry: (failureCount, error) => {
-      // Don't retry 404 errors
-      if (error && ('status' in error && error.status === 404)) {
+      // Don't retry 404 or 403 errors
+      if (error && ('status' in error && (error.status === 404 || error.status === 403))) {
         return false;
       }
       return failureCount < 2;
@@ -59,14 +59,11 @@ export const useWavePlanning = () => {
 
 export const useUpdateWavePlanning = () => {
   const queryClient = useQueryClient();
-  const { getAuthHeaders } = useAuth();
 
   return useMutation({
     mutationFn: async (data: WavePlanningData) => {
-      const headers = getAuthHeaders();
-      return apiCall('ave-planning', {
+      return apiCall('/api/v1/wave-planning', {
         method: 'PUT',
-        headers,
         body: JSON.stringify(data),
       });
     },

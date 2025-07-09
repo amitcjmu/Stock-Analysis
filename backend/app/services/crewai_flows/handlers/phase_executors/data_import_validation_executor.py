@@ -70,12 +70,7 @@ class DataImportValidationExecutor(BasePhaseExecutor):
             logger.warning(f"⚠️ DEBUG: Full validation results: {results}")
             
             # Store validation failure in state for debugging
-            if not hasattr(self.state, 'validation_errors'):
-                self.state.validation_errors = []
-            self.state.validation_errors.append({
-                "phase": "data_import",
-                "error": reason,
-                "timestamp": self._get_timestamp(),
+            self.state.add_error("data_import", reason, {
                 "full_results": results
             })
         

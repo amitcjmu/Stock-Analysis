@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnalysisQueueItem } from '@/types/assessment';
 import { apiCall } from '@/config/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CreateQueueRequest {
   name: string;
@@ -9,24 +10,26 @@ interface CreateQueueRequest {
 
 export function useAnalysisQueue() {
   const queryClient = useQueryClient();
+  const { isAuthenticated, client, engagement } = useAuth();
 
   const { data: queues = [], isLoading } = useQuery<AnalysisQueueItem[]>({
     queryKey: ['analysis-queues'],
     queryFn: async () => {
       try {
-        return await apiCall('analysis/queues');
+        return await apiCall('/api/v1/analysis/queues');
       } catch (error: any) {
-        // Handle 404 errors gracefully - endpoint may not exist yet
-        if (error.status === 404 || error.response?.status === 404) {
+        // Handle 404 and 403 errors gracefully - endpoint may not exist yet
+        if (error.status === 404 || error.response?.status === 404 || error.status === 403) {
           console.log('Analysis queues endpoint not available yet');
           return [];
         }
         throw error;
       }
     },
+    enabled: isAuthenticated && !!client && !!engagement,
     retry: (failureCount, error) => {
-      // Don't retry 404 errors
-      if (error && ('status' in error && error.status === 404)) {
+      // Don't retry 404 or 403 errors
+      if (error && ('status' in error && (error.status === 404 || error.status === 403))) {
         return false;
       }
       return failureCount < 2;
@@ -35,7 +38,7 @@ export function useAnalysisQueue() {
   });
 
   const createQueue = async (request: CreateQueueRequest) => {
-    const response = await apiCall('analysis/queues', { method: 'POST', body: JSON.stringify(request) });
+    const response = await apiCall('/api/v1/analysis/queues', { method: 'POST', body: JSON.stringify(request) });
     await queryClient.invalidateQueries({ queryKey: ['analysis-queues'] });
     return response.data;
   };

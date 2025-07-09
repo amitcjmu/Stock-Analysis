@@ -37,7 +37,7 @@ export const useAttributeMappingLogic = () => {
     
     if (flowList && flowList.length > 0) {
       console.log('📋 Available flows for attribute mapping:', flowList.map(f => ({
-        flow_id: f.flow_id,
+        flow_id: f.id,
         status: f.status,
         current_phase: f.current_phase,
         next_phase: f.next_phase,
@@ -190,9 +190,19 @@ export const useAttributeMappingLogic = () => {
   
   // Use field mappings from API data instead of flow state
   const fieldMappings = useMemo(() => {
+    console.log('🔍 [DEBUG] fieldMappings useMemo triggered with:', {
+      realFieldMappings_available: !!realFieldMappings,
+      realFieldMappings_isArray: Array.isArray(realFieldMappings),
+      realFieldMappings_length: realFieldMappings?.length,
+      realFieldMappings_sample: realFieldMappings?.slice(0, 2),
+      fieldMappingData_available: !!fieldMappingData,
+      fieldMappingData_type: typeof fieldMappingData,
+      fieldMappingData_keys: fieldMappingData ? Object.keys(fieldMappingData) : []
+    });
+    
     // Use the API field mappings data
     if (realFieldMappings && Array.isArray(realFieldMappings)) {
-      return realFieldMappings.map(mapping => ({
+      const mappedData = realFieldMappings.map(mapping => ({
         id: mapping.id,
         sourceField: mapping.source_field,
         targetAttribute: mapping.target_field,
@@ -206,10 +216,29 @@ export const useAttributeMappingLogic = () => {
         validation_method: 'semantic_analysis',
         is_validated: mapping.is_approved
       }));
+      
+      console.log('🔍 [DEBUG] Using API field mappings data:', {
+        original_count: realFieldMappings.length,
+        mapped_count: mappedData.length,
+        sample_original: realFieldMappings.slice(0, 2),
+        sample_mapped: mappedData.slice(0, 2)
+      });
+      
+      return mappedData;
     }
     
     // Fallback to flow state data if API data is not available
     if (fieldMappingData) {
+      console.log('🔍 [DEBUG] Using fallback to flow state data:', {
+        fieldMappingData_structure: {
+          hasMappings: !!fieldMappingData.mappings,
+          hasAttributes: !!fieldMappingData.attributes,
+          hasData: !!fieldMappingData.data,
+          hasConfidenceScores: !!fieldMappingData.confidence_scores,
+          keys: Object.keys(fieldMappingData)
+        }
+      });
+      
       // Case 1: Handle direct field mappings structure from backend
       if (typeof fieldMappingData === 'object' && !fieldMappingData.mappings && !fieldMappingData.attributes) {
         // Backend returns field_mappings directly as object with confidence_scores
@@ -233,7 +262,10 @@ export const useAttributeMappingLogic = () => {
             validation_method: 'semantic_analysis',
             is_validated: false
           }));
-        console.log('🔄 Using direct field mappings:', flowStateMappings);
+        console.log('🔄 [DEBUG] Using direct field mappings fallback:', {
+          mappings_count: flowStateMappings.length,
+          sample_mappings: flowStateMappings.slice(0, 2)
+        });
         return flowStateMappings;
       }
       
@@ -254,12 +286,15 @@ export const useAttributeMappingLogic = () => {
           validation_method: mapping.pattern_matched || 'semantic_analysis',
           is_validated: false
         }));
-        console.log('🔄 Using flow state mappings:', flowStateMappings);
+        console.log('🔄 [DEBUG] Using structured mappings fallback:', {
+          mappings_count: flowStateMappings.length,
+          sample_mappings: flowStateMappings.slice(0, 2)
+        });
         return flowStateMappings;
       }
     }
     // Return empty array if no data available
-    console.log('🔄 No field mappings available');
+    console.log('🔄 [DEBUG] No field mappings available - returning empty array');
     return [];
   }, [fieldMappingData, realFieldMappings]);
   
@@ -267,7 +302,7 @@ export const useAttributeMappingLogic = () => {
   useEffect(() => {
     if (flow) {
       console.log('🔍 Flow data available:', {
-        flow_id: flow.flow_id,
+        flow_id: flow.id,
         data_import_id: flow.data_import_id,
         status: flow.status,
         current_phase: flow.current_phase,
@@ -428,9 +463,9 @@ export const useAttributeMappingLogic = () => {
   const handleTriggerFieldMappingCrew = useCallback(async () => {
     try {
       console.log('🔄 Resuming CrewAI Flow from field mapping approval');
-      if (flow?.flow_id) {
+      if (flow?.id) {
         // Use the correct resume endpoint for paused flows
-        const result = await apiCall(`/discovery/flow/${flow.flow_id}/resume`, {
+        const result = await apiCall(`/discovery/flow/${flow.id}/resume`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

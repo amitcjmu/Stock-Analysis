@@ -1,5 +1,46 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [1.4.15] - 2025-07-09
+
+### 🔧 **FRONTEND** - Planning Pages Error Resolution & API Endpoint Fixes
+
+This release resolves critical UI component errors and API endpoint failures affecting planning pages including Timeline, Target, and Resource management, along with assessment flow integration issues.
+
+### 🚀 **Component & API Infrastructure Fixes**
+
+#### **SidebarProvider Context Resolution**
+- **Change Type**: Added missing SidebarProvider imports and proper component wrapping across planning pages
+- **Impact**: Eliminated "SidebarProvider is not defined" errors preventing Timeline, Target, and Resource pages from loading
+- **Technical Details**: Fixed imports in Target.tsx and ensured consistent SidebarProvider wrapping across all planning page components
+
+#### **API Endpoint Authentication & Error Handling**
+- **Change Type**: Enhanced API hooks with proper authentication guards and graceful error handling for 404/403 responses
+- **Impact**: Eliminated API call failures and console errors from missing backend endpoints
+- **Technical Details**: Updated useTarget, useTimeline, useResource, useAnalysisQueue, useApplication, and useWavePlanning hooks with authentication context validation and fallback data
+
+#### **Planning API Endpoint Corrections**
+- **Change Type**: Fixed incorrect API endpoint URLs and authentication header management
+- **Impact**: Corrected wave-planning endpoint URL (was 'ave-planning') and removed deprecated getAuthHeaders() calls
+- **Technical Details**: Updated all planning hooks to use /api/v1/ prefix and proper authentication context from useAuth hook
+
+#### **Assessment Flow Integration Improvements**
+- **Change Type**: Enhanced assessment-related hooks with proper authentication context and error handling
+- **Impact**: Resolved 404 errors from analysis queues and discovery applications endpoints
+- **Technical Details**: Added authentication guards to useAnalysisQueue and useApplication hooks with graceful fallback behavior
+
+### 📊 **Business Impact**
+
+- **User Experience**: Eliminated page crashes and loading errors across all planning modules
+- **System Reliability**: Improved error handling and authentication flow stability
+- **Development Experience**: Reduced console errors and improved debugging capabilities
+
+### 🎯 **Success Metrics**
+
+- **Page Loading**: Fixed SidebarProvider context errors across Timeline, Target, and Resource pages
+- **API Integration**: Resolved 404/403 errors from missing backend endpoints with graceful fallbacks
+- **Authentication Flow**: Enhanced all planning hooks with proper authentication context validation
+- **Error Handling**: Implemented consistent error handling patterns across all planning and assessment modules
+
 ## [1.4.14] - 2025-07-09
 
 ### 🔒 **SECURITY** - Multi-Tenant Authentication Header Validation

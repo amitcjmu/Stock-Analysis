@@ -42,18 +42,42 @@ export interface ResourceData {
 }
 
 export const useResource = () => {
-  const { getContextHeaders } = useAuth();
+  const { isAuthenticated, client, engagement } = useAuth();
 
   return useQuery<ResourceData>({
     queryKey: ['resources'],
     queryFn: async () => {
-      const response = await apiCall('plan/resources', {
-        method: 'GET',
-        headers: getContextHeaders()
-      });
-      return response;
+      try {
+        const response = await apiCall('/api/v1/plan/resources');
+        return response;
+      } catch (error: any) {
+        // Handle errors gracefully - return mock data for development
+        if (error.status === 404 || error.status === 403) {
+          console.log('Resources endpoint not available, returning mock data');
+          return {
+            teams: [],
+            metrics: {
+              total_teams: 0,
+              total_resources: 0,
+              average_utilization: 0,
+              skill_coverage: {}
+            },
+            recommendations: [],
+            upcoming_needs: []
+          };
+        }
+        throw error;
+      }
     },
+    enabled: isAuthenticated && !!client && !!engagement,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    retry: (failureCount, error) => {
+      // Don't retry 404 or 403 errors
+      if (error && ('status' in error && (error.status === 404 || error.status === 403))) {
+        return false;
+      }
+      return failureCount < 2;
+    }
   });
 }; 

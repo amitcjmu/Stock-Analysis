@@ -46,10 +46,16 @@ interface UseUnifiedDiscoveryFlowReturn {
 // Use extended master flow service for all API calls
 const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string) => ({
   async getFlowStatus(flowId: string): Promise<UnifiedDiscoveryFlowState> {
+    console.log(`🔍 [DEBUG] useUnifiedDiscoveryFlow.getFlowStatus called for flowId: ${flowId}`);
     const response: FlowStatusResponse = await masterFlowServiceExtended.getFlowStatus(flowId, clientAccountId, engagementId);
     
+    console.log(`🔍 [DEBUG] Raw API response:`, response);
+    console.log(`🔍 [DEBUG] Field mappings in response:`, response.field_mappings);
+    console.log(`🔍 [DEBUG] Field mappings type:`, typeof response.field_mappings);
+    console.log(`🔍 [DEBUG] Field mappings length:`, Array.isArray(response.field_mappings) ? response.field_mappings.length : 'not array');
+    
     // Map backend response to frontend format
-    return {
+    const mappedResponse = {
       flow_id: response.flow_id || response.flowId || flowId,
       client_account_id: clientAccountId,
       engagement_id: engagementId || '',
@@ -58,7 +64,7 @@ const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string
       phase_completion: {},
       crew_status: {},
       raw_data: [],
-      field_mappings: {},
+      field_mappings: response.field_mappings || {},
       cleaned_data: [],
       asset_inventory: {},
       dependencies: {},
@@ -71,6 +77,11 @@ const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string
       created_at: response.created_at || '',
       updated_at: response.updated_at || ''
     };
+    
+    console.log(`🔍 [DEBUG] Mapped response field_mappings:`, mappedResponse.field_mappings);
+    console.log(`🔍 [DEBUG] Full mapped response:`, mappedResponse);
+    
+    return mappedResponse;
   },
 
   async initializeFlow(data: any): Promise<any> {

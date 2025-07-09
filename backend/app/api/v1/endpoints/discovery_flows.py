@@ -722,57 +722,29 @@ async def resume_discovery_flow(
                  "field_mapping" in str(master_flow.flow_persistence_data) or
                  "attribute_mapping" in str(master_flow.flow_persistence_data))):
                 
-                # DELTA TEAM FIX: Use Master Flow Orchestrator as SINGLE SOURCE for state updates
-                logger.info("📝 Delegating ALL state updates to Master Flow Orchestrator")
-                try:
-                    # SINGLE state update through Master Flow Orchestrator
-                    phase_result = await orchestrator.execute_phase(
-                        flow_id=str(flow_id),
-                        phase_name="field_mapping_approval",  # Let MFO handle the approval logic
-                        phase_input={
-                            "user_approval": True,
-                            "field_mappings": request.get("field_mappings", {}),
-                            "approval_timestamp": resume_context.get("approval_timestamp"),
-                            "approved_by": resume_context.get("approved_by"),
-                            "notes": resume_context.get("approval_notes", ""),
-                            "advance_to_next_phase": True
-                        }
-                    )
-                    logger.info(f"✅ Master Flow Orchestrator handled approval: {phase_result}")
-                except Exception as e:
-                    logger.error(f"Master Flow Orchestrator approval failed: {e}")
-                    # FALLBACK: Only if MFO fails, do minimal direct update
-                    logger.info("⚠️ Using fallback direct database update")
-                    
-                    # Get the CrewAI flow service to handle this directly
-                    from app.services.crewai_flow_service import CrewAIFlowService
-                    
-                    crewai_service = CrewAIFlowService(db)
-                    crew_result = await crewai_service.resume_flow(
-                        flow_id=str(flow_id),
-                        resume_context=resume_context
-                    )
-                    
-                    return {
-                        "success": True,
-                        "flow_id": str(flow_id),
-                        "status": crew_result.get("status", "resumed"),
-                        "message": "Field mapping resumed via CrewAI service",
-                        "next_phase": "data_cleansing",
-                        "current_phase": "field_mapping",
-                        "method": "crewai_direct_fallback",
-                        "crew_result": crew_result
-                    }
+                # CORRECT APPROACH: Resume the CrewAI flow with field mapping approval
+                logger.info("📝 Resuming CrewAI flow with field mapping approval")
+                # Don't use Master Flow Orchestrator's execute_phase since this is not a phase
+                # Instead, use the CrewAI flow service to resume the flow properly
+                
+                # Get the CrewAI flow service to handle this directly
+                from app.services.crewai_flow_service import CrewAIFlowService
+                
+                crewai_service = CrewAIFlowService(db)
+                crew_result = await crewai_service.resume_flow(
+                    flow_id=str(flow_id),
+                    resume_context=resume_context
+                )
                 
                 return {
                     "success": True,
                     "flow_id": str(flow_id),
-                    "status": phase_result["status"],
-                    "message": "Field mapping approved and processed",
-                    "next_phase": phase_result.get("next_phase", "data_cleansing"),
+                    "status": crew_result.get("status", "resumed"),
+                    "message": "Field mapping resumed via CrewAI service",
+                    "next_phase": "data_cleansing",
                     "current_phase": "field_mapping",
-                    "method": "master_flow_orchestrator_execute_phase",
-                    "phase_results": phase_result.get("results", {})
+                    "method": "crewai_direct_service",
+                    "crew_result": crew_result
                 }
             else:
                 # For paused flows, use resume
