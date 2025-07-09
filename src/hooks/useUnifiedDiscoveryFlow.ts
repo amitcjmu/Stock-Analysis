@@ -100,10 +100,13 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
   
   // Create API instance with context
   const unifiedDiscoveryAPI = useMemo(() => {
-    // Use demo UUIDs as fallback
-    const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
-    const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
-    return createUnifiedDiscoveryAPI(clientAccountId, engagementId);
+    // Require proper client and engagement context
+    if (!client?.id || !engagement?.id) {
+      console.warn('Missing client or engagement context for unified discovery flow');
+      return null;
+    }
+    
+    return createUnifiedDiscoveryAPI(client.id, engagement.id);
   }, [client, engagement]);
 
   // Use provided flowId or try to get from URL/localStorage
@@ -157,8 +160,8 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
     refetch: refreshFlow,
   } = useQuery({
     queryKey: ['unifiedDiscoveryFlow', flowId],
-    queryFn: () => flowId ? unifiedDiscoveryAPI.getFlowStatus(flowId) : null,
-    enabled: !!flowId,
+    queryFn: () => flowId && unifiedDiscoveryAPI ? unifiedDiscoveryAPI.getFlowStatus(flowId) : null,
+    enabled: !!flowId && !!unifiedDiscoveryAPI,
     refetchInterval: (query) => {
       // Stop polling if disabled or max attempts reached
       if (!pollingEnabled || pollingAttempts >= MAX_POLLING_ATTEMPTS) {
@@ -210,7 +213,10 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
 
   // Initialize flow mutation
   const initializeFlowMutation = useMutation({
-    mutationFn: unifiedDiscoveryAPI.initializeFlow,
+    mutationFn: (data: any) => {
+      if (!unifiedDiscoveryAPI) throw new Error('No API instance available');
+      return unifiedDiscoveryAPI.initializeFlow(data);
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['unifiedDiscoveryFlow'] });
       
@@ -225,6 +231,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
   const executePhhaseMutation = useMutation({
     mutationFn: ({ phase, data }: { phase: string; data?: any }) => {
       if (!flowId) throw new Error('No flow ID available');
+      if (!unifiedDiscoveryAPI) throw new Error('No API instance available');
       return unifiedDiscoveryAPI.executePhase(flowId, phase, data);
     },
     onMutate: () => {

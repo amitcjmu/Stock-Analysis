@@ -1,21 +1,16 @@
 // API service for attribute mapping operations
+import { apiCall } from '@/config/api';
+
 export class MappingService {
   
   static async approveMapping(mappingId: string, flowId: string) {
     try {
-      const response = await fetch(`/api/v1/field-mapping/approve/${mappingId}`, {
+      const response = await apiCall(`/field-mapping/approve/${mappingId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ flowId })
       });
       
-      if (!response.ok) {
-        throw new Error(`Failed to approve mapping: ${response.statusText}`);
-      }
-      
-      return await response.json();
+      return response;
     } catch (error) {
       console.error('Error approving mapping:', error);
       throw error;
@@ -24,19 +19,12 @@ export class MappingService {
 
   static async rejectMapping(mappingId: string, flowId: string, reason?: string) {
     try {
-      const response = await fetch(`/api/v1/field-mapping/reject/${mappingId}`, {
+      const response = await apiCall(`/field-mapping/reject/${mappingId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ flowId, reason })
       });
       
-      if (!response.ok) {
-        throw new Error(`Failed to reject mapping: ${response.statusText}`);
-      }
-      
-      return await response.json();
+      return response;
     } catch (error) {
       console.error('Error rejecting mapping:', error);
       throw error;
@@ -45,19 +33,12 @@ export class MappingService {
 
   static async updateMapping(mappingId: string, updates: any, flowId: string) {
     try {
-      const response = await fetch(`/api/v1/field-mapping/update/${mappingId}`, {
+      const response = await apiCall(`/field-mapping/update/${mappingId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ ...updates, flowId })
       });
       
-      if (!response.ok) {
-        throw new Error(`Failed to update mapping: ${response.statusText}`);
-      }
-      
-      return await response.json();
+      return response;
     } catch (error) {
       console.error('Error updating mapping:', error);
       throw error;
@@ -66,19 +47,12 @@ export class MappingService {
 
   static async updateAttribute(attributeId: string, updates: any, flowId: string) {
     try {
-      const response = await fetch(`/api/v1/attribute-mapping/update/${attributeId}`, {
+      const response = await apiCall(`/attribute-mapping/update/${attributeId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ ...updates, flowId })
       });
       
-      if (!response.ok) {
-        throw new Error(`Failed to update attribute: ${response.statusText}`);
-      }
-      
-      return await response.json();
+      return response;
     } catch (error) {
       console.error('Error updating attribute:', error);
       throw error;
@@ -87,18 +61,11 @@ export class MappingService {
 
   static async triggerFieldMappingAnalysis(flowId: string) {
     try {
-      const response = await fetch(`/api/v1/field-mapping/trigger/${flowId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        }
+      const response = await apiCall(`/field-mapping/trigger/${flowId}`, {
+        method: 'POST'
       });
       
-      if (!response.ok) {
-        throw new Error(`Failed to trigger field mapping analysis: ${response.statusText}`);
-      }
-      
-      return await response.json();
+      return response;
     } catch (error) {
       console.error('Error triggering field mapping analysis:', error);
       throw error;
@@ -107,13 +74,9 @@ export class MappingService {
 
   static async getMappingProgress(flowId: string) {
     try {
-      const response = await fetch(`/api/v1/field-mapping/progress/${flowId}`);
+      const response = await apiCall(`/field-mapping/progress/${flowId}`);
       
-      if (!response.ok) {
-        throw new Error(`Failed to get mapping progress: ${response.statusText}`);
-      }
-      
-      return await response.json();
+      return response;
     } catch (error) {
       console.error('Error getting mapping progress:', error);
       throw error;
@@ -122,21 +85,9 @@ export class MappingService {
 
   static async getFieldMappings(importId: string) {
     try {
-      const response = await fetch(`/api/v1/data-import/field-mapping/imports/${importId}/field-mappings`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Client-Account-ID': '11111111-1111-1111-1111-111111111111',  // TODO: Get from context
-          'X-Engagement-ID': '22222222-2222-2222-2222-222222222222',      // TODO: Get from context
-          'X-User-ID': '33333333-3333-3333-3333-333333333333'              // TODO: Get from context
-        }
-      });
+      const response = await apiCall(`/data-import/field-mapping/imports/${importId}/field-mappings`);
       
-      if (!response.ok) {
-        throw new Error(`Failed to get field mappings: ${response.statusText}`);
-      }
-      
-      return await response.json();
+      return response;
     } catch (error) {
       console.error('Error getting field mappings:', error);
       throw error;
@@ -145,13 +96,9 @@ export class MappingService {
 
   static async getCriticalAttributes(flowId: string) {
     try {
-      const response = await fetch(`/api/v1/attribute-mapping/critical/${flowId}`);
+      const response = await apiCall(`/attribute-mapping/critical/${flowId}`);
       
-      if (!response.ok) {
-        throw new Error(`Failed to get critical attributes: ${response.statusText}`);
-      }
-      
-      return await response.json();
+      return response;
     } catch (error) {
       console.error('Error getting critical attributes:', error);
       throw error;

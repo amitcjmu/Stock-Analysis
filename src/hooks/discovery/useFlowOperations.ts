@@ -30,9 +30,14 @@ export const useIncompleteFlowDetectionV2 = () => {
     queryKey: ['incomplete-flows', client?.id, engagement?.id],
     queryFn: async () => {
       try {
-        // Use proper UUIDs from auth context with demo fallbacks
-        const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
-        const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+        // Require proper UUIDs from auth context
+        if (!client?.id || !engagement?.id) {
+          console.warn('Missing client or engagement context for flow operations');
+          return { flows: [] };
+        }
+        
+        const clientAccountId = client.id;
+        const engagementId = engagement.id;
         
         // Try the active flows endpoint first
         const response = await masterFlowService.getActiveFlows(clientAccountId, engagementId, 'discovery');
@@ -101,7 +106,7 @@ export const useIncompleteFlowDetectionV2 = () => {
     },
     staleTime: 30000,
     refetchInterval: false,
-    enabled: !!client?.id // Only run query when we have a client ID
+    enabled: !!client?.id && !!engagement?.id // Only run query when we have proper context
   });
 };
 
@@ -114,11 +119,13 @@ export const useFlowResumptionV2 = () => {
   
   return useMutation({
     mutationFn: async (flowId: string) => {
-      const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
-      const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+      // Require proper UUIDs from auth context
+      if (!client?.id || !engagement?.id) {
+        throw new Error('Missing client or engagement context for flow resumption');
+      }
       
       // Use masterFlowService for resuming flows
-      return await masterFlowService.resumeFlow(flowId, clientAccountId, engagementId);
+      return await masterFlowService.resumeFlow(flowId, client.id, engagement.id);
     },
     onSuccess: (data, flowId) => {
       queryClient.invalidateQueries({ queryKey: ['incomplete-flows'] });
@@ -153,11 +160,13 @@ export const useFlowDeletionV2 = () => {
   
   return useMutation({
     mutationFn: async (flowId: string) => {
-      const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
-      const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+      // Require proper UUIDs from auth context
+      if (!client?.id || !engagement?.id) {
+        throw new Error('Missing client or engagement context for flow deletion');
+      }
       
       // Use masterFlowService for deletion (proper unified API)
-      return await masterFlowService.deleteFlow(flowId, clientAccountId, engagementId);
+      return await masterFlowService.deleteFlow(flowId, client.id, engagement.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incomplete-flows'] });
@@ -190,8 +199,13 @@ export const useBulkFlowOperationsV2 = () => {
       // Support both formats for compatibility
       const flowIds = Array.isArray(params) ? params : params.flow_ids;
       setIsDeleting(true);
-      const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
-      const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+      // Require proper UUIDs from auth context
+      if (!client?.id || !engagement?.id) {
+        throw new Error('Missing client or engagement context for bulk flow operations');
+      }
+      
+      const clientAccountId = client.id;
+      const engagementId = engagement.id;
       
       try {
         const results = await Promise.all(

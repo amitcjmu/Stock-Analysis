@@ -25,13 +25,16 @@ export const useDiscoveryFlowList = () => {
     queryKey: ['discovery-flows', client?.id, engagement?.id],
     queryFn: async () => {
       try {
-        const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
-        const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+        // Ensure we have proper client and engagement context
+        if (!client?.id || !engagement?.id) {
+          console.warn('Missing client or engagement context for discovery flows');
+          return [];
+        }
         
         // Use master flow service to get active flows
         const response = await masterFlowServiceExtended.getActiveFlows(
-          clientAccountId,
-          engagementId,
+          client.id,
+          engagement.id,
           'discovery'
         );
         
@@ -65,14 +68,16 @@ export const useDiscoveryFlowList = () => {
 export { useDiscoveryFlowList as useDiscoveryFlowListV2 };
 
 // Utility function to get flows (used by auto-detection)
-export const getFlows = async () => {
+export const getFlows = async (clientId?: string, engagementId?: string) => {
   try {
-    // Use default demo IDs for utility function
-    const clientAccountId = "11111111-1111-1111-1111-111111111111";
-    const engagementId = "22222222-2222-2222-2222-222222222222";
+    // Require auth context to be passed in
+    if (!clientId || !engagementId) {
+      console.warn('getFlows utility requires client and engagement context');
+      return [];
+    }
     
     const response = await masterFlowServiceExtended.getActiveFlows(
-      clientAccountId,
+      clientId,
       engagementId,
       'discovery'
     );
