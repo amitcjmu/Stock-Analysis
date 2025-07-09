@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { apiCall } from '@/config/api';
 
 // Types
 export type ExecutionStatus = 'Planned' | 'In Progress' | 'Completed' | 'Blocked' | 'Failed';
@@ -60,76 +61,168 @@ export interface ExecutionMetrics {
 
 // Hooks
 export const useRehostProjects = () => {
-  const { getAuthHeaders } = useAuth();
-
   return useQuery({
     queryKey: ['rehostProjects'],
     queryFn: async () => {
-      const response = await fetch('/api/v1/execute/rehost', {
-        headers: await getAuthHeaders()
-      });
-      if (!response.ok) throw new Error('Failed to fetch rehost projects');
-      return response.json();
+      try {
+        return await apiCall('/execute/rehost');
+      } catch (error: any) {
+        // Handle 404 errors gracefully - endpoint may not exist yet
+        if (error.status === 404 || error.response?.status === 404) {
+          console.log('Rehost projects endpoint not available yet');
+          return [];
+        }
+        throw error;
+      }
+    },
+    retry: (failureCount, error) => {
+      // Don't retry 404 errors
+      if (error && ('status' in error && error.status === 404)) {
+        return false;
+      }
+      return failureCount < 2;
     }
   });
 };
 
 export const useReplatformProjects = () => {
-  const { getAuthHeaders } = useAuth();
-
   return useQuery({
     queryKey: ['replatformProjects'],
     queryFn: async () => {
-      const response = await fetch('/api/v1/execute/replatform', {
-        headers: await getAuthHeaders()
-      });
-      if (!response.ok) throw new Error('Failed to fetch replatform projects');
-      return response.json();
+      try {
+        return await apiCall('/execute/replatform');
+      } catch (error: any) {
+        // Handle 404 errors gracefully - endpoint may not exist yet
+        if (error.status === 404 || error.response?.status === 404) {
+          console.log('Replatform projects endpoint not available yet');
+          return [];
+        }
+        throw error;
+      }
+    },
+    retry: (failureCount, error) => {
+      // Don't retry 404 errors
+      if (error && ('status' in error && error.status === 404)) {
+        return false;
+      }
+      return failureCount < 2;
     }
   });
 };
 
 export const useCutoverEvents = () => {
-  const { getAuthHeaders } = useAuth();
-
   return useQuery({
     queryKey: ['cutoverEvents'],
     queryFn: async () => {
-      const response = await fetch('/api/v1/execute/cutovers', {
-        headers: await getAuthHeaders()
-      });
-      if (!response.ok) throw new Error('Failed to fetch cutover events');
-      return response.json();
+      try {
+        return await apiCall('/execute/cutovers');
+      } catch (error: any) {
+        // Handle 404 errors gracefully - endpoint may not exist yet
+        if (error.status === 404 || error.response?.status === 404) {
+          console.log('Cutover events endpoint not available yet');
+          return [];
+        }
+        throw error;
+      }
+    },
+    retry: (failureCount, error) => {
+      // Don't retry 404 errors
+      if (error && ('status' in error && error.status === 404)) {
+        return false;
+      }
+      return failureCount < 2;
     }
   });
 };
 
 export const useLessonsLearned = () => {
-  const { getAuthHeaders } = useAuth();
-
   return useQuery({
     queryKey: ['lessonsLearned'],
     queryFn: async () => {
-      const response = await fetch('/api/v1/execute/lessons', {
-        headers: await getAuthHeaders()
-      });
-      if (!response.ok) throw new Error('Failed to fetch lessons learned');
-      return response.json();
+      try {
+        return await apiCall('/execute/lessons');
+      } catch (error: any) {
+        // Handle 404 errors gracefully - endpoint may not exist yet
+        if (error.status === 404 || error.response?.status === 404) {
+          console.log('Lessons learned endpoint not available yet');
+          return [];
+        }
+        throw error;
+      }
+    },
+    retry: (failureCount, error) => {
+      // Don't retry 404 errors
+      if (error && ('status' in error && error.status === 404)) {
+        return false;
+      }
+      return failureCount < 2;
     }
   });
 };
 
 export const useExecutionMetrics = () => {
-  const { getAuthHeaders } = useAuth();
-
   return useQuery({
     queryKey: ['executionMetrics'],
     queryFn: async () => {
-      const response = await fetch('/api/v1/execute/metrics', {
-        headers: await getAuthHeaders()
-      });
-      if (!response.ok) throw new Error('Failed to fetch execution metrics');
-      return response.json();
+      try {
+        return await apiCall('/execute/metrics');
+      } catch (error: any) {
+        // Handle 404 errors gracefully - endpoint may not exist yet
+        if (error.status === 404 || error.response?.status === 404) {
+          console.log('Execution metrics endpoint not available yet');
+          return {
+            totalMigrations: 0,
+            successRate: 0,
+            avgMigrationTime: '0h',
+            costEfficiency: 0,
+            activeRehost: 0,
+            activeReplatform: 0,
+            activeCutovers: 0
+          };
+        }
+        throw error;
+      }
+    },
+    retry: (failureCount, error) => {
+      // Don't retry 404 errors
+      if (error && ('status' in error && error.status === 404)) {
+        return false;
+      }
+      return failureCount < 2;
+    }
+  });
+};
+
+export const useExecutionReports = () => {
+  return useQuery({
+    queryKey: ['executionReports'],
+    queryFn: async () => {
+      try {
+        return await apiCall('/execute/reports');
+      } catch (error: any) {
+        // Handle 404 errors gracefully - endpoint may not exist yet
+        if (error.status === 404 || error.response?.status === 404) {
+          console.log('Execution reports endpoint not available yet');
+          return {
+            reports: [],
+            metrics: {
+              totalMigrations: 0,
+              successRate: '0%',
+              avgMigrationTime: '0h',
+              activeProjects: 0,
+              aiInsight: 'No insights available - endpoint not implemented yet'
+            }
+          };
+        }
+        throw error;
+      }
+    },
+    retry: (failureCount, error) => {
+      // Don't retry 404 errors
+      if (error && ('status' in error && error.status === 404)) {
+        return false;
+      }
+      return failureCount < 2;
     }
   });
 };
