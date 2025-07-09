@@ -61,8 +61,8 @@ const getBackendUrl = (): string => {
   
   // Priority 5: Docker development mode - detect if running on port 8081 (frontend container)
   if (typeof window !== 'undefined' && window.location.port === '8081') {
-    // Running in Docker development mode - use localhost:8000 for backend
-    return 'http://localhost:8000';
+    // Running in Docker development mode - use Vite proxy (empty string)
+    return '';
   }
   
   // Priority 6: Final fallback - same origin
