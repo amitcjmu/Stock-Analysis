@@ -154,11 +154,11 @@ export const useAuthService = (
       let fullClientData = clientData;
       
       if (!fullClientData) {
-        const response = await apiCall(`/context-establishment/clients/${clientId}`, {
+        const response = await apiCall(`/context-establishment/clients`, {
           method: 'GET',
           headers: getAuthHeaders()
         }, false); // Don't include context - we're establishing it
-        fullClientData = response.client;
+        fullClientData = response.clients?.find((c: any) => c.id === clientId);
       }
       
       if (!fullClientData) {
@@ -175,7 +175,7 @@ export const useAuthService = (
         flow 
       });
       
-      const engagementsResponse = await apiCall(`/context-establishment/clients/${clientId}/engagements`, {
+      const engagementsResponse = await apiCall(`/context-establishment/engagements?client_id=${clientId}`, {
         method: 'GET',
         headers: getAuthHeaders()
       }, false); // Don't include context - we're establishing it
@@ -215,7 +215,7 @@ export const useAuthService = (
       
       if (!fullEngagementData && client) {
         try {
-          const response = await apiCall(`/context-establishment/clients/${client.id}/engagements`, {
+          const response = await apiCall(`/context-establishment/engagements?client_id=${client.id}`, {
             method: 'GET',
             headers: getAuthHeaders()
           }, false); // Don't include context - we're establishing it
