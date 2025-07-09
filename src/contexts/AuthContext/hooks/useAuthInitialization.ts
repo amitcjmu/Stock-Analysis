@@ -67,6 +67,7 @@ export const useAuthInitialization = ({
             const storedUser = tokenStorage.getUser();
             if (storedUser) {
               setUser(storedUser);
+              console.log('🔄 Using stored user, fetching default context');
               await fetchDefaultContext();
             } else {
               throw new Error('No user data available');
@@ -84,11 +85,17 @@ export const useAuthInitialization = ({
             return;
           } else {
             console.error('🔄 Error getting user context:', error);
-            // Try to use stored user as fallback
+            // Try to use stored user as fallback but be more lenient with errors
             const storedUser = tokenStorage.getUser();
             if (storedUser) {
+              console.log('🔄 Using stored user as fallback due to context API error');
               setUser(storedUser);
-              await fetchDefaultContext();
+              try {
+                await fetchDefaultContext();
+              } catch (contextError) {
+                console.warn('⚠️ Default context fetch failed, continuing with stored user only:', contextError);
+                // Continue with just the stored user - don't fail the entire auth flow
+              }
             } else {
               throw error;
             }

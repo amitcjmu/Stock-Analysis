@@ -4,6 +4,7 @@ import Sidebar from '../../components/Sidebar';
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import { Brain, Calendar, Users, Target, TrendingUp, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { SidebarProvider } from '@/components/ui/sidebar';
 
 const PlanIndex = () => {
   const summaryCards = [
@@ -26,10 +27,11 @@ const PlanIndex = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <Sidebar />
-      <div className="flex-1 ml-64">
-        <main className="p-8">
+    <SidebarProvider>
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64">
+          <main className="p-8">
           <div className="max-w-7xl mx-auto">
             {/* Context Breadcrumbs */}
             <ContextBreadcrumbs showContextSelector={true} />
@@ -132,9 +134,10 @@ const PlanIndex = () => {
               </div>
             </div>
           </div>
-        </main>
+          </main>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 

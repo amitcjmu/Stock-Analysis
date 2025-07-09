@@ -1,7 +1,7 @@
 import React from 'react';
 import { Calendar, Loader2, AlertTriangle, Clock, Flag, AlertCircle, ChevronRight } from 'lucide-react';
 import { useTimeline } from '@/hooks/useTimeline';
-import { Sidebar } from '@/components/ui/sidebar';
+import { Sidebar, SidebarProvider } from '@/components/ui/sidebar';
 import { Alert } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -13,29 +13,33 @@ const Timeline = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex">
-        <Sidebar />
-        <div className="flex-1 ml-64 flex items-center justify-center">
-          <div className="flex flex-col items-center space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-            <p className="text-gray-600">Loading timeline data...</p>
+      <SidebarProvider>
+        <div className="min-h-screen bg-gray-50 flex">
+          <Sidebar />
+          <div className="flex-1 ml-64 flex items-center justify-center">
+            <div className="flex flex-col items-center space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              <p className="text-gray-600">Loading timeline data...</p>
+            </div>
           </div>
         </div>
-      </div>
+      </SidebarProvider>
     );
   }
 
   if (isError) {
     return (
-      <div className="min-h-screen bg-gray-50 flex">
-        <Sidebar />
-        <div className="flex-1 ml-64 p-8">
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <p>Error loading timeline data: {error?.message}</p>
-          </Alert>
+      <SidebarProvider>
+        <div className="min-h-screen bg-gray-50 flex">
+          <Sidebar />
+          <div className="flex-1 ml-64 p-8">
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <p>Error loading timeline data: {error?.message}</p>
+            </Alert>
+          </div>
         </div>
-      </div>
+      </SidebarProvider>
     );
   }
 
@@ -62,9 +66,10 @@ const Timeline = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <Sidebar />
-      <div className="flex-1 ml-64">
+    <SidebarProvider>
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar />
+        <div className="flex-1 ml-64">
         <main className="p-8">
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
@@ -227,8 +232,9 @@ const Timeline = () => {
             </div>
           </div>
         </main>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 

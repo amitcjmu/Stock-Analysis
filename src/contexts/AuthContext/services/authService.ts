@@ -376,6 +376,10 @@ export const useAuthService = (
         tokenStorage.removeToken();
         setUser(null);
         navigate('/login');
+      } else {
+        console.warn('⚠️ Context fetch failed but continuing with existing authentication:', error.message);
+        // Don't fail the entire auth flow for context fetch errors
+        // The user is still authenticated, just missing context
       }
     }
   };
