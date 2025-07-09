@@ -14,7 +14,7 @@ from sqlalchemy import select, and_, update
 from app.models import User
 from app.models.client_account import ClientAccount, Engagement
 from app.models.rbac import UserRole, ClientAccess
-from app.schemas.context import UserContext, ClientBase, EngagementBase
+from app.schemas.context import UserContext, ClientBase, EngagementBase, SessionBase
 from app.schemas.flow import FlowBase
 from .client_service import (
     DEMO_USER_ID, DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, DEMO_SESSION_ID

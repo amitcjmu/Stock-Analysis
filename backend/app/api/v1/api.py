@@ -298,6 +298,7 @@ try:
 except ImportError as e:
     logger.warning(f"⚠️ Performance Monitoring router not available: {e}")
 api_router.include_router(context_establishment_router, prefix="/context-establishment", tags=["Context Establishment"])
+api_router.include_router(context_establishment_router, prefix="/context", tags=["Context Establishment"])
 
 # Assessment Management
 if ASSESS_AVAILABLE:

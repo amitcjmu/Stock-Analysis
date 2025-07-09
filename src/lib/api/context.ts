@@ -95,7 +95,7 @@ export const getUserContext = async () => {
  */
 export const getUserClients = async () => {
   try {
-    const response = await apiCall('/api/v1/context/clients', {
+    const response = await apiCall('/api/v1/context-establishment/clients', {
       method: 'GET',
     }, false); // Don't include context - we're establishing it
 
@@ -111,7 +111,7 @@ export const getUserClients = async () => {
  */
 export const getClientEngagements = async (clientId: string) => {
   try {
-    const response = await apiCall(`/api/v1/context/clients/${clientId}/engagements`, {
+    const response = await apiCall(`/api/v1/context-establishment/clients/${clientId}/engagements`, {
       method: 'GET',
     }, false); // Don't include context - we're establishing it
 

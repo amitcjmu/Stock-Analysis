@@ -64,12 +64,12 @@ export const useAuthService = (
         if (context) {
           setClient(context.client || null);
           setEngagement(context.engagement || null);
-          setSession(context.session || null);
+          setFlow(context.current_flow || null);
           
           contextStorage.setContext({
             client: context.client,
             engagement: context.engagement,
-            session: context.session,
+            flow: context.current_flow,
             timestamp: Date.now(),
             source: 'login_backend'
           });
@@ -90,14 +90,14 @@ export const useAuthService = (
           console.log('🔐 Login Step 3 - Context set from backend:', {
             client: context.client,
             engagement: context.engagement,
-            session: context.session
+            flow: context.current_flow
           });
         }
       } catch (contextError) {
         console.warn('Failed to load user context, using defaults:', contextError);
         setClient(null);
         setEngagement(null);
-        setSession(null);
+        setFlow(null);
         contextStorage.clearContext();
       }
 
@@ -154,7 +154,7 @@ export const useAuthService = (
       let fullClientData = clientData;
       
       if (!fullClientData) {
-        const response = await apiCall(`/context/clients/${clientId}`, {
+        const response = await apiCall(`/context-establishment/clients/${clientId}`, {
           method: 'GET',
           headers: getAuthHeaders()
         }, false); // Don't include context - we're establishing it
@@ -172,10 +172,10 @@ export const useAuthService = (
         user, 
         client: fullClientData, 
         engagement, 
-        session 
+        flow 
       });
       
-      const engagementsResponse = await apiCall(`/context/clients/${clientId}/engagements`, {
+      const engagementsResponse = await apiCall(`/context-establishment/clients/${clientId}/engagements`, {
         method: 'GET',
         headers: getAuthHeaders()
       }, false); // Don't include context - we're establishing it
@@ -185,9 +185,9 @@ export const useAuthService = (
         await switchEngagement(defaultEngagement.id, defaultEngagement);
       } else {
         setEngagement(null);
-        setSession(null);
+        setFlow(null);
         localStorage.removeItem('auth_engagement');
-        localStorage.removeItem('auth_session');
+        localStorage.removeItem('auth_flow');
         
         try {
           const result = await updateUserDefaults({ client_id: clientId });
@@ -215,7 +215,7 @@ export const useAuthService = (
       
       if (!fullEngagementData && client) {
         try {
-          const response = await apiCall(`/context/clients/${client.id}/engagements`, {
+          const response = await apiCall(`/context-establishment/clients/${client.id}/engagements`, {
             method: 'GET',
             headers: getAuthHeaders()
           }, false); // Don't include context - we're establishing it
@@ -238,31 +238,27 @@ export const useAuthService = (
         user, 
         client, 
         engagement: fullEngagementData, 
-        session 
+        flow 
       });
       
-      const sessionData = {
+      const flowData = {
         id: fullEngagementData.id,
-        name: `${fullEngagementData.name} Session`,
-        session_display_name: `${fullEngagementData.name} Session`,
-        session_name: `${fullEngagementData.name.toLowerCase().replace(/\s+/g, '_')}_session`,
+        name: `${fullEngagementData.name} Flow`,
+        flow_type: 'discovery',
         engagement_id: engagementId,
-        is_default: true,
         status: 'active',
-        session_type: 'data_import',
         auto_created: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
       
-      setSession(sessionData);
-      persistSessionData(sessionData);
+      setFlow(flowData);
       
       updateApiContext({ 
         user, 
         client, 
         engagement: fullEngagementData, 
-        session: sessionData 
+        flow: flowData 
       });
       
       try {
@@ -335,7 +331,7 @@ export const useAuthService = (
       
       console.log('🔄 Fetching default context...');
       
-      const clientsResponse = await apiCall('/context/clients', {
+      const clientsResponse = await apiCall('/context-establishment/clients', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${tokenStorage.getToken()}`,
