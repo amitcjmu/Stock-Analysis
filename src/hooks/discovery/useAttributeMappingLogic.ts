@@ -727,30 +727,40 @@ export const useAttributeMappingLogic = () => {
         return;
       }
       
-      // For discovery flow field mappings, we don't approve individual mappings
-      // The approval happens when the user clicks "Continue to Data Cleansing"
-      // So we just update the local state to show it's approved
-      console.log('ℹ️ Field mapping approval is handled when continuing to data cleansing phase');
+      // Make API call to approve the specific mapping using existing endpoint
+      const approvalResult = await apiCall(`/api/v1/data-import/field-mapping/approval/approve-mapping/${mappingId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({
+          approved: true,
+          approval_note: 'User approved mapping from UI'
+        })
+      });
       
-      // Update local state to show the mapping as approved (visual feedback only)
-      // The actual approval happens when resuming the flow
-      if (typeof window !== 'undefined' && (window as any).showInfoToast) {
-        (window as any).showInfoToast('Field mapping marked for approval. Click "Continue to Data Cleansing" to apply all mappings.');
+      console.log('✅ Mapping approved successfully:', approvalResult);
+      
+      // Show success feedback
+      if (typeof window !== 'undefined' && (window as any).showSuccessToast) {
+        (window as any).showSuccessToast(`Mapping approved: ${mapping.sourceField} → ${mapping.targetAttribute}`);
       }
       
-      // You could update local state here if needed for visual feedback
-      // For example, marking the mapping with a checkmark
+      // Refetch field mappings to update UI counts immediately
+      console.log('🔄 Refetching field mappings to update UI...');
+      await refetchFieldMappings();
       
     } catch (error) {
-      console.error('❌ Failed to process mapping approval:', error);
+      console.error('❌ Failed to approve mapping:', error);
       
       // Show error toast if available
       if (typeof window !== 'undefined' && (window as any).showErrorToast) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to process mapping approval';
+        const errorMessage = error instanceof Error ? error.message : 'Failed to approve mapping';
         (window as any).showErrorToast(errorMessage);
       }
     }
-  }, [fieldMappings]);
+  }, [fieldMappings, getAuthHeaders, user?.id, refetchFieldMappings]);
 
   const handleRejectMapping = useCallback(async (mappingId: string, rejectionReason?: string) => {
     try {

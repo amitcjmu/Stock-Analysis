@@ -15,12 +15,17 @@ def intelligent_field_mapping(source_field: str) -> str:
         source_field: Source field name to map
         
     Returns:
-        Best matching target field name
+        Best matching target field name or None if no valid mapping exists
     """
     if not source_field:
-        return "name"
+        return None
     
     source_lower = source_field.lower().strip()
+    
+    # Skip metadata fields that shouldn't be mapped
+    skip_fields = ['row_index', 'index', 'row_number', 'record_number', 'id']
+    if source_lower in skip_fields:
+        return None
     
     # Common field mapping patterns with priorities - only valid Asset model fields
     field_patterns = {
@@ -146,7 +151,7 @@ def intelligent_field_mapping(source_field: str) -> str:
         return field_patterns[source_lower][0]
     
     # Partial matches with confidence scoring
-    best_match = "name"  # Default fallback
+    best_match = None  # No default fallback for invalid fields
     best_score = 0.0
     
     for pattern, targets in field_patterns.items():
@@ -163,9 +168,15 @@ def intelligent_field_mapping(source_field: str) -> str:
     
     # If no good partial match, try fuzzy matching
     if best_score < 0.3:
-        best_match = _fuzzy_field_match(source_lower, field_patterns)
+        fuzzy_match = _fuzzy_field_match(source_lower, field_patterns)
+        if fuzzy_match != "name":  # Only use fuzzy match if it's not the default fallback
+            best_match = fuzzy_match
     
-    return best_match
+    # Only return a match if we have reasonable confidence (>0.4) or exact pattern match
+    if best_score > 0.4 or best_match:
+        return best_match
+    
+    return None  # No valid mapping found
 
 
 def calculate_mapping_confidence(source_field: str, target_field: str) -> float:

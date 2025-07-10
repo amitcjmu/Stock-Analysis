@@ -44,20 +44,20 @@ class MappingService:
         
         valid_mappings = []
         for mapping in mappings:
-            # Skip mappings to invalid target fields
-            if mapping.target_field not in valid_target_fields:
+            # Include unmapped fields (target_field is None) for user selection
+            if mapping.target_field is not None and mapping.target_field not in valid_target_fields:
                 logger.warning(f"Skipping invalid target field mapping: {mapping.source_field} -> {mapping.target_field}")
                 continue
                 
             valid_mappings.append(FieldMappingResponse(
                 id=mapping.id,
                 source_field=mapping.source_field,
-                target_field=mapping.target_field,
+                target_field=mapping.target_field,  # Can be None for unmapped fields
                 transformation_rule=mapping.transformation_rules,
                 validation_rule=mapping.transformation_rules,  # Using transformation_rules for now
                 is_required=getattr(mapping, 'is_required', False),
                 is_approved=mapping.status == "approved",
-                confidence=mapping.confidence_score or 0.7,
+                confidence=mapping.confidence_score or 0.0,
                 created_at=mapping.created_at,
                 updated_at=mapping.updated_at
             ))
@@ -216,28 +216,55 @@ class MappingService:
         mappings_created = []
         for source_field in field_names:
             target_field = intelligent_field_mapping(source_field)
-            confidence = calculate_mapping_confidence(source_field, target_field)
             
-            mapping = ImportFieldMapping(
-                data_import_id=import_id,
-                client_account_id=self.context.client_account_id,
-                engagement_id=self.context.engagement_id,
-                source_field=source_field,
-                target_field=target_field,
-                mapping_type="ai_suggested",
-                confidence_score=confidence,
-                status="suggested",
-                is_user_defined=False,
-                is_validated=False,
-                original_ai_suggestion=target_field
-            )
+            if target_field is None:
+                # Create unmapped entry for user to manually assign
+                mapping = ImportFieldMapping(
+                    data_import_id=import_id,
+                    client_account_id=self.context.client_account_id,
+                    engagement_id=self.context.engagement_id,
+                    source_field=source_field,
+                    target_field=None,  # Explicitly unmapped
+                    mapping_type="unmapped",
+                    confidence_score=0.0,
+                    status="unmapped",
+                    is_user_defined=False,
+                    is_validated=False,
+                    original_ai_suggestion=None
+                )
+                
+                mappings_created.append({
+                    "source_field": source_field,
+                    "target_field": None,
+                    "confidence": 0.0,
+                    "status": "unmapped"
+                })
+            else:
+                # Create suggested mapping
+                confidence = calculate_mapping_confidence(source_field, target_field)
+                
+                mapping = ImportFieldMapping(
+                    data_import_id=import_id,
+                    client_account_id=self.context.client_account_id,
+                    engagement_id=self.context.engagement_id,
+                    source_field=source_field,
+                    target_field=target_field,
+                    mapping_type="ai_suggested",
+                    confidence_score=confidence,
+                    status="suggested",
+                    is_user_defined=False,
+                    is_validated=False,
+                    original_ai_suggestion=target_field
+                )
+                
+                mappings_created.append({
+                    "source_field": source_field,
+                    "target_field": target_field,
+                    "confidence": confidence,
+                    "status": "suggested"
+                })
             
             self.db.add(mapping)
-            mappings_created.append({
-                "source_field": source_field,
-                "target_field": target_field,
-                "confidence": confidence
-            })
         
         await self.db.commit()
         
@@ -367,8 +394,5 @@ class MappingService:
             'virtualization_host_id',
             
             # Support and maintenance
-            'support_contract_end_date', 'maintenance_window', 'dr_tier',
-            
-            # Row metadata
-            'row_index'
+            'support_contract_end_date', 'maintenance_window', 'dr_tier'
         }
