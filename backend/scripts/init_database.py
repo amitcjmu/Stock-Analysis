@@ -181,7 +181,7 @@ class DatabaseSetup:
             
             extensions = [
                 ('vector', 'pgvector for vector embeddings'),
-                ('uuid-ossp', 'UUID generation functions')
+                ('"uuid-ossp"', 'UUID generation functions')
             ]
             
             for ext_name, description in extensions:

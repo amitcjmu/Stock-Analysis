@@ -56,10 +56,16 @@ check_database_state() {
 import asyncio
 import asyncpg
 import sys
+import os
 
 async def check():
     try:
-        conn = await asyncpg.connect('$DATABASE_URL')
+        # Get database URL and convert format for asyncpg
+        db_url = os.getenv('DATABASE_URL', '')
+        if 'postgresql+asyncpg://' in db_url:
+            db_url = db_url.replace('postgresql+asyncpg://', 'postgresql://')
+            
+        conn = await asyncpg.connect(db_url)
         
         # Check if any tables exist
         result = await conn.fetchval(\"\"\"
