@@ -25,11 +25,10 @@ export const useDiscoveryFlowList = () => {
     queryKey: ['discovery-flows', client?.id, engagement?.id],
     queryFn: async () => {
       try {
-        // Ensure we have proper client and engagement context
+        // Context validation - should not reach here due to enabled flag, but defensive programming
         if (!client?.id || !engagement?.id) {
-          console.warn('⚠️ Missing client or engagement context for discovery flows, retrying...:', { client: client?.id, engagement: engagement?.id });
-          // Throw error to trigger retry instead of returning empty array
-          throw new Error('Missing client or engagement context');
+          console.warn('⚠️ Missing client or engagement context for discovery flows:', { client: client?.id, engagement: engagement?.id });
+          return []; // Return empty array instead of throwing to prevent infinite retries
         }
         
         console.log('🔍 Fetching discovery flows for:', { clientId: client.id, engagementId: engagement.id });
@@ -66,19 +65,41 @@ export const useDiscoveryFlowList = () => {
         return [];
       }
     },
-    enabled: true, // Always enable, but let the queryFn handle missing context by throwing errors
-    staleTime: 2 * 60 * 1000, // Cache for 2 minutes to reduce API calls
-    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    enabled: !!client?.id && !!engagement?.id, // Only enable when we have context to prevent errors
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes to reduce API calls (increased from 2)
+    cacheTime: 15 * 60 * 1000, // Keep in cache for 15 minutes (increased from 10)
     refetchInterval: false, // No auto-refresh
-    retry: (failureCount, error) => {
-      // Retry up to 2 times for missing context errors, but not for other API errors
-      if (error.message === 'Missing client or engagement context' && failureCount < 2) {
+    refetchOnMount: false, // Don't refetch on mount if data is stale but within cache time
+    refetchOnWindowFocus: false, // Don't refetch on window focus to reduce calls
+    retry: (failureCount, error: any) => {
+      // Prevent infinite retries - max 2 attempts total
+      if (failureCount >= 2) {
+        console.log(`❌ Max retries reached for discovery flows (${failureCount}), stopping`);
+        return false;
+      }
+      
+      // Only retry for specific conditions
+      if (error?.message === 'Missing client or engagement context') {
         console.log(`🔄 Retrying discovery flows fetch (attempt ${failureCount + 1}) - waiting for context...`);
         return true;
       }
+      
+      // Retry 429 rate limit errors with exponential backoff
+      if (error?.status === 429) {
+        console.log(`🔄 Rate limited, retrying discovery flows fetch (attempt ${failureCount + 1})...`);
+        return true;
+      }
+      
+      // Don't retry other errors
+      console.log(`❌ Not retrying discovery flows fetch - error: ${error?.message || error}`);
       return false;
     },
-    retryDelay: 3000, // Fixed 3 second delay between retries
+    retryDelay: (attemptIndex) => {
+      // Exponential backoff: 3s, 6s, 12s
+      const delay = Math.min(3000 * Math.pow(2, attemptIndex), 12000);
+      console.log(`⏱️ Retrying discovery flows in ${delay}ms`);
+      return delay;
+    }
   });
 };
 

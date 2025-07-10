@@ -9,24 +9,86 @@ export interface DashboardData {
   platformAlerts: PlatformAlert[];
 }
 
+// Debouncing and caching for rate limiting
+let lastFetchTime = 0;
+let cachedResponse: DashboardData | null = null;
+let pendingFetch: Promise<DashboardData> | null = null;
+const CACHE_DURATION = 30000; // 30 seconds
+const DEBOUNCE_DELAY = 500; // 500ms debounce
+
+// Exponential backoff for 429 errors
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const makeApiCallWithRetry = async (url: string, options: any, maxRetries = 3): Promise<any> => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await apiCall(url, options);
+    } catch (error: any) {
+      if (error.status === 429 && attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+        console.log(`🕐 Rate limited (429), retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`);
+        await sleep(delay);
+        continue;
+      }
+      throw error;
+    }
+  }
+};
+
 export class DashboardService {
   
   async fetchDashboardData(user: any, client: any, engagement: any): Promise<DashboardData> {
+    const now = Date.now();
+    
+    // Return cached response if still valid
+    if (cachedResponse && (now - lastFetchTime) < CACHE_DURATION) {
+      console.log('📊 Returning cached dashboard data');
+      return cachedResponse;
+    }
+    
+    // Return pending fetch if one is already in progress (deduplication)
+    if (pendingFetch) {
+      console.log('📊 Dashboard fetch already in progress, waiting for result');
+      return pendingFetch;
+    }
+    
+    // Debouncing - wait if too soon after last fetch
+    const timeSinceLastFetch = now - lastFetchTime;
+    if (timeSinceLastFetch < DEBOUNCE_DELAY) {
+      const waitTime = DEBOUNCE_DELAY - timeSinceLastFetch;
+      console.log(`📊 Debouncing dashboard fetch for ${waitTime}ms`);
+      await sleep(waitTime);
+    }
+    
     console.log('🔍 Fetching dashboard data for context:', {
       user: user?.id,
       client: client?.id,
       engagement: engagement?.id
     });
 
-    // Fetch real-time active flows from multiple sources
+    // Create the fetch promise and store it to prevent duplicate calls
+    pendingFetch = this._performDashboardFetch(user, client, engagement);
+    
+    try {
+      const result = await pendingFetch;
+      lastFetchTime = Date.now();
+      cachedResponse = result;
+      return result;
+    } finally {
+      pendingFetch = null;
+    }
+  }
+  
+  private async _performDashboardFetch(user: any, client: any, engagement: any): Promise<DashboardData> {
+    // Fetch real-time active flows from multiple sources with retry logic
     const [discoveryFlowsResponse, dataImportsResponse] = await Promise.allSettled([
       // Get active Discovery flows - try the discovery flows endpoint first
-      apiCall('/api/v1/discovery/flows/active', {
+      makeApiCallWithRetry('/api/v1/discovery/flows/active', {
         method: 'GET',
         headers: getAuthHeaders()
       }),
       // Get data import sessions (for discovering flows)
-      apiCall('/api/v1/data-import/latest-import', {
+      makeApiCallWithRetry('/api/v1/data-import/latest-import', {
         method: 'GET',
         headers: getAuthHeaders()
       })
@@ -106,8 +168,8 @@ export class DashboardService {
         // Check if this import has an active discovery flow
         if (dataImport.id && !allFlows.find(f => f.flow_id === dataImport.id)) {
           try {
-            // Get flow status for this import session
-            const flowStatusResponse = await apiCall(`/api/v1/discovery/flows/${dataImport.id}/status`, {
+            // Get flow status for this import session with retry logic
+            const flowStatusResponse = await makeApiCallWithRetry(`/api/v1/discovery/flows/${dataImport.id}/status`, {
               method: 'GET',
               headers: getAuthHeaders()
             });

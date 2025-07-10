@@ -45,7 +45,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     switchClient,
     switchEngagement,
     switchFlow,
-    fetchDefaultContext
+    fetchDefaultContext,
+    debouncedFetchDefaultContext
   } = useAuthService(
     user,
     client,

@@ -331,9 +331,28 @@ export const useAuthService = (
     }
   };
 
+  // Debouncing for fetchDefaultContext to prevent rapid successive calls
+  let fetchDefaultContextTimer: NodeJS.Timeout | null = null;
+  let lastFetchDefaultContextTime = 0;
+  const FETCH_DEFAULT_CONTEXT_DEBOUNCE = 1000; // 1 second debounce
+
   const fetchDefaultContext = async () => {
     try {
       console.log('🔍 fetchDefaultContext - Starting with current context:', { client, engagement });
+      
+      // Debouncing logic
+      const now = Date.now();
+      if (now - lastFetchDefaultContextTime < FETCH_DEFAULT_CONTEXT_DEBOUNCE) {
+        console.log('🔄 fetchDefaultContext debounced, skipping rapid call');
+        return;
+      }
+      lastFetchDefaultContextTime = now;
+      
+      // Clear any pending debounced calls
+      if (fetchDefaultContextTimer) {
+        clearTimeout(fetchDefaultContextTimer);
+        fetchDefaultContextTimer = null;
+      }
       
       // Only skip if we have both client and engagement AND they're properly set in React state
       // Don't rely on closure values which might be stale after page refresh
@@ -417,6 +436,17 @@ export const useAuthService = (
     }
   };
 
+  // Debounced version of fetchDefaultContext for use in hooks that need delayed execution
+  const debouncedFetchDefaultContext = () => {
+    if (fetchDefaultContextTimer) {
+      clearTimeout(fetchDefaultContextTimer);
+    }
+    
+    fetchDefaultContextTimer = setTimeout(() => {
+      fetchDefaultContext();
+    }, FETCH_DEFAULT_CONTEXT_DEBOUNCE);
+  };
+
   return {
     login,
     register,
@@ -424,6 +454,7 @@ export const useAuthService = (
     switchClient,
     switchEngagement,
     switchFlow,
-    fetchDefaultContext
+    fetchDefaultContext,
+    debouncedFetchDefaultContext
   };
 };

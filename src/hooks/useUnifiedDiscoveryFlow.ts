@@ -170,9 +170,9 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
     error,
     refetch: refreshFlow,
   } = useQuery({
-    queryKey: ['unifiedDiscoveryFlow', flowId],
+    queryKey: ['unifiedDiscoveryFlow', flowId, client?.id, engagement?.id],
     queryFn: () => flowId && unifiedDiscoveryAPI ? unifiedDiscoveryAPI.getFlowStatus(flowId) : null,
-    enabled: !!flowId && !!unifiedDiscoveryAPI,
+    enabled: !!flowId && !!unifiedDiscoveryAPI && !!client?.id && !!engagement?.id,
     refetchInterval: (query) => {
       // Stop polling if disabled or max attempts reached
       if (!pollingEnabled || pollingAttempts >= MAX_POLLING_ATTEMPTS) {
@@ -185,7 +185,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
       if (state?.status === 'running' || state?.status === 'in_progress' || 
           state?.status === 'processing' || state?.status === 'active') {
         setPollingAttempts(prev => prev + 1);
-        return 60000; // Poll every 60 seconds when flow is active (reduced from 30s for performance)
+        return 90000; // Poll every 90 seconds when flow is active (increased from 60s to reduce load)
       }
       
       // Stop polling for completed/failed states
@@ -198,7 +198,24 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
       return false; // Stop polling for other states
     },
     refetchIntervalInBackground: false, // Don't poll in background
-    staleTime: 30000, // Consider data stale after 30 seconds (increased from 1s to reduce load)
+    refetchOnMount: false, // Don't refetch on mount if data exists
+    refetchOnWindowFocus: false, // Don't refetch on window focus to reduce API calls
+    staleTime: 2 * 60 * 1000, // Consider data stale after 2 minutes (increased from 30s)
+    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    retry: (failureCount, error: any) => {
+      // Max 2 retries with exponential backoff
+      if (failureCount >= 2) {
+        return false;
+      }
+      
+      // Retry 429 errors and network failures
+      if (error?.status === 429 || error?.message?.includes('network') || error?.message?.includes('fetch')) {
+        return true;
+      }
+      
+      return false;
+    },
+    retryDelay: (attemptIndex) => Math.min(2000 * Math.pow(2, attemptIndex), 8000), // 2s, 4s, 8s max
     onError: () => {
       // Stop polling on error
       setPollingEnabled(false);

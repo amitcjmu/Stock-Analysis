@@ -188,6 +188,10 @@ interface ApiError extends Error {
   response?: any;
   requestId?: string;
   isApiError: boolean;
+  isRateLimited?: boolean;
+  retryAfter?: number;
+  isAuthError?: boolean;
+  isForbidden?: boolean;
 }
 
 /**
@@ -363,9 +367,26 @@ export const apiCall = async (
         error.requestId = requestId;
         error.isApiError = true;
         
-        // Special handling for 404s
+        // Special handling for different status codes
         if (response.status === 404) {
           console.warn(`[${requestId}] Resource not found: ${url}`);
+        } else if (response.status === 429) {
+          console.warn(`[${requestId}] Rate limited (429): ${url}`);
+          error.isRateLimited = true;
+          // Extract retry-after header if present
+          const retryAfter = response.headers.get('Retry-After');
+          if (retryAfter) {
+            error.retryAfter = parseInt(retryAfter) * 1000; // Convert to ms
+          } else {
+            error.retryAfter = 2000; // Default 2s retry delay
+          }
+          console.log(`[${requestId}] Retry suggested after: ${error.retryAfter}ms`);
+        } else if (response.status === 401) {
+          console.warn(`[${requestId}] Authentication failed: ${url}`);
+          error.isAuthError = true;
+        } else if (response.status === 403) {
+          console.warn(`[${requestId}] Authorization failed: ${url}`);
+          error.isForbidden = true;
         }
         
         throw error;
