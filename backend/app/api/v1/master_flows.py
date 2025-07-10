@@ -109,6 +109,7 @@ async def get_cross_phase_analytics(
 
 @router.get("/active", response_model=List[Dict[str, Any]])
 async def get_active_master_flows(
+    flowType: Optional[str] = Query(None, description="Filter by flow type (discovery, assessment, planning, execution, etc.)"),
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user_context)
 ) -> List[Dict[str, Any]]:
@@ -122,12 +123,19 @@ async def get_active_master_flows(
         from sqlalchemy import select, and_, or_
         from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
         
-        # Query for active master flows - exclude completed, failed, error, deleted, cancelled, child_flows_deleted
+        # Build query conditions
+        conditions = [
+            CrewAIFlowStateExtensions.client_account_id == client_account_id,
+            CrewAIFlowStateExtensions.flow_status.notin_(["completed", "failed", "error", "deleted", "cancelled", "child_flows_deleted"])
+        ]
+        
+        # Add flow type filter if provided
+        if flowType:
+            conditions.append(CrewAIFlowStateExtensions.flow_type == flowType)
+        
+        # Query for active master flows
         stmt = select(CrewAIFlowStateExtensions).where(
-            and_(
-                CrewAIFlowStateExtensions.client_account_id == client_account_id,
-                CrewAIFlowStateExtensions.flow_status.notin_(["completed", "failed", "error", "deleted", "cancelled", "child_flows_deleted"])
-            )
+            and_(*conditions)
         ).order_by(CrewAIFlowStateExtensions.created_at.desc())
         
         result = await db.execute(stmt)
@@ -146,7 +154,7 @@ async def get_active_master_flows(
                 "configuration": flow.flow_configuration or {}
             })
         
-        logger.info(f"Found {len(active_flows)} active master flows")
+        logger.info(f"Found {len(active_flows)} active master flows" + (f" (filtered by flowType: {flowType})" if flowType else " (all flow types)"))
         return active_flows
         
     except Exception as e:
