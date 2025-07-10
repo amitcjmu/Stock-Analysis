@@ -125,11 +125,14 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
   // Use URL flow ID if provided, otherwise use auto-detected flow ID
   const effectiveFlowId = urlFlowId || autoDetectedFlowId;
   
-  console.log(`🎯 Flow detection result:`, {
+  console.log(`🎯 Flow detection result for ${currentPhase}:`, {
     urlFlowId,
     autoDetectedFlowId,
     effectiveFlowId,
-    currentPhase
+    currentPhase,
+    flowListLength: flowList?.length || 0,
+    isFlowListLoading,
+    hasFlowListError: !!flowListError
   });
 
   return {

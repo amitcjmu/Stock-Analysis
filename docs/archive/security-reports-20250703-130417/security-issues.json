@@ -1,0 +1,477 @@
+{
+  "scan_date": "2025-07-03T13:04:17.086226",
+  "summary": {
+    "total": 67,
+    "critical": 48,
+    "high": 16,
+    "medium": 3,
+    "low": 0
+  },
+  "issues": {
+    "critical": [
+      {
+        "type": "injection",
+        "file": "backend/app/core/migration_hooks.py",
+        "line": 200,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = bind.execute(text(f\"SELECT to_regclass('{table}')\"))"
+      },
+      {
+        "type": "injection",
+        "file": "backend/app/api/v1/health_assessment.py",
+        "line": 57,
+        "description": "Potential SQL injection with f-strings",
+        "code": "await db.execute(text(f\"SELECT 1 FROM {table} LIMIT 1\"))"
+      },
+      {
+        "type": "injection",
+        "file": "backend/app/api/v1/admin/engagement_management_handlers/engagement_crud_handler.py",
+        "line": 438,
+        "description": "Potential SQL injection with f-strings",
+        "code": "await db.execute(text(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/app/services/crewai_flows/persistence/state_migrator.py",
+        "line": 184,
+        "description": "Potential SQL injection with f-strings",
+        "code": "cursor.execute(f\"SELECT * FROM {table_name}\")"
+      },
+      {
+        "type": "injection",
+        "file": "backend/tests/debug_schema_analysis.py",
+        "line": 46,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = await session.execute(text(f\"SELECT COUNT(*) FROM {table_name}\"))"
+      },
+      {
+        "type": "injection",
+        "file": "backend/tests/debug_schema_analysis.py",
+        "line": 51,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = await session.execute(text(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/tests/debug_schema_analysis.py",
+        "line": 67,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = await session.execute(text(f\"SELECT * FROM {table_name} LIMIT 2\"))"
+      },
+      {
+        "type": "injection",
+        "file": "backend/tests/debug_schema_analysis.py",
+        "line": 85,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = await session.execute(text(f\"SELECT COUNT(*) FROM {table}\"))"
+      },
+      {
+        "type": "injection",
+        "file": "backend/tests/debug_schema_analysis.py",
+        "line": 94,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = await session.execute(text(f\"SELECT COUNT(*) FROM {table}\"))"
+      },
+      {
+        "type": "injection",
+        "file": "backend/tests/debug_asset_inventory.py",
+        "line": 99,
+        "description": "Potential SQL injection with f-strings",
+        "code": "context_check = await session.execute(text(f\"SELECT COUNT(*) FROM cmdb_assets WH"
+      },
+      {
+        "type": "injection",
+        "file": "backend/tests/temp/debug_schema_analysis.py",
+        "line": 46,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = await session.execute(text(f\"SELECT COUNT(*) FROM {table_name}\"))"
+      },
+      {
+        "type": "injection",
+        "file": "backend/tests/temp/debug_schema_analysis.py",
+        "line": 51,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = await session.execute(text(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/tests/temp/debug_schema_analysis.py",
+        "line": 67,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = await session.execute(text(f\"SELECT * FROM {table_name} LIMIT 2\"))"
+      },
+      {
+        "type": "injection",
+        "file": "backend/tests/temp/debug_schema_analysis.py",
+        "line": 85,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = await session.execute(text(f\"SELECT COUNT(*) FROM {table}\"))"
+      },
+      {
+        "type": "injection",
+        "file": "backend/tests/temp/debug_schema_analysis.py",
+        "line": 94,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = await session.execute(text(f\"SELECT COUNT(*) FROM {table}\"))"
+      },
+      {
+        "type": "injection",
+        "file": "backend/tests/integration/test_db_consolidation.py",
+        "line": 122,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = await session.execute(text(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/tests/integration/test_db_consolidation.py",
+        "line": 150,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = await session.execute(text(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/tests/integration/test_db_consolidation.py",
+        "line": 189,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = await session.execute(text(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/tests/integration/test_db_consolidation.py",
+        "line": 200,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = await session.execute(text(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/tests/backend/schema/test_final_schema.py",
+        "line": 38,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = await session.execute(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/tests/backend/schema/test_final_schema.py",
+        "line": 67,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = await session.execute(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/tests/backend/schema/test_final_schema.py",
+        "line": 84,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = await session.execute(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/tests/backend/schema/test_final_schema.py",
+        "line": 100,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = await session.execute(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/tests/backend/schema/test_final_schema.py",
+        "line": 111,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = await session.execute(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/tests/backend/schema/test_final_schema.py",
+        "line": 128,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = await session.execute(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/tests/backend/schema/test_final_schema.py",
+        "line": 163,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = await session.execute(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/scripts/diagnose_railway_db.py",
+        "line": 53,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = conn.execute(text(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/scripts/force_railway_migration.py",
+        "line": 74,
+        "description": "Potential SQL injection with f-strings",
+        "code": "await conn.execute(f\"ALTER TABLE client_accounts ADD COLUMN {col} JSON\")"
+      },
+      {
+        "type": "injection",
+        "file": "backend/scripts/force_railway_migration.py",
+        "line": 77,
+        "description": "Potential SQL injection with f-strings",
+        "code": "await conn.execute(f\"ALTER TABLE client_accounts ADD COLUMN {col} VARCHAR({size}"
+      },
+      {
+        "type": "injection",
+        "file": "backend/scripts/force_railway_migration.py",
+        "line": 89,
+        "description": "Potential SQL injection with f-strings",
+        "code": "await conn.execute(f\"ALTER TABLE engagements ADD COLUMN {col} JSON\")"
+      },
+      {
+        "type": "injection",
+        "file": "backend/scripts/force_railway_migration.py",
+        "line": 156,
+        "description": "Potential SQL injection with f-strings",
+        "code": "await conn.execute(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/scripts/force_railway_migration.py",
+        "line": 190,
+        "description": "Potential SQL injection with f-strings",
+        "code": "await conn.execute(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/scripts/unified_model_planning.py",
+        "line": 50,
+        "description": "Potential SQL injection with f-strings",
+        "code": "table_check = await session.execute(text(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/scripts/rollback_db_consolidation.py",
+        "line": 151,
+        "description": "Potential SQL injection with f-strings",
+        "code": "cur.execute(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/scripts/rollback_db_consolidation.py",
+        "line": 158,
+        "description": "Potential SQL injection with f-strings",
+        "code": "cur.execute(f\"DROP DATABASE IF EXISTS {db_name}\")"
+      },
+      {
+        "type": "injection",
+        "file": "backend/scripts/rollback_db_consolidation.py",
+        "line": 159,
+        "description": "Potential SQL injection with f-strings",
+        "code": "cur.execute(f\"CREATE DATABASE {db_name}\")"
+      },
+      {
+        "type": "injection",
+        "file": "backend/scripts/post_deploy_fix.py",
+        "line": 86,
+        "description": "Potential SQL injection with f-strings",
+        "code": "await conn.execute(f\"ALTER TABLE client_accounts ADD COLUMN {col} JSON\")"
+      },
+      {
+        "type": "injection",
+        "file": "backend/scripts/post_deploy_fix.py",
+        "line": 89,
+        "description": "Potential SQL injection with f-strings",
+        "code": "await conn.execute(f\"ALTER TABLE client_accounts ADD COLUMN {col} VARCHAR({size}"
+      },
+      {
+        "type": "injection",
+        "file": "backend/scripts/post_deploy_fix.py",
+        "line": 102,
+        "description": "Potential SQL injection with f-strings",
+        "code": "await conn.execute(f\"ALTER TABLE engagements ADD COLUMN {col} JSON\")"
+      },
+      {
+        "type": "injection",
+        "file": "backend/scripts/post_deploy_fix.py",
+        "line": 171,
+        "description": "Potential SQL injection with f-strings",
+        "code": "await conn.execute(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/scripts/post_deploy_fix.py",
+        "line": 205,
+        "description": "Potential SQL injection with f-strings",
+        "code": "await conn.execute(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/scripts/qa/simple_validation.py",
+        "line": 37,
+        "description": "Potential SQL injection with f-strings",
+        "code": "result = await session.execute(text(f\"SELECT COUNT(*) FROM migration.{table}\"))"
+      },
+      {
+        "type": "injection",
+        "file": "backend/backups/alembic_versions_backup/add_row_level_security.py",
+        "line": 61,
+        "description": "Potential SQL injection with f-strings",
+        "code": "op.execute(f\"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY;\")"
+      },
+      {
+        "type": "injection",
+        "file": "backend/backups/alembic_versions_backup/add_row_level_security.py",
+        "line": 64,
+        "description": "Potential SQL injection with f-strings",
+        "code": "op.execute(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/backups/alembic_versions_backup/add_row_level_security.py",
+        "line": 74,
+        "description": "Potential SQL injection with f-strings",
+        "code": "op.execute(f\"\"\""
+      },
+      {
+        "type": "injection",
+        "file": "backend/backups/alembic_versions_backup/add_row_level_security.py",
+        "line": 113,
+        "description": "Potential SQL injection with f-strings",
+        "code": "op.execute(f\"DROP POLICY IF EXISTS {table}_client_isolation ON {table};\")"
+      },
+      {
+        "type": "injection",
+        "file": "backend/backups/alembic_versions_backup/add_row_level_security.py",
+        "line": 114,
+        "description": "Potential SQL injection with f-strings",
+        "code": "op.execute(f\"DROP POLICY IF EXISTS {table}_engagement_isolation ON {table};\")"
+      },
+      {
+        "type": "injection",
+        "file": "backend/backups/alembic_versions_backup/add_row_level_security.py",
+        "line": 115,
+        "description": "Potential SQL injection with f-strings",
+        "code": "op.execute(f\"ALTER TABLE {table} DISABLE ROW LEVEL SECURITY;\")"
+      }
+    ],
+    "high": [
+      {
+        "type": "secret",
+        "file": "backend/app/core/database_initialization.py",
+        "line": 50,
+        "description": "Hardcoded password",
+        "code": "PLATFORM_ADMIN_PASSWORD = \"Password123!\""
+      },
+      {
+        "type": "secret",
+        "file": "backend/app/core/database_initialization.py",
+        "line": 61,
+        "description": "Hardcoded password",
+        "code": "DEMO_USER_PASSWORD = \"Demo123!\""
+      },
+      {
+        "type": "secret",
+        "file": "backend/app/core/seed_data_config.py",
+        "line": 44,
+        "description": "Hardcoded password",
+        "code": "PASSWORD = \"Password123!\""
+      },
+      {
+        "type": "secret",
+        "file": "backend/app/core/seed_data_config.py",
+        "line": 100,
+        "description": "Hardcoded password",
+        "code": "PASSWORD = \"Demo123!\""
+      },
+      {
+        "type": "secret",
+        "file": "backend/tests/api/v1/endpoints/test_sessions.py",
+        "line": 44,
+        "description": "Hardcoded password",
+        "code": "hashed_password=\"hashed_password\","
+      },
+      {
+        "type": "secret",
+        "file": "backend/seeding/constants.py",
+        "line": 191,
+        "description": "Hardcoded password",
+        "code": "DEFAULT_PASSWORD = \"DemoPassword123!\""
+      },
+      {
+        "type": "secret",
+        "file": "backend/scripts/verify_platform_admin.py",
+        "line": 49,
+        "description": "Hardcoded password",
+        "code": "new_password = \"Password123!\""
+      },
+      {
+        "type": "secret",
+        "file": "backend/scripts/populate_demo_data.py",
+        "line": 39,
+        "description": "Hardcoded password",
+        "code": "password_hash='$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhZ8/iGda9iaHeqM1a3huS',  #"
+      },
+      {
+        "type": "auth",
+        "file": "backend/app/api/v1/auth/auth_utils.py",
+        "description": "No token expiration implemented",
+        "recommendation": "Add token expiration time"
+      },
+      {
+        "type": "auth",
+        "file": "backend/app/services/auth_services/authentication_service.py",
+        "description": "Weak token generation using simple concatenation",
+        "recommendation": "Use proper JWT with signing"
+      },
+      {
+        "type": "auth",
+        "file": "backend/venv/lib/python3.11/site-packages/grpc/_auth.py",
+        "description": "No token expiration implemented",
+        "recommendation": "Add token expiration time"
+      },
+      {
+        "type": "auth",
+        "file": "backend/venv/lib/python3.11/site-packages/google/api/auth_pb2.py",
+        "description": "No token expiration implemented",
+        "recommendation": "Add token expiration time"
+      },
+      {
+        "type": "auth",
+        "file": "backend/venv/lib/python3.11/site-packages/auth0/test/authentication/test_pushed_authorization_requests.py",
+        "description": "No token expiration implemented",
+        "recommendation": "Add token expiration time"
+      },
+      {
+        "type": "auth",
+        "file": "backend/venv/lib/python3.11/site-packages/auth0/test_async/test_async_auth0.py",
+        "description": "No token expiration implemented",
+        "recommendation": "Add token expiration time"
+      },
+      {
+        "type": "auth",
+        "file": "backend/venv/lib/python3.11/site-packages/auth0/authentication/pushed_authorization_requests.py",
+        "description": "No token expiration implemented",
+        "recommendation": "Add token expiration time"
+      },
+      {
+        "type": "auth",
+        "file": "backend/venv/lib/python3.11/site-packages/auth0/authentication/client_authentication.py",
+        "description": "No token expiration implemented",
+        "recommendation": "Add token expiration time"
+      }
+    ],
+    "medium": [
+      {
+        "type": "config",
+        "file": "backend/main.py",
+        "description": "Missing HSTS security header",
+        "recommendation": "Add Strict-Transport-Security header"
+      },
+      {
+        "type": "config",
+        "file": "backend/main.py",
+        "description": "Missing X-Content-Type-Options header",
+        "recommendation": "Add X-Content-Type-Options: nosniff"
+      },
+      {
+        "type": "config",
+        "file": "backend/main.py",
+        "description": "Missing X-Frame-Options header",
+        "recommendation": "Add X-Frame-Options: DENY"
+      }
+    ],
+    "low": []
+  }
+}

@@ -54,8 +54,7 @@ async def get_demo_status():
             "demo_credentials": {
                 "demo_user": {
                     "email": "demo@democorp.com",
-                    "password": "password",
-                    "description": "Demo analyst user for testing workflows"
+                    "description": "Demo analyst user for testing workflows - Contact admin for credentials"
                 }
             },
             "security_note": "SECURE: No admin@democorp account - demo users have analyst-level access only"

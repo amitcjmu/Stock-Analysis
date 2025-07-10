@@ -1,0 +1,45 @@
+# AI Force Migration Platform - Backend Development Dockerfile
+# This Dockerfile is for local development with docker-compose
+
+FROM python:3.11-slim-bookworm
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies including PostgreSQL client tools
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        libpq-dev \
+        postgresql-client \
+        curl \
+        ca-certificates \
+        git \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /tmp/* /var/tmp/*
+
+# Copy requirements first for better caching
+COPY backend/requirements.txt requirements.txt
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
+
+# Copy backend application code
+COPY backend/ .
+
+# Copy and setup entrypoint script
+COPY backend/scripts/docker-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh /app/scripts/init_database.py
+
+# Create app user
+RUN adduser --disabled-password --gecos '' appuser \
+    && chown -R appuser:appuser /app \
+    && chmod -R 755 /app
+
+# Set entrypoint
+ENTRYPOINT ["/entrypoint.sh"]
+
+# Default command
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

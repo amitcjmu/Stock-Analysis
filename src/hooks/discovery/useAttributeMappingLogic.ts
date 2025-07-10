@@ -60,33 +60,33 @@ export const useAttributeMappingLogic = () => {
 
   // Get import data for this flow, with fallback to latest import
   const { data: importData, isLoading: isImportDataLoading, error: importDataError } = useQuery({
-    queryKey: ['import-data', effectiveFlowId],
+    queryKey: ['import-data', effectiveFlowId, user?.id],
     queryFn: async () => {
-      if (!effectiveFlowId) {
-        console.log('❌ No effective flow ID for import data fetch');
-        return null;
-      }
-      
-      console.log('🔍 Fetching import data for flow:', effectiveFlowId);
-      
       try {
-        // First try to get flow-specific import data using apiCall to ensure proper routing
-        console.log('🔗 Trying flow-specific import data endpoint...');
-        const flowResponse = await apiCall(`/api/v1/data-import/flow/${effectiveFlowId}/import-data`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            ...getAuthHeaders()
+        // If we have an effective flow ID, try flow-specific import data first
+        if (effectiveFlowId) {
+          console.log('🔍 Fetching import data for flow:', effectiveFlowId);
+          console.log('🔗 Trying flow-specific import data endpoint...');
+          const flowResponse = await apiCall(`/api/v1/data-import/flow/${effectiveFlowId}/import-data`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              ...getAuthHeaders()
+            }
+          });
+          
+          if (flowResponse) {
+            console.log('✅ Fetched flow-specific import data:', flowResponse);
+            return flowResponse;
           }
-        });
-        
-        if (flowResponse) {
-          console.log('✅ Fetched flow-specific import data:', flowResponse);
-          return flowResponse;
+          
+          console.log('🔗 Flow-specific import not found, falling back to latest import...');
+        } else {
+          console.log('⚠️ No effective flow ID, attempting to fetch latest import data as fallback');
         }
         
-        // If no flow-specific import, fall back to latest import for client
-        console.log('🔗 Flow-specific import not found, trying latest import...');
+        // Fall back to latest import for client (works both with and without flow ID)
+        console.log('🔗 Trying latest import endpoint...');
         const latestResponse = await apiCall(`/api/v1/data-import/latest-import`, {
           method: 'GET',
           headers: {
@@ -109,11 +109,11 @@ export const useAttributeMappingLogic = () => {
         return null;
       }
     },
-    enabled: !!effectiveFlowId,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
-    retry: 2, // Reduce retry attempts to prevent 429 errors
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    enabled: !!user?.id, // Enable as long as user is authenticated, fallback logic handles missing flow ID
+    staleTime: 10 * 60 * 1000, // Cache for 10 minutes to reduce API calls
+    cacheTime: 20 * 60 * 1000, // Keep in cache for 20 minutes
+    retry: 1, // Only retry once to prevent 429 errors
+    retryDelay: 5000, // Fixed 5 second delay between retries
   });
 
   // Debug import data loading (after import data is defined)
@@ -171,10 +171,10 @@ export const useAttributeMappingLogic = () => {
       }
     },
     enabled: !!importData?.import_metadata?.import_id,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
-    retry: 2, // Reduce retry attempts to prevent 429 errors
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    staleTime: 10 * 60 * 1000, // Cache for 10 minutes to reduce API calls
+    cacheTime: 20 * 60 * 1000, // Keep in cache for 20 minutes
+    retry: 1, // Only retry once to prevent 429 errors
+    retryDelay: 5000, // Fixed 5 second delay between retries
   });
   
   const agentClarifications = [];

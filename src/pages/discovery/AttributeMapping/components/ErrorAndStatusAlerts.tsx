@@ -35,14 +35,29 @@ export const ErrorAndStatusAlerts: React.FC<ErrorAndStatusAlertsProps> = ({
         <AlertDescription className="text-red-800">
           <div className="flex items-start justify-between">
             <div>
-              <p className="font-medium mb-2">Discovery Flow Not Found</p>
+              <p className="font-medium mb-2">
+                {flowId ? 'Discovery Flow Not Found' : 'No Active Discovery Flows'}
+              </p>
               <p className="text-sm mb-3">
-                The discovery flow you're trying to access could not be found. This might happen if:
+                {flowId 
+                  ? 'The discovery flow you\'re trying to access could not be found.' 
+                  : 'No active discovery flows were found for your current engagement.'
+                } This might happen if:
               </p>
               <ul className="text-sm list-disc list-inside space-y-1 mb-3">
-                <li>The flow was deleted or expired</li>
-                <li>You're using an invalid or outdated flow ID</li>
-                <li>The flow wasn't created properly during data import</li>
+                {flowId ? (
+                  <>
+                    <li>The flow was deleted or expired</li>
+                    <li>You're using an invalid or outdated flow ID</li>
+                    <li>The flow wasn't created properly during data import</li>
+                  </>
+                ) : (
+                  <>
+                    <li>No data has been imported yet for this engagement</li>
+                    <li>All existing flows have been completed or deleted</li>
+                    <li>You may be in the wrong engagement or client context</li>
+                  </>
+                )}
               </ul>
               <p className="text-sm">
                 Please start a new discovery flow by uploading your data on the Data Import page.

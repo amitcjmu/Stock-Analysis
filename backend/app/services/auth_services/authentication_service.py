@@ -50,14 +50,14 @@ class AuthenticationService:
             if not user_profile or user_profile.status != "active":
                 raise HTTPException(status_code=401, detail="Account not approved")
             
-            # Verify password hash if user has a password set
-            if user.password_hash:
-                # Check if provided password matches the stored hash
-                if not bcrypt.checkpw(login_request.password.encode('utf-8'), user.password_hash.encode('utf-8')):
-                    raise HTTPException(status_code=401, detail="Invalid credentials")
-            else:
-                # For users without password hash (demo mode), accept any password
-                pass
+            # Verify password hash - ALL users must have a password hash
+            if not user.password_hash:
+                logger.warning(f"Authentication attempt for user {user.email} without password hash - BLOCKED")
+                raise HTTPException(status_code=401, detail="Invalid credentials")
+            
+            # Check if provided password matches the stored hash
+            if not bcrypt.checkpw(login_request.password.encode('utf-8'), user.password_hash.encode('utf-8')):
+                raise HTTPException(status_code=401, detail="Invalid credentials")
             
             # Get user roles
             user_roles_query = select(UserRole).where(

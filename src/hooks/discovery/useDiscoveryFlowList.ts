@@ -27,8 +27,9 @@ export const useDiscoveryFlowList = () => {
       try {
         // Ensure we have proper client and engagement context
         if (!client?.id || !engagement?.id) {
-          console.warn('⚠️ Missing client or engagement context for discovery flows:', { client: client?.id, engagement: engagement?.id });
-          return [];
+          console.warn('⚠️ Missing client or engagement context for discovery flows, retrying...:', { client: client?.id, engagement: engagement?.id });
+          // Throw error to trigger retry instead of returning empty array
+          throw new Error('Missing client or engagement context');
         }
         
         console.log('🔍 Fetching discovery flows for:', { clientId: client.id, engagementId: engagement.id });
@@ -65,9 +66,19 @@ export const useDiscoveryFlowList = () => {
         return [];
       }
     },
-    enabled: !!client?.id && !!engagement?.id,
-    staleTime: 30000, // 30 seconds
-    refetchInterval: false // No auto-refresh
+    enabled: true, // Always enable, but let the queryFn handle missing context by throwing errors
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes to reduce API calls
+    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    refetchInterval: false, // No auto-refresh
+    retry: (failureCount, error) => {
+      // Retry up to 2 times for missing context errors, but not for other API errors
+      if (error.message === 'Missing client or engagement context' && failureCount < 2) {
+        console.log(`🔄 Retrying discovery flows fetch (attempt ${failureCount + 1}) - waiting for context...`);
+        return true;
+      }
+      return false;
+    },
+    retryDelay: 3000, // Fixed 3 second delay between retries
   });
 };
 
