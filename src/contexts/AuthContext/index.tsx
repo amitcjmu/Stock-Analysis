@@ -11,8 +11,22 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => tokenStorage.getUser());
-  const [client, setClient] = useState<Client | null>(null);
-  const [engagement, setEngagement] = useState<Engagement | null>(null);
+  const [client, setClient] = useState<Client | null>(() => {
+    try {
+      const stored = localStorage.getItem('auth_client');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [engagement, setEngagement] = useState<Engagement | null>(() => {
+    try {
+      const stored = localStorage.getItem('auth_engagement');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
   const [flow, setFlow] = useState<Flow | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

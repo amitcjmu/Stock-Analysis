@@ -1,4 +1,4 @@
-import React, { ReactNode, useEffect, useState } from 'react';
+import React, { ReactNode, useEffect, useState, useRef } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Shield, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,16 +13,30 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   const { isAuthenticated, isAdmin, isLoading, user } = useAuth();
   const location = useLocation();
   const [stateStabilized, setStateStabilized] = useState(false);
+  const lastLoggedStateRef = useRef<string>('');
 
-  // Debug logging for admin route access
-  console.log('🛡️ AdminRoute Debug:', {
+  // Reduced debug logging - only log when state actually changes
+  const currentState = JSON.stringify({
     isAuthenticated,
     isAdmin,
     isLoading,
     stateStabilized,
-    user: user ? { id: user.id, role: user.role, full_name: user.full_name } : null,
+    userId: user?.id,
+    userRole: user?.role,
     location: location.pathname
   });
+
+  if (currentState !== lastLoggedStateRef.current) {
+    console.log('🛡️ AdminRoute State Change:', {
+      isAuthenticated,
+      isAdmin,
+      isLoading,
+      stateStabilized,
+      user: user ? { id: user.id, role: user.role, full_name: user.full_name } : null,
+      location: location.pathname
+    });
+    lastLoggedStateRef.current = currentState;
+  }
 
   // Wait for authentication state to stabilize
   useEffect(() => {
@@ -64,12 +78,17 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   // Check admin access using both isAdmin computed property and direct user role check
   const hasAdminAccess = isAdmin || user?.role === 'admin' || user?.role === 'platform_admin';
   
-  console.log('🛡️ AdminRoute Access Check:', {
-    isAdmin,
-    userRole: user?.role,
-    hasAdminAccess,
-    finalDecision: hasAdminAccess
-  });
+  // Only log access check if it's a new decision
+  const accessDecision = `${hasAdminAccess}-${user?.role}`;
+  if (accessDecision !== lastLoggedStateRef.current + '-access') {
+    console.log('🛡️ AdminRoute Access Check:', {
+      isAdmin,
+      userRole: user?.role,
+      hasAdminAccess,
+      finalDecision: hasAdminAccess
+    });
+    lastLoggedStateRef.current += '-access';
+  }
 
   if (!hasAdminAccess) {
     // Show access denied message

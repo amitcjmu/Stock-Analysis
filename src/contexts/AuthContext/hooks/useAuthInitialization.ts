@@ -41,6 +41,7 @@ const setInitializationState = (completed: boolean) => {
   }
 };
 
+
 export const useAuthInitialization = ({
   setUser,
   setClient,
@@ -56,12 +57,49 @@ export const useAuthInitialization = ({
   useEffect(() => {
     let isMounted = true;
     
+    
     const initializeAuth = async () => {
-      // Session guard: if auth was already completed in this session, skip
-      if (getInitializationState()) {
-        console.log('🔍 Auth already initialized in this session, skipping');
-        setIsLoading(false);
+      // Check token and user first
+      const token = tokenStorage.getToken();
+      const storedUser = tokenStorage.getUser();
+      
+      if (!token || !storedUser) {
+        if (isMounted) {
+          setUser(null);
+          setClient(null);
+          setEngagement(null);
+          setFlow(null);
+          setIsLoading(false);
+          navigate('/login');
+        }
         return;
+      }
+      
+      // Conservative session guard: only skip if we have stored user and complete context
+      if (getInitializationState() && storedUser) {
+        console.log('🔍 Auth previously completed, restoring context from session');
+        // Restore user from storage
+        setUser(storedUser);
+        
+        // Always fetch fresh context from API to ensure we have client/engagement
+        try {
+          console.log('🔄 Fetching fresh context to restore client/engagement...');
+          const contextPromise = fetchDefaultContext();
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('fetchDefaultContext timeout')), 10000);
+          });
+          
+          await Promise.race([contextPromise, timeoutPromise]);
+          console.log('✅ Context restored successfully');
+          setIsLoading(false);
+          return;
+        } catch (error) {
+          console.warn('⚠️ Failed to restore context, clearing session and continuing with full init:', error);
+          // Clear session state and continue with full initialization
+          setInitializationState(false);
+          globalAuthInitialized = false;
+          // Don't return, let it fall through to full initialization
+        }
       }
       
       // Global guard: if auth was already initialized globally, skip
@@ -139,6 +177,17 @@ export const useAuthInitialization = ({
           console.log('🔍 Starting getUserContext API call...');
           const userContext = await getUserContext();
           console.log('🔍 getUserContext API call completed:', userContext);
+          console.log('🔍 Auth Init - Detailed context analysis:', {
+            hasUserContext: !!userContext,
+            hasUser: !!userContext?.user,
+            hasClient: !!userContext?.client,
+            hasEngagement: !!userContext?.engagement,
+            hasFlow: !!userContext?.flow,
+            userEmail: userContext?.user?.email,
+            clientName: userContext?.client?.name,
+            engagementName: userContext?.engagement?.name,
+            flowName: userContext?.flow?.name
+          });
           
           if (!isMounted) {
             console.log('🔍 Component unmounted, stopping auth initialization');
@@ -152,11 +201,15 @@ export const useAuthInitialization = ({
             if (userContext.client) {
               console.log('🔍 Setting client from API response:', userContext.client);
               setClient(userContext.client);
+            } else {
+              console.warn('⚠️ No client in getUserContext response - this may cause context issues');
             }
             
             if (userContext.engagement) {
               console.log('🔍 Setting engagement from API response:', userContext.engagement);
               setEngagement(userContext.engagement);
+            } else {
+              console.warn('⚠️ No engagement in getUserContext response - this may cause context issues');
             }
             
             if (userContext.flow) {
@@ -164,10 +217,11 @@ export const useAuthInitialization = ({
               setFlow(userContext.flow);
             }
             
-            console.log('✅ User context loaded from API - auth initialization should complete now');
-            
-            // If we have user but no client/engagement, fetch defaults
-            if (!userContext.client || !userContext.engagement) {
+            // Check if we got complete context
+            if (userContext.client && userContext.engagement) {
+              console.log('✅ Complete user context loaded from API - auth initialization successful');
+            } else {
+              console.warn('⚠️ Incomplete user context from API, missing client or engagement');
               console.log('🔍 User context missing client/engagement, fetching defaults');
               try {
                 // Add timeout to fetchDefaultContext to prevent hanging

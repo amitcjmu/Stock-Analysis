@@ -73,12 +73,25 @@ export const updateUserDefaults = async (
  */
 export const getUserContext = async () => {
   try {
+    console.log('🔍 getUserContext - Making API call to /api/v1/context/me');
     const response = await apiCall('/api/v1/context/me', {
       method: 'GET',
     }, false); // Don't include context - we're trying to get it
 
+    console.log('🔍 getUserContext - Raw API response:', response);
+    console.log('🔍 getUserContext - Response structure:', {
+      hasUser: !!response?.user,
+      hasClient: !!response?.client,
+      hasEngagement: !!response?.engagement,
+      hasActiveFlows: !!response?.active_flows,
+      clientName: response?.client?.name,
+      engagementName: response?.engagement?.name,
+      activeFlowsCount: response?.active_flows?.length || 0
+    });
+
     // Backend returns session, convert to flow format for frontend
     if (response?.session && !response?.flow) {
+      console.log('🔍 getUserContext - Converting session to flow format');
       response.flow = {
         id: response.session.id,
         name: response.session.name || `Flow ${response.session.id.slice(-8)}`,
@@ -87,9 +100,33 @@ export const getUserContext = async () => {
       };
     }
 
-    return response;
+    console.log('🔍 getUserContext - Final response being returned:', {
+      hasUser: !!response?.user,
+      hasClient: !!response?.client,
+      hasEngagement: !!response?.engagement,
+      hasFlow: !!response?.flow,
+      clientName: response?.client?.name,
+      engagementName: response?.engagement?.name
+    });
+
+    // Deep clone the response to prevent reference issues
+    const clonedResponse = JSON.parse(JSON.stringify(response));
+    console.log('🔍 getUserContext - Cloned response check:', {
+      hasUser: !!clonedResponse?.user,
+      hasClient: !!clonedResponse?.client,
+      hasEngagement: !!clonedResponse?.engagement,
+      clientName: clonedResponse?.client?.name,
+      engagementName: clonedResponse?.engagement?.name
+    });
+
+    return clonedResponse;
   } catch (error) {
-    console.error('Failed to get user context:', error);
+    console.error('❌ getUserContext - Failed to get user context:', error);
+    console.error('❌ getUserContext - Error details:', {
+      message: error.message,
+      status: error.status,
+      stack: error.stack
+    });
     throw error;
   }
 };

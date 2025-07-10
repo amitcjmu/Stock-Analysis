@@ -15,59 +15,61 @@ const AttributeMappingContainer: React.FC = () => {
   // Add error boundary state
   const [hasRenderError, setHasRenderError] = React.useState(false);
   
-  try {
-    const {
-      // Core state
-      state,
-      actions,
-      navigation,
-      
-      // Computed state
-      isLoading,
-      hasError,
-      errorMessage,
-      hasData,
-      isFlowNotFound,
-      hasSessionData,
-      hasUploadedData,
-      sessionInfo,
-      
-      // Navigation actions
-      handleContinueToDataCleansing,
-      
-      // URL params
-      urlFlowId
-    } = useAttributeMapping();
-    
-    // Reset error state if hook succeeds
-    React.useEffect(() => {
-      if (hasRenderError) {
-        setHasRenderError(false);
-      }
-    }, [hasRenderError]);
-    
-    // Early return if there's a render error
-    if (hasRenderError) {
-      return (
-        <div className="flex min-h-screen bg-gray-50">
-          <div className="hidden lg:block w-64 border-r bg-white">
-            <Sidebar />
-          </div>
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Application Error</h2>
-              <p className="text-gray-600 mb-4">Something went wrong while loading the attribute mapping page.</p>
-              <button 
-                onClick={() => setHasRenderError(false)}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Try Again
-              </button>
-            </div>
+  // Early return if there's a render error
+  if (hasRenderError) {
+    return (
+      <div className="flex min-h-screen bg-gray-50">
+        <div className="hidden lg:block w-64 border-r bg-white">
+          <Sidebar />
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Application Error</h2>
+            <p className="text-gray-600 mb-4">Something went wrong while loading the attribute mapping page.</p>
+            <button 
+              onClick={() => setHasRenderError(false)}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Try Again
+            </button>
           </div>
         </div>
-      );
-    }
+      </div>
+    );
+  }
+  
+  // Use try-catch around the hook call and variable destructuring
+  let hookResult;
+  try {
+    hookResult = useAttributeMapping();
+  } catch (error) {
+    console.error('AttributeMappingContainer hook error:', error);
+    setHasRenderError(true);
+    return null; // This will trigger a re-render with the error state
+  }
+  
+  const {
+    // Core state
+    state,
+    actions,
+    navigation,
+    
+    // Computed state
+    isLoading,
+    hasError,
+    errorMessage,
+    hasData,
+    isFlowNotFound,
+    hasSessionData,
+    hasUploadedData,
+    sessionInfo,
+    
+    // Navigation actions
+    handleContinueToDataCleansing,
+    
+    // URL params
+    urlFlowId
+  } = hookResult;
 
   const {
     agenticData,
@@ -171,35 +173,6 @@ const AttributeMappingContainer: React.FC = () => {
       </div>
     </AttributeMappingStateProvider>
   );
-  
-  } catch (error) {
-    console.error('AttributeMappingContainer render error:', error);
-    // Set error state to trigger error boundary
-    React.useEffect(() => {
-      setHasRenderError(true);
-    }, []);
-    
-    // Return error state
-    return (
-      <div className="flex min-h-screen bg-gray-50">
-        <div className="hidden lg:block w-64 border-r bg-white">
-          <Sidebar />
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Application Error</h2>
-            <p className="text-gray-600 mb-4">Something went wrong while loading the attribute mapping page.</p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Reload Page
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 };
 
 export default AttributeMappingContainer;

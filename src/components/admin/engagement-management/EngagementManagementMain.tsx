@@ -37,18 +37,42 @@ const EngagementManagementMain: React.FC = () => {
         params.append('page', currentPage.toString());
         params.append('limit', '10');
         
-        // Don't add client_account_id if "All Clients" is selected
-        
         const queryString = params.toString();
-        const result = await apiCall(`/admin/engagements/?${queryString}`);
-        return result.items || [];
-      } catch (error) {
-        console.error('Error fetching engagements:', error);
-        // Fallback demo data
+        console.log('🔍 Fetching engagements with query:', queryString);
+        
+        const result = await apiCall(`/api/v1/admin/engagements${queryString ? '?' + queryString : ''}`);
+        console.log('🔍 Engagements API result:', result);
+        
+        // Handle different response formats
+        if (result && Array.isArray(result)) {
+          return result;
+        } else if (result && result.items && Array.isArray(result.items)) {
+          return result.items;
+        } else if (result && result.engagements && Array.isArray(result.engagements)) {
+          return result.engagements;
+        } else {
+          console.warn('⚠️ Unexpected engagements API response format:', result);
+          return [];
+        }
+      } catch (error: any) {
+        console.error('❌ Error fetching engagements:', {
+          error: error.message || error,
+          status: error.status,
+          endpoint: `/api/v1/admin/engagements${queryString ? '?' + queryString : ''}`
+        });
+        
+        // If 404 or other error, still try to return empty array but log the issue
         return [];
       }
     },
     initialData: [],
+    retry: (failureCount, error: any) => {
+      // Only retry on network errors, not on 404/403 which are expected
+      if (error.status === 404 || error.status === 403) {
+        return false;
+      }
+      return failureCount < 2;
+    }
   });
   const engagements = engagementsQuery.data || [];
   const engagementsLoading = engagementsQuery.isLoading;
@@ -58,15 +82,38 @@ const EngagementManagementMain: React.FC = () => {
     queryKey: ['clients'],
     queryFn: async () => {
       try {
-        const result = await apiCall('/admin/clients/?limit=100');
-        return result.items || [];
-      } catch (error) {
-        console.error('Error fetching clients:', error);
-        // Fallback demo data
+        console.log('🔍 Fetching clients...');
+        const result = await apiCall('/api/v1/admin/clients?limit=100');
+        console.log('🔍 Clients API result:', result);
+        
+        // Handle different response formats
+        if (result && Array.isArray(result)) {
+          return result;
+        } else if (result && result.items && Array.isArray(result.items)) {
+          return result.items;
+        } else if (result && result.clients && Array.isArray(result.clients)) {
+          return result.clients;
+        } else {
+          console.warn('⚠️ Unexpected clients API response format:', result);
+          return [];
+        }
+      } catch (error: any) {
+        console.error('❌ Error fetching clients:', {
+          error: error.message || error,
+          status: error.status,
+          endpoint: '/api/v1/admin/clients/?limit=100'
+        });
         return [];
       }
     },
     initialData: [],
+    retry: (failureCount, error: any) => {
+      // Only retry on network errors, not on 404/403 which are expected
+      if (error.status === 404 || error.status === 403) {
+        return false;
+      }
+      return failureCount < 2;
+    }
   });
   const clients = clientsQuery.data || [];
   const clientsLoading = clientsQuery.isLoading;
@@ -124,7 +171,7 @@ const EngagementManagementMain: React.FC = () => {
       
       console.log('Updating engagement with data:', JSON.stringify(submissionData, null, 2));
       
-      const result = await apiCall(`/admin/engagements/${editingEngagement.id}`, {
+      const result = await apiCall(`/api/v1/admin/engagements/${editingEngagement.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -165,7 +212,7 @@ const EngagementManagementMain: React.FC = () => {
     }
 
     try {
-      const result = await apiCall(`/admin/engagements/${engagementId}`, {
+      const result = await apiCall(`/api/v1/admin/engagements/${engagementId}`, {
         method: 'DELETE'
       });
       if (result && result.message) {

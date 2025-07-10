@@ -335,10 +335,14 @@ export const useAuthService = (
     try {
       console.log('🔍 fetchDefaultContext - Starting with current context:', { client, engagement });
       
-      if (client && engagement) {
-        console.log('🔄 Context already complete, skipping default fetch');
-        return;
-      }
+      // Only skip if we have both client and engagement AND they're properly set in React state
+      // Don't rely on closure values which might be stale after page refresh
+      console.log('🔍 fetchDefaultContext - Current state check:', { 
+        hasClient: !!client, 
+        hasEngagement: !!engagement,
+        clientName: client?.name,
+        engagementName: engagement?.name
+      });
       
       // Add a guard to prevent concurrent executions
       if ((fetchDefaultContext as any).isRunning) {

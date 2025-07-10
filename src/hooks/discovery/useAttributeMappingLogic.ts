@@ -46,25 +46,8 @@ export const useAttributeMappingLogic = () => {
       })));
     }
     
-    // Debug import data loading
-    if (importDataError) {
-      console.error('❌ Import data error:', importDataError);
-    }
-    
-    if (importData) {
-      console.log('✅ Import data available:', {
-        import_id: importData?.import_metadata?.import_id,
-        flow_id: importData?.flow_id,
-        status: importData?.status,
-        has_metadata: !!importData?.import_metadata,
-        metadata_keys: importData?.import_metadata ? Object.keys(importData.import_metadata) : []
-      });
-    }
-    
-    if (isImportDataLoading) {
-      console.log('⏳ Import data loading...');
-    }
-  }, [urlFlowId, autoDetectedFlowId, effectiveFlowId, flowList, isFlowListLoading, flowListError, pathname, importData, importDataError, isImportDataLoading]);
+    // Import data debugging will be handled in a separate useEffect after import data is defined
+  }, [urlFlowId, autoDetectedFlowId, effectiveFlowId, flowList, isFlowListLoading, flowListError, pathname]);
 
   // Use unified discovery flow with effective flow ID
   const {
@@ -132,6 +115,27 @@ export const useAttributeMappingLogic = () => {
     retry: 2, // Reduce retry attempts to prevent 429 errors
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
+
+  // Debug import data loading (after import data is defined)
+  useEffect(() => {
+    if (importDataError) {
+      console.error('❌ Import data error:', importDataError);
+    }
+    
+    if (importData) {
+      console.log('✅ Import data available:', {
+        import_id: importData?.import_metadata?.import_id,
+        flow_id: importData?.flow_id,
+        status: importData?.status,
+        has_metadata: !!importData?.import_metadata,
+        metadata_keys: importData?.import_metadata ? Object.keys(importData.import_metadata) : []
+      });
+    }
+    
+    if (isImportDataLoading) {
+      console.log('⏳ Import data loading...');
+    }
+  }, [importData, importDataError, isImportDataLoading]);
 
   // Get field mappings using the import ID
   const { data: realFieldMappings, isLoading: isFieldMappingsLoading, error: fieldMappingsError, refetch: refetchFieldMappings } = useQuery({
