@@ -16,6 +16,7 @@ export interface AttributeMappingState {
   flowStateError: any;
   autoDetectedFlowId: string | null;
   effectiveFlowId: string | null;
+  hasEffectiveFlow: boolean;
   flowList: any[];
 }
 

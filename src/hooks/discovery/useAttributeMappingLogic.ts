@@ -722,6 +722,7 @@ export const useAttributeMappingLogic = () => {
     urlFlowId,
     autoDetectedFlowId,
     effectiveFlowId,
+    hasEffectiveFlow,
     flowList,
     
     // Loading states

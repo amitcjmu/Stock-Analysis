@@ -35,6 +35,7 @@ export const useAttributeMapping = () => {
     canContinueToDataCleansing,
     autoDetectedFlowId,
     effectiveFlowId,
+    hasEffectiveFlow,
     flowList,
   } = useAttributeMappingLogic();
 
@@ -112,6 +113,7 @@ export const useAttributeMapping = () => {
     flowStateError,
     autoDetectedFlowId,
     effectiveFlowId,
+    hasEffectiveFlow,
     flowList
   };
 
