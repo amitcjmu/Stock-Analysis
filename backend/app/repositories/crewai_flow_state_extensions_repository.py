@@ -309,6 +309,41 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             logger.error(f"❌ Failed to get active flows: {e}")
             return []
     
+    async def get_flows_by_engagement(
+        self, 
+        engagement_id: str, 
+        flow_type: Optional[str] = None, 
+        limit: int = 50
+    ) -> List[CrewAIFlowStateExtensions]:
+        """Get flows for a specific engagement"""
+        try:
+            client_uuid = uuid.UUID(self.client_account_id)
+            engagement_uuid = uuid.UUID(engagement_id)
+            
+            # Build query conditions
+            conditions = [
+                CrewAIFlowStateExtensions.client_account_id == client_uuid,
+                CrewAIFlowStateExtensions.engagement_id == engagement_uuid
+            ]
+            
+            # Add flow type filter if specified
+            if flow_type:
+                conditions.append(CrewAIFlowStateExtensions.flow_type == flow_type)
+            
+            stmt = select(CrewAIFlowStateExtensions).where(
+                and_(*conditions)
+            ).order_by(desc(CrewAIFlowStateExtensions.created_at)).limit(limit)
+            
+            result = await self.db.execute(stmt)
+            flows = result.scalars().all()
+            
+            logger.info(f"Retrieved {len(flows)} flows for engagement {engagement_id}")
+            return flows
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to get flows by engagement {engagement_id}: {e}")
+            return []
+    
     async def delete_master_flow(self, flow_id: str) -> bool:
         """Delete master flow and all subordinate flows (cascade)"""
         try:

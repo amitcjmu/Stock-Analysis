@@ -14,7 +14,7 @@ class ClientBase(BaseModel):
     """Client account information."""
     model_config = ConfigDict(from_attributes=True)
     
-    id: UUID
+    id: str  # Changed from UUID to str to match implementation
     name: str
     description: Optional[str] = None
     created_at: datetime
@@ -24,10 +24,10 @@ class EngagementBase(BaseModel):
     """Engagement information."""
     model_config = ConfigDict(from_attributes=True)
     
-    id: UUID
+    id: str  # Changed from UUID to str to match implementation
     name: str
     description: Optional[str] = None
-    client_id: UUID
+    client_id: str  # Changed from UUID to str to match implementation
     created_at: datetime
     updated_at: datetime
 
@@ -35,12 +35,12 @@ class SessionBase(BaseModel):
     """Session information."""
     model_config = ConfigDict(from_attributes=True)
     
-    id: UUID
+    id: str  # Changed from UUID to str to match implementation
     name: str
     description: Optional[str] = None
-    engagement_id: UUID
+    engagement_id: str  # Changed from UUID to str to match implementation
     is_default: bool = False
-    created_by: UUID
+    created_by: str  # Changed from UUID to str to match implementation
     created_at: datetime
     updated_at: datetime
     metadata: Optional[Dict[str, Any]] = None

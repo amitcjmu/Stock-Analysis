@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route } from "react-router-dom";
 import { ChatFeedbackProvider } from "./contexts/ChatFeedbackContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -87,7 +86,6 @@ import AdminLayout from "./components/admin/AdminLayout";
 import AdminRoute from "./components/admin/AdminRoute";
 import DebugContext from "./pages/DebugContext";
 
-const queryClient = new QueryClient();
 
 // Component to handle authenticated routes
 const AuthenticatedApp = () => {
@@ -98,24 +96,13 @@ const AuthenticatedApp = () => {
   useEffect(() => {
     if (isAuthenticated && !appInitialized) {
       AppInitializer.initialize()
-        .then(() => {
-          setAppInitialized(true);
-          console.log('✅ App initialization completed');
-        })
-        .catch((error) => {
-          console.error('❌ App initialization failed:', error);
-          // Continue anyway - don't block the app
-          setAppInitialized(true);
-        });
+        .then(() => setAppInitialized(true))
+        .catch(() => setAppInitialized(true)); // Continue anyway - don't block the app
     }
   }, [isAuthenticated, appInitialized]);
 
-  // Debug logging
-  console.log('🔍 AuthenticatedApp State:', { isLoading, isAuthenticated, appInitialized });
-
   // Show loading screen while authentication is being determined
   if (isLoading) {
-    console.log('🔄 Showing loading screen...');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -126,9 +113,8 @@ const AuthenticatedApp = () => {
     );
   }
 
-  // If user is not authenticated and not on login page, show only login route
+  // If user is not authenticated, show only login route
   if (!isAuthenticated) {
-    console.log('🚫 User not authenticated, redirecting to login...');
     return (
       <Routes>
         <Route path="/login" element={<Login />} />
@@ -138,7 +124,6 @@ const AuthenticatedApp = () => {
   }
 
   // User is authenticated, show all routes
-  console.log('✅ User authenticated, showing all routes...');
   return (
     <Routes>
               <Route path="/" element={<Index />} />
@@ -239,20 +224,18 @@ const AuthenticatedApp = () => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <ClientProvider>
-          <ChatFeedbackProvider>
-            <AuthenticatedApp />
-            <GlobalChatFeedback />
-          </ChatFeedbackProvider>
-        </ClientProvider>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <TooltipProvider>
+    <Toaster />
+    <Sonner />
+    <AuthProvider>
+      <ClientProvider>
+        <ChatFeedbackProvider>
+          <AuthenticatedApp />
+          <GlobalChatFeedback />
+        </ChatFeedbackProvider>
+      </ClientProvider>
+    </AuthProvider>
+  </TooltipProvider>
 );
 
 export default App;

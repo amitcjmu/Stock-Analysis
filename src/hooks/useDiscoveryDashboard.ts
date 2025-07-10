@@ -60,18 +60,32 @@ export const useDiscoveryMetrics = () => {
   const { client, engagement } = useAuth();
   
   return useQuery<DiscoveryMetrics, Error>({
-    queryKey: ['discovery', 'metrics'],
+    queryKey: ['discovery', 'metrics', client?.id, engagement?.id],
     queryFn: async () => {
-      const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
-      const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+      // Security fix: Never fall back to hardcoded client IDs
+      if (!client?.id || !engagement?.id) {
+        console.warn('Missing client or engagement context for discovery metrics');
+        // Return default empty metrics instead of throwing error
+        return {
+          totalAssets: 0,
+          totalApplications: 0,
+          applicationToServerMapping: 0,
+          dependencyMappingComplete: 0,
+          techDebtItems: 0,
+          criticalIssues: 0,
+          discoveryCompleteness: 0,
+          dataQuality: 0
+        };
+      }
       
       return await masterFlowServiceExtended.getDiscoveryMetrics(
-        clientAccountId,
-        engagementId
+        client.id,
+        engagement.id
       );
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
+    enabled: !!client?.id && !!engagement?.id, // Only run when auth context is available
   });
 };
 
@@ -79,18 +93,30 @@ export const useApplicationLandscape = () => {
   const { client, engagement } = useAuth();
   
   return useQuery<ApplicationLandscape, Error>({
-    queryKey: ['discovery', 'application-landscape'],
+    queryKey: ['discovery', 'application-landscape', client?.id, engagement?.id],
     queryFn: async () => {
-      const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
-      const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+      // Security fix: Never fall back to hardcoded client IDs
+      if (!client?.id || !engagement?.id) {
+        console.warn('Missing client or engagement context for application landscape');
+        // Return default empty landscape instead of throwing error
+        return {
+          applications: [],
+          summary: {
+            byEnvironment: {},
+            byCriticality: {},
+            byTechStack: {}
+          }
+        };
+      }
       
       return await masterFlowServiceExtended.getApplicationLandscape(
-        clientAccountId,
-        engagementId
+        client.id,
+        engagement.id
       );
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
+    enabled: !!client?.id && !!engagement?.id, // Only run when auth context is available
   });
 };
 
@@ -98,17 +124,42 @@ export const useInfrastructureLandscape = () => {
   const { client, engagement } = useAuth();
   
   return useQuery<InfrastructureLandscape, Error>({
-    queryKey: ['discovery', 'infrastructure-landscape'],
+    queryKey: ['discovery', 'infrastructure-landscape', client?.id, engagement?.id],
     queryFn: async () => {
-      const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
-      const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+      // Security fix: Never fall back to hardcoded client IDs
+      if (!client?.id || !engagement?.id) {
+        console.warn('Missing client or engagement context for infrastructure landscape');
+        // Return default empty infrastructure instead of throwing error
+        return {
+          servers: {
+            total: 0,
+            physical: 0,
+            virtual: 0,
+            cloud: 0,
+            supportedOS: 0,
+            deprecatedOS: 0
+          },
+          databases: {
+            total: 0,
+            supportedVersions: 0,
+            deprecatedVersions: 0,
+            endOfLife: 0
+          },
+          networks: {
+            devices: 0,
+            securityDevices: 0,
+            storageDevices: 0
+          }
+        };
+      }
       
       return await masterFlowServiceExtended.getInfrastructureLandscape(
-        clientAccountId,
-        engagementId
+        client.id,
+        engagement.id
       );
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
+    enabled: !!client?.id && !!engagement?.id, // Only run when auth context is available
   });
 }; 

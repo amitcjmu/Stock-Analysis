@@ -27,7 +27,7 @@ export const updateUserDefaults = async (
   request: UpdateUserDefaultsRequest
 ): Promise<UpdateUserDefaultsResponse> => {
   try {
-    console.log('🔄 Updating user defaults:', request);
+    console.log('🔍 updateUserDefaults - Starting with:', request);
     
     const response = await apiCall('/api/v1/context/me/defaults', {
       method: 'PUT',
@@ -37,7 +37,8 @@ export const updateUserDefaults = async (
       body: JSON.stringify(request),
     }, false); // Don't include context - we're setting user defaults
 
-    console.log('✅ User defaults updated successfully:', response);
+    console.log('🔍 updateUserDefaults - API response:', response);
+    console.log('✅ User defaults updated successfully');
     return response;
   } catch (error: any) {
     console.error('❌ Failed to update user defaults:', {
@@ -52,7 +53,7 @@ export const updateUserDefaults = async (
     console.warn('⚠️ Continuing with localStorage-only context persistence');
     
     // Return a fallback response
-    return {
+    const fallbackResponse = {
       success: false,
       message: `Failed to update user defaults: ${error.message || error}`,
       updated_defaults: {
@@ -60,6 +61,9 @@ export const updateUserDefaults = async (
         default_engagement_id: request.engagement_id || null,
       }
     };
+    
+    console.log('🔍 updateUserDefaults - Returning fallback response:', fallbackResponse);
+    return fallbackResponse;
   }
 };
 

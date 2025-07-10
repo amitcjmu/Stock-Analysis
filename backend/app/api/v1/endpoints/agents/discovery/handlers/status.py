@@ -164,7 +164,7 @@ async def _get_dynamic_agent_insights(db: AsyncSession, context: RequestContext)
                 "supporting_data": {
                     "total_assets": latest_import.total_records,
                     "import_name": latest_import.import_name,
-                    "source_file": latest_import.source_filename
+                    "source_file": latest_import.filename
                 },
                 "actionable": True,
                 "page": "attribute-mapping",
@@ -178,18 +178,18 @@ async def _get_dynamic_agent_insights(db: AsyncSession, context: RequestContext)
             })
         
         # File Analysis Insight
-        if latest_import.source_filename:
-            file_size_kb = latest_import.file_size_bytes/1024 if latest_import.file_size_bytes else 0
+        if latest_import.filename:
+            file_size_kb = latest_import.file_size/1024 if latest_import.file_size else 0
             insights.append({
                 "id": f"file-analysis-{datetime.utcnow().timestamp()}",
                 "agent_id": "data-source-intelligence",
                 "agent_name": "Data Source Intelligence",
                 "insight_type": "data_volume",
                 "title": "File Analysis Complete",
-                "description": f"Analyzed '{latest_import.source_filename}' - {file_size_kb:.1f}KB data source",
+                "description": f"Analyzed '{latest_import.filename}' - {file_size_kb:.1f}KB data source",
                 "confidence": "high",
                 "supporting_data": {
-                    "filename": latest_import.source_filename,
+                    "filename": latest_import.filename,
                     "file_size_kb": file_size_kb,
                     "total_records": latest_import.total_records
                 },
@@ -198,7 +198,7 @@ async def _get_dynamic_agent_insights(db: AsyncSession, context: RequestContext)
                 "created_at": datetime.utcnow().isoformat(),
                 # Keep original format for backward compatibility
                 "agent": "Data Source Intelligence",
-                "insight": f"Analyzed '{latest_import.source_filename}' - {file_size_kb:.1f}KB data source",
+                "insight": f"Analyzed '{latest_import.filename}' - {file_size_kb:.1f}KB data source",
                 "priority": "low",
                 "timestamp": datetime.utcnow().isoformat(),
                 "data_source": "file_analysis"

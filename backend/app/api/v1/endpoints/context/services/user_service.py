@@ -46,9 +46,17 @@ class UserService:
                 # Import here to avoid circular dependencies
                 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
                 from app.core.database import AsyncSessionLocal
+                from app.core.context import RequestContext
                 
                 async with AsyncSessionLocal() as db:
-                    orchestrator = MasterFlowOrchestrator(db)
+                    # Create RequestContext for the orchestrator
+                    context = RequestContext(
+                        client_account_id=basic_context.client.id,
+                        engagement_id=basic_context.engagement.id,
+                        user_id=str(current_user.id)
+                    )
+                    
+                    orchestrator = MasterFlowOrchestrator(db, context)
                     
                     # Get active flows for the engagement
                     flows = await orchestrator.list_flows_by_engagement(

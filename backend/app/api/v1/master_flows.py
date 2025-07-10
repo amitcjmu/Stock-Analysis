@@ -122,11 +122,11 @@ async def get_active_master_flows(
         from sqlalchemy import select, and_, or_
         from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
         
-        # Query for active master flows
+        # Query for active master flows - exclude completed, failed, error, deleted, cancelled, child_flows_deleted
         stmt = select(CrewAIFlowStateExtensions).where(
             and_(
                 CrewAIFlowStateExtensions.client_account_id == client_account_id,
-                CrewAIFlowStateExtensions.flow_status.notin_(["deleted", "cancelled", "child_flows_deleted"])
+                CrewAIFlowStateExtensions.flow_status.notin_(["completed", "failed", "error", "deleted", "cancelled", "child_flows_deleted"])
             )
         ).order_by(CrewAIFlowStateExtensions.created_at.desc())
         

@@ -159,14 +159,28 @@ export const masterFlowService = {
       const params = new URLSearchParams();
       if (flowType) params.append('flowType', flowType);
       
+      const endpoint = `/master-flows/active${params.toString() ? `?${params}` : ''}`;
+      const headers = getMultiTenantHeaders(clientAccountId, engagementId);
+      
+      console.log('🔍 MasterFlowService.getActiveFlows - Making API call:', {
+        endpoint,
+        headers,
+        clientAccountId,
+        engagementId,
+        flowType
+      });
+      
       const response = await apiClient.get<MasterFlowResponse[]>(
-        `/master-flows/active${params.toString() ? `?${params}` : ''}`,
+        endpoint,
         {
-          headers: getMultiTenantHeaders(clientAccountId, engagementId),
+          headers,
         }
       );
+      
+      console.log('✅ MasterFlowService.getActiveFlows - Response received:', response);
       return response;
     } catch (error) {
+      console.error('❌ MasterFlowService.getActiveFlows - API call failed:', error);
       handleApiError(error, 'getActiveFlows');
       throw error;
     }

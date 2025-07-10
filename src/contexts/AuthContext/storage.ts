@@ -4,7 +4,25 @@ import { TokenStorage, User, ContextData } from './types';
 export const tokenStorage: TokenStorage = {
   getToken: () => {
     try {
-      return localStorage.getItem('auth_token');
+      const token = localStorage.getItem('auth_token');
+      if (!token) return null;
+      
+      // Check if token is expired before returning it
+      try {
+        const tokenData = JSON.parse(atob(token.split('.')[1]));
+        const now = Math.floor(Date.now() / 1000);
+        
+        if (tokenData.exp && tokenData.exp < now) {
+          console.log('🔄 Token expired, clearing from storage');
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_user');
+          return null;
+        }
+      } catch (tokenParseError) {
+        console.warn('⚠️ Could not parse token for expiration check');
+      }
+      
+      return token;
     } catch (error) {
       console.error("Failed to get token from localStorage", error);
       return null;

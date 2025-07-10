@@ -1,9 +1,14 @@
 /**
+ * LEGACY - MARKED FOR ARCHIVAL
+ * 
  * Unified Flow Hook for Master Flow Orchestrator
  * MFO-074: Create unified flow hook for all flow types
  * 
- * This hook provides a unified interface for managing all flow types
- * through the Master Flow Orchestrator system.
+ * ⚠️ DEPRECATED: This hook uses legacy FlowService and should be migrated
+ * to use masterFlowService.ts and related hooks like useUnifiedDiscoveryFlow.
+ * This file is marked for archival to avoid confusion.
+ * 
+ * Use: hooks that import from /services/api/masterFlowService.ts instead
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';

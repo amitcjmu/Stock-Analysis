@@ -29,6 +29,14 @@ export const useAuthService = (
     setClient(null);
     setEngagement(null);
     setFlow(null);
+    
+    // Clear the initialization state so user can log back in
+    try {
+      sessionStorage.removeItem('auth_initialization_complete');
+    } catch {
+      // Ignore storage errors
+    }
+    
     navigate('/login');
   };
 
@@ -149,15 +157,17 @@ export const useAuthService = (
 
   const switchClient = async (clientId: string, clientData?: any) => {
     try {
-      console.log('🔄 Switching to client:', clientId);
+      console.log('🔍 switchClient - Starting with:', { clientId, hasClientData: !!clientData });
       
       let fullClientData = clientData;
       
       if (!fullClientData) {
-        const response = await apiCall(`/context-establishment/clients`, {
+        console.log('🔍 switchClient - Fetching client data from API');
+        const response = await apiCall(`/api/v1/context-establishment/clients`, {
           method: 'GET',
           headers: getAuthHeaders()
         }, false); // Don't include context - we're establishing it
+        console.log('🔍 switchClient - Got clients response:', response);
         fullClientData = response.clients?.find((c: any) => c.id === clientId);
       }
       
@@ -165,31 +175,35 @@ export const useAuthService = (
         throw new Error('Client data not found');
       }
       
+      console.log('🔍 switchClient - Setting client:', fullClientData);
       setClient(fullClientData);
       persistClientData(fullClientData);
       
-      updateApiContext({ 
-        user, 
-        client: fullClientData, 
-        engagement, 
-        flow 
-      });
+      // API context will be updated automatically by useApiContextSync hook
+      // No need to call updateApiContext manually here
       
-      const engagementsResponse = await apiCall(`/context-establishment/engagements?client_id=${clientId}`, {
+      console.log('🔍 switchClient - Fetching engagements for client:', clientId);
+      const engagementsResponse = await apiCall(`/api/v1/context-establishment/engagements?client_id=${clientId}`, {
         method: 'GET',
         headers: getAuthHeaders()
       }, false); // Don't include context - we're establishing it
       
+      console.log('🔍 switchClient - Got engagements response:', engagementsResponse);
+      
       if (engagementsResponse?.engagements && engagementsResponse.engagements.length > 0) {
         const defaultEngagement = engagementsResponse.engagements[0];
+        console.log('🔍 switchClient - Switching to default engagement:', defaultEngagement.id);
         await switchEngagement(defaultEngagement.id, defaultEngagement);
+        console.log('🔍 switchClient - switchEngagement completed');
       } else {
+        console.log('🔍 switchClient - No engagements found, clearing engagement/flow');
         setEngagement(null);
         setFlow(null);
         localStorage.removeItem('auth_engagement');
         localStorage.removeItem('auth_flow');
         
         try {
+          console.log('🔍 switchClient - Updating user defaults');
           const result = await updateUserDefaults({ client_id: clientId });
           if (result.success) {
             console.log('✅ Updated user default client:', clientId);
@@ -201,6 +215,8 @@ export const useAuthService = (
         }
       }
       
+      console.log('🔍 switchClient - Completed successfully');
+      
     } catch (error) {
       console.error('Error switching client:', error);
       throw error;
@@ -209,16 +225,18 @@ export const useAuthService = (
 
   const switchEngagement = async (engagementId: string, engagementData?: any) => {
     try {
-      console.log('🔄 Switching to engagement:', engagementId, 'with data:', engagementData);
+      console.log('🔍 switchEngagement - Starting with:', { engagementId, hasEngagementData: !!engagementData });
       
       let fullEngagementData = engagementData;
       
       if (!fullEngagementData && client) {
         try {
-          const response = await apiCall(`/context-establishment/engagements?client_id=${client.id}`, {
+          console.log('🔍 switchEngagement - Fetching engagement data from API');
+          const response = await apiCall(`/api/v1/context-establishment/engagements?client_id=${client.id}`, {
             method: 'GET',
             headers: getAuthHeaders()
           }, false); // Don't include context - we're establishing it
+          console.log('🔍 switchEngagement - Got engagements response:', response);
           if (response.engagements) {
             fullEngagementData = response.engagements.find(e => e.id === engagementId);
           }
@@ -231,16 +249,11 @@ export const useAuthService = (
         throw new Error('Engagement data not found');
       }
       
+      console.log('🔍 switchEngagement - Setting engagement:', fullEngagementData);
       setEngagement(fullEngagementData);
       persistEngagementData(fullEngagementData);
       
-      updateApiContext({ 
-        user, 
-        client, 
-        engagement: fullEngagementData, 
-        flow 
-      });
-      
+      console.log('🔍 switchEngagement - Creating flow data');
       const flowData = {
         id: fullEngagementData.id,
         name: `${fullEngagementData.name} Flow`,
@@ -252,16 +265,14 @@ export const useAuthService = (
         updated_at: new Date().toISOString()
       };
       
+      console.log('🔍 switchEngagement - Setting flow:', flowData);
       setFlow(flowData);
       
-      updateApiContext({ 
-        user, 
-        client, 
-        engagement: fullEngagementData, 
-        flow: flowData 
-      });
+      // API context will be updated automatically by useApiContextSync hook
+      // No need to call updateApiContext manually here
       
       try {
+        console.log('🔍 switchEngagement - Updating user defaults');
         const effectiveClientId = fullEngagementData?.client_id;
         if (effectiveClientId && fullEngagementData?.client_id === effectiveClientId) {
           const result = await updateUserDefaults({
@@ -282,6 +293,8 @@ export const useAuthService = (
       } catch (defaultError) {
         console.warn('⚠️ Failed to update user defaults (non-blocking):', defaultError);
       }
+      
+      console.log('🔍 switchEngagement - Completed successfully');
       
     } catch (error) {
       console.error('Error switching engagement:', error);
@@ -308,12 +321,8 @@ export const useAuthService = (
       
       setFlow(fullFlowData);
       
-      updateApiContext({ 
-        user, 
-        client, 
-        engagement, 
-        flow: fullFlowData 
-      });
+      // API context will be updated automatically by useApiContextSync hook
+      // No need to call updateApiContext manually here
       
       console.log('✅ Switched to flow:', fullFlowData.id);
     } catch (error) {
@@ -324,20 +333,32 @@ export const useAuthService = (
 
   const fetchDefaultContext = async () => {
     try {
+      console.log('🔍 fetchDefaultContext - Starting with current context:', { client, engagement });
+      
       if (client && engagement) {
         console.log('🔄 Context already complete, skipping default fetch');
         return;
       }
       
+      // Add a guard to prevent concurrent executions
+      if ((fetchDefaultContext as any).isRunning) {
+        console.log('🔄 fetchDefaultContext already running, skipping');
+        return;
+      }
+      
+      (fetchDefaultContext as any).isRunning = true;
       console.log('🔄 Fetching default context...');
       
-      const clientsResponse = await apiCall('/context-establishment/clients', {
+      console.log('🔍 Making API call to /api/v1/context-establishment/clients');
+      const clientsResponse = await apiCall('/api/v1/context-establishment/clients', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${tokenStorage.getToken()}`,
           'Content-Type': 'application/json'
         }
       }, false); // Don't include context - we're trying to establish it
+      
+      console.log('🔍 Clients API response:', clientsResponse);
       
       if (!clientsResponse?.clients || clientsResponse.clients.length === 0) {
         console.warn('No clients available');
@@ -366,8 +387,14 @@ export const useAuthService = (
       }
       
       if (targetClient && (!client || client.id !== targetClient.id)) {
+        console.log('🔍 Calling switchClient with:', targetClient.id);
         await switchClient(targetClient.id, targetClient);
+        console.log('🔍 switchClient completed');
+      } else {
+        console.log('🔍 No client switch needed');
       }
+      
+      console.log('🔍 fetchDefaultContext completed successfully');
       
     } catch (error: any) {
       console.error('Error fetching default context:', error);
@@ -381,6 +408,8 @@ export const useAuthService = (
         // Don't fail the entire auth flow for context fetch errors
         // The user is still authenticated, just missing context
       }
+    } finally {
+      (fetchDefaultContext as any).isRunning = false;
     }
   };
 

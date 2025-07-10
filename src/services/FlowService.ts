@@ -1,8 +1,14 @@
 /**
+ * LEGACY - MARKED FOR ARCHIVAL
+ * 
  * Flow Service for Master Flow Orchestrator
  * MFO-079: Create FlowService API client
  * 
- * Unified service for all flow operations through the Master Flow Orchestrator API
+ * ⚠️ DEPRECATED: This service is superseded by masterFlowService.ts
+ * All functionality should use masterFlowService and its extensions instead.
+ * This file is marked for archival to avoid confusion.
+ * 
+ * Use: /services/api/masterFlowService.ts and masterFlowService.extensions.ts
  */
 
 import { ApiClient } from './ApiClient';

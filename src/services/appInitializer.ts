@@ -42,59 +42,33 @@ export class AppInitializer {
    * Run all initialization tasks
    */
   private static async runInitialization(): Promise<void> {
-    console.log('🚀 Starting app initialization...');
-    
     try {
       // Task 1: Initialize demo context (only if user has access)
-      console.log('📋 Task 1: Checking for demo context access...');
-      
-      // Check if user has a valid auth token first
       const authToken = localStorage.getItem('auth-token');
-      if (!authToken) {
-        console.log('⚠️ No auth token found, skipping demo context initialization');
-      } else {
+      if (authToken) {
         try {
           const demoContext = await demoContextService.initialize();
-          
           if (demoContext) {
-            console.log('✅ Demo context loaded successfully');
-            
             // Store demo context in sessionStorage for quick access
             sessionStorage.setItem('demo_client_id', demoContext.client.id);
             sessionStorage.setItem('demo_engagement_id', demoContext.engagement.id);
             sessionStorage.setItem('demo_context', JSON.stringify(demoContext));
-          } else {
-            console.log('ℹ️ No demo context available for this user');
           }
         } catch (error) {
-          console.log('ℹ️ Demo context not accessible:', error);
-          // This is expected for non-demo users
+          // Demo context not accessible - expected for non-demo users
         }
       }
       
       // Task 2: Check API health
-      console.log('📋 Task 2: Checking API health...');
       try {
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/v1/health`);
-        if (response.ok) {
-          console.log('✅ API is healthy');
-        } else {
-          console.warn('⚠️ API health check returned:', response.status);
-        }
+        // API health check completed (no need to log success)
       } catch (error) {
-        console.warn('⚠️ API health check failed:', error);
+        // API health check failed (silent - don't spam console)
       }
       
-      // Task 3: Load feature flags (if needed in future)
-      console.log('📋 Task 3: Loading feature flags...');
-      // Placeholder for feature flags
-      console.log('✅ Feature flags loaded (none configured)');
-      
-      console.log('🎉 App initialization completed successfully');
-      
     } catch (error) {
-      console.error('❌ App initialization failed:', error);
-      // Don't throw - allow app to continue even if initialization partially fails
+      // App initialization failed (silent - don't spam console)
     }
   }
 

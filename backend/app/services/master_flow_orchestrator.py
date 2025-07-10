@@ -1407,6 +1407,70 @@ class MasterFlowOrchestrator:
             logger.error(f"Failed to get active flows: {e}")
             raise RuntimeError(f"Failed to get active flows: {str(e)}")
     
+    async def list_flows_by_engagement(
+        self,
+        engagement_id: str,
+        flow_type: Optional[str] = None,
+        limit: int = 50
+    ) -> List[Dict[str, Any]]:
+        """
+        List flows for a specific engagement
+        
+        Args:
+            engagement_id: The engagement ID to filter by
+            flow_type: Optional filter by flow type
+            limit: Maximum number of flows to return
+            
+        Returns:
+            List of flows for the engagement
+        """
+        try:
+            # Get flows for the engagement using the repository
+            flows = await self.master_repo.get_flows_by_engagement(
+                engagement_id=engagement_id,
+                flow_type=flow_type,
+                limit=limit
+            )
+            
+            # Convert to dict format expected by user service
+            flow_list = []
+            for flow in flows:
+                flow_dict = {
+                    "id": str(flow.flow_id),  # User service expects 'id' not 'flow_id'
+                    "flow_id": str(flow.flow_id),
+                    "name": flow.flow_name or f"{flow.flow_type.title()} Flow",
+                    "flow_type": flow.flow_type,
+                    "status": flow.flow_status,
+                    "created_at": flow.created_at.isoformat() if flow.created_at else None,
+                    "updated_at": flow.updated_at.isoformat() if flow.updated_at else None,
+                    "created_by": getattr(flow, 'created_by', self.context.user_id),
+                    "current_phase": getattr(flow, 'current_phase', None),
+                    "progress_percentage": getattr(flow, 'progress_percentage', 0.0),
+                    "configuration": flow.flow_configuration if hasattr(flow, 'flow_configuration') and flow.flow_configuration else {},
+                    "metadata": {}
+                }
+                flow_list.append(flow_dict)
+            
+            # Log list operation audit
+            await self._log_audit_event(
+                flow_id="system",
+                operation=FlowOperationType.LIST,
+                details={
+                    "engagement_id": engagement_id,
+                    "flow_type": flow_type,
+                    "limit": limit,
+                    "count": len(flow_list)
+                }
+            )
+            
+            logger.info(f"Retrieved {len(flow_list)} flows for engagement {engagement_id}")
+            return flow_list
+            
+        except Exception as e:
+            logger.error(f"Failed to list flows by engagement {engagement_id}: {e}")
+            # Return empty list instead of raising to prevent user context failures
+            return []
+    
     # Private helper methods
     
     async def _run_phase_validators(

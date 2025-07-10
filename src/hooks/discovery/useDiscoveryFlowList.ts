@@ -27,9 +27,11 @@ export const useDiscoveryFlowList = () => {
       try {
         // Ensure we have proper client and engagement context
         if (!client?.id || !engagement?.id) {
-          console.warn('Missing client or engagement context for discovery flows');
+          console.warn('⚠️ Missing client or engagement context for discovery flows:', { client: client?.id, engagement: engagement?.id });
           return [];
         }
+        
+        console.log('🔍 Fetching discovery flows for:', { clientId: client.id, engagementId: engagement.id });
         
         // Use master flow service to get active flows
         const response = await masterFlowServiceExtended.getActiveFlows(
@@ -38,8 +40,10 @@ export const useDiscoveryFlowList = () => {
           'discovery'
         );
         
+        console.log('✅ Raw discovery flows response:', response);
+        
         // Transform to expected format
-        return response.map(flow => ({
+        const transformedFlows = response.map(flow => ({
           flow_id: flow.flowId,
           status: flow.status,
           current_phase: flow.currentPhase || '',
@@ -53,8 +57,11 @@ export const useDiscoveryFlowList = () => {
           dependencies_completed: flow.metadata?.phases?.dependencies === true,
           tech_debt_completed: flow.metadata?.phases?.tech_debt === true,
         }));
+        
+        console.log('✅ Transformed discovery flows:', transformedFlows);
+        return transformedFlows;
       } catch (error) {
-        console.warn('Failed to fetch discovery flows, returning empty list:', error);
+        console.error('❌ Failed to fetch discovery flows:', error);
         return [];
       }
     },
@@ -76,22 +83,29 @@ export const getFlows = async (clientId?: string, engagementId?: string) => {
       return [];
     }
     
+    console.log('🔍 getFlows utility - Fetching discovery flows for:', { clientId, engagementId });
+    
     const response = await masterFlowServiceExtended.getActiveFlows(
       clientId,
       engagementId,
       'discovery'
     );
     
+    console.log('✅ getFlows utility - Raw response:', response);
+    
     // Transform to legacy format for compatibility
-    return response.map(flow => ({
+    const transformedFlows = response.map(flow => ({
       flow_id: flow.flowId,
       status: flow.status,
       current_phase: flow.currentPhase || '',
       created_at: flow.createdAt,
       updated_at: flow.updatedAt
     }));
+    
+    console.log('✅ getFlows utility - Transformed flows:', transformedFlows);
+    return transformedFlows;
   } catch (error) {
-    console.warn('Failed to fetch discovery flows:', error);
+    console.error('❌ getFlows utility - Failed to fetch discovery flows:', error);
     return [];
   }
 };

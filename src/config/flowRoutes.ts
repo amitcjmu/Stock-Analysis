@@ -262,18 +262,32 @@ export function getFlowTypeFromPath(pathname: string): FlowType | null {
 /**
  * Get flow information from the backend flow state
  * MFO-086: Updated to use Master Flow Orchestrator API
+ * MIGRATED: Now uses masterFlowService instead of legacy FlowService
  */
 export async function getFlowInfo(flowId: string): Promise<{ flowType: FlowType; currentPhase: string } | null> {
   try {
-    // Import FlowService dynamically to avoid circular dependencies
-    const { FlowService } = await import('../services/FlowService');
-    const flowService = FlowService.getInstance();
+    // Use masterFlowService for unified flow API access
+    const { masterFlowService } = await import('../services/api/masterFlowService');
+    const { AuthService } = await import('../contexts/AuthContext/services/authService');
     
-    const flowStatus = await flowService.getFlowStatus(flowId);
+    // Get auth context for multi-tenant headers
+    const authService = AuthService.getInstance();
+    const context = authService.getAuthState();
+    
+    if (!context?.clientAccount?.id) {
+      console.error('No client account context available for flow info');
+      return null;
+    }
+    
+    const flowStatus = await masterFlowService.getFlowStatus(
+      flowId,
+      context.clientAccount.id.toString(),
+      context.engagement?.id?.toString()
+    );
     
     return {
-      flowType: flowStatus.flow_type as FlowType,
-      currentPhase: flowStatus.current_phase || 'unknown'
+      flowType: flowStatus.flowType as FlowType,
+      currentPhase: flowStatus.currentPhase || 'unknown'
     };
   } catch (error) {
     console.error('Failed to get flow info:', error);

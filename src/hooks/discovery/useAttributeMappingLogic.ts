@@ -45,7 +45,26 @@ export const useAttributeMappingLogic = () => {
         attribute_mapping_completed: f.attribute_mapping_completed
       })));
     }
-  }, [urlFlowId, autoDetectedFlowId, effectiveFlowId, flowList, isFlowListLoading, flowListError, pathname]);
+    
+    // Debug import data loading
+    if (importDataError) {
+      console.error('❌ Import data error:', importDataError);
+    }
+    
+    if (importData) {
+      console.log('✅ Import data available:', {
+        import_id: importData?.import_metadata?.import_id,
+        flow_id: importData?.flow_id,
+        status: importData?.status,
+        has_metadata: !!importData?.import_metadata,
+        metadata_keys: importData?.import_metadata ? Object.keys(importData.import_metadata) : []
+      });
+    }
+    
+    if (isImportDataLoading) {
+      console.log('⏳ Import data loading...');
+    }
+  }, [urlFlowId, autoDetectedFlowId, effectiveFlowId, flowList, isFlowListLoading, flowListError, pathname, importData, importDataError, isImportDataLoading]);
 
   // Use unified discovery flow with effective flow ID
   const {
@@ -56,36 +75,62 @@ export const useAttributeMappingLogic = () => {
     refreshFlow: refresh
   } = useUnifiedDiscoveryFlow(effectiveFlowId);
 
-  // Get import data for this flow to get the import ID
-  const { data: importData } = useQuery({
+  // Get import data for this flow, with fallback to latest import
+  const { data: importData, isLoading: isImportDataLoading, error: importDataError } = useQuery({
     queryKey: ['import-data', effectiveFlowId],
     queryFn: async () => {
-      if (!effectiveFlowId) return null;
+      if (!effectiveFlowId) {
+        console.log('❌ No effective flow ID for import data fetch');
+        return null;
+      }
+      
+      console.log('🔍 Fetching import data for flow:', effectiveFlowId);
       
       try {
-        const response = await fetch(`/api/v1/data-import/flow/${effectiveFlowId}/import-data`, {
+        // First try to get flow-specific import data using apiCall to ensure proper routing
+        console.log('🔗 Trying flow-specific import data endpoint...');
+        const flowResponse = await apiCall(`/api/v1/data-import/flow/${effectiveFlowId}/import-data`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            ...getAuthHeaders() // Use auth context instead of hardcoded values
+            ...getAuthHeaders()
           }
         });
         
-        if (!response.ok) {
-          throw new Error(`Failed to fetch import data: ${response.statusText}`);
+        if (flowResponse) {
+          console.log('✅ Fetched flow-specific import data:', flowResponse);
+          return flowResponse;
         }
         
-        const data = await response.json();
-        console.log('🎯 Fetched import data for flow:', data);
-        return data;
+        // If no flow-specific import, fall back to latest import for client
+        console.log('🔗 Flow-specific import not found, trying latest import...');
+        const latestResponse = await apiCall(`/api/v1/data-import/latest-import`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders()
+          }
+        });
+        
+        if (latestResponse) {
+          console.log('✅ Using latest import data as fallback:', latestResponse);
+          return latestResponse;
+        }
+        
+        console.log('❌ No import data found');
+        return null;
+        
       } catch (error) {
         console.error('❌ Error fetching import data:', error);
+        // Return null instead of throwing to prevent breaking the entire component
         return null;
       }
     },
     enabled: !!effectiveFlowId,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    cacheTime: 10 * 60 * 1000 // Keep in cache for 10 minutes
+    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    retry: 2, // Reduce retry attempts to prevent 429 errors
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
 
   // Get field mappings using the import ID
@@ -93,28 +138,29 @@ export const useAttributeMappingLogic = () => {
     queryKey: ['field-mappings', importData?.import_metadata?.import_id],
     queryFn: async () => {
       const importId = importData?.import_metadata?.import_id;
-      if (!importId) return [];
+      if (!importId) {
+        console.warn('⚠️ No import ID available for field mappings fetch');
+        return [];
+      }
+      
+      console.log('🔍 Fetching field mappings for import ID:', importId);
       
       try {
-        const response = await fetch(`/api/v1/data-import/field-mapping/imports/${importId}/field-mappings`, {
+        // Use apiCall to ensure proper routing and error handling
+        const mappings = await apiCall(`/api/v1/data-import/field-mapping/imports/${importId}/field-mappings`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            ...getAuthHeaders() // Use auth context instead of hardcoded values
+            ...getAuthHeaders() // This ensures proper multi-tenant isolation
           }
         });
         
-        if (!response.ok) {
-          throw new Error(`Failed to fetch field mappings: ${response.statusText}`);
-        }
-        
-        const mappings = await response.json();
-        console.log('🎯 Fetched field mappings from API:', {
+        console.log('✅ Fetched field mappings from API:', {
           import_id: importId,
           mappings_count: Array.isArray(mappings) ? mappings.length : 'not an array',
           mappings_sample: Array.isArray(mappings) ? mappings.slice(0, 2) : mappings
         });
-        return mappings;
+        return mappings || [];
       } catch (error) {
         console.error('❌ Error fetching field mappings:', error);
         return [];
@@ -122,7 +168,9 @@ export const useAttributeMappingLogic = () => {
     },
     enabled: !!importData?.import_metadata?.import_id,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    cacheTime: 10 * 60 * 1000 // Keep in cache for 10 minutes
+    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    retry: 2, // Reduce retry attempts to prevent 429 errors
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
   
   const agentClarifications = [];
@@ -333,12 +381,14 @@ export const useAttributeMappingLogic = () => {
         console.error('❌ Flow validation errors:', flow.validation_errors);
       }
       
-      // Check if data import phase is actually completed
+      // Check if data import phase is completed (for debugging only)
       if (flow.phase_completion?.data_import) {
         console.log('✅ Data import phase is marked as completed');
       } else {
-        console.warn('⚠️ Data import phase is NOT completed - this might be why no data is available');
-        console.log('🔍 Phase completion status:', flow.phase_completion);
+        console.log('ℹ️ Data import phase completion status:', {
+          phase_completion: flow.phase_completion,
+          note: 'Field mappings may still be available from direct data import endpoints'
+        });
       }
     }
   }, [flow, fieldMappings, realFieldMappings]);
@@ -450,14 +500,14 @@ export const useAttributeMappingLogic = () => {
   const availableDataImports = flowList || [];
   const selectedDataImportId = effectiveFlowId;
 
-  // Loading states - include flow list loading and field mappings loading
-  const isAgenticLoading = isFlowLoading || isFlowListLoading || isFieldMappingsLoading;
-  const isFlowStateLoading = isFlowLoading || isFlowListLoading;
-  const isAnalyzing = isFlowLoading || isFieldMappingsLoading;
+  // Loading states - include flow list loading, import data loading, and field mappings loading
+  const isAgenticLoading = isFlowLoading || isFlowListLoading || isImportDataLoading || isFieldMappingsLoading;
+  const isFlowStateLoading = isFlowLoading || isFlowListLoading || isImportDataLoading;
+  const isAnalyzing = isFlowLoading || isImportDataLoading || isFieldMappingsLoading;
 
-  // Error states - combine flow, flow list, and field mappings errors
-  const agenticError = flowError || flowListError || fieldMappingsError;
-  const flowStateError = flowError || flowListError;
+  // Error states - combine flow, flow list, import data, and field mappings errors
+  const agenticError = flowError || flowListError || importDataError || fieldMappingsError;
+  const flowStateError = flowError || flowListError || importDataError;
 
   // Action handlers
   const handleTriggerFieldMappingCrew = useCallback(async () => {
