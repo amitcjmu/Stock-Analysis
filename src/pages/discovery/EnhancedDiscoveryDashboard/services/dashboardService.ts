@@ -85,12 +85,12 @@ export class DashboardService {
       // Get active Discovery flows - try the discovery flows endpoint first
       makeApiCallWithRetry('/api/v1/discovery/flows/active', {
         method: 'GET',
-        headers: getAuthHeaders()
+        headers: getAuthHeaders({ user, client, engagement })
       }),
       // Get data import sessions (for discovering flows)
       makeApiCallWithRetry('/api/v1/data-import/latest-import', {
         method: 'GET',
-        headers: getAuthHeaders()
+        headers: getAuthHeaders({ user, client, engagement })
       })
     ]);
 
@@ -171,7 +171,7 @@ export class DashboardService {
             // Get flow status for this import session with retry logic
             const flowStatusResponse = await makeApiCallWithRetry(`/api/v1/discovery/flows/${dataImport.id}/status`, {
               method: 'GET',
-              headers: getAuthHeaders()
+              headers: getAuthHeaders({ user, client, engagement })
             });
 
             if (flowStatusResponse && flowStatusResponse.flow_state) {

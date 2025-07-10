@@ -61,7 +61,9 @@ export const useAttributeMapping = () => {
     // Also consider flow state data as valid if present
     (flowState && (flowState.field_mappings?.length || flowState.data_import_completed)) ||
     // Or if we have an effective flow and import data but just haven't processed field mappings yet
-    (effectiveFlowId && availableDataImports?.length > 0)
+    (effectiveFlowId && availableDataImports?.length > 0) ||
+    // Consider having flows as having potential data
+    (flowList && flowList.length > 0)
   );
   
   // Debug data availability
@@ -81,10 +83,13 @@ export const useAttributeMapping = () => {
   });
   
   // Enhanced flow detection - more lenient approach
-  const isFlowNotFound = errorMessage?.includes('Flow not found') || 
-                        errorMessage?.includes('404') ||
-                        // Only consider flow not found if we have no effective flow AND no loading states AND explicitly no flows
-                        (!effectiveFlowId && !isLoading && !isAgenticLoading && flowList && flowList.length === 0 && !urlFlowId);
+  const isFlowNotFound = (errorMessage?.includes('Flow not found') || 
+                        errorMessage?.includes('404')) ||
+                        // Only consider flow not found if we have completed loading AND explicitly no flows found AND no effective flow
+                        (!isLoading && !isAgenticLoading && !isFlowStateLoading && 
+                         flowList !== undefined && flowList.length === 0 && 
+                         !effectiveFlowId && !urlFlowId && 
+                         hasEffectiveFlow === false);
   
   const hasSessionData = flowId || flowState;
   const hasUploadedData = agenticData?.attributes && agenticData.attributes.length > 0;

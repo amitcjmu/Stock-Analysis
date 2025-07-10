@@ -107,11 +107,11 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
       {agenticData && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <AgentClarificationPanel 
-            data={agenticData}
+            pageContext="attribute_mapping"
             flowId={effectiveFlowId || flowId}
           />
           <DataClassificationDisplay 
-            data={agenticData}
+            pageContext="attribute_mapping"
           />
         </div>
       )}
@@ -120,9 +120,7 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
       {flowState && (
         <div className="space-y-6">
           <AgentInsightsSection 
-            flowId={effectiveFlowId || flowId}
-            flowState={flowState}
-            currentPhase="attribute_mapping"
+            pageContext="attribute_mapping"
           />
           
           <EnhancedAgentOrchestrationPanel 

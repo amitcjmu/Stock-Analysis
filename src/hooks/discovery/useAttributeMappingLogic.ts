@@ -21,6 +21,33 @@ export const useAttributeMappingLogic = () => {
     flowListError,
     hasEffectiveFlow
   } = useAttributeMappingFlowDetection();
+
+  // Emergency fallback: try to extract flow ID from tenant-scoped context only
+  const emergencyFlowId = useMemo(() => {
+    if (effectiveFlowId) return effectiveFlowId;
+    
+    // Check if there's a flow ID in the current path (still tenant-scoped by backend)
+    const currentPath = pathname;
+    const flowIdMatch = currentPath.match(/([a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12})/i);
+    if (flowIdMatch) {
+      console.log('🆘 Emergency flow ID from path (will be tenant-validated):', flowIdMatch[0]);
+      return flowIdMatch[0];
+    }
+    
+    // Check localStorage for recent flow context (still tenant-scoped by backend)
+    if (typeof window !== 'undefined') {
+      const storedFlowId = localStorage.getItem('lastActiveFlowId');
+      if (storedFlowId) {
+        console.log('🆘 Emergency flow ID from localStorage (will be tenant-validated):', storedFlowId);
+        return storedFlowId;
+      }
+    }
+    
+    // SECURITY: No hardcoded flow IDs - let the system gracefully handle no flow
+    // All flow access must go through proper tenant-scoped APIs
+    console.log('🔒 No emergency flow ID available - relying on tenant-scoped flow detection only');
+    return null;
+  }, [effectiveFlowId, pathname]);
   
   // Enhanced debugging for flow detection
   useEffect(() => {
@@ -49,25 +76,35 @@ export const useAttributeMappingLogic = () => {
     // Import data debugging will be handled in a separate useEffect after import data is defined
   }, [urlFlowId, autoDetectedFlowId, effectiveFlowId, flowList, isFlowListLoading, flowListError, pathname]);
 
-  // Use unified discovery flow with effective flow ID
+  // Use unified discovery flow with effective flow ID or emergency fallback
+  const finalFlowId = effectiveFlowId || emergencyFlowId;
+  
+  console.log('🎯 Final Flow ID Resolution:', {
+    effectiveFlowId,
+    emergencyFlowId,
+    finalFlowId,
+    urlFlowId,
+    autoDetectedFlowId
+  });
+  
   const {
     flowState: flow,
     isLoading: isFlowLoading,
     error: flowError,
     executeFlowPhase: updatePhase,
     refreshFlow: refresh
-  } = useUnifiedDiscoveryFlow(effectiveFlowId);
+  } = useUnifiedDiscoveryFlow(finalFlowId);
 
   // Get import data for this flow, with fallback to latest import
   const { data: importData, isLoading: isImportDataLoading, error: importDataError } = useQuery({
-    queryKey: ['import-data', effectiveFlowId, user?.id],
+    queryKey: ['import-data', finalFlowId, user?.id],
     queryFn: async () => {
       try {
-        // If we have an effective flow ID, try flow-specific import data first
-        if (effectiveFlowId) {
-          console.log('🔍 Fetching import data for flow:', effectiveFlowId);
+        // If we have a final flow ID, try flow-specific import data first
+        if (finalFlowId) {
+          console.log('🔍 Fetching import data for flow:', finalFlowId);
           console.log('🔗 Trying flow-specific import data endpoint...');
-          const flowResponse = await apiCall(`/api/v1/data-import/flow/${effectiveFlowId}/import-data`, {
+          const flowResponse = await apiCall(`/api/v1/data-import/flow/${finalFlowId}/import-data`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -82,7 +119,7 @@ export const useAttributeMappingLogic = () => {
           
           console.log('🔗 Flow-specific import not found, falling back to latest import...');
         } else {
-          console.log('⚠️ No effective flow ID, attempting to fetch latest import data as fallback');
+          console.log('⚠️ No final flow ID, attempting to fetch latest import data as fallback');
         }
         
         // Fall back to latest import for client (works both with and without flow ID)
@@ -150,12 +187,12 @@ export const useAttributeMappingLogic = () => {
       console.log('🔍 Fetching field mappings for import ID:', importId);
       
       try {
-        // Use apiCall to ensure proper routing and error handling
+        // First, get all field mappings (including filtered ones)
         const mappings = await apiCall(`/api/v1/data-import/field-mapping/imports/${importId}/field-mappings`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            ...getAuthHeaders() // This ensures proper multi-tenant isolation
+            ...getAuthHeaders()
           }
         });
         
@@ -164,6 +201,64 @@ export const useAttributeMappingLogic = () => {
           mappings_count: Array.isArray(mappings) ? mappings.length : 'not an array',
           mappings_sample: Array.isArray(mappings) ? mappings.slice(0, 2) : mappings
         });
+        
+        // Now try to get the raw import data to see all original CSV fields
+        try {
+          const rawImportData = await apiCall(`/api/v1/data-import/imports/${importId}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              ...getAuthHeaders()
+            }
+          });
+          
+          console.log('📊 Raw import data retrieved:', {
+            has_raw_data: !!rawImportData?.raw_data,
+            raw_data_keys: rawImportData?.raw_data ? Object.keys(rawImportData.raw_data) : [],
+            sample_record_keys: rawImportData?.sample_record ? Object.keys(rawImportData.sample_record) : [],
+            total_records: rawImportData?.record_count,
+            field_count: rawImportData?.field_count
+          });
+          
+          // If we have raw data, ensure all CSV fields are represented as mappings
+          if (rawImportData?.sample_record || rawImportData?.raw_data) {
+            const sampleRecord = rawImportData.sample_record || rawImportData.raw_data;
+            const allCsvFields = Object.keys(sampleRecord);
+            const mappedFieldNames = (mappings || []).map(m => m.source_field);
+            
+            // Create mappings for fields that don't exist in the API response
+            const missingFields = allCsvFields.filter(field => !mappedFieldNames.includes(field));
+            
+            if (missingFields.length > 0) {
+              console.log(`📋 Found ${missingFields.length} unmapped CSV fields:`, missingFields);
+              
+              // Create placeholder mappings for unmapped fields
+              const additionalMappings = missingFields.map(sourceField => ({
+                id: `unmapped-${sourceField}`,
+                source_field: sourceField,
+                target_field: null, // No mapping yet
+                confidence: 0,
+                is_approved: false,
+                status: 'unmapped',
+                match_type: 'unmapped'
+              }));
+              
+              const enhancedMappings = [...(mappings || []), ...additionalMappings];
+              
+              console.log('✅ Enhanced field mappings with all CSV fields:', {
+                original_mappings: mappings?.length || 0,
+                additional_mappings: additionalMappings.length,
+                total_mappings: enhancedMappings.length,
+                total_csv_fields: allCsvFields.length
+              });
+              
+              return enhancedMappings;
+            }
+          }
+        } catch (rawDataError) {
+          console.warn('⚠️ Could not fetch raw import data:', rawDataError);
+        }
+        
         return mappings || [];
       } catch (error) {
         console.error('❌ Error fetching field mappings:', error);
@@ -428,13 +523,13 @@ export const useAttributeMappingLogic = () => {
       // Count suggested and approved as "mapped" since suggested mappings are AI-generated and ready for use
       const totalMapped = approved + suggested;
       
-      // Critical fields for migration treatment decisions - must match backend
+      // Critical fields for migration treatment decisions - must match backend and available mappings
       const criticalFields = [
-        'name', 'hostname', 'asset_type', 'ip_address', 'environment',
+        'asset_name', 'name', 'hostname', 'asset_type', 'ip_address', 'environment',
         'business_owner', 'technical_owner', 'department', 'application_name',
         'criticality', 'business_criticality', 'operating_system', 'cpu_cores',
-        'memory_gb', 'storage_gb', 'six_r_strategy', 'migration_priority',
-        'migration_complexity', 'dependencies'
+        'memory_gb', 'storage_gb', 'ram_gb', 'six_r_strategy', 'migration_priority',
+        'migration_complexity', 'dependencies', 'mac_address'
       ];
       
       // Count how many critical fields are mapped (including suggested mappings)
@@ -476,16 +571,94 @@ export const useAttributeMappingLogic = () => {
   
   const criticalAttributes = useMemo(() => {
     try {
+      // Define critical fields for migration - these are the minimum required for proper migration planning
+      const criticalFieldsForMigration = [
+        'asset_name', 'name', 'hostname', 'asset_type', 'ip_address', 'environment',
+        'business_owner', 'technical_owner', 'department', 'application_name',
+        'criticality', 'business_criticality', 'operating_system', 'cpu_cores',
+        'memory_gb', 'storage_gb', 'ram_gb', 'migration_priority', 'migration_complexity',
+        'mac_address'
+      ];
+      
+      console.log('🔍 Building critical attributes from field mappings:', {
+        realFieldMappings_count: realFieldMappings?.length || 0,
+        fieldMappings_count: fieldMappings?.length || 0,
+        criticalFieldsRequired: criticalFieldsForMigration.length
+      });
+      
+      // Primary: Use realFieldMappings (API data) to find critical attributes
+      if (realFieldMappings && Array.isArray(realFieldMappings) && realFieldMappings.length > 0) {
+        const criticalMappings = realFieldMappings.filter((mapping: any) => 
+          criticalFieldsForMigration.includes(mapping.target_field?.toLowerCase())
+        );
+        
+        const criticalAttrs = criticalMappings.map((mapping: any) => ({
+          name: mapping.target_field,
+          description: `${mapping.target_field} mapped from source field "${mapping.source_field}"`,
+          category: 'technical',
+          required: true,
+          status: mapping.confidence > 0.6 ? 'mapped' : 'partially_mapped',
+          mapped_to: mapping.source_field,
+          source_field: mapping.source_field,
+          confidence: mapping.confidence || 0,
+          quality_score: Math.round((mapping.confidence || 0) * 100),
+          completeness_percentage: mapping.is_approved ? 100 : 80,
+          mapping_type: 'ai_suggested',
+          business_impact: mapping.confidence > 0.8 ? 'low' : 'medium',
+          migration_critical: true
+        }));
+        
+        console.log('✅ Generated critical attributes from API mappings:', {
+          critical_mappings_found: criticalMappings.length,
+          critical_attributes_created: criticalAttrs.length,
+          sample_attributes: criticalAttrs.slice(0, 3)
+        });
+        
+        return criticalAttrs;
+      }
+      
+      // Fallback: Use fieldMappings (processed data) to find critical attributes  
+      if (fieldMappings && Array.isArray(fieldMappings) && fieldMappings.length > 0) {
+        const criticalMappings = fieldMappings.filter((mapping: any) => 
+          criticalFieldsForMigration.includes(mapping.targetAttribute?.toLowerCase())
+        );
+        
+        const criticalAttrs = criticalMappings.map((mapping: any) => ({
+          name: mapping.targetAttribute,
+          description: `${mapping.targetAttribute} mapped from source field "${mapping.sourceField}"`,
+          category: 'technical',
+          required: true,
+          status: mapping.confidence > 0.6 ? 'mapped' : 'partially_mapped',
+          mapped_to: mapping.sourceField,
+          source_field: mapping.sourceField,
+          confidence: mapping.confidence || 0,
+          quality_score: Math.round((mapping.confidence || 0) * 100),
+          completeness_percentage: mapping.status === 'approved' ? 100 : 80,
+          mapping_type: mapping.mapping_type || 'ai_suggested',
+          business_impact: mapping.confidence > 0.8 ? 'low' : 'medium',
+          migration_critical: true
+        }));
+        
+        console.log('✅ Generated critical attributes from processed mappings:', {
+          critical_mappings_found: criticalMappings.length,
+          critical_attributes_created: criticalAttrs.length,
+          sample_attributes: criticalAttrs.slice(0, 3)
+        });
+        
+        return criticalAttrs;
+      }
+      
+      // Final fallback: Check if fieldMappingData has critical_attributes structure
       if (fieldMappingData && !Array.isArray(fieldMappingData) && fieldMappingData.critical_attributes && typeof fieldMappingData.critical_attributes === 'object') {
         return Object.entries(fieldMappingData.critical_attributes).map(([name, mapping]: [string, any]) => ({
           name,
           description: `${mapping?.asset_field || name} mapped from ${mapping?.source_column || 'unknown'}`,
-          category: 'technical', // Default category
+          category: 'technical',
           required: true,
           status: (mapping?.confidence || 0) > 60 ? 'mapped' : 'partially_mapped',
           mapped_to: mapping?.source_column || name,
           source_field: mapping?.source_column || name,
-          confidence: Math.min(1, Math.max(0, (mapping?.confidence || 0) / 100)), // Convert to 0-1 range safely
+          confidence: Math.min(1, Math.max(0, (mapping?.confidence || 0) / 100)),
           quality_score: mapping?.confidence || 0,
           completeness_percentage: 100,
           mapping_type: 'direct',
@@ -493,12 +666,14 @@ export const useAttributeMappingLogic = () => {
           migration_critical: true
         }));
       }
+      
+      console.log('⚠️ No critical attributes could be generated - no suitable mapping data found');
       return [];
     } catch (error) {
       console.error('Error extracting criticalAttributes:', error);
       return [];
     }
-  }, [fieldMappingData]);
+  }, [realFieldMappings, fieldMappings, fieldMappingData]);
 
   // Flow information
   const availableDataImports = flowList || [];

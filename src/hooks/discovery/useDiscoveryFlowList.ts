@@ -44,12 +44,15 @@ export const useDiscoveryFlowList = () => {
         
         // Transform to expected format
         const transformedFlows = response.map(flow => ({
+          id: flow.flowId, // Add id field for compatibility
           flow_id: flow.flowId,
           status: flow.status,
           current_phase: flow.currentPhase || '',
+          next_phase: flow.metadata?.nextPhase || flow.currentPhase || '',
           created_at: flow.createdAt,
           updated_at: flow.updatedAt,
           // Map phase completion from metadata if available
+          phases: flow.metadata?.phases || {},
           data_import_completed: flow.metadata?.phases?.data_import === true,
           attribute_mapping_completed: flow.metadata?.phases?.attribute_mapping === true,
           data_cleansing_completed: flow.metadata?.phases?.data_cleansing === true,

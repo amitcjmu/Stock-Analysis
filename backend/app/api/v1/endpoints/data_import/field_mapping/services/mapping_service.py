@@ -316,7 +316,7 @@ class MappingService:
         """Get set of valid target fields from Asset model."""
         return {
             # Identity fields
-            'name', 'asset_name', 'hostname', 'fqdn', 'asset_type', 'description',
+            'name', 'asset_name', 'hostname', 'fqdn', 'asset_type', 'description', 'asset_id',
             
             # Network fields
             'ip_address', 'mac_address',
@@ -326,14 +326,16 @@ class MappingService:
             
             # Location and Environment fields
             'environment', 'location', 'datacenter', 'rack_location', 'availability_zone',
+            'location_rack', 'location_u', 'location_datacenter',
             
             # Business fields
             'business_owner', 'technical_owner', 'department', 'application_name', 
             'technology_stack', 'criticality', 'business_criticality',
+            'application_service', 'application_owner',
             
             # Migration fields
             'six_r_strategy', 'migration_priority', 'migration_complexity', 
-            'migration_wave', 'sixr_ready',
+            'migration_wave', 'sixr_ready', 'cloud_migration_readiness_score',
             
             # Status fields
             'status', 'migration_status', 'mapping_status',
@@ -343,6 +345,7 @@ class MappingService:
             
             # Discovery metadata
             'discovery_method', 'discovery_source', 'discovery_timestamp',
+            'last_discovery_date',
             
             # Performance metrics
             'cpu_utilization_percent', 'memory_utilization_percent', 'disk_iops', 
@@ -355,5 +358,17 @@ class MappingService:
             'current_monthly_cost', 'estimated_cloud_cost',
             
             # Import metadata
-            'source_filename', 'custom_attributes'
+            'source_filename', 'custom_attributes',
+            
+            # Hardware details
+            'manufacturer', 'model', 'serial_number', 'ram_gb',
+            
+            # Virtualization
+            'virtualization_host_id',
+            
+            # Support and maintenance
+            'support_contract_end_date', 'maintenance_window', 'dr_tier',
+            
+            # Row metadata
+            'row_index'
         }

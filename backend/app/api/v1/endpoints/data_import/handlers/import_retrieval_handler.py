@@ -82,6 +82,46 @@ async def get_raw_import_records(
         }
     }
 
+@router.get("/imports/{import_id}")
+async def get_import_by_id(
+    import_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """Get a specific data import by ID with context awareness."""
+    
+    # Use deduplicating repository for context-aware data access
+    import_repo = create_deduplicating_repository(db, DataImport)
+    
+    # Query for the specific import
+    query = select(DataImport).where(DataImport.id == import_id)
+    query = import_repo._apply_context_filter(query)
+    
+    result = await db.execute(query)
+    data_import = result.scalar_one_or_none()
+
+    if not data_import:
+        raise HTTPException(status_code=404, detail=f"Data import {import_id} not found")
+
+    # Get a sample record to include in the response
+    sample_query = select(RawImportRecord).where(
+        RawImportRecord.data_import_id == import_id
+    ).limit(1)
+    sample_result = await db.execute(sample_query)
+    sample_record = sample_result.scalar_one_or_none()
+
+    import_dict = import_to_dict(data_import)
+    
+    # Add sample record data for field mapping
+    if sample_record and sample_record.raw_data:
+        import_dict["sample_record"] = sample_record.raw_data
+        import_dict["field_count"] = len(sample_record.raw_data.keys())
+    else:
+        import_dict["sample_record"] = {}
+        import_dict["field_count"] = 0
+
+    return import_dict
+
 @router.get("/imports/latest")
 async def get_latest_import(
     db: AsyncSession = Depends(get_db)
@@ -104,7 +144,24 @@ async def get_latest_import(
     if not latest_import:
         raise HTTPException(status_code=404, detail="No data imports found for this engagement")
 
-    return import_to_dict(latest_import)
+    # Get a sample record to include in the response
+    sample_query = select(RawImportRecord).where(
+        RawImportRecord.data_import_id == latest_import.id
+    ).limit(1)
+    sample_result = await db.execute(sample_query)
+    sample_record = sample_result.scalar_one_or_none()
+
+    import_dict = import_to_dict(latest_import)
+    
+    # Add sample record data for field mapping
+    if sample_record and sample_record.raw_data:
+        import_dict["sample_record"] = sample_record.raw_data
+        import_dict["field_count"] = len(sample_record.raw_data.keys())
+    else:
+        import_dict["sample_record"] = {}
+        import_dict["field_count"] = 0
+
+    return import_dict
 
 @router.get("/imports")
 async def list_imports(

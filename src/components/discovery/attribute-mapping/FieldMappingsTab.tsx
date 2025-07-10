@@ -140,7 +140,7 @@ const RejectionDialog: React.FC<RejectionDialogProps> = ({
   );
 };
 
-const ITEMS_PER_PAGE = 6;
+const ITEMS_PER_PAGE = 15;
 
 // Category colors for visual organization
 const CATEGORY_COLORS: Record<string, string> = {

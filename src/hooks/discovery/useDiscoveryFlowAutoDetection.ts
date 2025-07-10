@@ -20,19 +20,39 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
 
   // Auto-detect the most relevant flow based on current page context
   const autoDetectedFlowId = useMemo(() => {
-    if (!flowList || flowList.length === 0) return null;
+    if (!flowList || flowList.length === 0) {
+      console.log(`🔍 No flows available for auto-detection`, { flowList, length: flowList?.length });
+      
+      // Emergency fallback: try to extract flow ID from URL or other context
+      const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
+      console.log('🔍 Checking for emergency flow ID fallback from URL:', currentUrl);
+      
+      // Look for flow ID patterns in current URL or context
+      const flowIdPattern = /[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}/i;
+      const urlMatch = currentUrl.match(flowIdPattern);
+      
+      if (urlMatch) {
+        console.log('✅ Found emergency flow ID from URL:', urlMatch[0]);
+        return urlMatch[0];
+      }
+      
+      return null;
+    }
     
     console.log(`🔍 Auto-detecting flow for phase: ${currentPhase}`, {
       totalFlows: flowList.length,
       preferredStatuses,
       fallbackToAnyRunning,
-      sampleFlow: flowList.length > 0 ? {
-        flow_id: flowList[0].id,
-        status: flowList[0].status,
-        next_phase: flowList[0].next_phase,
-        phases: flowList[0].phases,
-        [`${currentPhase}_completed`]: flowList[0][`${currentPhase}_completed`]
-      } : null
+      allFlows: flowList.map(flow => ({
+        flow_id: flow.flow_id || flow.id,
+        status: flow.status,
+        current_phase: flow.current_phase,
+        next_phase: flow.next_phase,
+        phases: flow.phases,
+        data_import_completed: flow.data_import_completed,
+        attribute_mapping_completed: flow.attribute_mapping_completed,
+        [`${currentPhase}_completed`]: flow[`${currentPhase}_completed`]
+      }))
     });
     
     // Priority 1: Flow currently in the specified phase (next_phase matches)
@@ -41,8 +61,9 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
         flow.next_phase === currentPhase
       );
       if (currentPhaseFlow) {
-        console.log(`✅ Found flow needing ${currentPhase} phase:`, currentPhaseFlow.id);
-        return currentPhaseFlow.id;
+        const flowId = currentPhaseFlow.flow_id || currentPhaseFlow.id;
+        console.log(`✅ Found flow needing ${currentPhase} phase:`, flowId);
+        return flowId;
       }
     }
     
@@ -65,8 +86,9 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
       });
       
       if (dataImportCompleteFlow) {
-        console.log(`✅ Found flow with completed data_import ready for attribute_mapping:`, dataImportCompleteFlow.id);
-        return dataImportCompleteFlow.id;
+        const flowId = dataImportCompleteFlow.flow_id || dataImportCompleteFlow.id;
+        console.log(`✅ Found flow with completed data_import ready for attribute_mapping:`, flowId);
+        return flowId;
       }
     }
     
@@ -92,8 +114,9 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
       });
       
       if (completedPhaseFlow) {
-        console.log(`✅ Found flow with completed ${currentPhase} phase:`, completedPhaseFlow.id);
-        return completedPhaseFlow.id;
+        const flowId = completedPhaseFlow.flow_id || completedPhaseFlow.id;
+        console.log(`✅ Found flow with completed ${currentPhase} phase:`, flowId);
+        return flowId;
       }
     }
     
@@ -103,8 +126,9 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
         preferredStatuses.includes(flow.status)
       );
       if (runningFlow) {
-        console.log(`✅ Found flow in preferred status:`, runningFlow.id);
-        return runningFlow.id;
+        const flowId = runningFlow.flow_id || runningFlow.id;
+        console.log(`✅ Found flow in preferred status:`, flowId);
+        return flowId;
       }
     }
     
@@ -114,8 +138,16 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
     );
     
     if (sortedFlows.length > 0) {
-      console.log(`✅ Using most recent flow:`, sortedFlows[0].id);
-      return sortedFlows[0].id;
+      const flowId = sortedFlows[0].flow_id || sortedFlows[0].id;
+      console.log(`✅ Using most recent flow:`, flowId);
+      return flowId;
+    }
+    
+    // Priority 5: Any flow at all (last resort)
+    if (flowList.length > 0) {
+      const flowId = flowList[0].flow_id || flowList[0].id;
+      console.log(`✅ Using first available flow as last resort:`, flowId);
+      return flowId;
     }
     
     console.log('❌ No suitable flow found');
@@ -166,7 +198,7 @@ export const useDataImportFlowDetection = () => {
 export const useAttributeMappingFlowDetection = () => {
   return useDiscoveryFlowAutoDetection({
     currentPhase: 'attribute_mapping',
-    preferredStatuses: ['initialized', 'running', 'active', 'initializing', 'processing', 'paused', 'waiting_for_user_approval'],
+    preferredStatuses: ['initialized', 'running', 'active', 'initializing', 'processing', 'paused', 'waiting_for_user_approval', 'waiting_for_approval'],
     fallbackToAnyRunning: true
   });
 };

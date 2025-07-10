@@ -10,11 +10,20 @@ interface MappingProgress {
 }
 
 interface ProgressDashboardProps {
-  mappingProgress?: MappingProgress;
-  isLoading: boolean;
+  progress?: MappingProgress;
+  agentAnalysis?: any;
+  flowId?: string;
+  effectiveFlowId?: string;
+  availableDataImports?: any[];
+  selectedDataImportId?: string;
+  onDataImportSelection?: (importId: string) => void;
+  isLoading?: boolean;
 }
 
-const ProgressDashboard: React.FC<ProgressDashboardProps> = ({ mappingProgress, isLoading }) => {
+const ProgressDashboard: React.FC<ProgressDashboardProps> = ({ 
+  progress: mappingProgress, 
+  isLoading = false 
+}) => {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
