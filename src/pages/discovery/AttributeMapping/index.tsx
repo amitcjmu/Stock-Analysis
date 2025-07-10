@@ -38,16 +38,7 @@ const AttributeMappingContainer: React.FC = () => {
     );
   }
   
-  // Use try-catch around the hook call and variable destructuring
-  let hookResult;
-  try {
-    hookResult = useAttributeMapping();
-  } catch (error) {
-    console.error('AttributeMappingContainer hook error:', error);
-    setHasRenderError(true);
-    return null; // This will trigger a re-render with the error state
-  }
-  
+  // Always call hooks in the same order - no conditional hook calls
   const {
     // Core state
     state,
@@ -69,7 +60,7 @@ const AttributeMappingContainer: React.FC = () => {
     
     // URL params
     urlFlowId
-  } = hookResult;
+  } = useAttributeMapping();
 
   const {
     agenticData,

@@ -45,13 +45,15 @@ export const useAttributeMapping = () => {
     mappingProgress
   );
 
-  // Enhanced loading state - consider more loading scenarios
+  // Error state check (define first to avoid temporal dead zone)
+  const hasError = !!(flowStateError || agenticError);
+  const errorMessage = flowStateError?.message || agenticError?.message;
+  
+  // Enhanced loading state - consider more loading scenarios  
   const isLoading = (isFlowStateLoading && !flowState) || 
                    isAgenticLoading || 
                    // Also loading if we have an effective flow but no data yet and no errors
                    (effectiveFlowId && !hasError && !agenticData && !fieldMappings?.length);
-  const hasError = !!(flowStateError || agenticError);
-  const errorMessage = flowStateError?.message || agenticError?.message;
   // Enhanced data availability check - be more comprehensive about what constitutes "data"
   const hasData = !!(
     agenticData?.attributes?.length || 
