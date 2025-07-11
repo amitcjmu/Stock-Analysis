@@ -6,6 +6,7 @@ import { Routes, Route } from "react-router-dom";
 import { ChatFeedbackProvider } from "./contexts/ChatFeedbackContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ClientProvider } from "./contexts/ClientContext";
+import { FieldOptionsProvider } from "./contexts/FieldOptionsContext";
 // import { AppContextProvider } from "./hooks/useContext";
 import GlobalChatFeedback from "./components/GlobalChatFeedback";
 import { AppInitializer } from "./services/appInitializer";
@@ -229,10 +230,12 @@ const App = () => (
     <Sonner />
     <AuthProvider>
       <ClientProvider>
-        <ChatFeedbackProvider>
-          <AuthenticatedApp />
-          <GlobalChatFeedback />
-        </ChatFeedbackProvider>
+        <FieldOptionsProvider>
+          <ChatFeedbackProvider>
+            <AuthenticatedApp />
+            <GlobalChatFeedback />
+          </ChatFeedbackProvider>
+        </FieldOptionsProvider>
       </ClientProvider>
     </AuthProvider>
   </TooltipProvider>

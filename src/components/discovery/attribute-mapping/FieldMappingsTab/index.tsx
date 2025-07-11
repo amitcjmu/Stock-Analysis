@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { RefreshCw } from 'lucide-react';
-import { apiCall, API_CONFIG } from '../../../../config/api';
-import { useAuth } from '../../../../contexts/AuthContext';
+import { useFieldOptions } from '../../../../contexts/FieldOptionsContext';
 
 // Components
 import ThreeColumnFieldMapper from './components/ThreeColumnFieldMapper';
 
 // Types
-import { FieldMappingsTabProps, TargetField } from './types';
+import { FieldMappingsTabProps } from './types';
 
 const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   fieldMappings,
@@ -16,54 +15,13 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   onMappingChange,
   onRefresh
 }) => {
-  const { client, engagement } = useAuth();
-  const [availableFields, setAvailableFields] = useState<TargetField[]>([]);
-
-  // Load available target fields with error handling
-  useEffect(() => {
-    const fetchAvailableFields = async () => {
-      try {
-        const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AVAILABLE_TARGET_FIELDS, {
-          method: 'GET',
-          headers: {
-            'X-Client-Account-ID': client?.id?.toString(),
-            'X-Engagement-ID': engagement?.id?.toString()
-          }
-        });
-
-        if (response?.fields) {
-          setAvailableFields(response.fields);
-        } else if (response?.data?.available_fields) {
-          setAvailableFields(response.data.available_fields);
-        } else {
-          // Fallback: provide basic field options
-          setAvailableFields([
-            { name: 'hostname', type: 'string', required: true, description: 'Server hostname', category: 'identity' },
-            { name: 'ip_address', type: 'string', required: true, description: 'IP address', category: 'network' },
-            { name: 'operating_system', type: 'string', required: false, description: 'Operating system', category: 'system' },
-            { name: 'application_name', type: 'string', required: false, description: 'Application name', category: 'application' }
-          ]);
-        }
-      } catch (error) {
-        console.error('Error fetching available fields:', error);
-        // Provide fallback fields so the component doesn't break
-        setAvailableFields([
-          { name: 'hostname', type: 'string', required: true, description: 'Server hostname', category: 'identity' },
-          { name: 'ip_address', type: 'string', required: true, description: 'IP address', category: 'network' },
-          { name: 'operating_system', type: 'string', required: false, description: 'Operating system', category: 'system' }
-        ]);
-      }
-    };
-
-    if (client?.id && engagement?.id) {
-      fetchAvailableFields();
-    }
-  }, [client?.id, engagement?.id]);
+  // Use cached field options instead of fetching every time
+  const { availableFields, isLoading: fieldsLoading } = useFieldOptions();
 
   // Filter mappings based on visible statuses - with safety check
   const safeFieldMappings = Array.isArray(fieldMappings) ? fieldMappings : [];
 
-  if (isAnalyzing) {
+  if (isAnalyzing || fieldsLoading) {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="text-center">

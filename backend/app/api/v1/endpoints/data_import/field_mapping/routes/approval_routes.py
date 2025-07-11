@@ -30,39 +30,46 @@ async def approve_field_mappings(
     request: ApprovalRequest,
     service: MappingService = Depends(get_mapping_service)
 ):
-    """Approve or reject multiple field mappings."""
+    """Approve or reject multiple field mappings in a single transaction."""
     try:
+        if not request.mapping_ids:
+            raise HTTPException(status_code=400, detail="No mapping IDs provided")
+        
+        logger.info(f"Bulk approval request: {len(request.mapping_ids)} mappings, approved={request.approved}")
+        
+        # Use bulk update method for better performance
+        update_data = FieldMappingUpdate(is_approved=request.approved)
+        bulk_result = await service.bulk_update_field_mappings(request.mapping_ids, update_data)
+        
+        # Transform result to match original API response
         results = []
+        for mapping_id in bulk_result["updated_ids"]:
+            results.append({
+                "mapping_id": mapping_id,
+                "status": "approved" if request.approved else "rejected",
+                "success": True
+            })
         
-        for mapping_id in request.mapping_ids:
-            try:
-                update_data = FieldMappingUpdate(is_approved=request.approved)
-                updated_mapping = await service.update_field_mapping(mapping_id, update_data)
-                results.append({
-                    "mapping_id": mapping_id,
-                    "status": "approved" if request.approved else "rejected",
-                    "success": True
-                })
-            except Exception as e:
-                logger.error(f"Error updating mapping {mapping_id}: {e}")
-                results.append({
-                    "mapping_id": mapping_id,
-                    "status": "error", 
-                    "success": False,
-                    "error": str(e)
-                })
-        
-        success_count = len([r for r in results if r["success"]])
+        for failure in bulk_result["failures"]:
+            results.append({
+                "mapping_id": failure["mapping_id"],
+                "status": "error",
+                "success": False,
+                "error": failure["error"]
+            })
         
         return {
-            "total_mappings": len(request.mapping_ids),
-            "successful_updates": success_count,
-            "failed_updates": len(request.mapping_ids) - success_count,
+            "total_mappings": bulk_result["total_mappings"],
+            "successful_updates": bulk_result["updated_mappings"],
+            "failed_updates": bulk_result["failed_updates"],
             "approval_status": "approved" if request.approved else "rejected",
             "approval_note": request.approval_note,
             "results": results
         }
         
+    except ValueError as e:
+        logger.warning(f"Bulk approval validation error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Error in bulk approval: {e}")
         raise HTTPException(status_code=500, detail="Failed to process approval request")

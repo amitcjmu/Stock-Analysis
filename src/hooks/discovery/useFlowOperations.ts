@@ -30,9 +30,11 @@ export const useIncompleteFlowDetectionV2 = () => {
     queryKey: ['incomplete-flows', client?.id, engagement?.id],
     queryFn: async () => {
       try {
+        console.log('🔍 [DEBUG] Fetching incomplete flows for:', { client: client?.id, engagement: engagement?.id });
+        
         // Require proper UUIDs from auth context
         if (!client?.id || !engagement?.id) {
-          console.warn('Missing client or engagement context for flow operations');
+          console.warn('❌ [DEBUG] Missing client or engagement context for flow operations');
           return { flows: [] };
         }
         
@@ -40,9 +42,11 @@ export const useIncompleteFlowDetectionV2 = () => {
         const engagementId = engagement.id;
         
         // Try the active flows endpoint first
+        console.log('🔍 [DEBUG] Calling getActiveFlows with:', { clientAccountId, engagementId, flowType: 'discovery' });
         const response = await masterFlowService.getActiveFlows(clientAccountId, engagementId, 'discovery');
-        console.log('Active flows response:', response);
+        console.log('✅ [DEBUG] Active flows response:', response);
         const allFlows = Array.isArray(response) ? response : (response.flows || []);
+        console.log('📋 [DEBUG] All flows found:', allFlows.length);
         
         // Filter for incomplete flows (not completed or failed)
         const incompleteFlows = allFlows.filter((flow: any) => 
@@ -95,12 +99,13 @@ export const useIncompleteFlowDetectionV2 = () => {
         });
         });
         
-        console.log('Transformed incomplete flows:', incompleteFlows);
+        console.log('📋 [DEBUG] Transformed incomplete flows:', incompleteFlows);
+        console.log('📋 [DEBUG] Final result:', { flows: incompleteFlows });
         return {
           flows: incompleteFlows
         };
       } catch (error) {
-        console.warn('Failed to fetch active flows, returning empty list:', error);
+        console.error('❌ [DEBUG] Failed to fetch active flows, returning empty list:', error);
         return { flows: [] };
       }
     },
@@ -119,15 +124,27 @@ export const useFlowResumptionV2 = () => {
   
   return useMutation({
     mutationFn: async (flowId: string) => {
+      console.log('🔄 [DEBUG] Flow resumption called with:', { flowId, client: client?.id, engagement: engagement?.id });
+      
       // Require proper UUIDs from auth context
       if (!client?.id || !engagement?.id) {
+        console.error('❌ [DEBUG] Missing client or engagement context for flow resumption');
         throw new Error('Missing client or engagement context for flow resumption');
       }
       
-      // Use masterFlowService for resuming flows
-      return await masterFlowService.resumeFlow(flowId, client.id, engagement.id);
+      try {
+        // Use masterFlowService for resuming flows
+        const result = await masterFlowService.resumeFlow(flowId, client.id, engagement.id);
+        console.log('✅ [DEBUG] Flow resumption successful:', result);
+        return result;
+      } catch (error) {
+        console.error('❌ [DEBUG] Flow resumption failed:', error);
+        throw error;
+      }
     },
     onSuccess: (data, flowId) => {
+      console.log('🎉 [DEBUG] Flow resumption mutation success:', { data, flowId });
+      
       queryClient.invalidateQueries({ queryKey: ['incomplete-flows'] });
       queryClient.invalidateQueries({ queryKey: ['discovery-flows'] });
       
@@ -139,10 +156,16 @@ export const useFlowResumptionV2 = () => {
       // Navigate to the appropriate page based on the flow's current phase
       if (data.current_phase) {
         const route = getDiscoveryPhaseRoute(data.current_phase, flowId);
+        console.log('📍 [DEBUG] Navigating to:', route);
+        navigate(route);
+      } else {
+        console.log('📍 [DEBUG] No current_phase in response, navigating to attribute mapping');
+        const route = getDiscoveryPhaseRoute('field_mapping', flowId);
         navigate(route);
       }
     },
     onError: (error: any) => {
+      console.error('❌ [DEBUG] Flow resumption mutation error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to resume flow",

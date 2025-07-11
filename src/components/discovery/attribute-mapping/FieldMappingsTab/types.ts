@@ -10,14 +10,8 @@ export interface FieldMapping {
   action?: 'ignore' | 'delete';
 }
 
-export interface TargetField {
-  name: string;
-  type: string;
-  required: boolean;
-  description: string;
-  category: string;
-  is_custom?: boolean;
-}
+// Import TargetField type from the context to ensure consistency
+export type { TargetField } from '../../../../contexts/FieldOptionsContext';
 
 export interface FieldMappingsTabProps {
   fieldMappings: FieldMapping[];

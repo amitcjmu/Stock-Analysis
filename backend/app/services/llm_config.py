@@ -38,8 +38,8 @@ class LLMConfigurationService:
     
     def __init__(self):
         self.deepinfra_api_key = getattr(settings, 'DEEPINFRA_API_KEY', os.getenv('DEEPINFRA_API_KEY'))
-        # CRITICAL: Use OpenAI-compatible endpoint format per CrewAI docs
-        self.deepinfra_base_url = "https://api.deepinfra.com/v1/openai"
+        # Use base URL from settings/environment, fallback to OpenAI-compatible endpoint
+        self.deepinfra_base_url = getattr(settings, 'DEEPINFRA_BASE_URL', os.getenv('DEEPINFRA_BASE_URL', 'https://api.deepinfra.com/v1/openai'))
         
         if not self.deepinfra_api_key:
             logger.error("❌ DEEPINFRA_API_KEY not found in environment variables")

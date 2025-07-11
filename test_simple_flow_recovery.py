@@ -100,8 +100,8 @@ async def test_simple_flow_recovery():
                             headers: {{
                                 'Content-Type': 'application/json',
                                 'Authorization': 'Bearer ' + localStorage.getItem('auth_token'),
-                                'X-Client-Account-Id': '30000000-def0-def0-def0-def000000001',
-                                'X-Engagement-Id': 'b0000000-def0-def0-def0-def000000001'
+                                'X-Client-Account-Id': '21990f3a-abb6-4862-be06-cb6f854e167b',
+                                'X-Engagement-Id': '58467010-6a72-44e8-ba37-cc0238724455'
                             }},
                             body: JSON.stringify({{
                                 phase_input: {{ test_mode: true }}

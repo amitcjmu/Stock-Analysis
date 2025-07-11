@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { CheckCircle, XCircle, AlertCircle, Clock, Search, ArrowRight, RefreshCw } from 'lucide-react';
 import { EnhancedFieldDropdown } from './EnhancedFieldDropdown';
 import { TargetField, FieldMapping } from '../types';
+import { useAuth } from '../../../../../contexts/AuthContext';
 
 interface ThreeColumnFieldMapperProps {
   fieldMappings: FieldMapping[];
@@ -18,11 +19,13 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
   onMappingChange,
   onRefresh
 }) => {
+  const { client, engagement } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectionInput, setShowRejectionInput] = useState<string | null>(null);
   const [processingMappings, setProcessingMappings] = useState<Set<string>>(new Set());
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
+  const [lastBulkOperationTime, setLastBulkOperationTime] = useState<number>(0);
 
   // Categorize mappings into buckets
   const buckets = useMemo(() => {
@@ -97,6 +100,244 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
       setProcessingMappings(prev => {
         const newSet = new Set(prev);
         newSet.delete(mappingId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleBulkApprove = async (mappingIds: string[]) => {
+    if (mappingIds.length === 0) return;
+    
+    // Check authentication before proceeding
+    if (!client?.id || !engagement?.id) {
+      if (typeof window !== 'undefined' && (window as any).showErrorToast) {
+        (window as any).showErrorToast('Authentication required. Please log in to continue.');
+      }
+      return;
+    }
+    
+    // Prevent concurrent bulk operations
+    const now = Date.now();
+    if (now - lastBulkOperationTime < 5000) { // 5 second cooldown
+      if (typeof window !== 'undefined' && (window as any).showWarningToast) {
+        (window as any).showWarningToast('Please wait before performing another bulk operation.');
+      }
+      return;
+    }
+    setLastBulkOperationTime(now);
+    
+    const maxRetries = 3;
+    const baseDelay = 2000; // 2 seconds
+    
+    const attemptBulkApproval = async (attempt: number = 0): Promise<any> => {
+      try {
+        console.log(`🔄 Bulk approving mappings (attempt ${attempt + 1}/${maxRetries + 1}):`, mappingIds);
+        
+        // Call bulk approval API
+        const { apiCall } = await import('../../../../../config/api');
+        
+        const response = await apiCall('/api/v1/data-import/field-mapping/approval/approve-mappings', {
+          method: 'POST',
+          includeContext: true, // Use centralized context handling
+          body: JSON.stringify({
+            mapping_ids: mappingIds,
+            approved: true,
+            approval_note: 'Bulk approved from UI'
+          })
+        });
+        
+        console.log('✅ Bulk approval response:', response);
+        return response;
+        
+      } catch (error) {
+        console.error(`❌ Bulk approval attempt ${attempt + 1} failed:`, error);
+        
+        // Check if it's a rate limit error and we have retries left
+        if (attempt < maxRetries && error instanceof Error && 
+            (error.message.includes('429') || error.message.includes('Too Many Requests') || 
+             error.message.includes('Rate limit'))) {
+          
+          const delay = baseDelay * Math.pow(2, attempt); // Exponential backoff
+          console.log(`⏳ Rate limited, waiting ${delay}ms before retry...`);
+          
+          // Show user feedback about retry
+          if (typeof window !== 'undefined' && (window as any).showInfoToast) {
+            (window as any).showInfoToast(`Rate limited, retrying in ${delay/1000} seconds...`);
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return attemptBulkApproval(attempt + 1);
+        }
+        
+        // Re-throw if not rate limited or no retries left
+        throw error;
+      }
+    };
+    
+    try {
+      // Add all mappings to processing set
+      setProcessingMappings(prev => {
+        const newSet = new Set(prev);
+        mappingIds.forEach(id => newSet.add(id));
+        return newSet;
+      });
+      
+      // Attempt bulk approval with retry logic
+      const response = await attemptBulkApproval();
+      
+      // Show success message
+      if (typeof window !== 'undefined' && (window as any).showSuccessToast) {
+        (window as any).showSuccessToast(`Successfully approved ${response.successful_updates} mappings`);
+      }
+      
+      // Refresh the data
+      if (onRefresh) {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+        onRefresh();
+      }
+      
+    } catch (error) {
+      console.error('❌ Bulk approval failed after all retries:', error);
+      
+      // Handle specific error types
+      let errorMessage = 'Failed to approve mappings. Please try again.';
+      if (error instanceof Error) {
+        if (error.message.includes('429') || error.message.includes('Too Many Requests')) {
+          errorMessage = 'Rate limit exceeded. Please wait a few minutes and try again.';
+        } else if (error.message.includes('401') || error.message.includes('403')) {
+          errorMessage = 'Authentication error. Please refresh the page and try again.';
+        } else {
+          errorMessage = `Error: ${error.message}`;
+        }
+      }
+      
+      if (typeof window !== 'undefined' && (window as any).showErrorToast) {
+        (window as any).showErrorToast(errorMessage);
+      }
+    } finally {
+      // Remove all mappings from processing set
+      setProcessingMappings(prev => {
+        const newSet = new Set(prev);
+        mappingIds.forEach(id => newSet.delete(id));
+        return newSet;
+      });
+    }
+  };
+
+  const handleBulkReject = async (mappingIds: string[]) => {
+    if (mappingIds.length === 0) return;
+    
+    // Check authentication before proceeding
+    if (!client?.id || !engagement?.id) {
+      if (typeof window !== 'undefined' && (window as any).showErrorToast) {
+        (window as any).showErrorToast('Authentication required. Please log in to continue.');
+      }
+      return;
+    }
+    
+    // Prevent concurrent bulk operations
+    const now = Date.now();
+    if (now - lastBulkOperationTime < 5000) { // 5 second cooldown
+      if (typeof window !== 'undefined' && (window as any).showWarningToast) {
+        (window as any).showWarningToast('Please wait before performing another bulk operation.');
+      }
+      return;
+    }
+    setLastBulkOperationTime(now);
+    
+    const maxRetries = 3;
+    const baseDelay = 2000; // 2 seconds
+    
+    const attemptBulkRejection = async (attempt: number = 0): Promise<any> => {
+      try {
+        console.log(`🔄 Bulk rejecting mappings (attempt ${attempt + 1}/${maxRetries + 1}):`, mappingIds);
+        
+        // Call bulk rejection API
+        const { apiCall } = await import('../../../../../config/api');
+        
+        const response = await apiCall('/api/v1/data-import/field-mapping/approval/approve-mappings', {
+          method: 'POST',
+          includeContext: true, // Use centralized context handling
+          body: JSON.stringify({
+            mapping_ids: mappingIds,
+            approved: false,
+            approval_note: 'Bulk rejected from UI'
+          })
+        });
+        
+        console.log('✅ Bulk rejection response:', response);
+        return response;
+        
+      } catch (error) {
+        console.error(`❌ Bulk rejection attempt ${attempt + 1} failed:`, error);
+        
+        // Check if it's a rate limit error and we have retries left
+        if (attempt < maxRetries && error instanceof Error && 
+            (error.message.includes('429') || error.message.includes('Too Many Requests') || 
+             error.message.includes('Rate limit'))) {
+          
+          const delay = baseDelay * Math.pow(2, attempt); // Exponential backoff
+          console.log(`⏳ Rate limited, waiting ${delay}ms before retry...`);
+          
+          // Show user feedback about retry
+          if (typeof window !== 'undefined' && (window as any).showInfoToast) {
+            (window as any).showInfoToast(`Rate limited, retrying in ${delay/1000} seconds...`);
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return attemptBulkRejection(attempt + 1);
+        }
+        
+        // Re-throw if not rate limited or no retries left
+        throw error;
+      }
+    };
+    
+    try {
+      // Add all mappings to processing set
+      setProcessingMappings(prev => {
+        const newSet = new Set(prev);
+        mappingIds.forEach(id => newSet.add(id));
+        return newSet;
+      });
+      
+      // Attempt bulk rejection with retry logic
+      const response = await attemptBulkRejection();
+      
+      // Show success message
+      if (typeof window !== 'undefined' && (window as any).showSuccessToast) {
+        (window as any).showSuccessToast(`Successfully rejected ${response.successful_updates} mappings`);
+      }
+      
+      // Refresh the data
+      if (onRefresh) {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+        onRefresh();
+      }
+      
+    } catch (error) {
+      console.error('❌ Bulk rejection failed after all retries:', error);
+      
+      // Handle specific error types
+      let errorMessage = 'Failed to reject mappings. Please try again.';
+      if (error instanceof Error) {
+        if (error.message.includes('429') || error.message.includes('Too Many Requests')) {
+          errorMessage = 'Rate limit exceeded. Please wait a few minutes and try again.';
+        } else if (error.message.includes('401') || error.message.includes('403')) {
+          errorMessage = 'Authentication error. Please refresh the page and try again.';
+        } else {
+          errorMessage = `Error: ${error.message}`;
+        }
+      }
+      
+      if (typeof window !== 'undefined' && (window as any).showErrorToast) {
+        (window as any).showErrorToast(errorMessage);
+      }
+    } finally {
+      // Remove all mappings from processing set
+      setProcessingMappings(prev => {
+        const newSet = new Set(prev);
+        mappingIds.forEach(id => newSet.delete(id));
         return newSet;
       });
     }
@@ -225,6 +466,10 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
       }
       handleApprove(mapping.id);
     };
+    
+    const handleFieldChange = useCallback((newValue: string) => {
+      setSelectedTarget(newValue);
+    }, []);
 
     return (
       <div className="p-4 border rounded-lg transition-all duration-200 hover:shadow-md bg-white border-gray-200">
@@ -242,7 +487,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
               <div className="flex-1">
                 <EnhancedFieldDropdown
                   value={selectedTarget}
-                  onChange={setSelectedTarget}
+                  onChange={handleFieldChange}
                   availableFields={availableFields}
                   placeholder="Select target field"
                 />
@@ -293,6 +538,21 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Authentication Status */}
+      {(!client?.id || !engagement?.id) && (
+        <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-yellow-600" />
+            <span className="text-sm font-medium text-yellow-800">
+              Authentication Required
+            </span>
+            <span className="text-sm text-yellow-600">
+              Please log in to perform bulk operations
+            </span>
+          </div>
+        </div>
+      )}
+      
       {/* Progress Bar */}
       <div className="bg-white p-4 rounded-lg border">
         <div className="flex items-center justify-between mb-2">
@@ -407,27 +667,33 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
             <div className="flex gap-2">
               <button
                 onClick={() => {
-                  buckets.autoMapped.forEach((m, index) => {
-                    setTimeout(() => handleApprove(m.id), index * 500); // Stagger requests
-                  });
+                  const mappingIds = buckets.autoMapped.map(m => m.id);
+                  handleBulkApprove(mappingIds);
                 }}
-                disabled={buckets.autoMapped.some(m => processingMappings.has(m.id))}
+                disabled={!client?.id || !engagement?.id || 
+                         buckets.autoMapped.some(m => processingMappings.has(m.id)) || 
+                         (Date.now() - lastBulkOperationTime < 5000)}
                 className="flex items-center gap-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <CheckCircle className="h-4 w-4" />
-                Approve All
+                {!client?.id || !engagement?.id ? 'Login Required' :
+                 buckets.autoMapped.some(m => processingMappings.has(m.id)) ? 'Processing...' : 
+                 (Date.now() - lastBulkOperationTime < 5000) ? 'Cooldown...' : 'Approve All'}
               </button>
               <button
                 onClick={() => {
-                  buckets.autoMapped.forEach((m, index) => {
-                    setTimeout(() => handleReject(m.id), index * 500); // Stagger requests
-                  });
+                  const mappingIds = buckets.autoMapped.map(m => m.id);
+                  handleBulkReject(mappingIds);
                 }}
-                disabled={buckets.autoMapped.some(m => processingMappings.has(m.id))}
+                disabled={!client?.id || !engagement?.id || 
+                         buckets.autoMapped.some(m => processingMappings.has(m.id)) || 
+                         (Date.now() - lastBulkOperationTime < 5000)}
                 className="flex items-center gap-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <XCircle className="h-4 w-4" />
-                Reject All
+                {!client?.id || !engagement?.id ? 'Login Required' :
+                 buckets.autoMapped.some(m => processingMappings.has(m.id)) ? 'Processing...' : 
+                 (Date.now() - lastBulkOperationTime < 5000) ? 'Cooldown...' : 'Reject All'}
               </button>
             </div>
           </div>

@@ -97,23 +97,19 @@ class FlowTypeConfigurator:
             discovery_phases = [
                 PhaseConfig(
                     name="data_import",
-                    order=1,
-                    required=True,
+                    display_name="Data Import",
                     description="Import and validate data from various sources",
-                    inputs=["raw_data", "import_config"],
-                    outputs=["imported_data", "validation_report"],
+                    required_inputs=["raw_data", "import_config"],
                     validators=["required_fields", "data_format"],
-                    timeout_minutes=30
+                    timeout_seconds=1800
                 ),
                 PhaseConfig(
                     name="field_mapping",
-                    order=2,
-                    required=True,
+                    display_name="Field Mapping",
                     description="Map imported fields to standard schema",
-                    inputs=["imported_data", "mapping_rules"],
-                    outputs=["mapped_data", "mapping_report"],
+                    required_inputs=["imported_data", "mapping_rules"],
                     validators=["field_mapping_validation"],
-                    timeout_minutes=20
+                    timeout_seconds=1200
                 ),
                 PhaseConfig(
                     name="data_cleansing",
@@ -193,7 +189,7 @@ class FlowTypeConfigurator:
             await self._register_discovery_handlers()
             
             # Register discovery flow (MFO-042)
-            self.flow_registry.register_flow_type(discovery_config)
+            self.flow_registry.register(discovery_config)
             
             logger.info("✅ Discovery flow configured successfully")
             return {

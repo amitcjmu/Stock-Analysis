@@ -34,7 +34,7 @@ interface UseUnifiedDiscoveryFlowReturn {
   error: Error | null;
   isHealthy: boolean;
   initializeFlow: (data: any) => Promise<any>;
-  executeFlowPhase: (phase: string) => Promise<any>;
+  executeFlowPhase: (phase: string, data?: any) => Promise<any>;
   getPhaseData: (phase: string) => any;
   isPhaseComplete: (phase: string) => boolean;
   canProceedToPhase: (phase: string) => boolean;
@@ -145,7 +145,13 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
         return pathFlowId;
       }
 
-      // Try to get from localStorage
+      // Only use localStorage flow ID if we're on a page that expects a flow ID
+      // Don't load flow status on cmdb-import page unless explicitly requested
+      if (window.location.pathname.includes('/discovery/cmdb-import')) {
+        return null;
+      }
+
+      // Try to get from localStorage for other pages
       const storedFlowId = localStorage.getItem('currentFlowId');
       if (storedFlowId) {
         return storedFlowId;
@@ -172,7 +178,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
   } = useQuery({
     queryKey: ['unifiedDiscoveryFlow', flowId, client?.id, engagement?.id],
     queryFn: () => flowId && unifiedDiscoveryAPI ? unifiedDiscoveryAPI.getFlowStatus(flowId) : null,
-    enabled: !!flowId && !!unifiedDiscoveryAPI && !!client?.id && !!engagement?.id,
+    enabled: !!flowId && !!unifiedDiscoveryAPI && !!client?.id && !!engagement?.id && flowId !== 'none',
     refetchInterval: (query) => {
       // Stop polling if disabled or max attempts reached
       if (!pollingEnabled || pollingAttempts >= MAX_POLLING_ATTEMPTS) {
@@ -216,9 +222,17 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
       return false;
     },
     retryDelay: (attemptIndex) => Math.min(2000 * Math.pow(2, attemptIndex), 8000), // 2s, 4s, 8s max
-    onError: () => {
+    onError: (error: any) => {
       // Stop polling on error
       setPollingEnabled(false);
+      
+      // Clear invalid flow ID from localStorage on 404 error
+      if (error?.status === 404 || error?.message?.includes('404') || error?.message?.includes('Not Found')) {
+        console.warn(`Flow ID ${flowId} not found, clearing from localStorage`);
+        if (flowId) {
+          localStorage.removeItem('currentFlowId');
+        }
+      }
     }
   });
 
@@ -321,8 +335,8 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
     return isPhaseComplete(previousPhase);
   }, [flowState, isPhaseComplete]);
 
-  const executeFlowPhase = useCallback(async (phase: string) => {
-    return executePhhaseMutation.mutateAsync({ phase });
+  const executeFlowPhase = useCallback(async (phase: string, data?: any) => {
+    return executePhhaseMutation.mutateAsync({ phase, data });
   }, [executePhhaseMutation]);
 
   const initializeFlow = useCallback(async (data: any) => {

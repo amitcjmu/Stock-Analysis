@@ -61,6 +61,26 @@ class PhaseConfig:
     retry_config: Optional[RetryConfig] = None
     timeout_seconds: int = 300
     metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    # Legacy compatibility fields (ignored)
+    order: Optional[int] = None
+    required: Optional[bool] = None
+    inputs: Optional[List[str]] = None
+    outputs: Optional[List[str]] = None
+    timeout_minutes: Optional[int] = None
+    
+    def __post_init__(self):
+        # Handle legacy timeout_minutes
+        if self.timeout_minutes:
+            self.timeout_seconds = self.timeout_minutes * 60
+        
+        # Handle legacy inputs
+        if self.inputs and not self.required_inputs:
+            self.required_inputs = self.inputs
+        
+        # Handle legacy display_name
+        if not self.display_name:
+            self.display_name = self.name.replace("_", " ").title()
 
 
 @dataclass

@@ -59,11 +59,14 @@ export const useAttributeMappingNavigation = (flowState?: any, mappingProgress?:
         }
       } else {
         // Flow is not paused, just navigate to next phase
-        await updatePhase('data_cleansing', { 
+        const phaseData = { 
           completed_phases: [...(flow.phases ? Object.keys(flow.phases).filter(p => flow.phases[p]) : []), 'attribute_mapping'],
           current_phase: 'data_cleansing',
           progress_data: mappingProgress 
-        });
+        };
+        
+        console.log('🔍 Updating phase to data_cleansing with data:', phaseData);
+        await updatePhase('data_cleansing', phaseData);
         navigate('/discovery/data-cleansing');
       }
     } catch (error) {

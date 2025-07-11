@@ -305,8 +305,8 @@ export const useAttributeMappingLogic = () => {
       }
     },
     enabled: !!importData?.import_metadata?.import_id,
-    staleTime: 3 * 60 * 1000, // Cache for 3 minutes to ensure fresh data
-    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    staleTime: 30 * 1000, // Cache for 30 seconds to ensure fresh data after approval
+    cacheTime: 2 * 60 * 1000, // Keep in cache for 2 minutes
     retry: (failureCount, error) => {
       // Allow retries on 429 (Too Many Requests) with longer delays
       if (error && typeof error === 'object' && 'status' in error) {
@@ -1169,6 +1169,7 @@ export const useAttributeMappingLogic = () => {
       setTimeout(async () => {
         try {
           console.log('🔄 Refetching field mappings to update UI...');
+          // Force a fresh refetch by invalidating the query cache
           await refetchFieldMappings();
         } catch (refetchError) {
           console.error('⚠️ Failed to refetch mappings:', refetchError);

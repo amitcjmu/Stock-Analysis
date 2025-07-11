@@ -107,6 +107,70 @@ class MappingService:
             updated_at=mapping.updated_at
         )
     
+    async def bulk_update_field_mappings(
+        self, 
+        mapping_ids: List[str], 
+        update_data: FieldMappingUpdate
+    ) -> Dict[str, Any]:
+        """Update multiple field mappings in a single database transaction."""
+        
+        # Get all mappings to update
+        query = select(ImportFieldMapping).where(
+            and_(
+                ImportFieldMapping.id.in_(mapping_ids),
+                ImportFieldMapping.client_account_id == self.context.client_account_id
+            )
+        )
+        result = await self.db.execute(query)
+        mappings = result.scalars().all()
+        
+        if not mappings:
+            raise ValueError("No field mappings found for the provided IDs")
+        
+        # Update all mappings in a single transaction
+        updated_mappings = []
+        failed_updates = []
+        
+        try:
+            for mapping in mappings:
+                try:
+                    # Update fields
+                    if update_data.target_field is not None:
+                        mapping.target_field = update_data.target_field
+                    if update_data.transformation_rule is not None:
+                        mapping.transformation_rules = update_data.transformation_rule
+                    if update_data.validation_rule is not None:
+                        mapping.transformation_rules = update_data.validation_rule
+                    if update_data.is_approved is not None:
+                        mapping.status = "approved" if update_data.is_approved else "suggested"
+                    
+                    mapping.updated_at = datetime.utcnow()
+                    updated_mappings.append(mapping.id)
+                    
+                except Exception as e:
+                    logger.error(f"Error updating mapping {mapping.id}: {e}")
+                    failed_updates.append({"mapping_id": mapping.id, "error": str(e)})
+            
+            # Commit all changes at once
+            await self.db.commit()
+            
+            logger.info(f"Bulk updated {len(updated_mappings)} field mappings")
+            
+            return {
+                "status": "success",
+                "total_mappings": len(mapping_ids),
+                "updated_mappings": len(updated_mappings),
+                "failed_updates": len(failed_updates),
+                "updated_ids": updated_mappings,
+                "failures": failed_updates
+            }
+            
+        except Exception as e:
+            # Rollback on any error
+            await self.db.rollback()
+            logger.error(f"Bulk update failed: {e}")
+            raise ValueError(f"Bulk update failed: {str(e)}")
+    
     async def update_field_mapping(
         self, 
         mapping_id: str, 

@@ -8,6 +8,7 @@ Validators for data validation, field mapping validation, and asset validation.
 import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
+from ..validator_registry import ValidationResult
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ async def field_mapping_validation(
     phase_input: Dict[str, Any],
     flow_state: Dict[str, Any],
     overrides: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
+) -> ValidationResult:
     """
     Validate field mapping configuration
     
@@ -76,31 +77,31 @@ async def field_mapping_validation(
             elif len(imported_data) > 10000:
                 warnings.append(f"Large dataset detected: {len(imported_data)} records. Performance may be impacted.")
         
-        return {
-            "valid": len(errors) == 0,
-            "errors": errors,
-            "warnings": warnings,
-            "metadata": {
+        return ValidationResult(
+            valid=len(errors) == 0,
+            errors=errors,
+            warnings=warnings,
+            metadata={
                 "validated_at": datetime.utcnow().isoformat(),
                 "record_count": len(imported_data) if isinstance(imported_data, list) else 0,
                 "mapping_count": len(mapping_rules) if mapping_rules else 0
             }
-        }
+        )
         
     except Exception as e:
         logger.error(f"Field mapping validation error: {e}")
-        return {
-            "valid": False,
-            "errors": [f"Validation exception: {str(e)}"],
-            "warnings": []
-        }
+        return ValidationResult(
+            valid=False,
+            errors=[f"Validation exception: {str(e)}"],
+            warnings=[]
+        )
 
 
 async def asset_validation(
     phase_input: Dict[str, Any],
     flow_state: Dict[str, Any],
     overrides: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
+) -> ValidationResult:
     """
     Validate created assets
     
@@ -117,11 +118,11 @@ async def asset_validation(
         
         if not assets:
             errors.append("No assets created")
-            return {
-                "valid": False,
-                "errors": errors,
-                "warnings": warnings
-            }
+            return ValidationResult(
+                valid=False,
+                errors=errors,
+                warnings=warnings
+            )
         
         # Track asset IDs for uniqueness check
         asset_ids = set()
@@ -179,27 +180,27 @@ async def asset_validation(
             "validation_passed": len(errors) == 0
         }
         
-        return {
-            "valid": len(errors) == 0,
-            "errors": errors,
-            "warnings": warnings,
-            "metadata": metadata
-        }
+        return ValidationResult(
+            valid=len(errors) == 0,
+            errors=errors,
+            warnings=warnings,
+            metadata=metadata
+        )
         
     except Exception as e:
         logger.error(f"Asset validation error: {e}")
-        return {
-            "valid": False,
-            "errors": [f"Validation exception: {str(e)}"],
-            "warnings": []
-        }
+        return ValidationResult(
+            valid=False,
+            errors=[f"Validation exception: {str(e)}"],
+            warnings=[]
+        )
 
 
 async def inventory_validation(
     phase_input: Dict[str, Any],
     flow_state: Dict[str, Any],
     overrides: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
+) -> ValidationResult:
     """
     Validate asset inventory
     
@@ -256,27 +257,27 @@ async def inventory_validation(
             ) if inventory else 0
         }
         
-        return {
-            "valid": len(errors) == 0,
-            "errors": errors,
-            "warnings": warnings,
-            "metadata": metadata
-        }
+        return ValidationResult(
+            valid=len(errors) == 0,
+            errors=errors,
+            warnings=warnings,
+            metadata=metadata
+        )
         
     except Exception as e:
         logger.error(f"Inventory validation error: {e}")
-        return {
-            "valid": False,
-            "errors": [f"Validation exception: {str(e)}"],
-            "warnings": []
-        }
+        return ValidationResult(
+            valid=False,
+            errors=[f"Validation exception: {str(e)}"],
+            warnings=[]
+        )
 
 
 async def dependency_validation(
     phase_input: Dict[str, Any],
     flow_state: Dict[str, Any],
     overrides: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
+) -> ValidationResult:
     """
     Validate dependency analysis results
     
@@ -293,11 +294,11 @@ async def dependency_validation(
         
         if not dependencies:
             warnings.append("No dependencies identified")
-            return {
-                "valid": True,
-                "errors": errors,
-                "warnings": warnings
-            }
+            return ValidationResult(
+                valid=True,
+                errors=errors,
+                warnings=warnings
+            )
         
         # Build asset ID set from inventory
         all_asset_ids = set()
@@ -352,27 +353,27 @@ async def dependency_validation(
             "max_dependency_count": max(len(deps) for deps in dependencies.values()) if dependencies else 0
         }
         
-        return {
-            "valid": len(errors) == 0,
-            "errors": errors,
-            "warnings": warnings,
-            "metadata": metadata
-        }
+        return ValidationResult(
+            valid=len(errors) == 0,
+            errors=errors,
+            warnings=warnings,
+            metadata=metadata
+        )
         
     except Exception as e:
         logger.error(f"Dependency validation error: {e}")
-        return {
-            "valid": False,
-            "errors": [f"Validation exception: {str(e)}"],
-            "warnings": []
-        }
+        return ValidationResult(
+            valid=False,
+            errors=[f"Validation exception: {str(e)}"],
+            warnings=[]
+        )
 
 
 async def mapping_completeness(
     phase_input: Dict[str, Any],
     flow_state: Dict[str, Any],
     overrides: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
+) -> ValidationResult:
     """
     Validate mapping completeness
     
@@ -386,11 +387,11 @@ async def mapping_completeness(
         
         if not imported_data or not isinstance(imported_data, list) or len(imported_data) == 0:
             errors.append("No data available to check mapping completeness")
-            return {
-                "valid": False,
-                "errors": errors,
-                "warnings": warnings
-            }
+            return ValidationResult(
+                valid=False,
+                errors=errors,
+                warnings=warnings
+            )
         
         # Get all unique fields from imported data
         sample_size = min(100, len(imported_data))  # Sample first 100 records
@@ -434,27 +435,27 @@ async def mapping_completeness(
             "sample_size": sample_size
         }
         
-        return {
-            "valid": len(errors) == 0,
-            "errors": errors,
-            "warnings": warnings,
-            "metadata": metadata
-        }
+        return ValidationResult(
+            valid=len(errors) == 0,
+            errors=errors,
+            warnings=warnings,
+            metadata=metadata
+        )
         
     except Exception as e:
         logger.error(f"Mapping completeness validation error: {e}")
-        return {
-            "valid": False,
-            "errors": [f"Validation exception: {str(e)}"],
-            "warnings": []
-        }
+        return ValidationResult(
+            valid=False,
+            errors=[f"Validation exception: {str(e)}"],
+            warnings=[]
+        )
 
 
 async def cleansing_validation(
     phase_input: Dict[str, Any],
     flow_state: Dict[str, Any],
     overrides: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
+) -> ValidationResult:
     """
     Validate data cleansing results
     
@@ -487,27 +488,27 @@ async def cleansing_validation(
             "cleansing_metrics": cleansing_report
         }
         
-        return {
-            "valid": len(errors) == 0,
-            "errors": errors,
-            "warnings": warnings,
-            "metadata": metadata
-        }
+        return ValidationResult(
+            valid=len(errors) == 0,
+            errors=errors,
+            warnings=warnings,
+            metadata=metadata
+        )
         
     except Exception as e:
         logger.error(f"Cleansing validation error: {e}")
-        return {
-            "valid": False,
-            "errors": [f"Validation exception: {str(e)}"],
-            "warnings": []
-        }
+        return ValidationResult(
+            valid=False,
+            errors=[f"Validation exception: {str(e)}"],
+            warnings=[]
+        )
 
 
 async def circular_dependency_check(
     phase_input: Dict[str, Any],
     flow_state: Dict[str, Any],
     overrides: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
+) -> ValidationResult:
     """
     Specific check for circular dependencies
     """

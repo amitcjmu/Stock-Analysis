@@ -147,13 +147,13 @@ async def _get_agentic_critical_attributes(
         flow_result = await db.execute(flow_query)
         discovery_flow = flow_result.scalar_one_or_none()
         
-        if discovery_flow and discovery_flow.field_mapping_data:
+        if discovery_flow and discovery_flow.field_mappings:
             logger.info("🤖 Found existing discovery flow field mapping results")
             
             # Extract field mappings from discovery flow
-            field_mapping_data = discovery_flow.field_mapping_data
-            field_mappings = field_mapping_data.get("field_mappings", {})
-            confidence_scores = field_mapping_data.get("confidence_scores", {})
+            field_mapping_data = discovery_flow.field_mappings
+            field_mappings = field_mapping_data.get("field_mappings", {}) if isinstance(field_mapping_data, dict) else {}
+            confidence_scores = field_mapping_data.get("confidence_scores", {}) if isinstance(field_mapping_data, dict) else {}
             
             # Remove non-field entries from mappings
             if "confidence_scores" in field_mappings:
@@ -181,7 +181,7 @@ async def _get_agentic_critical_attributes(
                     "status": "mapped",
                     "mapped_to": source_field,
                     "source_field": source_field,
-                    "confidence": field_mapping_results.get("confidence", 0.85),
+                    "confidence": field_mapping_data.get("confidence", 0.85),
                     "quality_score": criticality_analysis["quality_score"],
                     "completeness_percentage": 100,
                     "mapping_type": "agent_intelligent",
@@ -224,8 +224,8 @@ async def _get_agentic_critical_attributes(
                     "learning_system_status": "updated"
                 },
                 "agent_insights": {
-                    "field_mapping_confidence": field_mapping_results.get("confidence", 0.85),
-                    "total_fields_analyzed": field_mapping_results.get("total_fields", 0),
+                    "field_mapping_confidence": field_mapping_data.get("confidence", 0.85),
+                    "total_fields_analyzed": field_mapping_data.get("total_fields", 0),
                     "mapping_method": "agent_intelligent_mapping",
                     "learning_patterns_used": True
                 },
@@ -345,7 +345,7 @@ async def _trigger_discovery_flow_analysis(
                 'source': 'critical_attributes_analysis'
             })()
             
-            flow_result = await flow_service.execute_discovery_flow(
+            flow_result = await crewai_service.execute_discovery_flow(
                 sample_data, flow_context
             )
             

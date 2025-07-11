@@ -10,13 +10,19 @@ from .base_phase_executor import BasePhaseExecutor
 
 logger = logging.getLogger(__name__)
 
-# CrewAI Flow imports with graceful fallback
+# CrewAI Flow imports with dynamic availability detection
 CREWAI_FLOW_AVAILABLE = False
 try:
     from crewai import Flow
+    from app.services.llm_config import get_crewai_llm
+    # Test if LLM is properly configured
+    test_llm = get_crewai_llm()
     CREWAI_FLOW_AVAILABLE = True
-except ImportError:
-    logger.warning("CrewAI Flow not available")
+    logger.info("✅ CrewAI Flow and LLM configuration available")
+except ImportError as e:
+    logger.warning(f"CrewAI Flow not available: {e}")
+except Exception as e:
+    logger.warning(f"CrewAI LLM configuration not available: {e}")
 
 
 class FieldMappingExecutor(BasePhaseExecutor):
