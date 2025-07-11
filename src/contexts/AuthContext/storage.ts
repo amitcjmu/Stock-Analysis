@@ -7,19 +7,23 @@ export const tokenStorage: TokenStorage = {
       const token = localStorage.getItem('auth_token');
       if (!token) return null;
       
-      // Check if token is expired before returning it
+      // Check if token is expired before returning it (only for JWT tokens)
       try {
-        const tokenData = JSON.parse(atob(token.split('.')[1]));
-        const now = Math.floor(Date.now() / 1000);
-        
-        if (tokenData.exp && tokenData.exp < now) {
-          console.log('🔄 Token expired, clearing from storage');
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('auth_user');
-          return null;
+        // Only attempt JWT parsing if token has the right format
+        if (token.includes('.') && token.split('.').length === 3) {
+          const tokenData = JSON.parse(atob(token.split('.')[1]));
+          const now = Math.floor(Date.now() / 1000);
+          
+          if (tokenData.exp && tokenData.exp < now) {
+            console.log('🔄 Token expired, clearing from storage');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('auth_user');
+            return null;
+          }
         }
+        // For non-JWT tokens, skip expiration check
       } catch (tokenParseError) {
-        console.warn('⚠️ Could not parse token for expiration check');
+        // Non-JWT tokens or parsing errors - skip expiration check
       }
       
       return token;

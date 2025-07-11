@@ -150,26 +150,30 @@ export const useAuthInitialization = ({
           return;
         }
 
-        // Check if token is expired before making API calls
+        // Check if token is expired before making API calls (only for JWT tokens)
         try {
-          const tokenData = JSON.parse(atob(token.split('.')[1]));
-          const now = Math.floor(Date.now() / 1000);
-          
-          if (tokenData.exp && tokenData.exp < now) {
-            tokenStorage.removeToken();
-            tokenStorage.setUser(null);
-            if (isMounted) {
-              setUser(null);
-              setClient(null);
-              setEngagement(null);
-              setFlow(null);
-              setIsLoading(false);
-              navigate('/login');
+          // Only attempt JWT parsing if token has the right format
+          if (token.includes('.') && token.split('.').length === 3) {
+            const tokenData = JSON.parse(atob(token.split('.')[1]));
+            const now = Math.floor(Date.now() / 1000);
+            
+            if (tokenData.exp && tokenData.exp < now) {
+              tokenStorage.removeToken();
+              tokenStorage.setUser(null);
+              if (isMounted) {
+                setUser(null);
+                setClient(null);
+                setEngagement(null);
+                setFlow(null);
+                setIsLoading(false);
+                navigate('/login');
+              }
+              return;
             }
-            return;
           }
+          // For non-JWT tokens, skip expiration check and proceed with API validation
         } catch (tokenParseError) {
-          // Could not parse token, proceed with API validation
+          // Non-JWT tokens or parsing errors - proceed with API validation
         }
 
         // Try to get user context from the modern API
