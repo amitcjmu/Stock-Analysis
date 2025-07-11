@@ -27,6 +27,20 @@ def intelligent_field_mapping(source_field: str) -> str:
     if source_lower in skip_fields:
         return None
     
+    # Fix common problematic mappings first
+    if source_lower == 'ci type':
+        return 'asset_type'
+    if source_lower == 'ci id':
+        return 'asset_id'  
+    if source_lower == 'version/hostname':
+        return 'hostname'
+    if 'cpu' in source_lower and ('core' in source_lower or 'cores' in source_lower):
+        return 'cpu_cores'
+    if 'ram' in source_lower and 'gb' in source_lower:
+        return 'memory_gb'
+    if 'storage' in source_lower and 'gb' in source_lower:
+        return 'storage_gb'
+    
     # Common field mapping patterns with priorities - only valid Asset model fields
     field_patterns = {
         # Identity fields (highest priority)

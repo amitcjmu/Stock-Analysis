@@ -39,6 +39,52 @@ async def get_data_imports(
         }
     }
 
+@router.get("/latest")
+async def get_latest_import(
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """Get the latest data import for the current context."""
+    try:
+        # Query for the latest import
+        query = (
+            select(DataImport)
+            .where(DataImport.client_account_id == context.client_account_id)
+            .where(DataImport.engagement_id == context.engagement_id)
+            .order_by(desc(DataImport.created_at))
+            .limit(1)
+        )
+        
+        result = await db.execute(query)
+        latest_import = result.scalar_one_or_none()
+        
+        if not latest_import:
+            raise HTTPException(
+                status_code=404, 
+                detail="No data imports found for the current context"
+            )
+        
+        # Convert to dictionary format
+        import_dict = import_to_dict(latest_import)
+        
+        # Add import metadata in the expected format
+        import_dict["import_metadata"] = {
+            "import_id": str(latest_import.id),
+            "import_name": latest_import.import_name,
+            "status": latest_import.status,
+            "filename": latest_import.filename,
+            "total_records": latest_import.total_records,
+            "processed_records": latest_import.processed_records
+        }
+        
+        return import_dict
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting latest import: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get latest import")
+
 @router.get("/imports/{import_id}/raw-records")
 async def get_raw_import_records(
     import_id: str,
@@ -122,82 +168,4 @@ async def get_import_by_id(
 
     return import_dict
 
-@router.get("/imports/latest")
-async def get_latest_import(
-    db: AsyncSession = Depends(get_db)
-):
-    """Get the latest data import for the current engagement."""
-    context = get_current_context()
-
-    # Create a subquery to get the latest import for the current engagement context.
-    # The repository will handle the context filtering.
-    import_repo = create_deduplicating_repository(db, DataImport)
-    
-    # The get_all() method of the repository doesn't support ordering,
-    # so we construct a query here.
-    query = select(DataImport).order_by(desc(DataImport.created_at))
-    query = import_repo._apply_context_filter(query) # Apply context from repo
-    
-    result = await db.execute(query.limit(1))
-    latest_import = result.scalar_one_or_none()
-
-    if not latest_import:
-        raise HTTPException(status_code=404, detail="No data imports found for this engagement")
-
-    # Get a sample record to include in the response
-    sample_query = select(RawImportRecord).where(
-        RawImportRecord.data_import_id == latest_import.id
-    ).limit(1)
-    sample_result = await db.execute(sample_query)
-    sample_record = sample_result.scalar_one_or_none()
-
-    import_dict = import_to_dict(latest_import)
-    
-    # Add sample record data for field mapping
-    if sample_record and sample_record.raw_data:
-        import_dict["sample_record"] = sample_record.raw_data
-        import_dict["field_count"] = len(sample_record.raw_data.keys())
-    else:
-        import_dict["sample_record"] = {}
-        import_dict["field_count"] = 0
-
-    return import_dict
-
-@router.get("/imports")
-async def list_imports(
-    limit: int = 10,
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    List recent import sessions for traceability and audit.
-    """
-    try:
-        # Use async session pattern for querying imports
-        imports_query = select(DataImport).order_by(
-            desc(DataImport.created_at)
-        ).limit(limit)
-        
-        result = await db.execute(imports_query)
-        imports = result.scalars().all()
-        
-        import_list = []
-        for imp in imports:
-            import_list.append({
-                "id": str(imp.id),
-                "filename": imp.source_filename,
-                "import_type": imp.import_type,
-                "status": imp.status,
-                "total_records": imp.total_records,
-                "imported_at": imp.created_at.isoformat() if imp.created_at else None,
-                "completed_at": imp.completed_at.isoformat() if imp.completed_at else None
-            })
-        
-        return {
-            "success": True,
-            "imports": import_list,
-            "total": len(import_list)
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to list imports: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to list imports: {str(e)}") 
+ 

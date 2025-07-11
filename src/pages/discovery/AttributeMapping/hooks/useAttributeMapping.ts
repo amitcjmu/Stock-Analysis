@@ -6,7 +6,7 @@ import type { AttributeMappingState, AttributeMappingActions, NavigationState, S
 
 export const useAttributeMapping = () => {
   // Navigation state
-  const [activeTab, setActiveTab] = useState<'mappings' | 'data' | 'critical'>('critical');
+  const [activeTab, setActiveTab] = useState<'mappings' | 'data' | 'critical'>('mappings');
   const { flowId: urlFlowId } = useParams<{ flowId?: string }>();
 
   // Business logic hooks
@@ -32,6 +32,7 @@ export const useAttributeMapping = () => {
     handleAttributeUpdate,
     handleDataImportSelection,
     refetchAgentic,
+    refetchCriticalAttributes,
     canContinueToDataCleansing,
     autoDetectedFlowId,
     effectiveFlowId,
@@ -133,6 +134,7 @@ export const useAttributeMapping = () => {
     handleAttributeUpdate,
     handleDataImportSelection,
     refetchAgentic,
+    refetchCriticalAttributes,
     canContinueToDataCleansing
   };
 

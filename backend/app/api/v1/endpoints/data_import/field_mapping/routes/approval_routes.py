@@ -70,7 +70,7 @@ async def approve_field_mappings(
 
 @router.post("/approve-mapping/{mapping_id}")
 async def approve_single_mapping(
-    mapping_id: int,
+    mapping_id: str,  # Changed to str to accept UUID
     approved: bool = True,
     approval_note: str = None,
     service: MappingService = Depends(get_mapping_service)

@@ -182,6 +182,86 @@ export const API_CONFIG = {
 // Track in-flight requests to prevent duplicates
 const pendingRequests = new Map<string, Promise<any>>();
 
+// Enhanced rate limiting and caching system
+interface CacheEntry {
+  data: any;
+  timestamp: number;
+  expiry: number;
+}
+
+interface RateLimitEntry {
+  count: number;
+  resetTime: number;
+}
+
+// Cache for API responses (5 minute default expiry)
+const responseCache = new Map<string, CacheEntry>();
+// Rate limiting tracker per endpoint
+const rateLimitTracker = new Map<string, RateLimitEntry>();
+
+// Rate limit configuration
+const RATE_LIMITS = {
+  'GET:/api/v1/data-import/available-target-fields': { maxRequests: 2, windowMs: 60000 }, // 2 requests per minute
+  'GET:/api/v1/data-import/field-mapping': { maxRequests: 5, windowMs: 30000 }, // 5 requests per 30s
+  'GET:/api/v1/data-import/latest': { maxRequests: 10, windowMs: 60000 }, // 10 requests per minute
+  'default': { maxRequests: 30, windowMs: 60000 } // Default: 30 requests per minute
+};
+
+// Cache configuration per endpoint
+const CACHE_CONFIG = {
+  'GET:/api/v1/data-import/available-target-fields': 300000, // 5 minutes
+  'GET:/api/v1/data-import/field-mapping': 60000, // 1 minute
+  'GET:/api/v1/data-import/latest': 30000, // 30 seconds
+  'default': 120000 // 2 minutes default
+};
+
+function isRateLimited(method: string, normalizedEndpoint: string): boolean {
+  const key = `${method}:${normalizedEndpoint}`;
+  const config = RATE_LIMITS[key] || RATE_LIMITS.default;
+  const now = Date.now();
+  
+  let entry = rateLimitTracker.get(key);
+  
+  if (!entry || now > entry.resetTime) {
+    // Reset or create new entry
+    entry = { count: 0, resetTime: now + config.windowMs };
+    rateLimitTracker.set(key, entry);
+  }
+  
+  if (entry.count >= config.maxRequests) {
+    console.warn(`Rate limit exceeded for ${key}. Reset at ${new Date(entry.resetTime).toISOString()}`);
+    return true;
+  }
+  
+  entry.count++;
+  return false;
+}
+
+function getCachedResponse(method: string, normalizedEndpoint: string): any | null {
+  const key = `${method}:${normalizedEndpoint}`;
+  const entry = responseCache.get(key);
+  
+  if (!entry) return null;
+  
+  const now = Date.now();
+  if (now > entry.expiry) {
+    responseCache.delete(key);
+    return null;
+  }
+  
+  console.log(`📋 Cache hit for ${key}, expires in ${Math.round((entry.expiry - now) / 1000)}s`);
+  return entry.data;
+}
+
+function setCachedResponse(method: string, normalizedEndpoint: string, data: any): void {
+  const key = `${method}:${normalizedEndpoint}`;
+  const config = CACHE_CONFIG[key] || CACHE_CONFIG.default;
+  const expiry = Date.now() + config;
+  
+  responseCache.set(key, { data, timestamp: Date.now(), expiry });
+  console.log(`💾 Cached response for ${key}, expires at ${new Date(expiry).toISOString()}`);
+}
+
 interface ApiError extends Error {
   status?: number;
   statusText?: string;
@@ -241,6 +321,23 @@ export const apiCall = async (
   // Exclude POST/PUT/PATCH/DELETE requests from deduplication as they can have side effects
   const requestKey = `${method}:${normalizedEndpoint}`;
   const shouldDeduplicate = ['GET', 'HEAD', 'OPTIONS'].includes(method);
+  
+  // Check cache first for GET requests
+  if (shouldDeduplicate) {
+    const cachedResponse = getCachedResponse(method, normalizedEndpoint);
+    if (cachedResponse !== null) {
+      return Promise.resolve(cachedResponse);
+    }
+    
+    // Check rate limiting
+    if (isRateLimited(method, normalizedEndpoint)) {
+      const rateLimitError = new Error('Rate limit exceeded') as ApiError;
+      rateLimitError.status = 429;
+      rateLimitError.isRateLimited = true;
+      rateLimitError.isApiError = true;
+      throw rateLimitError;
+    }
+  }
   
   // If we already have a request with the same key, return that instead (only for safe methods)
   if (shouldDeduplicate && pendingRequests.has(requestKey)) {
@@ -390,6 +487,11 @@ export const apiCall = async (
         }
         
         throw error;
+      }
+      
+      // Cache successful GET responses
+      if (shouldDeduplicate && response.ok) {
+        setCachedResponse(method, normalizedEndpoint, data);
       }
       
       return data;

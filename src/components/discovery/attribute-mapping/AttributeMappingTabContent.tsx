@@ -1,5 +1,5 @@
 import React from 'react';
-import FieldMappingsTab from './FieldMappingsTab';
+import FieldMappingsTab from './FieldMappingsTab/index';
 import CriticalAttributesTab from './CriticalAttributesTab';
 import ImportedDataTab from './ImportedDataTab';
 import { FieldMappingErrorBoundary } from './FieldMappingErrorBoundary';
@@ -13,6 +13,7 @@ interface AttributeMappingTabContentProps {
   onRejectMapping: (mappingId: string, rejectionReason?: string) => void;
   onMappingChange?: (mappingId: string, newTarget: string) => void;
   refetchAgentic?: () => void;
+  refetchCriticalAttributes?: () => void;
   onAttributeUpdate?: (attributeName: string, updates: Partial<any>) => void;
   isLoading?: boolean;
   sessionInfo?: {
@@ -32,6 +33,7 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
   onRejectMapping,
   onMappingChange,
   refetchAgentic,
+  refetchCriticalAttributes,
   onAttributeUpdate,
   isLoading = false,
   sessionInfo
@@ -51,19 +53,26 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
                   onRejectMapping(mappingId, rejectionReason);
                 }
               }}
-            onMappingChange={onMappingChange}
-          />
+              onMappingChange={onMappingChange}
+              onRefresh={refetchAgentic}
+            />
           </FieldMappingErrorBoundary>
         );
       case 'critical':
         return (
           <CriticalAttributesTab
-            criticalAttributes={criticalAttributes}
-            onRefreshCriticalData={refetchAgentic}
-            onAttributeUpdate={onAttributeUpdate}
-            isLoading={false}
             fieldMappings={fieldMappings}
-            sessionInfo={sessionInfo}
+            onMappingAction={(mappingId: string, action: 'approve' | 'reject', rejectionReason?: string) => {
+              if (action === 'approve') {
+                onApproveMapping(mappingId);
+              } else {
+                onRejectMapping(mappingId, rejectionReason);
+              }
+            }}
+            onMappingChange={onMappingChange}
+            onRefresh={refetchAgentic}
+            isLoading={isLoading}
+            isAnalyzing={false}
           />
         );
       case 'data':
@@ -73,12 +82,18 @@ const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({
       default:
         return (
           <CriticalAttributesTab
-            criticalAttributes={criticalAttributes}
-            onRefreshCriticalData={refetchAgentic}
-            onAttributeUpdate={onAttributeUpdate}
-            isLoading={false}
             fieldMappings={fieldMappings}
-            sessionInfo={sessionInfo}
+            onMappingAction={(mappingId: string, action: 'approve' | 'reject', rejectionReason?: string) => {
+              if (action === 'approve') {
+                onApproveMapping(mappingId);
+              } else {
+                onRejectMapping(mappingId, rejectionReason);
+              }
+            }}
+            onMappingChange={onMappingChange}
+            onRefresh={refetchAgentic}
+            isLoading={isLoading}
+            isAnalyzing={false}
           />
         );
     }

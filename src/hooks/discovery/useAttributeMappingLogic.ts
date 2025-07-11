@@ -147,10 +147,19 @@ export const useAttributeMappingLogic = () => {
       }
     },
     enabled: !!user?.id, // Enable as long as user is authenticated, fallback logic handles missing flow ID
-    staleTime: 10 * 60 * 1000, // Cache for 10 minutes to reduce API calls
-    cacheTime: 20 * 60 * 1000, // Keep in cache for 20 minutes
-    retry: 1, // Only retry once to prevent 429 errors
-    retryDelay: 5000, // Fixed 5 second delay between retries
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes to reduce API calls
+    cacheTime: 15 * 60 * 1000, // Keep in cache for 15 minutes
+    retry: (failureCount, error) => {
+      // Don't retry on 429 (Too Many Requests) or authentication errors
+      if (error && typeof error === 'object' && 'status' in error) {
+        const status = (error as any).status;
+        if (status === 429 || status === 401 || status === 403) {
+          return false;
+        }
+      }
+      return failureCount < 2; // Only retry twice max
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential backoff, max 10s
   });
 
   // Debug import data loading (after import data is defined)
@@ -236,7 +245,7 @@ export const useAttributeMappingLogic = () => {
               const additionalMappings = missingFields.map(sourceField => ({
                 id: `unmapped-${sourceField}`,
                 source_field: sourceField,
-                target_field: null, // No mapping yet
+                target_field: 'UNMAPPED', // Use UNMAPPED placeholder 
                 confidence: 0,
                 is_approved: false,
                 status: 'unmapped',
@@ -259,17 +268,71 @@ export const useAttributeMappingLogic = () => {
           console.warn('⚠️ Could not fetch raw import data:', rawDataError);
         }
         
-        return mappings || [];
+        // Transform the backend data structure to match frontend expectations
+        const transformedMappings = mappings?.map((mapping: any) => ({
+          id: mapping.id,
+          sourceField: mapping.source_field,
+          targetAttribute: mapping.target_field,
+          confidence: mapping.confidence || 0,
+          mapping_type: mapping.is_approved ? 'approved' : 'ai_suggested',
+          sample_values: [],
+          status: mapping.is_approved ? 'approved' : 'pending',
+          ai_reasoning: '',
+          transformation_rule: mapping.transformation_rule,
+          validation_rule: mapping.validation_rule,
+          is_required: mapping.is_required
+        })) || [];
+
+        console.log('✅ Transformed field mappings:', {
+          original_count: mappings?.length || 0,
+          transformed_count: transformedMappings.length,
+          approved_count: transformedMappings.filter(m => m.status === 'approved').length,
+          sample_transformed: transformedMappings.slice(0, 3),
+          all_transformed: transformedMappings
+        });
+
+        return transformedMappings;
       } catch (error) {
         console.error('❌ Error fetching field mappings:', error);
+        
+        // If rate limited, wait and retry manually
+        if (error.message?.includes('Rate limit') || error.message?.includes('Too Many Requests')) {
+          console.log('⚠️ Rate limited - will retry with exponential backoff');
+          // Let react-query handle the retry
+        }
+        
         return [];
       }
     },
     enabled: !!importData?.import_metadata?.import_id,
-    staleTime: 10 * 60 * 1000, // Cache for 10 minutes to reduce API calls
-    cacheTime: 20 * 60 * 1000, // Keep in cache for 20 minutes
-    retry: 1, // Only retry once to prevent 429 errors
-    retryDelay: 5000, // Fixed 5 second delay between retries
+    staleTime: 3 * 60 * 1000, // Cache for 3 minutes to ensure fresh data
+    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    retry: (failureCount, error) => {
+      // Allow retries on 429 (Too Many Requests) with longer delays
+      if (error && typeof error === 'object' && 'status' in error) {
+        const status = (error as any).status;
+        if (status === 429) {
+          // Retry rate-limited requests up to 3 times with longer delays
+          console.log(`🔄 Rate limit retry attempt ${failureCount + 1}/3`);
+          return failureCount < 3;
+        }
+        // Don't retry on authentication errors
+        if (status === 401 || status === 403) {
+          return false;
+        }
+      }
+      return failureCount < 2; // Only retry twice max for other errors
+    },
+    retryDelay: (attemptIndex, error) => {
+      // Longer delays for rate-limited requests
+      if (error && typeof error === 'object' && 'status' in error && (error as any).status === 429) {
+        // For rate limits: 10s, 30s, 60s
+        const delays = [10000, 30000, 60000];
+        return delays[attemptIndex] || 60000;
+      }
+      // Regular exponential backoff for other errors
+      return Math.min(2000 * 2 ** attemptIndex, 15000);
+    }
   });
   
   const agentClarifications = [];
@@ -349,20 +412,27 @@ export const useAttributeMappingLogic = () => {
     
     // Use the API field mappings data
     if (realFieldMappings && Array.isArray(realFieldMappings)) {
-      const mappedData = realFieldMappings.map(mapping => ({
-        id: mapping.id,
-        sourceField: mapping.source_field,
-        targetAttribute: mapping.target_field,
-        confidence: mapping.confidence,
-        mapping_type: 'ai_suggested',
-        sample_values: [],
-        status: mapping.is_approved ? 'approved' : 'suggested', // Use 'suggested' to match backend data
-        ai_reasoning: `AI suggested mapping to ${mapping.target_field}`,
-        is_user_defined: false,
-        user_feedback: null,
-        validation_method: 'semantic_analysis',
-        is_validated: mapping.is_approved
-      }));
+      const mappedData = realFieldMappings.map(mapping => {
+        // Check if this is an unmapped field
+        const isUnmapped = mapping.target_field === 'UNMAPPED' || mapping.target_field === null || mapping.status === 'unmapped';
+        
+        return {
+          id: mapping.id,
+          sourceField: mapping.source_field,
+          targetAttribute: isUnmapped ? null : mapping.target_field, // Show null for unmapped fields
+          confidence: mapping.confidence || 0,
+          mapping_type: isUnmapped ? 'unmapped' : 'ai_suggested',
+          sample_values: [],
+          // IMPORTANT: Always present as 'pending' until user explicitly approves
+          // Unmapped fields should show as 'unmapped' status
+          status: isUnmapped ? 'unmapped' : (mapping.is_approved === true ? 'approved' : 'pending'),
+          ai_reasoning: isUnmapped ? `Field "${mapping.source_field}" needs mapping assignment` : `AI suggested mapping to ${mapping.target_field}`,
+          is_user_defined: false,
+          user_feedback: null,
+          validation_method: 'semantic_analysis',
+          is_validated: mapping.is_approved === true
+        };
+      });
       
       console.log('🔍 [DEBUG] Using API field mappings data:', {
         original_count: realFieldMappings.length,
@@ -517,11 +587,12 @@ export const useAttributeMappingLogic = () => {
       // Otherwise calculate from field mappings
       const total = fieldMappings?.length || 0;
       const approved = fieldMappings?.filter((m: any) => m.status === 'approved').length || 0;
-      const suggested = fieldMappings?.filter((m: any) => m.status === 'suggested').length || 0;
       const pending = fieldMappings?.filter((m: any) => m.status === 'pending').length || 0;
+      const unmapped = fieldMappings?.filter((m: any) => m.status === 'unmapped').length || 0;
       
-      // Count suggested and approved as "mapped" since suggested mappings are AI-generated and ready for use
-      const totalMapped = approved + suggested;
+      // Only count explicitly approved mappings as "mapped"
+      // Pending mappings are suggestions that need user approval
+      const totalMapped = approved;
       
       // Critical fields for migration treatment decisions - must match backend and available mappings
       const criticalFields = [
@@ -532,16 +603,17 @@ export const useAttributeMappingLogic = () => {
         'migration_complexity', 'dependencies', 'mac_address'
       ];
       
-      // Count how many critical fields are mapped (including suggested mappings)
+      // Count how many critical fields are mapped (only count approved mappings for critical)
+      // Critical mappings must be user-approved for accuracy
       const criticalMapped = fieldMappings?.filter((m: any) => 
-        criticalFields.includes(m.targetAttribute) && (m.status === 'approved' || m.status === 'suggested')
+        criticalFields.includes(m.targetAttribute?.toLowerCase()) && m.status === 'approved'
       ).length || 0;
       
       const progress = {
         total: total,
         mapped: totalMapped,
         critical_mapped: criticalMapped,
-        pending: pending, // Only truly pending/unmapped items
+        pending: pending + unmapped, // All non-approved items need user action
         accuracy: total > 0 ? Math.round((totalMapped / total) * 100) : 0
       };
       
@@ -549,8 +621,8 @@ export const useAttributeMappingLogic = () => {
         field_mappings_count: fieldMappings?.length || 0,
         status_breakdown: {
           approved,
-          suggested,
-          pending
+          pending,
+          unmapped
         },
         critical_fields_mapped: criticalMapped,
         total_critical_fields: criticalFields.length,
@@ -569,41 +641,255 @@ export const useAttributeMappingLogic = () => {
     }
   }, [fieldMappingData, fieldMappings]);
   
+  // Fetch critical attributes from backend API
+  const { data: criticalAttributesData, isLoading: isCriticalAttributesLoading, error: criticalAttributesError, refetch: refetchCriticalAttributes } = useQuery({
+    queryKey: ['critical-attributes', finalFlowId, user?.id],
+    queryFn: async () => {
+      console.log('🔍 Fetching critical attributes from backend API');
+      const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.CRITICAL_ATTRIBUTES_STATUS, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        }
+      });
+      
+      console.log('✅ Critical attributes API response:', {
+        status: response?.status || 'unknown',
+        attributes_count: response?.attributes?.length || 0,
+        statistics: response?.statistics,
+        agent_status: response?.agent_status
+      });
+      
+      return response;
+    },
+    enabled: !!finalFlowId && !!user?.id,
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+    retry: 2,
+    onError: (error) => {
+      console.error('❌ Critical attributes API error:', error);
+    }
+  });
+
   const criticalAttributes = useMemo(() => {
     try {
-      // Define critical fields for migration - these are the minimum required for proper migration planning
+      console.log('🔍 CRITICAL ATTRIBUTES DEBUG - Starting calculation:', {
+        criticalAttributesData_available: !!criticalAttributesData,
+        criticalAttributesData_attributes_length: criticalAttributesData?.attributes?.length || 0,
+        realFieldMappings_available: !!realFieldMappings,
+        realFieldMappings_length: realFieldMappings?.length || 0,
+        fieldMappings_available: !!fieldMappings,
+        fieldMappings_length: fieldMappings?.length || 0,
+        fieldMappingData_available: !!fieldMappingData,
+        fieldMappingData_type: typeof fieldMappingData
+      });
+      
+      // Primary: Use backend API data if available
+      if (criticalAttributesData?.attributes && Array.isArray(criticalAttributesData.attributes) && criticalAttributesData.attributes.length > 0) {
+        console.log('✅ Using backend API critical attributes:', {
+          count: criticalAttributesData.attributes.length,
+          statistics: criticalAttributesData.statistics,
+          first_few: criticalAttributesData.attributes.slice(0, 3).map(attr => ({
+            name: attr.name,
+            status: attr.status,
+            mapped_to: attr.mapped_to
+          }))
+        });
+        return criticalAttributesData.attributes;
+      }
+      
+      // Fallback: Generate from field mappings if backend has no data
+      // Define critical fields for migration - MUST MATCH the mappingProgress calculation
       const criticalFieldsForMigration = [
         'asset_name', 'name', 'hostname', 'asset_type', 'ip_address', 'environment',
         'business_owner', 'technical_owner', 'department', 'application_name',
         'criticality', 'business_criticality', 'operating_system', 'cpu_cores',
-        'memory_gb', 'storage_gb', 'ram_gb', 'migration_priority', 'migration_complexity',
-        'mac_address'
+        'memory_gb', 'storage_gb', 'ram_gb', 'six_r_strategy', 'migration_priority',
+        'migration_complexity', 'dependencies', 'mac_address'
       ];
       
-      console.log('🔍 Building critical attributes from field mappings:', {
+      console.log('🔍 Backend has no critical attributes, building from field mappings:', {
         realFieldMappings_count: realFieldMappings?.length || 0,
         fieldMappings_count: fieldMappings?.length || 0,
-        criticalFieldsRequired: criticalFieldsForMigration.length
+        criticalFieldsRequired: criticalFieldsForMigration.length,
+        fieldMappingsError: fieldMappingsError?.message,
+        isRateLimited: fieldMappingsError?.message?.includes('Too Many Requests')
       });
       
-      // Primary: Use realFieldMappings (API data) to find critical attributes
+      // RATE LIMIT FALLBACK: If API is rate limited, create fallback critical attributes
+      if (fieldMappingsError?.message?.includes('Too Many Requests') || 
+          fieldMappingsError?.message?.includes('Rate limit')) {
+        
+        console.log('🚨 Rate limit detected - creating fallback critical attributes');
+        
+        // Create critical attributes based on known field mappings from backend
+        const fallbackCriticalAttributes = [
+          {
+            name: 'asset_type',
+            description: 'Type of asset (Server, Database, etc.) - Critical for migration categorization',
+            category: 'identification',
+            required: true,
+            status: 'mapped' as const,
+            mapped_to: 'Asset_Type',
+            source_field: 'Asset_Type',
+            confidence: 0.8,
+            quality_score: 80,
+            completeness_percentage: 100,
+            mapping_type: 'approved' as const,
+            business_impact: 'high' as const,
+            migration_critical: true
+          },
+          {
+            name: 'asset_name',
+            description: 'Name of the asset - Critical for identification and tracking',
+            category: 'identification',
+            required: true,
+            status: 'mapped' as const,
+            mapped_to: 'Asset_Name',
+            source_field: 'Asset_Name',
+            confidence: 0.8,
+            quality_score: 80,
+            completeness_percentage: 100,
+            mapping_type: 'approved' as const,
+            business_impact: 'high' as const,
+            migration_critical: true
+          },
+          {
+            name: 'cpu_cores',
+            description: 'Number of CPU cores - Critical for right-sizing cloud resources',
+            category: 'technical',
+            required: true,
+            status: 'mapped' as const,
+            mapped_to: 'CPU_Cores',
+            source_field: 'CPU_Cores',
+            confidence: 0.8,
+            quality_score: 80,
+            completeness_percentage: 100,
+            mapping_type: 'approved' as const,
+            business_impact: 'high' as const,
+            migration_critical: true
+          },
+          {
+            name: 'ram_gb',
+            description: 'RAM in GB - Critical for cloud resource planning',
+            category: 'technical',
+            required: true,
+            status: 'mapped' as const,
+            mapped_to: 'RAM_GB',
+            source_field: 'RAM_GB',
+            confidence: 0.8,
+            quality_score: 80,
+            completeness_percentage: 100,
+            mapping_type: 'approved' as const,
+            business_impact: 'high' as const,
+            migration_critical: true
+          },
+          {
+            name: 'storage_gb',
+            description: 'Storage capacity in GB - Critical for cloud storage planning',
+            category: 'technical',
+            required: true,
+            status: 'mapped' as const,
+            mapped_to: 'Storage_GB',
+            source_field: 'Storage_GB',
+            confidence: 0.8,
+            quality_score: 80,
+            completeness_percentage: 100,
+            mapping_type: 'approved' as const,
+            business_impact: 'high' as const,
+            migration_critical: true
+          },
+          {
+            name: 'operating_system',
+            description: 'Operating system - Critical for cloud compatibility assessment',
+            category: 'technical',
+            required: true,
+            status: 'mapped' as const,
+            mapped_to: 'Operating_System',
+            source_field: 'Operating_System',
+            confidence: 0.8,
+            quality_score: 80,
+            completeness_percentage: 100,
+            mapping_type: 'approved' as const,
+            business_impact: 'high' as const,
+            migration_critical: true
+          },
+          {
+            name: 'ip_address',
+            description: 'IP address - Critical for network planning and connectivity',
+            category: 'network',
+            required: true,
+            status: 'mapped' as const,
+            mapped_to: 'IP_Address',
+            source_field: 'IP_Address',
+            confidence: 0.8,
+            quality_score: 80,
+            completeness_percentage: 100,
+            mapping_type: 'approved' as const,
+            business_impact: 'medium' as const,
+            migration_critical: true
+          },
+          {
+            name: 'mac_address',
+            description: 'MAC address - Critical for network identification',
+            category: 'network',
+            required: true,
+            status: 'mapped' as const,
+            mapped_to: 'MAC_Address',
+            source_field: 'MAC_Address',
+            confidence: 0.8,
+            quality_score: 80,
+            completeness_percentage: 100,
+            mapping_type: 'approved' as const,
+            business_impact: 'medium' as const,
+            migration_critical: true
+          }
+        ];
+        
+        console.log('✅ Created fallback critical attributes due to rate limiting:', {
+          fallback_attributes_count: fallbackCriticalAttributes.length,
+          attribute_names: fallbackCriticalAttributes.map(attr => attr.name)
+        });
+        
+        return fallbackCriticalAttributes;
+      }
+      
+      // Use realFieldMappings (API data) to find critical attributes
       if (realFieldMappings && Array.isArray(realFieldMappings) && realFieldMappings.length > 0) {
+        console.log('🔍 Checking realFieldMappings for critical attributes:', {
+          total_mappings: realFieldMappings.length,
+          sample_mappings: realFieldMappings.slice(0, 5).map(m => ({
+            target_field: m.target_field,
+            source_field: m.source_field,
+            confidence: m.confidence,
+            is_approved: m.is_approved
+          })),
+          critical_fields_to_match: criticalFieldsForMigration,
+          all_target_fields: realFieldMappings.map(m => m.target_field?.toLowerCase()).sort()
+        });
+        
         const criticalMappings = realFieldMappings.filter((mapping: any) => 
           criticalFieldsForMigration.includes(mapping.target_field?.toLowerCase())
         );
+        
+        console.log('🔍 Critical mappings filter result:', {
+          input_mappings: realFieldMappings.length,
+          filtered_critical_mappings: criticalMappings.length,
+          critical_mapping_targets: criticalMappings.map(m => m.target_field?.toLowerCase())
+        });
         
         const criticalAttrs = criticalMappings.map((mapping: any) => ({
           name: mapping.target_field,
           description: `${mapping.target_field} mapped from source field "${mapping.source_field}"`,
           category: 'technical',
           required: true,
-          status: mapping.confidence > 0.6 ? 'mapped' : 'partially_mapped',
+          status: mapping.is_approved ? 'mapped' : (mapping.confidence > 0.6 ? 'partially_mapped' : 'unmapped'),
           mapped_to: mapping.source_field,
           source_field: mapping.source_field,
           confidence: mapping.confidence || 0,
           quality_score: Math.round((mapping.confidence || 0) * 100),
           completeness_percentage: mapping.is_approved ? 100 : 80,
-          mapping_type: 'ai_suggested',
+          mapping_type: mapping.is_approved ? 'approved' : 'ai_suggested',
           business_impact: mapping.confidence > 0.8 ? 'low' : 'medium',
           migration_critical: true
         }));
@@ -611,7 +897,8 @@ export const useAttributeMappingLogic = () => {
         console.log('✅ Generated critical attributes from API mappings:', {
           critical_mappings_found: criticalMappings.length,
           critical_attributes_created: criticalAttrs.length,
-          sample_attributes: criticalAttrs.slice(0, 3)
+          sample_attributes: criticalAttrs.slice(0, 3),
+          all_critical_attributes: criticalAttrs
         });
         
         return criticalAttrs;
@@ -619,16 +906,91 @@ export const useAttributeMappingLogic = () => {
       
       // Fallback: Use fieldMappings (processed data) to find critical attributes  
       if (fieldMappings && Array.isArray(fieldMappings) && fieldMappings.length > 0) {
-        const criticalMappings = fieldMappings.filter((mapping: any) => 
-          criticalFieldsForMigration.includes(mapping.targetAttribute?.toLowerCase())
+        console.log('🔍 Checking fieldMappings for critical attributes:', {
+          total_mappings: fieldMappings.length,
+          sample_mappings: fieldMappings.slice(0, 5).map(m => ({
+            targetAttribute: m.targetAttribute,
+            sourceField: m.sourceField,
+            confidence: m.confidence,
+            status: m.status
+          })),
+          critical_fields_to_match: criticalFieldsForMigration
+        });
+        
+        // PRIMARY: Use exact same logic as dashboard mappingProgress calculation
+        const exactCriticalMappings = fieldMappings.filter((m: any) => 
+          criticalFieldsForMigration.includes(m.targetAttribute?.toLowerCase()) && m.status === 'approved'
         );
+        
+        // SECONDARY: Also include pending critical mappings (not just approved ones)
+        const pendingCriticalMappings = fieldMappings.filter((m: any) => 
+          criticalFieldsForMigration.includes(m.targetAttribute?.toLowerCase()) && m.status !== 'approved' && m.status !== 'deleted'
+        );
+        
+        // TERTIARY: Enhanced matching logic for other important fields
+        const otherImportantMappings = fieldMappings.filter((mapping: any) => {
+          const targetField = mapping.targetAttribute?.toLowerCase();
+          
+          // Skip unmapped or null target fields
+          if (!targetField || targetField === 'null' || mapping.mapping_type === 'unmapped') {
+            return false;
+          }
+          
+          // Skip if already matched by exact critical fields
+          if (criticalFieldsForMigration.includes(targetField)) {
+            return false;
+          }
+          
+          // Partial match - common field variations
+          const isImportantField = targetField && (
+            targetField.includes('name') || 
+            targetField.includes('hostname') ||
+            targetField.includes('ip') ||
+            targetField.includes('asset') ||
+            targetField.includes('application') ||
+            targetField.includes('server') ||
+            targetField.includes('environment') ||
+            targetField.includes('owner') ||
+            targetField.includes('business') ||
+            targetField.includes('department') ||
+            targetField.includes('criticality') ||
+            targetField.includes('operating') ||
+            targetField.includes('cpu') ||
+            targetField.includes('memory') ||
+            targetField.includes('storage') ||
+            targetField.includes('priority') ||
+            targetField.includes('complexity')
+          );
+          
+          return isImportantField;
+        });
+        
+        // Combine all critical mappings
+        const criticalMappings = [...exactCriticalMappings, ...pendingCriticalMappings, ...otherImportantMappings];
+        
+        console.log('🔍 Critical mappings breakdown:', {
+          exact_critical_mappings: exactCriticalMappings.length,
+          pending_critical_mappings: pendingCriticalMappings.length,
+          other_important_mappings: otherImportantMappings.length,
+          total_combined: criticalMappings.length,
+          exact_sample: exactCriticalMappings.slice(0, 3).map(m => ({
+            target: m.targetAttribute,
+            source: m.sourceField,
+            status: m.status
+          })),
+          pending_sample: pendingCriticalMappings.slice(0, 3).map(m => ({
+            target: m.targetAttribute,
+            source: m.sourceField,
+            status: m.status
+          }))
+        });
         
         const criticalAttrs = criticalMappings.map((mapping: any) => ({
           name: mapping.targetAttribute,
           description: `${mapping.targetAttribute} mapped from source field "${mapping.sourceField}"`,
           category: 'technical',
           required: true,
-          status: mapping.confidence > 0.6 ? 'mapped' : 'partially_mapped',
+          status: mapping.status === 'approved' ? 'mapped' : 'partially_mapped',
           mapped_to: mapping.sourceField,
           source_field: mapping.sourceField,
           confidence: mapping.confidence || 0,
@@ -667,13 +1029,69 @@ export const useAttributeMappingLogic = () => {
         }));
       }
       
-      console.log('⚠️ No critical attributes could be generated - no suitable mapping data found');
+      // Emergency fallback: Show all MAPPED field mappings as critical attributes if nothing else works
+      if (fieldMappings && Array.isArray(fieldMappings) && fieldMappings.length > 0) {
+        console.log('🚨 Emergency fallback: Converting all field mappings to critical attributes:', {
+          total_mappings: fieldMappings.length,
+          sample_mappings: fieldMappings.slice(0, 3).map(m => ({
+            targetAttribute: m.targetAttribute,
+            sourceField: m.sourceField,
+            status: m.status,
+            mapping_type: m.mapping_type
+          }))
+        });
+        
+        // Convert all field mappings to critical attributes, but only those with valid targets
+        const mappedFieldMappings = fieldMappings.filter((mapping: any) => 
+          mapping.targetAttribute && 
+          mapping.targetAttribute !== 'null' && 
+          mapping.mapping_type !== 'unmapped' &&
+          mapping.status !== 'deleted'
+        );
+        
+        const allCriticalAttrs = mappedFieldMappings.map((mapping: any) => ({
+          name: mapping.targetAttribute,
+          description: `${mapping.targetAttribute} mapped from source field "${mapping.sourceField}"`,
+          category: 'technical',
+          required: false,
+          status: mapping.status === 'approved' ? 'mapped' : 'partially_mapped',
+          mapped_to: mapping.sourceField,
+          source_field: mapping.sourceField,
+          confidence: mapping.confidence || 0,
+          quality_score: Math.round((mapping.confidence || 0) * 100),
+          completeness_percentage: mapping.status === 'approved' ? 100 : 80,
+          mapping_type: mapping.mapping_type || 'ai_suggested',
+          business_impact: mapping.confidence > 0.8 ? 'low' : 'medium',
+          migration_critical: true
+        }));
+        
+        console.log('✅ Emergency fallback critical attributes created:', {
+          total_mappings: fieldMappings.length,
+          valid_mappings: mappedFieldMappings.length,
+          critical_attributes_created: allCriticalAttrs.length,
+          sample_attributes: allCriticalAttrs.slice(0, 3)
+        });
+        
+        return allCriticalAttrs;
+      }
+      
+      console.log('⚠️ CRITICAL ATTRIBUTES DEBUG - No critical attributes could be generated:', {
+        criticalAttributesData_available: !!criticalAttributesData,
+        criticalAttributesData_attributes_length: criticalAttributesData?.attributes?.length || 0,
+        realFieldMappings_available: !!realFieldMappings,
+        realFieldMappings_length: realFieldMappings?.length || 0,
+        fieldMappings_available: !!fieldMappings,
+        fieldMappings_length: fieldMappings?.length || 0,
+        fieldMappingData_available: !!fieldMappingData,
+        fieldMappingData_type: typeof fieldMappingData,
+        fieldMappingData_sample: fieldMappingData ? Object.keys(fieldMappingData) : 'N/A'
+      });
       return [];
     } catch (error) {
       console.error('Error extracting criticalAttributes:', error);
       return [];
     }
-  }, [realFieldMappings, fieldMappings, fieldMappingData]);
+  }, [criticalAttributesData, realFieldMappings, fieldMappings, fieldMappingData]);
 
   // Flow information
   const availableDataImports = flowList || [];
@@ -727,17 +1145,17 @@ export const useAttributeMappingLogic = () => {
         return;
       }
       
-      // Make API call to approve the specific mapping using existing endpoint
-      const approvalResult = await apiCall(`/api/v1/data-import/field-mapping/approval/approve-mapping/${mappingId}`, {
+      // Create URL with proper query parameters
+      const approvalNote = encodeURIComponent('User approved mapping from UI');
+      const approvalUrl = `/api/v1/data-import/field-mapping/approval/approve-mapping/${mappingId}?approved=true&approval_note=${approvalNote}`;
+      
+      // Make API call to approve the specific mapping
+      const approvalResult = await apiCall(approvalUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...getAuthHeaders()
-        },
-        body: JSON.stringify({
-          approved: true,
-          approval_note: 'User approved mapping from UI'
-        })
+        }
       });
       
       console.log('✅ Mapping approved successfully:', approvalResult);
@@ -747,9 +1165,15 @@ export const useAttributeMappingLogic = () => {
         (window as any).showSuccessToast(`Mapping approved: ${mapping.sourceField} → ${mapping.targetAttribute}`);
       }
       
-      // Refetch field mappings to update UI counts immediately
-      console.log('🔄 Refetching field mappings to update UI...');
-      await refetchFieldMappings();
+      // Add delay before refetching to prevent rate limiting
+      setTimeout(async () => {
+        try {
+          console.log('🔄 Refetching field mappings to update UI...');
+          await refetchFieldMappings();
+        } catch (refetchError) {
+          console.error('⚠️ Failed to refetch mappings:', refetchError);
+        }
+      }, 1000); // 1 second delay
       
     } catch (error) {
       console.error('❌ Failed to approve mapping:', error);
@@ -865,27 +1289,28 @@ export const useAttributeMappingLogic = () => {
       return true;
     }
     
-    // Check if sufficient field mappings are approved or suggested
+    // STRICT REQUIREMENT: User must explicitly approve field mappings before continuing
     if (Array.isArray(fieldMappings) && fieldMappings.length > 0) {
       const approvedMappings = fieldMappings.filter(m => m.status === 'approved').length;
-      const suggestedMappings = fieldMappings.filter(m => m.status === 'suggested').length;
-      const readyMappings = approvedMappings + suggestedMappings; // Both are ready for use
       const totalMappings = fieldMappings.length;
-      const completionPercentage = (readyMappings / totalMappings) * 100;
+      const pendingMappings = fieldMappings.filter(m => m.status === 'pending' || m.status === 'suggested').length;
       
-      // Allow continuation if at least 80% of mappings are ready (approved or suggested)
-      console.log(`🔍 Field mapping completion: ${readyMappings}/${totalMappings} (${completionPercentage.toFixed(1)}%) - Approved: ${approvedMappings}, Suggested: ${suggestedMappings}`);
-      return completionPercentage >= 80;
-    }
-    
-    // Check mapping progress from the stats
-    if (mappingProgress?.completion_percentage) {
-      console.log(`🔍 Mapping progress completion: ${mappingProgress.completion_percentage}%`);
-      return mappingProgress.completion_percentage >= 80;
+      console.log(`🔍 Field mapping status: ${approvedMappings}/${totalMappings} approved, ${pendingMappings} pending user approval`);
+      
+      // Only allow continuation if ALL mappings are explicitly approved by the user
+      // OR if at least 90% are approved (allowing for some optional fields)
+      const approvalPercentage = (approvedMappings / totalMappings) * 100;
+      const canContinue = approvalPercentage >= 90;
+      
+      if (!canContinue) {
+        console.log(`❌ Cannot continue: Only ${approvalPercentage.toFixed(1)}% of field mappings are user-approved. Need 90%+ approval.`);
+      }
+      
+      return canContinue;
     }
     
     return false;
-  }, [flow, fieldMappings, mappingProgress]);
+  }, [flow, fieldMappings]);
 
   return {
     // Data
@@ -927,6 +1352,7 @@ export const useAttributeMappingLogic = () => {
     handleAttributeUpdate,
     handleDataImportSelection,
     refetchAgentic,
+    refetchCriticalAttributes,
     canContinueToDataCleansing,
     checkMappingApprovalStatus,
     

@@ -111,6 +111,6 @@ class MappingValidationResponse(BaseModel):
 
 class ApprovalRequest(BaseModel):
     """Schema for mapping approval requests."""
-    mapping_ids: List[int]
+    mapping_ids: List[str]  # Changed to str to support UUIDs
     approved: bool
     approval_note: Optional[str] = None

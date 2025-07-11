@@ -1,5 +1,5 @@
-import React from 'react';
-import { ArrowRight, CheckCircle, X, Tag } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowRight, CheckCircle, X, Tag, RefreshCw } from 'lucide-react';
 import { FieldMapping } from '../types';
 import { EnhancedFieldDropdown } from './EnhancedFieldDropdown';
 
@@ -18,6 +18,32 @@ export const FieldMappingCard: React.FC<FieldMappingCardProps> = ({
   onMappingChange,
   onReject
 }) => {
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleApproval = async () => {
+    if (isProcessing) return; // Prevent duplicate calls
+    
+    setIsProcessing(true);
+    try {
+      await onMappingAction(mapping.id, 'approve');
+    } finally {
+      // Reset processing state after delay to prevent rapid clicking
+      setTimeout(() => setIsProcessing(false), 2000);
+    }
+  };
+
+  const handleRejection = async () => {
+    if (isProcessing) return; // Prevent duplicate calls
+    
+    setIsProcessing(true);
+    try {
+      onReject(mapping.id, mapping.sourceField, mapping.targetAttribute);
+    } finally {
+      // Reset processing state after delay
+      setTimeout(() => setIsProcessing(false), 1000);
+    }
+  };
+
   const getConfidenceColor = (confidence: number) => {
     if (confidence >= 90) return 'text-green-600';
     if (confidence >= 70) return 'text-blue-600';
@@ -112,17 +138,27 @@ export const FieldMappingCard: React.FC<FieldMappingCardProps> = ({
       {mapping.status === 'pending' && (
         <div className="flex justify-end space-x-2">
           <button
-            onClick={() => onReject(mapping.id, mapping.sourceField, mapping.targetAttribute)}
-            className="flex items-center px-3 py-1 text-sm text-red-600 border border-red-200 rounded hover:bg-red-50"
+            onClick={handleRejection}
+            disabled={isProcessing}
+            className="flex items-center px-3 py-1 text-sm text-red-600 border border-red-200 rounded hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <X className="h-4 w-4 mr-1" />
+            {isProcessing ? (
+              <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <X className="h-4 w-4 mr-1" />
+            )}
             Reject
           </button>
           <button
-            onClick={() => onMappingAction(mapping.id, 'approve')}
-            className="flex items-center px-3 py-1 text-sm text-green-600 border border-green-200 rounded hover:bg-green-50"
+            onClick={handleApproval}
+            disabled={isProcessing}
+            className="flex items-center px-3 py-1 text-sm text-green-600 border border-green-200 rounded hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <CheckCircle className="h-4 w-4 mr-1" />
+            {isProcessing ? (
+              <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <CheckCircle className="h-4 w-4 mr-1" />
+            )}
             Approve
           </button>
         </div>

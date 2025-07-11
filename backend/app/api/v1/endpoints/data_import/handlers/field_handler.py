@@ -6,6 +6,7 @@ import logging
 from typing import Dict, List, Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text, inspect
 
 from app.core.database import get_db
 from app.core.context import get_current_context, RequestContext
@@ -14,7 +15,192 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Define standard target fields for asset migration
+# Internal system fields that should be excluded from field mapping
+INTERNAL_SYSTEM_FIELDS = {
+    'id', 'created_at', 'updated_at', 'imported_by', 'flow_id', 'client_account_id',
+    'engagement_id', 'data_import_id', 'raw_data', 'mapping_status', 'validation_status',
+    'import_session_id', 'created_by', 'updated_by', 'deleted_at', 'version',
+    'audit_log', 'processing_status', 'error_log', 'sync_status', 'source_system_id',
+    'import_batch_id', 'tenant_id', 'metadata_version', 'schema_version'
+}
+
+# Field type mappings from PostgreSQL to frontend-friendly types
+TYPE_MAPPINGS = {
+    'varchar': 'string',
+    'text': 'text', 
+    'int4': 'integer',
+    'int8': 'integer',
+    'float8': 'number',
+    'float4': 'number',
+    'bool': 'boolean',
+    'json': 'object',
+    'jsonb': 'object',
+    'timestamptz': 'datetime',
+    'timestamp': 'datetime',
+    'date': 'date',
+    'uuid': 'string'
+}
+
+# Field categorization based on naming patterns
+def categorize_field(field_name: str) -> str:
+    """Categorize field based on naming patterns."""
+    name = field_name.lower()
+    
+    # Identity fields
+    if any(pattern in name for pattern in ['asset_id', 'asset_name', 'name', 'hostname', 'fqdn']):
+        return 'identification'
+    
+    # Network fields  
+    if any(pattern in name for pattern in ['ip_', 'mac_', 'dns_', 'subnet', 'vlan', 'network']):
+        return 'network'
+    
+    # Technical/System fields
+    if any(pattern in name for pattern in ['cpu_', 'memory_', 'ram_', 'storage_', 'disk_', 'os_', 'operating_']):
+        return 'technical'
+    
+    # Performance fields
+    if any(pattern in name for pattern in ['utilization', 'performance', 'throughput', 'iops', 'latency']):
+        return 'performance'
+    
+    # Location/Environment fields
+    if any(pattern in name for pattern in ['datacenter', 'location_', 'region', 'environment', 'availability_', 'rack']):
+        return 'environment'
+    
+    # Business fields
+    if any(pattern in name for pattern in ['owner', 'business_', 'department', 'cost_', 'application_']):
+        return 'business'
+    
+    # Migration fields
+    if any(pattern in name for pattern in ['migration_', 'six_r_', 'criticality', 'readiness', 'target_', 'cloud_']):
+        return 'migration'
+    
+    # Financial fields
+    if any(pattern in name for pattern in ['cost', 'price', 'budget', 'financial']):
+        return 'financial'
+    
+    # Quality/Assessment fields
+    if any(pattern in name for pattern in ['quality_', 'completeness_', 'score']):
+        return 'quality'
+    
+    return 'other'
+
+def is_required_field(field_name: str, is_nullable: bool) -> bool:
+    """Determine if a field should be marked as required."""
+    critical_fields = {
+        'asset_name', 'asset_type', 'hostname', 'ip_address', 
+        'operating_system', 'cpu_cores', 'memory_gb'
+    }
+    return field_name.lower() in critical_fields or not is_nullable
+
+async def get_assets_table_fields(db: AsyncSession) -> List[Dict[str, Any]]:
+    """Get actual fields from the assets table schema."""
+    try:
+        # Get table schema information
+        result = await db.execute(text("""
+            SELECT 
+                column_name,
+                data_type,
+                is_nullable,
+                column_default,
+                character_maximum_length,
+                numeric_precision,
+                numeric_scale
+            FROM information_schema.columns 
+            WHERE table_name = 'assets' 
+            AND table_schema = 'migration'
+            ORDER BY ordinal_position
+        """))
+        
+        columns = result.fetchall()
+        fields = []
+        
+        for col in columns:
+            field_name = col.column_name
+            
+            # Skip internal system fields
+            if field_name in INTERNAL_SYSTEM_FIELDS:
+                continue
+                
+            # Map PostgreSQL type to frontend type
+            pg_type = col.data_type
+            field_type = TYPE_MAPPINGS.get(pg_type, 'string')
+            
+            # Determine if field is nullable
+            is_nullable = col.is_nullable == 'YES'
+            
+            # Generate field description
+            description = generate_field_description(field_name, field_type)
+            
+            field_info = {
+                "name": field_name,
+                "type": field_type,
+                "required": is_required_field(field_name, is_nullable),
+                "description": description,
+                "category": categorize_field(field_name),
+                "nullable": is_nullable,
+                "max_length": col.character_maximum_length,
+                "precision": col.numeric_precision,
+                "scale": col.numeric_scale
+            }
+            
+            fields.append(field_info)
+            
+        logger.info(f"Retrieved {len(fields)} fields from assets table schema")
+        return fields
+        
+    except Exception as e:
+        logger.error(f"Error getting assets table fields: {e}")
+        # Fallback to standard fields if database query fails
+        return STANDARD_TARGET_FIELDS
+
+def generate_field_description(field_name: str, field_type: str) -> str:
+    """Generate human-readable description for field."""
+    descriptions = {
+        'asset_name': 'Asset name or identifier',
+        'asset_type': 'Type of asset (server, database, application, etc.)',
+        'hostname': 'System hostname',
+        'fqdn': 'Fully qualified domain name',
+        'ip_address': 'Primary IP address',
+        'mac_address': 'Network MAC address',
+        'operating_system': 'Operating system name and version',
+        'os_version': 'Operating system version details',
+        'cpu_cores': 'Number of CPU cores',
+        'memory_gb': 'Memory capacity in gigabytes',
+        'ram_gb': 'RAM capacity in gigabytes', 
+        'storage_gb': 'Storage capacity in gigabytes',
+        'cpu_utilization_percent': 'CPU utilization percentage',
+        'memory_utilization_percent': 'Memory utilization percentage',
+        'disk_iops': 'Disk I/O operations per second',
+        'network_throughput_mbps': 'Network throughput in Mbps',
+        'business_owner': 'Business owner or stakeholder',
+        'technical_owner': 'Technical owner or administrator',
+        'department': 'Department or organizational unit',
+        'application_name': 'Primary application name',
+        'technology_stack': 'Technology stack or platform',
+        'criticality': 'Business criticality level',
+        'business_criticality': 'Business impact criticality',
+        'six_r_strategy': '6R migration strategy (rehost, refactor, etc.)',
+        'migration_priority': 'Migration priority level',
+        'migration_complexity': 'Migration complexity assessment',
+        'migration_wave': 'Migration wave or phase',
+        'environment': 'Environment (production, staging, development, etc.)',
+        'datacenter': 'Datacenter or facility location',
+        'location': 'Physical location',
+        'rack_location': 'Rack location identifier',
+        'current_monthly_cost': 'Current monthly operational cost',
+        'estimated_cloud_cost': 'Estimated cloud migration cost',
+        'quality_score': 'Data quality assessment score',
+        'completeness_score': 'Data completeness percentage'
+    }
+    
+    if field_name in descriptions:
+        return descriptions[field_name]
+    
+    # Generate description based on field name patterns
+    name_parts = field_name.replace('_', ' ').title()
+    return f"{name_parts} field"
+
+# Keep the original standard fields as fallback
 STANDARD_TARGET_FIELDS = [
     # Identification fields
     {"name": "asset_id", "type": "string", "required": True, "description": "Unique asset identifier", "category": "identification"},
@@ -76,30 +262,40 @@ async def get_available_target_fields(
     """
     Get available target fields for field mapping.
     
-    Returns standard asset fields organized by category.
+    Returns actual asset table fields from database schema, excluding internal system fields.
     """
     try:
         logger.info(f"Getting available target fields for client {context.client_account_id}")
         
+        # Get actual fields from database schema
+        fields = await get_assets_table_fields(db)
+        
         # Group fields by category
         categories = {}
-        for field in STANDARD_TARGET_FIELDS:
+        for field in fields:
             category = field["category"]
             if category not in categories:
                 categories[category] = []
             categories[category].append(field)
         
         # Count required fields
-        required_count = sum(1 for field in STANDARD_TARGET_FIELDS if field["required"])
+        required_count = sum(1 for field in fields if field["required"])
+        
+        # Log field details for debugging
+        logger.info(f"Retrieved {len(fields)} target fields from assets table schema:")
+        for category, category_fields in categories.items():
+            logger.info(f"  {category}: {len(category_fields)} fields")
         
         return {
             "success": True,
-            "fields": STANDARD_TARGET_FIELDS,
+            "fields": fields,
             "categories": categories,
-            "total_fields": len(STANDARD_TARGET_FIELDS),
+            "total_fields": len(fields),
             "required_fields": required_count,
             "category_count": len(categories),
-            "message": f"Retrieved {len(STANDARD_TARGET_FIELDS)} target fields across {len(categories)} categories"
+            "source": "database_schema",
+            "excluded_internal_fields": len(INTERNAL_SYSTEM_FIELDS),
+            "message": f"Retrieved {len(fields)} target fields from assets table schema across {len(categories)} categories"
         }
         
     except Exception as e:

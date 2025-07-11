@@ -18,6 +18,7 @@ interface AttributeMappingContentProps {
   onAttributeUpdate: (attributeId: string, updates: any) => void;
   onDataImportSelection: (importId: string) => void;
   refetchAgentic?: () => void;
+  refetchCriticalAttributes?: () => void;
 }
 
 export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = ({
@@ -28,7 +29,8 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
   onMappingChange,
   onAttributeUpdate,
   onDataImportSelection,
-  refetchAgentic
+  refetchAgentic,
+  refetchCriticalAttributes
 }) => {
   const {
     agenticData,
@@ -93,6 +95,7 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
           onMappingChange={onMappingChange}
           onAttributeUpdate={onAttributeUpdate}
           refetchAgentic={refetchAgentic}
+          refetchCriticalAttributes={refetchCriticalAttributes}
           isLoading={isAgenticLoading}
           sessionInfo={{
             flowId: flowId || effectiveFlowId,

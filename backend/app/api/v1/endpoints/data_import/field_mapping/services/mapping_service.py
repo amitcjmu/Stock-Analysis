@@ -44,15 +44,15 @@ class MappingService:
         
         valid_mappings = []
         for mapping in mappings:
-            # Include unmapped fields (target_field is None) for user selection
-            if mapping.target_field is not None and mapping.target_field not in valid_target_fields:
+            # Include unmapped fields (target_field is "UNMAPPED") for user selection
+            if mapping.target_field != "UNMAPPED" and mapping.target_field not in valid_target_fields:
                 logger.warning(f"Skipping invalid target field mapping: {mapping.source_field} -> {mapping.target_field}")
                 continue
                 
             valid_mappings.append(FieldMappingResponse(
                 id=mapping.id,
                 source_field=mapping.source_field,
-                target_field=mapping.target_field,  # Can be None for unmapped fields
+                target_field=None if mapping.target_field == "UNMAPPED" else mapping.target_field,  # Convert back to None for UI
                 transformation_rule=mapping.transformation_rules,
                 validation_rule=mapping.transformation_rules,  # Using transformation_rules for now
                 is_required=getattr(mapping, 'is_required', False),
@@ -80,15 +80,11 @@ class MappingService:
         mapping = ImportFieldMapping(
             data_import_id=import_id,
             client_account_id=self.context.client_account_id,
-            engagement_id=self.context.engagement_id,
             source_field=mapping_data.source_field,
             target_field=mapping_data.target_field,
-            mapping_type="user_defined",
+            match_type="user_defined",
             confidence_score=mapping_data.confidence,
-            is_user_defined=True,
-            is_required=mapping_data.is_required,
-            transformation_logic=mapping_data.transformation_rule,
-            validation_rules=mapping_data.validation_rule,
+            transformation_rules=mapping_data.transformation_rule,
             status="approved"  # User-created mappings are auto-approved
         )
         
@@ -102,9 +98,9 @@ class MappingService:
             id=mapping.id,
             source_field=mapping.source_field,
             target_field=mapping.target_field,
-            transformation_rule=mapping.transformation_logic,
-            validation_rule=mapping.validation_rules,
-            is_required=mapping.is_required or False,
+            transformation_rule=mapping.transformation_rules,
+            validation_rule=mapping.transformation_rules,
+            is_required=False,
             is_approved=True,
             confidence=mapping.confidence_score or 0.7,
             created_at=mapping.created_at,
@@ -113,7 +109,7 @@ class MappingService:
     
     async def update_field_mapping(
         self, 
-        mapping_id: int, 
+        mapping_id: str, 
         update_data: FieldMappingUpdate
     ) -> FieldMappingResponse:
         """Update an existing field mapping."""
@@ -135,11 +131,12 @@ class MappingService:
         if update_data.target_field is not None:
             mapping.target_field = update_data.target_field
         if update_data.transformation_rule is not None:
-            mapping.transformation_logic = update_data.transformation_rule
+            mapping.transformation_rules = update_data.transformation_rule
         if update_data.validation_rule is not None:
-            mapping.validation_rules = update_data.validation_rule
-        if update_data.is_required is not None:
-            mapping.is_required = update_data.is_required
+            mapping.transformation_rules = update_data.validation_rule
+        # is_required field doesn't exist in ImportFieldMapping model
+        # if update_data.is_required is not None:
+        #     mapping.is_required = update_data.is_required
         if update_data.is_approved is not None:
             mapping.status = "approved" if update_data.is_approved else "suggested"
         
@@ -154,9 +151,9 @@ class MappingService:
             id=mapping.id,
             source_field=mapping.source_field,
             target_field=mapping.target_field,
-            transformation_rule=mapping.transformation_logic,
-            validation_rule=mapping.validation_rules,
-            is_required=mapping.is_required or False,
+            transformation_rule=mapping.transformation_rules,
+            validation_rule=mapping.transformation_rules,
+            is_required=False,  # is_required field doesn't exist in ImportFieldMapping model
             is_approved=mapping.status == "approved",
             confidence=mapping.confidence_score or 0.7,
             created_at=mapping.created_at,
@@ -219,23 +216,20 @@ class MappingService:
             
             if target_field is None:
                 # Create unmapped entry for user to manually assign
+                # Use placeholder value since target_field is NOT NULL in database
                 mapping = ImportFieldMapping(
                     data_import_id=import_id,
                     client_account_id=self.context.client_account_id,
-                    engagement_id=self.context.engagement_id,
                     source_field=source_field,
-                    target_field=None,  # Explicitly unmapped
-                    mapping_type="unmapped",
+                    target_field="UNMAPPED",  # Placeholder - database constraint requires non-null
+                    match_type="unmapped",
                     confidence_score=0.0,
-                    status="unmapped",
-                    is_user_defined=False,
-                    is_validated=False,
-                    original_ai_suggestion=None
+                    status="unmapped"
                 )
                 
                 mappings_created.append({
                     "source_field": source_field,
-                    "target_field": None,
+                    "target_field": "UNMAPPED",  # Consistent with database value
                     "confidence": 0.0,
                     "status": "unmapped"
                 })
@@ -246,15 +240,11 @@ class MappingService:
                 mapping = ImportFieldMapping(
                     data_import_id=import_id,
                     client_account_id=self.context.client_account_id,
-                    engagement_id=self.context.engagement_id,
                     source_field=source_field,
                     target_field=target_field,
-                    mapping_type="ai_suggested",
+                    match_type="ai_suggested",
                     confidence_score=confidence,
-                    status="suggested",
-                    is_user_defined=False,
-                    is_validated=False,
-                    original_ai_suggestion=target_field
+                    status="suggested"
                 )
                 
                 mappings_created.append({
@@ -278,7 +268,7 @@ class MappingService:
             "mappings": mappings_created
         }
     
-    async def delete_field_mapping(self, mapping_id: int) -> bool:
+    async def delete_field_mapping(self, mapping_id: str) -> bool:
         """Delete a field mapping."""
         query = select(ImportFieldMapping).where(
             and_(

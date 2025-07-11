@@ -4,51 +4,26 @@ import { apiCall, API_CONFIG } from '../../../../config/api';
 import { useAuth } from '../../../../contexts/AuthContext';
 
 // Components
-import { RejectionDialog } from './components/RejectionDialog';
-import { FieldMappingCard } from './components/FieldMappingCard';
-import { StatusFilters } from './components/StatusFilters';
-import { PaginationControls } from './components/PaginationControls';
+import ThreeColumnFieldMapper from './components/ThreeColumnFieldMapper';
 
 // Types
 import { FieldMappingsTabProps, TargetField } from './types';
-
-const ITEMS_PER_PAGE = 6;
 
 const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   fieldMappings,
   isAnalyzing,
   onMappingAction,
-  onMappingChange
+  onMappingChange,
+  onRefresh
 }) => {
   const { client, engagement } = useAuth();
   const [availableFields, setAvailableFields] = useState<TargetField[]>([]);
-  const [rejectionDialog, setRejectionDialog] = useState<{
-    isOpen: boolean;
-    mappingId: string;
-    sourceField: string;
-    targetField: string;
-  }>({
-    isOpen: false,
-    mappingId: '',
-    sourceField: '',
-    targetField: ''
-  });
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-
-  // Filter state
-  const [visibleStatuses, setVisibleStatuses] = useState({
-    pending: true,
-    approved: true,
-    rejected: true
-  });
-
-  // Load available target fields
+  // Load available target fields with error handling
   useEffect(() => {
     const fetchAvailableFields = async () => {
       try {
-        const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AVAILABLE_FIELDS, {
+        const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AVAILABLE_TARGET_FIELDS, {
           method: 'GET',
           headers: {
             'X-Client-Account-ID': client?.id?.toString(),
@@ -56,11 +31,27 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
           }
         });
 
-        if (response?.data?.available_fields) {
+        if (response?.fields) {
+          setAvailableFields(response.fields);
+        } else if (response?.data?.available_fields) {
           setAvailableFields(response.data.available_fields);
+        } else {
+          // Fallback: provide basic field options
+          setAvailableFields([
+            { name: 'hostname', type: 'string', required: true, description: 'Server hostname', category: 'identity' },
+            { name: 'ip_address', type: 'string', required: true, description: 'IP address', category: 'network' },
+            { name: 'operating_system', type: 'string', required: false, description: 'Operating system', category: 'system' },
+            { name: 'application_name', type: 'string', required: false, description: 'Application name', category: 'application' }
+          ]);
         }
       } catch (error) {
         console.error('Error fetching available fields:', error);
+        // Provide fallback fields so the component doesn't break
+        setAvailableFields([
+          { name: 'hostname', type: 'string', required: true, description: 'Server hostname', category: 'identity' },
+          { name: 'ip_address', type: 'string', required: true, description: 'IP address', category: 'network' },
+          { name: 'operating_system', type: 'string', required: false, description: 'Operating system', category: 'system' }
+        ]);
       }
     };
 
@@ -69,55 +60,8 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
     }
   }, [client?.id, engagement?.id]);
 
-  // Filter mappings based on visible statuses
-  const filteredMappings = fieldMappings.filter(mapping => 
-    visibleStatuses[mapping.status as keyof typeof visibleStatuses]
-  );
-
-  // Pagination logic
-  const totalPages = Math.ceil(filteredMappings.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const currentMappings = filteredMappings.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [visibleStatuses]);
-
-  const handleStatusToggle = (status: string) => {
-    setVisibleStatuses(prev => ({
-      ...prev,
-      [status]: !prev[status as keyof typeof prev]
-    }));
-  };
-
-  const handleRejectMapping = (mappingId: string, sourceField: string, targetField: string) => {
-    setRejectionDialog({
-      isOpen: true,
-      mappingId,
-      sourceField,
-      targetField
-    });
-  };
-
-  const handleConfirmRejection = (reason: string) => {
-    onMappingAction(rejectionDialog.mappingId, 'reject', reason);
-    setRejectionDialog({
-      isOpen: false,
-      mappingId: '',
-      sourceField: '',
-      targetField: ''
-    });
-  };
-
-  const handleCancelRejection = () => {
-    setRejectionDialog({
-      isOpen: false,
-      mappingId: '',
-      sourceField: '',
-      targetField: ''
-    });
-  };
+  // Filter mappings based on visible statuses - with safety check
+  const safeFieldMappings = Array.isArray(fieldMappings) ? fieldMappings : [];
 
   if (isAnalyzing) {
     return (
@@ -133,7 +77,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
     );
   }
 
-  if (!fieldMappings || fieldMappings.length === 0) {
+  if (!safeFieldMappings || safeFieldMappings.length === 0) {
     return (
       <div className="text-center py-8">
         <p className="text-gray-600 mb-2">No field mappings available</p>
@@ -146,37 +90,12 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
 
   return (
     <div className="space-y-6">
-      <StatusFilters
-        visibleStatuses={visibleStatuses}
-        onStatusToggle={handleStatusToggle}
-      />
-
-      <div className="grid gap-4">
-        {currentMappings.map((mapping) => (
-          <FieldMappingCard
-            key={mapping.id}
-            mapping={mapping}
-            availableFields={availableFields}
-            onMappingAction={onMappingAction}
-            onMappingChange={onMappingChange}
-            onReject={handleRejectMapping}
-          />
-        ))}
-      </div>
-
-      <PaginationControls
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
-
-      <RejectionDialog
-        isOpen={rejectionDialog.isOpen}
-        mappingId={rejectionDialog.mappingId}
-        sourceField={rejectionDialog.sourceField}
-        targetField={rejectionDialog.targetField}
-        onConfirm={handleConfirmRejection}
-        onCancel={handleCancelRejection}
+      <ThreeColumnFieldMapper
+        fieldMappings={safeFieldMappings}
+        availableFields={availableFields}
+        onMappingAction={onMappingAction}
+        onMappingChange={onMappingChange}
+        onRefresh={onRefresh}
       />
     </div>
   );

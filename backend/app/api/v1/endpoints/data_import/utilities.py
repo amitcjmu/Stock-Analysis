@@ -16,7 +16,7 @@ def import_to_dict(data_import: DataImport) -> dict:
         "id": str(data_import.id),
         "import_name": data_import.import_name,
         "import_type": data_import.import_type,
-        "source_filename": data_import.source_filename,
+        "source_filename": data_import.filename,  # Use 'filename' attribute from model
         "status": data_import.status,
         "total_records": data_import.total_records,
         "processed_records": data_import.processed_records,

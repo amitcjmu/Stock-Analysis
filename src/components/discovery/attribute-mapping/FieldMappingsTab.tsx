@@ -186,70 +186,18 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
     targetField: ''
   });
 
-  // Load available target fields on component mount
-  useEffect(() => {
-    fetchAvailableFields();
-  }, []);
-
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element;
-      if (!target.closest('.dropdown-container')) {
-        setOpenDropdowns({});
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
   // Filter options - show all by default, but allow filtering
   const [showApproved, setShowApproved] = useState(true);
   const [showRejected, setShowRejected] = useState(false);
   const [showPending, setShowPending] = useState(true);
 
-  // Debug logging for field mappings
-  console.log('🔍 FieldMappingsTab received:', {
-    fieldMappings: fieldMappings,
-    isArray: Array.isArray(fieldMappings),
-    length: fieldMappings?.length,
-    sample: fieldMappings?.[0]
-  });
+  const fetchAvailableFields = useCallback(async () => {
+    // Check if we already have fields cached to prevent unnecessary calls
+    if (availableFields.length > 0) {
+      console.log('📋 Available fields already loaded, skipping fetch');
+      return;
+    }
 
-  // Early return if no field mappings
-  if (!Array.isArray(fieldMappings) || fieldMappings.length === 0) {
-    return (
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8 text-center">
-        <p className="text-gray-500">
-          {!Array.isArray(fieldMappings) ? 'Loading field mappings...' : 'No field mappings available yet.'}
-        </p>
-        <div className="mt-4 text-xs text-gray-400">
-          Debug: {JSON.stringify({ fieldMappings: fieldMappings?.slice(0, 2), isArray: Array.isArray(fieldMappings) })}
-        </div>
-      </div>
-    );
-  }
-
-  // Force field mappings to be editable if they're in "suggested" status
-  const editableFieldMappings = fieldMappings.map((mapping: any) => ({
-    ...mapping,
-    status: mapping.status === 'suggested' ? 'pending' : mapping.status || 'pending'
-  }));
-  
-  // Apply filters
-  const filteredMappings = editableFieldMappings.filter((mapping: any) => {
-    if (mapping.status === 'approved' && !showApproved) return false;
-    if (mapping.status === 'rejected' && !showRejected) return false;
-    if ((mapping.status === 'pending' || mapping.status === 'suggested' || !mapping.status) && !showPending) return false;
-    return true;
-  });
-
-  // This check is now handled above before processing
-
-  const fetchAvailableFields = async () => {
     try {
       setLoadingFields(true);
       
@@ -309,12 +257,79 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
       }
     } catch (error) {
       console.error('Failed to load available target fields:', error);
-      // Re-throw error so user knows there's an issue
-      throw error;
+      
+      // If it's a rate limit error, just log it and don't throw
+      if (error && typeof error === 'object' && 'status' in error && (error as any).status === 429) {
+        console.warn('Rate limited on available fields - will use cached data if available');
+        return;
+      }
+      
+      // For other errors, still don't break the component
+      console.warn('Using fallback behavior due to API error');
     } finally {
       setLoadingFields(false);
     }
-  };
+  }, [availableFields.length, getAuthHeaders]);
+
+  // Load available target fields on component mount - with debouncing
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      fetchAvailableFields();
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(debounceTimer);
+  }, [fetchAvailableFields]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.dropdown-container')) {
+        setOpenDropdowns({});
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Debug logging for field mappings
+  console.log('🔍 FieldMappingsTab received:', {
+    fieldMappings: fieldMappings,
+    isArray: Array.isArray(fieldMappings),
+    length: fieldMappings?.length,
+    sample: fieldMappings?.[0]
+  });
+
+  // Early return if no field mappings
+  if (!Array.isArray(fieldMappings) || fieldMappings.length === 0) {
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6 mb-8 text-center">
+        <p className="text-gray-500">
+          {!Array.isArray(fieldMappings) ? 'Loading field mappings...' : 'No field mappings available yet.'}
+        </p>
+        <div className="mt-4 text-xs text-gray-400">
+          Debug: {JSON.stringify({ fieldMappings: fieldMappings?.slice(0, 2), isArray: Array.isArray(fieldMappings) })}
+        </div>
+      </div>
+    );
+  }
+
+  // Force field mappings to be editable if they're in "suggested" status
+  const editableFieldMappings = fieldMappings.map((mapping: any) => ({
+    ...mapping,
+    status: mapping.status === 'suggested' ? 'pending' : mapping.status || 'pending'
+  }));
+  
+  // Apply filters
+  const filteredMappings = editableFieldMappings.filter((mapping: any) => {
+    if (mapping.status === 'approved' && !showApproved) return false;
+    if (mapping.status === 'rejected' && !showRejected) return false;
+    if ((mapping.status === 'pending' || mapping.status === 'suggested' || !mapping.status) && !showPending) return false;
+    return true;
+  });
 
   // Get unique categories from available fields
   const getCategories = () => {

@@ -28,6 +28,7 @@ export interface AttributeMappingActions {
   handleAttributeUpdate: (attributeId: string, updates: any) => void;
   handleDataImportSelection: (importId: string) => void;
   refetchAgentic: () => void;
+  refetchCriticalAttributes: () => void;
   canContinueToDataCleansing: boolean;
 }
 

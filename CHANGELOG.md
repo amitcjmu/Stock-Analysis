@@ -1,5 +1,55 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [1.4.19] - 2025-07-11
+
+### 🎯 **FIELD MAPPING UX** - Critical Attributes Tab Overhaul & User Experience Enhancement
+
+This release completely resolves the Critical Attributes tab displaying zeros issue and significantly improves the attribute mapping user experience through simplified architecture and better default behavior.
+
+### 🚀 **Critical Attributes Tab Redesign**
+
+#### **Simplified Architecture with Proven UI Pattern**
+- **Change Type**: Completely replaced complex Critical Attributes tab with simplified ThreeColumnFieldMapper component
+- **Impact**: Critical Attributes now displays actual field mappings instead of zeros, using the same proven UI pattern as Field Mappings tab
+- **Technical Details**: Eliminated 760 lines of complex logic in favor of 158 lines using shared ThreeColumnFieldMapper component, implemented intelligent filtering for 58 critical field types across 9 categories (identity, network, technical, business, migration, performance, financial, environment, quality)
+
+#### **Default Tab Behavior Improvement**
+- **Change Type**: Changed default tab from Critical Attributes to Field Mappings
+- **Impact**: Users now see functional field mappings immediately upon page load instead of potentially empty Critical Attributes tab
+- **Technical Details**: Updated `useAttributeMapping.ts` default state from `'critical'` to `'mappings'`, ensuring users start with the primary workflow
+
+#### **Database Schema Integration Fix**
+- **Change Type**: Fixed API endpoint to read from correct database schema (`migration.assets` instead of `public.assets`)
+- **Impact**: Available target fields API now returns 58 actual database fields instead of 0, enabling proper field mapping
+- **Technical Details**: Updated `field_handler.py` schema query, added comprehensive field categorization, implemented internal field exclusion (25 system fields), enhanced field type mapping and descriptions
+
+### 🔧 **API Consolidation & Rate Limiting Resolution**
+
+#### **Unified Data Source Architecture**
+- **Change Type**: Eliminated separate API calls for Critical Attributes tab by using same data source as Field Mappings
+- **Impact**: Reduced API requests and eliminated rate limiting issues that were causing errors
+- **Technical Details**: Critical Attributes now filters existing fieldMappings data instead of making redundant API calls, consolidated available fields fetching to single source
+
+#### **Smart Critical Field Detection**
+- **Change Type**: Implemented intelligent filtering logic for migration-critical attributes
+- **Impact**: Automatically identifies and displays only business-critical fields essential for migration planning
+- **Technical Details**: Added comprehensive critical field definitions including core identity fields (hostname, IP, asset_name), system specs (CPU, memory, OS), business context (owner, environment, criticality), migration planning fields (6R strategy, wave, priority), and performance metrics (utilization, IOPS, throughput)
+
+### 📊 **Business Impact**
+
+- **User Experience**: Eliminated confusing "all zeros" display that frustrated users trying to identify critical attributes
+- **Workflow Efficiency**: Users now start with functional Field Mappings tab, reducing confusion and improving task completion
+- **Data Accuracy**: Critical Attributes now displays actual mapped fields, enabling proper migration planning decisions
+- **System Reliability**: Reduced API calls and consolidated data sources improve page load performance and reduce rate limiting
+
+### 🎯 **Success Metrics**
+
+- **User Interface**: Critical Attributes tab now displays actual field mappings instead of zeros
+- **Data Completeness**: 58 database fields now available for mapping instead of 0
+- **API Efficiency**: Reduced redundant API calls by consolidating data sources
+- **Field Coverage**: 25 migration-critical field types properly identified and filtered
+- **User Experience**: Default tab changed to Field Mappings for immediate functionality
+
 ## [1.4.18] - 2025-07-10
 
 ### 🔧 **DATABASE INFRASTRUCTURE** - Complete Setup & Migration System Overhaul

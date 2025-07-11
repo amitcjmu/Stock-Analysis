@@ -64,7 +64,7 @@ async def create_field_mapping(
 
 @router.put("/mappings/{mapping_id}", response_model=FieldMappingResponse)
 async def update_field_mapping(
-    mapping_id: int,
+    mapping_id: str,
     update_data: FieldMappingUpdate,
     service: MappingService = Depends(get_mapping_service)
 ):
@@ -83,7 +83,7 @@ async def update_field_mapping(
 
 @router.delete("/mappings/{mapping_id}")
 async def delete_field_mapping(
-    mapping_id: int,
+    mapping_id: str,
     service: MappingService = Depends(get_mapping_service)
 ):
     """Delete a field mapping."""

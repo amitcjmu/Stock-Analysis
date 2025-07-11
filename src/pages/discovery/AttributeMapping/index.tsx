@@ -90,6 +90,7 @@ const AttributeMappingContainer: React.FC = () => {
     handleAttributeUpdate,
     handleDataImportSelection,
     refetchAgentic,
+    refetchCriticalAttributes,
     canContinueToDataCleansing
   } = actions;
 
@@ -156,6 +157,7 @@ const AttributeMappingContainer: React.FC = () => {
                   onAttributeUpdate={handleAttributeUpdate}
                   onDataImportSelection={handleDataImportSelection}
                   refetchAgentic={refetchAgentic}
+                  refetchCriticalAttributes={refetchCriticalAttributes}
                 />
               </>
             )}
