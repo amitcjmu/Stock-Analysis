@@ -10,7 +10,7 @@ from .storage_manager import ImportStorageManager
 from .flow_trigger_service import FlowTriggerService
 from .transaction_manager import ImportTransactionManager
 from .background_execution_service import BackgroundExecutionService
-from .response_builder import ImportResponseBuilder
+from .response_builder import ImportResponseBuilder, ImportStorageResponse
 from .import_storage_handler import ImportStorageHandler
 
 __all__ = [
@@ -20,5 +20,6 @@ __all__ = [
     "ImportTransactionManager",
     "BackgroundExecutionService",
     "ImportResponseBuilder",
+    "ImportStorageResponse",
     "ImportStorageHandler"
 ]
