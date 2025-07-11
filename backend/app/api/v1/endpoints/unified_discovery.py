@@ -209,3 +209,33 @@ async def delete_discovery_flow(
     except Exception as e:
         logger.error(f"❌ Failed to delete flow {flow_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/flow/{flow_id}/data-cleansing")
+async def get_flow_data_cleansing(
+    flow_id: str,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """Get data cleansing analysis for a discovery flow."""
+    try:
+        # Import the data cleansing function from the new endpoint
+        from app.api.v1.endpoints.data_cleansing import get_data_cleansing_analysis
+        
+        # Create a mock current user for compatibility (will be properly handled by auth middleware)
+        from app.models.user import User
+        mock_user = User(id=context.user_id, email="system@example.com")
+        
+        # Call the data cleansing analysis endpoint
+        result = await get_data_cleansing_analysis(
+            flow_id=flow_id,
+            include_details=True,
+            db=db,
+            context=context,
+            current_user=mock_user
+        )
+        
+        return result
+    except Exception as e:
+        logger.error(f"❌ Failed to get data cleansing analysis for flow {flow_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

@@ -107,6 +107,12 @@ try:
     LLM_HEALTH_AVAILABLE = True
 except ImportError:
     LLM_HEALTH_AVAILABLE = False
+
+try:
+    from app.api.v1.endpoints.data_cleansing import router as data_cleansing_router
+    DATA_CLEANSING_AVAILABLE = True
+except ImportError:
+    DATA_CLEANSING_AVAILABLE = False
 try:
     from app.api.v1.endpoints.observability import router as observability_router
     OBSERVABILITY_AVAILABLE = True
@@ -234,6 +240,13 @@ if HEALTH_AVAILABLE:
 if LLM_HEALTH_AVAILABLE:
     api_router.include_router(llm_health_router, prefix="/llm", tags=["LLM Health"])
     logger.info("✅ LLM Health router included")
+
+# Data Cleansing endpoints
+if DATA_CLEANSING_AVAILABLE:
+    api_router.include_router(data_cleansing_router, prefix="/data-cleansing", tags=["Data Cleansing"])
+    logger.info("✅ Data Cleansing router included")
+else:
+    logger.warning("⚠️ Data Cleansing router not available")
 # Observability and System Control
 if OBSERVABILITY_AVAILABLE:
     api_router.include_router(observability_router, prefix="/observability", tags=["Observability"])

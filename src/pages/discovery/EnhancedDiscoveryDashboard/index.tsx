@@ -22,10 +22,8 @@ import { ActivityTimeline } from './components/ActivityTimeline';
 import { QuickActions } from './components/QuickActions';
 
 // Flow Management hooks
-import { 
-  useIncompleteFlowDetectionV2,
-  useFlowDeletionV2
-} from '@/hooks/discovery/useFlowOperations';
+import { useIncompleteFlowDetectionV2 } from '@/hooks/discovery/useFlowOperations';
+import { useFlowDeletion } from '@/hooks/useFlowDeletion';
 
 const EnhancedDiscoveryDashboardContainer: React.FC = () => {
   const navigate = useNavigate();
@@ -60,9 +58,15 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
     resetFilters
   } = useDashboardFilters(activeFlows);
 
-  // V2 Flow Management hooks
+  // Flow Management hooks
   const { data: incompleteFlowsData } = useIncompleteFlowDetectionV2();
-  const { mutate: deleteFlow, isPending: isDeleting } = useFlowDeletionV2();
+  const { deleteFlows, isLoading: isDeleting } = useFlowDeletion({
+    deletion_source: 'discovery_dashboard',
+    onSuccess: () => {
+      // Refresh dashboard data after successful deletion
+      fetchDashboardData();
+    }
+  });
   
   const incompleteFlows = incompleteFlowsData?.flows || [];
   const hasIncompleteFlows = incompleteFlows.length > 0;
@@ -94,9 +98,16 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
     navigate(route);
   };
 
-  // Handle flow deletion
-  const handleDeleteFlow = (flowId: string) => {
-    deleteFlow({ flowId });
+  // Handle flow deletion using centralized user-approval system
+  const handleDeleteFlow = async (flowId: string) => {
+    console.log('🗑️ Discovery Dashboard: Initiating flow deletion with user approval');
+    await deleteFlows([flowId]);
+  };
+
+  // Handle batch deletion
+  const handleBatchDelete = async (flowIds: string[]) => {
+    console.log(`🗑️ Discovery Dashboard: Initiating batch deletion of ${flowIds.length} flows`);
+    await deleteFlows(flowIds);
   };
 
   // Navigation handlers
@@ -243,7 +254,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
                   handleViewDetails(flowId, phase);
                 }}
                 onDeleteFlow={handleDeleteFlow}
-                onBatchDelete={(flowIds) => flowIds.forEach(handleDeleteFlow)}
+                onBatchDelete={handleBatchDelete}
                 onViewDetails={(flowId, phase) => handleViewDetails(flowId, phase)}
                 onClose={() => toggleFlowManager(false)}
                 isLoading={isDeleting}
