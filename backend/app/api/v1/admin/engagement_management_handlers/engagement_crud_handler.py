@@ -110,7 +110,7 @@ class EngagementCRUDHandler:
     @staticmethod
     async def list_engagements(
         db: AsyncSession,
-        client_account_id: str,
+        client_account_id: Optional[str],
         pagination: Dict[str, Any],
         user_id: Optional[str] = None
     ) -> Dict[str, Any]:
@@ -128,7 +128,7 @@ class EngagementCRUDHandler:
                         select(UserRole).where(
                             and_(
                                 UserRole.user_id == user_id,
-                                UserRole.role_type == RoleType.ADMIN,
+                                UserRole.role_type == RoleType.PLATFORM_ADMIN,
                                 UserRole.is_active == True
                             )
                         )
@@ -143,11 +143,15 @@ class EngagementCRUDHandler:
 
             query = select(Engagement).where(Engagement.is_active == True)  # Filter out soft-deleted
             # Only filter by client_account_id if it's provided (not None) AND user is not platform admin
-            if client_account_id and not is_platform_admin:
+            if client_account_id is not None and not is_platform_admin:
                  query = query.where(Engagement.client_account_id == client_account_id)
             
-            total_items_query = select(func.count()).select_from(query.alias())
-            total_items_result = await db.execute(total_items_query)
+            # Build the count query with the same conditions
+            count_query = select(func.count()).select_from(Engagement).where(Engagement.is_active == True)
+            if client_account_id is not None and not is_platform_admin:
+                count_query = count_query.where(Engagement.client_account_id == client_account_id)
+            
+            total_items_result = await db.execute(count_query)
             total_items = total_items_result.scalar_one()
 
             query = query.offset((page - 1) * page_size).limit(page_size)
@@ -172,7 +176,7 @@ class EngagementCRUDHandler:
             }
         except Exception as e:
             logger.error(f"Error listing engagements for client {client_account_id}: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"An unexpected error occurred while listing engagements.")
+            raise HTTPException(status_code=500, detail=f"An unexpected error occurred while listing engagements: {str(e)}")
 
     @staticmethod
     async def get_dashboard_stats(db: AsyncSession) -> Dict[str, Any]:
@@ -307,10 +311,12 @@ class EngagementCRUDHandler:
                 elif field == 'engagement_manager' and value:
                     engagement.client_contact_name = value
                 elif field == 'technical_lead' and value:
-                    # For now, store technical lead in client_contact_name
-                    # In the future, we might want a separate field
-                    if not engagement.client_contact_name:
-                        engagement.client_contact_name = value
+                    # Store technical lead in settings
+                    current_settings = engagement.settings or {}
+                    if not isinstance(current_settings, dict):
+                        current_settings = {}
+                    current_settings['technical_lead'] = value
+                    engagement.settings = current_settings
                 elif field in ['start_date', 'planned_start_date'] and value:
                     parsed_date = parse_date_string(value)
                     if parsed_date:
@@ -536,11 +542,11 @@ class EngagementCRUDHandler:
                 actual_start_date=engagement.start_date,  # Use start_date as actual_start_date
                 actual_end_date=engagement.actual_completion_date,
                 engagement_manager=engagement.client_contact_name or "Not Assigned",
-                technical_lead=engagement.client_contact_name or "Not Assigned",
+                technical_lead=settings.get('technical_lead', engagement.client_contact_name or "Not Assigned"),
                 team_preferences=engagement.team_preferences or {},
-                agent_configuration={},  # Default empty dict
-                discovery_preferences={},  # Default empty dict
-                assessment_criteria={},  # Default empty dict
+                agent_configuration=settings.get('agent_configuration', {}),
+                discovery_preferences=settings.get('discovery_preferences', {}),
+                assessment_criteria=settings.get('assessment_criteria', {}),
                 current_phase=engagement.status or "planning",
                 completion_percentage=0.0,  # Default to 0.0
                 current_flow_id=None,  # Default to None

@@ -49,30 +49,17 @@ interface FieldOptionsProviderProps {
 }
 
 export const FieldOptionsProvider: React.FC<FieldOptionsProviderProps> = ({ children }) => {
-  const { client, engagement, isAuthenticated } = useAuth();
   const [availableFields, setAvailableFields] = useState<TargetField[]>(DEFAULT_FIELDS);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
-  const [contextCheckRetries, setContextCheckRetries] = useState(0);
+
+  // Demo client/engagement IDs for fetching field options at startup
+  const DEMO_CLIENT_ID = '21990f3a-abb6-4862-be06-cb6f854e167b';
+  const DEMO_ENGAGEMENT_ID = '58467010-6a72-44e8-ba37-cc0238724455';
 
   const fetchAvailableFields = async () => {
-    // Only fetch if user is authenticated and we have proper context
-    if (!isAuthenticated || !client?.id || !engagement?.id) {
-      console.log('🔍 FieldOptionsProvider - Not authenticated or no context, using default fields', {
-        isAuthenticated,
-        clientId: client?.id,
-        engagementId: engagement?.id
-      });
-      if (!hasInitialized) {
-        setAvailableFields(DEFAULT_FIELDS);
-        setLastUpdated(new Date());
-        setHasInitialized(true);
-      }
-      return;
-    }
-
     // Prevent multiple fetches - only fetch once per application session
     if (hasInitialized && lastUpdated) {
       console.log('🔍 FieldOptionsProvider - Already initialized, skipping fetch');
@@ -83,25 +70,27 @@ export const FieldOptionsProvider: React.FC<FieldOptionsProviderProps> = ({ chil
     setError(null);
 
     try {
-      console.log('🔍 FieldOptionsProvider - Fetching available fields (one-time per session)', {
-        clientId: client.id,
-        engagementId: engagement.id
-      });
+      console.log('🔍 FieldOptionsProvider - Fetching available fields at startup using demo context');
+      
+      // Use demo client/engagement context for field options fetch
       const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AVAILABLE_TARGET_FIELDS, {
         method: 'GET',
-        includeContext: true // Use the centralized context handling
+        headers: {
+          'X-Client-Account-ID': DEMO_CLIENT_ID,
+          'X-Engagement-ID': DEMO_ENGAGEMENT_ID
+        }
       });
 
       if (response?.fields) {
         setAvailableFields(response.fields);
         setLastUpdated(new Date());
         setHasInitialized(true);
-        console.log('✅ FieldOptionsProvider - Loaded', response.fields.length, 'fields from API');
+        console.log('✅ FieldOptionsProvider - Loaded', response.fields.length, 'fields from API using demo context');
       } else if (response?.data?.available_fields) {
         setAvailableFields(response.data.available_fields);
         setLastUpdated(new Date());
         setHasInitialized(true);
-        console.log('✅ FieldOptionsProvider - Loaded', response.data.available_fields.length, 'fields from API');
+        console.log('✅ FieldOptionsProvider - Loaded', response.data.available_fields.length, 'fields from API using demo context');
       } else {
         console.log('⚠️ FieldOptionsProvider - No fields in response, using defaults');
         setAvailableFields(DEFAULT_FIELDS);
@@ -109,7 +98,7 @@ export const FieldOptionsProvider: React.FC<FieldOptionsProviderProps> = ({ chil
         setHasInitialized(true);
       }
     } catch (err) {
-      console.error('❌ FieldOptionsProvider - Error fetching fields:', err);
+      console.error('❌ FieldOptionsProvider - Error fetching fields with demo context:', err);
       setError('Failed to load field options');
       setAvailableFields(DEFAULT_FIELDS); // Always provide fallback
       setHasInitialized(true); // Don't retry on error
@@ -119,36 +108,18 @@ export const FieldOptionsProvider: React.FC<FieldOptionsProviderProps> = ({ chil
   };
 
   useEffect(() => {
-    // Only attempt to fetch when user becomes authenticated and we have full context
-    if (isAuthenticated && client?.id && engagement?.id && !hasInitialized) {
-      // Reset retry counter since we now have context
-      setContextCheckRetries(0);
-      // Add a small delay to ensure context is fully synchronized
-      const timer = setTimeout(() => {
-        fetchAvailableFields();
-      }, 100);
-      return () => clearTimeout(timer);
+    // Fetch field options immediately at startup using demo context
+    // This eliminates the need for authentication context and prevents multiple API calls
+    if (!hasInitialized) {
+      console.log('🚀 FieldOptionsProvider - Initializing field options at application startup');
+      fetchAvailableFields();
     }
-    
-    // Retry logic for when user is authenticated but context is not yet available
-    if (isAuthenticated && (!client?.id || !engagement?.id) && !hasInitialized && contextCheckRetries < 3) {
-      const timer = setTimeout(() => {
-        console.log(`🔄 FieldOptionsProvider - Retry ${contextCheckRetries + 1}/3 - waiting for context`, {
-          isAuthenticated,
-          clientId: client?.id,
-          engagementId: engagement?.id
-        });
-        setContextCheckRetries(prev => prev + 1);
-      }, 200 * (contextCheckRetries + 1)); // Exponential backoff: 200ms, 400ms, 600ms
-      return () => clearTimeout(timer);
-    }
-  }, [isAuthenticated, client?.id, engagement?.id, hasInitialized, contextCheckRetries]);
+  }, [hasInitialized]);
 
   const refetchFields = async () => {
     console.log('🔄 FieldOptionsProvider - Manual refetch requested');
     // Reset initialization state to allow refetch
     setHasInitialized(false);
-    setContextCheckRetries(0);
     await fetchAvailableFields();
   };
 

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -15,6 +15,7 @@ import { Engagement, EngagementFormData, Client } from './types';
 const EngagementManagementMain: React.FC = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   // UI state must be declared before useQuery hooks
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,16 +41,24 @@ const EngagementManagementMain: React.FC = () => {
         const queryString = params.toString();
         console.log('🔍 Fetching engagements with query:', queryString);
         
-        const result = await apiCall(`/api/v1/admin/engagements${queryString ? '?' + queryString : ''}`);
+        const result = await apiCall(`/api/v1/admin/engagements/${queryString ? '?' + queryString : ''}`);
         console.log('🔍 Engagements API result:', result);
+        console.log('🔍 Engagements API result type:', typeof result);
+        console.log('🔍 Engagements API result keys:', result ? Object.keys(result) : 'null');
         
         // Handle different response formats
         if (result && Array.isArray(result)) {
+          console.log('✅ Using direct array format, length:', result.length);
           return result;
         } else if (result && result.items && Array.isArray(result.items)) {
+          console.log('✅ Using items array format, length:', result.items.length);
           return result.items;
         } else if (result && result.engagements && Array.isArray(result.engagements)) {
+          console.log('✅ Using engagements array format, length:', result.engagements.length);
           return result.engagements;
+        } else if (result && result.data && Array.isArray(result.data)) {
+          console.log('✅ Using data array format, length:', result.data.length);
+          return result.data;
         } else {
           console.warn('⚠️ Unexpected engagements API response format:', result);
           return [];
@@ -58,7 +67,7 @@ const EngagementManagementMain: React.FC = () => {
         console.error('❌ Error fetching engagements:', {
           error: error.message || error,
           status: error.status,
-          endpoint: `/api/v1/admin/engagements${queryString ? '?' + queryString : ''}`
+          endpoint: `/api/v1/admin/engagements/${queryString ? '?' + queryString : ''}`
         });
         
         // If 404 or other error, still try to return empty array but log the issue
@@ -72,48 +81,59 @@ const EngagementManagementMain: React.FC = () => {
         return false;
       }
       return failureCount < 2;
-    }
+    },
+    enabled: true,  // Force query to be enabled
+    refetchOnMount: true,  // Force refetch on mount
+    refetchOnWindowFocus: false,  // Prevent excessive refetches
+    staleTime: 0,  // Always consider data stale
+    cacheTime: 0   // Don't cache the data
   });
   const engagements = engagementsQuery.data || [];
   const engagementsLoading = engagementsQuery.isLoading;
   const engagementsError = engagementsQuery.isError;
 
+  // Debug logging to understand component state
+  React.useEffect(() => {
+    console.log('🔍 EngagementManagementMain component state:', {
+      engagementsLoading,
+      engagementsError,
+      engagementsCount: engagements.length,
+      queryStatus: engagementsQuery.status,
+      queryFetchStatus: engagementsQuery.fetchStatus,
+      queryIsStale: engagementsQuery.isStale,
+      queryIsEnabled: engagementsQuery.isEnabled,
+      queryKey: engagementsQuery.queryKey
+    });
+  }, [engagementsLoading, engagementsError, engagements.length, engagementsQuery.status, engagementsQuery.fetchStatus, engagementsQuery.isStale, engagementsQuery.isEnabled]);
+
   const clientsQuery = useQuery<Client[]>({
     queryKey: ['clients'],
     queryFn: async () => {
-      try {
-        console.log('🔍 Fetching clients...');
-        const result = await apiCall('/api/v1/admin/clients?limit=100');
-        console.log('🔍 Clients API result:', result);
-        
-        // Handle different response formats
-        if (result && Array.isArray(result)) {
-          return result;
-        } else if (result && result.items && Array.isArray(result.items)) {
-          return result.items;
-        } else if (result && result.clients && Array.isArray(result.clients)) {
-          return result.clients;
-        } else {
-          console.warn('⚠️ Unexpected clients API response format:', result);
-          return [];
-        }
-      } catch (error: any) {
-        console.error('❌ Error fetching clients:', {
-          error: error.message || error,
-          status: error.status,
-          endpoint: '/api/v1/admin/clients/?limit=100'
-        });
+      console.log('🔍 Fetching clients for engagement management...');
+      const result = await apiCall('/api/v1/admin/clients/?limit=100');
+      console.log('🔍 Clients API result:', result);
+      
+      // Handle different response formats
+      if (result && Array.isArray(result)) {
+        console.log('✅ Using direct array format for clients');
+        return result;
+      } else if (result && result.items && Array.isArray(result.items)) {
+        console.log('✅ Using items array format for clients');
+        return result.items;
+      } else if (result && result.clients && Array.isArray(result.clients)) {
+        console.log('✅ Using clients array format for clients');
+        return result.clients;
+      } else {
+        console.warn('⚠️ Unexpected clients API response format:', result);
         return [];
       }
     },
     initialData: [],
-    retry: (failureCount, error: any) => {
-      // Only retry on network errors, not on 404/403 which are expected
-      if (error.status === 404 || error.status === 403) {
-        return false;
-      }
-      return failureCount < 2;
-    }
+    retry: 2,
+    enabled: true,
+    refetchOnMount: true,
+    staleTime: 0,  // Always consider data stale
+    cacheTime: 0   // Don't cache the data
   });
   const clients = clientsQuery.data || [];
   const clientsLoading = clientsQuery.isLoading;
@@ -154,7 +174,7 @@ const EngagementManagementMain: React.FC = () => {
       const submissionData = {
         engagement_name: formData.engagement_name,
         engagement_description: formData.engagement_description,
-        client_account_id: formData.client_account_id,
+        // Don't include client_account_id in updates - it shouldn't be changeable
         migration_scope: formData.migration_scope,
         target_cloud_provider: formData.target_cloud_provider,
         current_phase: formData.migration_phase, // Map migration_phase to current_phase
@@ -337,6 +357,48 @@ const EngagementManagementMain: React.FC = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      {/* Debug Panel */}
+      <div className="bg-gray-100 p-4 rounded-lg border">
+        <h3 className="font-semibold mb-2">Debug Information</h3>
+        <div className="text-sm space-y-1">
+          <p>Loading: {engagementsLoading ? 'true' : 'false'}</p>
+          <p>Error: {engagementsError ? 'true' : 'false'}</p>
+          <p>Engagements Count: {engagements.length}</p>
+          <p>Query Status: {engagementsQuery.status}</p>
+          <p>Fetch Status: {engagementsQuery.fetchStatus}</p>
+          <p>Clients Loading: {clientsLoading ? 'true' : 'false'}</p>
+          <p>Clients Error: {clientsError ? 'true' : 'false'}</p>
+          <p>Clients Count: {clients.length}</p>
+          <p>Clients: {clients.length > 0 ? clients.map(c => c.account_name).join(', ') : 'None'}</p>
+        </div>
+        <div className="flex gap-2 mt-2">
+          <Button 
+            onClick={() => engagementsQuery.refetch()} 
+            disabled={engagementsQuery.isFetching}
+          >
+            {engagementsQuery.isFetching ? 'Fetching...' : 'Manual Refetch'}
+          </Button>
+          <Button 
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ['engagements'] });
+              queryClient.refetchQueries({ queryKey: ['engagements'] });
+            }}
+            variant="outline"
+          >
+            Clear Cache & Refetch
+          </Button>
+          <Button 
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ['clients'] });
+              queryClient.refetchQueries({ queryKey: ['clients'] });
+            }}
+            variant="outline"
+          >
+            Refetch Clients
+          </Button>
+        </div>
+      </div>
+
       <EngagementFilters
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}

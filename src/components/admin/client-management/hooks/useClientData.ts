@@ -22,7 +22,7 @@ export const useClientData = ({ searchTerm = '', filterIndustry = 'all' }: UseCl
       params.append('page_size', '50');
 
       const queryString = params.toString();
-      const url = `/admin/clients/${queryString ? `?${queryString}` : ''}`;
+      const url = `/api/v1/admin/clients/${queryString ? `?${queryString}` : ''}`;
 
       const result = await apiCall(url);
       

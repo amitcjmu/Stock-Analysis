@@ -108,19 +108,19 @@ export const EngagementList: React.FC<EngagementListProps> = ({
                       <div className="text-sm">
                         <div className="flex items-center">
                           <Calendar className="w-3 h-3 mr-1" />
-                          {engagement.start_date ? new Date(engagement.start_date).toLocaleDateString() : 'Not set'}
+                          {engagement.planned_start_date ? new Date(engagement.planned_start_date).toLocaleDateString() : 'Not set'}
                         </div>
                         <div className="flex items-center text-muted-foreground">
                           <Clock className="w-3 h-3 mr-1" />
-                          {engagement.end_date ? new Date(engagement.end_date).toLocaleDateString() : 'Not set'}
+                          {engagement.planned_end_date ? new Date(engagement.planned_end_date).toLocaleDateString() : 'Not set'}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
                         <div className="font-medium">
-                          {engagement.budget ? 
-                            formatCurrency(engagement.budget, engagement.budget_currency || 'USD') :
+                          {engagement.estimated_budget ? 
+                            formatCurrency(engagement.estimated_budget, engagement.budget_currency || 'USD') :
                             'No budget set'
                           }
                         </div>

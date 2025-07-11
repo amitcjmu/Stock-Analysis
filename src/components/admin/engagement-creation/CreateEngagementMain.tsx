@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,34 +18,56 @@ export const CreateEngagementMain: React.FC = () => {
   const { toast } = useToast();
   const { getAuthHeaders } = useAuth();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   // Fetch client accounts with React Query
   const clientAccountsQuery = useQuery<ClientAccount[]>({
     queryKey: ['client-accounts'],
     queryFn: async () => {
-      try {
-        const result = await apiCall('/admin/clients/');
-        if (result.items && Array.isArray(result.items)) {
-          return result.items.map((client: any) => ({
-            id: client.id,
-            account_name: client.account_name,
-            industry: client.industry
-          }));
-        } else {
-          throw new Error('Invalid response format');
-        }
-      } catch (error) {
-        console.error('Error fetching client accounts:', error);
-        // Enhanced fallback to demo data including the real backend clients
-        return [
-          { id: 'd838573d-f461-44e4-81b5-5af510ef83b7', account_name: 'Acme Corporation', industry: 'Technology' },
-          { id: '73dee5f1-6a01-43e3-b1b8-dbe6c66f2990', account_name: 'Marathon Petroleum', industry: 'Energy' },
-          { id: 'bafd5b46-aaaf-4c95-8142-573699d93171', account_name: 'Complete Test Client', industry: 'Technology' },
-          { id: '11111111-1111-1111-1111-111111111111', account_name: 'Democorp', industry: 'Technology' }
-        ];
+      console.log('🔍 Fetching client accounts for engagement creation...');
+      const result = await apiCall('/api/v1/admin/clients/');
+      console.log('🔍 Client accounts API result:', result);
+      
+      // Handle different response formats
+      if (result && Array.isArray(result)) {
+        console.log('✅ Using direct array format for clients');
+        return result.map((client: any) => ({
+          id: client.id,
+          account_name: client.account_name,
+          industry: client.industry
+        }));
+      } else if (result && result.items && Array.isArray(result.items)) {
+        console.log('✅ Using items array format for clients');
+        return result.items.map((client: any) => ({
+          id: client.id,
+          account_name: client.account_name,
+          industry: client.industry
+        }));
+      } else if (result && result.clients && Array.isArray(result.clients)) {
+        console.log('✅ Using clients array format for clients');
+        return result.clients.map((client: any) => ({
+          id: client.id,
+          account_name: client.account_name,
+          industry: client.industry
+        }));
+      } else if (result && result.data && Array.isArray(result.data)) {
+        console.log('✅ Using data array format for clients');
+        return result.data.map((client: any) => ({
+          id: client.id,
+          account_name: client.account_name,
+          industry: client.industry
+        }));
+      } else {
+        console.warn('⚠️ Unexpected client accounts API response format:', result);
+        return [];
       }
     },
     initialData: [],
+    retry: 2,
+    enabled: true,
+    refetchOnMount: true,
+    staleTime: 0,  // Always consider data stale
+    cacheTime: 0   // Don't cache the data
   });
   const clientAccounts = clientAccountsQuery.data || [];
   const accountsLoading = clientAccountsQuery.isLoading;
@@ -54,7 +76,7 @@ export const CreateEngagementMain: React.FC = () => {
   // Server state: useMutation for API interaction
   const createEngagementMutation = useMutation({
     mutationFn: async (submissionData: any) => {
-      return await apiCall('/admin/engagements/', {
+      return await apiCall('/api/v1/admin/engagements/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -190,6 +212,38 @@ export const CreateEngagementMain: React.FC = () => {
           <p className="text-muted-foreground">
             Set up a new migration engagement with timeline, budget, and scope
           </p>
+        </div>
+      </div>
+
+      {/* Debug Panel */}
+      <div className="bg-gray-100 p-4 rounded-lg border mb-4">
+        <h3 className="font-semibold mb-2">Debug - Client Accounts</h3>
+        <div className="text-sm space-y-1">
+          <p>Loading: {accountsLoading ? 'true' : 'false'}</p>
+          <p>Error: {accountsError ? 'true' : 'false'}</p>
+          <p>Client Accounts Count: {clientAccounts.length}</p>
+          <p>Query Status: {clientAccountsQuery.status}</p>
+          <p>Fetch Status: {clientAccountsQuery.fetchStatus}</p>
+          <p>Clients: {clientAccounts.length > 0 ? clientAccounts.map(c => c.account_name).join(', ') : 'None'}</p>
+        </div>
+        <div className="flex gap-2 mt-2">
+          <Button 
+            onClick={() => clientAccountsQuery.refetch()} 
+            disabled={clientAccountsQuery.isFetching}
+            size="sm"
+          >
+            {clientAccountsQuery.isFetching ? 'Fetching...' : 'Manual Refetch'}
+          </Button>
+          <Button 
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ['client-accounts'] });
+              queryClient.refetchQueries({ queryKey: ['client-accounts'] });
+            }}
+            variant="outline"
+            size="sm"
+          >
+            Clear Cache & Refetch
+          </Button>
         </div>
       </div>
 

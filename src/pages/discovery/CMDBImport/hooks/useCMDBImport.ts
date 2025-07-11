@@ -2,14 +2,13 @@ import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUnifiedDiscoveryFlow } from '@/hooks/useUnifiedDiscoveryFlow';
 import { useFileUpload } from './useFileUpload';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   useIncompleteFlowDetectionV2, 
-  useFlowResumptionV2, 
-  useFlowDeletionV2, 
-  useBulkFlowOperationsV2 
+  useFlowResumptionV2
 } from '@/hooks/discovery/useFlowOperations';
+import { useFlowDeletion } from '@/hooks/useFlowDeletion';
 import { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
 import { apiCall } from '@/config/api';
 
@@ -46,8 +45,11 @@ export const useCMDBImport = () => {
   // Flow Management hooks
   const { data: incompleteFlowsData, isLoading: checkingFlows, refetch: refetchIncompleteFlows } = useIncompleteFlowDetectionV2();
   const flowResumption = useFlowResumptionV2();
-  const flowDeletion = useFlowDeletionV2();
-  const bulkFlowOperations = useBulkFlowOperationsV2();
+  const { 
+    deleteFlow, 
+    bulkDeleteFlows, 
+    isDeleting 
+  } = useFlowDeletion({ deletion_source: 'manual' });
   
   const incompleteFlows = incompleteFlowsData?.flows || [];
   const hasIncompleteFlows = incompleteFlows.length > 0;
@@ -100,21 +102,21 @@ export const useCMDBImport = () => {
 
   const handleDeleteFlow = useCallback(async (flowId: string) => {
     try {
-      await flowDeletion.mutateAsync(flowId);
+      await deleteFlow(flowId);
       refetchIncompleteFlows();
     } catch (error) {
       console.error('Failed to delete flow:', error);
     }
-  }, [flowDeletion, refetchIncompleteFlows]);
+  }, [deleteFlow, refetchIncompleteFlows]);
 
   const handleBatchDeleteFlows = useCallback(async (flowIds: string[]) => {
     try {
-      await bulkFlowOperations.bulkDelete.mutateAsync({ flow_ids: flowIds });
+      await bulkDeleteFlows(flowIds);
       refetchIncompleteFlows();
     } catch (error) {
       console.error('Failed to delete flows:', error);
     }
-  }, [bulkFlowOperations, refetchIncompleteFlows]);
+  }, [bulkDeleteFlows, refetchIncompleteFlows]);
 
   const handleViewFlowDetails = useCallback((flowId: string, phase: string) => {
     const actualPhase = phase || 'field_mapping';
@@ -241,6 +243,7 @@ export const useCMDBImport = () => {
     
     // Loading states
     isStartingFlow: isInitializing,
+    isDeletingFlows: isDeleting,
     
     // Actions
     startFlow: handleStartFlow,

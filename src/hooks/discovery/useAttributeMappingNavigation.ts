@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
 import masterFlowServiceExtended from '@/services/api/masterFlowService.extensions';
-import { useToast } from '../../hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 
 export const useAttributeMappingNavigation = (flowState?: any, mappingProgress?: any) => {
   const navigate = useNavigate();
@@ -26,6 +26,39 @@ export const useAttributeMappingNavigation = (flowState?: any, mappingProgress?:
 
       // Check if flow is paused and needs to be resumed
       const flowStatus = flowState?.status || flow?.status;
+      
+      // Handle cancelled flows with detailed feedback
+      if (flowStatus === 'cancelled' || flowStatus === 'failed' || flowStatus === 'error') {
+        console.error('🚨 Flow is in cancelled/failed state:', flowStatus);
+        
+        let title = "Flow Cannot Continue";
+        let description = "This flow has an issue that prevents continuation.";
+        
+        switch (flowStatus) {
+          case 'cancelled':
+            title = "Flow Was Deleted";
+            description = "This flow has been deleted and cannot be continued. If you did not delete this flow, please report this issue. You can create a new discovery flow to start over.";
+            break;
+          case 'failed':
+            title = "Flow Failed";
+            description = "This flow encountered an error and failed. Please create a new discovery flow to start over.";
+            break;
+          case 'error':
+            title = "Flow Error";
+            description = "This flow is in an error state. Please create a new discovery flow to start over.";
+            break;
+        }
+        
+        toast({
+          title,
+          description,
+          variant: "destructive"
+        });
+        
+        // Navigate to flow creation page - NO automatic deletion here
+        navigate('/discovery/cmdb-import');
+        return;
+      }
       
       if (flowStatus === 'paused' || flowStatus === 'waiting_for_approval' || flowStatus === 'waiting_for_user_approval') {
         // Resume the paused flow
@@ -58,16 +91,41 @@ export const useAttributeMappingNavigation = (flowState?: any, mappingProgress?:
           });
         }
       } else {
-        // Flow is not paused, just navigate to next phase
-        const phaseData = { 
-          completed_phases: [...(flow.phases ? Object.keys(flow.phases).filter(p => flow.phases[p]) : []), 'attribute_mapping'],
-          current_phase: 'data_cleansing',
-          progress_data: mappingProgress 
-        };
+        // Flow is not paused, try to resume it first then continue
+        console.log('🔍 Flow is not paused, attempting to resume and continue to data_cleansing');
         
-        console.log('🔍 Updating phase to data_cleansing with data:', phaseData);
-        await updatePhase('data_cleansing', phaseData);
-        navigate('/discovery/data-cleansing');
+        try {
+          const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
+          const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+          
+          // Try to resume the flow first
+          const resumeResult = await masterFlowServiceExtended.resumeFlow(flowId, clientAccountId, engagementId);
+          console.log('✅ Flow resumed successfully:', resumeResult);
+          
+          toast({
+            title: "Flow Resumed",
+            description: "Discovery flow has been resumed and is continuing to data cleansing.",
+          });
+          
+          // Navigate to data cleansing after a short delay
+          setTimeout(() => {
+            navigate('/discovery/data-cleansing');
+          }, 1500);
+          
+        } catch (resumeError) {
+          console.error('❌ Failed to resume flow, trying direct phase execution:', resumeError);
+          
+          // If resume fails, try direct phase execution as fallback
+          const phaseData = { 
+            completed_phases: [...(flow.phases ? Object.keys(flow.phases).filter(p => flow.phases[p]) : []), 'attribute_mapping'],
+            current_phase: 'data_cleansing',
+            progress_data: mappingProgress 
+          };
+          
+          console.log('🔍 Falling back to direct phase execution with data:', phaseData);
+          await updatePhase('data_cleansing', phaseData);
+          navigate('/discovery/data-cleansing');
+        }
       }
     } catch (error) {
       console.error('Failed to proceed to data cleansing:', error);

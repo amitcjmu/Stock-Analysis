@@ -176,10 +176,13 @@ export const useFlowResumptionV2 = () => {
 };
 
 // Hook for deleting flows
+// @deprecated Use useFlowDeletion from '@/hooks/useFlowDeletion' instead
 export const useFlowDeletionV2 = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { client, engagement } = useAuth();
+  
+  console.warn('⚠️ useFlowDeletionV2 is deprecated. Use useFlowDeletion for centralized user-approval deletion system.');
   
   return useMutation({
     mutationFn: async (flowId: string) => {
@@ -188,17 +191,18 @@ export const useFlowDeletionV2 = () => {
         throw new Error('Missing client or engagement context for flow deletion');
       }
       
-      // Use masterFlowService for deletion (proper unified API)
-      return await masterFlowService.deleteFlow(flowId, client.id, engagement.id);
+      // Show warning that direct deletion is deprecated
+      toast({
+        title: "⚠️ Deprecated Deletion Method",
+        description: "This deletion method is deprecated. Please use the new user-approval flow deletion system.",
+        variant: "destructive",
+      });
+      
+      throw new Error('Direct flow deletion is deprecated. Use the new user-approval deletion system.');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incomplete-flows'] });
       queryClient.invalidateQueries({ queryKey: ['discovery-flows'] });
-      
-      toast({
-        title: "Flow Deleted",
-        description: "The discovery flow has been deleted successfully.",
-      });
     },
     onError: (error: any) => {
       toast({
@@ -211,63 +215,29 @@ export const useFlowDeletionV2 = () => {
 };
 
 // Hook for bulk flow operations
+// @deprecated Use useFlowDeletion from '@/hooks/useFlowDeletion' instead
 export const useBulkFlowOperationsV2 = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { client, engagement } = useAuth();
   const [isDeleting, setIsDeleting] = useState(false);
   
+  console.warn('⚠️ useBulkFlowOperationsV2 is deprecated. Use useFlowDeletion for centralized user-approval deletion system.');
+  
   const bulkDelete = useMutation({
     mutationFn: async (params: { flow_ids: string[] } | string[]) => {
-      // Support both formats for compatibility
-      const flowIds = Array.isArray(params) ? params : params.flow_ids;
-      setIsDeleting(true);
-      // Require proper UUIDs from auth context
-      if (!client?.id || !engagement?.id) {
-        throw new Error('Missing client or engagement context for bulk flow operations');
-      }
+      // Show warning that direct deletion is deprecated
+      toast({
+        title: "⚠️ Deprecated Bulk Deletion Method",
+        description: "This bulk deletion method is deprecated. Please use the new user-approval flow deletion system.",
+        variant: "destructive",
+      });
       
-      const clientAccountId = client.id;
-      const engagementId = engagement.id;
-      
-      try {
-        const results = await Promise.all(
-          flowIds.map(async flowId => {
-            try {
-              // Use masterFlowService for all deletions
-              await masterFlowService.deleteFlow(flowId, clientAccountId, engagementId);
-              return { flowId, success: true };
-            } catch (error) {
-              return { flowId, error };
-            }
-          })
-        );
-        return results;
-      } finally {
-        setIsDeleting(false);
-      }
+      throw new Error('Direct bulk flow deletion is deprecated. Use the new user-approval deletion system.');
     },
-    onSuccess: (results) => {
-      const successCount = results.filter(r => !r.error).length;
-      const failureCount = results.filter(r => r.error).length;
-      
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incomplete-flows'] });
       queryClient.invalidateQueries({ queryKey: ['discovery-flows'] });
-      
-      if (successCount > 0) {
-        toast({
-          title: "Flows Deleted",
-          description: `Successfully deleted ${successCount} flow(s)${failureCount > 0 ? `, ${failureCount} failed` : ''}.`,
-        });
-      }
-      
-      if (failureCount > 0) {
-        toast({
-          title: "Some Deletions Failed",
-          description: `Failed to delete ${failureCount} flow(s).`,
-          variant: "destructive",
-        });
-      }
     },
     onError: (error: any) => {
       toast({

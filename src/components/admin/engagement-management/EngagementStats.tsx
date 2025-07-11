@@ -12,7 +12,7 @@ export const EngagementStats: React.FC<EngagementStatsProps> = ({ engagements })
   const totalEngagements = engagements.length;
   const activeEngagements = engagements.filter(e => e.is_active).length;
   const completedEngagements = engagements.filter(e => e.migration_phase === 'completed').length;
-  const totalBudget = engagements.reduce((sum, e) => sum + (e.budget || 0), 0);
+  const totalBudget = engagements.reduce((sum, e) => sum + (e.estimated_budget || 0), 0);
   const avgProgress = engagements.length > 0 
     ? engagements.reduce((sum, e) => sum + e.completion_percentage, 0) / engagements.length 
     : 0;

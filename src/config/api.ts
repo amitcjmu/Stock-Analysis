@@ -155,13 +155,13 @@ export const API_CONFIG = {
       CANCEL_TASK: '/monitoring/tasks'
     },
     ADMIN: {
-      CLIENTS: '/admin/clients',
+      CLIENTS: '/api/v1/admin/clients',
       DEFAULT_CLIENT: '/context-establishment/clients', // Changed from /default to get all clients
-      ENGAGEMENTS: '/admin/engagements',
-      USERS: '/admin/users',
-      USER_PROFILES: '/admin/user-profiles',
-      CLIENT_ACCESS: '/admin/client-access',
-      ENGAGEMENT_ACCESS: '/admin/engagement-access'
+      ENGAGEMENTS: '/api/v1/admin/engagements',
+      USERS: '/api/v1/admin/users',
+      USER_PROFILES: '/api/v1/admin/user-profiles',
+      CLIENT_ACCESS: '/api/v1/admin/client-access',
+      ENGAGEMENT_ACCESS: '/api/v1/admin/engagement-access'
     },
     AGENT_LEARNING: {
       LEARNING_STATISTICS: '/agent-learning/learning/stats',

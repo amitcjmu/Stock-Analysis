@@ -260,6 +260,14 @@ def get_cors_origins():
         ])
         logger.info("Using production CORS origins")
     
+    # Railway/Vercel detection - if we detect Railway deployment, force production origins
+    if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_NAME"):
+        cors_origins.extend([
+            "https://aiforce-assess.vercel.app",
+            "https://migrate-ui-orchestrator-production.up.railway.app"
+        ])
+        logger.info("Railway deployment detected - adding production CORS origins")
+    
     # Add frontend URL from settings if specified
     if hasattr(settings, 'FRONTEND_URL') and settings.FRONTEND_URL:
         cors_origins.append(settings.FRONTEND_URL)

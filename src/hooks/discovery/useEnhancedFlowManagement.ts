@@ -330,16 +330,18 @@ export const useFlowHealthMonitor = (flowIds: string[], enabled: boolean = true)
 };
 
 /**
- * Hook for automatic cleanup scheduling
+ * Hook for cleanup recommendations only (NO automatic cleanup)
+ * @deprecated Use useFlowCleanupRecommendations from useFlowDeletion instead
  */
 export const useAutomaticCleanup = (enabled: boolean = false) => {
-  const { performFlowCleanup } = useEnhancedFlowManagement();
+  console.warn('⚠️ useAutomaticCleanup is deprecated. Automatic cleanup is disabled for user safety. Use useFlowCleanupRecommendations instead.');
   
-  return useQuery({
-    queryKey: ['automatic-cleanup'],
-    queryFn: () => performFlowCleanup({ expirationHours: 72, dryRun: false }),
-    enabled,
-    refetchInterval: false, // DISABLED: No automatic daily polling
-    retry: 1,
-  });
+  // Always return disabled state - no automatic cleanup allowed
+  return {
+    data: null,
+    isLoading: false,
+    isError: false,
+    error: null,
+    refetch: () => Promise.resolve(),
+  };
 }; 
