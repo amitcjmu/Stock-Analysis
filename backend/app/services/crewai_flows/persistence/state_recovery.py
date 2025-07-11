@@ -67,8 +67,8 @@ class FlowStateRecovery:
                 # Validate recovered state
                 validation_result = self.validator.validate_complete_state(recovered_state)
                 
-                if not validation_result['valid']:
-                    logger.warning(f"⚠️ Checkpoint state validation failed: {validation_result['errors']}")
+                if not validation_result.valid:
+                    logger.warning(f"⚠️ Checkpoint state validation failed: {validation_result.errors}")
                     # Try to repair the state
                     recovered_state = await self._repair_corrupted_state(recovered_state)
                 
@@ -190,7 +190,7 @@ class FlowStateRecovery:
                 state_snapshot = checkpoint.get('state_snapshot', {})
                 validation_result = self.validator.validate_complete_state(state_snapshot)
                 
-                if validation_result['valid']:
+                if validation_result.valid:
                     logger.info(f"✅ Found valid checkpoint: {checkpoint.get('checkpoint_id')}")
                     return checkpoint
             
@@ -270,11 +270,11 @@ class FlowStateRecovery:
             # Validate repaired state
             validation_result = self.validator.validate_complete_state(repaired_state)
             
-            if validation_result['valid']:
+            if validation_result.valid:
                 logger.info("✅ State successfully repaired")
                 return repaired_state
             else:
-                logger.error(f"❌ State repair failed: {validation_result['errors']}")
+                logger.error(f"❌ State repair failed: {validation_result.errors}")
                 return None
                 
         except Exception as e:

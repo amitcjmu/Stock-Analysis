@@ -197,28 +197,32 @@ class DatabaseSetup:
             logger.error(f"❌ Failed to install extensions: {e}")
             raise DatabaseInitializationError(f"Extension installation failed: {e}")
 
-    def run_migrations(self) -> None:
-        """Run Alembic migrations"""
+    async def run_migrations(self) -> None:
+        """Run Alembic migrations asynchronously."""
         logger.info("Running database migrations...")
         
         try:
-            # Set environment variable for Alembic
+            # Set environment variable for Alembic - this is important for some Alembic setups
             os.environ['DATABASE_URL'] = self.app_db_url
-            
+
             # Get alembic config
             alembic_cfg_path = Path(__file__).parent.parent / "alembic.ini"
             alembic_cfg = Config(str(alembic_cfg_path))
-            
-            # Set the database URL in alembic config
             alembic_cfg.set_main_option("sqlalchemy.url", self.app_db_url)
             
-            # Run migrations
+            # Run migrations in a separate thread to avoid blocking the event loop
             logger.info("🔄 Upgrading to head...")
-            command.upgrade(alembic_cfg, "head")
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(
+                None,  # Use the default thread pool executor
+                command.upgrade,
+                alembic_cfg,
+                "head"
+            )
             logger.info("✅ Migrations completed successfully!")
             
         except Exception as e:
-            logger.error(f"❌ Migration failed: {e}")
+            logger.error(f"❌ Migration failed: {e}", exc_info=True)
             raise DatabaseInitializationError(f"Migration failed: {e}")
 
     async def initialize_data(self) -> None:
@@ -373,7 +377,7 @@ class DatabaseSetup:
             
             # Step 3: Run migrations
             if not self.seed_only and not self.validate_only:
-                self.run_migrations()
+                await self.run_migrations()
             
             # Step 4: Initialize data
             if not self.validate_only:

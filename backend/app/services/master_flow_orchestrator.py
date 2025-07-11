@@ -1163,6 +1163,10 @@ class MasterFlowOrchestrator:
             
             return status
             
+        except ValueError as e:
+            # Flow not found - this is a legitimate 404 case
+            logger.warning(f"Flow not found: {flow_id}")
+            raise e  # Re-raise as ValueError for proper 404 handling
         except Exception as e:
             logger.error(f"Failed to get flow status for {flow_id}: {e}")
             raise RuntimeError(f"Failed to get flow status: {str(e)}")

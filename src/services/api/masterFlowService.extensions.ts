@@ -23,6 +23,7 @@ export const masterFlowServiceExtended = {
     clientAccountId: string,
     engagementId?: string
   ): Promise<any> {
+    const token = localStorage.getItem('auth_token');
     return apiClient.post(
       `/flows/${flowId}/execute`,
       { phase, ...phaseData },
@@ -31,6 +32,7 @@ export const masterFlowServiceExtended = {
           'X-Client-Account-ID': clientAccountId,
           ...(engagementId && { 'X-Engagement-ID': engagementId }),
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
       }
     );
@@ -44,6 +46,7 @@ export const masterFlowServiceExtended = {
     clientAccountId: string,
     engagementId?: string
   ): Promise<any> {
+    const token = localStorage.getItem('auth_token');
     return apiClient.post(
       `/flows/${flowId}/validate`,
       {},
@@ -52,6 +55,7 @@ export const masterFlowServiceExtended = {
           'X-Client-Account-ID': clientAccountId,
           ...(engagementId && { 'X-Engagement-ID': engagementId }),
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
       }
     );
@@ -65,6 +69,7 @@ export const masterFlowServiceExtended = {
     clientAccountId: string,
     engagementId?: string
   ): Promise<any> {
+    const token = localStorage.getItem('auth_token');
     return apiClient.post(
       `/flows/${flowId}/retry`,
       {},
@@ -73,6 +78,7 @@ export const masterFlowServiceExtended = {
           'X-Client-Account-ID': clientAccountId,
           ...(engagementId && { 'X-Engagement-ID': engagementId }),
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
       }
     );
@@ -86,12 +92,14 @@ export const masterFlowServiceExtended = {
     clientAccountId: string,
     engagementId?: string
   ): Promise<any> {
+    const token = localStorage.getItem('auth_token');
     return apiClient.get(
       `/flows/${flowId}/validation-status`,
       {
         headers: {
           'X-Client-Account-ID': clientAccountId,
           ...(engagementId && { 'X-Engagement-ID': engagementId }),
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
       }
     );
@@ -105,12 +113,14 @@ export const masterFlowServiceExtended = {
     clientAccountId: string,
     engagementId?: string
   ): Promise<any> {
+    const token = localStorage.getItem('auth_token');
     return apiClient.get(
       `/flows/${flowId}/agent-insights`,
       {
         headers: {
           'X-Client-Account-ID': clientAccountId,
           ...(engagementId && { 'X-Engagement-ID': engagementId }),
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
       }
     );
@@ -125,6 +135,7 @@ export const masterFlowServiceExtended = {
     clientAccountId: string,
     engagementId?: string
   ): Promise<any> {
+    const token = localStorage.getItem('auth_token');
     return apiClient.post(
       `/flows/${flowId}/complete`,
       {},
@@ -133,6 +144,7 @@ export const masterFlowServiceExtended = {
           'X-Client-Account-ID': clientAccountId,
           ...(engagementId && { 'X-Engagement-ID': engagementId }),
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
       }
     );
@@ -146,12 +158,14 @@ export const masterFlowServiceExtended = {
     clientAccountId: string,
     engagementId?: string
   ): Promise<any> {
+    const token = localStorage.getItem('auth_token');
     return apiClient.get(
       `/flows/metrics?flowType=discovery`,
       {
         headers: {
           'X-Client-Account-ID': clientAccountId,
           ...(engagementId && { 'X-Engagement-ID': engagementId }),
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
       }
     );
@@ -165,12 +179,14 @@ export const masterFlowServiceExtended = {
     clientAccountId: string,
     engagementId?: string
   ): Promise<any> {
+    const token = localStorage.getItem('auth_token');
     return apiClient.get(
       `/flows/analytics/application-landscape`,
       {
         headers: {
           'X-Client-Account-ID': clientAccountId,
           ...(engagementId && { 'X-Engagement-ID': engagementId }),
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
       }
     );
@@ -184,12 +200,14 @@ export const masterFlowServiceExtended = {
     clientAccountId: string,
     engagementId?: string
   ): Promise<any> {
+    const token = localStorage.getItem('auth_token');
     return apiClient.get(
       `/flows/analytics/infrastructure-landscape`,
       {
         headers: {
           'X-Client-Account-ID': clientAccountId,
           ...(engagementId && { 'X-Engagement-ID': engagementId }),
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
       }
     );

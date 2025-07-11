@@ -285,6 +285,13 @@ async def get_flow(
         
     except HTTPException:
         raise
+    except ValueError as e:
+        # Flow not found - proper 404 handling
+        logger.warning(f"Flow not found: {flow_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Flow {flow_id} not found"
+        )
     except Exception as e:
         logger.error(f"Error getting flow {flow_id}: {str(e)}")
         raise HTTPException(
@@ -306,13 +313,78 @@ async def execute_phase(
     The flow must be in a valid state to execute the next phase.
     """
     try:
-        success, result = await orchestrator.execute_phase(
-            flow_id=flow_id,
-            phase_input=request.phase_input,
-            force_execution=request.force_execution
-        )
+        # For the unified flow API, we need to determine the next phase based on flow state
+        # First, get the current flow status to determine the next phase
+        try:
+            flow_status = await orchestrator.get_flow_status(flow_id)
+        except ValueError:
+            # Flow not found
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Flow {flow_id} not found"
+            )
         
-        if not success:
+        # Check for corrupted flow state and attempt recovery
+        if (flow_status.get("status") == "failed" and 
+            (flow_status.get("flow_type") is None or flow_status.get("current_phase") is None)):
+            logger.warning(f"Detected corrupted flow state for {flow_id}, attempting recovery...")
+            
+            # Try to recover the flow based on its data
+            recovery_result = await _recover_corrupted_flow(orchestrator, flow_id, flow_status)
+            if recovery_result["success"]:
+                logger.info(f"✅ Flow {flow_id} recovered successfully")
+                # Get the updated flow status after recovery
+                flow_status = await orchestrator.get_flow_status(flow_id)
+            else:
+                logger.error(f"❌ Failed to recover flow {flow_id}: {recovery_result['error']}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Flow is in corrupted state and recovery failed: {recovery_result['error']}"
+                )
+        
+        # Check if this is a paused flow that should be resumed
+        if flow_status.get("status") in ["paused", "waiting_for_approval"]:
+            # Resume the flow instead of executing a specific phase
+            resume_context = request.phase_input if request.phase_input else {}
+            if request.force_execution:
+                resume_context["force_execution"] = True
+            result = await orchestrator.resume_flow(flow_id, resume_context)
+        else:
+            # For active flows, use the MFO's flow registry to determine next phase
+            # This is the proper way to handle phase progression
+            flow_type = flow_status.get("flow_type", "unknown")
+            current_phase = flow_status.get("current_phase", "unknown")
+            
+            try:
+                # Get the flow configuration from the registry
+                flow_config = orchestrator.flow_registry.get_flow_config(flow_type)
+                next_phase = flow_config.get_next_phase(current_phase)
+                
+                if not next_phase:
+                    # This means we're at the end of the flow
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Flow '{flow_id}' has completed all phases. Current phase: '{current_phase}'"
+                    )
+                    
+                logger.info(f"Flow {flow_id}: Executing next phase '{next_phase}' after '{current_phase}'")
+                
+                result = await orchestrator.execute_phase(
+                    flow_id=flow_id,
+                    phase_name=next_phase,
+                    phase_input=request.phase_input,
+                    validation_overrides={"force_execution": request.force_execution} if request.force_execution else None
+                )
+                
+            except ValueError as e:
+                # Flow type not registered
+                logger.error(f"Flow type '{flow_type}' not found in registry: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Flow type '{flow_type}' is not registered in the flow registry"
+                )
+        
+        if result.get("status") == "failed":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=result.get("error", "Failed to execute phase")
@@ -356,9 +428,9 @@ async def pause_flow(
     Pauses a currently running flow, preserving its state for later resumption.
     """
     try:
-        success, result = await orchestrator.pause_flow(flow_id)
+        result = await orchestrator.pause_flow(flow_id)
         
-        if not success:
+        if result.get("status") == "failed":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=result.get("error", "Failed to pause flow")
@@ -449,9 +521,9 @@ async def delete_flow(
     The flow can be restored if needed.
     """
     try:
-        success, result = await orchestrator.delete_flow(flow_id)
+        result = await orchestrator.delete_flow(flow_id)
         
-        if not success:
+        if result.get("deleted") != True:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=result.get("error", "Failed to delete flow")
@@ -505,6 +577,13 @@ async def get_flow_status(
         
     except HTTPException:
         raise
+    except ValueError as e:
+        # Flow not found - proper 404 handling
+        logger.warning(f"Flow not found: {flow_id}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Flow {flow_id} not found"
+        )
     except Exception as e:
         logger.error(f"Error getting flow status {flow_id}: {str(e)}")
         raise HTTPException(
@@ -606,6 +685,97 @@ async def get_flow_analytics(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get flow analytics: {str(e)}"
         )
+
+
+# ===========================
+# Flow Recovery Helper Functions
+# ===========================
+
+async def _recover_corrupted_flow(orchestrator, flow_id: str, flow_status: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Attempt to recover a corrupted flow based on its existing data
+    
+    This function analyzes the flow's existing data (field mappings, etc.) 
+    to determine the correct phase and flow type, then repairs the flow state.
+    """
+    try:
+        # Check for existing field mappings to determine the current phase
+        from app.models.discovery_flow import DiscoveryFlow
+        from app.models.field_mapping import FieldMapping
+        from sqlalchemy import select
+        
+        # Get the discovery flow record
+        discovery_query = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id)
+        discovery_result = await orchestrator.db.execute(discovery_query)
+        discovery_flow = discovery_result.scalar_one_or_none()
+        
+        if not discovery_flow:
+            return {"success": False, "error": "No discovery flow record found"}
+        
+        # Get field mappings count
+        field_mappings_query = select(FieldMapping).where(FieldMapping.flow_id == flow_id)
+        field_mappings_result = await orchestrator.db.execute(field_mappings_query)
+        field_mappings = field_mappings_result.fetchall()
+        field_mappings_count = len(field_mappings)
+        
+        # Determine the correct phase and status based on existing data
+        if field_mappings_count > 0:
+            # Field mappings exist, so we should be in field_mapping phase
+            correct_phase = "field_mapping"
+            correct_status = "waiting_for_approval"
+            progress = 60.0
+        else:
+            # No field mappings, so we're likely in data_import phase
+            correct_phase = "data_import"
+            correct_status = "processing"
+            progress = 30.0
+        
+        # Update the master flow record
+        master_flow = await orchestrator.master_repo.get_by_flow_id(flow_id)
+        if master_flow:
+            # Update the master flow record directly
+            master_flow.flow_type = "discovery"
+            master_flow.flow_status = correct_status
+            master_flow.current_phase = correct_phase
+            master_flow.progress_percentage = progress
+            master_flow.updated_at = datetime.utcnow()
+            
+            # Update phase data
+            if not master_flow.flow_persistence_data:
+                master_flow.flow_persistence_data = {}
+            master_flow.flow_persistence_data.update({
+                "current_phase": correct_phase,
+                "recovered_at": datetime.utcnow().isoformat(),
+                "recovery_reason": "corrupted_state_repair",
+                "field_mappings_count": field_mappings_count
+            })
+            
+            await orchestrator.db.commit()
+        
+        # Update the discovery flow record
+        discovery_flow.current_phase = correct_phase
+        discovery_flow.status = correct_status
+        discovery_flow.progress_percentage = progress
+        discovery_flow.updated_at = datetime.utcnow()
+        await orchestrator.db.commit()
+        
+        logger.info(f"✅ Flow {flow_id} recovered: phase={correct_phase}, status={correct_status}")
+        
+        # Return the recovered status
+        recovered_status = {
+            "flow_id": flow_id,
+            "flow_type": "discovery",
+            "current_phase": correct_phase,
+            "status": correct_status,
+            "field_mappings": field_mappings_count,
+            "progress": progress
+        }
+        
+        return {"success": True, "recovered_status": recovered_status}
+        
+    except Exception as e:
+        logger.error(f"❌ Flow recovery failed for {flow_id}: {e}")
+        return {"success": False, "error": str(e)}
 
 
 # ===========================
