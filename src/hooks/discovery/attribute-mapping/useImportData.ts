@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
 import { apiCall } from '../../../config/api';
+import { useLatestImport } from '../../api/useLatestImport';
 
 export interface ImportDataResult {
   importData: any;
@@ -12,45 +13,30 @@ export interface ImportDataResult {
 /**
  * Hook for import data fetching and management
  * Handles both flow-specific and latest import data with fallback mechanisms
+ * Now uses unified caching to prevent duplicate API calls
  */
 export const useImportData = (finalFlowId: string | null): ImportDataResult => {
   const { user, getAuthHeaders } = useAuth();
 
-  // Get import data for this flow, with fallback to latest import
+  // Use the unified latest import hook for fallback data (prevents duplicate calls)
+  const { data: latestImportData, isLoading: isLatestImportLoading } = useLatestImport(!!user?.id);
+
+  // Get flow-specific import data if we have a flow ID
   const { 
-    data: importData, 
-    isLoading: isImportDataLoading, 
-    error: importDataError,
-    refetch: refetchImportData
+    data: flowImportData, 
+    isLoading: isFlowImportLoading, 
+    error: flowImportError,
+    refetch: refetchFlowImportData
   } = useQuery({
-    queryKey: ['import-data', finalFlowId, user?.id],
+    queryKey: ['flow-import-data', finalFlowId, user?.id],
     queryFn: async () => {
+      if (!finalFlowId) {
+        return null; // No flow ID, will use latest import fallback
+      }
+
+      console.log('🔍 Fetching import data for flow:', finalFlowId);
       try {
-        // If we have a final flow ID, try flow-specific import data first
-        if (finalFlowId) {
-          console.log('🔍 Fetching import data for flow:', finalFlowId);
-          console.log('🔗 Trying flow-specific import data endpoint...');
-          const flowResponse = await apiCall(`/api/v1/data-import/flow/${finalFlowId}/import-data`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              ...getAuthHeaders()
-            }
-          });
-          
-          if (flowResponse) {
-            console.log('✅ Fetched flow-specific import data:', flowResponse);
-            return flowResponse;
-          }
-          
-          console.log('🔗 Flow-specific import not found, falling back to latest import...');
-        } else {
-          console.log('⚠️ No final flow ID, attempting to fetch latest import data as fallback');
-        }
-        
-        // Fall back to latest import for client (works both with and without flow ID)
-        console.log('🔗 Trying latest import endpoint...');
-        const latestResponse = await apiCall(`/api/v1/data-import/latest-import`, {
+        const flowResponse = await apiCall(`/api/v1/data-import/flow/${finalFlowId}/import-data`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -58,35 +44,43 @@ export const useImportData = (finalFlowId: string | null): ImportDataResult => {
           }
         });
         
-        if (latestResponse) {
-          console.log('✅ Using latest import data as fallback:', latestResponse);
-          return latestResponse;
+        if (flowResponse) {
+          console.log('✅ Fetched flow-specific import data:', flowResponse);
+          return flowResponse;
         }
-        
-        console.log('❌ No import data found');
-        return null;
-        
       } catch (error) {
-        console.error('❌ Error fetching import data:', error);
-        // Return null instead of throwing to prevent breaking the entire component
-        return null;
+        console.error('❌ Error fetching flow-specific import data:', error);
+        // Fall through to use latest import data from unified hook
       }
+      
+      return null; // Will fall back to latest import
     },
-    enabled: !!user?.id, // Enable as long as user is authenticated, fallback logic handles missing flow ID
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes to reduce API calls
+    enabled: !!(finalFlowId && user?.id),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     cacheTime: 15 * 60 * 1000, // Keep in cache for 15 minutes
-    retry: (failureCount, error) => {
-      // Don't retry on 429 (Too Many Requests) or authentication errors
-      if (error && typeof error === 'object' && 'status' in error) {
-        const status = (error as any).status;
-        if (status === 429 || status === 401 || status === 403) {
-          return false;
-        }
+    retry: (failureCount, error: any) => {
+      // Don't retry on 429 or auth errors
+      if (error?.status === 429 || error?.status === 401 || error?.status === 403) {
+        return false;
       }
-      return failureCount < 2; // Only retry twice max
+      return failureCount < 2;
     },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential backoff, max 10s
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
   });
+
+  // Determine which data to use: flow-specific first, then latest import fallback
+  const importData = flowImportData || latestImportData;
+  const isImportDataLoading = isFlowImportLoading || isLatestImportLoading;
+  const importDataError = flowImportError;
+
+  // Combined refetch function
+  const refetchImportData = async () => {
+    const results = await Promise.allSettled([
+      refetchFlowImportData(),
+      // Note: Latest import refetch is handled by the useLatestImport hook automatically
+    ]);
+    return results[0]; // Return flow data refetch result
+  };
 
   return {
     importData,

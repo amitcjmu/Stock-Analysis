@@ -13,7 +13,7 @@ import { LoadingPriority } from '@/types/lazy';
 export const useLazyAttributeMappingLogic = (immediate = false) => {
   return useLazyHook(
     'attribute-mapping-logic',
-    () => import('@/hooks/discovery/attribute-mapping/useAttributeMappingLogic'),
+    () => import('@/hooks/discovery/useAttributeMappingLogic'),
     {
       priority: LoadingPriority.HIGH,
       immediate,
@@ -22,18 +22,18 @@ export const useLazyAttributeMappingLogic = (immediate = false) => {
   );
 };
 
-// Lazy load data cleansing logic
-export const useLazyDataCleansingLogic = (immediate = false) => {
-  return useLazyHook(
-    'data-cleansing-logic',
-    () => import('@/hooks/discovery/data-cleansing/useDataCleansingLogic'),
-    {
-      priority: LoadingPriority.NORMAL,
-      immediate,
-      timeout: 15000
-    }
-  );
-};
+// Lazy load data cleansing logic - Currently not implemented
+// export const useLazyDataCleansingLogic = (immediate = false) => {
+//   return useLazyHook(
+//     'data-cleansing-logic',
+//     () => import('@/hooks/discovery/data-cleansing/useDataCleansingLogic'),
+//     {
+//       priority: LoadingPriority.NORMAL,
+//       immediate,
+//       timeout: 15000
+//     }
+//   );
+// };
 
 // Lazy load discovery flow management
 export const useLazyUnifiedDiscoveryFlow = (immediate = false) => {
@@ -69,7 +69,7 @@ export const useLazySixRAnalysis = (immediate = false) => {
 export const useLazyAssessmentFlow = (immediate = false) => {
   return useLazyHook(
     'assessment-flow',
-    () => import('@/hooks/assessment/useAssessmentFlow'),
+    () => import('@/hooks/useAssessmentFlow'),
     {
       priority: LoadingPriority.HIGH,
       immediate,
@@ -79,79 +79,79 @@ export const useLazyAssessmentFlow = (immediate = false) => {
 };
 
 /**
- * Admin-related lazy hooks (LOW priority)
+ * Admin-related lazy hooks (LOW priority) - Currently not implemented
  */
 
-// Lazy load admin management hooks
-export const useLazyAdminManagement = (userIsAdmin: boolean, immediate = false) => {
-  return useConditionalLazyHook(
-    'admin-management',
-    () => import('@/hooks/admin/useAdminManagement'),
-    userIsAdmin,
-    {
-      priority: LoadingPriority.LOW,
-      immediate: immediate && userIsAdmin,
-      timeout: 15000
-    }
-  );
-};
+// Lazy load admin management hooks - Currently not implemented
+// export const useLazyAdminManagement = (userIsAdmin: boolean, immediate = false) => {
+//   return useConditionalLazyHook(
+//     'admin-management',
+//     () => import('@/hooks/admin/useAdminManagement'),
+//     userIsAdmin,
+//     {
+//       priority: LoadingPriority.LOW,
+//       immediate: immediate && userIsAdmin,
+//       timeout: 15000
+//     }
+//   );
+// };
 
-// Lazy load user management hooks
-export const useLazyUserManagement = (userIsAdmin: boolean, immediate = false) => {
-  return useConditionalLazyHook(
-    'user-management',
-    () => import('@/hooks/admin/useUserManagement'),
-    userIsAdmin,
-    {
-      priority: LoadingPriority.LOW,
-      immediate: immediate && userIsAdmin,
-      timeout: 15000
-    }
-  );
-};
+// Lazy load user management hooks - Currently not implemented
+// export const useLazyUserManagement = (userIsAdmin: boolean, immediate = false) => {
+//   return useConditionalLazyHook(
+//     'user-management',
+//     () => import('@/hooks/admin/useUserManagement'),
+//     userIsAdmin,
+//     {
+//       priority: LoadingPriority.LOW,
+//       immediate: immediate && userIsAdmin,
+//       timeout: 15000
+//     }
+//   );
+// };
 
 /**
- * Utility and integration hooks
+ * Utility and integration hooks - Currently not implemented
  */
 
-// Lazy load API hooks
-export const useLazyAPIHooks = (immediate = false) => {
-  return useLazyHook(
-    'api-hooks',
-    () => import('@/hooks/api/useApiHooks'),
-    {
-      priority: LoadingPriority.NORMAL,
-      immediate,
-      timeout: 10000
-    }
-  );
-};
+// Lazy load API hooks - Currently not implemented
+// export const useLazyAPIHooks = (immediate = false) => {
+//   return useLazyHook(
+//     'api-hooks',
+//     () => import('@/hooks/api/useApiHooks'),
+//     {
+//       priority: LoadingPriority.NORMAL,
+//       immediate,
+//       timeout: 10000
+//     }
+//   );
+// };
 
-// Lazy load form validation hooks
-export const useLazyFormValidation = (immediate = false) => {
-  return useLazyHook(
-    'form-validation',
-    () => import('@/hooks/validation/useFormValidation'),
-    {
-      priority: LoadingPriority.NORMAL,
-      immediate,
-      timeout: 10000
-    }
-  );
-};
+// Lazy load form validation hooks - Currently not implemented
+// export const useLazyFormValidation = (immediate = false) => {
+//   return useLazyHook(
+//     'form-validation',
+//     () => import('@/hooks/validation/useFormValidation'),
+//     {
+//       priority: LoadingPriority.NORMAL,
+//       immediate,
+//       timeout: 10000
+//     }
+//   );
+// };
 
-// Lazy load performance monitoring hooks
-export const useLazyPerformanceMonitoring = (immediate = false) => {
-  return useLazyHook(
-    'performance-monitoring',
-    () => import('@/hooks/monitoring/usePerformanceMonitoring'),
-    {
-      priority: LoadingPriority.LOW,
-      immediate,
-      timeout: 10000
-    }
-  );
-};
+// Lazy load performance monitoring hooks - Currently not implemented
+// export const useLazyPerformanceMonitoring = (immediate = false) => {
+//   return useLazyHook(
+//     'performance-monitoring',
+//     () => import('@/hooks/monitoring/usePerformanceMonitoring'),
+//     {
+//       priority: LoadingPriority.LOW,
+//       immediate,
+//       timeout: 10000
+//     }
+//   );
+// };
 
 /**
  * Advanced lazy hook patterns

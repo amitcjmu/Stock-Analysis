@@ -101,7 +101,7 @@ class DataCleansingCrew:
             backstory="""You are a data quality expert who processes data directly and efficiently. 
             You provide comprehensive data cleansing results without requiring additional agents or conversations.""",
             llm=self.llm,
-            memory=False,  # DISABLE MEMORY - Prevents APIStatusError
+            memory=True,   # RE-ENABLED MEMORY - APIStatusError was from auth issues, not memory
             verbose=True,
             allow_delegation=False,  # DISABLE DELEGATION - Prevents agent conversations
             max_iter=1,  # LIMIT ITERATIONS - Prevents infinite loops
@@ -248,7 +248,7 @@ def create_data_cleansing_crew(crewai_service, state: UnifiedDiscoveryFlowState)
             process=Process.sequential,  # CRITICAL: No hierarchical overhead
             verbose=False,  # Reduce logging
             max_execution_time=45,  # Crew-level timeout
-            memory=False,  # CRITICAL: Disable memory for speed
+            memory=True,   # RE-ENABLED: Memory system working correctly
             embedder=None  # Disable embedding overhead
         )
         
@@ -286,7 +286,7 @@ def _create_minimal_fallback_crew(crewai_service, state: UnifiedDiscoveryFlowSta
             tasks=[minimal_task],
             process=Process.sequential,
             verbose=False,
-            memory=False
+            memory=True   # RE-ENABLED: Memory system working correctly
         )
     except Exception as e:
         logger.error(f"Even fallback crew creation failed: {e}")

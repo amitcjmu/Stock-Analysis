@@ -35,7 +35,8 @@ try:
         # Override crew settings
         kwargs['max_iterations'] = 1
         kwargs['verbose'] = kwargs.get('verbose', False)
-        kwargs['memory'] = False  # Disable memory for speed
+        # MEMORY RE-ENABLED: Remove global memory disable
+        # kwargs['memory'] = False  # REMOVED - Memory system is working correctly
         kwargs['embedder'] = None  # No embedding overhead
         
         # Set timeout if not specified
@@ -53,6 +54,7 @@ try:
     logger.info("   - No delegation allowed")
     logger.info("   - Single pass execution")
     logger.info("   - 15 second timeout")
+    logger.info("   - Memory system RE-ENABLED (global disable removed)")
     
 except ImportError:
     logger.warning("CrewAI not available - performance optimizations not applied")

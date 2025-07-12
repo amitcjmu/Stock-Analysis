@@ -134,7 +134,7 @@ const lazyUtilityManager = LazyUtilityManager.getInstance();
 export const loadAPIUtils = () => 
   lazyUtilityManager.loadUtility(
     'api-utils',
-    () => import('@/utils/api/apiUtils'),
+    () => import('@/utils/api'),
     { priority: LoadingPriority.HIGH, cache: true }
   );
 
@@ -153,34 +153,35 @@ export const loadDataCleansingUtils = () =>
     { priority: LoadingPriority.NORMAL, cache: true }
   );
 
-export const loadCSVProcessor = () =>
-  lazyUtilityManager.loadUtility(
-    'csv-processor',
-    () => import('@/utils/data/csvProcessor'),
-    { priority: LoadingPriority.NORMAL, cache: true }
-  );
+// Data Processing Utilities - Currently not implemented
+// export const loadCSVProcessor = () =>
+//   lazyUtilityManager.loadUtility(
+//     'csv-processor',
+//     () => import('@/utils/data/csvProcessor'),
+//     { priority: LoadingPriority.NORMAL, cache: true }
+//   );
 
-export const loadDataValidator = () =>
-  lazyUtilityManager.loadUtility(
-    'data-validator',
-    () => import('@/utils/validation/dataValidator'),
-    { priority: LoadingPriority.NORMAL, cache: true }
-  );
+// export const loadDataValidator = () =>
+//   lazyUtilityManager.loadUtility(
+//     'data-validator',
+//     () => import('@/utils/validation/dataValidator'),
+//     { priority: LoadingPriority.NORMAL, cache: true }
+//   );
 
-// File Processing Utilities
-export const loadFileProcessor = () =>
-  lazyUtilityManager.loadUtility(
-    'file-processor',
-    () => import('@/utils/file/fileProcessor'),
-    { priority: LoadingPriority.NORMAL, cache: true }
-  );
+// File Processing Utilities - Currently not implemented
+// export const loadFileProcessor = () =>
+//   lazyUtilityManager.loadUtility(
+//     'file-processor',
+//     () => import('@/utils/file/fileProcessor'),
+//     { priority: LoadingPriority.NORMAL, cache: true }
+//   );
 
-export const loadExcelProcessor = () =>
-  lazyUtilityManager.loadUtility(
-    'excel-processor',
-    () => import('@/utils/file/excelProcessor'),
-    { priority: LoadingPriority.NORMAL, cache: true }
-  );
+// export const loadExcelProcessor = () =>
+//   lazyUtilityManager.loadUtility(
+//     'excel-processor',
+//     () => import('@/utils/file/excelProcessor'),
+//     { priority: LoadingPriority.NORMAL, cache: true }
+//   );
 
 // Formatting and Display Utilities
 export const loadMarkdownUtils = () =>
@@ -190,79 +191,81 @@ export const loadMarkdownUtils = () =>
     { priority: LoadingPriority.LOW, cache: true }
   );
 
-export const loadDateUtils = () =>
-  lazyUtilityManager.loadUtility(
-    'date-utils',
-    () => import('@/utils/date/dateUtils'),
-    { priority: LoadingPriority.NORMAL, cache: true }
-  );
+// Date and Formatting Utilities - Currently not implemented
+// export const loadDateUtils = () =>
+//   lazyUtilityManager.loadUtility(
+//     'date-utils',
+//     () => import('@/utils/date/dateUtils'),
+//     { priority: LoadingPriority.NORMAL, cache: true }
+//   );
 
-export const loadNumberFormatter = () =>
-  lazyUtilityManager.loadUtility(
-    'number-formatter',
-    () => import('@/utils/formatting/numberFormatter'),
-    { priority: LoadingPriority.NORMAL, cache: true }
-  );
+// export const loadNumberFormatter = () =>
+//   lazyUtilityManager.loadUtility(
+//     'number-formatter',
+//     () => import('@/utils/formatting/numberFormatter'),
+//     { priority: LoadingPriority.NORMAL, cache: true }
+//   );
 
-// Chart and Visualization Utilities
-export const loadChartUtils = () =>
-  lazyUtilityManager.loadUtility(
-    'chart-utils',
-    () => import('@/utils/charts/chartUtils'),
-    { priority: LoadingPriority.LOW, cache: true }
-  );
+// Chart and Visualization Utilities - Currently not implemented
+// export const loadChartUtils = () =>
+//   lazyUtilityManager.loadUtility(
+//     'chart-utils',
+//     () => import('@/utils/charts/chartUtils'),
+//     { priority: LoadingPriority.LOW, cache: true }
+//   );
 
-export const loadVisualizationHelpers = () =>
-  lazyUtilityManager.loadUtility(
-    'visualization-helpers',
-    () => import('@/utils/visualization/helpers'),
-    { priority: LoadingPriority.LOW, cache: true }
-  );
+// Visualization Utilities - Currently not implemented
+// export const loadVisualizationHelpers = () =>
+//   lazyUtilityManager.loadUtility(
+//     'visualization-helpers',
+//     () => import('@/utils/visualization/helpers'),
+//     { priority: LoadingPriority.LOW, cache: true }
+//   );
 
-// Analytics and Tracking Utilities
-export const loadAnalyticsUtils = () =>
-  lazyUtilityManager.loadUtility(
-    'analytics-utils',
-    () => import('@/utils/analytics/analyticsUtils'),
-    { priority: LoadingPriority.LOW, cache: true }
-  );
+// Analytics and Tracking Utilities - Currently not implemented
+// export const loadAnalyticsUtils = () =>
+//   lazyUtilityManager.loadUtility(
+//     'analytics-utils',
+//     () => import('@/utils/analytics/analyticsUtils'),
+//     { priority: LoadingPriority.LOW, cache: true }
+//   );
 
-export const loadPerformanceTracker = () =>
-  lazyUtilityManager.loadUtility(
-    'performance-tracker',
-    () => import('@/utils/performance/performanceTracker'),
-    { priority: LoadingPriority.LOW, cache: true }
-  );
+// export const loadPerformanceTracker = () =>
+//   lazyUtilityManager.loadUtility(
+//     'performance-tracker',
+//     () => import('@/utils/performance/performanceTracker'),
+//     { priority: LoadingPriority.LOW, cache: true }
+//   );
 
-// Security and Validation Utilities
-export const loadSecurityUtils = () =>
-  lazyUtilityManager.loadUtility(
-    'security-utils',
-    () => import('@/utils/security/securityUtils'),
-    { priority: LoadingPriority.HIGH, cache: true }
-  );
+// Security and Validation Utilities - Currently not implemented
+// export const loadSecurityUtils = () =>
+//   lazyUtilityManager.loadUtility(
+//     'security-utils',
+//     () => import('@/utils/security/securityUtils'),
+//     { priority: LoadingPriority.HIGH, cache: true }
+//   );
 
-export const loadInputSanitizer = () =>
-  lazyUtilityManager.loadUtility(
-    'input-sanitizer',
-    () => import('@/utils/security/inputSanitizer'),
-    { priority: LoadingPriority.HIGH, cache: true }
-  );
+// export const loadInputSanitizer = () =>
+//   lazyUtilityManager.loadUtility(
+//     'input-sanitizer',
+//     () => import('@/utils/security/inputSanitizer'),
+//     { priority: LoadingPriority.HIGH, cache: true }
+//   );
 
-// Migration and Transform Utilities
-export const loadSessionToFlowMigration = () =>
-  lazyUtilityManager.loadUtility(
-    'session-to-flow-migration',
-    () => import('@/utils/migration/sessionToFlow'),
-    { priority: LoadingPriority.NORMAL, cache: true }
-  );
+// Migration and Transform Utilities - Currently not implemented
+// export const loadSessionToFlowMigration = () =>
+//   lazyUtilityManager.loadUtility(
+//     'session-to-flow-migration',
+//     () => import('@/utils/migration/sessionToFlow'),
+//     { priority: LoadingPriority.NORMAL, cache: true }
+//   );
 
-export const loadDataTransformers = () =>
-  lazyUtilityManager.loadUtility(
-    'data-transformers',
-    () => import('@/utils/transform/dataTransformers'),
-    { priority: LoadingPriority.NORMAL, cache: true }
-  );
+// export const loadDataTransformers = () =>
+//   lazyUtilityManager.loadUtility(
+//     'data-transformers',
+//     () => import('@/utils/transform/dataTransformers'),
+//     { priority: LoadingPriority.NORMAL, cache: true }
+//   );
 
 // Version and Compatibility Utilities
 export const loadVersionUtils = () =>
@@ -272,64 +275,66 @@ export const loadVersionUtils = () =>
     { priority: LoadingPriority.LOW, cache: true }
   );
 
-export const loadBrowserCompatibility = () =>
-  lazyUtilityManager.loadUtility(
-    'browser-compatibility',
-    () => import('@/utils/compatibility/browserCheck'),
-    { priority: LoadingPriority.LOW, cache: true }
-  );
+// export const loadBrowserCompatibility = () =>
+//   lazyUtilityManager.loadUtility(
+//     'browser-compatibility',
+//     () => import('@/utils/compatibility/browserCheck'),
+//     { priority: LoadingPriority.LOW, cache: true }
+//   );
 
 /**
- * Conditional utility loading based on environment or feature flags
+ * Conditional utility loading based on environment or feature flags - Currently not implemented
  */
-export const loadDevUtilities = () => {
-  if (process.env.NODE_ENV === 'development') {
-    return lazyUtilityManager.loadUtility(
-      'dev-utilities',
-      () => import('@/utils/dev/devUtils'),
-      { priority: LoadingPriority.LOW, cache: true }
-    );
-  }
-  return Promise.resolve(null);
-};
+// export const loadDevUtilities = () => {
+//   if (process.env.NODE_ENV === 'development') {
+//     return lazyUtilityManager.loadUtility(
+//       'dev-utilities',
+//       () => import('@/utils/dev/devUtils'),
+//       { priority: LoadingPriority.LOW, cache: true }
+//     );
+//   }
+//   return Promise.resolve(null);
+// };
 
-export const loadTestUtilities = () => {
-  if (process.env.NODE_ENV === 'test') {
-    return lazyUtilityManager.loadUtility(
-      'test-utilities',
-      () => import('@/utils/test/testUtils'),
-      { priority: LoadingPriority.LOW, cache: true }
-    );
-  }
-  return Promise.resolve(null);
-};
+// export const loadTestUtilities = () => {
+//   if (process.env.NODE_ENV === 'test') {
+//     return lazyUtilityManager.loadUtility(
+//       'test-utilities',
+//       () => import('@/utils/test/testUtils'),
+//       { priority: LoadingPriority.LOW, cache: true }
+//     );
+//   }
+//   return Promise.resolve(null);
+// };
 
 /**
- * Batch utility loading for related functionality
+ * Batch utility loading for related functionality - Using available utilities only
  */
 export const loadDiscoveryUtilities = async () => {
   return Promise.all([
     loadDataCleansingUtils(),
-    loadCSVProcessor(),
-    loadDataValidator(),
-    loadFileProcessor()
+    // loadCSVProcessor(), // Not implemented
+    // loadDataValidator(), // Not implemented
+    // loadFileProcessor() // Not implemented
   ]);
 };
 
 export const loadAssessmentUtilities = async () => {
   return Promise.all([
-    loadDataTransformers(),
-    loadAnalyticsUtils(),
-    loadNumberFormatter()
+    // loadDataTransformers(), // Not implemented
+    // loadAnalyticsUtils(), // Not implemented
+    // loadNumberFormatter() // Not implemented
+    loadMarkdownUtils()
   ]);
 };
 
 export const loadAdminUtilities = async () => {
   return Promise.all([
-    loadSecurityUtils(),
-    loadInputSanitizer(),
-    loadAnalyticsUtils(),
-    loadPerformanceTracker()
+    // loadSecurityUtils(), // Not implemented
+    // loadInputSanitizer(), // Not implemented
+    // loadAnalyticsUtils(), // Not implemented
+    // loadPerformanceTracker() // Not implemented
+    loadVersionUtils()
   ]);
 };
 

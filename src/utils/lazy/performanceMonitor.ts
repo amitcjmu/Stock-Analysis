@@ -349,14 +349,15 @@ class PerformanceMonitor {
     if ('memory' in performance) {
       setInterval(() => {
         const memory = (performance as any).memory;
-        if (memory.usedJSHeapSize > memory.totalJSHeapSize * 0.9) {
+        // Only warn at 95% usage and limit frequency to avoid spam
+        if (memory.usedJSHeapSize > memory.totalJSHeapSize * 0.95) {
           console.warn('High memory usage detected:', {
             used: Math.round(memory.usedJSHeapSize / 1024 / 1024) + 'MB',
             total: Math.round(memory.totalJSHeapSize / 1024 / 1024) + 'MB',
             limit: Math.round(memory.jsHeapSizeLimit / 1024 / 1024) + 'MB'
           });
         }
-      }, 30000); // Check every 30 seconds
+      }, 60000); // Check every 60 seconds (reduced frequency)
     }
   }
 

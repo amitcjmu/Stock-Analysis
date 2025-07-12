@@ -177,8 +177,8 @@ const AuthenticatedApp = () => {
   if (!isAuthenticated) {
     return (
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="*" element={<Login />} />
+        <Route path="/login" element={<LazyLogin />} />
+        <Route path="*" element={<LazyLogin />} />
       </Routes>
     );
   }

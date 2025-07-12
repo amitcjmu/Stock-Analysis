@@ -14,14 +14,14 @@ export * from './routes/LazyRoutes';
 export * from './components/LazyComponents';
 
 // Hooks
-export { useLazyComponent, useViewportLazyComponent, useHoverPreload } from '../hooks/lazy/useLazyComponent';
-export * from '../hooks/lazy/LazyHooks';
+export { useLazyComponent, useViewportLazyComponent, useHoverPreload } from '../../hooks/lazy/useLazyComponent';
+export * from '../../hooks/lazy/LazyHooks';
 
 // Utilities
-export * from '../utils/lazy/LazyUtilities';
-export { loadingManager } from '../utils/lazy/loadingManager';
-export { routePreloader } from '../utils/lazy/routePreloader';
-export { performanceMonitor } from '../utils/lazy/performanceMonitor';
+export * from '../../utils/lazy/LazyUtilities';
+export { loadingManager } from '../../utils/lazy/loadingManager';
+export { routePreloader } from '../../utils/lazy/routePreloader';
+export { performanceMonitor } from '../../utils/lazy/performanceMonitor';
 
 // Types
-export * from '../types/lazy';
+export * from '../../types/lazy';
