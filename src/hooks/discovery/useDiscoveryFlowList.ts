@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { apiCall } from '@/config/api';
 import masterFlowServiceExtended from '@/services/api/masterFlowService.extensions';
 
 export interface DiscoveryFlow {
@@ -33,32 +34,51 @@ export const useDiscoveryFlowList = () => {
         
         console.log('🔍 Fetching discovery flows for:', { clientId: client.id, engagementId: engagement.id });
         
-        // Use master flow service to get active flows
-        const response = await masterFlowServiceExtended.getActiveFlows(
-          client.id,
-          engagement.id,
-          'discovery'
-        );
+        // Use the same endpoint as dashboard for consistency
+        const response = await apiCall('/api/v1/discovery/flows/active', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Client-Account-ID': client.id,
+            'X-Engagement-ID': engagement.id
+          }
+        });
         
         console.log('✅ Raw discovery flows response:', response);
         
-        // Transform to expected format
-        const transformedFlows = response.map(flow => ({
-          id: flow.flowId, // Add id field for compatibility
-          flow_id: flow.flowId,
+        // Handle both array response and object with flows array (same as dashboard)
+        let flowsToProcess = [];
+        
+        if (Array.isArray(response)) {
+          // Direct array response from /api/v1/discovery/flows/active
+          flowsToProcess = response;
+        } else if (response.flows && Array.isArray(response.flows)) {
+          // Object with flows array
+          flowsToProcess = response.flows;
+        } else if (response.flow_details && Array.isArray(response.flow_details)) {
+          // Legacy structure
+          flowsToProcess = response.flow_details;
+        }
+        
+        console.log(`✅ Processing ${flowsToProcess.length} flows from discovery API...`);
+        
+        // Transform to expected format (matching the dashboard flow structure)
+        const transformedFlows = flowsToProcess.map(flow => ({
+          id: flow.flow_id, // Add id field for compatibility
+          flow_id: flow.flow_id,
           status: flow.status,
-          current_phase: flow.currentPhase || '',
-          next_phase: flow.metadata?.nextPhase || flow.currentPhase || '',
-          created_at: flow.createdAt,
-          updated_at: flow.updatedAt,
-          // Map phase completion from metadata if available
-          phases: flow.metadata?.phases || {},
-          data_import_completed: flow.metadata?.phases?.data_import === true,
-          attribute_mapping_completed: flow.metadata?.phases?.attribute_mapping === true,
-          data_cleansing_completed: flow.metadata?.phases?.data_cleansing === true,
-          inventory_completed: flow.metadata?.phases?.inventory === true,
-          dependencies_completed: flow.metadata?.phases?.dependencies === true,
-          tech_debt_completed: flow.metadata?.phases?.tech_debt === true,
+          current_phase: flow.current_phase || '',
+          next_phase: flow.next_phase || flow.current_phase || '',
+          created_at: flow.created_at,
+          updated_at: flow.updated_at,
+          // Use the existing phase completion flags from the flow
+          phases: {},
+          data_import_completed: flow.data_import_completed === true,
+          attribute_mapping_completed: flow.attribute_mapping_completed === true,
+          data_cleansing_completed: flow.data_cleansing_completed === true,
+          inventory_completed: flow.inventory_completed === true,
+          dependencies_completed: flow.dependencies_completed === true,
+          tech_debt_completed: flow.tech_debt_completed === true,
         }));
         
         console.log('✅ Transformed discovery flows:', transformedFlows);
@@ -120,21 +140,35 @@ export const getFlows = async (clientId?: string, engagementId?: string) => {
     
     console.log('🔍 getFlows utility - Fetching discovery flows for:', { clientId, engagementId });
     
-    const response = await masterFlowServiceExtended.getActiveFlows(
-      clientId,
-      engagementId,
-      'discovery'
-    );
+    // Use the same endpoint as main hook for consistency
+    const response = await apiCall('/api/v1/discovery/flows/active', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Client-Account-ID': clientId,
+        'X-Engagement-ID': engagementId
+      }
+    });
     
     console.log('✅ getFlows utility - Raw response:', response);
     
+    // Handle response format (same as main hook)
+    let flowsToProcess = [];
+    if (Array.isArray(response)) {
+      flowsToProcess = response;
+    } else if (response.flows && Array.isArray(response.flows)) {
+      flowsToProcess = response.flows;
+    } else if (response.flow_details && Array.isArray(response.flow_details)) {
+      flowsToProcess = response.flow_details;
+    }
+    
     // Transform to legacy format for compatibility
-    const transformedFlows = response.map(flow => ({
-      flow_id: flow.flowId,
+    const transformedFlows = flowsToProcess.map(flow => ({
+      flow_id: flow.flow_id,
       status: flow.status,
-      current_phase: flow.currentPhase || '',
-      created_at: flow.createdAt,
-      updated_at: flow.updatedAt
+      current_phase: flow.current_phase || '',
+      created_at: flow.created_at,
+      updated_at: flow.updated_at
     }));
     
     console.log('✅ getFlows utility - Transformed flows:', transformedFlows);

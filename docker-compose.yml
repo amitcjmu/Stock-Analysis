@@ -37,7 +37,6 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=migration_db
       - PYTHONUNBUFFERED=1
-      - DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY}
       - FRONTEND_URL=http://localhost:8081
       - ENVIRONMENT=development
       - DEBUG=true

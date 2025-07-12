@@ -40,10 +40,27 @@ from app.services.flow_orchestration import (
     FlowLifecycleManager,
     FlowExecutionEngine,
     FlowErrorHandler,
-    FlowPerformanceMonitor,
     FlowAuditLogger,
     FlowStatusManager
 )
+
+# Mock FlowPerformanceMonitor to avoid psutil dependency
+class MockFlowPerformanceMonitor:
+    """Mock implementation to avoid psutil dependency"""
+    def start_operation(self, flow_id: str, operation_type: str, metadata: Optional[Dict[str, Any]] = None) -> str:
+        return f"mock-{uuid.uuid4()}"
+    
+    def end_operation(self, tracking_id: str, success: bool = True, result_metadata: Optional[Dict[str, Any]] = None):
+        return None
+    
+    def get_flow_performance_summary(self, flow_id: str) -> Dict[str, Any]:
+        return {"flow_id": flow_id, "total_operations": 0, "message": "Performance monitoring disabled"}
+    
+    def get_system_performance_overview(self) -> Dict[str, Any]:
+        return {"status": "disabled", "message": "Performance monitoring unavailable"}
+    
+    def record_audit_event(self, audit_entry: Dict[str, Any]):
+        pass
 
 # Import registries
 from app.services.flow_type_registry import FlowTypeRegistry
@@ -74,7 +91,7 @@ class MasterFlowOrchestrator:
     This orchestrator provides:
     - Unified flow lifecycle management (via FlowLifecycleManager)
     - Centralized error handling and retry logic (via FlowErrorHandler)
-    - Performance tracking and metrics (via FlowPerformanceMonitor)
+    - Performance tracking and metrics (via MockFlowPerformanceMonitor - psutil dependency disabled)
     - Comprehensive audit logging (via FlowAuditLogger)
     - Status management and retrieval (via FlowStatusManager)
     - Multi-tenant isolation
@@ -130,7 +147,7 @@ class MasterFlowOrchestrator:
         
         self.error_handler = FlowErrorHandler()
         
-        self.performance_monitor = FlowPerformanceMonitor()
+        self.performance_monitor = MockFlowPerformanceMonitor()
         
         self.audit_logger = FlowAuditLogger()
         

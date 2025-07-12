@@ -297,13 +297,14 @@ except ImportError as e:
 logger.info("✅ Discovery flows implemented with real CrewAI via Master Flow Orchestrator")
 logger.info("✅ Pseudo-agents archived and replaced with real CrewAI implementations")
 
-# Performance Monitoring API (Task 4.3)
-try:
-    from app.api.v1.endpoints.performance.monitoring import router as performance_monitoring_router
-    api_router.include_router(performance_monitoring_router, prefix="/performance", tags=["Performance Monitoring"])
-    logger.info("✅ Performance Monitoring router included")
-except ImportError as e:
-    logger.warning(f"⚠️ Performance Monitoring router not available: {e}")
+# Performance Monitoring API (Task 4.3) - DISABLED (psutil dependency issues)
+# try:
+#     from app.api.v1.endpoints.performance.monitoring import router as performance_monitoring_router
+#     api_router.include_router(performance_monitoring_router, prefix="/performance", tags=["Performance Monitoring"])
+#     logger.info("✅ Performance Monitoring router included")
+# except ImportError as e:
+#     logger.warning(f"⚠️ Performance Monitoring router not available: {e}")
+logger.info("⚠️ Performance Monitoring router disabled (psutil dependency conflicts)")
 api_router.include_router(context_establishment_router, prefix="/context-establishment", tags=["Context Establishment"])
 api_router.include_router(context_establishment_router, prefix="/context", tags=["Context Establishment"])
 

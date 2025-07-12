@@ -349,15 +349,26 @@ class PerformanceMonitor {
     if ('memory' in performance) {
       setInterval(() => {
         const memory = (performance as any).memory;
-        // Only warn at 95% usage and limit frequency to avoid spam
-        if (memory.usedJSHeapSize > memory.totalJSHeapSize * 0.95) {
+        
+        // Calculate percentages
+        const usedPercentOfTotal = (memory.usedJSHeapSize / memory.totalJSHeapSize) * 100;
+        const usedPercentOfLimit = (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100;
+        
+        // Only warn if BOTH conditions are true:
+        // 1. Using >98% of current heap AND 
+        // 2. Using >50% of the browser's memory limit (indicating actual pressure)
+        const shouldWarn = usedPercentOfTotal > 98 && usedPercentOfLimit > 50;
+        
+        if (shouldWarn) {
           console.warn('High memory usage detected:', {
             used: Math.round(memory.usedJSHeapSize / 1024 / 1024) + 'MB',
             total: Math.round(memory.totalJSHeapSize / 1024 / 1024) + 'MB',
-            limit: Math.round(memory.jsHeapSizeLimit / 1024 / 1024) + 'MB'
+            limit: Math.round(memory.jsHeapSizeLimit / 1024 / 1024) + 'MB',
+            usedPercent: Math.round(usedPercentOfTotal) + '% of heap',
+            limitPercent: Math.round(usedPercentOfLimit) + '% of browser limit'
           });
         }
-      }, 60000); // Check every 60 seconds (reduced frequency)
+      }, 120000); // Check every 2 minutes to reduce noise
     }
   }
 
