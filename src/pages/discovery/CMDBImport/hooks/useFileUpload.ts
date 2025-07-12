@@ -98,6 +98,15 @@ export const useFileUpload = () => {
         // Make sure we're returning the correct flow_id
         const flowId = response.flow_id || response.crewai_flow_id || response.discovery_flow_id;
         console.log('🎯 Using flow ID:', flowId);
+        console.log('📡 Full backend response for flow tracking:', {
+          import_flow_id: response.import_flow_id,
+          flow_id: flowId,
+          all_flow_fields: {
+            flow_id: response.flow_id,
+            crewai_flow_id: response.crewai_flow_id,
+            discovery_flow_id: response.discovery_flow_id
+          }
+        });
         
         return { 
           import_flow_id: response.import_flow_id,
@@ -233,6 +242,13 @@ export const useFileUpload = () => {
       
       if (flow_id) {
         const recordCount = csvData.length;
+        
+        console.log('🔧 Setting flow_id on uploaded file:', {
+          fileId: newFile.id,
+          fileName: newFile.name,
+          flow_id: flow_id,
+          import_flow_id: import_flow_id
+        });
         
         // Success - UnifiedDiscoveryFlow was triggered - START PROCESSING TRACKING
         setUploadedFiles(prev => prev.map(f => f.id === newFile.id ? { 

@@ -181,8 +181,17 @@ const CMDBImportContainer: React.FC = () => {
                   <SimplifiedFlowStatus
                     flow_id={file.flow_id!}
                     onNavigateToMapping={() => {
-                      // Navigate to attribute mapping
-                      window.location.href = `/discovery/attribute-mapping/${file.flow_id}`;
+                      // Use consistent navigation logic - get the route and navigate properly
+                      const flowId = file.flow_id;
+                      if (flowId) {
+                        console.log('🎯 SimplifiedFlowStatus Navigation: Using flow ID:', flowId);
+                        const route = `/discovery/attribute-mapping/${flowId}`;
+                        console.log('🔗 SimplifiedFlowStatus Navigation: Navigating to route:', route);
+                        // Use navigate() instead of window.location.href for consistency
+                        window.location.href = route;
+                      } else {
+                        console.error('❌ SimplifiedFlowStatus Navigation: No flow ID available');
+                      }
                     }}
                   />
                 </div>

@@ -57,9 +57,17 @@ export const useCMDBImport = () => {
   // Effect to set active flow ID once upload is done
   useEffect(() => {
     if (uploadedFiles.length > 0 && uploadedFiles[0].flow_id) {
-      setActiveFlowId(uploadedFiles[0].flow_id);
+      const newFlowId = uploadedFiles[0].flow_id;
+      if (activeFlowId !== newFlowId) {
+        console.log('🔄 Setting active flow ID:', { 
+          previous: activeFlowId, 
+          new: newFlowId,
+          file: uploadedFiles[0].name 
+        });
+        setActiveFlowId(newFlowId);
+      }
     }
-  }, [uploadedFiles]);
+  }, [uploadedFiles, activeFlowId]);
 
 
   const handleStartFlow = useCallback(async () => {
@@ -191,6 +199,7 @@ export const useCMDBImport = () => {
   const startDiscoveryFlow = useCallback(async () => {
     const uploadedFile = uploadedFiles[0];
     if (!uploadedFile) {
+      console.error('❌ Navigation Error: No uploaded file found');
       toast({
         title: "Error",
         description: "No uploaded file found.",
@@ -200,20 +209,31 @@ export const useCMDBImport = () => {
     }
 
     if (!uploadedFile.flow_id) {
+      console.error('❌ Navigation Error: No flow ID found in uploaded file:', uploadedFile);
       toast({
         title: "Error",
-        description: "No flow ID found.",
+        description: "No flow ID found. Please try uploading the file again.",
         variant: "destructive",
       });
       return;
     }
 
+    // Debug logging to help trace navigation issues
+    console.log('🎯 Navigation: Starting discovery flow with:', {
+      file: uploadedFile.name,
+      flow_id: uploadedFile.flow_id,
+      status: uploadedFile.status,
+      current_phase: uploadedFile.current_phase
+    });
+
     // Navigate to attribute mapping phase (next step after data import)
     const route = getDiscoveryPhaseRoute('attribute_mapping', uploadedFile.flow_id);
+    console.log('🔗 Navigation: Navigating to route:', route);
+    
     navigate(route);
     toast({
-      title: "Starting Discovery Flow",
-      description: "Navigating to attribute mapping phase.",
+      title: "Navigating to Attribute Mapping",
+      description: `Opening flow ${uploadedFile.flow_id} for field mapping review.`,
     });
   }, [uploadedFiles, navigate, toast]);
 
