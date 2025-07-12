@@ -151,8 +151,17 @@ class FlowStatusTool(BaseTool):
         try:
             context = json.loads(context_data) if isinstance(context_data, str) else context_data
             
-            # Get real flow status using direct service calls
-            status_result = self._get_real_flow_status(flow_id, context)
+            # Check if we're in an async context
+            try:
+                loop = asyncio.get_running_loop()
+                # We're in an async context, we need to handle this differently
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(asyncio.run, self._async_get_fixed_flow_status(flow_id, context))
+                    status_result = future.result()
+            except RuntimeError:
+                # No running loop, use asyncio.run directly
+                status_result = asyncio.run(self._async_get_fixed_flow_status(flow_id, context))
             
             # Special handling for not_found flows
             if status_result.get("status") == "not_found" or status_result.get("current_phase") == "not_found":
@@ -172,20 +181,38 @@ class FlowStatusTool(BaseTool):
             })
     
     def _get_real_flow_status(self, flow_id: str, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Get real flow status using agent service layer"""
+        """Get real flow status using FIXED FlowHandler directly"""
         try:
-            # Import service layer
-            from app.services.agents.agent_service_layer import get_agent_service
+            # Import our fixed FlowHandler directly
+            from app.services.agents.agent_service_layer.handlers.flow_handler import FlowHandler
+            from app.core.context import RequestContext
+            import asyncio
             
-            # Get service instance with context
-            service = get_agent_service(
+            # Create proper context for FlowHandler
+            request_context = RequestContext(
                 client_account_id=context.get("client_account_id", "dfea7406-1575-4348-a0b2-2770cbe2d9f9"),
                 engagement_id=context.get("engagement_id", "ce27e7b1-2ac6-4b74-8dd5-b52d542a1669"),
                 user_id=context.get("user_id")
             )
             
-            # Direct service call - no HTTP
-            result = service.get_flow_status(flow_id)
+            # Use our fixed FlowHandler directly
+            handler = FlowHandler(request_context)
+            
+            # Since we're in a sync method but calling async, handle properly
+            async def async_call():
+                return await handler.get_flow_status(flow_id)
+            
+            # Try to run the async call properly
+            try:
+                loop = asyncio.get_running_loop()
+                # We're in an async context, use thread executor
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(asyncio.run, async_call())
+                    result = future.result()
+            except RuntimeError:
+                # No running loop, use asyncio.run directly
+                result = asyncio.run(async_call())
             
             # Handle service layer responses
             if result.get("status") == "not_found":
@@ -275,6 +302,79 @@ class FlowStatusTool(BaseTool):
             return "Flow not found. Navigate to /discovery/cmdb-import to start a new discovery flow."
         
         return f"Currently in {current_phase.replace('_', ' ').title()} phase."
+    
+    async def _async_get_fixed_flow_status(self, flow_id: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Async flow status lookup using our FIXED FlowHandler"""
+        try:
+            # Import our fixed FlowHandler directly
+            from app.services.agents.agent_service_layer.handlers.flow_handler import FlowHandler
+            from app.core.context import RequestContext
+            
+            # Create proper context for FlowHandler
+            request_context = RequestContext(
+                client_account_id=context.get("client_account_id", "dfea7406-1575-4348-a0b2-2770cbe2d9f9"),
+                engagement_id=context.get("engagement_id", "ce27e7b1-2ac6-4b74-8dd5-b52d542a1669"),
+                user_id=context.get("user_id")
+            )
+            
+            # Use our fixed FlowHandler directly
+            handler = FlowHandler(request_context)
+            
+            # Call our fixed async method
+            result = await handler.get_flow_status(flow_id)
+            
+            # Convert FlowHandler result to expected format
+            if result.get("flow_exists"):
+                flow_data = result.get("flow", {})
+                
+                # CRITICAL: Include data count from our improved detection
+                raw_data_count = flow_data.get("raw_data_count", 0)
+                
+                return {
+                    "success": True,
+                    "flow_id": flow_id,
+                    "flow_type": "discovery",
+                    "current_phase": flow_data.get("current_phase", "data_import"),
+                    "next_phase": flow_data.get("next_phase"),
+                    "progress": flow_data.get("progress", 0.0),
+                    "status": flow_data.get("status", "active"),
+                    "phases": flow_data.get("phases_completed", {}),
+                    "flow_exists": True,
+                    "is_complete": flow_data.get("progress", 0) >= 100,
+                    "raw_data_count": raw_data_count,  # CRITICAL: Pass through our improved data detection
+                    "data_import_id": flow_data.get("data_import_id"),
+                    "user_guidance": self._generate_user_guidance(flow_data)
+                }
+            else:
+                # Flow not found
+                return {
+                    "success": True,
+                    "flow_id": flow_id,
+                    "flow_type": "discovery",
+                    "current_phase": "not_found",
+                    "progress": 0.0,
+                    "status": "not_found",
+                    "phases": {},
+                    "flow_exists": False,
+                    "user_guidance": "Flow not found. User needs to start a new discovery flow by uploading data."
+                }
+                
+        except Exception as e:
+            logger.error(f"Fixed flow status lookup failed: {e}")
+            # Return clear "not found" status for any errors
+            return {
+                "success": False,
+                "flow_id": flow_id,
+                "flow_type": "discovery",
+                "current_phase": "not_found",
+                "progress": 0.0,
+                "status": "not_found",
+                "phases": {},
+                "raw_data_count": 0,
+                "field_mapping": {},
+                "validation_results": {},
+                "error": str(e)
+            }
     
     async def _async_get_flow_status(self, flow_id: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """Async flow status lookup with proper error handling"""
@@ -866,8 +966,14 @@ Your response should include:
                     issues_found=["Flow does not exist in the system"]
                 )
             
-            # Handle flows with no data
-            if status_data.get("raw_data_count", 0) == 0:
+            # Handle flows with no data - check both raw_data_count and field_mapping_count
+            raw_data_count = status_data.get("raw_data_count", 0)
+            field_mapping_count = status_data.get("field_mapping_count", 0)
+            
+            # If we have either raw data or field mappings, the flow has data
+            has_data = raw_data_count > 0 or field_mapping_count > 0
+            
+            if not has_data:
                 return FlowIntelligenceResult(
                     success=True,
                     flow_id=flow_id,
@@ -875,7 +981,7 @@ Your response should include:
                     current_phase="data_import",
                     routing_decision="/discovery/data-import",
                     user_guidance="NO DATA FOUND: This flow exists but contains no data. Please upload your CMDB or asset data to begin the discovery process.",
-                    reasoning="Flow exists but has no raw data. Data import phase needs to be completed.",
+                    reasoning="Flow exists but has no raw data or field mappings. Data import phase needs to be completed.",
                     confidence=0.9,
                     next_actions=[
                         "Go to the Data Import page", 

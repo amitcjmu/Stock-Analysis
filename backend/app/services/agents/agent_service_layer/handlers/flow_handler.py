@@ -20,53 +20,93 @@ class FlowHandler:
         self.context = context
     
     async def get_flow_status(self, flow_id: str) -> Dict[str, Any]:
-        """Get flow status using direct repository access"""
+        """Get flow status using Master Flow Orchestrator for ALL flow types, with discovery fallback"""
         async with AsyncSessionLocal() as db:
             try:
-                # Direct repository access - no HTTP, no auth needed
-                flow_repo = DiscoveryFlowRepository(
-                    db=db,
-                    client_account_id=str(self.context.client_account_id),
-                    engagement_id=str(self.context.engagement_id)
-                )
+                # First try: Use Master Flow Orchestrator to check ALL flow types (discovery, assessment, planning, etc.)
+                from app.services.master_flow_orchestrator import MasterFlowOrchestrator
                 
-                # Get real flow data
-                flow = await flow_repo.get_by_flow_id(flow_id)
+                orchestrator = MasterFlowOrchestrator(db, self.context)
                 
-                if not flow:
-                    return {
-                        "status": "not_found",
-                        "flow_exists": False,
-                        "message": "Flow not found in database"
-                    }
-                
-                # Get active flows to provide context
-                active_flows = await flow_repo.get_active_flows()
+                # Get flow status from master orchestrator (works for all flow types)
+                flow_status = await orchestrator.get_flow_status(flow_id, include_details=True)
                 
                 return {
                     "status": "success",
                     "flow_exists": True,
-                    "flow": {
-                        "flow_id": str(flow.flow_id),
-                        "status": flow.status,
-                        "current_phase": flow.get_current_phase(),
-                        "next_phase": flow.get_next_phase(),
-                        "progress": flow.progress_percentage,
-                        "phases_completed": {
-                            "data_import": flow.data_import_completed,
-                            "attribute_mapping": flow.attribute_mapping_completed,
-                            "data_cleansing": flow.data_cleansing_completed,
-                            "inventory": flow.inventory_completed,
-                            "dependencies": flow.dependencies_completed,
-                            "tech_debt": flow.tech_debt_completed
-                        }
-                    },
-                    "active_flows_count": len(active_flows),
-                    "has_incomplete_flows": any(not f.is_complete() for f in active_flows)
+                    "flow": flow_status,
+                    "flow_type": flow_status.get("flow_type", "unknown")
                 }
                 
+            except ValueError:
+                # Flow not found in master orchestrator - try discovery flows fallback
+                logger.info(f"Flow not found in master orchestrator, checking discovery flows: {flow_id}")
+                
+                try:
+                    # Fallback: Check discovery_flows table for backward compatibility
+                    flow_repo = DiscoveryFlowRepository(
+                        db=db,
+                        client_account_id=str(self.context.client_account_id),
+                        engagement_id=str(self.context.engagement_id)
+                    )
+                    
+                    # Get real flow data from discovery flows table
+                    flow = await flow_repo.get_by_flow_id(flow_id)
+                    
+                    if flow:
+                        logger.info(f"Found discovery flow in legacy table: {flow_id}")
+                        
+                        # CRITICAL FIX: Check for actual data via data_import_id 
+                        actual_data_status = await self._check_actual_data_via_import_id(flow)
+                        
+                        # Merge the database completion flags with actual data detection
+                        actual_phases = {
+                            "data_import": actual_data_status.get("has_import_data", flow.data_import_completed),
+                            "field_mapping": actual_data_status.get("has_field_mappings", flow.field_mapping_completed), 
+                            "data_cleansing": flow.data_cleansing_completed,
+                            "asset_inventory": flow.asset_inventory_completed,
+                            "dependency_analysis": flow.dependency_analysis_completed,
+                            "tech_debt_assessment": flow.tech_debt_assessment_completed
+                        }
+                        
+                        # Determine current phase based on actual data
+                        current_phase = self._determine_actual_current_phase(actual_phases, flow)
+                        next_phase = self._determine_next_phase(actual_phases)
+                        
+                        return {
+                            "status": "success",
+                            "flow_exists": True,
+                            "flow": {
+                                "flow_id": str(flow.flow_id),
+                                "flow_type": "discovery",
+                                "status": flow.status,
+                                "current_phase": current_phase,
+                                "next_phase": next_phase,
+                                "progress": flow.progress_percentage,
+                                "phases_completed": actual_phases,
+                                "raw_data_count": actual_data_status.get("field_mapping_count", 0),
+                                "field_mapping_count": actual_data_status.get("field_mapping_count", 0),
+                                "data_import_id": str(flow.data_import_id) if flow.data_import_id else None
+                            },
+                            "flow_type": "discovery"
+                        }
+                    else:
+                        return {
+                            "status": "not_found",
+                            "flow_exists": False,
+                            "message": "Flow not found in master orchestrator or discovery flows"
+                        }
+                        
+                except Exception as fallback_error:
+                    logger.error(f"Discovery flows fallback also failed: {fallback_error}")
+                    return {
+                        "status": "not_found",
+                        "flow_exists": False,
+                        "message": f"Flow not found: {str(fallback_error)}"
+                    }
+                
             except Exception as e:
-                logger.error(f"Database error in get_flow_status: {e}")
+                logger.error(f"Error getting flow status from master orchestrator: {e}")
                 return {
                     "status": "error",
                     "error": str(e),
@@ -96,11 +136,11 @@ class FlowHandler:
                 # Extract phases completed from flow model
                 phases_completed = {
                     "data_import": flow.data_import_completed,
-                    "attribute_mapping": flow.attribute_mapping_completed,
+                    "field_mapping": flow.field_mapping_completed,
                     "data_cleansing": flow.data_cleansing_completed,
-                    "inventory": flow.inventory_completed,
-                    "dependencies": flow.dependencies_completed,
-                    "tech_debt": flow.tech_debt_completed
+                    "asset_inventory": flow.asset_inventory_completed,
+                    "dependency_analysis": flow.dependency_analysis_completed,
+                    "tech_debt_assessment": flow.tech_debt_assessment_completed
                 }
                 
                 # Generate contextual guidance
@@ -114,12 +154,12 @@ class FlowHandler:
                         "priority": "high",
                         "next_url": f"/discovery/{flow_id}/data-import"
                     })
-                elif not phases_completed.get("attribute_mapping"):
+                elif not phases_completed.get("field_mapping"):
                     guidance.append({
-                        "action": "complete_attribute_mapping",
-                        "description": "Complete attribute mapping phase",
+                        "action": "complete_field_mapping",
+                        "description": "Complete field mapping phase",
                         "priority": "high",
-                        "next_url": f"/discovery/{flow_id}/attribute-mapping"
+                        "next_url": f"/discovery/{flow_id}/field-mapping"
                     })
                 elif not phases_completed.get("data_cleansing"):
                     guidance.append({
@@ -128,26 +168,26 @@ class FlowHandler:
                         "priority": "high",
                         "next_url": f"/discovery/{flow_id}/data-cleansing"
                     })
-                elif not phases_completed.get("inventory"):
+                elif not phases_completed.get("asset_inventory"):
                     guidance.append({
-                        "action": "complete_inventory",
+                        "action": "complete_asset_inventory",
                         "description": "Complete asset inventory phase",
                         "priority": "high",
-                        "next_url": f"/discovery/{flow_id}/inventory"
+                        "next_url": f"/discovery/{flow_id}/asset-inventory"
                     })
-                elif not phases_completed.get("dependencies"):
+                elif not phases_completed.get("dependency_analysis"):
                     guidance.append({
-                        "action": "complete_dependencies",
+                        "action": "complete_dependency_analysis",
                         "description": "Complete dependency analysis phase",
                         "priority": "medium",
-                        "next_url": f"/discovery/{flow_id}/dependencies"
+                        "next_url": f"/discovery/{flow_id}/dependency-analysis"
                     })
-                elif not phases_completed.get("tech_debt"):
+                elif not phases_completed.get("tech_debt_assessment"):
                     guidance.append({
-                        "action": "complete_tech_debt",
-                        "description": "Complete technical debt analysis phase",
+                        "action": "complete_tech_debt_assessment",
+                        "description": "Complete technical debt assessment phase",
                         "priority": "medium",
-                        "next_url": f"/discovery/{flow_id}/tech-debt"
+                        "next_url": f"/discovery/{flow_id}/tech-debt-assessment"
                     })
                 else:
                     guidance.append({
@@ -160,8 +200,8 @@ class FlowHandler:
                 flow_data = {
                     "flow_id": str(flow.flow_id),
                     "status": flow.status,
-                    "current_phase": flow.get_current_phase(),
-                    "next_phase": flow.get_next_phase(),
+                    "current_phase": getattr(flow, 'current_phase', 'data_import'),
+                    "next_phase": "field_mapping" if not flow.field_mapping_completed else "data_cleansing",
                     "progress": flow.progress_percentage,
                     "phases_completed": phases_completed
                 }
@@ -203,11 +243,11 @@ class FlowHandler:
                 # Check phase completion based on phase name
                 phase_completion_map = {
                     "data_import": flow.data_import_completed,
-                    "attribute_mapping": flow.attribute_mapping_completed,
+                    "field_mapping": flow.field_mapping_completed,
                     "data_cleansing": flow.data_cleansing_completed,
-                    "inventory": flow.inventory_completed,
-                    "dependencies": flow.dependencies_completed,
-                    "tech_debt": flow.tech_debt_completed
+                    "asset_inventory": flow.asset_inventory_completed,
+                    "dependency_analysis": flow.dependency_analysis_completed,
+                    "tech_debt_assessment": flow.tech_debt_assessment_completed
                 }
                 
                 is_complete = phase_completion_map.get(phase, False)
@@ -284,11 +324,11 @@ class FlowHandler:
                 # Define phase order and dependencies
                 phase_order = [
                     "data_import",
-                    "attribute_mapping", 
+                    "field_mapping", 
                     "data_cleansing",
-                    "inventory",
-                    "dependencies",
-                    "tech_debt"
+                    "asset_inventory",
+                    "dependency_analysis",
+                    "tech_debt_assessment"
                 ]
                 
                 # Check if transition is valid based on phase order
@@ -309,11 +349,11 @@ class FlowHandler:
                 prerequisite_phases = phase_order[:to_index]
                 phase_completion_map = {
                     "data_import": flow.data_import_completed,
-                    "attribute_mapping": flow.attribute_mapping_completed,
+                    "field_mapping": flow.field_mapping_completed,
                     "data_cleansing": flow.data_cleansing_completed,
-                    "inventory": flow.inventory_completed,
-                    "dependencies": flow.dependencies_completed,
-                    "tech_debt": flow.tech_debt_completed
+                    "asset_inventory": flow.asset_inventory_completed,
+                    "dependency_analysis": flow.dependency_analysis_completed,
+                    "tech_debt_assessment": flow.tech_debt_assessment_completed
                 }
                 
                 incomplete_prerequisites = [
@@ -344,3 +384,96 @@ class FlowHandler:
                     "error": str(e),
                     "transition_allowed": False
                 }
+    
+    async def _check_actual_data_via_import_id(self, flow) -> dict:
+        """Check for actual data via data_import_id - CRITICAL ARCHITECTURE FIX"""
+        try:
+            if not flow.data_import_id:
+                return {"has_import_data": False, "has_field_mappings": False, "field_mapping_count": 0}
+            
+            from sqlalchemy import text
+            async with AsyncSessionLocal() as db:
+                # Check for field mappings (proves data was imported and mapped)
+                result = await db.execute(text('''
+                    SELECT COUNT(*) as mapping_count,
+                           COUNT(CASE WHEN status = 'approved' THEN 1 END) as approved_count
+                    FROM import_field_mappings 
+                    WHERE data_import_id = :data_import_id
+                '''), {'data_import_id': flow.data_import_id})
+                
+                row = result.fetchone()
+                mapping_count = row.mapping_count if row else 0
+                approved_count = row.approved_count if row else 0
+                
+                # Check for raw imported data
+                data_result = await db.execute(text('''
+                    SELECT COUNT(*) as data_count
+                    FROM data_imports 
+                    WHERE id = :data_import_id AND status IN ('completed', 'processing', 'discovery_initiated')
+                '''), {'data_import_id': flow.data_import_id})
+                
+                data_row = data_result.fetchone()
+                has_import_data = (data_row.data_count > 0) if data_row else False
+                
+                logger.info(f"Data import check for {flow.data_import_id}: "
+                          f"mappings={mapping_count}, approved={approved_count}, has_data={has_import_data}")
+                
+                return {
+                    "has_import_data": has_import_data,
+                    "has_field_mappings": mapping_count > 0,
+                    "field_mapping_count": mapping_count,
+                    "approved_mappings": approved_count,
+                    "data_import_exists": has_import_data
+                }
+                
+        except Exception as e:
+            logger.error(f"Error checking actual data via import_id: {e}")
+            return {"has_import_data": False, "has_field_mappings": False, "field_mapping_count": 0}
+    
+    def _determine_actual_current_phase(self, actual_phases: dict, flow) -> str:
+        """Determine current phase based on actual data detection"""
+        try:
+            # Phase order for discovery flows
+            phase_order = [
+                "data_import",
+                "field_mapping", 
+                "data_cleansing",
+                "asset_inventory",
+                "dependency_analysis",
+                "tech_debt_assessment"
+            ]
+            
+            # Find the first incomplete phase
+            for phase in phase_order:
+                if not actual_phases.get(phase, False):
+                    return phase
+            
+            # All phases complete
+            return "completed"
+            
+        except Exception as e:
+            logger.error(f"Error determining current phase: {e}")
+            return "data_import"
+    
+    def _determine_next_phase(self, actual_phases: dict) -> str:
+        """Determine next phase based on actual completion status"""
+        try:
+            # Phase progression mapping
+            phase_progression = {
+                "data_import": "field_mapping",
+                "field_mapping": "data_cleansing", 
+                "data_cleansing": "asset_inventory",
+                "asset_inventory": "dependency_analysis",
+                "dependency_analysis": "tech_debt_assessment",
+                "tech_debt_assessment": "completed"
+            }
+            
+            # Find current phase
+            current_phase = self._determine_actual_current_phase(actual_phases, None)
+            
+            # Return next phase
+            return phase_progression.get(current_phase, "completed")
+            
+        except Exception as e:
+            logger.error(f"Error determining next phase: {e}")
+            return "field_mapping"

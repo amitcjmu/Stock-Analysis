@@ -188,75 +188,116 @@ class DataCleansingCrew:
 
 def create_data_cleansing_crew(crewai_service, state: UnifiedDiscoveryFlowState) -> Crew:
     """
-    🚀 OPTIMIZED: Create a streamlined Data Cleansing Crew with minimal agent overhead.
+    🧠 AGENTIC INTELLIGENCE: Create Data Cleansing Crew with integrated asset enrichment agents.
     
-    PERFORMANCE IMPROVEMENTS:
-    - Single specialized agent instead of multiple agents with delegation
-    - Direct execution instead of hierarchical management
-    - Reduced LLM calls and memory operations
-    - Fast pattern-based cleansing with AI validation
+    NEW ARCHITECTURE:
+    - Replaces rule-based data processing with true agentic intelligence
+    - Integrates BusinessValue, Risk, and Modernization agents for asset analysis
+    - Uses three-tier memory system for pattern learning and discovery
+    - Provides comprehensive asset enrichment instead of basic data validation
     """
     try:
-        logger.info("🚀 Creating OPTIMIZED Data Cleansing Crew for performance")
+        logger.info("🧠 Creating AGENTIC Data Cleansing Crew with intelligence agents")
         
         # Get LLM configuration
         llm = crewai_service.get_llm()
         logger.info(f"Using LLM: {llm.model}")
         
-        # 🎯 SINGLE OPTIMIZED AGENT: Direct data cleansing specialist
-        data_cleansing_specialist = Agent(
-            role="Data Cleansing Specialist",
-            goal="Efficiently cleanse and standardize data using proven patterns",
-            backstory="""You are an expert data cleansing specialist who focuses on 
-            fast, accurate data standardization using established patterns and rules.
-            You work independently and provide direct results without extensive planning or delegation.""",
-            verbose=False,  # Reduce logging overhead
-            allow_delegation=False,  # CRITICAL: Prevent agent delegation
+        # 🧠 AGENTIC INTELLIGENCE AGENT: Data enrichment orchestrator
+        agentic_enrichment_agent = Agent(
+            role="Agentic Asset Intelligence Orchestrator",
+            goal="Enrich assets with comprehensive business value, risk, and modernization analysis using agent intelligence",
+            backstory="""You are an intelligent asset analysis orchestrator who coordinates 
+            specialized agents to provide comprehensive asset enrichment. Instead of basic data 
+            cleansing, you orchestrate business value analysis, risk assessment, and modernization 
+            evaluation to transform raw asset data into intelligent insights.
+            
+            Your process:
+            1. Coordinate business value assessment for each asset
+            2. Orchestrate risk analysis including security and operational factors
+            3. Direct modernization potential analysis for cloud readiness
+            4. Synthesize agent insights into comprehensive asset profiles
+            5. Learn from patterns and improve future analysis
+            
+            You work with real CrewAI agents that use memory and pattern discovery
+            to continuously improve their analysis capabilities.""",
+            verbose=True,  # Enable detailed logging for intelligence tracking
+            allow_delegation=False,  # Direct orchestration without delegation
             llm=llm,
-            max_iter=2,  # Limit iterations for speed
-            max_execution_time=30  # 30 second timeout
+            max_iter=1,  # Single comprehensive analysis
+            max_execution_time=120  # Allow time for agent orchestration
         )
         
-        # 🎯 SINGLE OPTIMIZED TASK: Direct data cleansing
-        cleansing_task = Task(
+        # 🧠 AGENTIC INTELLIGENCE TASK: Complete asset enrichment
+        enrichment_task = Task(
             description=f"""
-            Perform fast data cleansing on {len(state.raw_data)} records.
+            Orchestrate comprehensive agentic asset enrichment for {len(state.raw_data)} assets.
             
-            Focus on:
-            1. Data type validation and standardization
-            2. Format consistency (dates, names, identifiers)
-            3. Value normalization and deduplication
-            4. Quality scoring based on completeness and consistency
+            AGENTIC INTELLIGENCE PROCESS:
             
-            Provide a concise summary with:
-            - Records processed: {len(state.raw_data)}
-            - Issues identified and resolved
-            - Quality score (0-100)
-            - Ready for next phase: Yes/No
+            1. ASSET PREPARATION:
+               Transform raw data into structured asset profiles suitable for agent analysis.
+               Clean and standardize basic fields (name, type, technology, environment).
+               
+            2. AGENTIC ENRICHMENT COORDINATION:
+               Coordinate three specialized intelligence agents for each asset:
+               - BusinessValueAgent: Analyze business criticality and value scoring
+               - RiskAssessmentAgent: Evaluate security, operational, and compliance risks  
+               - ModernizationAgent: Assess cloud readiness and modernization potential
+               
+            3. INTELLIGENCE SYNTHESIS:
+               Combine agent insights into comprehensive asset intelligence profiles:
+               - Business value scores (1-10) with detailed reasoning
+               - Risk assessments (Low/Medium/High/Critical) with threat analysis
+               - Cloud readiness scores (0-100) with modernization strategies
+               - Pattern-based insights from agent memory and learning
+               
+            4. QUALITY METRICS:
+               Generate intelligent quality metrics based on:
+               - Completeness of agent analysis across all dimensions
+               - Confidence levels from individual agent assessments
+               - Pattern discovery and learning progress
+               - Overall enrichment success rate
+               
+            EXPECTED OUTCOMES:
+            - {len(state.raw_data)} assets enriched with business intelligence
+            - Business value, risk, and modernization assessments for each asset
+            - Pattern discovery and memory learning progress
+            - Comprehensive intelligence summary for migration planning
             
-            Work efficiently and avoid extensive analysis or planning.
+            Focus on delivering actionable intelligence rather than basic data validation.
+            Ensure all assets receive comprehensive agentic analysis.
             """,
-            agent=data_cleansing_specialist,
-            expected_output="Concise data cleansing summary with quality metrics",
-            max_execution_time=25  # Task-level timeout
+            agent=agentic_enrichment_agent,
+            expected_output="""
+            Comprehensive Agentic Asset Enrichment Report:
+            - Total assets processed with agentic intelligence
+            - Business value distribution (high/medium/low value assets)
+            - Risk assessment summary (critical/high/medium/low risk assets)  
+            - Modernization readiness overview (cloud-ready vs. legacy assets)
+            - Pattern discovery results (new patterns learned)
+            - Overall intelligence quality score (0-100)
+            - Migration planning insights and recommendations
+            """,
+            max_execution_time=100  # Allow time for comprehensive analysis
         )
         
-        # 🚀 OPTIMIZED CREW: Sequential process, no manager overhead
+        # 🧠 AGENTIC CREW: Intelligence-focused process
         crew = Crew(
-            agents=[data_cleansing_specialist],
-            tasks=[cleansing_task],
-            process=Process.sequential,  # CRITICAL: No hierarchical overhead
-            verbose=False,  # Reduce logging
-            max_execution_time=45,  # Crew-level timeout
-            memory=True,   # RE-ENABLED: Memory system working correctly
+            agents=[agentic_enrichment_agent],
+            tasks=[enrichment_task],
+            process=Process.sequential,
+            verbose=True,  # Enable detailed intelligence logging
+            max_execution_time=180,  # Extended time for comprehensive analysis
+            memory=True,   # Enable memory for continuous learning
             embedder=None  # Disable embedding overhead
         )
         
-        logger.info("✅ OPTIMIZED Data Cleansing Crew created - single agent, direct execution")
+        logger.info("✅ AGENTIC Data Cleansing Crew created - intelligence-driven asset enrichment")
         return crew
         
     except Exception as e:
-        logger.error(f"Failed to create optimized Data Cleansing Crew: {e}")
+        logger.error(f"Failed to create agentic Data Cleansing Crew: {e}")
         # Fallback to minimal crew
         return _create_minimal_fallback_crew(crewai_service, state)
 

@@ -67,10 +67,14 @@ class CrewManager:
             os.environ['EMBEDDING_MODEL'] = 'sentence-transformers/all-MiniLM-L6-v2'
             os.environ['EMBEDDING_PROVIDER'] = 'local'
             
-            # Configure DeepInfra directly for CrewAI
+            # Configure DeepInfra following CrewAI documentation best practices
             if hasattr(self.settings, 'DEEPINFRA_API_KEY') and self.settings.DEEPINFRA_API_KEY:
+                # CrewAI recommends using OPENAI_API_BASE for custom endpoints
                 os.environ['OPENAI_API_KEY'] = self.settings.DEEPINFRA_API_KEY
+                os.environ['OPENAI_API_BASE'] = 'https://api.deepinfra.com/v1/openai'
                 os.environ['OPENAI_BASE_URL'] = 'https://api.deepinfra.com/v1/openai'
+                # Set model name to prevent gpt-4o-mini fallback
+                os.environ['OPENAI_MODEL_NAME'] = 'deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8'
             
             logger.info("CrewAI environment configured")
         except Exception as e:
@@ -84,16 +88,14 @@ class CrewManager:
                 self.llm = None
                 return
             
-            # Initialize CrewAI LLM for DeepInfra with optimized settings
+            # Initialize CrewAI LLM following CrewAI documentation patterns
             self.llm = self.LLM(
                 model="deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-                api_key=self.settings.DEEPINFRA_API_KEY,
                 base_url="https://api.deepinfra.com/v1/openai",
-                temperature=0.0,
-                max_tokens=1500,
-                top_p=0.1,
-                frequency_penalty=0.0,
-                presence_penalty=0.0
+                api_key=self.settings.DEEPINFRA_API_KEY,
+                # Standard CrewAI LLM parameters
+                temperature=0.7,
+                max_tokens=1500
             )
             
             logger.info("CrewAI LLM initialized successfully with DeepInfra")

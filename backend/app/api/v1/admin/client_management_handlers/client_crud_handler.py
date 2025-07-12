@@ -461,17 +461,23 @@ class ClientCRUDHandler:
             )
             active_clients = (await db.execute(active_clients_query)).scalar_one()
 
-            # Clients by industry
+            # Clients by industry (handle None values)
             industry_query = select(ClientAccount.industry, func.count()).group_by(ClientAccount.industry)
-            clients_by_industry = {
-                industry: count for industry, count in await db.execute(industry_query)
-            }
+            industry_results = await db.execute(industry_query)
+            clients_by_industry = {}
+            for industry, count in industry_results:
+                # Convert None to "Unknown" for dictionary keys
+                key = industry if industry is not None else "Unknown"
+                clients_by_industry[key] = count
 
-            # Clients by company size
+            # Clients by company size (handle None values)
             size_query = select(ClientAccount.company_size, func.count()).group_by(ClientAccount.company_size)
-            clients_by_company_size = {
-                size: count for size, count in await db.execute(size_query)
-            }
+            size_results = await db.execute(size_query)
+            clients_by_company_size = {}
+            for size, count in size_results:
+                # Convert None to "Unknown" for dictionary keys
+                key = size if size is not None else "Unknown"
+                clients_by_company_size[key] = count
 
             # Placeholder for clients by cloud provider as it's not a direct field
             clients_by_cloud_provider = {"aws": 0, "azure": 0, "gcp": 0}

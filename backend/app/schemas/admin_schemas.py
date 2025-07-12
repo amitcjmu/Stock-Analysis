@@ -125,8 +125,8 @@ class ClientAccountResponse(BaseModel):
     
     id: str
     account_name: str
-    industry: str
-    company_size: str
+    industry: Optional[str] = None
+    company_size: Optional[str] = None
     headquarters_location: Optional[str] = None
     primary_contact_name: Optional[str] = None
     primary_contact_email: Optional[str] = None
@@ -142,15 +142,15 @@ class ClientAccountResponse(BaseModel):
     created_by: Optional[str] = None
     
     # Business Context
-    business_objectives: List[str]
-    it_guidelines: Dict[str, Any]
-    decision_criteria: Dict[str, Any]
-    agent_preferences: Dict[str, Any]
+    business_objectives: List[str] = Field(default_factory=list)
+    it_guidelines: Dict[str, Any] = Field(default_factory=dict)
+    decision_criteria: Dict[str, Any] = Field(default_factory=dict)
+    agent_preferences: Dict[str, Any] = Field(default_factory=dict)
     
     # Migration Context
-    target_cloud_providers: List[str]
-    business_priorities: List[str]
-    compliance_requirements: List[str]
+    target_cloud_providers: List[str] = Field(default_factory=list)
+    business_priorities: List[str] = Field(default_factory=list)
+    compliance_requirements: List[str] = Field(default_factory=list)
     budget_constraints: Optional[Dict[str, Any]] = None
     timeline_constraints: Optional[Dict[str, Any]] = None
     
@@ -160,6 +160,7 @@ class ClientAccountResponse(BaseModel):
     is_active: bool = True
     total_engagements: int = 0
     active_engagements: int = 0
+    engagement_count: int = 0  # Added missing field
 
 # =========================
 # Engagement Management Schemas

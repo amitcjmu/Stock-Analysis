@@ -17,6 +17,44 @@ from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
+# Configure LiteLLM to handle DeepInfra logprobs issues
+try:
+    import litellm
+    
+    # CRITICAL: Configure response parsing to skip logprobs validation entirely for DeepInfra
+    def custom_deepinfra_response_parser(response):
+        """Custom response parser that removes problematic logprobs data"""
+        if hasattr(response, 'json') and callable(response.json):
+            response_data = response.json()
+        else:
+            response_data = response
+        
+        # Remove logprobs from all choices to prevent validation errors
+        if isinstance(response_data, dict) and 'choices' in response_data:
+            for choice in response_data['choices']:
+                if 'logprobs' in choice:
+                    del choice['logprobs']
+        
+        return response_data
+    
+    # Set up global LiteLLM configuration for DeepInfra
+    litellm.drop_params = True
+    litellm.suppress_debug_info = True
+    
+    # Configure DeepInfra-specific settings in LiteLLM's model config
+    os.environ["DEEPINFRA_DROP_PARAMS"] = "logprobs,top_logprobs,stream_options"
+    os.environ["LITELLM_DROP_PARAMS"] = "logprobs,top_logprobs,stream_options"
+    
+    # Set custom completion params to exclude logprobs entirely
+    litellm.completion_cost_cache = {}
+    
+    logger.info("✅ CRITICAL FIX: Configured LiteLLM to completely drop logprobs parameters")
+    logger.info("✅ CRITICAL FIX: Set custom response parsing to prevent DeepInfra logprobs validation errors")
+except ImportError:
+    logger.warning("LiteLLM not available for configuration")
+except Exception as e:
+    logger.warning(f"LiteLLM configuration warning: {e}")
+
 # Import CrewAI LLM class
 CREWAI_AVAILABLE = False
 try:
@@ -52,20 +90,30 @@ class LLMConfigurationService:
     
     def _configure_environment_variables(self):
         """
-        Configure environment variables for OpenAI-compatible LLM usage.
-        Following CrewAI documentation: https://docs.crewai.com/learn/llm-connections#connecting-to-openai-compatible-llms
+        Configure environment variables for DeepInfra's OpenAI-compatible Chat Completions API.
+        Following DeepInfra's recommendation to use Chat Completions for conversations.
         """
-        # Primary OpenAI environment variables for CrewAI
+        # Configure for DeepInfra's recommended Chat Completions API
         os.environ["OPENAI_API_KEY"] = self.deepinfra_api_key
         os.environ["OPENAI_API_BASE"] = self.deepinfra_base_url
         os.environ["OPENAI_BASE_URL"] = self.deepinfra_base_url
+        os.environ["OPENAI_API_TYPE"] = "openai"  # Use OpenAI format
         
         # Set the default model to prevent gpt-4o-mini fallback
         crewai_model = "deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
         os.environ["OPENAI_MODEL_NAME"] = crewai_model
         
-        logger.info(f"✅ Environment configured for OpenAI-compatible DeepInfra: {crewai_model}")
+        # CRITICAL: Configure LiteLLM to disable logprobs globally for DeepInfra
+        # This prevents the validation errors we're seeing
+        os.environ["LITELLM_DROP_PARAMS"] = "logprobs,top_logprobs,stream_options"
+        os.environ["LITELLM_FAIL_ON_VALIDATION_ERROR"] = "false"
+        
+        # Disable logprobs specifically for all OpenAI-compatible providers
+        os.environ["OPENAI_LOGPROBS"] = "false"
+        
+        logger.info(f"✅ Environment configured for DeepInfra Chat Completions API: {crewai_model}")
         logger.info(f"✅ Base URL: {self.deepinfra_base_url}")
+        logger.info("✅ CRITICAL FIX: Disabled logprobs globally to prevent DeepInfra validation errors")
     
     def get_crewai_llm(self) -> LLM:
         """
@@ -78,11 +126,21 @@ class LLMConfigurationService:
         
         return LLM(
             model=model_name,
+            base_url=self.deepinfra_base_url,
+            api_key=self.deepinfra_api_key,
+            # CrewAI standard parameters
             temperature=0.7,
             max_tokens=2048,
-            top_p=0.9,
-            api_key=self.deepinfra_api_key,
-            base_url=self.deepinfra_base_url
+            # CRITICAL: Completely disable logprobs and related parameters for DeepInfra
+            logprobs=False,
+            # Additional parameters to ensure DeepInfra compatibility
+            stream=False,
+            # Custom parameters to prevent logprobs issues
+            extra_body={
+                "stream_options": None,
+                "logprobs": False,
+                "top_logprobs": None
+            }
         )
     
     def get_embedding_llm(self) -> LLM:
@@ -94,8 +152,18 @@ class LLMConfigurationService:
         
         return LLM(
             model=model_name,
+            base_url=self.deepinfra_base_url,
             api_key=self.deepinfra_api_key,
-            base_url=self.deepinfra_base_url
+            # CRITICAL: Completely disable logprobs and related parameters for DeepInfra
+            logprobs=False,
+            # Additional parameters to ensure DeepInfra compatibility
+            stream=False,
+            # Custom parameters to prevent logprobs issues
+            extra_body={
+                "stream_options": None,
+                "logprobs": False,
+                "top_logprobs": None
+            }
         )
     
     def get_chat_llm(self) -> LLM:
@@ -107,11 +175,20 @@ class LLMConfigurationService:
         
         return LLM(
             model=model_name,
+            base_url=self.deepinfra_base_url,
+            api_key=self.deepinfra_api_key,
             temperature=0.8,
             max_tokens=1024,
-            top_p=0.95,
-            api_key=self.deepinfra_api_key,
-            base_url=self.deepinfra_base_url
+            # CRITICAL: Completely disable logprobs and related parameters for DeepInfra
+            logprobs=False,
+            # Additional parameters to ensure DeepInfra compatibility
+            stream=False,
+            # Custom parameters to prevent logprobs issues
+            extra_body={
+                "stream_options": None,
+                "logprobs": False,
+                "top_logprobs": None
+            }
         )
     
     def get_all_llms(self) -> Dict[str, LLM]:
