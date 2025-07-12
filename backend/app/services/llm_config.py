@@ -61,7 +61,7 @@ class LLMConfigurationService:
         os.environ["OPENAI_BASE_URL"] = self.deepinfra_base_url
         
         # Set the default model to prevent gpt-4o-mini fallback
-        crewai_model = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+        crewai_model = "deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
         os.environ["OPENAI_MODEL_NAME"] = crewai_model
         
         logger.info(f"✅ Environment configured for OpenAI-compatible DeepInfra: {crewai_model}")
@@ -74,7 +74,7 @@ class LLMConfigurationService:
         
         Following CrewAI docs: Using LLM Class with base_url and api_key
         """
-        model_name = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+        model_name = "deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
         
         return LLM(
             model=model_name,
@@ -90,7 +90,7 @@ class LLMConfigurationService:
         Get LLM instance for embeddings.
         Model: thenlper/gte-large (USER SPECIFIED)
         """
-        model_name = "thenlper/gte-large"
+        model_name = "deepinfra/thenlper/gte-large"
         
         return LLM(
             model=model_name,
@@ -103,7 +103,7 @@ class LLMConfigurationService:
         Get LLM instance for chat conversations and multi-modal transactions.
         Model: google/gemma-3-4b-it (USER SPECIFIED)
         """
-        model_name = "google/gemma-3-4b-it"
+        model_name = "deepinfra/google/gemma-3-4b-it"
         
         return LLM(
             model=model_name,

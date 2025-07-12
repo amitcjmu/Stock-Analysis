@@ -1,0 +1,113 @@
+/**
+ * Lazy Loading Provider - Context and hooks for lazy loading
+ */
+
+import React, { createContext, useContext, useCallback, useEffect, useState } from 'react';
+import { LoadingPriority, LazyComponentOptions, LoadingState } from '@/types/lazy';
+import { loadingManager } from '@/utils/lazy/loadingManager';
+
+interface LazyLoadingContextType {
+  loadComponent: (
+    componentId: string,
+    importFn: () => Promise<{ default: React.ComponentType<any> }>,
+    options?: LazyComponentOptions
+  ) => Promise<React.ComponentType>;
+  preloadComponent: (
+    componentId: string,
+    importFn: () => Promise<{ default: React.ComponentType<any> }>,
+    options?: LazyComponentOptions
+  ) => void;
+  getLoadingState: (componentId: string) => LoadingState | null;
+  clearCaches: () => void;
+  getCacheEffectiveness: () => number;
+}
+
+const LazyLoadingContext = createContext<LazyLoadingContextType | null>(null);
+
+interface LazyLoadingProviderProps {
+  children: React.ReactNode;
+  globalOptions?: LazyComponentOptions;
+}
+
+export const LazyLoadingProvider: React.FC<LazyLoadingProviderProps> = ({
+  children,
+  globalOptions = {}
+}) => {
+  const [, forceUpdate] = useState({});
+
+  // Force re-render when loading states change
+  const triggerUpdate = useCallback(() => {
+    forceUpdate({});
+  }, []);
+
+  useEffect(() => {
+    // Setup performance observer for bundle analysis
+    if ('PerformanceObserver' in window) {
+      const observer = new PerformanceObserver((list) => {
+        const entries = list.getEntries();
+        entries.forEach((entry) => {
+          if (entry.name.includes('chunk')) {
+            console.debug('Chunk loaded:', entry.name, `${entry.duration.toFixed(2)}ms`);
+          }
+        });
+      });
+      
+      observer.observe({ entryTypes: ['navigation', 'resource'] });
+      return () => observer.disconnect();
+    }
+  }, []);
+
+  const loadComponent = useCallback(async (
+    componentId: string,
+    importFn: () => Promise<{ default: React.ComponentType<any> }>,
+    options: LazyComponentOptions = {}
+  ) => {
+    const mergedOptions = { ...globalOptions, ...options };
+    triggerUpdate();
+    return loadingManager.loadComponent(componentId, importFn, mergedOptions);
+  }, [globalOptions, triggerUpdate]);
+
+  const preloadComponent = useCallback((
+    componentId: string,
+    importFn: () => Promise<{ default: React.ComponentType<any> }>,
+    options: LazyComponentOptions = {}
+  ) => {
+    const mergedOptions = { ...globalOptions, ...options };
+    loadingManager.preloadComponent(componentId, importFn, mergedOptions);
+  }, [globalOptions]);
+
+  const getLoadingState = useCallback((componentId: string) => {
+    return loadingManager.getLoadingState(componentId);
+  }, []);
+
+  const clearCaches = useCallback(() => {
+    loadingManager.clearCaches();
+    triggerUpdate();
+  }, [triggerUpdate]);
+
+  const getCacheEffectiveness = useCallback(() => {
+    return loadingManager.getCacheEffectiveness();
+  }, []);
+
+  const contextValue: LazyLoadingContextType = {
+    loadComponent,
+    preloadComponent,
+    getLoadingState,
+    clearCaches,
+    getCacheEffectiveness
+  };
+
+  return (
+    <LazyLoadingContext.Provider value={contextValue}>
+      {children}
+    </LazyLoadingContext.Provider>
+  );
+};
+
+export const useLazyLoading = () => {
+  const context = useContext(LazyLoadingContext);
+  if (!context) {
+    throw new Error('useLazyLoading must be used within a LazyLoadingProvider');
+  }
+  return context;
+};

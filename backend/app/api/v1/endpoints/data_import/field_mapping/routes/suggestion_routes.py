@@ -78,13 +78,23 @@ async def get_confidence_metrics(
 async def get_available_target_fields(
     service: SuggestionService = Depends(get_suggestion_service)
 ):
-    """Get list of all available target fields for mapping."""
+    """
+    DEPRECATED: Get list of all available target fields for mapping.
+    
+    This endpoint is deprecated as of 2025-07-12. Frontend now uses a hardcoded 
+    list of asset fields to eliminate unnecessary API calls on every app start.
+    The hardcoded list in FieldOptionsContext.tsx contains all asset model fields.
+    
+    This endpoint is kept for backward compatibility but should not be used.
+    """
     try:
         fields = await service._get_available_target_fields()
         return {
             "fields": fields,
             "total_count": len(fields),
-            "categories": list(set(field.get("category", "unknown") for field in fields))
+            "categories": list(set(field.get("category", "unknown") for field in fields)),
+            "deprecated": True,
+            "message": "This endpoint is deprecated. Frontend uses hardcoded asset fields list."
         }
     except Exception as e:
         logger.error(f"Error getting available target fields: {e}")

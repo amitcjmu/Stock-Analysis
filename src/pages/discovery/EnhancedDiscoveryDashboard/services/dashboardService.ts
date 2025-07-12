@@ -99,7 +99,9 @@ export class DashboardService {
     // Process Discovery flows
     if (discoveryFlowsResponse.status === 'fulfilled' && discoveryFlowsResponse.value) {
       const discoveryData = discoveryFlowsResponse.value;
-      console.log('📊 Discovery flows data:', discoveryData);
+      console.log('📊 Discovery flows data from /api/v1/discovery/flows/active:', discoveryData);
+      console.log('📊 Discovery flows response type:', typeof discoveryData);
+      console.log('📊 Discovery flows is array:', Array.isArray(discoveryData));
 
       // Handle both array response and object with flows array
       let flowsToProcess = [];
@@ -122,11 +124,17 @@ export class DashboardService {
       for (const flow of flowsToProcess) {
         try {
           console.log('📊 Processing flow:', flow);
+          console.log('📊 Flow ID debug:', {
+            flow_id: flow.flow_id,
+            flow_id_type: typeof flow.flow_id,
+            flow_id_length: flow.flow_id?.length,
+            flow_id_chars: flow.flow_id?.split('').slice(0, 10)
+          });
           
           // Extract metadata if it exists
           const metadata = flow.metadata || {};
           
-          allFlows.push({
+          const flowSummary = {
             flow_id: flow.flow_id,
             engagement_name: metadata.engagement_name || flow.engagement_name || `${client?.name || 'Unknown'} - Discovery`,
             engagement_id: flow.engagement_id || engagement?.id || 'unknown',
@@ -144,7 +152,16 @@ export class DashboardService {
             success_criteria_met: metadata.success_criteria_met || flow.success_criteria_met || Object.values(flow.phases || metadata.phases || {}).filter(Boolean).length || 0,
             total_success_criteria: 6, // 6 phases in discovery
             flow_type: flow.type || 'discovery'
+          };
+          
+          console.log('📊 Final flow summary before adding to allFlows:', {
+            original_flow_id: flow.flow_id,
+            summary_flow_id: flowSummary.flow_id,
+            ids_match: flow.flow_id === flowSummary.flow_id,
+            flow_summary: flowSummary
           });
+          
+          allFlows.push(flowSummary);
         } catch (flowError) {
           console.warn('Failed to process flow:', flow, flowError);
         }
@@ -160,7 +177,11 @@ export class DashboardService {
     // Process Data Import sessions to find additional flows
     if (dataImportsResponse.status === 'fulfilled' && dataImportsResponse.value) {
       const importData = dataImportsResponse.value;
-      console.log('📊 Data import data:', importData);
+      console.log('📊 Data import data from /api/v1/data-import/latest-import:', importData);
+      console.log('📊 Data import success:', importData.success);
+      if (importData.data_import) {
+        console.log('📊 Data import flow ID:', importData.data_import.id);
+      }
 
       if (importData.success && importData.data_import) {
         const dataImport = importData.data_import;

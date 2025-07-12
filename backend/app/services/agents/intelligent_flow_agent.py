@@ -288,7 +288,7 @@ class FlowStatusTool(BaseTool):
                 client_account_id=context.get("client_account_id"),
                 engagement_id=context.get("engagement_id"),
                 user_id=context.get("user_id"),
-                session_id=None
+                flow_id=flow_id
             )
             
             async with AsyncSessionLocal() as session:
@@ -435,7 +435,7 @@ class PhaseValidationTool(BaseTool):
                 client_account_id=context.get("client_account_id"),
                 engagement_id=context.get("engagement_id"),
                 user_id=context.get("user_id"),
-                session_id=None
+                flow_id=flow_id
             )
             
             async with AsyncSessionLocal() as session:

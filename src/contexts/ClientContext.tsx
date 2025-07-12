@@ -41,7 +41,7 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // For demo user, set demo client immediately
     if (user && user.id === '33333333-3333-3333-3333-333333333333') {
       setCurrentClient({
-        id: '11111111-1111-1111-1111-111111111111',
+        id: '21990f3a-abb6-4862-be06-cb6f854e167b',
         name: 'Demo Corporation',
         status: 'active',
         type: 'enterprise',

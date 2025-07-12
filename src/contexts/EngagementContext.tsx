@@ -43,9 +43,9 @@ export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     // If demo user, set demo engagement and skip fetch
     const demoUserId = '44444444-4444-4444-4444-444444444444';
     const demoEngagement = {
-      id: '22222222-2222-2222-2222-222222222222',
+      id: '58467010-6a72-44e8-ba37-cc0238724455',
       name: 'Cloud Migration 2024',
-      client_id: '11111111-1111-1111-1111-111111111111',
+      client_id: '21990f3a-abb6-4862-be06-cb6f854e167b',
       status: 'active' as const,
       type: 'migration' as const,
       start_date: '2024-01-01T00:00:00Z',

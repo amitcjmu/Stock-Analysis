@@ -93,8 +93,7 @@ class CrewManager:
                 max_tokens=1500,
                 top_p=0.1,
                 frequency_penalty=0.0,
-                presence_penalty=0.0,
-                reasoning_effort="none"
+                presence_penalty=0.0
             )
             
             logger.info("CrewAI LLM initialized successfully with DeepInfra")

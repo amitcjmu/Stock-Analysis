@@ -201,7 +201,7 @@ const rateLimitTracker = new Map<string, RateLimitEntry>();
 
 // Rate limit configuration
 const RATE_LIMITS = {
-  'GET:/api/v1/data-import/available-target-fields': { maxRequests: 2, windowMs: 60000 }, // 2 requests per minute
+  // Removed available-target-fields as it's now deprecated (using hardcoded list)
   'GET:/api/v1/data-import/field-mapping': { maxRequests: 5, windowMs: 30000 }, // 5 requests per 30s
   'GET:/api/v1/data-import/latest': { maxRequests: 10, windowMs: 60000 }, // 10 requests per minute
   'default': { maxRequests: 30, windowMs: 60000 } // Default: 30 requests per minute
@@ -209,7 +209,7 @@ const RATE_LIMITS = {
 
 // Cache configuration per endpoint
 const CACHE_CONFIG = {
-  'GET:/api/v1/data-import/available-target-fields': 300000, // 5 minutes
+  // Removed available-target-fields as it's now deprecated (using hardcoded list)
   'GET:/api/v1/data-import/field-mapping': 60000, // 1 minute
   'GET:/api/v1/data-import/latest': 30000, // 30 seconds
   'default': 120000 // 2 minutes default

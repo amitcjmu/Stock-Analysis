@@ -37,11 +37,17 @@ beforeAll(() => {
     disconnect: vi.fn(),
   }));
 
-  // Mock IntersectionObserver
-  global.IntersectionObserver = vi.fn().mockImplementation(() => ({
+  // Mock IntersectionObserver for viewport-based lazy loading
+  global.IntersectionObserver = vi.fn().mockImplementation((callback) => ({
     observe: vi.fn(),
-    unobserve: vi.fn(),
+    unobserve: vi.fn(), 
     disconnect: vi.fn(),
+    root: null,
+    rootMargin: '',
+    thresholds: [],
+    // Add callback mock for testing
+    _callback: callback,
+    _triggerIntersection: (entries) => callback(entries)
   }));
 
   // Mock scrollTo
@@ -63,6 +69,15 @@ beforeAll(() => {
 
   // Mock fetch for API calls
   global.fetch = vi.fn();
+
+  // Mock performance API for lazy loading performance tests
+  if (!global.performance) {
+    global.performance = {};
+  }
+  global.performance.mark = vi.fn();
+  global.performance.measure = vi.fn();
+  global.performance.getEntriesByName = vi.fn(() => []);
+  global.performance.now = vi.fn(() => Date.now());
 
   // Console error suppression for expected React warnings during tests
   const originalError = console.error;
@@ -230,4 +245,53 @@ export const waitFor = (callback, options = {}) => {
     
     check();
   });
+};
+
+// Modular architecture testing utilities
+export const mockLazyComponent = (componentName, implementation) => {
+  return vi.fn().mockImplementation(() => implementation);
+};
+
+export const mockDynamicImport = (modulePath, mockImplementation) => {
+  return vi.doMock(modulePath, () => ({
+    default: mockImplementation,
+    __esModule: true
+  }));
+};
+
+export const createLazyComponentMock = (testId, content = 'Mocked Component') => {
+  return () => React.createElement('div', { 'data-testid': testId }, content);
+};
+
+export const triggerViewportIntersection = (entries) => {
+  const observer = global.IntersectionObserver.mock.results[0]?.value;
+  if (observer && observer._triggerIntersection) {
+    observer._triggerIntersection(entries);
+  }
+};
+
+// Bundle loading test utilities
+export const mockBundleLoad = (bundleName, delay = 0) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({ default: createLazyComponentMock(`${bundleName}-component`) });
+    }, delay);
+  });
+};
+
+// Performance measurement utilities for lazy loading
+export const measureLazyLoadPerformance = (componentName) => {
+  const startMark = `lazy-${componentName}-start`;
+  const endMark = `lazy-${componentName}-end`;
+  const measureName = `lazy-${componentName}-duration`;
+  
+  return {
+    start: () => global.performance.mark(startMark),
+    end: () => global.performance.mark(endMark),
+    measure: () => global.performance.measure(measureName, startMark, endMark),
+    getDuration: () => {
+      const entries = global.performance.getEntriesByName(measureName);
+      return entries.length > 0 ? entries[0].duration : 0;
+    }
+  };
 }; 
