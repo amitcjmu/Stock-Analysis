@@ -350,25 +350,104 @@ class FlowStatusManager:
         }
     
     async def _get_discovery_field_mappings(self, master_flow) -> List[Dict[str, Any]]:
-        """Get field mappings for discovery flows"""
+        """Get field mappings for discovery flows with smart discovery fallback"""
         try:
-            # Get data_import_id from flow persistence data
+            # Primary method: Get data_import_id from flow persistence data
             persistence_data = master_flow.flow_persistence_data or {}
             data_import_id = persistence_data.get('data_import_id')
             
+            field_mappings = []
+            
             if data_import_id:
-                from app.models.data_import.mapping import ImportFieldMapping
-                from sqlalchemy import select
+                field_mappings = await self._load_field_mappings_by_import_id(data_import_id, master_flow.flow_id)
+            
+            # Fallback method: Smart discovery of related field mappings
+            if not field_mappings:
+                logger.info(f"🔍 No field mappings found by data_import_id, attempting smart discovery for flow {master_flow.flow_id}")
+                field_mappings = await self._smart_discover_field_mappings(master_flow)
+            
+            return field_mappings
                 
-                logger.info(f"🔍 Loading field mappings for data_import_id: {data_import_id}")
-                
-                query = select(ImportFieldMapping).where(
-                    ImportFieldMapping.data_import_id == data_import_id
+        except Exception as e:
+            logger.error(f"❌ Failed to load field mappings for flow {master_flow.flow_id}: {e}")
+            return []
+    
+    async def _load_field_mappings_by_import_id(self, data_import_id: str, flow_id: str) -> List[Dict[str, Any]]:
+        """Load field mappings by data_import_id"""
+        try:
+            from app.models.data_import.mapping import ImportFieldMapping
+            from sqlalchemy import select, or_
+            
+            logger.info(f"🔍 Loading field mappings for data_import_id: {data_import_id}")
+            
+            # Query with fallback to master_flow_id if direct data_import_id fails
+            query = select(ImportFieldMapping).where(
+                or_(
+                    ImportFieldMapping.data_import_id == data_import_id,
+                    ImportFieldMapping.master_flow_id == flow_id
                 )
-                result = await self.db.execute(query)
-                mappings = result.scalars().all()
+            )
+            result = await self.db.execute(query)
+            mappings = result.scalars().all()
+            
+            # Convert to frontend format
+            field_mappings = [
+                {
+                    "id": str(mapping.id),
+                    "source_field": mapping.source_field,
+                    "target_field": mapping.target_field,
+                    "status": mapping.status,
+                    "confidence_score": mapping.confidence_score,
+                    "match_type": mapping.match_type,
+                    "suggested_by": mapping.suggested_by,
+                    "approved_by": mapping.approved_by,
+                    "approved_at": mapping.approved_at.isoformat() if mapping.approved_at else None,
+                    "transformation_rules": mapping.transformation_rules,
+                    "created_at": mapping.created_at.isoformat() if mapping.created_at else None,
+                    "updated_at": mapping.updated_at.isoformat() if mapping.updated_at else None,
+                    "master_flow_id": mapping.master_flow_id,
+                    "data_import_id": str(mapping.data_import_id) if mapping.data_import_id else None
+                }
+                for mapping in mappings
+            ]
+            
+            logger.info(f"✅ Loaded {len(field_mappings)} field mappings for flow {flow_id}")
+            return field_mappings
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to load field mappings by import ID: {e}")
+            return []
+    
+    async def _smart_discover_field_mappings(self, master_flow) -> List[Dict[str, Any]]:
+        """Smart discovery of field mappings for orphaned data"""
+        try:
+            from app.models.data_import import DataImport
+            from app.models.data_import.mapping import ImportFieldMapping
+            from sqlalchemy import select, and_, or_
+            
+            flow_id = master_flow.flow_id
+            
+            # Strategy 1: Find field mappings with NULL master_flow_id for this client/engagement
+            orphaned_mappings_query = select(ImportFieldMapping).join(
+                DataImport, ImportFieldMapping.data_import_id == DataImport.id
+            ).where(
+                and_(
+                    DataImport.client_account_id == self.context.client_account_id,
+                    DataImport.engagement_id == self.context.engagement_id,
+                    or_(
+                        ImportFieldMapping.master_flow_id.is_(None),
+                        ImportFieldMapping.master_flow_id == flow_id
+                    )
+                )
+            ).order_by(ImportFieldMapping.created_at.desc())
+            
+            result = await self.db.execute(orphaned_mappings_query)
+            orphaned_mappings = result.scalars().all()
+            
+            if orphaned_mappings:
+                logger.info(f"🔍 Found {len(orphaned_mappings)} orphaned field mappings for flow {flow_id}")
                 
-                # Convert to frontend format
+                # Convert to frontend format with orphaned data indicators
                 field_mappings = [
                     {
                         "id": str(mapping.id),
@@ -382,19 +461,22 @@ class FlowStatusManager:
                         "approved_at": mapping.approved_at.isoformat() if mapping.approved_at else None,
                         "transformation_rules": mapping.transformation_rules,
                         "created_at": mapping.created_at.isoformat() if mapping.created_at else None,
-                        "updated_at": mapping.updated_at.isoformat() if mapping.updated_at else None
+                        "updated_at": mapping.updated_at.isoformat() if mapping.updated_at else None,
+                        "master_flow_id": mapping.master_flow_id,
+                        "data_import_id": str(mapping.data_import_id) if mapping.data_import_id else None,
+                        "is_orphaned": mapping.master_flow_id is None,
+                        "discovery_method": "smart_discovery"
                     }
-                    for mapping in mappings
+                    for mapping in orphaned_mappings
                 ]
                 
-                logger.info(f"✅ Loaded {len(field_mappings)} field mappings for flow {master_flow.flow_id}")
                 return field_mappings
-            else:
-                logger.warning(f"⚠️ No data_import_id found in flow persistence data for flow {master_flow.flow_id}")
-                return []
-                
+            
+            logger.warning(f"⚠️ No field mappings found via smart discovery for flow {flow_id}")
+            return []
+            
         except Exception as e:
-            logger.error(f"❌ Failed to load field mappings for flow {master_flow.flow_id}: {e}")
+            logger.error(f"❌ Smart discovery of field mappings failed: {e}")
             return []
     
     def _get_phase_information(self, master_flow, flow_config) -> Dict[str, Any]:

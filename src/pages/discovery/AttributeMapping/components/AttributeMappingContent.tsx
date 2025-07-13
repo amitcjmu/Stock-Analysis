@@ -19,6 +19,9 @@ interface AttributeMappingContentProps {
   onDataImportSelection: (importId: string) => void;
   refetchAgentic?: () => void;
   refetchCriticalAttributes?: () => void;
+  // NEW AGENTIC PROPS: SSE integration
+  flowUpdates?: any;
+  sseLastUpdate?: Date | null;
 }
 
 export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = ({
@@ -30,7 +33,9 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
   onAttributeUpdate,
   onDataImportSelection,
   refetchAgentic,
-  refetchCriticalAttributes
+  refetchCriticalAttributes,
+  flowUpdates,
+  sseLastUpdate
 }) => {
   const {
     agenticData,
@@ -119,11 +124,13 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
         </div>
       )}
 
-      {/* Agent Insights and Orchestration */}
+      {/* Agent Insights and Orchestration - ENHANCED WITH SSE */}
       {flowState && (
         <div className="space-y-6">
           <AgentInsightsSection 
             pageContext="attribute_mapping"
+            refreshTrigger={sseLastUpdate ? sseLastUpdate.getTime() : undefined}
+            isProcessing={flowUpdates?.status === 'running' || flowUpdates?.phase === 'attribute_mapping'}
           />
           
           <EnhancedAgentOrchestrationPanel 

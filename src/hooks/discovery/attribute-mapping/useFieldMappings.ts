@@ -104,13 +104,14 @@ export const useFieldMappings = (
               
               // Create placeholder mappings for unmapped fields
               const additionalMappings = missingFields.map(sourceField => ({
-                id: `unmapped-${sourceField}`,
+                id: crypto.randomUUID(), // Generate proper UUID for unmapped fields
                 source_field: sourceField,
                 target_field: 'UNMAPPED', // Use UNMAPPED placeholder 
                 confidence: 0,
                 is_approved: false,
                 status: 'unmapped',
-                match_type: 'unmapped'
+                match_type: 'unmapped',
+                is_placeholder: true // Mark as placeholder to prevent approval attempts
               }));
               
               const enhancedMappings = [...(mappings || []), ...additionalMappings];
@@ -264,7 +265,7 @@ export const useFieldMappings = (
         const flowStateMappings = Object.entries(mappingsObj)
           .filter(([key, value]) => key !== 'confidence_scores')
           .map(([sourceField, targetField]: [string, any]) => ({
-            id: `mapping-${sourceField}`,
+            id: crypto.randomUUID(), // Generate proper UUID
             sourceField: sourceField === 'None' ? 'Unknown Field' : sourceField,
             targetAttribute: typeof targetField === 'string' ? targetField : String(targetField),
             confidence: fieldMappingData.confidence_scores?.[sourceField] || 0.5,
@@ -275,7 +276,8 @@ export const useFieldMappings = (
             is_user_defined: false,
             user_feedback: null,
             validation_method: 'semantic_analysis',
-            is_validated: false
+            is_validated: false,
+            is_fallback: true // Mark as fallback to prevent approval attempts
           }));
         console.log('🔄 [DEBUG] Using direct field mappings fallback:', {
           mappings_count: flowStateMappings.length,
@@ -288,7 +290,7 @@ export const useFieldMappings = (
       if (fieldMappingData.mappings) {
         const mappingsObj = fieldMappingData.mappings;
         const flowStateMappings = Object.entries(mappingsObj).map(([sourceField, mapping]: [string, any]) => ({
-          id: `mapping-${sourceField}`,
+          id: crypto.randomUUID(), // Generate proper UUID
           sourceField: mapping.source_column || sourceField,
           targetAttribute: mapping.asset_field || sourceField,
           confidence: (mapping.confidence || 0) / 100, // Convert to 0-1 range
@@ -299,7 +301,8 @@ export const useFieldMappings = (
           is_user_defined: false,
           user_feedback: null,
           validation_method: mapping.pattern_matched || 'semantic_analysis',
-          is_validated: false
+          is_validated: false,
+          is_fallback: true // Mark as fallback to prevent approval attempts
         }));
         console.log('🔄 [DEBUG] Using structured mappings fallback:', {
           mappings_count: flowStateMappings.length,

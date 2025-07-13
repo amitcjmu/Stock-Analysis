@@ -18,6 +18,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.context import get_current_context
+from app.core.exceptions import InvalidFlowStateError, CrewAIExecutionError
 
 # V2 Discovery Flow Models
 from app.models.discovery_flow import DiscoveryFlow
@@ -429,6 +430,18 @@ class CrewAIFlowService:
         Args:
             flow_id: Discovery Flow ID
             resume_context: Optional context for resumption (user input, etc.)
+            
+        Returns:
+            Dict containing resume status and result information
+            
+        Raises:
+            ValueError: If flow not found
+            InvalidFlowStateError: If flow is in a terminal state (deleted, cancelled, completed, failed)
+            CrewAIExecutionError: If CrewAI flow initialization or execution fails
+            
+        Note:
+            Only flows with resumable statuses can be resumed. Terminal statuses 
+            ['deleted', 'cancelled', 'completed', 'failed'] will raise InvalidFlowStateError.
         """
         try:
             logger.info(f"🔍 TESTING: CrewAIFlowService.resume_flow called for {flow_id}")
@@ -476,6 +489,18 @@ class CrewAIFlowService:
                     if not flow:
                         raise ValueError(f"Flow not found: {flow_id}")
                     
+                    # Validate flow status - prevent resuming flows in terminal states
+                    terminal_statuses = ['deleted', 'cancelled', 'completed', 'failed']
+                    if flow.status in terminal_statuses:
+                        logger.warning(f"❌ Cannot resume flow {flow_id} with terminal status '{flow.status}'")
+                        raise InvalidFlowStateError(
+                            current_state=flow.status,
+                            target_state="resuming",
+                            flow_id=flow_id
+                        )
+                    
+                    logger.info(f"✅ Flow {flow_id} status '{flow.status}' is valid for resumption")
+                    
                     # Create and initialize real CrewAI flow
                     async with AsyncSessionLocal() as db:
                         # Get the flow's raw_data from the database
@@ -501,8 +526,13 @@ class CrewAIFlowService:
                         # instead of creating a new flow instance
                         logger.info(f"Flow resume should be handled through MasterFlowOrchestrator")
                         
-                        # Create placeholder for crewai_flow to maintain compatibility
-                        crewai_flow = None
+                        # Initialize actual CrewAI flow for resumption
+                        try:
+                            crewai_flow = UnifiedDiscoveryFlow()
+                            logger.info(f"✅ Created UnifiedDiscoveryFlow instance for resumption")
+                        except Exception as e:
+                            logger.error(f"❌ Failed to create UnifiedDiscoveryFlow: {e}")
+                            raise CrewAIExecutionError(f"Failed to initialize CrewAI flow for resumption: {e}")
                         
                         # Load existing flow state (don't re-initialize if already exists)
                         if crewai_flow and (not hasattr(crewai_flow, '_flow_state') or not crewai_flow._flow_state):
@@ -520,6 +550,12 @@ class CrewAIFlowService:
                             resume_context.get('user_approval') == True):
                             logger.info(f"🔄 Resuming CrewAI Flow from field mapping approval: {flow_id}")
                             
+                            # Validate crewai_flow before accessing state
+                            if not crewai_flow:
+                                raise CrewAIExecutionError("CrewAI flow is None - cannot update flow state")
+                            if not hasattr(crewai_flow, 'state'):
+                                raise CrewAIExecutionError("CrewAI flow does not have state attribute")
+                                
                             # Update the flow state to indicate user approval
                             crewai_flow.state.awaiting_user_approval = False
                             crewai_flow.state.status = "processing"
@@ -550,11 +586,17 @@ class CrewAIFlowService:
                             
                             # Now apply the approved field mappings
                             logger.info("🎯 Triggering apply_approved_field_mappings listener")
+                            if not crewai_flow:
+                                raise CrewAIExecutionError("CrewAI flow is None - cannot apply field mappings")
                             result = await crewai_flow.apply_approved_field_mappings("field_mapping_approved")
                             
                         else:
                             # For other states, use the standard flow resumption
                             logger.info(f"🔄 Resuming flow from current state: {flow.status}, phase: {flow.current_phase}")
+                            if not crewai_flow:
+                                raise CrewAIExecutionError("CrewAI flow is None - cannot resume flow from state")
+                            if not hasattr(crewai_flow, 'resume_flow_from_state'):
+                                raise CrewAIExecutionError("CrewAI flow does not support resume_flow_from_state method")
                             result = await crewai_flow.resume_flow_from_state(resume_context)
                     
                     logger.info(f"✅ CrewAI flow resumed and executed: {flow_id}")
@@ -578,6 +620,9 @@ class CrewAIFlowService:
             else:
                 raise ValueError("CrewAI flows not available - cannot resume real flow")
                 
+        except InvalidFlowStateError:
+            # Re-raise InvalidFlowStateError so caller can handle properly
+            raise
         except Exception as e:
             logger.error(f"❌ Failed to resume flow {flow_id}: {e}")
             return {

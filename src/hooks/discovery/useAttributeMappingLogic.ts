@@ -243,13 +243,14 @@ export const useAttributeMappingLogic = () => {
               
               // Create placeholder mappings for unmapped fields
               const additionalMappings = missingFields.map(sourceField => ({
-                id: `unmapped-${sourceField}`,
+                id: crypto.randomUUID(), // Generate proper UUID for unmapped fields
                 source_field: sourceField,
                 target_field: 'UNMAPPED', // Use UNMAPPED placeholder 
                 confidence: 0,
                 is_approved: false,
                 status: 'unmapped',
-                match_type: 'unmapped'
+                match_type: 'unmapped',
+                is_placeholder: true // Mark as placeholder to prevent approval attempts
               }));
               
               const enhancedMappings = [...(mappings || []), ...additionalMappings];
@@ -268,6 +269,10 @@ export const useAttributeMappingLogic = () => {
           console.warn('⚠️ Could not fetch raw import data:', rawDataError);
         }
         
+        // If we reach here without enhancedMappings, use the original mappings
+        return mappings || [];
+        
+        /* COMMENTING OUT OLD TRANSFORMATION - mappings should already be in correct format
         // Transform the backend data structure to match frontend expectations
         const transformedMappings = mappings?.map((mapping: any) => ({
           id: mapping.id,
@@ -292,6 +297,7 @@ export const useAttributeMappingLogic = () => {
         });
 
         return transformedMappings;
+        */
       } catch (error) {
         console.error('❌ Error fetching field mappings:', error);
         
@@ -412,21 +418,22 @@ export const useAttributeMappingLogic = () => {
     
     // Use the API field mappings data
     if (realFieldMappings && Array.isArray(realFieldMappings)) {
+      console.log('🔍 [DEBUG] Raw field mappings from API:', realFieldMappings);
       const mappedData = realFieldMappings.map(mapping => {
         // Check if this is an unmapped field
         const isUnmapped = mapping.target_field === 'UNMAPPED' || mapping.target_field === null || mapping.status === 'unmapped';
         
         return {
           id: mapping.id,
-          sourceField: mapping.source_field,
-          targetAttribute: isUnmapped ? null : mapping.target_field, // Show null for unmapped fields
+          sourceField: mapping.source_field || mapping.sourceField || 'Unknown Field',
+          targetAttribute: isUnmapped ? null : (mapping.target_field || mapping.targetAttribute),
           confidence: mapping.confidence || 0,
           mapping_type: isUnmapped ? 'unmapped' : 'ai_suggested',
           sample_values: [],
           // IMPORTANT: Always present as 'pending' until user explicitly approves
           // Unmapped fields should show as 'unmapped' status
           status: isUnmapped ? 'unmapped' : (mapping.is_approved === true ? 'approved' : 'pending'),
-          ai_reasoning: isUnmapped ? `Field "${mapping.source_field}" needs mapping assignment` : `AI suggested mapping to ${mapping.target_field}`,
+          ai_reasoning: isUnmapped ? `Field "${mapping.source_field || mapping.sourceField || 'Unknown'}" needs mapping assignment` : `AI suggested mapping to ${mapping.target_field || mapping.targetAttribute}`,
           is_user_defined: false,
           user_feedback: null,
           validation_method: 'semantic_analysis',
@@ -466,7 +473,7 @@ export const useAttributeMappingLogic = () => {
         const flowStateMappings = Object.entries(mappingsObj)
           .filter(([key, value]) => key !== 'confidence_scores')
           .map(([sourceField, targetField]: [string, any]) => ({
-            id: `mapping-${sourceField}`,
+            id: crypto.randomUUID(), // Generate proper UUID
             sourceField: sourceField === 'None' ? 'Unknown Field' : sourceField,
             targetAttribute: typeof targetField === 'string' ? targetField : String(targetField),
             confidence: fieldMappingData.confidence_scores?.[sourceField] || 0.5,
@@ -477,7 +484,8 @@ export const useAttributeMappingLogic = () => {
             is_user_defined: false,
             user_feedback: null,
             validation_method: 'semantic_analysis',
-            is_validated: false
+            is_validated: false,
+            is_fallback: true // Mark as fallback to prevent approval attempts
           }));
         console.log('🔄 [DEBUG] Using direct field mappings fallback:', {
           mappings_count: flowStateMappings.length,
@@ -490,7 +498,7 @@ export const useAttributeMappingLogic = () => {
       if (fieldMappingData.mappings) {
         const mappingsObj = fieldMappingData.mappings;
         const flowStateMappings = Object.entries(mappingsObj).map(([sourceField, mapping]: [string, any]) => ({
-          id: `mapping-${sourceField}`,
+          id: crypto.randomUUID(), // Generate proper UUID
           sourceField: mapping.source_column || sourceField,
           targetAttribute: mapping.asset_field || sourceField,
           confidence: (mapping.confidence || 0) / 100, // Convert to 0-1 range
@@ -501,7 +509,8 @@ export const useAttributeMappingLogic = () => {
           is_user_defined: false,
           user_feedback: null,
           validation_method: mapping.pattern_matched || 'semantic_analysis',
-          is_validated: false
+          is_validated: false,
+          is_fallback: true // Mark as fallback to prevent approval attempts
         }));
         console.log('🔄 [DEBUG] Using structured mappings fallback:', {
           mappings_count: flowStateMappings.length,
@@ -1145,6 +1154,15 @@ export const useAttributeMappingLogic = () => {
         return;
       }
       
+      // Check if this is a placeholder or fallback mapping that shouldn't be approved via API
+      if (mapping && ((mapping as any).is_placeholder || (mapping as any).is_fallback)) {
+        console.warn('Cannot approve placeholder or fallback mapping via API:', mappingId);
+        if (typeof window !== 'undefined' && (window as any).showWarningToast) {
+          (window as any).showWarningToast('This field mapping needs to be configured before approval.');
+        }
+        return;
+      }
+      
       // Create URL with proper query parameters
       const approvalNote = encodeURIComponent('User approved mapping from UI');
       const approvalUrl = `/api/v1/data-import/field-mapping/approval/approve-mapping/${mappingId}?approved=true&approval_note=${approvalNote}`;
@@ -1283,28 +1301,77 @@ export const useAttributeMappingLogic = () => {
     }
   }, [getAuthHeaders]);
 
-  // Move canContinueToDataCleansing after all data is declared to avoid forward reference
+  // AGENTIC DECISION ENGINE: Replace hardcoded 90% logic with agent-driven decisions
   const canContinueToDataCleansing = useCallback(() => {
     // Check if flow phase is complete
     if (flow?.phases?.attribute_mapping === true) {
       return true;
     }
     
-    // STRICT REQUIREMENT: User must explicitly approve field mappings before continuing
+    // AGENT-DRIVEN REQUIREMENT: Use agent confidence and critical field analysis
     if (Array.isArray(fieldMappings) && fieldMappings.length > 0) {
       const approvedMappings = fieldMappings.filter(m => m.status === 'approved').length;
       const totalMappings = fieldMappings.length;
-      const pendingMappings = fieldMappings.filter(m => m.status === 'pending' || m.status === 'suggested').length;
+      const highConfidenceMappings = fieldMappings.filter(m => (m.confidence || 0) >= 0.8).length;
+      const criticalFieldsMapped = fieldMappings.filter(m => {
+        const isCritical = ['asset_name', 'name', 'hostname', 'asset_type', 'ip_address'].includes(
+          m.targetAttribute?.toLowerCase() || ''
+        );
+        return isCritical && m.status === 'approved';
+      }).length;
       
-      console.log(`🔍 Field mapping status: ${approvedMappings}/${totalMappings} approved, ${pendingMappings} pending user approval`);
+      // AGENTIC DECISION FACTORS:
+      // 1. Critical fields must be mapped and approved (business requirement)
+      // 2. High confidence mappings indicate agent certainty
+      // 3. Dynamic threshold based on data quality and agent consensus
       
-      // Only allow continuation if ALL mappings are explicitly approved by the user
-      // OR if at least 90% are approved (allowing for some optional fields)
-      const approvalPercentage = (approvedMappings / totalMappings) * 100;
-      const canContinue = approvalPercentage >= 90;
+      const criticalFieldsRequired = Math.min(3, fieldMappings.filter(m => 
+        ['asset_name', 'name', 'hostname', 'asset_type', 'ip_address'].includes(
+          m.targetAttribute?.toLowerCase() || ''
+        )
+      ).length);
+      
+      const hasCriticalFields = criticalFieldsMapped >= criticalFieldsRequired;
+      
+      // Dynamic threshold calculation based on agent confidence
+      const averageConfidence = fieldMappings.reduce((sum, m) => sum + (m.confidence || 0), 0) / fieldMappings.length;
+      const dynamicThreshold = Math.max(0.6, Math.min(0.9, averageConfidence * 0.8)); // 60-90% based on agent confidence
+      
+      const approvalPercentage = (approvedMappings / totalMappings);
+      const highConfidencePercentage = (highConfidenceMappings / totalMappings);
+      
+      // AGENT-DRIVEN CONTINUATION LOGIC:
+      // Allow continuation if:
+      // 1. All critical fields are mapped AND
+      // 2. (Approval percentage meets dynamic threshold OR high confidence percentage > 70%)
+      const canContinue = hasCriticalFields && (
+        approvalPercentage >= dynamicThreshold || 
+        highConfidencePercentage >= 0.7
+      );
+      
+      console.log(`🤖 AGENT DECISION ENGINE - Field mapping analysis:`, {
+        approvedMappings,
+        totalMappings,
+        approvalPercentage: (approvalPercentage * 100).toFixed(1) + '%',
+        highConfidenceMappings,
+        highConfidencePercentage: (highConfidencePercentage * 100).toFixed(1) + '%',
+        criticalFieldsMapped,
+        criticalFieldsRequired,
+        hasCriticalFields,
+        averageConfidence: (averageConfidence * 100).toFixed(1) + '%',
+        dynamicThreshold: (dynamicThreshold * 100).toFixed(1) + '%',
+        canContinue,
+        reasoning: canContinue 
+          ? 'Agent analysis indicates sufficient mapping quality for continuation'
+          : 'Agent analysis requires more approvals or critical field mappings'
+      });
       
       if (!canContinue) {
-        console.log(`❌ Cannot continue: Only ${approvalPercentage.toFixed(1)}% of field mappings are user-approved. Need 90%+ approval.`);
+        if (!hasCriticalFields) {
+          console.log(`❌ AGENT BLOCK: Critical fields not sufficiently mapped (${criticalFieldsMapped}/${criticalFieldsRequired})`);
+        } else {
+          console.log(`❌ AGENT BLOCK: Mapping quality below dynamic threshold (${(approvalPercentage * 100).toFixed(1)}% approved, ${(dynamicThreshold * 100).toFixed(1)}% required OR ${(highConfidencePercentage * 100).toFixed(1)}% high confidence, 70% required)`);
+        }
       }
       
       return canContinue;

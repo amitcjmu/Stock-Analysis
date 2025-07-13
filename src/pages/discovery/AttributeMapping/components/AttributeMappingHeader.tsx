@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, Zap, ArrowRight, AlertCircle } from 'lucide-react';
+import { RefreshCw, Zap, ArrowRight, AlertCircle, Wifi, WifiOff, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { AttributeMappingState } from '../types';
@@ -13,6 +13,9 @@ interface AttributeMappingHeaderProps {
   onContinueToDataCleansing: () => void;
   flowStatus?: string;
   hasFieldMappings?: boolean;
+  // NEW AGENTIC PROPS: SSE connection status
+  isSSEConnected?: boolean;
+  connectionType?: 'sse' | 'polling' | 'disconnected';
 }
 
 export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
@@ -23,7 +26,9 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
   onTriggerAnalysis,
   onContinueToDataCleansing,
   flowStatus,
-  hasFieldMappings
+  hasFieldMappings,
+  isSSEConnected,
+  connectionType
 }) => {
   const isFlowPaused = flowStatus === 'paused' || flowStatus === 'waiting_for_approval' || flowStatus === 'waiting_for_user_approval';
   
@@ -47,12 +52,37 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
         <div className="flex items-center space-x-3">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Field Mapping & Critical Attributes</h1>
-            <p className="text-gray-600">
-              {mappingProgress.total > 0 
-                ? `${mappingProgress.total} attributes analyzed with ${mappingProgress.mapped} mapped and ${mappingProgress.critical_mapped} migration-critical` 
-                : 'AI-powered field mapping and critical attribute identification'
-              }
-            </p>
+            <div className="flex items-center space-x-3">
+              <p className="text-gray-600">
+                {mappingProgress.total > 0 
+                  ? `${mappingProgress.total} attributes analyzed with ${mappingProgress.mapped} mapped and ${mappingProgress.critical_mapped} migration-critical` 
+                  : 'AI-powered field mapping and critical attribute identification'
+                }
+              </p>
+              {/* AGENTIC UI: Real-time connection status */}
+              {connectionType && (
+                <div className="flex items-center space-x-1 text-sm">
+                  {connectionType === 'sse' && isSSEConnected && (
+                    <>
+                      <Wifi className="w-4 h-4 text-green-500" />
+                      <span className="text-green-600">Live updates</span>
+                    </>
+                  )}
+                  {connectionType === 'polling' && (
+                    <>
+                      <Activity className="w-4 h-4 text-yellow-500" />
+                      <span className="text-yellow-600">Polling updates</span>
+                    </>
+                  )}
+                  {(!isSSEConnected || connectionType === 'disconnected') && (
+                    <>
+                      <WifiOff className="w-4 h-4 text-gray-500" />
+                      <span className="text-gray-600">Manual refresh</span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         

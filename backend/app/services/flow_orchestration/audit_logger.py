@@ -36,6 +36,7 @@ class AuditCategory(Enum):
     COMPLIANCE_EVENT = "compliance_event"
     PERFORMANCE_EVENT = "performance_event"
     ERROR_EVENT = "error_event"
+    AGENT_DECISION = "agent_decision"  # Agent decision audit events
 
 
 @dataclass

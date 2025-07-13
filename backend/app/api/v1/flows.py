@@ -81,6 +81,7 @@ class FlowStatusResponse(BaseModel):
     error_details: Optional[Dict[str, Any]]
     performance_metrics: Dict[str, Any]
     agent_insights: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Real-time agent insights for this flow")
+    field_mappings: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Field mappings for discovery flows")
 
 
 class FlowListResponse(BaseModel):
@@ -572,7 +573,8 @@ async def get_flow_status(
             current_state=flow_data.get("current_state", {}),
             error_details=flow_data.get("error_details"),
             performance_metrics=flow_data.get("performance_metrics", {}),
-            agent_insights=flow_data.get("agent_insights", [])
+            agent_insights=flow_data.get("agent_insights", []),
+            field_mappings=flow_data.get("field_mappings", [])
         )
         
     except HTTPException:

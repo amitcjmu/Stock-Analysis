@@ -41,9 +41,10 @@ class CrewExecutionHandler:
                 logger.info("✅ Enhanced Field Mapping Crew executed successfully with CrewAI features")
                 
             except Exception as crew_error:
-                logger.warning(f"Enhanced Field Mapping Crew execution failed, using fallback: {crew_error}")
-                # Fallback to intelligent field mapping based on headers
-                field_mappings = self._intelligent_field_mapping_fallback(state.raw_data)
+                logger.error(f"❌ Enhanced Field Mapping Crew execution failed: {crew_error}")
+                # DISABLED FALLBACK - Let the error propagate to see actual agent issues
+                # field_mappings = self._intelligent_field_mapping_fallback(state.raw_data)
+                raise crew_error
             
             # Validate success criteria
             success_criteria_met = self._validate_field_mapping_success(field_mappings, state.raw_data)
@@ -457,6 +458,8 @@ class CrewExecutionHandler:
                 # 3. Create ImportFieldMapping entries
                 field_mappings = state.field_mappings.get("mappings", {})
                 confidence_scores = state.field_mappings.get("confidence_scores", {})
+                agent_reasoning = state.field_mappings.get("agent_reasoning", {})
+                transformations = state.field_mappings.get("transformations", [])
                 
                 # CRITICAL: Get master_flow_id from state for field mapping linkage
                 master_flow_id = getattr(state, 'master_flow_id', None) or getattr(state, '_master_flow_id', None)
@@ -464,6 +467,25 @@ class CrewExecutionHandler:
                 logger.info(f"🔍 Creating {len(field_mappings)} field mappings for data_import_id: {import_session.id}")
                 
                 for source_field, target_field in field_mappings.items():
+                    # Get reasoning and transformation info for this field
+                    field_reasoning = agent_reasoning.get(source_field, {})
+                    
+                    # Find any transformations for this field
+                    field_transformations = [
+                        t for t in transformations 
+                        if source_field in t.get('source_fields', [])
+                    ]
+                    
+                    # Build transformation rules JSON
+                    transformation_rules = {
+                        "agent_reasoning": field_reasoning.get("reasoning", ""),
+                        "data_patterns": field_reasoning.get("data_patterns", {}),
+                        "requires_transformation": field_reasoning.get("requires_transformation", False),
+                        "transformations": field_transformations,
+                        "analysis_timestamp": datetime.utcnow().isoformat(),
+                        "crew_version": "2.0"
+                    }
+                    
                     field_mapping = ImportFieldMapping(
                         data_import_id=import_session.id,
                         client_account_id=state.client_account_id,  # Add missing field
@@ -471,11 +493,10 @@ class CrewExecutionHandler:
                         source_field=source_field,
                         target_field=target_field,
                         confidence_score=confidence_scores.get(source_field, 0.8),
-                        mapping_type="crewai_discovery",
+                        match_type="agent_analysis",  # Updated from mapping_type
                         status="approved",
-                        is_validated=True,
-                        validation_method="crewai_agent",
-                        suggested_by="crewai_agent",
+                        suggested_by="crewai_agent_v2",
+                        transformation_rules=transformation_rules,  # Store agent reasoning and transformations
                         created_at=datetime.utcnow()
                     )
                     db_session.add(field_mapping)
@@ -509,26 +530,114 @@ class CrewExecutionHandler:
                 raise
 
     def _parse_field_mapping_results(self, crew_result, raw_data) -> Dict[str, Any]:
-        """Parse results from Field Mapping Crew execution"""
+        """Parse results from Full Agentic Field Mapping Crew execution"""
         try:
-            # Extract meaningful results from crew output
-            if isinstance(crew_result, str):
-                # If result is a string, try to extract mappings
-                mappings = self._extract_mappings_from_text(crew_result)
-            else:
-                # If result is structured, use it directly
-                mappings = crew_result
+            logger.info(f"🔍 Parsing crew result type: {type(crew_result)}")
             
-            return {
-                "mappings": mappings.get("mappings", {}),
-                "confidence_scores": mappings.get("confidence_scores", {}),
-                "unmapped_fields": mappings.get("unmapped_fields", []),
-                "validation_results": mappings.get("validation_results", {"valid": True, "score": 0.8}),
-                "agent_insights": {"crew_execution": "Executed with CrewAI agents", "source": "field_mapping_crew"}
+            # Initialize result structure
+            parsed_result = {
+                "mappings": {},
+                "confidence_scores": {},
+                "unmapped_fields": [],
+                "skipped_fields": [],
+                "synthesis_required": [],
+                "transformations": [],
+                "validation_results": {"valid": True, "score": 0.0},
+                "agent_insights": {
+                    "crew_execution": "Executed with Full Agentic CrewAI",
+                    "source": "field_mapping_crew_v2",
+                    "agents": ["Data Pattern Analyst", "Schema Mapping Expert", "Synthesis Specialist"]
+                },
+                "agent_reasoning": {}  # Store detailed reasoning for each mapping
             }
+            
+            # Handle different crew result formats
+            if hasattr(crew_result, 'raw_output'):
+                # CrewAI standard output format
+                raw_output = str(crew_result.raw_output)
+                logger.info(f"📝 Raw crew output length: {len(raw_output)}")
+                
+                # Extract JSON sections from the output
+                import re
+                
+                # Look for mapping task output
+                mapping_match = re.search(r'\{[^{}]*"mappings"[^{}]*\}', raw_output, re.DOTALL)
+                if mapping_match:
+                    try:
+                        mapping_data = json.loads(mapping_match.group())
+                        logger.info(f"✅ Found mapping data: {len(mapping_data.get('mappings', {}))} mappings")
+                        
+                        # Process each mapping
+                        for source_field, mapping_info in mapping_data.get('mappings', {}).items():
+                            if isinstance(mapping_info, dict):
+                                target_field = mapping_info.get('target_field', source_field)
+                                confidence = mapping_info.get('confidence', 0.7)
+                                reasoning = mapping_info.get('reasoning', 'Agent analysis')
+                                
+                                parsed_result['mappings'][source_field] = target_field
+                                parsed_result['confidence_scores'][source_field] = confidence
+                                parsed_result['agent_reasoning'][source_field] = {
+                                    "reasoning": reasoning,
+                                    "requires_transformation": mapping_info.get('requires_transformation', False),
+                                    "data_patterns": mapping_info.get('data_patterns', {})
+                                }
+                            else:
+                                # Simple mapping format
+                                parsed_result['mappings'][source_field] = mapping_info
+                                parsed_result['confidence_scores'][source_field] = 0.7
+                        
+                        # Extract skipped fields
+                        parsed_result['skipped_fields'] = mapping_data.get('skipped_fields', [])
+                        parsed_result['synthesis_required'] = mapping_data.get('synthesis_required', [])
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"⚠️ Failed to parse mapping JSON: {e}")
+                
+                # Look for transformation task output
+                transform_match = re.search(r'\{[^{}]*"transformations"[^{}]*\}', raw_output, re.DOTALL)
+                if transform_match:
+                    try:
+                        transform_data = json.loads(transform_match.group())
+                        parsed_result['transformations'] = transform_data.get('transformations', [])
+                        logger.info(f"✅ Found {len(parsed_result['transformations'])} transformations")
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"⚠️ Failed to parse transformation JSON: {e}")
+                
+            elif isinstance(crew_result, dict):
+                # Direct dictionary result
+                parsed_result.update(crew_result)
+            elif isinstance(crew_result, str):
+                # Try to extract JSON from string
+                mappings = self._extract_mappings_from_text(crew_result)
+                parsed_result.update(mappings)
+            
+            # Calculate validation score
+            total_fields = len(raw_data[0].keys()) if raw_data else 0
+            mapped_fields = len(parsed_result['mappings'])
+            skipped_fields = len(parsed_result['skipped_fields'])
+            
+            if total_fields > 0:
+                coverage = (mapped_fields + skipped_fields) / total_fields
+                avg_confidence = sum(parsed_result['confidence_scores'].values()) / len(parsed_result['confidence_scores']) if parsed_result['confidence_scores'] else 0
+                parsed_result['validation_results']['score'] = coverage * avg_confidence
+                parsed_result['validation_results']['coverage'] = coverage
+                parsed_result['validation_results']['avg_confidence'] = avg_confidence
+            
+            # Identify unmapped fields
+            if raw_data:
+                all_fields = set(raw_data[0].keys())
+                mapped_fields_set = set(parsed_result['mappings'].keys())
+                skipped_fields_set = set(parsed_result['skipped_fields'])
+                parsed_result['unmapped_fields'] = list(all_fields - mapped_fields_set - skipped_fields_set)
+            
+            logger.info(f"✅ Parsed field mapping results: {mapped_fields} mapped, {len(parsed_result['skipped_fields'])} skipped, {len(parsed_result['unmapped_fields'])} unmapped")
+            
+            return parsed_result
+            
         except Exception as e:
-            logger.warning(f"Failed to parse crew results, using fallback: {e}")
-            return self._intelligent_field_mapping_fallback(raw_data)
+            logger.error(f"❌ Failed to parse crew results: {e}")
+            # DISABLED FALLBACK - Let the error propagate to see actual agent issues
+            # return self._intelligent_field_mapping_fallback(raw_data)
+            raise e
 
     def _intelligent_field_mapping_fallback(self, raw_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Intelligent fallback for field mapping when crew execution fails"""

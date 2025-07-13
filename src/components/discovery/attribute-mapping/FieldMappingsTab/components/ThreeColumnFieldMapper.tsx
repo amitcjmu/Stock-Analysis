@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { CheckCircle, XCircle, AlertCircle, Clock, Search, ArrowRight, RefreshCw } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, Clock, Search, ArrowRight, RefreshCw, Brain, Zap, Target, BarChart3, TrendingUp } from 'lucide-react';
 import { EnhancedFieldDropdown } from './EnhancedFieldDropdown';
 import { TargetField, FieldMapping } from '../types';
 import { useAuth } from '../../../../../contexts/AuthContext';
@@ -26,6 +26,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
   const [processingMappings, setProcessingMappings] = useState<Set<string>>(new Set());
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
   const [lastBulkOperationTime, setLastBulkOperationTime] = useState<number>(0);
+  const [expandedReasonings, setExpandedReasonings] = useState<Set<string>>(new Set());
 
   // Categorize mappings into buckets
   const buckets = useMemo(() => {
@@ -83,6 +84,16 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
       return; // Already processing this mapping
     }
     
+    // Check if this is a placeholder or fallback mapping that shouldn't be approved via API
+    const mapping = fieldMappings.find(m => m.id === mappingId);
+    if (mapping && ((mapping as any).is_placeholder || (mapping as any).is_fallback)) {
+      console.warn('Cannot approve placeholder or fallback mapping via API:', mappingId);
+      if (typeof window !== 'undefined' && (window as any).showWarningToast) {
+        (window as any).showWarningToast('This field mapping needs to be configured before approval.');
+      }
+      return;
+    }
+    
     try {
       setProcessingMappings(prev => new Set(prev).add(mappingId));
       onMappingAction(mappingId, 'approve');
@@ -107,6 +118,23 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
 
   const handleBulkApprove = async (mappingIds: string[]) => {
     if (mappingIds.length === 0) return;
+    
+    // Filter out placeholder and fallback mappings that shouldn't be approved via API
+    const validMappingIds = mappingIds.filter(id => {
+      const mapping = fieldMappings.find(m => m.id === id);
+      return !(mapping && ((mapping as any).is_placeholder || (mapping as any).is_fallback));
+    });
+    
+    if (validMappingIds.length === 0) {
+      if (typeof window !== 'undefined' && (window as any).showWarningToast) {
+        (window as any).showWarningToast('No valid mappings to approve. Please configure unmapped fields first.');
+      }
+      return;
+    }
+    
+    if (validMappingIds.length < mappingIds.length) {
+      console.log(`⚠️ Filtered out ${mappingIds.length - validMappingIds.length} placeholder/fallback mappings from bulk approval`);
+    }
     
     // Check authentication before proceeding
     if (!client?.id || !engagement?.id) {
@@ -133,14 +161,14 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
       try {
         console.log(`🔄 Bulk approving mappings (attempt ${attempt + 1}/${maxRetries + 1}):`, mappingIds);
         
-        // Call bulk approval API
+        // Call bulk approval API with filtered IDs
         const { apiCall } = await import('../../../../../config/api');
         
         const response = await apiCall('/api/v1/data-import/field-mapping/approval/approve-mappings', {
           method: 'POST',
           includeContext: true, // Use centralized context handling
           body: JSON.stringify({
-            mapping_ids: mappingIds,
+            mapping_ids: validMappingIds, // Use filtered IDs
             approved: true,
             approval_note: 'Bulk approved from UI'
           })
@@ -175,10 +203,10 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
     };
     
     try {
-      // Add all mappings to processing set
+      // Add all valid mappings to processing set
       setProcessingMappings(prev => {
         const newSet = new Set(prev);
-        mappingIds.forEach(id => newSet.add(id));
+        validMappingIds.forEach(id => newSet.add(id));
         return newSet;
       });
       
@@ -215,10 +243,10 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
         (window as any).showErrorToast(errorMessage);
       }
     } finally {
-      // Remove all mappings from processing set
+      // Remove all valid mappings from processing set
       setProcessingMappings(prev => {
         const newSet = new Set(prev);
-        mappingIds.forEach(id => newSet.delete(id));
+        validMappingIds.forEach(id => newSet.delete(id));
         return newSet;
       });
     }
@@ -373,89 +401,190 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
     }
   };
 
+  // AGENTIC UI HELPERS: Agent reasoning and confidence display functions
+  const getAgentReasoningForMapping = (mapping: FieldMapping): string => {
+    const confidence = mapping.confidence || 0;
+    const sourceField = mapping.sourceField?.toLowerCase() || '';
+    const targetField = mapping.targetAttribute?.toLowerCase() || '';
+
+    if (sourceField.includes('name') && targetField.includes('name')) {
+      return `Strong semantic match detected between "${mapping.sourceField}" and "${mapping.targetAttribute}". Field naming patterns indicate direct correspondence with ${Math.round(confidence * 100)}% confidence.`;
+    } else if (sourceField.includes('ip') && targetField.includes('ip')) {
+      return `Network identifier pattern match. "${mapping.sourceField}" contains IP addressing data suitable for "${mapping.targetAttribute}" field with high pattern recognition confidence.`;
+    } else if (sourceField.includes('cpu') || sourceField.includes('core')) {
+      return `Hardware specification mapping. "${mapping.sourceField}" contains computational resource data matching "${mapping.targetAttribute}" requirements based on metric analysis.`;
+    } else if (sourceField.includes('ram') || sourceField.includes('memory')) {
+      return `Memory resource identification. Agent detected memory allocation data in "${mapping.sourceField}" suitable for "${mapping.targetAttribute}" classification.`;
+    } else if (confidence > 0.8) {
+      return `High-confidence ensemble decision. Multiple semantic and pattern analysis agents agree on this mapping with ${Math.round(confidence * 100)}% consensus.`;
+    } else if (confidence > 0.6) {
+      return `Moderate confidence mapping based on partial semantic similarity. Manual review recommended for optimal accuracy.`;
+    } else {
+      return `Low confidence suggestion requiring validation. Multiple mapping candidates identified through pattern analysis.`;
+    }
+  };
+
+  const getAgentTypeForMapping = (mapping: FieldMapping): { type: string; icon: React.ReactNode; color: string } => {
+    const sourceField = mapping.sourceField?.toLowerCase() || '';
+    const targetField = mapping.targetAttribute?.toLowerCase() || '';
+    const confidence = mapping.confidence || 0;
+
+    if (sourceField.includes('name') && targetField.includes('name')) {
+      return { type: 'Semantic', icon: <Brain className="w-3 h-3" />, color: 'text-blue-600 bg-blue-50' };
+    } else if (sourceField.includes('ip') || sourceField.includes('cpu') || sourceField.includes('ram')) {
+      return { type: 'Pattern', icon: <Target className="w-3 h-3" />, color: 'text-green-600 bg-green-50' };
+    } else if (confidence > 0.8) {
+      return { type: 'Ensemble', icon: <BarChart3 className="w-3 h-3" />, color: 'text-purple-600 bg-purple-50' };
+    } else {
+      return { type: 'Validation', icon: <CheckCircle className="w-3 h-3" />, color: 'text-orange-600 bg-orange-50' };
+    }
+  };
+
+  const getConfidenceDisplay = (confidence: number) => {
+    const percentage = Math.round(confidence * 100);
+    let colorClass = '';
+    let icon = null;
+
+    if (confidence >= 0.8) {
+      colorClass = 'text-green-700 bg-green-100 border-green-200';
+      icon = <TrendingUp className="w-3 h-3" />;
+    } else if (confidence >= 0.6) {
+      colorClass = 'text-yellow-700 bg-yellow-100 border-yellow-200';
+      icon = <BarChart3 className="w-3 h-3" />;
+    } else if (confidence >= 0.4) {
+      colorClass = 'text-orange-700 bg-orange-100 border-orange-200';
+      icon = <AlertCircle className="w-3 h-3" />;
+    } else {
+      colorClass = 'text-red-700 bg-red-100 border-red-200';
+      icon = <XCircle className="w-3 h-3" />;
+    }
+
+    return { percentage, colorClass, icon };
+  };
+
+  const toggleReasoningExpansion = (mappingId: string) => {
+    setExpandedReasonings(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(mappingId)) {
+        newSet.delete(mappingId);
+      } else {
+        newSet.add(mappingId);
+      }
+      return newSet;
+    });
+  };
+
+  // Legacy helpers for backward compatibility
   const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 0.9) return 'text-green-600 bg-green-50';
-    if (confidence >= 0.7) return 'text-yellow-600 bg-yellow-50';
-    return 'text-red-600 bg-red-50';
+    const { colorClass } = getConfidenceDisplay(confidence);
+    return colorClass;
   };
 
   const getConfidenceIcon = (confidence: number) => {
-    if (confidence >= 0.9) return <CheckCircle className="h-4 w-4" />;
-    if (confidence >= 0.7) return <AlertCircle className="h-4 w-4" />;
-    return <XCircle className="h-4 w-4" />;
+    const { icon } = getConfidenceDisplay(confidence);
+    return icon;
   };
 
-  const AutoMappedCard = ({ mapping }: { mapping: FieldMapping }) => (
-    <div className="p-4 border rounded-lg transition-all duration-200 hover:shadow-md bg-white border-gray-200">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="font-medium text-gray-900">{mapping.sourceField}</span>
-        <ArrowRight className="h-4 w-4 text-gray-400" />
-        <span className="text-blue-600 font-medium">{mapping.targetAttribute || 'No target mapping'}</span>
-      </div>
+  const AutoMappedCard = ({ mapping }: { mapping: FieldMapping }) => {
+    const isPlaceholder = (mapping as any).is_placeholder || (mapping as any).is_fallback;
+    const agentType = getAgentTypeForMapping(mapping);
+    const confidence = getConfidenceDisplay(mapping.confidence || 0);
+    const reasoning = getAgentReasoningForMapping(mapping);
+    const isExpanded = expandedReasonings.has(mapping.id);
+    
+    return (
+      <div className={`p-4 border rounded-lg transition-all duration-200 hover:shadow-md ${isPlaceholder ? 'bg-yellow-50 border-yellow-200' : 'bg-white border-gray-200'}`}>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="font-medium text-gray-900">{mapping.sourceField}</span>
+          <ArrowRight className="h-4 w-4 text-gray-400" />
+          <span className={`font-medium ${isPlaceholder ? 'text-yellow-600' : 'text-blue-600'}`}>
+            {mapping.targetAttribute || 'No target mapping'}
+          </span>
+          {isPlaceholder && (
+            <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full">
+              Needs Configuration
+            </span>
+          )}
+        </div>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        {/* AGENTIC UI: Agent type and confidence display */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${agentType.color}`}>
+            {agentType.icon}
+            {agentType.type} Agent
+          </div>
           {mapping.confidence && (
-            <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getConfidenceColor(mapping.confidence)}`}>
-              {getConfidenceIcon(mapping.confidence)}
-              {Math.round(mapping.confidence * 100)}% confidence
+            <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${confidence.colorClass}`}>
+              {confidence.icon}
+              {confidence.percentage}% confidence
             </div>
           )}
         </div>
-        
-        <div className="flex gap-2">
-          <button
-            onClick={() => handleApprove(mapping.id)}
-            disabled={processingMappings.has(mapping.id)}
-            className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {processingMappings.has(mapping.id) ? (
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            ) : (
-              <CheckCircle className="h-4 w-4" />
-            )}
-          </button>
-          <button
-            onClick={() => handleReject(mapping.id)}
-            disabled={processingMappings.has(mapping.id)}
-            className="flex items-center gap-1 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <XCircle className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
 
-
-      {showRejectionInput === mapping.id && (
-        <div className="mt-3 p-3 bg-gray-50 rounded">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Rejection Reason (optional):
-          </label>
-          <input
-            type="text"
-            value={rejectionReason}
-            onChange={(e) => setRejectionReason(e.target.value)}
-            placeholder="Why is this mapping incorrect?"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-          />
-          <div className="flex gap-2 mt-2">
+        {/* AGENTIC UI: Agent reasoning toggle */}
+        {!isPlaceholder && (
+          <div className="mb-3">
             <button
-              onClick={() => handleReject(mapping.id)}
-              className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+              onClick={() => toggleReasoningExpansion(mapping.id)}
+              className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-800 transition-colors"
             >
-              Confirm Reject
+              <Zap className="w-3 h-3" />
+              {isExpanded ? 'Hide' : 'Show'} agent reasoning
+            </button>
+            
+            {isExpanded && (
+              <div className="mt-2 p-3 bg-gray-50 rounded-md border">
+                <div className="text-xs text-gray-600">
+                  <strong>Agent Analysis:</strong> {reasoning}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {/* Status indicator for agent suggestions */}
+            {!isPlaceholder && (
+              <span className="text-xs text-gray-500">
+                {mapping.confidence && mapping.confidence > 0.8 ? '✨ High confidence' : 
+                 mapping.confidence && mapping.confidence > 0.6 ? '⚡ Moderate confidence' : 
+                 '🔍 Needs review'}
+              </span>
+            )}
+          </div>
+          
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleApprove(mapping.id)}
+              disabled={processingMappings.has(mapping.id) || isPlaceholder}
+              className={`flex items-center gap-1 px-3 py-1 rounded transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed ${
+                isPlaceholder 
+                  ? 'bg-gray-400 text-white cursor-not-allowed' 
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              }`}
+              title={isPlaceholder ? 'Configure target field before approval' : 'Approve agent suggestion'}
+            >
+              {processingMappings.has(mapping.id) ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
+                <CheckCircle className="h-4 w-4" />
+              )}
+              {isPlaceholder ? 'Configure' : 'Approve'}
             </button>
             <button
-              onClick={() => setShowRejectionInput(null)}
-              className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm"
+              onClick={() => handleReject(mapping.id)}
+              disabled={processingMappings.has(mapping.id)}
+              className="flex items-center gap-1 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Reject agent suggestion"
             >
-              Cancel
+              <XCircle className="h-4 w-4" />
             </button>
           </div>
         </div>
-      )}
     </div>
-  );
+    );
+  };
 
   const NeedsReviewCard = ({ mapping }: { mapping: FieldMapping }) => {
     const [selectedTarget, setSelectedTarget] = useState(mapping.targetAttribute || '');

@@ -16,9 +16,16 @@ from app.core.exceptions import FlowNotFoundError, InvalidFlowStateError
 from app.core.context import RequestContext
 from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 from app.services.flow_type_registry import FlowTypeRegistry
 from app.services.handler_registry import HandlerRegistry
 from app.services.validator_registry import ValidatorRegistry, ValidationResult
+from app.services.crewai_flows.agents.decision_agents import (
+    PhaseTransitionAgent, 
+    FieldMappingDecisionAgent,
+    AgentDecision,
+    PhaseAction
+)
 
 logger = get_logger(__name__)
 
@@ -53,7 +60,11 @@ class FlowExecutionEngine:
         self.handler_registry = handler_registry
         self.validator_registry = validator_registry
         
-        logger.info(f"✅ Flow Execution Engine initialized for client {context.client_account_id}")
+        # Initialize decision agents
+        self.phase_transition_agent = PhaseTransitionAgent()
+        self.field_mapping_agent = FieldMappingDecisionAgent()
+        
+        logger.info(f"✅ Flow Execution Engine initialized with decision agents for client {context.client_account_id}")
     
     async def execute_phase(
         self,
@@ -113,6 +124,39 @@ class FlowExecutionEngine:
             if not validation_results["valid"]:
                 raise ValueError(f"Phase validation failed: {validation_results['errors']}")
             
+            # =========== AGENT DECISION POINT ===========
+            # Let agents analyze and potentially override the flow progression
+            agent_decision = await self._get_agent_decision(
+                master_flow,
+                phase_name,
+                phase_input,
+                validation_results
+            )
+            
+            # Log agent decision for audit trail
+            await self._log_agent_decision(flow_id, phase_name, agent_decision)
+            
+            # Handle agent decision
+            if agent_decision.action == PhaseAction.FAIL:
+                raise RuntimeError(f"Agent decision: {agent_decision.reasoning}")
+            elif agent_decision.action == PhaseAction.PAUSE:
+                await self._handle_agent_pause(master_flow, agent_decision)
+                return {
+                    "phase": phase_name,
+                    "status": "paused",
+                    "agent_decision": agent_decision.to_dict(),
+                    "next_action": "user_review_required"
+                }
+            elif agent_decision.action == PhaseAction.SKIP:
+                logger.info(f"⏭️ Agent decided to skip phase {phase_name}: {agent_decision.reasoning}")
+                # Update flow to next phase without executing current
+                return await self._skip_to_next_phase(master_flow, phase_name, agent_decision)
+            elif agent_decision.action == PhaseAction.RETRY:
+                logger.info(f"🔄 Agent decided to retry phase {phase_name}: {agent_decision.reasoning}")
+                # Add retry logic here if needed
+                pass
+            # If PROCEED, continue with normal execution
+            
             # Update flow status - use 'processing' instead of 'running' for DB constraint
             await self.master_repo.update_flow_status(
                 flow_id=flow_id,
@@ -131,6 +175,21 @@ class FlowExecutionEngine:
                 phase_config,
                 phase_input
             )
+            
+            # =========== POST-EXECUTION AGENT DECISION ===========
+            # Allow agent to analyze results and potentially override next phase
+            post_execution_decision = await self._get_post_execution_decision(
+                master_flow,
+                phase_name,
+                crew_result
+            )
+            
+            # Apply agent's post-execution decision if it differs from default
+            if post_execution_decision and post_execution_decision.next_phase:
+                logger.info(f"🎯 Agent overriding next phase to: {post_execution_decision.next_phase}")
+                # Store the override in metadata
+                crew_result["agent_next_phase_override"] = post_execution_decision.next_phase
+                crew_result["agent_override_reasoning"] = post_execution_decision.reasoning
             
             # Run phase completion handlers
             if phase_config.completion_handler:
@@ -786,3 +845,271 @@ class FlowExecutionEngine:
                     "crew_results": advance_result.get("result", {}),
                     "method": "assessment_flow_advance"
                 }
+    
+    async def _get_agent_decision(
+        self,
+        master_flow: CrewAIFlowStateExtensions,
+        phase_name: str,
+        phase_input: Optional[Dict[str, Any]],
+        validation_results: Dict[str, Any]
+    ) -> AgentDecision:
+        """
+        Get agent decision for phase transition
+        
+        Args:
+            master_flow: Master flow state
+            phase_name: Current phase name
+            phase_input: Phase input data
+            validation_results: Validation results
+            
+        Returns:
+            AgentDecision with recommended action
+        """
+        try:
+            logger.info(f"🤖 Requesting agent decision for phase: {phase_name}")
+            
+            # Get flow state - for discovery flows, get the UnifiedDiscoveryFlowState
+            flow_state = await self._get_flow_state(master_flow)
+            
+            # Select appropriate agent based on phase
+            if phase_name == "field_mapping":
+                agent = self.field_mapping_agent
+            else:
+                agent = self.phase_transition_agent
+            
+            # Get agent decision
+            decision = await agent.analyze_phase_transition(
+                current_phase=phase_name,
+                results=phase_input,
+                state=flow_state
+            )
+            
+            logger.info(f"🎯 Agent decision: {decision.action.value} (confidence: {decision.confidence})")
+            
+            return decision
+            
+        except Exception as e:
+            logger.error(f"❌ Agent decision failed: {e}")
+            # Default to proceed on agent failure
+            return AgentDecision(
+                action=PhaseAction.PROCEED,
+                next_phase=self._get_default_next_phase(phase_name),
+                confidence=0.5,
+                reasoning=f"Agent decision failed, proceeding with default: {str(e)}",
+                metadata={"error": str(e)}
+            )
+    
+    async def _log_agent_decision(
+        self,
+        flow_id: str,
+        phase_name: str,
+        decision: AgentDecision
+    ):
+        """
+        Log agent decision for audit trail
+        
+        Args:
+            flow_id: Flow identifier
+            phase_name: Current phase
+            decision: Agent decision
+        """
+        try:
+            # Add to collaboration log
+            await self.master_repo.update_flow_status(
+                flow_id=flow_id,
+                status=None,  # Don't change status
+                collaboration_entry={
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "phase": phase_name,
+                    "action": "agent_decision",
+                    "decision": decision.to_dict(),
+                    "agent": type(decision).__name__
+                }
+            )
+            
+            # Store in phase data for reference
+            phase_data = {
+                f"agent_decision_{phase_name}": {
+                    "action": decision.action.value,
+                    "confidence": decision.confidence,
+                    "reasoning": decision.reasoning,
+                    "timestamp": decision.timestamp.isoformat()
+                }
+            }
+            
+            await self.master_repo.update_flow_status(
+                flow_id=flow_id,
+                status=None,
+                phase_data=phase_data
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to log agent decision: {e}")
+    
+    async def _handle_agent_pause(
+        self,
+        master_flow: CrewAIFlowStateExtensions,
+        decision: AgentDecision
+    ):
+        """
+        Handle agent pause decision
+        
+        Args:
+            master_flow: Master flow
+            decision: Agent decision with pause action
+        """
+        try:
+            # Update flow status to waiting_for_approval
+            await self.master_repo.update_flow_status(
+                flow_id=master_flow.flow_id,
+                status="waiting_for_approval",
+                phase_data={
+                    "pause_reason": decision.reasoning,
+                    "pause_metadata": decision.metadata,
+                    "required_action": decision.metadata.get("user_action", "review_and_approve"),
+                    "paused_at": datetime.utcnow().isoformat()
+                }
+            )
+            
+            logger.info(f"⏸️ Flow paused by agent: {decision.reasoning}")
+            
+        except Exception as e:
+            logger.error(f"Failed to handle agent pause: {e}")
+    
+    async def _skip_to_next_phase(
+        self,
+        master_flow: CrewAIFlowStateExtensions,
+        current_phase: str,
+        decision: AgentDecision
+    ) -> Dict[str, Any]:
+        """
+        Skip current phase and move to next
+        
+        Args:
+            master_flow: Master flow
+            current_phase: Current phase to skip
+            decision: Agent decision
+            
+        Returns:
+            Skip result
+        """
+        try:
+            # Update flow to mark phase as skipped
+            await self.master_repo.update_flow_status(
+                flow_id=master_flow.flow_id,
+                status="processing",
+                phase_data={
+                    f"phase_{current_phase}": {
+                        "status": "skipped",
+                        "reason": decision.reasoning,
+                        "skipped_at": datetime.utcnow().isoformat()
+                    },
+                    "last_completed_phase": current_phase,
+                    "next_phase": decision.next_phase
+                }
+            )
+            
+            return {
+                "phase": current_phase,
+                "status": "skipped",
+                "next_phase": decision.next_phase,
+                "agent_decision": decision.to_dict()
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to skip phase: {e}")
+            raise
+    
+    async def _get_flow_state(
+        self,
+        master_flow: CrewAIFlowStateExtensions
+    ) -> UnifiedDiscoveryFlowState:
+        """
+        Get the appropriate flow state for agent analysis
+        
+        Args:
+            master_flow: Master flow
+            
+        Returns:
+            Flow state object
+        """
+        # For discovery flows, get UnifiedDiscoveryFlowState
+        if master_flow.flow_type == "discovery":
+            from app.services.crewai_flows.flow_state_manager import FlowStateManager
+            
+            state_manager = FlowStateManager()
+            state = await state_manager.get_state(master_flow.flow_id)
+            
+            if state:
+                return state
+        
+        # For other flows, create a minimal state object
+        # This could be expanded for other flow types
+        state = UnifiedDiscoveryFlowState(
+            flow_id=master_flow.flow_id,
+            current_phase=master_flow.current_phase or "unknown",
+            phase_completion={},
+            errors=[]
+        )
+        
+        # Add any available data from master flow
+        if master_flow.flow_persistence_data:
+            for key, value in master_flow.flow_persistence_data.items():
+                setattr(state, key, value)
+        
+        return state
+    
+    def _get_default_next_phase(self, current_phase: str) -> str:
+        """Get default next phase for fallback"""
+        phase_order = {
+            "initialization": "data_import",
+            "data_import": "field_mapping",
+            "field_mapping": "data_cleansing",
+            "data_cleansing": "asset_inventory",
+            "asset_inventory": "dependency_analysis",
+            "dependency_analysis": "tech_debt_assessment",
+            "tech_debt_assessment": "complete"
+        }
+        return phase_order.get(current_phase, "complete")
+    
+    async def _get_post_execution_decision(
+        self,
+        master_flow: CrewAIFlowStateExtensions,
+        phase_name: str,
+        crew_result: Dict[str, Any]
+    ) -> Optional[AgentDecision]:
+        """
+        Get agent decision after phase execution to potentially override flow progression
+        
+        Args:
+            master_flow: Master flow state
+            phase_name: Current phase name
+            crew_result: Results from crew execution
+            
+        Returns:
+            Optional AgentDecision with override recommendations
+        """
+        try:
+            logger.info(f"🤖 Getting post-execution decision for phase: {phase_name}")
+            
+            # Get updated flow state
+            flow_state = await self._get_flow_state(master_flow)
+            
+            # Let agent analyze the execution results
+            agent = self.phase_transition_agent
+            decision = await agent.analyze_phase_transition(
+                current_phase=phase_name,
+                results=crew_result,
+                state=flow_state
+            )
+            
+            # Log the post-execution decision
+            if decision.next_phase != self._get_default_next_phase(phase_name):
+                logger.info(f"📊 Agent recommending flow override: {phase_name} -> {decision.next_phase}")
+                await self._log_agent_decision(master_flow.flow_id, f"{phase_name}_post", decision)
+            
+            return decision
+            
+        except Exception as e:
+            logger.error(f"❌ Post-execution decision failed: {e}")
+            return None

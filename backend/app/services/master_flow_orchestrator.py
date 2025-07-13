@@ -20,6 +20,7 @@ from enum import Enum
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import func
 
 from app.core.logging import get_logger
 from app.core.exceptions import (
@@ -601,7 +602,7 @@ class MasterFlowOrchestrator:
         include_details: bool = True
     ) -> Dict[str, Any]:
         """
-        Get comprehensive flow status
+        Get comprehensive flow status with smart fallback strategies
         
         Args:
             flow_id: Flow identifier
@@ -618,8 +619,32 @@ class MasterFlowOrchestrator:
                 metadata={}
             )
             
-            # Use status manager to get flow status
-            status = await self.status_manager.get_flow_status(flow_id, include_details)
+            # Try primary method first
+            try:
+                status = await self.status_manager.get_flow_status(flow_id, include_details)
+                
+                # Enhance with orphaned data recovery if needed
+                if include_details:
+                    status = await self._enhance_status_with_smart_discovery(flow_id, status)
+                
+                # Stop performance tracking
+                self.performance_monitor.end_operation(tracking_id, success=True)
+                return status
+                
+            except ValueError as primary_error:
+                # Flow not found in primary method - try smart discovery
+                logger.info(f"🔍 Primary flow lookup failed for {flow_id}, attempting smart discovery...")
+                
+                smart_status = await self._smart_flow_discovery(flow_id, include_details)
+                if smart_status:
+                    logger.info(f"✅ Smart discovery found data for flow {flow_id}")
+                    
+                    # Stop performance tracking
+                    self.performance_monitor.end_operation(tracking_id, success=True)
+                    return smart_status
+                else:
+                    logger.warning(f"❌ Smart discovery failed for flow {flow_id}")
+                    raise primary_error
             
             # Log status check audit
             await self.audit_logger.log_audit_event(
@@ -631,14 +656,6 @@ class MasterFlowOrchestrator:
                 success=True,
                 details={"include_details": include_details}
             )
-            
-            # Stop performance tracking
-            self.performance_monitor.end_operation(
-                tracking_id,
-                success=True
-            )
-            
-            return status
             
         except ValueError as e:
             # Flow not found - this is a legitimate 404 case
@@ -657,6 +674,370 @@ class MasterFlowOrchestrator:
             )
             
             raise RuntimeError(f"Failed to get flow status: {str(e)}")
+    
+    async def _smart_flow_discovery(
+        self,
+        flow_id: str,
+        include_details: bool = True
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Smart flow discovery for orphaned data using multiple fallback strategies
+        
+        Args:
+            flow_id: Flow identifier to search for
+            include_details: Whether to include detailed information
+            
+        Returns:
+            Flow status if found via smart discovery, None otherwise
+        """
+        try:
+            logger.info(f"🔍 Starting smart flow discovery for flow_id: {flow_id}")
+            
+            # Strategy 1: Look for related data_import records by timestamp correlation
+            related_data = await self._find_related_data_by_timestamp(flow_id)
+            if related_data:
+                logger.info(f"📅 Found related data by timestamp correlation for flow {flow_id}")
+                return await self._build_status_from_discovered_data(flow_id, related_data, include_details)
+            
+            # Strategy 2: Look for related records by client context and data patterns
+            context_data = await self._find_related_data_by_context(flow_id)
+            if context_data:
+                logger.info(f"🎯 Found related data by context correlation for flow {flow_id}")
+                return await self._build_status_from_discovered_data(flow_id, context_data, include_details)
+            
+            # Strategy 3: Search in flow_persistence_data for references
+            persistence_data = await self._find_in_flow_persistence(flow_id)
+            if persistence_data:
+                logger.info(f"💾 Found related data in flow persistence for flow {flow_id}")
+                return await self._build_status_from_discovered_data(flow_id, persistence_data, include_details)
+            
+            logger.warning(f"🤷 Smart discovery found no data for flow {flow_id}")
+            return None
+            
+        except Exception as e:
+            logger.error(f"❌ Smart flow discovery failed for {flow_id}: {e}")
+            return None
+    
+    async def _find_related_data_by_timestamp(self, flow_id: str) -> Optional[Dict[str, Any]]:
+        """Find related data using timestamp correlation"""
+        try:
+            from app.models.data_import import DataImport, RawImportRecord, ImportFieldMapping
+            from sqlalchemy import select, and_, or_, text
+            from datetime import datetime, timedelta
+            
+            # Try to extract timestamp from flow_id if it's UUID-based
+            # Look for data imports created around the same time
+            
+            # Search for data imports with NULL master_flow_id in the right time window
+            # Use a broader time window for discovery
+            time_window = timedelta(hours=24)  # Look within 24 hours
+            
+            query = select(DataImport).where(
+                and_(
+                    DataImport.client_account_id == self.context.client_account_id,
+                    or_(
+                        DataImport.master_flow_id.is_(None),
+                        DataImport.master_flow_id == flow_id
+                    ),
+                    DataImport.created_at >= datetime.utcnow() - time_window
+                )
+            ).order_by(DataImport.created_at.desc()).limit(5)
+            
+            result = await self.db.execute(query)
+            imports = result.scalars().all()
+            
+            if imports:
+                # Get the most recent one that matches our criteria
+                for data_import in imports:
+                    # Check if this could be related to our flow
+                    raw_records_query = select(RawImportRecord).where(
+                        RawImportRecord.data_import_id == data_import.id
+                    ).limit(1)
+                    raw_result = await self.db.execute(raw_records_query)
+                    has_records = raw_result.scalar() is not None
+                    
+                    if has_records:
+                        return {
+                            "discovery_method": "timestamp_correlation",
+                            "data_import": data_import,
+                            "confidence": "medium"
+                        }
+            
+            return None
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Timestamp correlation search failed: {e}")
+            return None
+    
+    async def _find_related_data_by_context(self, flow_id: str) -> Optional[Dict[str, Any]]:
+        """Find related data using client context"""
+        try:
+            from app.models.data_import import DataImport, RawImportRecord
+            from sqlalchemy import select, and_, or_
+            
+            # Look for data imports with NULL master_flow_id for this client/engagement
+            query = select(DataImport).where(
+                and_(
+                    DataImport.client_account_id == self.context.client_account_id,
+                    DataImport.engagement_id == self.context.engagement_id,
+                    or_(
+                        DataImport.master_flow_id.is_(None),
+                        DataImport.master_flow_id == flow_id
+                    )
+                )
+            ).order_by(DataImport.created_at.desc()).limit(3)
+            
+            result = await self.db.execute(query)
+            imports = result.scalars().all()
+            
+            if imports:
+                # Take the most recent one
+                data_import = imports[0]
+                
+                # Verify it has raw records
+                raw_records_query = select(RawImportRecord).where(
+                    RawImportRecord.data_import_id == data_import.id
+                ).limit(1)
+                raw_result = await self.db.execute(raw_records_query)
+                has_records = raw_result.scalar() is not None
+                
+                if has_records:
+                    return {
+                        "discovery_method": "context_correlation",
+                        "data_import": data_import,
+                        "confidence": "high"
+                    }
+            
+            return None
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Context correlation search failed: {e}")
+            return None
+    
+    async def _find_in_flow_persistence(self, flow_id: str) -> Optional[Dict[str, Any]]:
+        """Search for flow references in persistence data"""
+        try:
+            from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+            from sqlalchemy import select, and_, text
+            
+            # Search for any flows that might reference this flow_id in their persistence data
+            query = select(CrewAIFlowStateExtensions).where(
+                and_(
+                    CrewAIFlowStateExtensions.client_account_id == self.context.client_account_id,
+                    text("flow_persistence_data::text LIKE :flow_id")
+                )
+            ).params(flow_id=f"%{flow_id}%")
+            
+            result = await self.db.execute(query)
+            flows = result.scalars().all()
+            
+            for flow in flows:
+                if flow.flow_persistence_data:
+                    # Check if this persistence data contains our flow_id
+                    persistence_str = str(flow.flow_persistence_data)
+                    if flow_id in persistence_str:
+                        return {
+                            "discovery_method": "persistence_reference",
+                            "related_flow": flow,
+                            "confidence": "low"
+                        }
+            
+            return None
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Persistence search failed: {e}")
+            return None
+    
+    async def _build_status_from_discovered_data(
+        self,
+        flow_id: str,
+        discovered_data: Dict[str, Any],
+        include_details: bool
+    ) -> Dict[str, Any]:
+        """Build flow status from discovered data"""
+        try:
+            discovery_method = discovered_data.get("discovery_method", "unknown")
+            confidence = discovered_data.get("confidence", "low")
+            
+            # Base status structure
+            status = {
+                "flow_id": flow_id,
+                "flow_type": "discovery",  # Assume discovery for orphaned data
+                "flow_name": f"Discovered Flow ({discovery_method})",
+                "status": "orphaned_data_discovered",
+                "discovery_method": discovery_method,
+                "confidence": confidence,
+                "created_at": datetime.utcnow().isoformat(),
+                "updated_at": datetime.utcnow().isoformat(),
+                "created_by": self.context.user_id,
+                "current_phase": "data_recovery",
+                "progress_percentage": 0.0,
+                "configuration": {},
+                "metadata": {
+                    "is_discovered": True,
+                    "original_data_orphaned": True,
+                    "discovery_method": discovery_method
+                }
+            }
+            
+            if include_details:
+                # Add discovered data details
+                details = {
+                    "discovery_details": discovered_data,
+                    "repair_options": await self._generate_repair_options(flow_id, discovered_data),
+                    "orphaned_data_summary": await self._summarize_orphaned_data(discovered_data)
+                }
+                
+                # Add field mappings from discovered data
+                field_mappings = await self._retrieve_field_mappings_from_discovered_data(discovered_data)
+                details["field_mappings"] = field_mappings
+                
+                status.update(details)
+            
+            logger.info(f"🔧 Built status from discovered data for flow {flow_id} using {discovery_method}")
+            return status
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to build status from discovered data: {e}")
+            return None
+    
+    async def _retrieve_field_mappings_from_discovered_data(
+        self, 
+        discovered_data: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """Retrieve field mappings from discovered data"""
+        try:
+            from app.models.data_import import ImportFieldMapping
+            from sqlalchemy import select, or_
+            
+            field_mappings = []
+            
+            # If we have a data_import in the discovered data, get its field mappings
+            if "data_import" in discovered_data:
+                data_import = discovered_data["data_import"]
+                data_import_id = data_import.id
+                
+                logger.info(f"🔍 Loading field mappings for discovered data_import_id: {data_import_id}")
+                
+                # Query field mappings for this data import
+                query = select(ImportFieldMapping).where(
+                    or_(
+                        ImportFieldMapping.data_import_id == data_import_id,
+                        ImportFieldMapping.master_flow_id == str(data_import_id)  # Try with string conversion
+                    )
+                )
+                result = await self.db.execute(query)
+                mappings = result.scalars().all()
+                
+                # Convert to frontend format
+                for mapping in mappings:
+                    field_mappings.append({
+                        "id": str(mapping.id),
+                        "source_field": mapping.source_field,
+                        "target_field": mapping.target_field,
+                        "status": mapping.status,
+                        "confidence_score": mapping.confidence_score,
+                        "match_type": mapping.match_type,
+                        "suggested_by": mapping.suggested_by,
+                        "approved_by": mapping.approved_by,
+                        "approved_at": mapping.approved_at.isoformat() if mapping.approved_at else None,
+                        "transformation_rules": mapping.transformation_rules,
+                        "created_at": mapping.created_at.isoformat() if mapping.created_at else None,
+                        "updated_at": mapping.updated_at.isoformat() if mapping.updated_at else None,
+                        "master_flow_id": mapping.master_flow_id,
+                        "data_import_id": str(mapping.data_import_id) if mapping.data_import_id else None,
+                        "is_discovered": True,
+                        "discovery_method": discovered_data.get("discovery_method", "unknown")
+                    })
+                
+                logger.info(f"✅ Retrieved {len(field_mappings)} field mappings from discovered data")
+            
+            return field_mappings
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to retrieve field mappings from discovered data: {e}")
+            return []
+    
+    async def _enhance_status_with_smart_discovery(
+        self,
+        flow_id: str,
+        status: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Enhance existing status with smart discovery of related orphaned data"""
+        try:
+            # Look for orphaned data that might belong to this flow
+            orphaned_data = await self._find_orphaned_data_for_flow(flow_id)
+            
+            if orphaned_data:
+                # Add orphaned data information to status
+                if "metadata" not in status:
+                    status["metadata"] = {}
+                
+                status["metadata"]["orphaned_data_found"] = True
+                status["metadata"]["orphaned_data_summary"] = orphaned_data
+                status["metadata"]["repair_available"] = True
+                
+                logger.info(f"🔍 Enhanced status for flow {flow_id} with orphaned data information")
+            
+            return status
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to enhance status with smart discovery: {e}")
+            return status
+    
+    async def _find_orphaned_data_for_flow(self, flow_id: str) -> Optional[Dict[str, Any]]:
+        """Find orphaned data that might belong to this flow"""
+        try:
+            from app.models.data_import import DataImport, RawImportRecord, ImportFieldMapping
+            from sqlalchemy import select, and_
+            
+            # Look for data imports with NULL master_flow_id
+            orphaned_imports_query = select(DataImport).where(
+                and_(
+                    DataImport.client_account_id == self.context.client_account_id,
+                    DataImport.engagement_id == self.context.engagement_id,
+                    DataImport.master_flow_id.is_(None)
+                )
+            ).order_by(DataImport.created_at.desc()).limit(5)
+            
+            result = await self.db.execute(orphaned_imports_query)
+            orphaned_imports = result.scalars().all()
+            
+            if orphaned_imports:
+                orphan_summary = []
+                for import_record in orphaned_imports:
+                    # Count related records
+                    raw_count_query = select(func.count(RawImportRecord.id)).where(
+                        RawImportRecord.data_import_id == import_record.id
+                    )
+                    raw_count_result = await self.db.execute(raw_count_query)
+                    raw_count = raw_count_result.scalar() or 0
+                    
+                    mapping_count_query = select(func.count(ImportFieldMapping.id)).where(
+                        ImportFieldMapping.data_import_id == import_record.id
+                    )
+                    mapping_count_result = await self.db.execute(mapping_count_query)
+                    mapping_count = mapping_count_result.scalar() or 0
+                    
+                    orphan_summary.append({
+                        "data_import_id": str(import_record.id),
+                        "filename": import_record.filename,
+                        "created_at": import_record.created_at.isoformat() if import_record.created_at else None,
+                        "raw_records_count": raw_count,
+                        "field_mappings_count": mapping_count,
+                        "status": import_record.status
+                    })
+                
+                return {
+                    "orphaned_imports_count": len(orphaned_imports),
+                    "orphaned_imports": orphan_summary
+                }
+            
+            return None
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to find orphaned data: {e}")
+            return None
     
     async def get_active_flows(
         self,
@@ -842,3 +1223,198 @@ class MasterFlowOrchestrator:
         self.error_handler.clear_error_history(flow_id)
         
         logger.info(f"🧹 Cleared all tracking data for flow {flow_id}")
+    
+    async def _generate_repair_options(
+        self,
+        flow_id: str,
+        discovered_data: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """Generate repair options for orphaned data"""
+        try:
+            repair_options = []
+            discovery_method = discovered_data.get("discovery_method", "unknown")
+            confidence = discovered_data.get("confidence", "low")
+            
+            if "data_import" in discovered_data:
+                data_import = discovered_data["data_import"]
+                
+                # Option 1: Link orphaned data to existing flow
+                repair_options.append({
+                    "option_id": "link_orphaned_data",
+                    "title": "Link Orphaned Data to Flow",
+                    "description": f"Link data import {data_import.id} to flow {flow_id}",
+                    "confidence": confidence,
+                    "actions": [
+                        f"UPDATE data_imports SET master_flow_id = '{flow_id}' WHERE id = '{data_import.id}'",
+                        f"UPDATE raw_import_records SET master_flow_id = '{flow_id}' WHERE data_import_id = '{data_import.id}'",
+                        f"UPDATE import_field_mappings SET master_flow_id = '{flow_id}' WHERE data_import_id = '{data_import.id}'"
+                    ],
+                    "risk": "low" if confidence == "high" else "medium",
+                    "reversible": True
+                })
+                
+                # Option 2: Create new flow for orphaned data
+                repair_options.append({
+                    "option_id": "create_new_flow",
+                    "title": "Create New Flow for Orphaned Data",
+                    "description": "Create a new discovery flow for the orphaned data",
+                    "confidence": "high",
+                    "actions": [
+                        "Create new CrewAI flow",
+                        "Link all orphaned data to new flow",
+                        "Initialize flow with existing data"
+                    ],
+                    "risk": "low",
+                    "reversible": True
+                })
+            
+            return repair_options
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to generate repair options: {e}")
+            return []
+    
+    async def _summarize_orphaned_data(self, discovered_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Summarize orphaned data for display"""
+        try:
+            summary = {
+                "discovery_method": discovered_data.get("discovery_method", "unknown"),
+                "confidence": discovered_data.get("confidence", "low"),
+                "data_found": False,
+                "details": {}
+            }
+            
+            if "data_import" in discovered_data:
+                data_import = discovered_data["data_import"]
+                summary["data_found"] = True
+                summary["details"] = {
+                    "data_import_id": str(data_import.id),
+                    "filename": data_import.filename,
+                    "created_at": data_import.created_at.isoformat() if data_import.created_at else None,
+                    "status": data_import.status,
+                    "import_type": data_import.import_type
+                }
+            
+            return summary
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to summarize orphaned data: {e}")
+            return {"error": str(e)}
+    
+    async def repair_orphaned_data(
+        self,
+        flow_id: str,
+        repair_option_id: str,
+        data_import_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Repair orphaned data by linking it to a flow
+        
+        Args:
+            flow_id: Target flow ID to link data to
+            repair_option_id: ID of repair option to execute
+            data_import_id: Optional specific data import to repair
+            
+        Returns:
+            Repair operation result
+        """
+        try:
+            logger.info(f"🔧 Starting orphaned data repair for flow {flow_id} with option {repair_option_id}")
+            
+            if repair_option_id == "link_orphaned_data":
+                # Find the data import to link
+                target_import = None
+                
+                if data_import_id:
+                    # Use specific data import
+                    from app.models.data_import import DataImport
+                    from sqlalchemy import select
+                    
+                    query = select(DataImport).where(DataImport.id == data_import_id)
+                    result = await self.db.execute(query)
+                    target_import = result.scalar_one_or_none()
+                else:
+                    # Find orphaned data using smart discovery
+                    discovered_data = await self._find_related_data_by_context(flow_id)
+                    if discovered_data:
+                        target_import = discovered_data.get("data_import")
+                
+                if target_import:
+                    # Use storage manager to link all records
+                    from app.services.data_import.storage_manager import ImportStorageManager
+                    
+                    storage_manager = ImportStorageManager(self.db, self.context.client_account_id)
+                    linkage_results = await storage_manager.update_all_records_with_flow(
+                        data_import_id=target_import.id,
+                        master_flow_id=flow_id
+                    )
+                    
+                    if linkage_results["success"]:
+                        logger.info(f"✅ Successfully repaired orphaned data for flow {flow_id}")
+                        return {
+                            "success": True,
+                            "message": f"Successfully linked orphaned data to flow {flow_id}",
+                            "details": linkage_results,
+                            "data_import_id": str(target_import.id)
+                        }
+                    else:
+                        logger.error(f"❌ Failed to repair orphaned data: {linkage_results['error']}")
+                        return {
+                            "success": False,
+                            "message": f"Failed to link orphaned data: {linkage_results['error']}",
+                            "details": linkage_results
+                        }
+                else:
+                    return {
+                        "success": False,
+                        "message": "No orphaned data found to repair",
+                        "details": {}
+                    }
+            
+            elif repair_option_id == "create_new_flow":
+                # Create a new flow for the orphaned data
+                new_flow_id, flow_details = await self.create_flow(
+                    flow_type="discovery",
+                    flow_name=f"Recovered Flow from {flow_id}",
+                    configuration={"recovery_mode": True, "original_flow_id": flow_id}
+                )
+                
+                # Link orphaned data to new flow
+                if data_import_id:
+                    from app.services.data_import.storage_manager import ImportStorageManager
+                    
+                    storage_manager = ImportStorageManager(self.db, self.context.client_account_id)
+                    linkage_results = await storage_manager.update_all_records_with_flow(
+                        data_import_id=data_import_id,
+                        master_flow_id=new_flow_id
+                    )
+                    
+                    return {
+                        "success": True,
+                        "message": f"Created new flow {new_flow_id} for orphaned data",
+                        "details": {
+                            "new_flow_id": new_flow_id,
+                            "linkage_results": linkage_results
+                        }
+                    }
+                else:
+                    return {
+                        "success": True,
+                        "message": f"Created new flow {new_flow_id} - manual data linking required",
+                        "details": {"new_flow_id": new_flow_id}
+                    }
+            
+            else:
+                return {
+                    "success": False,
+                    "message": f"Unknown repair option: {repair_option_id}",
+                    "details": {}
+                }
+                
+        except Exception as e:
+            logger.error(f"❌ Orphaned data repair failed: {e}")
+            return {
+                "success": False,
+                "message": f"Repair operation failed: {str(e)}",
+                "details": {"error": str(e)}
+            }

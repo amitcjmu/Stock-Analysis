@@ -183,11 +183,19 @@ class ImportStorageHandler:
                 
             # Step 7: Post-commit operations
             if flow_success and flow_id:
-                # Update field mappings with flow ID
-                await self.storage_manager.update_field_mappings_with_flow(
+                # Update ALL related records with master_flow_id (comprehensive linkage)
+                linkage_results = await self.storage_manager.update_all_records_with_flow(
                     data_import_id=data_import.id,
                     master_flow_id=flow_id
                 )
+                
+                # Log linkage results for troubleshooting
+                if linkage_results["success"]:
+                    logger.info(f"🔗 Master flow linkage completed successfully for flow {flow_id}")
+                    logger.info(f"📊 Linkage details: {linkage_results}")
+                else:
+                    logger.error(f"💥 Master flow linkage failed for flow {flow_id}: {linkage_results['error']}")
+                    # Continue with background execution even if linkage partially fails
                 
                 # Start background flow execution
                 await self.background_service.start_background_flow_execution(
@@ -372,6 +380,18 @@ class ImportStorageHandler:
                         data_import=data_import,
                         status="discovery_initiated"
                     )
+                    
+                    # Update ALL related records with master_flow_id (retry scenario)
+                    linkage_results = await self.storage_manager.update_all_records_with_flow(
+                        data_import_id=data_import.id,
+                        master_flow_id=flow_id
+                    )
+                    
+                    # Log linkage results for troubleshooting
+                    if linkage_results["success"]:
+                        logger.info(f"🔗 Master flow linkage completed successfully for retry flow {flow_id}")
+                    else:
+                        logger.error(f"💥 Master flow linkage failed for retry flow {flow_id}: {linkage_results['error']}")
                     
                     # Start background execution
                     await self.background_service.start_background_flow_execution(

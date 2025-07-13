@@ -496,7 +496,7 @@ export function getApiClient(): HttpClient {
 }
 
 // Convenience functions
-export const handleApiError = (error: any) => handleApiError(error);
+// handleApiError is already exported from errorHandling.ts
 export const setDefaultHeaders = (headers: Record<string, string>) => getApiClient().setDefaultHeaders(headers);
 export const setMultiTenantHeaders = (context: MultiTenantContext) => getApiClient().setMultiTenantContext(context);
 export const retryRequest = <T>(fn: () => Promise<T>, retries: number = 3) => applyRetryPolicy(fn, retries);

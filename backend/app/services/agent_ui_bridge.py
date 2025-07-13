@@ -6,6 +6,10 @@ Enables agents to communicate with users through the UI for clarifications, feed
 import logging
 from typing import Dict, List, Any, Optional
 from pathlib import Path
+from datetime import datetime
+import uuid
+import asyncio
+from collections import defaultdict
 
 from .agent_ui_bridge_handlers import (
     QuestionHandler, 
@@ -42,6 +46,13 @@ class AgentUIBridge:
         self.insight_handler = InsightHandler(self.storage_manager)
         self.context_handler = ContextHandler(self.storage_manager)
         self.analysis_handler = AnalysisHandler(self.storage_manager)
+        
+        # Real-time communication channels
+        self._flow_decisions: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        self._flow_messages: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        self._flow_subscriptions: Dict[str, Dict[str, Any]] = {}
+        self._decision_listeners: Dict[str, List[asyncio.Queue]] = defaultdict(list)
+        self._message_version_counter: Dict[str, int] = defaultdict(int)
         
         # Load existing data
         self._load_persistent_data()
@@ -168,6 +179,267 @@ class AgentUIBridge:
     
 
     
+    # === REAL-TIME AGENT DECISION BROADCASTING ===
+    
+    def broadcast_agent_decision(self, flow_id: str, agent_id: str, agent_name: str,
+                               decision_type: str, decision: str, reasoning: str,
+                               confidence: ConfidenceLevel, affected_items: List[str] = None,
+                               metadata: Dict[str, Any] = None) -> str:
+        """
+        Broadcast an agent decision in real-time for SSE streaming.
+        
+        Args:
+            flow_id: Flow identifier
+            agent_id: ID of the agent making the decision
+            agent_name: Name of the agent
+            decision_type: Type of decision (e.g., 'field_mapping', 'data_quality', 'migration_strategy')
+            decision: The actual decision made
+            reasoning: Explanation of why the decision was made
+            confidence: Confidence level of the decision
+            affected_items: List of items affected by this decision
+            metadata: Additional decision metadata
+            
+        Returns:
+            Decision ID
+        """
+        decision_id = str(uuid.uuid4())
+        timestamp = datetime.utcnow()
+        
+        # Increment version counter for this flow
+        self._message_version_counter[flow_id] += 1
+        version = self._message_version_counter[flow_id]
+        
+        decision_data = {
+            "id": decision_id,
+            "version": version,
+            "agent_id": agent_id,
+            "agent_name": agent_name,
+            "decision_type": decision_type,
+            "decision": decision,
+            "reasoning": reasoning,
+            "confidence": confidence.value if hasattr(confidence, 'value') else str(confidence),
+            "affected_items": affected_items or [],
+            "metadata": metadata or {},
+            "timestamp": timestamp.isoformat(),
+            "flow_id": flow_id
+        }
+        
+        # Store the decision
+        self._flow_decisions[flow_id].append(decision_data)
+        
+        # Limit stored decisions per flow (keep last 100)
+        if len(self._flow_decisions[flow_id]) > 100:
+            self._flow_decisions[flow_id] = self._flow_decisions[flow_id][-100:]
+        
+        # Notify any listeners
+        self._notify_decision_listeners(flow_id, decision_data)
+        
+        # Also store as an insight for persistence
+        self.add_agent_insight(
+            agent_id=agent_id,
+            agent_name=agent_name,
+            insight_type=f"decision_{decision_type}",
+            title=f"Decision: {decision}",
+            description=reasoning,
+            confidence=confidence,
+            supporting_data={
+                "decision_id": decision_id,
+                "decision_type": decision_type,
+                "decision": decision,
+                "affected_items": affected_items
+            },
+            page="flow_decisions",
+            actionable=True,
+            flow_id=flow_id
+        )
+        
+        logger.info(f"Broadcast agent decision {decision_id} for flow {flow_id}")
+        return decision_id
+    
+    def get_flow_insights(self, flow_id: str) -> List[Dict[str, Any]]:
+        """
+        Get all insights for a specific flow, including agent decisions.
+        Used by SSE endpoint for real-time updates.
+        
+        Args:
+            flow_id: Flow identifier
+            
+        Returns:
+            List of insights and decisions for the flow
+        """
+        insights = []
+        
+        # Get regular insights from handler
+        all_insights = self.insight_handler.insights
+        flow_insights = [
+            insight for insight in all_insights.values()
+            if insight.flow_id == flow_id
+        ]
+        
+        # Convert to dict format
+        for insight in flow_insights:
+            insights.append({
+                "id": insight.id,
+                "type": "insight",
+                "agent_id": insight.agent_id,
+                "agent_name": insight.agent_name,
+                "insight_type": insight.insight_type,
+                "title": insight.title,
+                "description": insight.description,
+                "confidence": insight.confidence.value if hasattr(insight.confidence, 'value') else str(insight.confidence),
+                "supporting_data": insight.supporting_data,
+                "created_at": insight.created_at.isoformat(),
+                "is_validated": insight.is_validated
+            })
+        
+        # Add recent decisions as insights
+        if flow_id in self._flow_decisions:
+            for decision in self._flow_decisions[flow_id][-10:]:  # Last 10 decisions
+                insights.append({
+                    "id": decision["id"],
+                    "type": "decision",
+                    "agent_id": decision["agent_id"],
+                    "agent_name": decision["agent_name"],
+                    "decision_type": decision["decision_type"],
+                    "title": f"Decision: {decision['decision']}",
+                    "description": decision["reasoning"],
+                    "confidence": decision["confidence"],
+                    "supporting_data": {
+                        "affected_items": decision["affected_items"],
+                        "metadata": decision["metadata"]
+                    },
+                    "created_at": decision["timestamp"],
+                    "is_validated": True  # Decisions are pre-validated
+                })
+        
+        # Sort by creation time (most recent first)
+        insights.sort(key=lambda x: x["created_at"], reverse=True)
+        
+        return insights
+    
+    def get_pending_messages(self, flow_id: str, since_version: int = 0) -> List[Dict[str, Any]]:
+        """
+        Get pending messages for a flow since a specific version.
+        Used by SSE endpoint for streaming updates.
+        
+        Args:
+            flow_id: Flow identifier
+            since_version: Get messages with version > since_version
+            
+        Returns:
+            List of pending messages
+        """
+        messages = []
+        
+        # Get messages for this flow
+        if flow_id in self._flow_messages:
+            for message in self._flow_messages[flow_id]:
+                if message.get("version", 0) > since_version:
+                    messages.append(message)
+        
+        # Get unanswered questions as messages
+        questions = self.get_questions_for_page(f"flow_{flow_id}")
+        for question in questions:
+            if not question.get("is_resolved", False):
+                # Convert question to message format
+                message_version = self._message_version_counter[flow_id] + 1
+                self._message_version_counter[flow_id] = message_version
+                
+                messages.append({
+                    "id": question["id"],
+                    "version": message_version,
+                    "type": "agent_question",
+                    "agent_id": question.get("agent_id"),
+                    "agent_name": question.get("agent_name"),
+                    "title": question.get("title"),
+                    "content": question.get("question"),
+                    "context": question.get("context"),
+                    "options": question.get("options"),
+                    "priority": question.get("priority", "medium"),
+                    "timestamp": question.get("created_at", datetime.utcnow().isoformat())
+                })
+        
+        return messages
+    
+    def create_subscription(self, flow_id: str, client_id: str, client_account_id: str) -> str:
+        """
+        Create a subscription for flow events.
+        
+        Args:
+            flow_id: Flow identifier
+            client_id: Client/user ID
+            client_account_id: Client account ID
+            
+        Returns:
+            Subscription ID
+        """
+        subscription_id = str(uuid.uuid4())
+        
+        self._flow_subscriptions[subscription_id] = {
+            "id": subscription_id,
+            "flow_id": flow_id,
+            "client_id": client_id,
+            "client_account_id": client_account_id,
+            "created_at": datetime.utcnow().isoformat(),
+            "last_accessed": datetime.utcnow().isoformat()
+        }
+        
+        logger.info(f"Created subscription {subscription_id} for flow {flow_id}")
+        return subscription_id
+    
+    def remove_subscription(self, subscription_id: str) -> bool:
+        """
+        Remove a subscription.
+        
+        Args:
+            subscription_id: Subscription identifier
+            
+        Returns:
+            True if removed, False if not found
+        """
+        if subscription_id in self._flow_subscriptions:
+            del self._flow_subscriptions[subscription_id]
+            logger.info(f"Removed subscription {subscription_id}")
+            return True
+        return False
+    
+    def _notify_decision_listeners(self, flow_id: str, decision_data: Dict[str, Any]):
+        """
+        Notify any async listeners about a new decision.
+        
+        Args:
+            flow_id: Flow identifier
+            decision_data: Decision data to broadcast
+        """
+        if flow_id in self._decision_listeners:
+            for queue in self._decision_listeners[flow_id]:
+                try:
+                    queue.put_nowait(decision_data)
+                except asyncio.QueueFull:
+                    logger.warning(f"Decision queue full for flow {flow_id}")
+    
+    def register_decision_listener(self, flow_id: str, queue: asyncio.Queue):
+        """
+        Register an async queue to receive decision updates.
+        
+        Args:
+            flow_id: Flow identifier
+            queue: Async queue to receive updates
+        """
+        self._decision_listeners[flow_id].append(queue)
+    
+    def unregister_decision_listener(self, flow_id: str, queue: asyncio.Queue):
+        """
+        Unregister a decision listener.
+        
+        Args:
+            flow_id: Flow identifier
+            queue: Queue to remove
+        """
+        if flow_id in self._decision_listeners:
+            if queue in self._decision_listeners[flow_id]:
+                self._decision_listeners[flow_id].remove(queue)
+    
     # === UTILITY METHODS ===
     
     def get_agent_status_summary(self) -> Dict[str, Any]:
@@ -177,11 +449,20 @@ class AgentUIBridge:
         insight_stats = self.insight_handler.get_insight_statistics()
         coordination_stats = self.context_handler.get_agent_coordination_summary()
         
+        # Add real-time stats
+        realtime_stats = {
+            "active_subscriptions": len(self._flow_subscriptions),
+            "flows_with_decisions": len(self._flow_decisions),
+            "total_decisions": sum(len(decisions) for decisions in self._flow_decisions.values()),
+            "flows_with_messages": len(self._flow_messages)
+        }
+        
         return {
             "questions": question_stats,
             "classifications": classification_stats,
             "insights": insight_stats,
             "coordination": coordination_stats,
+            "realtime": realtime_stats,
             "storage": self.storage_manager.get_storage_statistics()
         }
     

@@ -4,10 +4,10 @@
  */
 
 export * from './httpClient';
-export * from './apiConfig';
+// export * from './apiConfig'; // File doesn't exist
 export * from './errorHandling';
-export * from './requestInterceptors';
-export * from './responseInterceptors';
+// export * from './requestInterceptors'; // File doesn't exist
+// export * from './responseInterceptors'; // File doesn't exist
 export * from './multiTenantHeaders';
 export * from './retryPolicies';
 export * from './cacheStrategies';
@@ -17,12 +17,14 @@ export * from './apiTypes';
 export {
   createApiClient,
   configureApiClient,
-  handleApiError,
   setDefaultHeaders,
   setMultiTenantHeaders,
   retryRequest,
   clearApiCache
 } from './httpClient';
+
+// Export handleApiError from errorHandling
+export { handleApiError } from './errorHandling';
 
 export type {
   ApiClientConfig,

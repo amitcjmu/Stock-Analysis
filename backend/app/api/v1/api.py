@@ -119,6 +119,13 @@ try:
 except ImportError:
     OBSERVABILITY_AVAILABLE = False
 
+# Agent Events endpoints for real-time SSE communication
+try:
+    from app.api.v1.endpoints.agent_events import router as agent_events_router
+    AGENT_EVENTS_AVAILABLE = True
+except ImportError as e:
+    AGENT_EVENTS_AVAILABLE = False
+    logger.warning(f"Agent Events router not available: {e}")
 
 try:
     from app.api.v1.endpoints.observability import router as observability_router
@@ -343,6 +350,13 @@ api_router.include_router(chat_router, prefix="/chat", tags=["Chat"])
 # Assessment Flow Services
 api_router.include_router(assessment_flow_router, tags=["Assessment Flow"])
 api_router.include_router(assessment_events_router, tags=["Assessment Flow Events"])
+
+# Agent Events endpoints for real-time SSE communication (all flow types)
+if AGENT_EVENTS_AVAILABLE:
+    api_router.include_router(agent_events_router, tags=["Flow Events"])
+    logger.info("✅ Agent Events (SSE) router included at /flows/{flow_id}/events")
+else:
+    logger.warning("⚠️ Agent Events router not available")
 
 # Flow Processing Agent (Central routing for all flow continuations)
 try:

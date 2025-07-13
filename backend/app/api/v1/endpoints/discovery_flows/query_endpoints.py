@@ -9,10 +9,13 @@ This module handles all GET operations for discovery flows:
 """
 
 import logging
-from typing import Dict, Any, List
-from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import Dict, Any, List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query, Header, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_, func
+import json
+import hashlib
+from datetime import datetime
 
 from app.core.database import get_db
 from app.core.context import RequestContext, get_current_context
@@ -26,18 +29,23 @@ query_router = APIRouter(tags=["discovery-query"])
 
 @query_router.get("/flows/active", response_model=List[DiscoveryFlowResponse])
 async def get_active_flows(
+    response: Response,
+    if_none_match: Optional[str] = Header(None),
     context: RequestContext = Depends(get_current_context),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Get active discovery flows for the current tenant context.
+    Get active discovery flows for the current tenant context with ETag support.
     
     This endpoint retrieves all active discovery flows excluding deleted and cancelled flows.
+    Supports efficient polling via ETags.
     """
     try:
         logger.info(f"Getting active flows for client {context.client_account_id}, engagement {context.engagement_id}")
         
         # Query actual discovery flows from database
+        # CRITICAL FIX: Only return flows that have actual imported data (data_import_id is not null)
+        # This prevents the dashboard from showing empty flows without data
         from app.models.discovery_flow import DiscoveryFlow
         
         stmt = select(DiscoveryFlow).where(
@@ -46,13 +54,15 @@ async def get_active_flows(
                 DiscoveryFlow.engagement_id == context.engagement_id,
                 DiscoveryFlow.status != 'deleted',  # Exclude soft-deleted flows
                 DiscoveryFlow.status != 'cancelled',  # Exclude cancelled flows
+                DiscoveryFlow.data_import_id.isnot(None),  # CRITICAL FIX: Only show flows with actual data
                 or_(
                     DiscoveryFlow.status == 'active',
                     DiscoveryFlow.status == 'running',
                     DiscoveryFlow.status == 'paused',
                     DiscoveryFlow.status == 'processing',
                     DiscoveryFlow.status == 'ready',
-                    DiscoveryFlow.status == 'waiting_for_approval'
+                    DiscoveryFlow.status == 'waiting_for_approval',
+                    DiscoveryFlow.status == 'initialized'  # Include initialized flows with data
                 )
             )
         ).order_by(DiscoveryFlow.created_at.desc())
@@ -66,7 +76,24 @@ async def get_active_flows(
             flow_response = ResponseMappers.map_flow_to_response(flow, context)
             active_flows.append(flow_response)
         
-        logger.info(f"Found {len(active_flows)} active flows")
+        logger.info(f"Found {len(active_flows)} active flows with imported data")
+        
+        # Generate ETag from active flows data
+        # Convert response objects to dicts for serialization
+        flows_data = [flow.dict() if hasattr(flow, 'dict') else flow for flow in active_flows]
+        state_json = json.dumps(flows_data, sort_keys=True, default=str)
+        etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
+        
+        # Check if content has changed
+        if if_none_match == etag:
+            response.status_code = 304  # Not Modified
+            return None
+        
+        # Set response headers
+        response.headers["ETag"] = etag
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
+        response.headers["X-Flow-Count"] = str(len(active_flows))
+        
         return active_flows
         
     except Exception as e:
@@ -77,14 +104,19 @@ async def get_active_flows(
 @query_router.get("/flows/{flow_id}/status", response_model=DiscoveryFlowStatusResponse)
 async def get_flow_status(
     flow_id: str,
+    response: Response,
+    if_none_match: Optional[str] = Header(None),
     context: RequestContext = Depends(get_current_context),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Get detailed status of a specific discovery flow.
+    Get detailed status of a specific discovery flow with ETag support.
     
     This endpoint provides comprehensive flow status including phase completion,
-    agent insights, and field mappings.
+    agent insights, and field mappings. Supports efficient polling via ETags.
+    
+    Returns:
+        Flow status data or 304 Not Modified if unchanged
     """
     try:
         logger.info(f"Getting status for flow {flow_id}")
@@ -116,6 +148,22 @@ async def get_flow_status(
             
             # Use ResponseMappers to create standardized response
             status_response = ResponseMappers.map_flow_to_status_response(flow, extensions, context)
+            
+            # Generate ETag from response data
+            response_dict = status_response.dict() if hasattr(status_response, 'dict') else status_response
+            state_json = json.dumps(response_dict, sort_keys=True, default=str)
+            etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
+            
+            # Check if content has changed
+            if if_none_match == etag:
+                response.status_code = 304  # Not Modified
+                return None
+            
+            # Set response headers
+            response.headers["ETag"] = etag
+            response.headers["Cache-Control"] = "no-cache, must-revalidate"
+            response.headers["X-Flow-Updated-At"] = flow.updated_at.isoformat() if flow.updated_at else ""
+            
             return status_response
         
         # Fallback to flow state persistence data
@@ -128,6 +176,21 @@ async def get_flow_status(
             if state_dict:
                 # Use ResponseMappers to create standardized response
                 status_response = ResponseMappers.map_state_dict_to_status_response(flow_id, state_dict, context)
+                
+                # Generate ETag from response data
+                response_dict = status_response.dict() if hasattr(status_response, 'dict') else status_response
+                state_json = json.dumps(response_dict, sort_keys=True, default=str)
+                etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
+                
+                # Check if content has changed
+                if if_none_match == etag:
+                    response.status_code = 304  # Not Modified
+                    return None
+                
+                # Set response headers
+                response.headers["ETag"] = etag
+                response.headers["Cache-Control"] = "no-cache, must-revalidate"
+                
                 return status_response
         except Exception as store_error:
             logger.warning(f"Failed to get flow state from store: {store_error}")
@@ -140,6 +203,21 @@ async def get_flow_status(
         
         # Use ResponseMappers to create standardized response
         status_response = ResponseMappers.map_orchestrator_result_to_status_response(flow_id, result, context)
+        
+        # Generate ETag from response data
+        response_dict = status_response.dict() if hasattr(status_response, 'dict') else status_response
+        state_json = json.dumps(response_dict, sort_keys=True, default=str)
+        etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
+        
+        # Check if content has changed
+        if if_none_match == etag:
+            response.status_code = 304  # Not Modified
+            return None
+        
+        # Set response headers
+        response.headers["ETag"] = etag
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
+        
         return status_response
         
     except Exception as e:
@@ -150,14 +228,17 @@ async def get_flow_status(
 @query_router.get("/flow/{flow_id}/agent-insights", response_model=List[Dict[str, Any]])
 async def get_flow_agent_insights(
     flow_id: str,
+    response: Response,
     page_context: str = "data_import",
+    if_none_match: Optional[str] = Header(None),
     context: RequestContext = Depends(get_current_context),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Get agent insights for a specific flow.
+    Get agent insights for a specific flow with ETag support.
     
     This endpoint retrieves AI agent insights and recommendations for the flow.
+    Supports efficient polling via ETags.
     """
     try:
         logger.info(f"Getting agent insights for flow {flow_id}, page context: {page_context}")
@@ -205,10 +286,40 @@ async def get_flow_agent_insights(
                     if insight.get("context", "").lower() == page_context.lower()
                 ]
             
+            # Generate ETag from agent insights
+            state_json = json.dumps(agent_insights, sort_keys=True, default=str)
+            etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
+            
+            # Check if content has changed
+            if if_none_match == etag:
+                response.status_code = 304  # Not Modified
+                return None
+            
+            # Set response headers
+            response.headers["ETag"] = etag
+            response.headers["Cache-Control"] = "no-cache, must-revalidate"
+            response.headers["X-Insights-Count"] = str(len(agent_insights))
+            response.headers["X-Flow-Updated-At"] = flow.updated_at.isoformat() if flow.updated_at else ""
+            
             return agent_insights
         
         # Return empty list if flow not found
-        return []
+        empty_insights = []
+        
+        # Generate ETag even for empty response
+        etag = f'"{hashlib.md5(b"[]").hexdigest()}"'
+        
+        # Check if content has changed
+        if if_none_match == etag:
+            response.status_code = 304  # Not Modified
+            return None
+        
+        # Set response headers
+        response.headers["ETag"] = etag
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
+        response.headers["X-Insights-Count"] = "0"
+        
+        return empty_insights
         
     except Exception as e:
         logger.error(f"Error getting agent insights: {e}")
@@ -243,15 +354,17 @@ async def get_agent_questions(
 @query_router.get("/flow/{flow_id}/processing-status", response_model=Dict[str, Any])
 async def get_flow_processing_status(
     flow_id: str,
+    response: Response,
     phase: str = Query(None),
+    if_none_match: Optional[str] = Header(None),
     context: RequestContext = Depends(get_current_context),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Get detailed processing status for a specific flow.
+    Get detailed processing status for a specific flow with ETag support.
     
     This endpoint provides real-time processing status information
-    for monitoring UI components.
+    for monitoring UI components with efficient polling via ETags.
     """
     try:
         logger.info(f"Getting processing status for flow {flow_id}, phase: {phase}")
@@ -274,6 +387,21 @@ async def get_flow_processing_status(
         if flow:
             # Use StatusCalculator to get processing status
             processing_status = StatusCalculator.calculate_processing_status(flow, phase)
+            
+            # Generate ETag from processing status
+            state_json = json.dumps(processing_status, sort_keys=True, default=str)
+            etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
+            
+            # Check if content has changed
+            if if_none_match == etag:
+                response.status_code = 304  # Not Modified
+                return None
+            
+            # Set response headers
+            response.headers["ETag"] = etag
+            response.headers["Cache-Control"] = "no-cache, must-revalidate"
+            response.headers["X-Flow-Updated-At"] = flow.updated_at.isoformat() if flow.updated_at else ""
+            
             return processing_status
         
         # Try orchestrator as fallback
@@ -308,13 +436,26 @@ async def get_flow_processing_status(
                 "current_phase": result.get("current_phase", "data_import")
             }
             
+            # Generate ETag from processing status
+            state_json = json.dumps(processing_status, sort_keys=True, default=str)
+            etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
+            
+            # Check if content has changed
+            if if_none_match == etag:
+                response.status_code = 304  # Not Modified
+                return None
+            
+            # Set response headers
+            response.headers["ETag"] = etag
+            response.headers["Cache-Control"] = "no-cache, must-revalidate"
+            
             return processing_status
             
         except Exception as orch_error:
             logger.warning(f"Failed to get flow from orchestrator: {orch_error}")
             
             # Return default processing status
-            return {
+            default_status = {
                 "flow_id": flow_id,
                 "phase": phase or "data_import",
                 "status": "initializing",
@@ -343,6 +484,21 @@ async def get_flow_processing_status(
                 },
                 "current_phase": "data_import"
             }
+            
+            # Generate ETag even for default status
+            state_json = json.dumps(default_status, sort_keys=True, default=str)
+            etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
+            
+            # Check if content has changed
+            if if_none_match == etag:
+                response.status_code = 304  # Not Modified
+                return None
+            
+            # Set response headers
+            response.headers["ETag"] = etag
+            response.headers["Cache-Control"] = "no-cache, must-revalidate"
+            
+            return default_status
         
     except Exception as e:
         logger.error(f"Error getting processing status: {e}")
@@ -413,13 +569,16 @@ async def get_flows_summary(
 @query_router.get("/flows/{flow_id}/health", response_model=Dict[str, Any])
 async def get_flow_health(
     flow_id: str,
+    response: Response,
+    if_none_match: Optional[str] = Header(None),
     context: RequestContext = Depends(get_current_context),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Get health status for a specific flow.
+    Get health status for a specific flow with ETag support.
     
-    This endpoint provides health metrics and diagnostics for the flow.
+    This endpoint provides health metrics and diagnostics for the flow
+    with efficient polling via ETags.
     """
     try:
         logger.info(f"Getting health status for flow {flow_id}")
@@ -455,7 +614,7 @@ async def get_flow_health(
         else:
             health_status = "unhealthy"
         
-        return {
+        health_data = {
             "flow_id": str(flow_id),
             "health_status": health_status,
             "health_score": health_score,
@@ -474,6 +633,22 @@ async def get_flow_health(
                 "requires_attention": health_score < 0.6
             }
         }
+        
+        # Generate ETag from health data
+        state_json = json.dumps(health_data, sort_keys=True, default=str)
+        etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
+        
+        # Check if content has changed
+        if if_none_match == etag:
+            response.status_code = 304  # Not Modified
+            return None
+        
+        # Set response headers
+        response.headers["ETag"] = etag
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
+        response.headers["X-Flow-Updated-At"] = flow.updated_at.isoformat() if flow.updated_at else ""
+        
+        return health_data
         
     except HTTPException:
         raise

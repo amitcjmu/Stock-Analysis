@@ -102,10 +102,28 @@ async def delete_field_mapping(
 @router.post("/imports/{import_id}/generate")
 async def generate_field_mappings(
     import_id: str,
+    force_regenerate: bool = False,
     service: MappingService = Depends(get_mapping_service)
 ):
     """Generate field mappings for an entire import."""
     try:
+        # If force_regenerate is True, delete existing mappings first
+        if force_regenerate:
+            logger.info(f"🔄 Force regenerating field mappings for import {import_id}")
+            # Delete existing mappings to trigger CrewAI regeneration
+            from sqlalchemy import select, and_, delete
+            from app.models.data_import import ImportFieldMapping
+            
+            delete_query = delete(ImportFieldMapping).where(
+                and_(
+                    ImportFieldMapping.data_import_id == import_id,
+                    ImportFieldMapping.client_account_id == service.context.client_account_id
+                )
+            )
+            await service.db.execute(delete_query)
+            await service.db.commit()
+            logger.info(f"✅ Deleted existing field mappings for import {import_id}")
+        
         result = await service.generate_mappings_for_import(import_id)
         return result
     except ValueError as e:
@@ -119,6 +137,7 @@ async def generate_field_mappings(
 @router.post("/imports/latest/mappings")
 async def create_field_mapping_latest(
     mapping_data: Optional[FieldMappingCreate] = None,
+    force_regenerate: bool = False,
     request: Request = None,
     service: MappingService = Depends(get_mapping_service)
 ):
@@ -151,7 +170,23 @@ async def create_field_mapping_latest(
             mapping = await service.create_field_mapping(latest_import.id, mapping_data)
             return mapping
         else:
-            # Generate all mappings
+            # Generate all mappings with optional force regeneration
+            if force_regenerate:
+                logger.info(f"🔄 Force regenerating field mappings for latest import {latest_import.id}")
+                # Delete existing mappings to trigger CrewAI regeneration
+                from sqlalchemy import select, and_, delete
+                from app.models.data_import import ImportFieldMapping
+                
+                delete_query = delete(ImportFieldMapping).where(
+                    and_(
+                        ImportFieldMapping.data_import_id == latest_import.id,
+                        ImportFieldMapping.client_account_id == service.context.client_account_id
+                    )
+                )
+                await service.db.execute(delete_query)
+                await service.db.commit()
+                logger.info(f"✅ Deleted existing field mappings for latest import {latest_import.id}")
+            
             result = await service.generate_mappings_for_import(latest_import.id)
             return result
             

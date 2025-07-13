@@ -10,7 +10,8 @@ from sqlalchemy import select, and_
 from app.core.context import RequestContext
 from app.models.data_import import DataImport, RawImportRecord
 from ..models.mapping_schemas import FieldMappingSuggestion, FieldMappingAnalysis
-from ..utils.mapping_helpers import intelligent_field_mapping, calculate_mapping_confidence
+# Legacy hardcoded mapping helpers removed - using CrewAI agents only
+# from ..utils.mapping_helpers import intelligent_field_mapping, calculate_mapping_confidence
 
 logger = logging.getLogger(__name__)
 
@@ -88,10 +89,12 @@ class SuggestionService:
                 crewai_service=crewai_service if hasattr(crewai_service, 'llm') else None
             )
         except Exception as e:
-            logger.warning(f"CrewAI service not available, using fallback: {e}")
-            suggestions = await self._generate_fallback_suggestions(
-                source_fields, sample_data, available_fields
-            )
+            logger.error(f"❌ CrewAI service not available: {e}")
+            # DISABLED FALLBACK - Let the error propagate to see actual agent issues
+            # suggestions = await self._generate_fallback_suggestions(
+            #     source_fields, sample_data, available_fields
+            # )
+            raise e
         
         # Calculate analysis metrics
         total_fields = len(source_fields)
@@ -197,8 +200,10 @@ class SuggestionService:
         """Generate AI-powered field mapping suggestions using CrewAI."""
         
         if not CREWAI_FIELD_MAPPING_AVAILABLE or not crewai_service:
-            logger.warning("CrewAI Field Mapping not available, using fallback")
-            return await self._generate_fallback_suggestions(source_fields, sample_data, available_fields)
+            logger.error("❌ CrewAI Field Mapping not available")
+            # DISABLED FALLBACK - Let the error propagate to see actual agent issues
+            # return await self._generate_fallback_suggestions(source_fields, sample_data, available_fields)
+            raise RuntimeError("CrewAI Field Mapping crew is required but not available")
         
         try:
             # Create Field Mapping Crew
@@ -219,8 +224,10 @@ class SuggestionService:
             return suggestions
             
         except Exception as e:
-            logger.error(f"Error in CrewAI field mapping analysis: {e}")
-            return await self._generate_fallback_suggestions(source_fields, sample_data, available_fields)
+            logger.error(f"❌ Error in CrewAI field mapping analysis: {e}")
+            # DISABLED FALLBACK - Let the error propagate to see actual agent issues
+            # return await self._generate_fallback_suggestions(source_fields, sample_data, available_fields)
+            raise e
     
     async def _parse_crew_results(
         self, 
@@ -246,10 +253,21 @@ class SuggestionService:
                         confidence = 0.8
                         break
                 
-                # If no specific match found, use intelligent fallback
+                # If no specific match found, use simple pattern matching
                 if not best_match:
-                    best_match = intelligent_field_mapping(source_field)
-                    confidence = 0.6
+                    # Simple fallback pattern matching
+                    source_lower = source_field.lower()
+                    if 'name' in source_lower or 'hostname' in source_lower:
+                        best_match = 'name'
+                    elif 'type' in source_lower:
+                        best_match = 'asset_type'
+                    elif 'env' in source_lower:
+                        best_match = 'environment'
+                    elif 'ip' in source_lower:
+                        best_match = 'ip_address'
+                    else:
+                        best_match = 'name'  # Default fallback
+                    confidence = 0.5
                 
                 suggestion = FieldMappingSuggestion(
                     source_field=source_field,
@@ -266,8 +284,10 @@ class SuggestionService:
             return suggestions
             
         except Exception as e:
-            logger.error(f"Error parsing crew results: {e}")
-            return await self._generate_fallback_suggestions(source_fields, [], available_fields)
+            logger.error(f"❌ Error parsing crew results: {e}")
+            # DISABLED FALLBACK - Let the error propagate to see actual agent issues
+            # return await self._generate_fallback_suggestions(source_fields, [], available_fields)
+            raise e
     
     async def _generate_fallback_suggestions(
         self,
@@ -279,8 +299,26 @@ class SuggestionService:
         suggestions = []
         
         for source_field in source_fields:
-            target_field = intelligent_field_mapping(source_field)
-            confidence = calculate_mapping_confidence(source_field, target_field)
+            # Simple pattern-based mapping since hardcoded helpers were removed
+            source_lower = source_field.lower()
+            if 'name' in source_lower or 'hostname' in source_lower:
+                target_field = 'name'
+                confidence = 0.8
+            elif 'type' in source_lower:
+                target_field = 'asset_type'
+                confidence = 0.8
+            elif 'env' in source_lower:
+                target_field = 'environment'
+                confidence = 0.7
+            elif 'ip' in source_lower:
+                target_field = 'ip_address'
+                confidence = 0.8
+            elif 'os' in source_lower:
+                target_field = 'operating_system'
+                confidence = 0.7
+            else:
+                target_field = source_field  # Keep original name
+                confidence = 0.5
             
             # Extract sample values if available
             sample_values = []
