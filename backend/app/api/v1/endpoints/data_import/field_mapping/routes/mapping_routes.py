@@ -99,6 +99,49 @@ async def delete_field_mapping(
         raise HTTPException(status_code=500, detail="Failed to delete field mapping")
 
 
+@router.post("/imports/{import_id}/reanalyze")
+async def trigger_field_mapping_reanalysis(
+    import_id: str,
+    service: MappingService = Depends(get_mapping_service),
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context)
+):
+    """
+    Trigger re-analysis of field mappings using CrewAI agents.
+    This will regenerate field mappings with the latest logic.
+    """
+    try:
+        logger.info(f"🔄 Triggering field mapping re-analysis for import: {import_id}")
+        
+        # Get the data import
+        from app.models.data_import import DataImport
+        from sqlalchemy import select
+        
+        import_query = select(DataImport).where(DataImport.id == import_id)
+        import_result = await db.execute(import_query)
+        data_import = import_result.scalar_one_or_none()
+        
+        if not data_import:
+            raise HTTPException(status_code=404, detail=f"Data import {import_id} not found")
+        
+        # Trigger re-analysis via critical attributes module
+        from app.api.v1.endpoints.data_import.critical_attributes import _trigger_field_mapping_reanalysis
+        
+        await _trigger_field_mapping_reanalysis(context, data_import, db)
+        
+        return {
+            "status": "success",
+            "message": "Field mapping re-analysis triggered successfully",
+            "import_id": import_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error triggering field mapping re-analysis: {e}")
+        raise HTTPException(status_code=500, detail="Failed to trigger field mapping re-analysis")
+
+
 @router.post("/imports/{import_id}/generate")
 async def generate_field_mappings(
     import_id: str,

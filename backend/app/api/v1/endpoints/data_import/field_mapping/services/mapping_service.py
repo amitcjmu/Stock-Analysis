@@ -56,9 +56,13 @@ class MappingService:
         result = await self.db.execute(query)
         mappings = result.scalars().all()
         
+        # NO HARDCODED FILTERING - Let CrewAI agents determine what's valid
+        # The agents should have already made intelligent decisions about which fields to map
+        
         # CrewAI agents determine valid mappings - no hardcoded validation
         valid_mappings = []
         for mapping in mappings:
+            # Trust the agent decisions - no hardcoded filtering
                 
             valid_mappings.append(FieldMappingResponse(
                 id=mapping.id,

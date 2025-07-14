@@ -52,7 +52,8 @@ class DataCleansingExecutor(BasePhaseExecutor):
             
             if not client_account_id or not engagement_id:
                 logger.error("Missing multi-tenant context for agentic analysis")
-                return await self.execute_fallback()
+                # NO FALLBACK - Multi-tenant context is required
+                raise RuntimeError("Missing multi-tenant context for agentic analysis. This is required.")
             
             # Perform agentic asset enrichment
             enriched_assets = await enrich_assets_with_agentic_intelligence(
@@ -77,27 +78,14 @@ class DataCleansingExecutor(BasePhaseExecutor):
             
         except Exception as e:
             logger.error(f"❌ Agentic enrichment failed: {e}")
-            logger.info("🔄 Falling back to basic crew processing")
-            
-            # Fallback to original crew processing
-            crew = self.crew_manager.create_crew_on_demand("data_cleansing", **self._get_crew_context())
-            if not crew:
-                logger.warning("Data cleansing crew creation failed - using fallback")
-                return await self.execute_fallback()
-            crew_result = crew.kickoff(inputs=crew_input)
-            return self._process_crew_result(crew_result)
+            # NO FALLBACK - Re-raise the error to expose the issue
+            raise
     
-    async def execute_fallback(self) -> Dict[str, Any]:
-        raw_data_count = len(self.state.raw_data) if self.state.raw_data else 0
-        logger.info(f"🔍 Data cleansing fallback: Processing {raw_data_count} raw records")
-        
-        result = {
-            "cleaned_data": self.state.raw_data,
-            "quality_metrics": {"fallback_used": True, "records_processed": raw_data_count}
-        }
-        
-        logger.info(f"✅ Data cleansing fallback: Returning {len(result['cleaned_data'])} cleaned records")
-        return result
+    # COMMENTED OUT - NO FALLBACK ALLOWED
+    # async def execute_fallback(self) -> Dict[str, Any]:
+    #     """NO FALLBACK - This method should never be called"""
+    #     logger.error("❌ execute_fallback called for data_cleansing - NO FALLBACK ALLOWED")
+    #     raise RuntimeError("Fallback execution attempted for data_cleansing. Must use CrewAI agents.")
     
     def _prepare_crew_input(self) -> Dict[str, Any]:
         return {

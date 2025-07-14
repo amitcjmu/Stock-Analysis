@@ -11,6 +11,7 @@ interface AttributeMappingHeaderProps {
   onRefetch: () => void;
   onTriggerAnalysis: () => void;
   onContinueToDataCleansing: () => void;
+  onReprocessMappings?: () => void;
   flowStatus?: string;
   hasFieldMappings?: boolean;
   // NEW AGENTIC PROPS: SSE connection status
@@ -25,6 +26,7 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
   onRefetch,
   onTriggerAnalysis,
   onContinueToDataCleansing,
+  onReprocessMappings,
   flowStatus,
   hasFieldMappings,
   isSSEConnected,
@@ -110,6 +112,18 @@ export const AttributeMappingHeader: React.FC<AttributeMappingHeaderProps> = ({
           <Zap className="h-4 w-4" />
           <span>Trigger Analysis</span>
         </Button>
+        
+        {onReprocessMappings && hasFieldMappings && (
+          <Button
+            onClick={onReprocessMappings}
+            disabled={isAgenticLoading}
+            variant="outline"
+            className="flex items-center space-x-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            <span>Reprocess Mappings</span>
+          </Button>
+        )}
 
         {canContinueToDataCleansing && (
           <Button

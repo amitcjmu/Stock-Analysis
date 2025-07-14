@@ -47,10 +47,11 @@ class BasePhaseExecutor(ABC):
         """Execute phase using CrewAI crew"""
         pass
     
-    @abstractmethod
     def execute_fallback(self) -> Dict[str, Any]:
-        """Execute phase using fallback logic when crew is not available"""
-        pass
+        """NO FALLBACK - This method should never be called"""
+        phase_name = self.get_phase_name()
+        logger.error(f"❌ execute_fallback called for {phase_name} - NO FALLBACK ALLOWED")
+        raise RuntimeError(f"Fallback execution attempted for {phase_name}. All phases must use CrewAI agents.")
     
     async def execute(self, previous_result) -> str:
         """Main execution method - template pattern with PostgreSQL persistence"""
@@ -121,15 +122,17 @@ class BasePhaseExecutor(ABC):
                             timeout=20  # 20 second hard timeout
                         )
                     except asyncio.TimeoutError:
-                        logger.error(f"⏱️ Crew execution timed out after 20s, using fallback")
-                        results = await self.execute_fallback()
+                        # NO FALLBACK - Timeout is a real issue that needs to be fixed
+                        logger.error(f"⏱️ Crew execution timed out after 20s - NO FALLBACK")
+                        raise RuntimeError(f"CrewAI crew execution timed out for {phase_name}. This needs to be fixed.")
                 else:
-                    logger.warning(f"{phase_name} crew not available - using fallback")
-                    results = await self.execute_fallback()
+                    # NO FALLBACK - Crew creation failure is a real issue
+                    logger.error(f"{phase_name} crew not available - NO FALLBACK")
+                    raise RuntimeError(f"CrewAI crew creation failed for {phase_name}. This needs to be fixed.")
             else:
-                # Use fast fallback when explicitly enabled
-                logger.info(f"⚡ Using optimized fallback for {phase_name} (fast mode explicitly enabled)")
-                results = await self.execute_fallback()
+                # NO FALLBACK - CrewAI should always be available
+                logger.error(f"CrewAI not available or fast mode enabled - NO FALLBACK")
+                raise RuntimeError(f"CrewAI is not available for {phase_name}. This is a critical dependency.")
             
             # Store results and update state
             self._store_results(results)

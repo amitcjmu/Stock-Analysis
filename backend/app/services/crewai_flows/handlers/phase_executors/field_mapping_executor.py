@@ -47,8 +47,9 @@ class FieldMappingExecutor(BasePhaseExecutor):
         )
         
         if not crew:
-            logger.warning("Field mapping crew creation failed - using fallback")
-            return await self.execute_fallback()
+            # NO FALLBACK - Fail fast to expose the real issue
+            logger.error("Field mapping crew creation failed - NO FALLBACK")
+            raise RuntimeError("CrewAI field mapping crew creation failed. This is a critical error that needs to be fixed.")
         
         # Execute crew (this is synchronous)
         crew_result = crew.kickoff(inputs=crew_input)
@@ -59,8 +60,9 @@ class FieldMappingExecutor(BasePhaseExecutor):
     
     async def execute_fallback(self) -> Dict[str, Any]:
         """Execute field mapping using fallback logic - now properly async"""
-        logger.warning("Field mapping crew not available - using fallback")
-        return self._fallback_field_mapping()
+        # NO FALLBACK - Fail fast to expose the real issue
+        logger.error("Field mapping fallback called - NO FALLBACK ALLOWED")
+        raise RuntimeError("Field mapping fallback was called. This indicates CrewAI agents are not working properly and needs to be fixed.")
     
     def _get_crew_context(self) -> Dict[str, Any]:
         """Get context data for crew creation"""
@@ -136,123 +138,11 @@ class FieldMappingExecutor(BasePhaseExecutor):
             }
         }
     
-    def _fallback_field_mapping(self) -> Dict[str, Any]:
-        """Fallback field mapping logic using intelligent mapping patterns"""
-        # Get data from multiple possible sources
-        raw_data = None
-        
-        # Try raw_data attribute first
-        if hasattr(self.state, 'raw_data') and self.state.raw_data:
-            raw_data = self.state.raw_data
-        # Try phase_data
-        elif hasattr(self.state, 'phase_data') and 'data_import' in self.state.phase_data:
-            data_import_results = self.state.phase_data['data_import']
-            if isinstance(data_import_results, dict):
-                raw_data = (data_import_results.get('validated_data') or 
-                           data_import_results.get('raw_data') or 
-                           data_import_results.get('records'))
-        
-        if not raw_data:
-            return {
-                "mappings": {},
-                "validation_results": {
-                    "total_fields": 0,
-                    "mapped_fields": 0,
-                    "mapping_confidence": 0.0,
-                    "fallback_used": True
-                }
-            }
-        
-        # Get first record to analyze fields
-        sample_record = raw_data[0]
-        columns = list(sample_record.keys())
-        
-        # Import intelligent mapping helper
-        try:
-            from app.api.v1.endpoints.data_import.field_mapping.utils.mapping_helpers import intelligent_field_mapping, calculate_mapping_confidence
-            
-            mappings = {}
-            mapping_details = {}
-            skipped_fields = []
-            
-            for column in columns:
-                # Skip metadata fields
-                skip_fields = ['row_index', 'index', 'row_number', 'record_number', 'id']
-                if column.lower() in skip_fields:
-                    skipped_fields.append(column)
-                    continue
-                
-                # Use intelligent mapping
-                suggested_target = intelligent_field_mapping(column)
-                
-                if suggested_target:
-                    mappings[column] = suggested_target
-                    confidence = calculate_mapping_confidence(column, suggested_target)
-                    mapping_details[column] = {
-                        "target": suggested_target,
-                        "confidence": confidence,
-                        "method": "fallback_pattern_matching",
-                        "reasoning": f"Pattern-based mapping: '{column}' → '{suggested_target}' (confidence: {confidence:.2f})"
-                    }
-                else:
-                    # No mapping found
-                    mapping_details[column] = {
-                        "target": None,
-                        "confidence": 0.0,
-                        "method": "fallback_unmapped",
-                        "reasoning": f"No suitable mapping found for '{column}'"
-                    }
-            
-            logger.info(f"Fallback mapping: processed {len(columns)} fields, mapped {len(mappings)}, skipped {len(skipped_fields)}")
-            
-            return {
-                "mappings": mappings,
-                "mapping_details": mapping_details,
-                "validation_results": {
-                    "total_fields": len(columns) - len(skipped_fields),
-                    "mapped_fields": len(mappings),
-                    "skipped_fields": skipped_fields,
-                    "mapping_confidence": 0.6,  # Lower confidence for fallback
-                    "fallback_used": True
-                },
-                "crew_execution": False,
-                "execution_metadata": {
-                    "timestamp": self._get_timestamp(),
-                    "method": "fallback_intelligent_mapping"
-                }
-            }
-            
-        except ImportError:
-            logger.warning("Intelligent mapping helper not available, using basic patterns")
-            # Basic fallback if import fails
-            mappings = {}
-            for column in columns:
-                column_lower = column.lower()
-                if 'name' in column_lower or 'hostname' in column_lower:
-                    mappings[column] = 'name'
-                elif 'type' in column_lower or 'category' in column_lower:
-                    mappings[column] = 'asset_type'
-                elif 'env' in column_lower or 'environment' in column_lower:
-                    mappings[column] = 'environment'
-                elif 'ip' in column_lower or 'address' in column_lower:
-                    mappings[column] = 'ip_address'
-                elif 'os' in column_lower or 'operating' in column_lower:
-                    mappings[column] = 'operating_system'
-            
-            return {
-                "mappings": mappings,
-                "validation_results": {
-                    "total_fields": len(columns),
-                    "mapped_fields": len(mappings),
-                    "mapping_confidence": 0.5,  # Even lower confidence for basic fallback
-                    "fallback_used": True
-                },
-                "crew_execution": False,
-                "execution_metadata": {
-                    "timestamp": self._get_timestamp(),
-                    "method": "basic_fallback_mapping"
-                }
-            }
+    # COMMENTED OUT - NO FALLBACK ALLOWED
+    # def _fallback_field_mapping(self) -> Dict[str, Any]:
+    #     """Fallback field mapping logic using intelligent mapping patterns"""
+    #     # NO FALLBACK - This entire method should not be used
+    #     raise RuntimeError("Fallback field mapping called - this should not happen!")
     
     def _extract_mappings_from_text(self, text: str) -> Dict[str, str]:
         """Extract field mappings from text result"""
@@ -280,11 +170,10 @@ class FieldMappingExecutor(BasePhaseExecutor):
                     if source and target and not ' ' in source.strip() and len(source) < 50:
                         mappings[source] = target
         
-        # If no mappings found from the crew, use the fallback based on the raw data
-        if not mappings and hasattr(self.state, 'raw_data') and self.state.raw_data:
-            logger.info("🔄 No mappings extracted from crew result, using fallback pattern matching")
-            fallback_result = self._generate_fallback_suggestions()
-            mappings = fallback_result.get('mappings', {})
+        # NO FALLBACK - If no mappings found from crew, that's an error
+        if not mappings:
+            logger.error("❌ No mappings extracted from crew result - NO FALLBACK")
+            raise RuntimeError("CrewAI failed to generate field mappings. This needs to be fixed.")
         
         return mappings
     
@@ -429,17 +318,17 @@ class FieldMappingExecutor(BasePhaseExecutor):
                     except Exception as crew_error:
                         logger.error(f"❌ Crew execution failed: {crew_error}")
                         error_msg = str(crew_error)
-                        if "RateLimitError" in error_msg or "rate limit" in error_msg.lower():
-                            logger.warning("⚠️ LLM rate limit hit during crew execution - using fallback")
-                            results = await self._generate_fallback_suggestions()
-                        else:
-                            raise  # Re-raise non-rate-limit errors
+                        # NO FALLBACK - Even for rate limits, we need to fix the root cause
+                        logger.error(f"❌ NO FALLBACK - CrewAI crew execution failed: {error_msg}")
+                        raise  # Re-raise all errors
                 else:
-                    logger.warning("Field mapping crew not available - using fallback suggestions")
-                    results = await self._generate_fallback_suggestions()
+                    # NO FALLBACK - Crew creation failed
+                    logger.error("Field mapping crew not available - NO FALLBACK")
+                    raise RuntimeError("Field mapping crew creation failed. This needs to be fixed.")
             else:
-                # Use fallback suggestions
-                results = await self._generate_fallback_suggestions()
+                # NO FALLBACK - CrewAI not available
+                logger.error("CrewAI not available - NO FALLBACK")
+                raise RuntimeError("CrewAI is not available. This is a critical dependency that needs to be fixed.")
             
             # Extract mappings, clarifications, and confidence scores
             mappings = results.get("mappings", {})
@@ -474,21 +363,10 @@ class FieldMappingExecutor(BasePhaseExecutor):
         except Exception as e:
             logger.error(f"❌ Failed to generate mapping suggestions: {e}")
             
-            # Check if it's a rate limit error
+            # NO FALLBACK - Even for rate limits
             error_msg = str(e)
-            if "RateLimitError" in error_msg or "rate limit" in error_msg.lower():
-                logger.warning("⚠️ LLM rate limit hit - falling back to rule-based mapping")
-                # Use fallback suggestions without AI
-                return await self._generate_fallback_suggestions()
-            
-            # For other errors, return minimal suggestions
-            return {
-                "mappings": {},
-                "clarifications": ["Unable to generate automatic mapping suggestions. Please map fields manually."],
-                "confidence_scores": {},
-                "suggestions_generated": False,
-                "error": error_msg
-            }
+            logger.error(f"❌ NO FALLBACK - Failed with error: {error_msg}")
+            raise  # Re-raise the error to expose the issue
     
     def _process_mapping_suggestions(self, crew_result) -> Dict[str, Any]:
         """Process crew result for mapping suggestions"""
@@ -520,14 +398,9 @@ class FieldMappingExecutor(BasePhaseExecutor):
                 "confidence_scores": confidence_scores
             }
     
-    async def _generate_fallback_suggestions(self) -> Dict[str, Any]:
-        """Generate fallback mapping suggestions with clarifications"""
-        # Debug logging
-        logger.info(f"🔍 DEBUG: _generate_fallback_suggestions called")
-        logger.info(f"🔍 DEBUG: self.state type: {type(self.state)}")
-        logger.info(f"🔍 DEBUG: Has raw_data attr: {hasattr(self.state, 'raw_data')}")
-        if hasattr(self.state, 'raw_data'):
-            logger.info(f"🔍 DEBUG: raw_data type: {type(self.state.raw_data)}, length: {len(self.state.raw_data) if self.state.raw_data else 'None'}")
+    # COMMENTED OUT - NO FALLBACK ALLOWED
+    # The entire _generate_fallback_suggestions method has been removed.
+    # We should only use CrewAI agents, no hardcoded fallback logic.
         
         # Try to get data from multiple sources
         raw_data = None

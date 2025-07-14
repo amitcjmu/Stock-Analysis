@@ -248,55 +248,20 @@ def _agent_determine_criticality(
     """
     Use agent intelligence to determine field criticality.
     
-    This replaces static heuristics with agent-learned patterns
-    for determining which fields are migration-critical.
+    NO HARDCODED PATTERNS - This should be determined by CrewAI agents
+    based on the actual data and context, not static rules.
     """
     
-    # Agent-learned critical field patterns
-    AGENT_CRITICAL_PATTERNS = {
-        # Identity fields - critical for asset tracking
-        "hostname": {"category": "identity", "required": True, "migration_critical": True, "business_impact": "high"},
-        "asset_name": {"category": "identity", "required": True, "migration_critical": True, "business_impact": "high"},
-        "ip_address": {"category": "network", "required": True, "migration_critical": True, "business_impact": "high"},
-        
-        # Business context - critical for planning
-        "environment": {"category": "business", "required": True, "migration_critical": True, "business_impact": "high"},
-        "business_criticality": {"category": "business", "required": True, "migration_critical": True, "business_impact": "high"},
-        "application_name": {"category": "application", "required": True, "migration_critical": True, "business_impact": "high"},
-        
-        # Technical specs - critical for sizing
-        "operating_system": {"category": "technical", "required": True, "migration_critical": True, "business_impact": "medium"},
-        "cpu_cores": {"category": "technical", "required": False, "migration_critical": True, "business_impact": "medium"},
-        "memory_gb": {"category": "technical", "required": False, "migration_critical": True, "business_impact": "medium"},
-        
-        # Dependencies - critical for sequencing
-        "dependencies": {"category": "dependencies", "required": False, "migration_critical": True, "business_impact": "high"},
-        
-        # Ownership - important for communication
-        "owner": {"category": "business", "required": False, "migration_critical": False, "business_impact": "medium"},
-        "department": {"category": "business", "required": False, "migration_critical": False, "business_impact": "low"}
-    }
+    # NO HARDCODED PATTERNS - Agents should determine this dynamically
+    # The CrewAI agents have tools to analyze the data and determine criticality
+    # They should use:
+    # - AssetSchemaAnalysisTool to understand the target schema
+    # - DataPatternAnalysisTool to analyze the actual data
+    # - MappingHistoryTool to learn from past decisions
+    # - Context about the specific migration project
     
-    # Get agent pattern or use intelligent defaults
-    pattern = AGENT_CRITICAL_PATTERNS.get(target_field, {
-        "category": "uncategorized",
-        "required": False,
-        "migration_critical": False,
-        "business_impact": "low"
-    })
-    
-    # Agent confidence scoring based on field analysis
-    confidence = enhanced_analysis.get("field_confidence", {}).get(source_field, 0.7)
-    quality_score = min(95, int(confidence * 100) + 10)
-    
-    return {
-        "category": pattern["category"],
-        "required": pattern["required"],
-        "migration_critical": pattern["migration_critical"],
-        "business_impact": pattern["business_impact"],
-        "quality_score": quality_score,
-        "ai_reasoning": f"Agent analysis: {source_field} -> {target_field} mapping with {confidence:.2f} confidence"
-    }
+    logger.error("❌ Hardcoded criticality patterns called - this should use CrewAI agents")
+    raise RuntimeError("Critical field determination must use CrewAI agents, not hardcoded patterns.")
 
 
 async def _trigger_discovery_flow_analysis(
@@ -345,13 +310,156 @@ async def _trigger_discovery_flow_analysis(
                 'source': 'critical_attributes_analysis'
             })()
             
-            # The execute_discovery_flow method doesn't exist
-            # Instead, we should trigger field mapping re-analysis
-            logger.warning("⚠️ Discovery flow re-analysis not implemented yet")
-            # TODO: Implement proper field mapping re-analysis
+            # Trigger field mapping re-analysis
+            await _trigger_field_mapping_reanalysis(context, data_import, db)
             
-            logger.info(f"🚀 Discovery flow re-analysis needed for: {flow_id}")
+            logger.info(f"🚀 Discovery flow re-analysis triggered for: {flow_id}")
     except ImportError:
         logger.warning("Discovery flow service not available")
     except Exception as e:
-        logger.error(f"Failed to trigger discovery flow: {e}") 
+        logger.error(f"Failed to trigger discovery flow: {e}")
+
+
+async def _trigger_field_mapping_reanalysis(
+    context: RequestContext,
+    data_import: DataImport,
+    db: AsyncSession
+):
+    """
+    Trigger re-analysis of field mappings using the discovery flow's field mapping phase.
+    This will regenerate field mappings using CrewAI agents with the latest logic.
+    """
+    try:
+        logger.info(f"🔄 Starting field mapping re-analysis for data_import: {data_import.id}")
+        
+        # Get the discovery flow associated with this data import
+        from app.models.discovery_flow import DiscoveryFlow
+        
+        flow_query = select(DiscoveryFlow).where(
+            DiscoveryFlow.data_import_id == data_import.id
+        )
+        flow_result = await db.execute(flow_query)
+        discovery_flow = flow_result.scalar_one_or_none()
+        
+        if not discovery_flow:
+            logger.error(f"❌ No discovery flow found for data_import_id: {data_import.id}")
+            return
+        
+        # Get raw data from the import
+        from app.models.data_import import RawImportRecord
+        raw_records_query = select(RawImportRecord).where(
+            RawImportRecord.data_import_id == data_import.id
+        ).limit(100)  # Get sample for analysis
+        
+        raw_records_result = await db.execute(raw_records_query)
+        raw_records = raw_records_result.scalars().all()
+        
+        if not raw_records:
+            logger.error(f"❌ No raw records found for data_import_id: {data_import.id}")
+            return
+        
+        # Extract raw data from records
+        raw_data = [record.raw_data for record in raw_records if record.raw_data]
+        
+        if not raw_data:
+            logger.error(f"❌ No raw data available in records")
+            return
+        
+        logger.info(f"📊 Found {len(raw_data)} raw records for re-analysis")
+        
+        # Use the field mapping executor to regenerate mappings
+        from app.services.crewai_flows.handlers.phase_executors.field_mapping_executor import FieldMappingExecutor
+        from app.services.crewai_flows.handlers.unified_flow_crew_manager import UnifiedFlowCrewManager
+        
+        # Create a minimal state object for the executor
+        class FlowState:
+            def __init__(self):
+                self.raw_data = raw_data
+                self.data_import_id = str(data_import.id)
+                self.flow_id = discovery_flow.flow_id
+                self.client_account_id = context.client_account_id
+                self.engagement_id = context.engagement_id
+                self.current_phase = "attribute_mapping"
+        
+        flow_state = FlowState()
+        
+        # Create crew manager
+        crew_manager = UnifiedFlowCrewManager(
+            llm_config={"model": "deepinfra"},
+            flow_state=flow_state
+        )
+        
+        # Create and execute field mapping executor
+        executor = FieldMappingExecutor(crew_manager, flow_state)
+        
+        # Execute field mapping analysis
+        logger.info("🤖 Executing field mapping re-analysis with CrewAI agents...")
+        result = await executor.execute_suggestions_only({})
+        
+        if result and result.get("mappings"):
+            logger.info(f"✅ Field mapping re-analysis completed. Generated {len(result['mappings'])} mappings")
+            
+            # Update existing field mappings in the database
+            await _update_field_mappings_from_reanalysis(
+                data_import.id, 
+                result["mappings"], 
+                result.get("confidence_scores", {}),
+                db
+            )
+        else:
+            logger.warning("⚠️ Field mapping re-analysis returned no mappings")
+            
+    except Exception as e:
+        logger.error(f"❌ Failed to trigger field mapping re-analysis: {e}", exc_info=True)
+
+
+async def _update_field_mappings_from_reanalysis(
+    data_import_id: str,
+    new_mappings: Dict[str, str],
+    confidence_scores: Dict[str, float],
+    db: AsyncSession
+):
+    """
+    Update existing field mappings with new mappings from re-analysis.
+    """
+    try:
+        from sqlalchemy import update
+        
+        # Get existing field mappings
+        existing_query = select(ImportFieldMapping).where(
+            ImportFieldMapping.data_import_id == data_import_id
+        )
+        existing_result = await db.execute(existing_query)
+        existing_mappings = existing_result.scalars().all()
+        
+        updated_count = 0
+        
+        for mapping in existing_mappings:
+            source_field = mapping.source_field
+            
+            # Check if we have a new mapping for this field
+            if source_field in new_mappings:
+                new_target = new_mappings[source_field]
+                new_confidence = confidence_scores.get(source_field, 0.7)
+                
+                # Update the mapping
+                mapping.target_field = new_target
+                mapping.confidence_score = new_confidence
+                mapping.match_type = "agent_reanalysis"
+                mapping.transformation_rules = {
+                    "method": "agent_reanalysis",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "confidence": new_confidence
+                }
+                mapping.updated_at = datetime.utcnow()
+                
+                updated_count += 1
+        
+        # Commit the updates
+        await db.commit()
+        
+        logger.info(f"✅ Updated {updated_count} field mappings from re-analysis")
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to update field mappings from re-analysis: {e}")
+        await db.rollback() 

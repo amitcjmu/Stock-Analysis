@@ -168,10 +168,8 @@ class ImportStorageManager:
                 from app.api.v1.endpoints.data_import.field_mapping.utils.mapping_helpers import intelligent_field_mapping, calculate_mapping_confidence
                 
                 for field_name in sample_record.keys():
-                    # Skip metadata fields that shouldn't be mapped
-                    skip_fields = ['row_index', 'index', 'row_number', 'record_number', 'id']
-                    if field_name.lower() in skip_fields:
-                        continue
+                    # NO HARDCODED SKIPPING - Let CrewAI agents decide what's metadata
+                    # The agents should determine which fields are metadata vs real data
                     
                     # Use intelligent mapping to get suggested target
                     suggested_target = intelligent_field_mapping(field_name)

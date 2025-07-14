@@ -196,19 +196,24 @@ class DataImportValidationExecutor(BasePhaseExecutor):
                     crew_result = await crew.kickoff_async(crew_input)
                     return self._process_crew_result(crew_result)
                 else:
-                    logger.warning("⚠️ Data import validation crew creation failed - using fallback")
-                    return await self.execute_fallback()
+                    # NO FALLBACK - Crew creation failure is a real issue
+                    logger.error("⚠️ Data import validation crew creation failed - NO FALLBACK")
+                    raise RuntimeError("Data import validation crew creation failed. This needs to be fixed.")
             else:
-                logger.warning("⚠️ Data import validation crew not available - using fallback")
-                return await self.execute_fallback()
+                # NO FALLBACK - Crew not available is a real issue
+                logger.error("⚠️ Data import validation crew not available - NO FALLBACK")
+                raise RuntimeError("Data import validation crew not available. This needs to be fixed.")
                 
         except Exception as e:
             logger.error(f"❌ CrewAI data import validation failed: {e}")
-            return await self.execute_fallback()
+            # NO FALLBACK - Re-raise the error to expose the issue
+            raise
     
-    async def execute_fallback(self) -> Dict[str, Any]:
-        """Fallback data validation with agent-like intelligence"""
-        try:
+    # COMMENTED OUT - NO FALLBACK ALLOWED
+    # async def execute_fallback(self) -> Dict[str, Any]:
+    #     """NO FALLBACK - This method should never be called"""
+    #     logger.error("❌ execute_fallback called for data_import_validation - NO FALLBACK ALLOWED")
+    #     raise RuntimeError("Fallback execution attempted for data_import_validation. Must use CrewAI agents.")
             logger.info("🔄 Executing fallback data import validation with agent patterns")
             start_time = time.time()
             
