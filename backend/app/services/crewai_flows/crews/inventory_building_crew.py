@@ -41,11 +41,11 @@ class InventoryBuildingCrew:
         # Get proper LLM configuration from our LLM config service
         try:
             from app.services.llm_config import get_crewai_llm
-            self.llm = get_crewai_llm()
+            self.llm_model = get_crewai_llm()
             logger.info("✅ Inventory Building Crew using configured DeepInfra LLM")
         except Exception as e:
             logger.warning(f"Failed to get configured LLM, using fallback: {e}")
-            self.llm = getattr(crewai_service, 'llm', None)
+            self.llm_model = getattr(crewai_service, 'llm', None)
         
         # Setup shared memory and knowledge base
         self.shared_memory = shared_memory or self._setup_shared_memory()
@@ -134,7 +134,7 @@ class InventoryBuildingCrew:
             - Cross-domain dependencies requiring business context
             - Asset classification confidence below acceptable thresholds
             """,
-            llm=self.llm,
+            llm=self.llm_model,
             memory=self.shared_memory,
             knowledge_base=self.knowledge_base,
             verbose=True,
@@ -196,7 +196,7 @@ class InventoryBuildingCrew:
             - Conflicting hosting relationship indicators
             - Server classification confidence below 80%
             """,
-            llm=self.llm,
+            llm=self.llm_model,
             memory=self.shared_memory,
             knowledge_base=self.knowledge_base,
             verbose=True,
@@ -213,7 +213,7 @@ class InventoryBuildingCrew:
             backstory="""You are an application portfolio expert with deep knowledge of enterprise 
             applications. You excel at identifying application types, versions, business criticality, 
             and hosting relationships for migration strategy.""",
-            llm=self.llm,
+            llm=self.llm_model,
             memory=self.shared_memory,
             knowledge_base=self.knowledge_base,
             verbose=True,
@@ -230,7 +230,7 @@ class InventoryBuildingCrew:
             backstory="""You are a network infrastructure expert with knowledge of enterprise device 
             topologies. You excel at identifying network devices, security appliances, and 
             infrastructure components that support migration planning.""",
-            llm=self.llm,
+            llm=self.llm_model,
             memory=self.shared_memory,
             knowledge_base=self.knowledge_base,
             verbose=True,
@@ -321,9 +321,9 @@ class InventoryBuildingCrew:
         if CREWAI_ADVANCED_AVAILABLE:
             # Ensure manager_llm uses our configured LLM and not gpt-4o-mini
             crew_config.update({
-                "manager_llm": self.llm,  # Critical: Use our DeepInfra LLM
+                "manager_llm": self.llm_model,  # Critical: Use our DeepInfra LLM
                 "planning": False,  # DISABLED: Causing loops
-                "planning_llm": self.llm,  # Force planning to use our LLM too
+                "planning_llm": self.llm_model,  # Force planning to use our LLM too
                 "memory": False,  # DISABLED: Causing APIStatusError loops
                 "knowledge": None,  # DISABLED: Causing API errors
                 "share_crew": False,  # DISABLED: Causing complexity
@@ -332,10 +332,10 @@ class InventoryBuildingCrew:
             
             # Additional environment override to prevent any gpt-4o-mini fallback
             import os
-            os.environ["OPENAI_MODEL_NAME"] = str(self.llm.model) if hasattr(self.llm, 'model') else "deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+            os.environ["OPENAI_MODEL_NAME"] = str(self.llm_model) if isinstance(self.llm_model, str) else "deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
         
         logger.info(f"Creating Inventory Building Crew with {process.name if hasattr(process, 'name') else 'sequential'} process")
-        logger.info(f"Using LLM: {self.llm.model if hasattr(self.llm, 'model') else 'Unknown'}")
+        logger.info(f"Using LLM: {self.llm_model if isinstance(self.llm_model, str) else 'Unknown'}")
         return Crew(**crew_config)
     
     def _identify_asset_type_indicators(self, data: List[Dict[str, Any]]) -> Dict[str, int]:

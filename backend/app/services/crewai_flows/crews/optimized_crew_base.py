@@ -9,6 +9,8 @@ Implements performance optimizations for all CrewAI crews:
 """
 
 import logging
+import asyncio
+from datetime import datetime
 from typing import Dict, List, Any, Optional
 from crewai import Agent, Task, Crew, Process
 from crewai.memory import LongTermMemory, ShortTermMemory
@@ -39,7 +41,7 @@ class OptimizedCrewBase:
         self.enable_parallel = enable_parallel
         
         # Get optimized LLM configuration
-        self.llm = self._get_optimized_llm()
+        self.llm_model = self._get_optimized_llm()
         
         # Initialize memory configuration
         self.memory_config = self._get_memory_configuration()
@@ -57,17 +59,10 @@ class OptimizedCrewBase:
     def _get_optimized_llm(self):
         """Get optimized LLM configuration"""
         try:
-            llm = get_crewai_llm()
-            
-            # Apply performance optimizations
-            if hasattr(llm, 'temperature'):
-                llm.temperature = 0.3  # Lower temperature for consistency
-            if hasattr(llm, 'max_tokens'):
-                llm.max_tokens = 2000  # Limit token usage
-            if hasattr(llm, 'timeout'):
-                llm.timeout = 30  # 30 second timeout
-                
-            return llm
+            llm_model = get_crewai_llm()
+            # Note: With string model names, we can't directly set temperature/max_tokens
+            # These need to be configured in the agent creation or through environment variables
+            return llm_model
             
         except Exception as e:
             logger.warning(f"Failed to get optimized LLM: {e}")
@@ -117,7 +112,7 @@ class OptimizedCrewBase:
             "role": role,
             "goal": goal,
             "backstory": backstory,
-            "llm": self.llm,
+            "llm": self.llm_model,
             "tools": tools or [],
             "verbose": True,
             "max_iter": 3,  # Limit iterations for performance

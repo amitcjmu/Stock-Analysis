@@ -38,11 +38,11 @@ class AppAppDependencyCrew:
         # Get proper LLM configuration from our LLM config service
         try:
             from app.services.llm_config import get_crewai_llm
-            self.llm = get_crewai_llm()
+            self.llm_model = get_crewai_llm()
             logger.info("✅ App-App Dependency Crew using configured DeepInfra LLM")
         except Exception as e:
             logger.warning(f"Failed to get configured LLM, using fallback: {e}")
-            self.llm = getattr(crewai_service, 'llm', None)
+            self.llm_model = getattr(crewai_service, 'llm', None)
         
         # Setup shared memory and knowledge base
         self.shared_memory = shared_memory or self._setup_shared_memory()
@@ -98,7 +98,7 @@ class AppAppDependencyCrew:
             backstory="""You are an enterprise integration architect with expertise in application 
             integration patterns and dependency mapping. You excel at coordinating integration analysis 
             across complex enterprise application portfolios and ensuring comprehensive dependency discovery.""",
-            llm=self.llm,
+            llm=self.llm_model,
             memory=self.shared_memory,
             knowledge=self.knowledge_base,
             verbose=True,
@@ -114,7 +114,7 @@ class AppAppDependencyCrew:
             backstory="""You are an expert in enterprise application integration with deep knowledge of 
             integration patterns, APIs, messaging, and data flows. You excel at identifying how applications 
             communicate and depend on each other for business functionality.""",
-            llm=self.llm,
+            llm=self.llm_model,
             memory=self.shared_memory,
             knowledge=self.knowledge_base,
             verbose=True,
@@ -129,7 +129,7 @@ class AppAppDependencyCrew:
             backstory="""You are a business process expert with extensive experience in analyzing business 
             workflows and application dependencies. You excel at understanding which applications support 
             critical business processes and how they must be sequenced for migration.""",
-            llm=self.llm,
+            llm=self.llm_model,
             memory=self.shared_memory, 
             knowledge=self.knowledge_base,
             verbose=True,
@@ -237,9 +237,9 @@ class AppAppDependencyCrew:
         if CREWAI_ADVANCED_AVAILABLE:
             # Ensure manager_llm uses our configured LLM and not gpt-4o-mini
             crew_config.update({
-                "manager_llm": self.llm,  # Critical: Use our DeepInfra LLM
+                "manager_llm": self.llm_model,  # Critical: Use our DeepInfra LLM
                 "planning": True,
-                "planning_llm": self.llm,  # Force planning to use our LLM too
+                "planning_llm": self.llm_model,  # Force planning to use our LLM too
                 "memory": True,
                 "knowledge": self.knowledge_base,
                 "share_crew": True,
@@ -248,10 +248,10 @@ class AppAppDependencyCrew:
             
             # Additional environment override to prevent any gpt-4o-mini fallback
             import os
-            os.environ["OPENAI_MODEL_NAME"] = str(self.llm.model) if hasattr(self.llm, 'model') else "deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+            os.environ["OPENAI_MODEL_NAME"] = str(self.llm_model) if isinstance(self.llm_model, str) else "deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
         
         logger.info(f"Creating App-App Dependency Crew with {process.name if hasattr(process, 'name') else 'sequential'} process")
-        logger.info(f"Using LLM: {self.llm.model if hasattr(self.llm, 'model') else 'Unknown'}")
+        logger.info(f"Using LLM: {self.llm_model if isinstance(self.llm_model, str) else 'Unknown'}")
         return Crew(**crew_config)
     
     def _create_integration_analysis_tools(self):

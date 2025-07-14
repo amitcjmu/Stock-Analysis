@@ -57,11 +57,11 @@ class AgenticAssetEnrichmentCrew:
         # Get LLM configuration
         try:
             from app.services.llm_config import get_crewai_llm
-            self.llm = get_crewai_llm()
+            self.llm_model = get_crewai_llm()
             logger.info("✅ Using configured LLM for agentic enrichment")
         except Exception as e:
             logger.warning(f"Failed to get configured LLM: {e}")
-            self.llm = getattr(crewai_service, 'llm', None)
+            self.llm_model = getattr(crewai_service, 'llm', None)
         
         logger.info(f"✅ Agentic Asset Enrichment Crew initialized for engagement {engagement_id}")
     
@@ -91,7 +91,7 @@ class AgenticAssetEnrichmentCrew:
             
             tools=tools,
             memory=True,  # Enable CrewAI memory (Tier 1)
-            llm=self.llm,
+            llm=self.llm_model,
             verbose=True,
             allow_delegation=False,
             max_iter=3,
@@ -108,7 +108,7 @@ class AgenticAssetEnrichmentCrew:
             
             tools=tools,
             memory=True,  # Enable CrewAI memory (Tier 1)
-            llm=self.llm,
+            llm=self.llm_model,
             verbose=True,
             allow_delegation=False,
             max_iter=2,

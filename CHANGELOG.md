@@ -1,5 +1,37 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [1.7.6] - 2025-07-14
+
+### 🐛 **HOTFIX** - CrewAI LLM Configuration for litellm Compatibility
+
+Fixed CrewAI LLM configuration to work with litellm's CustomLLM initialization requirements.
+
+### 🔧 **LLM Configuration Updates**
+
+#### **Fixed CustomLLM Initialization**
+- **Issue**: `CustomLLM.__init__() got an unexpected keyword argument 'model'`
+- **Root Cause**: CrewAI internally uses litellm's CustomLLM which doesn't accept model in __init__
+- **Solution**: Changed `get_crewai_llm()` to return model string instead of LLM object
+- **Impact**: CrewAI can now properly initialize agents with DeepInfra models
+
+#### **Updated All Crew Files**
+- **Changed**: All crew files now use `llm_model` (string) instead of `llm` (object)
+- **Pattern**: Agents receive model string directly: `llm=llm_model`
+- **Files Updated**: 9 crew files across the codebase
+- **Benefit**: Consistent pattern that works with CrewAI's internal LLM handling
+
+### 📊 **Business Impact**
+
+- **Stability**: Eliminates LLM initialization errors
+- **Compatibility**: Works with latest CrewAI and litellm versions
+- **Performance**: No impact on performance, just configuration fix
+
+### 🎯 **Technical Details**
+
+- CrewAI expects model strings and handles LLM creation internally
+- litellm's CustomLLM requires model to be passed to parent class
+- Our solution bypasses the issue by letting CrewAI handle LLM instantiation
+
 ## [1.7.5] - 2025-07-14
 
 ### 🐛 **CRITICAL FIXES** - CrewAI Agent Execution & Fast Mode Disabled

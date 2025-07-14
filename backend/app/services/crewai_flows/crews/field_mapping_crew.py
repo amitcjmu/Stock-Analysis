@@ -163,11 +163,11 @@ class FieldMappingCrew:
         # Get proper LLM configuration from our LLM config service
         try:
             from app.services.llm_config import get_crewai_llm
-            self.llm = get_crewai_llm()
+            self.llm_model = get_crewai_llm()
             logger.info("✅ Field Mapping Crew using configured DeepInfra LLM")
         except Exception as e:
             logger.warning(f"Failed to get configured LLM, using fallback: {e}")
-            self.llm = getattr(crewai_service, 'llm', None)
+            self.llm_model = getattr(crewai_service, 'llm', None)
         
         logger.info("✅ Field Mapping Crew initialized with FULL agentic capabilities")
     
@@ -191,7 +191,7 @@ class FieldMappingCrew:
             - Detecting composite information that needs synthesis
             
             Your strength is looking beyond field names to understand what the data actually represents.""",
-            "llm": self.llm,
+            "llm": self.llm_model,
             "verbose": False,
             "allow_delegation": True,
             "tools": [pattern_tool],
@@ -213,7 +213,7 @@ class FieldMappingCrew:
             
             You NEVER make assumptions. You analyze the actual data patterns and the complete
             Asset schema to make intelligent mapping decisions.""",
-            "llm": self.llm,
+            "llm": self.llm_model,
             "verbose": False,
             "allow_delegation": True,
             "tools": [schema_tool, pattern_tool],
@@ -235,7 +235,7 @@ class FieldMappingCrew:
             
             You ensure that when multiple source fields contain related information, they are
             properly synthesized without overwriting each other.""",
-            "llm": self.llm,
+            "llm": self.llm_model,
             "verbose": False,
             "allow_delegation": False,
             "tools": [pattern_tool],

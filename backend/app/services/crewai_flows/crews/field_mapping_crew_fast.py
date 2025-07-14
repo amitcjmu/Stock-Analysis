@@ -45,10 +45,10 @@ def create_fast_field_mapping_crew(crewai_service, state: UnifiedDiscoveryFlowSt
     try:
         logger.info("🚀 Creating FAST Field Mapping Crew for performance")
         
-        # Get LLM configuration with proper model
+        # Get LLM model string for CrewAI
         from app.services.llm_config import get_crewai_llm
-        llm = get_crewai_llm(model="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8")
-        logger.info(f"Using LLM: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8")
+        llm_model = get_crewai_llm(model="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8")
+        logger.info(f"Using LLM model: {llm_model}")
         
         # Extract field names from raw data for mapping
         sample_fields = []
@@ -64,7 +64,7 @@ def create_fast_field_mapping_crew(crewai_service, state: UnifiedDiscoveryFlowSt
             You work efficiently using proven mapping patterns and provide direct results.""",
             verbose=False,  # Reduce logging overhead
             allow_delegation=False,  # CRITICAL: Prevent agent delegation
-            llm=llm,
+            llm=llm_model,
             max_iter=1,  # Single iteration for speed
             max_execution_time=15  # 15 second timeout
         )
@@ -118,7 +118,7 @@ def _create_minimal_mapping_fallback(crewai_service, state: UnifiedDiscoveryFlow
     """Ultra-minimal fallback crew for field mapping"""
     try:
         from app.services.llm_config import get_crewai_llm
-        llm = get_crewai_llm(model="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8")
+        llm_model = get_crewai_llm(model="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8")
         
         minimal_agent = Agent(
             role="Field Mapper",
@@ -126,7 +126,7 @@ def _create_minimal_mapping_fallback(crewai_service, state: UnifiedDiscoveryFlow
             backstory="Fast field mapping specialist",
             verbose=False,
             allow_delegation=False,
-            llm=llm,
+            llm=llm_model,
             max_iter=1
         )
         

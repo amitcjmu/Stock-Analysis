@@ -104,31 +104,21 @@ def get_crewai_llm(model: str = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-F
     The deepinfra_logprobs_fixer input callback handles logprobs removal globally.
     
     Returns:
-        CrewAI LLM instance configured for DeepInfra
+        String identifier for litellm to use with CrewAI
     """
-    # Import CrewAI's LLM class
-    try:
-        from crewai import LLM
-    except ImportError:
-        logging.error("CrewAI not installed. Please install crewai package.")
-        raise ImportError("CrewAI is required for LLM configuration.")
-    
-    logging.info(f"Configuring CrewAI LLM: Model='{model}', Temperature='{temperature}', Provider='{LLM_PROVIDER}'")
+    logging.info(f"Configuring LLM: Model='{model}', Temperature='{temperature}', Provider='{LLM_PROVIDER}'")
 
     api_key = os.getenv("DEEPINFRA_API_KEY")
     if not api_key:
         logging.error("DEEPINFRA_API_KEY environment variable not set.")
         raise ValueError("DEEPINFRA_API_KEY is required.")
 
-    # Create the CrewAI LLM instance with DeepInfra configuration
-    # The input callback will handle removing logprobs from all DeepInfra requests
-    llm = LLM(
-        model=f"deepinfra/{model}",  # CrewAI expects the provider prefix
-        temperature=temperature,
-        api_key=api_key,
-        api_base="https://api.deepinfra.com/v1/openai",
-        max_tokens=DEEPINFRA_PARAMS["max_tokens"]
-    )
-
-    logging.info(f"Successfully created CrewAI LLM instance for model '{model}'.")
-    return llm 
+    # Set the API key in environment for litellm to use
+    os.environ["DEEPINFRA_API_KEY"] = api_key
+    
+    # Return the model string with provider prefix for litellm
+    # CrewAI will handle the LLM creation internally
+    model_string = f"deepinfra/{model}"
+    
+    logging.info(f"Configured LLM model string: '{model_string}'")
+    return model_string 
