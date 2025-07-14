@@ -1,5 +1,44 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [1.7.5] - 2025-07-14
+
+### 🐛 **CRITICAL FIXES** - CrewAI Agent Execution & Fast Mode Disabled
+
+Fixed multiple issues preventing proper CrewAI agent execution and disabled fast mode to use real agents.
+
+### 🔧 **Configuration Fixes**
+
+#### **Fast Mode Properly Disabled**
+- **Fixed**: Environment variable `USE_FAST_DISCOVERY_MODE=true` was overriding config settings
+- **Changed**: Set `USE_FAST_DISCOVERY_MODE=false` in docker-compose.yml
+- **Impact**: System now uses real CrewAI agents instead of pattern-based fallbacks
+- **Note**: Must restart containers for this change to take effect
+
+#### **LLM Configuration Fixed**
+- **Fixed**: `CustomLLM.__init__() got an unexpected keyword argument 'model'` error
+- **Updated**: Changed from `litellm.CustomLLM` to `crewai.LLM` for proper integration
+- **Added**: Proper "deepinfra/" prefix to model names as CrewAI expects
+- **Result**: CrewAI crews can now properly instantiate and use DeepInfra models
+
+#### **Validation Logging Improved**
+- **Fixed**: Misleading "Unknown validation failure" log when validation actually passes
+- **Changed**: Only log validation failures when validation actually fails
+- **Benefit**: Clearer debugging and no false error messages
+
+### 📊 **Business Impact**
+
+- **Quality**: Real CrewAI agents provide intelligent data analysis vs pattern matching
+- **Accuracy**: Proper LLM-based validation instead of hardcoded patterns
+- **Performance**: Slightly slower but significantly more accurate results
+- **Debugging**: Clear logs showing actual validation status
+
+### 🎯 **Technical Details**
+
+- Environment variable override was taking precedence over config file
+- LLM configuration was using wrong class for CrewAI integration
+- Validation executor had incorrect error handling logic
+- All fixes ensure proper CrewAI agent execution path
+
 ## [1.7.4] - 2025-07-14
 
 ### 🎯 **CONFIGURATION FIX** - Disable Fast Mode by Default

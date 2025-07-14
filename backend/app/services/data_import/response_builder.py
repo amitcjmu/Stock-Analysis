@@ -72,7 +72,8 @@ class ImportResponseBuilder:
             "import_flow_id": data_import_id,  # Frontend expects this field
             "flow_id": flow_id,
             "message": message,
-            "records_stored": records_stored
+            "records_stored": records_stored,
+            "progress_percentage": None  # Add missing field
         }
     
     def error_response(
@@ -103,7 +104,8 @@ class ImportResponseBuilder:
             "flow_id": flow_id,
             "error": error_message,
             "message": f"Import failed: {error_message}",
-            "records_stored": records_stored
+            "records_stored": records_stored,
+            "progress_percentage": None  # Add missing field
         }
     
     def partial_success_response(
@@ -136,7 +138,8 @@ class ImportResponseBuilder:
             "flow_id": flow_id,
             "error": flow_error,
             "message": message,
-            "records_stored": records_stored
+            "records_stored": records_stored,
+            "progress_percentage": None  # Add missing field
         }
     
     def validation_error_response(
@@ -164,7 +167,8 @@ class ImportResponseBuilder:
             "message": validation_message,
             "data_import_id": None,
             "flow_id": None,
-            "records_stored": 0
+            "records_stored": 0,
+            "progress_percentage": None  # Add missing field
         }
         
         if field:
@@ -200,7 +204,8 @@ class ImportResponseBuilder:
             "message": conflict_message,
             "data_import_id": None,
             "flow_id": None,
-            "records_stored": 0
+            "records_stored": 0,
+            "progress_percentage": None  # Add missing field
         }
         
         if existing_flow:

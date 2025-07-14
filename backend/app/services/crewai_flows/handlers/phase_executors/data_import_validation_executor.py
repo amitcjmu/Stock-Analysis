@@ -60,12 +60,15 @@ class DataImportValidationExecutor(BasePhaseExecutor):
             self.state.raw_data = results["validated_data"]
         
         is_valid = results.get("is_valid", False)
-        reason = results.get("reason", "Unknown validation failure")
+        reason = results.get("reason", "")
         
         if is_valid:
             self.state.phase_completion["data_import"] = True
             logger.info(f"✅ DEBUG: Data import phase marked as completed")
         else:
+            # Only log failure if validation actually failed
+            if not reason:
+                reason = "Validation failed without specific reason"
             logger.warning(f"⚠️ DEBUG: Data import validation failed: {reason}")
             logger.warning(f"⚠️ DEBUG: Full validation results: {results}")
             
