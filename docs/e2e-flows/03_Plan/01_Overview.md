@@ -71,3 +71,4 @@ The backend for the Plan Overview would aggregate data from various planning act
 | **API Call Fails (404)**          | If the implemented API call returns a 404, the backend route has not been created yet.      | Create the corresponding route in `backend/app/api/v1/endpoints/plan.py`.                                          |
 | **Summary Metrics are Incorrect** | The aggregation query in the `PlanSummaryRepository` is likely incorrect.                 | Debug the SQL query to ensure it's correctly joining and counting the data from the planning tables.              |
 
+

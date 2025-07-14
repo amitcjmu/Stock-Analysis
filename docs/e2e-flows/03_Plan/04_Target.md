@@ -68,3 +68,4 @@ The backend for target environment planning would involve an agent that designs 
 | **Target Plan is Empty**      | If the API returns an empty object, it means no `sixr_analyses` have been completed.              | Go back to the "Treatment" page and ensure that applications have been analyzed and have recommendations.      |
 | **Architecture is Sub-optimal** | The `TargetArchitectureAgent`'s logic for selecting cloud services may be flawed.                | Debug the agent's decision-making process. It may need more context or better training data to make optimal choices. |
 
+

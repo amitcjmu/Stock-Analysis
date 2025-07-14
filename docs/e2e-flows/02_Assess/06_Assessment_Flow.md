@@ -91,3 +91,4 @@ The backend for the assessment flow is a sophisticated state machine that coordi
 | **Data Not Saving (`PUT` calls)** | Check the payload of the `PUT` request in the network tab. The data might not match the Pydantic schema. | Ensure the frontend is sending data in the exact format the backend endpoint expects. Check for type mismatches. |
 | **Navigation Fails**              | The `navigateToPhase` endpoint might have logic preventing out-of-order phase execution.                   | Ensure the UI is correctly disabling navigation to phases that are not yet active.                                |
 
+

@@ -68,3 +68,4 @@ The backend for resource planning would involve an agent that analyzes the proje
 | **Resource Plan is Empty**| If the API returns an empty object, it means no `project_timeline` has been created for this engagement. | Go back to the "Timeline" page and ensure a timeline has been generated and saved first.                    |
 | **Utilization is Incorrect** | The `ResourceAllocationAgent`'s logic for calculating utilization may be flawed.                      | Debug the agent's algorithm for assigning tasks and calculating team member allocation percentages.           |
 
+

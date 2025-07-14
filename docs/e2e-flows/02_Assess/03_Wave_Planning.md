@@ -84,3 +84,4 @@ The backend for wave planning involves a specialized agent that uses the results
 | **Agent Fails to Generate Plan** | If the initial `GET` request hangs or returns a 500 error, the `Wave Planning Coordinator` may have failed. | Check the backend logs for errors within the `Wave Planning Coordinator` agent. It might be missing dependency data from the Discovery phase. |
 | **Updates Don't Save**       | If the `PUT` request fails, check the payload being sent.                                                   | The user's changes may have created an invalid state (e.g., circular dependencies). The validation logic in the `update_wave_plan` endpoint should be checked. |
 
+

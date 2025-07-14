@@ -31,6 +31,7 @@ COPY backend/ .
 
 # Copy and setup entrypoint script
 COPY backend/scripts/docker-entrypoint.sh /entrypoint.sh
+RUN sed -i 's/\r$//g' /entrypoint.sh
 RUN chmod +x /entrypoint.sh /app/scripts/init_database.py
 
 # Create app user

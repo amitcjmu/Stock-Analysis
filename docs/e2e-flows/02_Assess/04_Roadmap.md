@@ -72,3 +72,4 @@ The backend for the roadmap would aggregate data from the wave planning phase to
 | **Roadmap is Empty**     | If the API returns an empty object, it means no `WavePlan` has been created for this engagement. | Go back to the "Wave Planning" page and ensure a plan has been generated and saved first.                |
 | **Timeline is Incorrect**| Check the agent logic for the `RoadmapVisualizationAgent`.                              | The agent's logic for converting wave plan dates into a visual timeline may have a bug. Debug the agent's transformation logic. |
 
+

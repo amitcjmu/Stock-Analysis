@@ -67,3 +67,4 @@ The backend for the timeline would be responsible for generating a detailed proj
 | **Page Shows No Data**   | Check the network tab for a 404 on `/api/v1/plan/timeline`. The feature may not be implemented yet. | Implement the `/api/v1/plan/timeline` endpoint on the backend. Ensure it is connected to the `TimelineRepository`. |
 | **Timeline is Empty**    | If the API returns an empty object, it means no `WavePlan` has been created for this engagement. | Go back to the "Wave Planning" page and ensure a plan has been generated and saved first, as the timeline depends on it. |
 | **Critical Path is Wrong** | The `ProjectSchedulerAgent`'s critical path analysis logic may be flawed.              | Debug the agent's algorithm for identifying dependencies and calculating the critical path.                 |
+

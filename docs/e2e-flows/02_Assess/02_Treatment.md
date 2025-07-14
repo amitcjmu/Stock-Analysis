@@ -95,3 +95,4 @@ The backend for the Treatment page is a complex system involving multiple CrewAI
 | **Recommendation Seems Wrong**    | Review the `iteration_history` in the `useSixRAnalysis` state to see the parameters and answers that led to the result. | Use the "Iterate" feature to adjust the parameters and guide the AI agents toward a better recommendation.     |
 | **Batch Jobs (`useAnalysisQueue`) Stuck** | Check the logs for the `migration_backend` container. Look for errors in the Celery workers that process the queue. | The queue processing logic might have a bug. `docker exec` into the container and debug the worker scripts. |
 
+
