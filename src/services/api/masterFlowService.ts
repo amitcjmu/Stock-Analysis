@@ -29,12 +29,20 @@ export interface MasterFlowResponse {
 
 export interface FlowStatusResponse {
   flowId: string;
+  flow_id?: string; // Some endpoints return flow_id instead of flowId
   status: string;
-  progress: number;
-  currentPhase: string;
-  phaseDetails: Record<string, any>;
-  errors: string[];
-  metadata: Record<string, any>;
+  progress?: number;
+  progress_percentage?: number; // Backend uses this
+  currentPhase?: string;
+  current_phase?: string; // Some endpoints use snake_case
+  phase?: string; // Another variant
+  phaseDetails?: Record<string, any>;
+  phase_completion?: Record<string, boolean>; // For phase completion tracking
+  errors?: string[];
+  metadata?: Record<string, any>;
+  awaitingUserApproval?: boolean;
+  awaiting_user_approval?: boolean; // Snake case variant
+  lastUpdated?: string;
   field_mappings?: Array<{
     id: string;
     source_field: string;

@@ -1,5 +1,46 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [1.7.7] - 2025-07-14
+
+### 🐛 **COMPREHENSIVE FIX** - DeepInfra Logprobs Issue & Frontend Error Handling
+
+Fixed the DeepInfra logprobs validation error that was preventing CrewAI agents from executing properly, and resolved frontend undefined value errors.
+
+### 🔧 **Backend Fixes**
+
+#### **DeepInfra Response Parser Fix**
+- **Issue**: DeepInfra returns `logprobs: null` causing Pydantic validation errors
+- **Solution**: Created response parser patch that converts null values to empty lists
+- **Files**: Added `deepinfra_response_fixer.py` with ChoiceLogprobs patch
+- **Impact**: CrewAI agents can now execute without litellm.RateLimitError
+
+#### **Enhanced LLM Configuration**
+- **Added**: Input callbacks to set `logprobs=False` for all DeepInfra requests
+- **Added**: `litellm.drop_params = True` to skip unsupported parameters
+- **Result**: Multiple layers of protection against logprobs issues
+
+### 🔧 **Frontend Fixes**
+
+#### **Undefined Progress Handling**
+- **Fixed**: "progress_percentage is not defined" error in SimplifiedFlowStatus
+- **Added**: Null coalescing operators (??) for safe access
+- **Updated**: FlowStatusResponse interface to handle API response variations
+- **Result**: No more runtime errors when progress values are undefined
+
+### 📊 **Business Impact**
+
+- **Stability**: CrewAI agents now execute successfully without rate limit errors
+- **Reliability**: Frontend displays flow status without crashing
+- **User Experience**: Smooth data import and processing flow
+- **Performance**: No impact on performance, only error handling improved
+
+### 🎯 **Technical Details**
+
+- DeepInfra always returns logprobs structure even when not requested
+- Patched litellm's response parsing to handle null top_logprobs
+- Frontend now handles both camelCase and snake_case API responses
+- Comprehensive error handling at multiple layers
+
 ## [1.7.6] - 2025-07-14
 
 ### 🐛 **HOTFIX** - CrewAI LLM Configuration for litellm Compatibility

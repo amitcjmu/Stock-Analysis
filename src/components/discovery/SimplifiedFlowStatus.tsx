@@ -32,8 +32,8 @@ export const SimplifiedFlowStatus: React.FC<SimplifiedFlowStatusProps> = ({
     if (!flowStatus) return null;
 
     const { status, currentPhase, progress, awaitingUserApproval } = flowStatus;
-    const current_phase = currentPhase || flowStatus.current_phase;
-    const progress_percentage = progress || flowStatus.progress_percentage || 0;
+    const current_phase = currentPhase || flowStatus.current_phase || flowStatus.phase;
+    const progress_percentage = progress ?? flowStatus.progress_percentage ?? flowStatus.progress ?? 0;
     const awaiting_user_approval = awaitingUserApproval || flowStatus.awaiting_user_approval;
 
     // Determine display properties
@@ -132,7 +132,7 @@ export const SimplifiedFlowStatus: React.FC<SimplifiedFlowStatusProps> = ({
             Discovery Flow Status
           </div>
           <Badge variant="outline">
-            {Math.round(progress_percentage)}% Complete
+            {Math.round(progress_percentage || 0)}% Complete
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -154,9 +154,9 @@ export const SimplifiedFlowStatus: React.FC<SimplifiedFlowStatusProps> = ({
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span>Overall Progress</span>
-            <span>{Math.round(progress_percentage)}%</span>
+            <span>{Math.round(progress_percentage || 0)}%</span>
           </div>
-          <Progress value={progress_percentage} className="w-full" />
+          <Progress value={progress_percentage || 0} className="w-full" />
         </div>
 
         {/* Phase Completion */}
