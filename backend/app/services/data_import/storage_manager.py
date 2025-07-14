@@ -77,7 +77,12 @@ class ImportStorageManager:
                     filename=filename,
                     file_size=file_size,
                     mime_type=file_type,
+                    source_system=intended_type,  # Set source system based on intended type
                     status="pending",
+                    progress_percentage=0.0,  # Initialize progress
+                    total_records=0,  # Will be updated when records are stored
+                    processed_records=0,
+                    failed_records=0,
                     imported_by=user_id
                 )
                 self.db.add(data_import)
@@ -185,7 +190,9 @@ class ImportStorageManager:
         data_import: DataImport,
         status: str,
         total_records: int = 0,
-        processed_records: int = 0
+        processed_records: int = 0,
+        error_message: Optional[str] = None,
+        error_details: Optional[Dict[str, Any]] = None
     ) -> None:
         """
         Update the import status and record counts.
@@ -201,10 +208,23 @@ class ImportStorageManager:
             data_import.total_records = total_records
             data_import.processed_records = processed_records
             
+            # Calculate and update progress percentage
+            if total_records > 0:
+                data_import.progress_percentage = (processed_records / total_records) * 100
+            else:
+                data_import.progress_percentage = 0.0
+            
             if status == "completed":
                 data_import.completed_at = datetime.utcnow()
+                data_import.progress_percentage = 100.0
+            elif status == "discovery_initiated":
+                data_import.progress_percentage = 10.0  # Discovery flow started
+            elif status in ["failed", "discovery_failed"]:
+                data_import.error_message = error_message
+                data_import.error_details = error_details
+                # Keep existing progress percentage on failure
                 
-            logger.info(f"✅ Updated import {data_import.id} status to {status}")
+            logger.info(f"✅ Updated import {data_import.id} status to {status} (progress: {data_import.progress_percentage}%)")
             
         except Exception as e:
             logger.error(f"Failed to update import status: {e}")
@@ -417,9 +437,9 @@ class ImportStorageManager:
                         "field_mappings_updated": False
                     }
                 
-                # Extract the PRIMARY KEY (id) for foreign key references
-                master_flow_pk_id = master_flow_record.id
-                logger.info(f"✅ Master flow {master_flow_id} found - using PK {master_flow_pk_id} for foreign key references")
+                # The foreign keys actually reference flow_id column, not the primary key id
+                # Just use the flow_id directly since that's what the FK constraint references
+                logger.info(f"✅ Master flow {master_flow_id} found in database")
                 
                 # Initialize results tracking
                 results = {
@@ -436,14 +456,14 @@ class ImportStorageManager:
                         DataImport.id == data_import_id,
                         DataImport.client_account_id == self.client_account_id
                     ).values(
-                        master_flow_id=master_flow_pk_id,  # Use PRIMARY KEY, not flow_id
+                        master_flow_id=master_flow_id,  # Use the flow_id directly as that's what the FK references
                         updated_at=func.now()
                     )
                     result = await fresh_db.execute(update_stmt)
                     results["data_import_updated"] = result.rowcount > 0
                     
                     if results["data_import_updated"]:
-                        logger.info(f"✅ Updated DataImport record with master_flow_id PK: {master_flow_pk_id} (flow_id: {master_flow_id})")
+                        logger.info(f"✅ Updated DataImport record with master_flow_id: {master_flow_id}")
                     else:
                         logger.warning(f"⚠️ No DataImport record found with ID {data_import_id}")
                         
@@ -458,13 +478,13 @@ class ImportStorageManager:
                         RawImportRecord.data_import_id == data_import_id,
                         RawImportRecord.client_account_id == self.client_account_id
                     ).values(
-                        master_flow_id=master_flow_pk_id  # Use PRIMARY KEY, not flow_id
+                        master_flow_id=master_flow_id  # Use the flow_id directly as that's what the FK references
                     )
                     result = await fresh_db.execute(update_stmt)
                     results["raw_import_records_updated"] = result.rowcount
                     
                     if results["raw_import_records_updated"] > 0:
-                        logger.info(f"✅ Updated {results['raw_import_records_updated']} RawImportRecord records with master_flow_id PK: {master_flow_pk_id}")
+                        logger.info(f"✅ Updated {results['raw_import_records_updated']} RawImportRecord records with master_flow_id: {master_flow_id}")
                     else:
                         logger.warning(f"⚠️ No RawImportRecord records found for data_import_id {data_import_id}")
                         
@@ -477,12 +497,12 @@ class ImportStorageManager:
                 try:
                     update_stmt = update(ImportFieldMapping).where(
                         ImportFieldMapping.data_import_id == data_import_id
-                    ).values(master_flow_id=master_flow_pk_id, updated_at=func.now())  # Use PRIMARY KEY, not flow_id
+                    ).values(master_flow_id=master_flow_id, updated_at=func.now())  # Use the flow_id directly as that's what the FK references
                     result = await fresh_db.execute(update_stmt)
                     results["field_mappings_updated"] = result.rowcount > 0
                     
                     if results["field_mappings_updated"]:
-                        logger.info(f"✅ Updated ImportFieldMapping records with master_flow_id PK: {master_flow_pk_id}")
+                        logger.info(f"✅ Updated ImportFieldMapping records with master_flow_id: {master_flow_id}")
                     else:
                         logger.warning(f"⚠️ No ImportFieldMapping records found for data_import_id {data_import_id}")
                         
@@ -498,7 +518,6 @@ class ImportStorageManager:
                 if results["success"]:
                     logger.info(f"🎉 Successfully completed master_flow_id linkage for data_import_id: {data_import_id}")
                     logger.info(f"📊 Results: DataImport={results['data_import_updated']}, RawRecords={results['raw_import_records_updated']}, FieldMappings={results['field_mappings_updated']}")
-                    logger.info(f"🔑 Used PRIMARY KEY {master_flow_pk_id} for foreign key references (flow_id: {master_flow_id})")
                 else:
                     logger.error(f"💥 Master_flow_id linkage failed for data_import_id: {data_import_id} - Error: {results['error']}")
                 
@@ -563,3 +582,56 @@ class ImportStorageManager:
         except Exception as e:
             logger.error(f"Failed to retrieve raw records: {e}")
             return []
+    
+    async def update_raw_records_with_cleansed_data(
+        self,
+        data_import_id: uuid_pkg.UUID,
+        cleansed_data: List[Dict[str, Any]],
+        validation_results: Optional[Dict[str, Any]] = None
+    ) -> int:
+        """
+        Update raw import records with cleansed data and validation results.
+        
+        Args:
+            data_import_id: ID of the data import
+            cleansed_data: List of cleansed data records
+            validation_results: Optional validation results from data validation phase
+            
+        Returns:
+            Number of records updated
+        """
+        try:
+            # Get existing raw records
+            raw_records = await self.get_raw_records(data_import_id, limit=10000)
+            
+            if not raw_records:
+                logger.warning(f"No raw records found for data_import_id {data_import_id}")
+                return 0
+            
+            updated_count = 0
+            
+            # Match cleansed data to raw records by index
+            for idx, raw_record in enumerate(raw_records):
+                if idx < len(cleansed_data):
+                    # Update the raw record with cleansed data
+                    raw_record.cleansed_data = cleansed_data[idx]
+                    raw_record.is_processed = True
+                    raw_record.processed_at = datetime.utcnow()
+                    
+                    # Add validation results if available
+                    if validation_results:
+                        raw_record.validation_errors = validation_results.get("validation_errors", {})
+                        raw_record.processing_notes = validation_results.get("summary", "Data cleansed and validated")
+                        raw_record.is_valid = validation_results.get("is_valid", True)
+                    
+                    updated_count += 1
+            
+            # Flush changes to database
+            await self.db.flush()
+            
+            logger.info(f"✅ Updated {updated_count} raw records with cleansed data")
+            return updated_count
+            
+        except Exception as e:
+            logger.error(f"Failed to update raw records with cleansed data: {e}")
+            return 0

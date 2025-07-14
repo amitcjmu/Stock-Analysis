@@ -179,7 +179,9 @@ class ImportStorageHandler:
                 else:
                     await self.storage_manager.update_import_status(
                         data_import=data_import,
-                        status="discovery_failed"
+                        status="discovery_failed",
+                        error_message=flow_error_message,
+                        error_details={"flow_creation_error": str(flow_error_message)}
                     )
                 
                 # Transaction will be committed automatically by context manager

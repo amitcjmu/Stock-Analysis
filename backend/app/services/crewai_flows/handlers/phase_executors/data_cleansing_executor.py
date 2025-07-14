@@ -8,6 +8,7 @@ import logging
 import uuid
 from typing import Dict, Any, List
 from .base_phase_executor import BasePhaseExecutor
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +122,9 @@ class DataCleansingExecutor(BasePhaseExecutor):
         self.state.data_quality_metrics = results.get("quality_metrics", {})
         
         logger.info(f"✅ Data cleansing state updated: cleaned_data has {len(self.state.cleaned_data)} records")
+        
+        # Update raw_import_records with cleansed data
+        self._update_raw_records_with_cleansed_data(cleaned_data)
     
     def _process_crew_result(self, crew_result) -> Dict[str, Any]:
         """Process data cleansing crew result and extract cleaned data"""
@@ -311,4 +315,59 @@ class DataCleansingExecutor(BasePhaseExecutor):
             "agentic_analysis_used": True,
             "total_assets_processed": total_assets,
             "successfully_enriched": successful_enrichments
-        } 
+        }
+    
+    def _safe_float_convert(self, value: Any) -> float:
+        """Safely convert a value to float, returning 0.0 if conversion fails"""
+        try:
+            if value is None:
+                return 0.0
+            return float(value)
+        except (ValueError, TypeError):
+            return 0.0
+    
+    def _update_raw_records_with_cleansed_data(self, cleaned_data: List[Dict[str, Any]]):
+        """Update raw_import_records in the database with cleansed data"""
+        try:
+            # Get data_import_id from state
+            data_import_id = getattr(self.state, 'data_import_id', None)
+            if not data_import_id:
+                logger.warning("No data_import_id in state - cannot update raw records")
+                return
+            
+            # Get validation results from state if available
+            validation_results = getattr(self.state, 'data_validation_results', None)
+            
+            # Create async task to update database
+            async def update_records():
+                try:
+                    from app.core.database import AsyncSessionLocal
+                    from app.services.data_import.storage_manager import ImportStorageManager
+                    
+                    async with AsyncSessionLocal() as db:
+                        storage_manager = ImportStorageManager(db, str(self.state.client_account_id))
+                        
+                        # Convert data_import_id to UUID if it's a string
+                        import uuid as uuid_pkg
+                        if isinstance(data_import_id, str):
+                            import_uuid = uuid_pkg.UUID(data_import_id)
+                        else:
+                            import_uuid = data_import_id
+                        
+                        updated_count = await storage_manager.update_raw_records_with_cleansed_data(
+                            data_import_id=import_uuid,
+                            cleansed_data=cleaned_data,
+                            validation_results=validation_results
+                        )
+                        
+                        await db.commit()
+                        logger.info(f"✅ Updated {updated_count} raw records with cleansed data")
+                        
+                except Exception as e:
+                    logger.error(f"Failed to update raw records with cleansed data: {e}")
+            
+            # Run the async update in the background
+            asyncio.create_task(update_records())
+            
+        except Exception as e:
+            logger.error(f"Error setting up raw records update: {e}") 
