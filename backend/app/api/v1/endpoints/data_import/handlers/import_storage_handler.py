@@ -66,28 +66,28 @@ async def store_import_data(
         # Delegate to the modular service
         response = await import_handler.handle_import(store_request, context)
         
-        # Handle HTTP exceptions based on response
-        if not response.success and response.error:
+        # Handle HTTP exceptions based on response (dict)
+        if not response.get("success") and response.get("error"):
             # Check if this is a conflict error
-            if "incomplete_discovery_flow_exists" in response.error:
+            if "incomplete_discovery_flow_exists" in response.get("error", ""):
                 raise HTTPException(
                     status_code=409,  # Conflict
                     detail={
                         "error": "incomplete_discovery_flow_exists",
-                        "message": response.message,
-                        "existing_flow": getattr(response, 'existing_flow', None),
-                        "recommendations": getattr(response, 'recommendations', None)
+                        "message": response.get("message", ""),
+                        "existing_flow": response.get("existing_flow"),
+                        "recommendations": response.get("recommendations")
                     }
                 )
-            elif "validation_error" in response.error:
+            elif "validation_error" in response.get("error", ""):
                 raise HTTPException(
                     status_code=400,  # Bad Request
-                    detail=response.message
+                    detail=response.get("message", "")
                 )
             else:
                 raise HTTPException(
                     status_code=500,  # Internal Server Error
-                    detail=response.message
+                    detail=response.get("message", "")
                 )
         
         return response
