@@ -163,14 +163,34 @@ class ImportStorageManager:
             if file_data:
                 # Create basic field mappings for each column
                 sample_record = file_data[0]
+                
+                # Import the intelligent mapping helper
+                from app.api.v1.endpoints.data_import.field_mapping.utils.mapping_helpers import intelligent_field_mapping, calculate_mapping_confidence
+                
                 for field_name in sample_record.keys():
+                    # Skip metadata fields that shouldn't be mapped
+                    skip_fields = ['row_index', 'index', 'row_number', 'record_number', 'id']
+                    if field_name.lower() in skip_fields:
+                        continue
+                    
+                    # Use intelligent mapping to get suggested target
+                    suggested_target = intelligent_field_mapping(field_name)
+                    
+                    # Calculate confidence if we have a mapping
+                    confidence = 0.3  # Low confidence for unmapped fields
+                    match_type = "unmapped"
+                    
+                    if suggested_target:
+                        confidence = calculate_mapping_confidence(field_name, suggested_target)
+                        match_type = "intelligent"
+                    
                     field_mapping = ImportFieldMapping(
                         data_import_id=data_import.id,
                         client_account_id=self.client_account_id,
                         source_field=field_name,
-                        target_field=field_name.lower().replace(' ', '_'),
-                        confidence_score=0.8,  # Default confidence
-                        match_type="direct",
+                        target_field=suggested_target or "UNMAPPED",  # Use UNMAPPED for fields without mapping
+                        confidence_score=confidence,
+                        match_type=match_type,
                         status="suggested",
                         master_flow_id=master_flow_id
                     )

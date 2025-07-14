@@ -7,6 +7,8 @@ Split from unified_flow_phase_executor.py for better modularity.
 import logging
 from typing import Dict, Any, List
 from .base_phase_executor import BasePhaseExecutor
+import asyncio
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -104,6 +106,9 @@ class FieldMappingExecutor(BasePhaseExecutor):
     def _store_results(self, results: Dict[str, Any]):
         """Store execution results in state"""
         self.state.field_mappings = results
+        
+        # Update database field mappings with the results
+        self._update_database_field_mappings(results)
     
     def _process_field_mapping_results(self, crew_result) -> Dict[str, Any]:
         """Process field mapping crew results"""
@@ -132,7 +137,7 @@ class FieldMappingExecutor(BasePhaseExecutor):
         }
     
     def _fallback_field_mapping(self) -> Dict[str, Any]:
-        """Fallback field mapping logic"""
+        """Fallback field mapping logic using intelligent mapping patterns"""
         # Get data from multiple possible sources
         raw_data = None
         
@@ -162,37 +167,92 @@ class FieldMappingExecutor(BasePhaseExecutor):
         sample_record = raw_data[0]
         columns = list(sample_record.keys())
         
-        # Simple mapping logic based on common field patterns
-        mappings = {}
-        for column in columns:
-            column_lower = column.lower()
-            if 'name' in column_lower or 'hostname' in column_lower:
-                mappings[column] = 'name'
-            elif 'type' in column_lower or 'category' in column_lower:
-                mappings[column] = 'asset_type'
-            elif 'env' in column_lower or 'environment' in column_lower:
-                mappings[column] = 'environment'
-            elif 'ip' in column_lower or 'address' in column_lower:
-                mappings[column] = 'ip_address'
-            elif 'os' in column_lower or 'operating' in column_lower:
-                mappings[column] = 'operating_system'
-            else:
-                mappings[column] = column  # Default to same name
-        
-        return {
-            "mappings": mappings,
-            "validation_results": {
-                "total_fields": len(columns),
-                "mapped_fields": len(mappings),
-                "mapping_confidence": 0.6,  # Lower confidence for fallback
-                "fallback_used": True
-            },
-            "crew_execution": False,
-            "execution_metadata": {
-                "timestamp": self._get_timestamp(),
-                "method": "fallback_field_mapping"
+        # Import intelligent mapping helper
+        try:
+            from app.api.v1.endpoints.data_import.field_mapping.utils.mapping_helpers import intelligent_field_mapping, calculate_mapping_confidence
+            
+            mappings = {}
+            mapping_details = {}
+            skipped_fields = []
+            
+            for column in columns:
+                # Skip metadata fields
+                skip_fields = ['row_index', 'index', 'row_number', 'record_number', 'id']
+                if column.lower() in skip_fields:
+                    skipped_fields.append(column)
+                    continue
+                
+                # Use intelligent mapping
+                suggested_target = intelligent_field_mapping(column)
+                
+                if suggested_target:
+                    mappings[column] = suggested_target
+                    confidence = calculate_mapping_confidence(column, suggested_target)
+                    mapping_details[column] = {
+                        "target": suggested_target,
+                        "confidence": confidence,
+                        "method": "fallback_pattern_matching",
+                        "reasoning": f"Pattern-based mapping: '{column}' → '{suggested_target}' (confidence: {confidence:.2f})"
+                    }
+                else:
+                    # No mapping found
+                    mapping_details[column] = {
+                        "target": None,
+                        "confidence": 0.0,
+                        "method": "fallback_unmapped",
+                        "reasoning": f"No suitable mapping found for '{column}'"
+                    }
+            
+            logger.info(f"Fallback mapping: processed {len(columns)} fields, mapped {len(mappings)}, skipped {len(skipped_fields)}")
+            
+            return {
+                "mappings": mappings,
+                "mapping_details": mapping_details,
+                "validation_results": {
+                    "total_fields": len(columns) - len(skipped_fields),
+                    "mapped_fields": len(mappings),
+                    "skipped_fields": skipped_fields,
+                    "mapping_confidence": 0.6,  # Lower confidence for fallback
+                    "fallback_used": True
+                },
+                "crew_execution": False,
+                "execution_metadata": {
+                    "timestamp": self._get_timestamp(),
+                    "method": "fallback_intelligent_mapping"
+                }
             }
-        }
+            
+        except ImportError:
+            logger.warning("Intelligent mapping helper not available, using basic patterns")
+            # Basic fallback if import fails
+            mappings = {}
+            for column in columns:
+                column_lower = column.lower()
+                if 'name' in column_lower or 'hostname' in column_lower:
+                    mappings[column] = 'name'
+                elif 'type' in column_lower or 'category' in column_lower:
+                    mappings[column] = 'asset_type'
+                elif 'env' in column_lower or 'environment' in column_lower:
+                    mappings[column] = 'environment'
+                elif 'ip' in column_lower or 'address' in column_lower:
+                    mappings[column] = 'ip_address'
+                elif 'os' in column_lower or 'operating' in column_lower:
+                    mappings[column] = 'operating_system'
+            
+            return {
+                "mappings": mappings,
+                "validation_results": {
+                    "total_fields": len(columns),
+                    "mapped_fields": len(mappings),
+                    "mapping_confidence": 0.5,  # Even lower confidence for basic fallback
+                    "fallback_used": True
+                },
+                "crew_execution": False,
+                "execution_metadata": {
+                    "timestamp": self._get_timestamp(),
+                    "method": "basic_fallback_mapping"
+                }
+            }
     
     def _extract_mappings_from_text(self, text: str) -> Dict[str, str]:
         """Extract field mappings from text result"""
@@ -244,6 +304,100 @@ class FieldMappingExecutor(BasePhaseExecutor):
         except Exception:
             # Final fallback
             return datetime.utcnow().isoformat()
+    
+    def _update_database_field_mappings(self, results: Dict[str, Any]):
+        """Update field mappings in the database based on phase results"""
+        try:
+            # Get data_import_id from state
+            data_import_id = getattr(self.state, 'data_import_id', None)
+            if not data_import_id:
+                logger.warning("No data_import_id in state - cannot update field mappings")
+                return
+            
+            # Get mappings and details from results
+            mappings = results.get("mappings", {})
+            mapping_details = results.get("mapping_details", {})
+            crew_execution = results.get("crew_execution", False)
+            fallback_used = results.get("validation_results", {}).get("fallback_used", False)
+            
+            # Create async task to update database
+            async def update_mappings():
+                try:
+                    from app.core.database import AsyncSessionLocal
+                    from app.models.data_import import ImportFieldMapping
+                    from sqlalchemy import select, update
+                    import uuid as uuid_pkg
+                    
+                    async with AsyncSessionLocal() as db:
+                        # Convert data_import_id to UUID if needed
+                        if isinstance(data_import_id, str):
+                            import_uuid = uuid_pkg.UUID(data_import_id)
+                        else:
+                            import_uuid = data_import_id
+                        
+                        # Get existing field mappings
+                        query = select(ImportFieldMapping).where(
+                            ImportFieldMapping.data_import_id == import_uuid
+                        )
+                        result = await db.execute(query)
+                        existing_mappings = result.scalars().all()
+                        
+                        updated_count = 0
+                        
+                        # Update each mapping based on the results
+                        for mapping_record in existing_mappings:
+                            source_field = mapping_record.source_field
+                            
+                            # Check if we have a mapping for this field
+                            if source_field in mappings:
+                                new_target = mappings[source_field]
+                                
+                                # Get details if available
+                                details = mapping_details.get(source_field, {})
+                                confidence = details.get("confidence", 0.7)
+                                reasoning = details.get("reasoning", "")
+                                
+                                # Update the mapping
+                                mapping_record.target_field = new_target
+                                mapping_record.confidence_score = confidence
+                                mapping_record.match_type = "agent" if crew_execution else "intelligent"
+                                mapping_record.transformation_rules = {
+                                    "method": "agent_mapping" if crew_execution else "pattern_mapping",
+                                    "reasoning": reasoning,
+                                    "crew_execution": crew_execution,
+                                    "fallback_used": fallback_used,
+                                    "updated_at": datetime.utcnow().isoformat()
+                                }
+                                
+                                updated_count += 1
+                            elif source_field in mapping_details:
+                                # Field was analyzed but no mapping found
+                                details = mapping_details[source_field]
+                                
+                                mapping_record.target_field = "UNMAPPED"
+                                mapping_record.confidence_score = 0.0
+                                mapping_record.match_type = "unmapped"
+                                mapping_record.transformation_rules = {
+                                    "method": "no_mapping_found",
+                                    "reasoning": details.get("reasoning", "No suitable mapping found"),
+                                    "crew_execution": crew_execution,
+                                    "fallback_used": fallback_used,
+                                    "updated_at": datetime.utcnow().isoformat()
+                                }
+                                
+                                updated_count += 1
+                        
+                        await db.commit()
+                        logger.info(f"✅ Updated {updated_count} field mappings in database (agent: {crew_execution}, fallback: {fallback_used})")
+                        
+                except Exception as e:
+                    logger.error(f"Failed to update field mappings in database: {e}")
+            
+            # Run the async update in the background
+            asyncio.create_task(update_mappings())
+            
+        except Exception as e:
+            logger.error(f"Error setting up field mapping database update: {e}")
     
     async def execute_suggestions_only(self, previous_result) -> Dict[str, Any]:
         """Execute field mapping in suggestions-only mode - generates mappings and clarifications"""
