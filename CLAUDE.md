@@ -455,20 +455,29 @@ backend/archive/legacy/              # 🗂️ ARCHIVED LEGACY CODE
 └── app/api/v1/discovery_flow_new.py # ❌ Mixed v1/v3 implementation
 ```
 
-### **Frontend Structure (Transition State)**
+### **Frontend Structure (Post January 2025 Cleanup)**
 ```
 src/hooks/
-└── useUnifiedDiscoveryFlow.ts     # ⚠️ Mixed v1/v3 API calls
+├── useUnifiedDiscoveryFlow.ts     # ⚠️ Mixed v1/v3 API calls
+└── discovery/
+    └── useDiscoveryFlowStatus.ts  # ✅ NEW: Consolidated flow status hook (replaces duplicates)
 
 src/pages/discovery/
 ├── CMDBImport.tsx                 # ✅ Uses v1 API, route fixed to /discovery/cmdb-import
 └── AttributeMapping.tsx           # ⚠️ Field mapping UI issues
+
+src/components/discovery/
+└── SimplifiedFlowStatus.tsx       # ✅ Updated to use consolidated hook
 
 src/config/
 └── flowRoutes.ts                  # ✅ Centralized routing for all flow types
 
 src/utils/migration/
 └── sessionToFlow.ts               # ⚠️ Migration utilities still active
+
+DELETED (January 2025 Cleanup):
+- src/archive/hooks/discovery/useDiscoveryFlowV2.ts
+- src/archive/hooks/discovery/useIncompleteFlowDetectionV2.ts
 ```
 
 ## Major Cleanup Status (98% Complete)
@@ -488,6 +497,9 @@ src/utils/migration/
 - ✅ **Master-Child Flow Linkage**: Discovery flows properly linked to master flows
 - ✅ **Deletion Cascade**: Master flow deletion cascades to all child flows
 - ✅ **Frontend API Fixed**: Corrected endpoints for flow management
+- ✅ **Discovery Flow Status Polling Fixed**: Consolidated duplicate implementations (January 2025)
+- ✅ **Unused Discovery Endpoints Removed**: Cleaned up abort and processing-status endpoints
+- ✅ **Frontend Hooks Consolidated**: Created useDiscoveryFlowStatus to replace 6 duplicate hooks
 
 ### **⚠️ Remaining Work (1-2 weeks)**
 - Session_id → flow_id cleanup in remaining files
@@ -514,6 +526,8 @@ src/utils/migration/
 7. **Hard-coding business rules** - Platform is real CrewAI-first by design
 8. **Creating flows without master registration** - ALL flow types MUST register with CrewAIFlowStateExtensions
 9. **Router prefix duplication** - API routers should NOT have their own prefix when included with prefix
+10. **Creating duplicate flow status hooks** - Use useDiscoveryFlowStatus hook, don't create new polling logic
+11. **Using removed discovery endpoints** - Check /docs/cleanup/active-discovery-endpoints.md for valid endpoints
 
 ## Documentation and Commit Guidelines
 - **NEVER** reference Claude Code, Anthropic, or any AI coding assistant in git commit messages
@@ -539,6 +553,9 @@ src/utils/migration/
 - ❌ Using old User import path
 - ❌ Creating pseudo-agents instead of real CrewAI
 - ❌ Using session_id instead of flow_id
+- ❌ Creating duplicate flow polling logic (use useDiscoveryFlowStatus hook)
+- ❌ Using `/api/v1/discovery/flow/{id}/abort` endpoint (removed January 2025)
+- ❌ Using `/api/v1/discovery/flow/{id}/processing-status` endpoint (removed January 2025)
 
 ### **If You're Unsure:**
 - 📖 Check `/docs/development/PLATFORM_EVOLUTION_AND_CURRENT_STATE.md`
@@ -551,4 +568,4 @@ src/utils/migration/
 **Key Architecture Gap**: Real CrewAI agent logic needs implementation (flows execute but lack business logic)  
 **Estimated Completion**: 1-2 weeks for agent logic implementation and remaining cleanup  
 **Development Context**: Production-ready with all critical blockers resolved, flows properly linked  
-**Last Updated**: July 13th 2025 - Added explicit warnings about deleted repositories and Docker requirements
+**Last Updated**: January 14th 2025 - Added discovery flow cleanup documentation and consolidated hooks

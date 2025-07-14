@@ -540,87 +540,88 @@ async def execute_flow_phase(
         raise HTTPException(status_code=500, detail=f"Failed to execute flow phase: {str(e)}")
 
 
-@execution_router.post("/flow/{flow_id}/abort", response_model=FlowOperationResponse)
-async def abort_flow_execution(
-    flow_id: str,
-    request: Dict[str, Any] = {},
-    context: RequestContext = Depends(get_current_context),
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Abort a currently executing flow.
-    
-    This endpoint stops flow execution and marks it as aborted.
-    """
-    try:
-        logger.info(f"🛑 Aborting flow execution for {flow_id}")
-        
-        # Import required models
-        from app.models.discovery_flow import DiscoveryFlow
-        import uuid as uuid_lib
-        
-        # Convert flow_id to UUID if needed
-        try:
-            flow_uuid = uuid_lib.UUID(flow_id)
-        except ValueError:
-            flow_uuid = flow_id
-        
-        # Get the flow
-        stmt = select(DiscoveryFlow).where(
-            and_(
-                DiscoveryFlow.flow_id == flow_uuid,
-                DiscoveryFlow.client_account_id == context.client_account_id,
-                DiscoveryFlow.engagement_id == context.engagement_id
-            )
-        )
-        result = await db.execute(stmt)
-        flow = result.scalar_one_or_none()
-        
-        if not flow:
-            raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found")
-        
-        if flow.status == "deleted":
-            raise HTTPException(status_code=400, detail="Cannot abort a deleted flow")
-        
-        if flow.status not in ["processing", "running", "executing"]:
-            raise HTTPException(status_code=400, detail="Flow is not currently executing")
-        
-        # Store the previous status
-        previous_status = flow.status
-        
-        # Mark flow as aborted
-        flow.status = "aborted"
-        flow.updated_at = datetime.utcnow()
-        
-        # Add abort metadata
-        if not flow.flow_state:
-            flow.flow_state = {}
-        flow.flow_state["abort_metadata"] = {
-            "aborted_at": datetime.utcnow().isoformat(),
-            "aborted_by": context.user_id,
-            "previous_status": previous_status,
-            "abort_reason": request.get("reason", "User requested abort")
-        }
-        
-        await db.commit()
-        
-        logger.info(f"✅ Flow {flow_id} aborted successfully")
-        
-        return {
-            "success": True,
-            "flow_id": str(flow_id),
-            "status": "aborted",
-            "message": "Flow execution aborted",
-            "current_phase": flow.current_phase,
-            "next_phase": None,
-            "method": "execution_abort"
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error aborting flow execution: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to abort flow execution: {str(e)}")
+# REMOVED: Unused endpoint - no frontend references
+# @execution_router.post("/flow/{flow_id}/abort", response_model=FlowOperationResponse)
+# async def abort_flow_execution(
+#     flow_id: str,
+#     request: Dict[str, Any] = {},
+#     context: RequestContext = Depends(get_current_context),
+#     db: AsyncSession = Depends(get_db)
+# ):
+#     """
+#     Abort a currently executing flow.
+#     
+#     This endpoint stops flow execution and marks it as aborted.
+#     """
+#     try:
+#         logger.info(f"🛑 Aborting flow execution for {flow_id}")
+#         
+#         # Import required models
+#         from app.models.discovery_flow import DiscoveryFlow
+#         import uuid as uuid_lib
+#         
+#         # Convert flow_id to UUID if needed
+#         try:
+#             flow_uuid = uuid_lib.UUID(flow_id)
+#         except ValueError:
+#             flow_uuid = flow_id
+#         
+#         # Get the flow
+#         stmt = select(DiscoveryFlow).where(
+#             and_(
+#                 DiscoveryFlow.flow_id == flow_uuid,
+#                 DiscoveryFlow.client_account_id == context.client_account_id,
+#                 DiscoveryFlow.engagement_id == context.engagement_id
+#             )
+#         )
+#         result = await db.execute(stmt)
+#         flow = result.scalar_one_or_none()
+#         
+#         if not flow:
+#             raise HTTPException(status_code=404, detail=f"Flow {flow_id} not found")
+#         
+#         if flow.status == "deleted":
+#             raise HTTPException(status_code=400, detail="Cannot abort a deleted flow")
+#         
+#         if flow.status not in ["processing", "running", "executing"]:
+#             raise HTTPException(status_code=400, detail="Flow is not currently executing")
+#         
+#         # Store the previous status
+#         previous_status = flow.status
+#         
+#         # Mark flow as aborted
+#         flow.status = "aborted"
+#         flow.updated_at = datetime.utcnow()
+#         
+#         # Add abort metadata
+#         if not flow.flow_state:
+#             flow.flow_state = {}
+#         flow.flow_state["abort_metadata"] = {
+#             "aborted_at": datetime.utcnow().isoformat(),
+#             "aborted_by": context.user_id,
+#             "previous_status": previous_status,
+#             "abort_reason": request.get("reason", "User requested abort")
+#         }
+#         
+#         await db.commit()
+#         
+#         logger.info(f"✅ Flow {flow_id} aborted successfully")
+#         
+#         return {
+#             "success": True,
+#             "flow_id": str(flow_id),
+#             "status": "aborted",
+#             "message": "Flow execution aborted",
+#             "current_phase": flow.current_phase,
+#             "next_phase": None,
+#             "method": "execution_abort"
+#         }
+#         
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         logger.error(f"Error aborting flow execution: {e}")
+#         raise HTTPException(status_code=500, detail=f"Failed to abort flow execution: {str(e)}")
 
 
 @execution_router.post("/flow/{flow_id}/retry", response_model=FlowOperationResponse)

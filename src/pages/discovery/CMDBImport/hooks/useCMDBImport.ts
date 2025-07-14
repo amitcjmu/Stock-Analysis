@@ -158,6 +158,20 @@ export const useCMDBImport = () => {
               }
               return f;
             }));
+          } else if (response.status === 'waiting_for_approval' || response.awaitingUserApproval) {
+            // Stop polling when waiting for approval
+            setUploadedFiles(prev => prev.map(f => {
+              if (f.id === file.id) {
+                return {
+                  ...f,
+                  status: 'waiting_approval',
+                  flow_status: 'waiting_for_approval',
+                  discovery_progress: response.progress || 25,
+                  current_phase: response.currentPhase || 'field_mapping'
+                };
+              }
+              return f;
+            }));
           } else if (response.status === 'failed' || response.status === 'error') {
             setUploadedFiles(prev => prev.map(f => {
               if (f.id === file.id) {
@@ -189,7 +203,12 @@ export const useCMDBImport = () => {
       }
     };
 
-    if (uploadedFiles.some(f => f.flow_id && (f.status === 'processing' || f.flow_status === 'running'))) {
+    if (uploadedFiles.some(f => 
+      f.flow_id && 
+      (f.status === 'processing' || f.flow_status === 'running' || f.flow_status === 'active') &&
+      f.flow_status !== 'waiting_for_approval' &&
+      f.status !== 'waiting_approval'
+    )) {
       const interval = setInterval(pollFlowStatus, 3000); // Poll every 3 seconds
       return () => clearInterval(interval);
     }

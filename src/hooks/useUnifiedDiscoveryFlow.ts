@@ -187,16 +187,19 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
 
       const state = query.state.data as any;
       
-      // Poll when flow is active
-      if (state?.status === 'running' || state?.status === 'in_progress' || 
-          state?.status === 'processing' || state?.status === 'active') {
+      // Poll when flow is active AND not waiting for approval
+      if ((state?.status === 'running' || state?.status === 'in_progress' || 
+          state?.status === 'processing' || state?.status === 'active') &&
+          state?.status !== 'waiting_for_approval' &&
+          !state?.awaitingUserApproval) {
         setPollingAttempts(prev => prev + 1);
         return 90000; // Poll every 90 seconds when flow is active (increased from 60s to reduce load)
       }
       
-      // Stop polling for completed/failed states
+      // Stop polling for terminal states or when waiting for approval
       if (state?.status === 'completed' || state?.status === 'failed' || 
-          state?.status === 'cancelled') {
+          state?.status === 'cancelled' || state?.status === 'waiting_for_approval' ||
+          state?.awaitingUserApproval) {
         setPollingEnabled(false);
         return false;
       }

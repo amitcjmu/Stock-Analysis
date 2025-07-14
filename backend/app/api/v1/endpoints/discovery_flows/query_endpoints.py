@@ -351,158 +351,159 @@ async def get_agent_questions(
         raise HTTPException(status_code=500, detail=f"Failed to get agent questions: {str(e)}")
 
 
-@query_router.get("/flow/{flow_id}/processing-status", response_model=Dict[str, Any])
-async def get_flow_processing_status(
-    flow_id: str,
-    response: Response,
-    phase: str = Query(None),
-    if_none_match: Optional[str] = Header(None),
-    context: RequestContext = Depends(get_current_context),
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Get detailed processing status for a specific flow with ETag support.
-    
-    This endpoint provides real-time processing status information
-    for monitoring UI components with efficient polling via ETags.
-    """
-    try:
-        logger.info(f"Getting processing status for flow {flow_id}, phase: {phase}")
-        
-        # Import required models
-        from app.models.discovery_flow import DiscoveryFlow
-        import uuid as uuid_lib
-        
-        # Convert flow_id to UUID if needed
-        try:
-            flow_uuid = uuid_lib.UUID(flow_id)
-        except ValueError:
-            flow_uuid = flow_id
-        
-        # Get flow from DiscoveryFlow table
-        stmt = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_uuid)
-        result = await db.execute(stmt)
-        flow = result.scalar_one_or_none()
-        
-        if flow:
-            # Use StatusCalculator to get processing status
-            processing_status = StatusCalculator.calculate_processing_status(flow, phase)
-            
-            # Generate ETag from processing status
-            state_json = json.dumps(processing_status, sort_keys=True, default=str)
-            etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
-            
-            # Check if content has changed
-            if if_none_match == etag:
-                response.status_code = 304  # Not Modified
-                return None
-            
-            # Set response headers
-            response.headers["ETag"] = etag
-            response.headers["Cache-Control"] = "no-cache, must-revalidate"
-            response.headers["X-Flow-Updated-At"] = flow.updated_at.isoformat() if flow.updated_at else ""
-            
-            return processing_status
-        
-        # Try orchestrator as fallback
-        from app.api.v1.unified_discovery.services.discovery_orchestrator import DiscoveryOrchestrator
-        
-        orchestrator = DiscoveryOrchestrator(db, context)
-        
-        try:
-            result = await orchestrator.get_discovery_flow_status(flow_id)
-            
-            # Transform to processing status format
-            processing_status = {
-                "flow_id": flow_id,
-                "phase": result.get("current_phase", "data_import"),
-                "status": result.get("status", "initializing"),
-                "progress_percentage": float(result.get("progress_percentage", 0)),
-                "progress": float(result.get("progress_percentage", 0)),
-                "records_processed": int(result.get("records_processed", 0)),
-                "records_total": int(result.get("records_total", 0)),
-                "records_failed": int(result.get("records_failed", 0)),
-                "validation_status": {
-                    "format_valid": True,
-                    "security_scan_passed": True,
-                    "data_quality_score": 1.0,
-                    "issues_found": []
-                },
-                "agent_status": result.get("agent_status", {}),
-                "recent_updates": [],
-                "estimated_completion": None,
-                "last_update": result.get("updated_at", ""),
-                "phases": result.get("phase_completion", {}),
-                "current_phase": result.get("current_phase", "data_import")
-            }
-            
-            # Generate ETag from processing status
-            state_json = json.dumps(processing_status, sort_keys=True, default=str)
-            etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
-            
-            # Check if content has changed
-            if if_none_match == etag:
-                response.status_code = 304  # Not Modified
-                return None
-            
-            # Set response headers
-            response.headers["ETag"] = etag
-            response.headers["Cache-Control"] = "no-cache, must-revalidate"
-            
-            return processing_status
-            
-        except Exception as orch_error:
-            logger.warning(f"Failed to get flow from orchestrator: {orch_error}")
-            
-            # Return default processing status
-            default_status = {
-                "flow_id": flow_id,
-                "phase": phase or "data_import",
-                "status": "initializing",
-                "progress_percentage": 0.0,
-                "progress": 0.0,
-                "records_processed": 0,
-                "records_total": 0,
-                "records_failed": 0,
-                "validation_status": {
-                    "format_valid": True,
-                    "security_scan_passed": True,
-                    "data_quality_score": 1.0,
-                    "issues_found": []
-                },
-                "agent_status": {},
-                "recent_updates": [],
-                "estimated_completion": None,
-                "last_update": "",
-                "phases": {
-                    "data_import": False,
-                    "field_mapping": False,
-                    "data_cleansing": False,
-                    "asset_inventory": False,
-                    "dependency_analysis": False,
-                    "tech_debt_analysis": False
-                },
-                "current_phase": "data_import"
-            }
-            
-            # Generate ETag even for default status
-            state_json = json.dumps(default_status, sort_keys=True, default=str)
-            etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
-            
-            # Check if content has changed
-            if if_none_match == etag:
-                response.status_code = 304  # Not Modified
-                return None
-            
-            # Set response headers
-            response.headers["ETag"] = etag
-            response.headers["Cache-Control"] = "no-cache, must-revalidate"
-            
-            return default_status
-        
-    except Exception as e:
-        logger.error(f"Error getting processing status: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get processing status: {str(e)}")
+# REMOVED: Unused endpoint - no frontend references
+# @query_router.get("/flow/{flow_id}/processing-status", response_model=Dict[str, Any])
+# async def get_flow_processing_status(
+#     flow_id: str,
+#     response: Response,
+#     phase: str = Query(None),
+#     if_none_match: Optional[str] = Header(None),
+#     context: RequestContext = Depends(get_current_context),
+#     db: AsyncSession = Depends(get_db)
+# ):
+#     """
+#     Get detailed processing status for a specific flow with ETag support.
+#     
+#     This endpoint provides real-time processing status information
+#     for monitoring UI components with efficient polling via ETags.
+#     """
+#     try:
+#         logger.info(f"Getting processing status for flow {flow_id}, phase: {phase}")
+#         
+#         # Import required models
+#         from app.models.discovery_flow import DiscoveryFlow
+#         import uuid as uuid_lib
+#         
+#         # Convert flow_id to UUID if needed
+#         try:
+#             flow_uuid = uuid_lib.UUID(flow_id)
+#         except ValueError:
+#             flow_uuid = flow_id
+#         
+#         # Get flow from DiscoveryFlow table
+#         stmt = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_uuid)
+#         result = await db.execute(stmt)
+#         flow = result.scalar_one_or_none()
+#         
+#         if flow:
+#             # Use StatusCalculator to get processing status
+#             processing_status = StatusCalculator.calculate_processing_status(flow, phase)
+#             
+#             # Generate ETag from processing status
+#             state_json = json.dumps(processing_status, sort_keys=True, default=str)
+#             etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
+#             
+#             # Check if content has changed
+#             if if_none_match == etag:
+#                 response.status_code = 304  # Not Modified
+#                 return None
+#             
+#             # Set response headers
+#             response.headers["ETag"] = etag
+#             response.headers["Cache-Control"] = "no-cache, must-revalidate"
+#             response.headers["X-Flow-Updated-At"] = flow.updated_at.isoformat() if flow.updated_at else ""
+#             
+#             return processing_status
+#         
+#         # Try orchestrator as fallback
+#         from app.api.v1.unified_discovery.services.discovery_orchestrator import DiscoveryOrchestrator
+#         
+#         orchestrator = DiscoveryOrchestrator(db, context)
+#         
+#         try:
+#             result = await orchestrator.get_discovery_flow_status(flow_id)
+#             
+#             # Transform to processing status format
+#             processing_status = {
+#                 "flow_id": flow_id,
+#                 "phase": result.get("current_phase", "data_import"),
+#                 "status": result.get("status", "initializing"),
+#                 "progress_percentage": float(result.get("progress_percentage", 0)),
+#                 "progress": float(result.get("progress_percentage", 0)),
+#                 "records_processed": int(result.get("records_processed", 0)),
+#                 "records_total": int(result.get("records_total", 0)),
+#                 "records_failed": int(result.get("records_failed", 0)),
+#                 "validation_status": {
+#                     "format_valid": True,
+#                     "security_scan_passed": True,
+#                     "data_quality_score": 1.0,
+#                     "issues_found": []
+#                 },
+#                 "agent_status": result.get("agent_status", {}),
+#                 "recent_updates": [],
+#                 "estimated_completion": None,
+#                 "last_update": result.get("updated_at", ""),
+#                 "phases": result.get("phase_completion", {}),
+#                 "current_phase": result.get("current_phase", "data_import")
+#             }
+#             
+#             # Generate ETag from processing status
+#             state_json = json.dumps(processing_status, sort_keys=True, default=str)
+#             etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
+#             
+#             # Check if content has changed
+#             if if_none_match == etag:
+#                 response.status_code = 304  # Not Modified
+#                 return None
+#             
+#             # Set response headers
+#             response.headers["ETag"] = etag
+#             response.headers["Cache-Control"] = "no-cache, must-revalidate"
+#             
+#             return processing_status
+#             
+#         except Exception as orch_error:
+#             logger.warning(f"Failed to get flow from orchestrator: {orch_error}")
+#             
+#             # Return default processing status
+#             default_status = {
+#                 "flow_id": flow_id,
+#                 "phase": phase or "data_import",
+#                 "status": "initializing",
+#                 "progress_percentage": 0.0,
+#                 "progress": 0.0,
+#                 "records_processed": 0,
+#                 "records_total": 0,
+#                 "records_failed": 0,
+#                 "validation_status": {
+#                     "format_valid": True,
+#                     "security_scan_passed": True,
+#                     "data_quality_score": 1.0,
+#                     "issues_found": []
+#                 },
+#                 "agent_status": {},
+#                 "recent_updates": [],
+#                 "estimated_completion": None,
+#                 "last_update": "",
+#                 "phases": {
+#                     "data_import": False,
+#                     "field_mapping": False,
+#                     "data_cleansing": False,
+#                     "asset_inventory": False,
+#                     "dependency_analysis": False,
+#                     "tech_debt_analysis": False
+#                 },
+#                 "current_phase": "data_import"
+#             }
+#             
+#             # Generate ETag even for default status
+#             state_json = json.dumps(default_status, sort_keys=True, default=str)
+#             etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
+#             
+#             # Check if content has changed
+#             if if_none_match == etag:
+#                 response.status_code = 304  # Not Modified
+#                 return None
+#             
+#             # Set response headers
+#             response.headers["ETag"] = etag
+#             response.headers["Cache-Control"] = "no-cache, must-revalidate"
+#             
+#             return default_status
+#         
+#     except Exception as e:
+#         logger.error(f"Error getting processing status: {e}")
+#         raise HTTPException(status_code=500, detail=f"Failed to get processing status: {str(e)}")
 
 
 @query_router.get("/flows/summary", response_model=Dict[str, Any])

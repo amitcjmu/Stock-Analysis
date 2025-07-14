@@ -82,6 +82,9 @@ class FlowStatusResponse(BaseModel):
     performance_metrics: Dict[str, Any]
     agent_insights: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Real-time agent insights for this flow")
     field_mappings: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Field mappings for discovery flows")
+    awaitingUserApproval: Optional[bool] = Field(None, description="Whether the flow is waiting for user approval")
+    currentPhase: Optional[str] = Field(None, description="Current phase of the flow")
+    progress: Optional[float] = Field(None, description="Progress percentage (alias for progress_percentage)")
 
 
 class FlowListResponse(BaseModel):
@@ -560,6 +563,13 @@ async def get_flow_status(
                 detail=f"Flow {flow_id} not found"
             )
         
+        # Check if flow is waiting for approval
+        awaiting_approval = (
+            flow_data.get("status") == "waiting_for_approval" or
+            flow_data.get("current_state", {}).get("awaiting_user_approval", False) or
+            flow_data.get("awaiting_user_approval", False)
+        )
+        
         return FlowStatusResponse(
             flow_id=flow_data["flow_id"],
             flow_type=flow_data["flow_type"],
@@ -574,7 +584,10 @@ async def get_flow_status(
             error_details=flow_data.get("error_details"),
             performance_metrics=flow_data.get("performance_metrics", {}),
             agent_insights=flow_data.get("agent_insights", []),
-            field_mappings=flow_data.get("field_mappings", [])
+            field_mappings=flow_data.get("field_mappings", []),
+            awaitingUserApproval=awaiting_approval,
+            currentPhase=flow_data.get("current_phase"),
+            progress=flow_data.get("progress_percentage", 0.0)
         )
         
     except HTTPException:

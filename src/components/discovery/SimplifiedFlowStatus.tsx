@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { 
   Activity, 
   CheckCircle, 
@@ -14,84 +14,27 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { masterFlowService } from '@/services/api/masterFlowService';
-import { useAuth } from '@/contexts/AuthContext';
+import { useDiscoveryFlowStatusVisual } from '@/hooks/discovery/useDiscoveryFlowStatus';
 
 interface SimplifiedFlowStatusProps {
   flow_id: string;
   onNavigateToMapping?: () => void;
 }
 
-interface FlowStatus {
-  flow_id: string;
-  status: string;
-  current_phase: string;
-  progress_percentage: number;
-  awaiting_user_approval: boolean;
-  phase_completion: Record<string, boolean>;
-  agent_insights: any[];
-  last_updated: string;
-}
-
 export const SimplifiedFlowStatus: React.FC<SimplifiedFlowStatusProps> = ({
   flow_id,
   onNavigateToMapping
 }) => {
-  const { client, engagement } = useAuth();
-  const [flowStatus, setFlowStatus] = useState<FlowStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchStatus = async () => {
-    try {
-      // Use proper UUIDs from auth context with demo fallbacks
-      const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
-      const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
-      
-      const response = await masterFlowService.getFlowStatus(flow_id, clientAccountId, engagementId);
-      setFlowStatus(response as any);
-      setError(null);
-    } catch (err) {
-      setError('Failed to fetch flow status');
-      console.error('Error fetching flow status:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (flow_id) {
-      fetchStatus();
-    }
-  }, [flow_id]);
-
-  // Separate effect for polling to avoid recreation on status changes
-  useEffect(() => {
-    if (!flow_id || !flowStatus) return;
-    
-    // Only poll if actually processing - not if waiting for approval, completed, or paused
-    const shouldPoll = 
-      (flowStatus.status === 'running' || flowStatus.status === 'processing' || flowStatus.status === 'active') &&
-      !flowStatus.awaiting_user_approval &&
-      flowStatus.status !== 'waiting_for_approval' &&
-      flowStatus.status !== 'completed' &&
-      flowStatus.status !== 'failed' &&
-      flowStatus.status !== 'paused' &&
-      // Stop polling if in field_mapping phase (usually means waiting for approval)
-      !(flowStatus.current_phase === 'field_mapping' && flowStatus.progress_percentage > 10);
-    
-    if (shouldPoll) {
-      const interval = setInterval(() => {
-        fetchStatus();
-      }, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [flow_id]); // Only depend on flow_id, not on flowStatus
+  // Use the consolidated hook for visual updates (5 second polling)
+  const { data: flowStatus, isLoading: loading, error } = useDiscoveryFlowStatusVisual(flow_id);
 
   const getStatusDisplay = () => {
     if (!flowStatus) return null;
 
-    const { status, current_phase, progress_percentage, awaiting_user_approval } = flowStatus;
+    const { status, currentPhase, progress, awaitingUserApproval } = flowStatus;
+    const current_phase = currentPhase || flowStatus.current_phase;
+    const progress_percentage = progress || flowStatus.progress_percentage || 0;
+    const awaiting_user_approval = awaitingUserApproval || flowStatus.awaiting_user_approval;
 
     // Determine display properties
     let icon = Activity;
@@ -169,7 +112,7 @@ export const SimplifiedFlowStatus: React.FC<SimplifiedFlowStatusProps> = ({
       <Alert className="border-red-200 bg-red-50">
         <AlertCircle className="h-4 w-4 text-red-600" />
         <AlertDescription className="text-red-800">
-          {error || 'Unable to load flow status'}
+          {error?.message || 'Unable to load flow status'}
         </AlertDescription>
       </Alert>
     );
@@ -189,7 +132,7 @@ export const SimplifiedFlowStatus: React.FC<SimplifiedFlowStatusProps> = ({
             Discovery Flow Status
           </div>
           <Badge variant="outline">
-            {Math.round(flowStatus.progress_percentage || 0)}% Complete
+            {Math.round(progress_percentage)}% Complete
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -202,7 +145,7 @@ export const SimplifiedFlowStatus: React.FC<SimplifiedFlowStatusProps> = ({
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Current Phase:</span>
-            <span className="text-sm">{flowStatus.current_phase?.replace(/_/g, ' ') || 'Unknown'}</span>
+            <span className="text-sm">{current_phase?.replace(/_/g, ' ') || 'Unknown'}</span>
           </div>
           <p className="text-sm text-gray-600 mt-2">{description}</p>
         </div>
@@ -211,9 +154,9 @@ export const SimplifiedFlowStatus: React.FC<SimplifiedFlowStatusProps> = ({
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span>Overall Progress</span>
-            <span>{Math.round(flowStatus.progress_percentage || 0)}%</span>
+            <span>{Math.round(progress_percentage)}%</span>
           </div>
-          <Progress value={flowStatus.progress_percentage || 0} className="w-full" />
+          <Progress value={progress_percentage} className="w-full" />
         </div>
 
         {/* Phase Completion */}
@@ -250,7 +193,7 @@ export const SimplifiedFlowStatus: React.FC<SimplifiedFlowStatusProps> = ({
 
         {/* Last Updated */}
         <div className="text-xs text-gray-500 text-right">
-          Last updated: {new Date(flowStatus.last_updated).toLocaleTimeString()}
+          Last updated: {flowStatus.lastUpdated ? new Date(flowStatus.lastUpdated).toLocaleTimeString() : 'N/A'}
         </div>
       </CardContent>
     </Card>
