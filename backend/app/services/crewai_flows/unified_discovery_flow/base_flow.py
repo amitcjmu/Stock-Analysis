@@ -592,10 +592,24 @@ class UnifiedDiscoveryFlow(Flow):
             logger.warning(f"⚠️ Failed to send phase transition notification: {e}")
         
         # Execute field mapping crew to generate suggestions
-        mapping_result = await self.phase_executor.execute_field_mapping_phase(
-            previous_result, 
-            mode="suggestions_only"  # Special mode to only generate suggestions
-        )
+        try:
+            mapping_result = await self.phase_executor.execute_field_mapping_phase(
+                previous_result, 
+                mode="suggestions_only"  # Special mode to only generate suggestions
+            )
+        except Exception as e:
+            logger.error(f"❌ Field mapping phase execution failed: {e}")
+            # Create a fallback result to ensure flow continues
+            mapping_result = {
+                "mappings": {},
+                "clarifications": ["Field mapping generation failed. Please map fields manually."],
+                "confidence_scores": {},
+                "execution_metadata": {
+                    "method": "error_fallback",
+                    "error": str(e)
+                }
+            }
+            logger.warning("⚠️ Using error fallback result to continue flow")
         
         # Debug: Log the full mapping result to identify structure issue
         logger.info(f"🔍 DEBUG: Full mapping_result structure: {mapping_result}")
@@ -676,12 +690,21 @@ class UnifiedDiscoveryFlow(Flow):
         await self.state_manager.safe_update_flow_state()
         logger.info(f"✅ Generated {len(suggested_mappings)} mapping suggestions")
         
+        # CRITICAL: Update flow status when rate limit fallback was used
+        # This ensures the UI knows field mapping is ready for approval
+        if mapping_result.get("execution_metadata", {}).get("method") == "fallback_field_mapping":
+            logger.warning("⚠️ Field mapping used fallback due to rate limit - updating status for UI")
+            # Set a flag to ensure pause method updates status correctly
+            self.state._rate_limit_fallback_used = True
+        
         return "field_mapping_suggestions_ready"
     
     @listen(generate_field_mapping_suggestions)
     async def pause_for_field_mapping_approval(self, previous_result):
         """Pause flow for user to review and approve field mappings"""
         logger.info("⏸️ Pausing for field mapping approval")
+        logger.info(f"🔍 DEBUG: Previous result: {previous_result}")
+        logger.info(f"🔍 DEBUG: Rate limit fallback used: {getattr(self.state, '_rate_limit_fallback_used', False)}")
         
         # Ensure state has IDs
         self._ensure_state_ids()
@@ -707,7 +730,11 @@ class UnifiedDiscoveryFlow(Flow):
         
         await self.state_manager.safe_update_flow_state()
         
-        # Explicitly update Master Flow status to waiting_for_approval
+        # CRITICAL: Force immediate status update to stop polling
+        # This is essential when rate limit errors occur
+        logger.info("🔄 Forcing immediate status update to waiting_for_approval")
+        
+        # Update Master Flow status first
         if hasattr(self, '_flow_state_bridge') and self._flow_state_bridge:
             try:
                 from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
@@ -717,6 +744,23 @@ class UnifiedDiscoveryFlow(Flow):
                     store = PostgresFlowStateStore(db, self.context)
                     await store.update_flow_status(self._flow_id, "waiting_for_approval")
                     logger.info("✅ Updated Master Flow status to waiting_for_approval")
+                    
+                    # Also update the discovery flow status directly
+                    from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+                    repo = DiscoveryFlowRepository(
+                        db,
+                        client_account_id=str(self.state.client_account_id),
+                        engagement_id=str(self.state.engagement_id),
+                        user_id=str(self.state.user_id)
+                    )
+                    
+                    # Force status update in discovery_flows table
+                    await repo.flow_commands.update_flow_status(
+                        flow_id=self._flow_id,
+                        status="waiting_for_approval",
+                        progress_percentage=25.0
+                    )
+                    logger.info("✅ Updated DiscoveryFlow status to waiting_for_approval")
             except Exception as e:
                 logger.warning(f"⚠️ Failed to update Master Flow status: {e}")
         
@@ -775,6 +819,32 @@ class UnifiedDiscoveryFlow(Flow):
         
         logger.info("⏸️ Flow paused - waiting for field mapping approval")
         
+        # CRITICAL: Send real-time update to stop polling
+        try:
+            from app.services.agent_ui_bridge import agent_ui_bridge
+            from app.services.models.agent_communication import ConfidenceLevel
+            
+            agent_ui_bridge.add_agent_insight(
+                agent_id="unified_discovery_flow",
+                agent_name="Discovery Flow Orchestrator",
+                insight_type="approval_required",
+                title="Field Mapping Approval Required",
+                description="Field mapping suggestions are ready. Please review and approve the mappings to continue.",
+                confidence=ConfidenceLevel.HIGH,
+                supporting_data={
+                    "phase": "field_mapping",
+                    "status": "waiting_for_approval",
+                    "progress": 25.0,
+                    "awaiting_user_approval": True,
+                    "field_mappings_count": len(self.state.field_mappings) if self.state.field_mappings else 0
+                },
+                page=f"flow_{self._flow_id}",
+                flow_id=self._flow_id
+            )
+            logger.info("📡 Sent approval required notification to UI")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to send approval notification: {e}")
+        
         return "paused_for_field_mapping_approval"
     
     @listen(pause_for_field_mapping_approval)
@@ -790,7 +860,8 @@ class UnifiedDiscoveryFlow(Flow):
             
             # Mark phase as completed
             self.state.phase_completion[PhaseNames.FIELD_MAPPING] = True
-            self.state.field_mapping_completed = True
+            # Remove invalid field assignment - field_mapping_completed doesn't exist
+            # self.state.field_mapping_completed = True
             
             # Update current phase to next phase
             self.state.current_phase = PhaseNames.DATA_CLEANSING

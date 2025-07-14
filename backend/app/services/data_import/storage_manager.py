@@ -289,8 +289,35 @@ class ImportStorageManager:
                     logger.warning(f"⚠️ No DataImport record found with ID {data_import_id} for update")
                     return False
             else:
-                logger.warning(f"⚠️ Master flow {master_flow_id} not found - skipping DataImport update")
-                return False
+                # Try waiting a bit and checking again - race condition mitigation
+                logger.warning(f"⚠️ Master flow {master_flow_id} not found on first check, waiting 1 second and retrying...")
+                import asyncio
+                await asyncio.sleep(1)
+                
+                # Check again
+                result = await self.db.execute(check_query)
+                master_flow_exists = result.scalar() is not None
+                
+                if master_flow_exists:
+                    logger.info(f"✅ Master flow {master_flow_id} found on retry - proceeding with update")
+                    update_stmt = update(DataImport).where(
+                        DataImport.id == data_import_id,
+                        DataImport.client_account_id == self.client_account_id
+                    ).values(
+                        master_flow_id=master_flow_id, 
+                        updated_at=func.now()
+                    )
+                    result = await self.db.execute(update_stmt)
+                    
+                    if result.rowcount > 0:
+                        logger.info(f"✅ Updated DataImport {data_import_id} with master_flow_id: {master_flow_id} (after retry)")
+                        return True
+                    else:
+                        logger.warning(f"⚠️ No DataImport record found with ID {data_import_id} for update (after retry)")
+                        return False
+                else:
+                    logger.error(f"❌ Master flow {master_flow_id} still not found after retry - skipping DataImport update")
+                    return False
                 
         except Exception as e:
             logger.error(f"❌ Failed to update DataImport with flow ID: {e}")
@@ -350,7 +377,10 @@ class ImportStorageManager:
     ) -> Dict[str, Any]:
         """
         Update all related records (DataImport, RawImportRecord, ImportFieldMapping) 
-        with master flow ID in a single atomic operation.
+        with master flow ID using a fresh database session.
+        
+        This method uses a fresh database session to avoid transaction isolation issues
+        where the master flow was committed in a different transaction.
         
         Args:
             data_import_id: ID of the data import
@@ -362,105 +392,117 @@ class ImportStorageManager:
         try:
             logger.info(f"🔗 Starting comprehensive master_flow_id linkage for data_import_id: {data_import_id}")
             
-            # Verify the master flow exists first
+            # Use a fresh database session to avoid transaction isolation issues
+            from app.core.database import AsyncSessionLocal
             from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
             
-            check_query = select(CrewAIFlowStateExtensions.flow_id).where(
-                CrewAIFlowStateExtensions.flow_id == master_flow_id,
-                CrewAIFlowStateExtensions.client_account_id == self.client_account_id
-            )
-            result = await self.db.execute(check_query)
-            master_flow_exists = result.scalar() is not None
+            async with AsyncSessionLocal() as fresh_db:
+                # Get the master flow record to extract the PRIMARY KEY (id)
+                # CRITICAL: Foreign keys reference crewai_flow_state_extensions.id (PK), not flow_id
+                check_query = select(CrewAIFlowStateExtensions.id, CrewAIFlowStateExtensions.flow_id).where(
+                    CrewAIFlowStateExtensions.flow_id == master_flow_id,
+                    CrewAIFlowStateExtensions.client_account_id == self.client_account_id
+                )
+                result = await fresh_db.execute(check_query)
+                master_flow_record = result.first()
             
-            if not master_flow_exists:
-                error_msg = f"Master flow {master_flow_id} not found - aborting all updates"
-                logger.warning(f"⚠️ {error_msg}")
-                return {
-                    "success": False,
-                    "error": error_msg,
+                if not master_flow_record:
+                    error_msg = f"Master flow {master_flow_id} not found - aborting all updates"
+                    logger.warning(f"⚠️ {error_msg}")
+                    return {
+                        "success": False,
+                        "error": error_msg,
+                        "data_import_updated": False,
+                        "raw_import_records_updated": 0,
+                        "field_mappings_updated": False
+                    }
+                
+                # Extract the PRIMARY KEY (id) for foreign key references
+                master_flow_pk_id = master_flow_record.id
+                logger.info(f"✅ Master flow {master_flow_id} found - using PK {master_flow_pk_id} for foreign key references")
+                
+                # Initialize results tracking
+                results = {
+                    "success": True,
                     "data_import_updated": False,
                     "raw_import_records_updated": 0,
-                    "field_mappings_updated": False
+                    "field_mappings_updated": False,
+                    "error": None
                 }
             
-            # Initialize results tracking
-            results = {
-                "success": True,
-                "data_import_updated": False,
-                "raw_import_records_updated": 0,
-                "field_mappings_updated": False,
-                "error": None
-            }
-            
-            # Update DataImport record
-            try:
-                update_stmt = update(DataImport).where(
-                    DataImport.id == data_import_id,
-                    DataImport.client_account_id == self.client_account_id
-                ).values(
-                    master_flow_id=master_flow_id, 
-                    updated_at=func.now()
-                )
-                result = await self.db.execute(update_stmt)
-                results["data_import_updated"] = result.rowcount > 0
-                
-                if results["data_import_updated"]:
-                    logger.info(f"✅ Updated DataImport record with master_flow_id: {master_flow_id}")
-                else:
-                    logger.warning(f"⚠️ No DataImport record found with ID {data_import_id}")
+                # Update DataImport record using the PRIMARY KEY
+                try:
+                    update_stmt = update(DataImport).where(
+                        DataImport.id == data_import_id,
+                        DataImport.client_account_id == self.client_account_id
+                    ).values(
+                        master_flow_id=master_flow_pk_id,  # Use PRIMARY KEY, not flow_id
+                        updated_at=func.now()
+                    )
+                    result = await fresh_db.execute(update_stmt)
+                    results["data_import_updated"] = result.rowcount > 0
                     
-            except Exception as e:
-                logger.error(f"❌ Failed to update DataImport record: {e}")
-                results["success"] = False
-                results["error"] = f"DataImport update failed: {str(e)}"
+                    if results["data_import_updated"]:
+                        logger.info(f"✅ Updated DataImport record with master_flow_id PK: {master_flow_pk_id} (flow_id: {master_flow_id})")
+                    else:
+                        logger.warning(f"⚠️ No DataImport record found with ID {data_import_id}")
+                        
+                except Exception as e:
+                    logger.error(f"❌ Failed to update DataImport record: {e}")
+                    results["success"] = False
+                    results["error"] = f"DataImport update failed: {str(e)}"
             
-            # Update RawImportRecord records
-            try:
-                update_stmt = update(RawImportRecord).where(
-                    RawImportRecord.data_import_id == data_import_id,
-                    RawImportRecord.client_account_id == self.client_account_id
-                ).values(
-                    master_flow_id=master_flow_id
-                )
-                result = await self.db.execute(update_stmt)
-                results["raw_import_records_updated"] = result.rowcount
-                
-                if results["raw_import_records_updated"] > 0:
-                    logger.info(f"✅ Updated {results['raw_import_records_updated']} RawImportRecord records with master_flow_id: {master_flow_id}")
-                else:
-                    logger.warning(f"⚠️ No RawImportRecord records found for data_import_id {data_import_id}")
+                # Update RawImportRecord records
+                try:
+                    update_stmt = update(RawImportRecord).where(
+                        RawImportRecord.data_import_id == data_import_id,
+                        RawImportRecord.client_account_id == self.client_account_id
+                    ).values(
+                        master_flow_id=master_flow_pk_id  # Use PRIMARY KEY, not flow_id
+                    )
+                    result = await fresh_db.execute(update_stmt)
+                    results["raw_import_records_updated"] = result.rowcount
                     
-            except Exception as e:
-                logger.error(f"❌ Failed to update RawImportRecord records: {e}")
-                results["success"] = False
-                results["error"] = f"RawImportRecord update failed: {str(e)}"
+                    if results["raw_import_records_updated"] > 0:
+                        logger.info(f"✅ Updated {results['raw_import_records_updated']} RawImportRecord records with master_flow_id PK: {master_flow_pk_id}")
+                    else:
+                        logger.warning(f"⚠️ No RawImportRecord records found for data_import_id {data_import_id}")
+                        
+                except Exception as e:
+                    logger.error(f"❌ Failed to update RawImportRecord records: {e}")
+                    results["success"] = False
+                    results["error"] = f"RawImportRecord update failed: {str(e)}"
             
-            # Update ImportFieldMapping records
-            try:
-                update_stmt = update(ImportFieldMapping).where(
-                    ImportFieldMapping.data_import_id == data_import_id
-                ).values(master_flow_id=master_flow_id, updated_at=func.now())
-                result = await self.db.execute(update_stmt)
-                results["field_mappings_updated"] = result.rowcount > 0
-                
-                if results["field_mappings_updated"]:
-                    logger.info(f"✅ Updated ImportFieldMapping records with master_flow_id: {master_flow_id}")
-                else:
-                    logger.warning(f"⚠️ No ImportFieldMapping records found for data_import_id {data_import_id}")
+                # Update ImportFieldMapping records
+                try:
+                    update_stmt = update(ImportFieldMapping).where(
+                        ImportFieldMapping.data_import_id == data_import_id
+                    ).values(master_flow_id=master_flow_pk_id, updated_at=func.now())  # Use PRIMARY KEY, not flow_id
+                    result = await fresh_db.execute(update_stmt)
+                    results["field_mappings_updated"] = result.rowcount > 0
                     
-            except Exception as e:
-                logger.error(f"❌ Failed to update ImportFieldMapping records: {e}")
-                results["success"] = False
-                results["error"] = f"ImportFieldMapping update failed: {str(e)}"
+                    if results["field_mappings_updated"]:
+                        logger.info(f"✅ Updated ImportFieldMapping records with master_flow_id PK: {master_flow_pk_id}")
+                    else:
+                        logger.warning(f"⚠️ No ImportFieldMapping records found for data_import_id {data_import_id}")
+                        
+                except Exception as e:
+                    logger.error(f"❌ Failed to update ImportFieldMapping records: {e}")
+                    results["success"] = False
+                    results["error"] = f"ImportFieldMapping update failed: {str(e)}"
             
-            # Log comprehensive results
-            if results["success"]:
-                logger.info(f"🎉 Successfully completed master_flow_id linkage for data_import_id: {data_import_id}")
-                logger.info(f"📊 Results: DataImport={results['data_import_updated']}, RawRecords={results['raw_import_records_updated']}, FieldMappings={results['field_mappings_updated']}")
-            else:
-                logger.error(f"💥 Master_flow_id linkage failed for data_import_id: {data_import_id} - Error: {results['error']}")
-            
-            return results
+                # Commit all updates
+                await fresh_db.commit()
+                
+                # Log comprehensive results
+                if results["success"]:
+                    logger.info(f"🎉 Successfully completed master_flow_id linkage for data_import_id: {data_import_id}")
+                    logger.info(f"📊 Results: DataImport={results['data_import_updated']}, RawRecords={results['raw_import_records_updated']}, FieldMappings={results['field_mappings_updated']}")
+                    logger.info(f"🔑 Used PRIMARY KEY {master_flow_pk_id} for foreign key references (flow_id: {master_flow_id})")
+                else:
+                    logger.error(f"💥 Master_flow_id linkage failed for data_import_id: {data_import_id} - Error: {results['error']}")
+                
+                return results
                 
         except Exception as e:
             error_msg = f"Comprehensive master_flow_id linkage failed: {str(e)}"

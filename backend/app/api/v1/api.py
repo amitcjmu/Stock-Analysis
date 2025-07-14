@@ -408,6 +408,14 @@ else:
 # Testing and Debug
 api_router.include_router(test_discovery_router, prefix="/test-discovery", tags=["Test Discovery"])
 
+# Emergency system controls
+try:
+    from app.api.v1.endpoints.system.emergency import router as emergency_router
+    api_router.include_router(emergency_router, prefix="/system", tags=["System", "Emergency"])
+    logger.info("✅ Emergency controls router included")
+except ImportError:
+    logger.warning("⚠️ Emergency controls router not available")
+
 # Legacy Discovery Flow Management - DISABLED (replaced by V2 Discovery Flow API at /api/v2/discovery-flows/)
 # api_router.include_router(discovery_flow_management_router, prefix="/discovery", tags=["Discovery Flow Management"])
 # api_router.include_router(discovery_flow_management_enhanced_router, prefix="/discovery/enhanced", tags=["Enhanced Flow Management"])

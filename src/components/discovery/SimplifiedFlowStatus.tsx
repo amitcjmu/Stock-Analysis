@@ -62,26 +62,31 @@ export const SimplifiedFlowStatus: React.FC<SimplifiedFlowStatusProps> = ({
   useEffect(() => {
     if (flow_id) {
       fetchStatus();
-      // Poll every 5 seconds while processing
+    }
+  }, [flow_id]);
+
+  // Separate effect for polling to avoid recreation on status changes
+  useEffect(() => {
+    if (!flow_id || !flowStatus) return;
+    
+    // Only poll if actually processing - not if waiting for approval, completed, or paused
+    const shouldPoll = 
+      (flowStatus.status === 'running' || flowStatus.status === 'processing' || flowStatus.status === 'active') &&
+      !flowStatus.awaiting_user_approval &&
+      flowStatus.status !== 'waiting_for_approval' &&
+      flowStatus.status !== 'completed' &&
+      flowStatus.status !== 'failed' &&
+      flowStatus.status !== 'paused' &&
+      // Stop polling if in field_mapping phase (usually means waiting for approval)
+      !(flowStatus.current_phase === 'field_mapping' && flowStatus.progress_percentage > 10);
+    
+    if (shouldPoll) {
       const interval = setInterval(() => {
-        // Only poll if actually processing - not if waiting for approval, completed, or paused
-        const shouldPoll = flowStatus && 
-          (flowStatus.status === 'running' || flowStatus.status === 'processing' || flowStatus.status === 'active') &&
-          !flowStatus.awaiting_user_approval &&
-          flowStatus.status !== 'waiting_for_approval' &&
-          flowStatus.status !== 'completed' &&
-          flowStatus.status !== 'failed' &&
-          flowStatus.status !== 'paused' &&
-          // Stop polling if in field_mapping phase (usually means waiting for approval)
-          !(flowStatus.current_phase === 'field_mapping' && flowStatus.progress_percentage > 10);
-          
-        if (shouldPoll) {
-          fetchStatus();
-        }
+        fetchStatus();
       }, 5000);
       return () => clearInterval(interval);
     }
-  }, [flow_id, flowStatus?.status, flowStatus?.awaiting_user_approval]);
+  }, [flow_id]); // Only depend on flow_id, not on flowStatus
 
   const getStatusDisplay = () => {
     if (!flowStatus) return null;

@@ -63,7 +63,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             "/api/v1/auth/login": {"limit": 5, "window": 60},  # 5 requests per minute
             "/api/v1/auth/register": {"limit": 3, "window": 60},  # 3 requests per minute
             "/api/v1/auth/password/change": {"limit": 3, "window": 300},  # 3 requests per 5 minutes
-            "/api/v1/data-import": {"limit": 10, "window": 60},  # 10 requests per minute
+            
+            # Stricter limit for the write-intensive file upload endpoint
+            "/api/v1/data-import/store-import": {"limit": 15, "window": 60},  # 15 uploads per minute
+            
+            # More lenient general limit for other data import (mostly read) operations
+            "/api/v1/data-import": {"limit": 60, "window": 60},  # 60 requests per minute
+            
             "default": {"limit": 100, "window": 60}  # Default: 100 requests per minute
         }
     
@@ -147,17 +153,23 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return f"{client_ip}:{user_agent_hash}"
     
     def _get_rate_limit(self, path: str) -> Dict[str, int]:
-        """Get rate limit configuration for a path."""
-        # Check for exact match first
+        """Get the most specific rate limit configuration for a path."""
+        # Check for exact match first, as it's the most specific
         if path in self.rate_limits:
             return self.rate_limits[path]
         
-        # Check for pattern matches
-        for pattern, limit in self.rate_limits.items():
-            if pattern != "default" and path.startswith(pattern):
-                return limit
+        # Find all patterns that the path starts with
+        matching_patterns = [
+            pattern for pattern in self.rate_limits
+            if pattern != "default" and path.startswith(pattern)
+        ]
         
-        # Return default limit
+        # If there are matching patterns, find the most specific (longest) one
+        if matching_patterns:
+            most_specific_pattern = max(matching_patterns, key=len)
+            return self.rate_limits[most_specific_pattern]
+        
+        # Return default limit if no other pattern matches
         return self.rate_limits["default"]
 
 

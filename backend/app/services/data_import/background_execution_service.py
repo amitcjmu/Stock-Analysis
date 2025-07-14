@@ -108,13 +108,19 @@ class BackgroundExecutionService:
                     context=context
                 )
             
-            # Run CrewAI flow kickoff (outside session since it's long-running)
-            logger.info(f"🚀 Calling discovery_flow.kickoff() for {flow_id}")
-            result = await asyncio.to_thread(discovery_flow.kickoff)
-            logger.info(f"✅ CrewAI Discovery Flow kickoff completed: {result}")
+            # Use new phase controller instead of flow.kickoff() to prevent automatic execution
+            logger.info(f"🚀 Starting controlled phase-by-phase execution for {flow_id}")
+            from app.services.crewai_flows.unified_discovery_flow.phase_controller import PhaseController
+            
+            phase_controller = PhaseController(discovery_flow)
+            result = await phase_controller.start_flow_execution()
+            
+            logger.info(f"✅ Discovery Flow phase execution completed: {result.status}")
+            logger.info(f"📍 Current phase: {result.phase.value}")
+            logger.info(f"⏸️ Requires user input: {result.requires_user_input}")
             
             # Update final status based on result
-            final_status, phase_data = self._determine_final_status(result)
+            final_status, phase_data = self._determine_final_status_from_phase_result(result)
             await self._update_flow_status(
                 flow_id=flow_id,
                 status=final_status,
@@ -162,6 +168,61 @@ class BackgroundExecutionService:
                 "current_phase": "processing",
                 "progress_percentage": 30.0
             }
+    
+    def _determine_final_status_from_phase_result(self, result) -> tuple[str, Dict[str, Any]]:
+        """
+        Determine the final status and phase data based on PhaseExecutionResult.
+        
+        Args:
+            result: PhaseExecutionResult from phase controller
+            
+        Returns:
+            Tuple of (status, phase_data)
+        """
+        if result.requires_user_input:
+            return "waiting_for_approval", {
+                "completion": result.status,
+                "current_phase": result.phase.value,
+                "progress_percentage": self._calculate_progress_percentage(result.phase),
+                "awaiting_user_approval": True,
+                "phase_data": result.data
+            }
+        elif result.status == "failed":
+            return "failed", {
+                "completion": result.status,
+                "current_phase": result.phase.value,
+                "error": result.data.get("error", "Unknown error"),
+                "phase_data": result.data
+            }
+        elif result.status == "completed" and result.phase.value == "finalization":
+            return "completed", {
+                "completion": "discovery_completed",
+                "current_phase": "completed",
+                "progress_percentage": 100.0,
+                "phase_data": result.data
+            }
+        else:
+            return "processing", {
+                "completion": result.status,
+                "current_phase": result.phase.value,
+                "progress_percentage": self._calculate_progress_percentage(result.phase),
+                "phase_data": result.data
+            }
+    
+    def _calculate_progress_percentage(self, phase) -> float:
+        """Calculate progress percentage based on current phase"""
+        phase_progress_map = {
+            "initialization": 10.0,
+            "data_import_validation": 20.0,
+            "field_mapping_suggestions": 30.0,
+            "field_mapping_approval": 40.0,
+            "data_cleansing": 50.0,
+            "asset_inventory": 70.0,
+            "dependency_analysis": 85.0,
+            "tech_debt_assessment": 90.0,
+            "finalization": 100.0
+        }
+        return phase_progress_map.get(phase.value, 30.0)
     
     async def _update_flow_status(
         self,
@@ -308,6 +369,109 @@ class BackgroundExecutionService:
             
         except Exception as e:
             logger.error(f"❌ Failed to cancel background execution: {e}")
+            return False
+    
+    async def resume_flow_from_user_input(
+        self,
+        flow_id: str,
+        user_input: Dict[str, Any],
+        context: RequestContext,
+        resume_phase: str = "field_mapping_approval"
+    ) -> bool:
+        """
+        Resume a paused flow with user input.
+        
+        Args:
+            flow_id: The flow ID to resume
+            user_input: User input data
+            context: Request context
+            resume_phase: Phase to resume from
+            
+        Returns:
+            bool: True if resumed successfully
+        """
+        try:
+            logger.info(f"🔄 Resuming flow {flow_id} from phase {resume_phase} with user input")
+            
+            # Create CrewAI service with fresh session
+            async with AsyncSessionLocal() as fresh_db:
+                from app.services.crewai_flow_service import CrewAIFlowService
+                from app.services.crewai_flows.unified_discovery_flow import create_unified_discovery_flow
+                from app.services.crewai_flows.unified_discovery_flow.phase_controller import (
+                    PhaseController, 
+                    FlowPhase
+                )
+                
+                crewai_service = CrewAIFlowService(fresh_db)
+                
+                # Create the UnifiedDiscoveryFlow instance (will load existing state)
+                discovery_flow = create_unified_discovery_flow(
+                    flow_id=flow_id,
+                    client_account_id=context.client_account_id,
+                    engagement_id=context.engagement_id,
+                    user_id=context.user_id or "system",
+                    raw_data=[],  # Will be loaded from state
+                    metadata={
+                        "source": "flow_resumption",
+                        "master_flow_id": flow_id
+                    },
+                    crewai_service=crewai_service,
+                    context=context,
+                    master_flow_id=flow_id
+                )
+                
+                # Update flow status to processing
+                await self._update_flow_status(
+                    flow_id=flow_id,
+                    status="processing",
+                    phase_data={"message": f"Resuming flow from {resume_phase} with user input"},
+                    context=context
+                )
+            
+            # Use phase controller to resume execution
+            phase_controller = PhaseController(discovery_flow)
+            
+            # Map string phase names to FlowPhase enum
+            phase_map = {
+                "field_mapping_approval": FlowPhase.FIELD_MAPPING_APPROVAL,
+                "data_cleansing": FlowPhase.DATA_CLEANSING,
+                "finalization": FlowPhase.FINALIZATION
+            }
+            
+            resume_from_phase = phase_map.get(resume_phase, FlowPhase.FIELD_MAPPING_APPROVAL)
+            
+            # Resume with user input
+            result = await phase_controller.resume_flow_execution(
+                from_phase=resume_from_phase,
+                user_input=user_input
+            )
+            
+            logger.info(f"✅ Flow resumption completed: {result.status}")
+            logger.info(f"📍 Current phase: {result.phase.value}")
+            logger.info(f"⏸️ Requires user input: {result.requires_user_input}")
+            
+            # Update final status based on result
+            final_status, phase_data = self._determine_final_status_from_phase_result(result)
+            await self._update_flow_status(
+                flow_id=flow_id,
+                status=final_status,
+                phase_data=phase_data,
+                context=context
+            )
+            
+            logger.info(f"✅ Flow {flow_id} resumed successfully")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to resume flow {flow_id}: {e}")
+            
+            # Update status to failed
+            await self._update_flow_status(
+                flow_id=flow_id,
+                status="failed",
+                phase_data={"error": f"Resume failed: {str(e)}"},
+                context=context
+            )
             return False
     
     async def get_execution_status(self, flow_id: str, context: RequestContext) -> Optional[Dict[str, Any]]:

@@ -14,6 +14,7 @@ interface FlowDeletionOptions {
   onSuccess?: (result: FlowDeletionResult) => void;
   onError?: (error: any) => void;
   skip_confirmation?: boolean; // For testing only - never use in production
+  useCustomConfirmation?: boolean; // When true, expects confirmation was already collected by custom UI
 }
 
 export const useFlowDeletion = (options: FlowDeletionOptions = {}) => {
@@ -25,7 +26,8 @@ export const useFlowDeletion = (options: FlowDeletionOptions = {}) => {
     deletion_source = 'manual',
     onSuccess,
     onError,
-    skip_confirmation = false
+    skip_confirmation = false,
+    useCustomConfirmation = false
   } = options;
 
   const deletionMutation = useMutation({
@@ -48,7 +50,8 @@ export const useFlowDeletion = (options: FlowDeletionOptions = {}) => {
         client.id,
         engagement?.id,
         deletion_source,
-        user?.id
+        user?.id,
+        useCustomConfirmation // Pass through the custom confirmation flag
       );
 
       console.log('📋 Flow deletion result:', result);

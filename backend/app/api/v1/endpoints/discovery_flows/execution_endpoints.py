@@ -95,24 +95,46 @@ async def resume_discovery_flow(
                  "field_mapping" in str(master_flow.flow_persistence_data) or
                  "attribute_mapping" in str(master_flow.flow_persistence_data))):
                 
-                # Resume the CrewAI flow with field mapping approval
-                logger.info("📝 Resuming CrewAI flow with field mapping approval")
+                # Resume the CrewAI flow with field mapping approval using new phase controller
+                logger.info("📝 Resuming CrewAI flow with field mapping approval via phase controller")
                 
-                # Use the CrewAI flow service to handle this directly
-                crew_result = await crewai_service.resume_flow(
+                # Use the new background execution service to resume with phase control
+                from app.services.data_import.background_execution_service import BackgroundExecutionService
+                
+                background_service = BackgroundExecutionService(db, str(context.client_account_id))
+                
+                # Prepare user input for field mapping approval
+                user_input = {
+                    "approved_mappings": request.get("field_mappings", {}),
+                    "approval_timestamp": datetime.utcnow().isoformat(),
+                    "approved_by": context.user_id,
+                    "approval_notes": request.get("notes", ""),
+                    "user_approval": True
+                }
+                
+                # Resume from field mapping approval phase
+                resume_success = await background_service.resume_flow_from_user_input(
                     flow_id=str(flow_id),
-                    resume_context=resume_context
+                    user_input=user_input,
+                    context=context,
+                    resume_phase="field_mapping_approval"
                 )
                 
-                return {
-                    "success": True,
-                    "flow_id": str(flow_id),
-                    "status": crew_result.get("status", "resumed"),
-                    "message": "Field mapping resumed via CrewAI service",
-                    "next_phase": "data_cleansing",
-                    "current_phase": "field_mapping",
-                    "method": "crewai_direct_service"
-                }
+                if resume_success:
+                    return {
+                        "success": True,
+                        "flow_id": str(flow_id),
+                        "status": "resumed",
+                        "message": "Field mapping approved and flow resumed with phase controller",
+                        "next_phase": "data_cleansing",
+                        "current_phase": "field_mapping_approval",
+                        "method": "phase_controller"
+                    }
+                else:
+                    raise HTTPException(
+                        status_code=500,
+                        detail="Failed to resume flow with approved mappings"
+                    )
             else:
                 # For paused flows, use resume
                 resume_result = await orchestrator.resume_flow(

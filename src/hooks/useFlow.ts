@@ -340,14 +340,28 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
 
     setState(prev => ({ ...prev, isPolling: true }));
 
+    let consecutiveErrors = 0;
+    const maxConsecutiveErrors = 3;
+    
     pollIntervalRef.current = setInterval(async () => {
       if (!mountedRef.current) return;
 
       try {
         await refreshFlow(flowId);
+        consecutiveErrors = 0; // Reset on success
       } catch (error) {
-        // Silently handle polling errors to avoid spam
-        console.warn('Polling error:', error);
+        consecutiveErrors++;
+        console.warn(`Polling error (${consecutiveErrors}/${maxConsecutiveErrors}):`, error);
+        
+        // Stop polling after too many consecutive errors
+        if (consecutiveErrors >= maxConsecutiveErrors) {
+          console.error('Too many polling errors, stopping auto-refresh');
+          stopPolling();
+          setState(prev => ({ 
+            ...prev, 
+            error: 'Auto-refresh stopped due to repeated errors. Please refresh manually.'
+          }));
+        }
       }
     }, refreshInterval);
   }, [refreshFlow, refreshInterval]);

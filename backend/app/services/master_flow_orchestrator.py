@@ -22,6 +22,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import func
 
+from app.utils.circuit_breaker import circuit_breaker_manager
+
 from app.core.logging import get_logger
 from app.core.exceptions import (
     FlowNotFoundError,
@@ -127,6 +129,13 @@ class MasterFlowOrchestrator:
         self.validator_registry = validator_registry
         self.handler_registry = handler_registry
         
+        # Initialize flow configurations if not already done
+        if not self.flow_registry.list_flow_types():
+            logger.info("🔄 Initializing flow configurations...")
+            from app.services.flow_configs import initialize_all_flows
+            result = initialize_all_flows()
+            logger.info(f"✅ Flow configurations initialized: {len(result.get('flows_registered', []))} flows")
+        
         # Initialize state manager
         self.state_manager = FlowStateManager(db, context)
         
@@ -169,7 +178,8 @@ class MasterFlowOrchestrator:
         flow_type: str,
         flow_name: Optional[str] = None,
         configuration: Optional[Dict[str, Any]] = None,
-        initial_state: Optional[Dict[str, Any]] = None
+        initial_state: Optional[Dict[str, Any]] = None,
+        _retry_count: int = 0
     ) -> Tuple[str, Dict[str, Any]]:
         """
         Create a new flow of any type
@@ -284,10 +294,17 @@ class MasterFlowOrchestrator:
                 retry_config=retry_config
             )
             
-            if error_result.get("should_retry", False):
-                # Recursive retry with backoff
-                await asyncio.sleep(error_result.get("retry_delay", 1))
-                return await self.create_flow(flow_type, flow_name, configuration, initial_state)
+            if error_result.get("should_retry", False) and _retry_count < 3:
+                # Recursive retry with backoff (max 3 retries)
+                retry_delay = error_result.get("retry_delay", 1)
+                logger.warning(f"Retrying flow creation ({_retry_count + 1}/3) after {retry_delay}s delay")
+                await asyncio.sleep(retry_delay)
+                return await self.create_flow(
+                    flow_type, flow_name, configuration, initial_state, 
+                    _retry_count=_retry_count + 1
+                )
+            elif _retry_count >= 3:
+                logger.error(f"Max retries (3) reached for flow creation of type {flow_type}")
             
             # Log failure audit
             await self.audit_logger.log_audit_event(

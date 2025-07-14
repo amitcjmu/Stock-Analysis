@@ -148,17 +148,27 @@ class FlowDeletionService {
   async requestDeletionApproval(
     candidates: FlowDeletionCandidate[],
     deletion_source: FlowDeletionRequest['deletion_source'],
-    user_id?: string
+    user_id?: string,
+    skipBrowserConfirm: boolean = false
   ): Promise<FlowDeletionRequest | null> {
     if (candidates.length === 0) {
       return null;
     }
 
-    // Build user-friendly confirmation message
-    const message = this.buildConfirmationMessage(candidates, deletion_source);
+    let userConfirmed = false;
     
-    // Request user confirmation
-    const userConfirmed = confirm(message);
+    if (skipBrowserConfirm) {
+      // When skipBrowserConfirm is true, it means a custom UI already collected confirmation
+      // This is used when components have their own deletion dialogs
+      console.log('✅ Using pre-approved deletion (custom UI already confirmed)');
+      userConfirmed = true;
+    } else {
+      // Build user-friendly confirmation message
+      const message = this.buildConfirmationMessage(candidates, deletion_source);
+      
+      // Request user confirmation
+      userConfirmed = confirm(message);
+    }
     
     if (!userConfirmed) {
       console.log('🚫 User declined flow deletion request');
@@ -296,7 +306,8 @@ class FlowDeletionService {
     clientAccountId: string,
     engagementId?: string,
     deletion_source: FlowDeletionRequest['deletion_source'] = 'manual',
-    user_id?: string
+    user_id?: string,
+    skipBrowserConfirm: boolean = false
   ): Promise<FlowDeletionResult> {
     try {
       // Get flow details for confirmation
@@ -310,15 +321,42 @@ class FlowDeletionService {
         .map(flow => this.analyzeFlowForDeletion(flow))
         .filter(Boolean) as FlowDeletionCandidate[];
 
-      // Add user_requested reason for manual deletions
-      if (deletion_source === 'manual') {
+      // If no flows found in master flows, create a candidate for the requested flow ID
+      if (candidates.length === 0 && flowIds.length > 0) {
+        console.log('⚠️ No flows found in master flows, creating candidates for requested IDs');
+        flowIds.forEach(flowId => {
+          candidates.push({
+            flowId,
+            flow_name: 'Unknown Flow',
+            status: 'unknown',
+            current_phase: 'unknown',
+            progress_percentage: 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            reason_for_deletion: deletion_source === 'manual' ? 'user_requested' : 'cleanup_recommended',
+            auto_cleanup_eligible: true,
+            deletion_impact: {
+              data_to_delete: {
+                workflow_state: 1,
+                import_sessions: 0,
+                field_mappings: 0,
+                assets: 0,
+                dependencies: 0,
+                shared_memory_refs: 0
+              },
+              estimated_cleanup_time: '30s'
+            }
+          });
+        });
+      } else if (deletion_source === 'manual') {
+        // Add user_requested reason for manual deletions
         candidates.forEach(candidate => {
           candidate.reason_for_deletion = 'user_requested';
         });
       }
 
       // Request user approval
-      const approval = await this.requestDeletionApproval(candidates, deletion_source, user_id);
+      const approval = await this.requestDeletionApproval(candidates, deletion_source, user_id, skipBrowserConfirm);
       
       if (!approval) {
         return {

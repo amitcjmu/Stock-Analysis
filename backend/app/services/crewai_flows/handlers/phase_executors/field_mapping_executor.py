@@ -15,14 +15,12 @@ CREWAI_FLOW_AVAILABLE = False
 try:
     from crewai import Flow
     from app.services.llm_config import get_crewai_llm
-    # Test if LLM is properly configured
-    test_llm = get_crewai_llm()
     CREWAI_FLOW_AVAILABLE = True
-    logger.info("✅ CrewAI Flow and LLM configuration available")
+    logger.info("✅ CrewAI Flow and LLM imports available")
 except ImportError as e:
     logger.warning(f"CrewAI Flow not available: {e}")
 except Exception as e:
-    logger.warning(f"CrewAI LLM configuration not available: {e}")
+    logger.warning(f"CrewAI imports failed: {e}")
 
 
 class FieldMappingExecutor(BasePhaseExecutor):
@@ -65,16 +63,41 @@ class FieldMappingExecutor(BasePhaseExecutor):
     def _get_crew_context(self) -> Dict[str, Any]:
         """Get context data for crew creation"""
         context = super()._get_crew_context()
+        # Get data from multiple possible sources
+        raw_data = None
+        if hasattr(self.state, 'raw_data') and self.state.raw_data:
+            raw_data = self.state.raw_data
+        elif hasattr(self.state, 'phase_data') and 'data_import' in self.state.phase_data:
+            data_import_results = self.state.phase_data['data_import']
+            if isinstance(data_import_results, dict):
+                raw_data = (data_import_results.get('validated_data') or 
+                           data_import_results.get('raw_data') or 
+                           data_import_results.get('records'))
+        
         context.update({
-            "sample_data": self.state.raw_data[:5] if self.state.raw_data else [],
+            "sample_data": raw_data[:5] if raw_data else [],
         })
         return context
     
     def _prepare_crew_input(self) -> Dict[str, Any]:
         """Prepare input data for crew execution"""
+        # Get data from multiple possible sources
+        raw_data = None
+        
+        # Try raw_data attribute first
+        if hasattr(self.state, 'raw_data') and self.state.raw_data:
+            raw_data = self.state.raw_data
+        # Try phase_data
+        elif hasattr(self.state, 'phase_data') and 'data_import' in self.state.phase_data:
+            data_import_results = self.state.phase_data['data_import']
+            if isinstance(data_import_results, dict):
+                raw_data = (data_import_results.get('validated_data') or 
+                           data_import_results.get('raw_data') or 
+                           data_import_results.get('records'))
+        
         return {
-            "columns": list(self.state.raw_data[0].keys()) if self.state.raw_data else [],
-            "sample_data": self.state.raw_data[:5] if self.state.raw_data else [],
+            "columns": list(raw_data[0].keys()) if raw_data and len(raw_data) > 0 else [],
+            "sample_data": raw_data[:5] if raw_data else [],
             "mapping_type": "comprehensive_field_mapping"
         }
     
@@ -110,7 +133,21 @@ class FieldMappingExecutor(BasePhaseExecutor):
     
     def _fallback_field_mapping(self) -> Dict[str, Any]:
         """Fallback field mapping logic"""
-        if not self.state.raw_data:
+        # Get data from multiple possible sources
+        raw_data = None
+        
+        # Try raw_data attribute first
+        if hasattr(self.state, 'raw_data') and self.state.raw_data:
+            raw_data = self.state.raw_data
+        # Try phase_data
+        elif hasattr(self.state, 'phase_data') and 'data_import' in self.state.phase_data:
+            data_import_results = self.state.phase_data['data_import']
+            if isinstance(data_import_results, dict):
+                raw_data = (data_import_results.get('validated_data') or 
+                           data_import_results.get('raw_data') or 
+                           data_import_results.get('records'))
+        
+        if not raw_data:
             return {
                 "mappings": {},
                 "validation_results": {
@@ -122,7 +159,7 @@ class FieldMappingExecutor(BasePhaseExecutor):
             }
         
         # Get first record to analyze fields
-        sample_record = self.state.raw_data[0]
+        sample_record = raw_data[0]
         columns = list(sample_record.keys())
         
         # Simple mapping logic based on common field patterns
@@ -232,14 +269,23 @@ class FieldMappingExecutor(BasePhaseExecutor):
                 
                 if crew:
                     logger.info("🤖 Using CrewAI crew for mapping suggestions")
-                    crew_result = crew.kickoff(inputs=crew_input)
-                    results = self._process_mapping_suggestions(crew_result)
+                    try:
+                        crew_result = crew.kickoff(inputs=crew_input)
+                        results = self._process_mapping_suggestions(crew_result)
+                    except Exception as crew_error:
+                        logger.error(f"❌ Crew execution failed: {crew_error}")
+                        error_msg = str(crew_error)
+                        if "RateLimitError" in error_msg or "rate limit" in error_msg.lower():
+                            logger.warning("⚠️ LLM rate limit hit during crew execution - using fallback")
+                            results = await self._generate_fallback_suggestions()
+                        else:
+                            raise  # Re-raise non-rate-limit errors
                 else:
                     logger.warning("Field mapping crew not available - using fallback suggestions")
-                    results = self._generate_fallback_suggestions()
+                    results = await self._generate_fallback_suggestions()
             else:
                 # Use fallback suggestions
-                results = self._generate_fallback_suggestions()
+                results = await self._generate_fallback_suggestions()
             
             # Extract mappings, clarifications, and confidence scores
             mappings = results.get("mappings", {})
@@ -273,13 +319,21 @@ class FieldMappingExecutor(BasePhaseExecutor):
             
         except Exception as e:
             logger.error(f"❌ Failed to generate mapping suggestions: {e}")
-            # Return minimal suggestions on error
+            
+            # Check if it's a rate limit error
+            error_msg = str(e)
+            if "RateLimitError" in error_msg or "rate limit" in error_msg.lower():
+                logger.warning("⚠️ LLM rate limit hit - falling back to rule-based mapping")
+                # Use fallback suggestions without AI
+                return await self._generate_fallback_suggestions()
+            
+            # For other errors, return minimal suggestions
             return {
                 "mappings": {},
                 "clarifications": ["Unable to generate automatic mapping suggestions. Please map fields manually."],
                 "confidence_scores": {},
                 "suggestions_generated": False,
-                "error": str(e)
+                "error": error_msg
             }
     
     def _process_mapping_suggestions(self, crew_result) -> Dict[str, Any]:
@@ -312,7 +366,7 @@ class FieldMappingExecutor(BasePhaseExecutor):
                 "confidence_scores": confidence_scores
             }
     
-    def _generate_fallback_suggestions(self) -> Dict[str, Any]:
+    async def _generate_fallback_suggestions(self) -> Dict[str, Any]:
         """Generate fallback mapping suggestions with clarifications"""
         # Debug logging
         logger.info(f"🔍 DEBUG: _generate_fallback_suggestions called")
@@ -321,23 +375,54 @@ class FieldMappingExecutor(BasePhaseExecutor):
         if hasattr(self.state, 'raw_data'):
             logger.info(f"🔍 DEBUG: raw_data type: {type(self.state.raw_data)}, length: {len(self.state.raw_data) if self.state.raw_data else 'None'}")
         
-        # Check phase_data for imported data
-        if hasattr(self.state, 'phase_data') and 'data_import' in self.state.phase_data:
+        # Try to get data from multiple sources
+        raw_data = None
+        
+        # First try raw_data attribute
+        if hasattr(self.state, 'raw_data') and self.state.raw_data:
+            raw_data = self.state.raw_data
+            logger.info(f"✅ Found raw_data in state: {len(raw_data)} records")
+        
+        # If not found, check phase_data for imported data
+        elif hasattr(self.state, 'phase_data') and 'data_import' in self.state.phase_data:
             data_import_results = self.state.phase_data['data_import']
             logger.info(f"🔍 DEBUG: Data import phase_data available: {list(data_import_results.keys()) if isinstance(data_import_results, dict) else 'Not a dict'}")
-            if 'validated_data' in data_import_results:
-                logger.info(f"🔍 DEBUG: validated_data in phase_data: {len(data_import_results['validated_data']) if data_import_results['validated_data'] else 0} records")
+            
+            if isinstance(data_import_results, dict):
+                # Try validated_data first
+                if 'validated_data' in data_import_results and data_import_results['validated_data']:
+                    raw_data = data_import_results['validated_data']
+                    logger.info(f"✅ Found validated_data in phase_data: {len(raw_data)} records")
+                # Then try raw_data
+                elif 'raw_data' in data_import_results and data_import_results['raw_data']:
+                    raw_data = data_import_results['raw_data']
+                    logger.info(f"✅ Found raw_data in phase_data: {len(raw_data)} records")
+                # Then try records
+                elif 'records' in data_import_results and data_import_results['records']:
+                    raw_data = data_import_results['records']
+                    logger.info(f"✅ Found records in phase_data: {len(raw_data)} records")
         
-        if not self.state.raw_data:
-            logger.warning("⚠️ No raw_data available in state for field mapping")
-            return {
-                "mappings": {"None": "cost_center"},  # This is what we're seeing in the output
-                "clarifications": ["No data available for mapping. Please upload data first."],
-                "confidence_scores": {}
-            }
+        # Last resort: try to fetch data directly from database using data_import_id
+        if not raw_data and hasattr(self.state, 'data_import_id') and self.state.data_import_id:
+            logger.warning("⚠️ No raw_data in state, trying to fetch from database using data_import_id")
+            try:
+                raw_data = await self._fetch_raw_data_from_database(self.state.data_import_id)
+                if raw_data:
+                    logger.info(f"✅ Fetched raw_data from database: {len(raw_data)} records")
+            except Exception as db_error:
+                logger.error(f"❌ Failed to fetch raw_data from database: {db_error}")
+        
+        if not raw_data:
+            logger.error("⚠️ No raw_data available in state for field mapping")
+            logger.error(f"⚠️ State contents: {dir(self.state)}")
+            if hasattr(self.state, '__dict__'):
+                logger.error(f"⚠️ State attributes: {self.state.__dict__}")
+            
+            # Instead of returning a fallback, raise an error so the issue is visible
+            raise ValueError("No raw CSV data available for field mapping. The flow state is missing the imported data. This indicates a data linkage issue between the flow and data import.")
         
         # Get first record to analyze fields
-        sample_record = self.state.raw_data[0]
+        sample_record = raw_data[0]
         columns = list(sample_record.keys())
         
         logger.info(f"🔍 Analyzing {len(columns)} columns from imported data: {columns}")
@@ -456,6 +541,32 @@ class FieldMappingExecutor(BasePhaseExecutor):
                 confidence_scores[source] = 0.5
         
         return confidence_scores
+    
+    async def _fetch_raw_data_from_database(self, data_import_id: str) -> List[Dict[str, Any]]:
+        """Fetch raw data directly from database using data_import_id"""
+        try:
+            from app.models.data_import import RawImportRecord
+            from app.core.database import AsyncSessionLocal
+            from sqlalchemy import select
+            
+            async with AsyncSessionLocal() as db:
+                # Query raw import records
+                query = select(RawImportRecord.raw_data).where(
+                    RawImportRecord.data_import_id == data_import_id
+                )
+                result = await db.execute(query)
+                records = result.scalars().all()
+                
+                if records:
+                    logger.info(f"✅ Found {len(records)} raw records in database")
+                    return [record for record in records if record]
+                else:
+                    logger.warning(f"⚠️ No raw records found for data_import_id: {data_import_id}")
+                    return []
+                    
+        except Exception as e:
+            logger.error(f"❌ Error fetching raw data from database: {e}")
+            return []
     
     def _generate_default_clarifications(self, mappings: Dict[str, str], confidence_scores: Dict[str, float]) -> List[str]:
         """Generate default clarification questions based on mappings"""

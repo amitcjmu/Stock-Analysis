@@ -69,8 +69,8 @@ export const useAgentQuestions = (page: string = "dependencies") => {
       }
     },
     enabled: isAuthenticated && !!client && !!engagement, // Only run query when authenticated with context
-    staleTime: 30 * 1000, // 30 seconds
-    refetchInterval: consecutiveErrors.current >= maxConsecutiveErrors ? false : 30 * 1000, // Stop polling on errors
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: false, // Disable automatic polling for agent questions
     refetchOnWindowFocus: false,
     retry: (failureCount, error) => {
       // Don't retry 404 or 403 errors
@@ -141,8 +141,8 @@ export const useAgentInsights = (page: string = "dependencies") => {
       }
     },
     enabled: isAuthenticated && !!client && !!engagement, // Only run query when authenticated with context
-    staleTime: 60 * 1000, // 1 minute
-    refetchInterval: consecutiveErrors.current >= maxConsecutiveErrors ? false : 60 * 1000, // Stop polling on errors
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: false, // Disable automatic polling for agent insights
     refetchOnWindowFocus: false,
     retry: (failureCount, error) => {
       // Don't retry 404 or 403 errors
@@ -193,8 +193,8 @@ export const useAgentStatus = () => {
       }
     },
     enabled: isAuthenticated && !!client && !!engagement, // Only run query when authenticated with context
-    staleTime: 30 * 1000, // 30 seconds
-    refetchInterval: consecutiveErrors.current >= maxConsecutiveErrors ? false : 30 * 1000, // Stop polling on errors
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: false, // Disable automatic polling for agent status
     refetchOnWindowFocus: false,
     retry: (failureCount, error) => {
       // Don't retry 404 or 403 errors

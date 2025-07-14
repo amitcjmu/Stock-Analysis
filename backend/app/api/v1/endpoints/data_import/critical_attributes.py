@@ -345,12 +345,12 @@ async def _trigger_discovery_flow_analysis(
                 'source': 'critical_attributes_analysis'
             })()
             
-            flow_result = await crewai_service.execute_discovery_flow(
-                sample_data, flow_context
-            )
+            # The execute_discovery_flow method doesn't exist
+            # Instead, we should trigger field mapping re-analysis
+            logger.warning("⚠️ Discovery flow re-analysis not implemented yet")
+            # TODO: Implement proper field mapping re-analysis
             
-            logger.info(f"🚀 Discovery flow triggered for critical attributes analysis: {flow_id}")
-        
+            logger.info(f"🚀 Discovery flow re-analysis needed for: {flow_id}")
     except ImportError:
         logger.warning("Discovery flow service not available")
     except Exception as e:

@@ -42,6 +42,41 @@ class ImportValidator:
         self.db = db
         self.client_account_id = client_account_id
         
+    def validate_csv_headers(self, data: List[Dict[str, Any]]) -> None:
+        """
+        Validate that CSV column headers are preserved and not corrupted.
+        
+        Args:
+            data: The parsed CSV data
+            
+        Raises:
+            AppValidationError: If headers appear to be corrupted
+        """
+        if not data:
+            return
+        
+        headers = list(data[0].keys())
+        logger.info(f"🔍 Validating CSV headers: {headers}")
+        
+        # Check for numeric-only headers (indicates corruption)
+        numeric_headers = [h for h in headers if str(h).isdigit()]
+        
+        if len(numeric_headers) > len(headers) * 0.5:  # More than 50% numeric
+            logger.error(f"❌ CSV headers appear corrupted - {len(numeric_headers)} out of {len(headers)} are numeric indices")
+            logger.error(f"❌ Corrupted headers: {numeric_headers}")
+            logger.error(f"❌ All headers: {headers}")
+            raise AppValidationError(
+                f"CSV column names appear corrupted (showing as numeric indices: {numeric_headers}). "
+                "This suggests an issue with CSV parsing. Please check the uploaded file format."
+            )
+        
+        # Check for empty or None headers
+        empty_headers = [h for h in headers if not h or str(h).strip() == '']
+        if empty_headers:
+            logger.warning(f"⚠️ Found empty header fields: {empty_headers}")
+        
+        logger.info(f"✅ CSV headers validation passed for {len(headers)} columns")
+
     async def validate_import_context(self, context: RequestContext) -> None:
         """
         Validate that the import context is complete and valid.

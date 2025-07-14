@@ -87,6 +87,9 @@ class ImportStorageHandler:
             await self.validator.validate_import_context(context)
             import_uuid = await self.validator.validate_import_id(import_validation_id)
             
+            # Step 1.5: Validate CSV headers to catch corruption early
+            self.validator.validate_csv_headers(file_data)
+            
             # Step 2: Check for existing incomplete discovery flows
             existing_flow_validation = await self.validator.validate_no_incomplete_discovery_flow(
                 context.client_account_id,
@@ -180,10 +183,12 @@ class ImportStorageHandler:
                     )
                 
                 # Transaction will be committed automatically by context manager
-                
-            # Step 7: Post-commit operations
+                # This ensures the master flow is visible for foreign key references
+            
+            # Step 8: Post-commit operations (outside the transaction context)
             if flow_success and flow_id:
-                # Update ALL related records with master_flow_id (comprehensive linkage)
+                # Now update ALL related records with master_flow_id (comprehensive linkage)
+                # This happens AFTER the transaction commit to avoid foreign key constraint violations
                 linkage_results = await self.storage_manager.update_all_records_with_flow(
                     data_import_id=data_import.id,
                     master_flow_id=flow_id
@@ -204,7 +209,7 @@ class ImportStorageHandler:
                     context=context
                 )
             
-            # Step 8: Build and return response
+            # Step 9: Build and return response
             if flow_success:
                 return self.response_builder.success_response(
                     data_import_id=str(data_import.id),
@@ -382,6 +387,7 @@ class ImportStorageHandler:
                     )
                     
                     # Update ALL related records with master_flow_id (retry scenario)
+                    # The flow creation should be committed by the flow orchestrator
                     linkage_results = await self.storage_manager.update_all_records_with_flow(
                         data_import_id=data_import.id,
                         master_flow_id=flow_id
@@ -392,6 +398,7 @@ class ImportStorageHandler:
                         logger.info(f"🔗 Master flow linkage completed successfully for retry flow {flow_id}")
                     else:
                         logger.error(f"💥 Master flow linkage failed for retry flow {flow_id}: {linkage_results['error']}")
+                        # Continue even if linkage fails - non-critical for retry
                     
                     # Start background execution
                     await self.background_service.start_background_flow_execution(

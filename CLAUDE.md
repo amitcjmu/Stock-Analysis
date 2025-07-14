@@ -1,6 +1,35 @@
-# CLAUDE.md
+# CLAUDE.md - CRITICAL INSTRUCTIONS FOR AI AGENTS
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+⚠️ **STOP! READ THIS ENTIRE FILE BEFORE WRITING ANY CODE** ⚠️
+
+This file provides **MANDATORY** guidance to Claude Code (claude.ai/code) and all AI agents when working with code in this repository.
+
+## 🛑 CRITICAL RULES - VIOLATIONS WILL BREAK THE APPLICATION
+
+### 1. **NEVER RUN ANYTHING LOCALLY**
+- ❌ **NEVER** run `npm install`, `pip install`, `python`, `node`, or ANY commands locally
+- ✅ **ALWAYS** use Docker: `docker exec migration_backend <command>`
+- ✅ **ALWAYS** use Docker: `docker exec migration_frontend <command>`
+
+### 2. **NEVER USE LEGACY PATTERNS**
+- ❌ **NEVER** use `DataImportRepository`, `FieldMappingRepository` - DELETED July 6, 2025
+- ❌ **NEVER** use V3 API patterns - DELETED July 6, 2025
+- ❌ **NEVER** use session_id - use flow_id
+- ❌ **NEVER** create pseudo-agents - use real CrewAI patterns only
+- ✅ **ALWAYS** use direct SQLAlchemy queries for data access
+- ✅ **ALWAYS** use Master Flow Orchestrator for flow management
+
+### 3. **CORRECT IMPORT PATHS**
+- ❌ **NEVER** `from app.models.user import User`
+- ✅ **ALWAYS** `from app.models.client_account import User`
+- ❌ **NEVER** `from app.core.auth import get_current_user`
+- ✅ **ALWAYS** `from app.api.v1.auth.auth_utils import get_current_user`
+
+### 4. **UNDERSTAND THE ARCHITECTURE BEFORE CODING**
+- 📖 **MUST READ**: `/docs/development/PLATFORM_EVOLUTION_AND_CURRENT_STATE.md`
+- 📖 **MUST READ**: Architecture is Phase 5 Flow-Based (98% complete)
+- 📖 **MUST KNOW**: All flows use Master Flow Orchestrator pattern
+- 📖 **MUST KNOW**: Real CrewAI agents only - no pseudo-agents
 
 
 
@@ -208,6 +237,40 @@ class BaseDiscoveryAgent(ABC):  # Use true CrewAI agents
 # DON'T USE - Creating flows without master registration
 assessment_flow = create_assessment_flow()  # Missing master flow
 # ALWAYS register with master flow system - see master flow doc
+```
+
+## 🗑️ DELETED CODE - DO NOT USE OR REFERENCE
+
+### **These Classes/Modules Were PERMANENTLY DELETED on July 6, 2025:**
+```python
+# ❌ DELETED - Repository Pattern (replaced with direct queries)
+from app.repositories.data_import_repository import DataImportRepository  # DOES NOT EXIST
+from app.repositories.field_mapping_repository import FieldMappingRepository  # DOES NOT EXIST
+from app.repositories.v3.* import *  # ALL V3 REPOSITORIES DELETED
+
+# ❌ DELETED - V3 Services (replaced with V1 API)
+from app.services.v3.* import *  # ALL V3 SERVICES DELETED
+
+# ❌ DELETED - Pseudo-Agents (replaced with real CrewAI)
+from app.services.agents.base_discovery_agent import BaseDiscoveryAgent  # DELETED
+from app.services.agents.data_import_validation_agent import *  # DELETED
+from app.services.agents.attribute_mapping_agent import *  # DELETED
+```
+
+### **Use These Patterns Instead:**
+```python
+# ✅ Direct Database Queries
+from sqlalchemy import select
+from app.models.data_import.core import DataImport
+from app.models.data_import.mapping import ImportFieldMapping
+
+data_imports = await db.execute(
+    select(DataImport).where(DataImport.client_account_id == context.client_account_id)
+)
+
+# ✅ Real CrewAI Patterns
+from crewai import Agent, Task, Crew
+agent = Agent(role="Data Analyst", goal="Analyze data quality")
 ```
 
 ## Key API Endpoints
@@ -460,8 +523,32 @@ src/utils/migration/
 
 ---
 
+## 🚀 QUICK REFERENCE FOR AI AGENTS
+
+### **Before Writing ANY Code:**
+1. ✅ Read this entire CLAUDE.md file
+2. ✅ Use Docker for ALL commands
+3. ✅ Check if the class/module you're importing was DELETED
+4. ✅ Use correct import paths from this guide
+5. ✅ Understand Master Flow Orchestrator pattern
+
+### **Common Mistakes AI Agents Make:**
+- ❌ Using `DataImportRepository` (deleted July 6, 2025)
+- ❌ Using `FieldMappingRepository` (deleted July 6, 2025)  
+- ❌ Running commands locally instead of Docker
+- ❌ Using old User import path
+- ❌ Creating pseudo-agents instead of real CrewAI
+- ❌ Using session_id instead of flow_id
+
+### **If You're Unsure:**
+- 📖 Check `/docs/development/PLATFORM_EVOLUTION_AND_CURRENT_STATE.md`
+- 🔍 Search for the pattern in this file's "DELETED CODE" section
+- 🐳 Always use Docker: `docker exec migration_backend <command>`
+
+---
+
 **Current Platform State**: Phase 5 (Flow-Based Architecture) + Production Ready (98% complete)  
 **Key Architecture Gap**: Real CrewAI agent logic needs implementation (flows execute but lack business logic)  
 **Estimated Completion**: 1-2 weeks for agent logic implementation and remaining cleanup  
 **Development Context**: Production-ready with all critical blockers resolved, flows properly linked  
-**Last Updated**: July 7th 2025
+**Last Updated**: July 13th 2025 - Added explicit warnings about deleted repositories and Docker requirements

@@ -74,7 +74,8 @@ class FlowLifecycleManager:
             FlowError: If flow creation fails
         """
         try:
-            # Create master flow record (without auto-commit for atomic operations)
+            # Create master flow record with immediate commit for foreign key visibility
+            # This ensures the master flow is immediately available for foreign key references
             master_flow = await self.master_repo.create_master_flow(
                 flow_id=flow_id,
                 flow_type=flow_type,
@@ -82,12 +83,11 @@ class FlowLifecycleManager:
                 flow_name=flow_name,
                 flow_configuration=flow_configuration,
                 initial_state=initial_state,
-                auto_commit=False  # Don't commit here - let the calling transaction manage commits
+                auto_commit=True  # Commit immediately to ensure foreign key visibility
             )
             
-            # CRITICAL: Ensure the master flow record is flushed and visible for foreign key references
-            await self.db.flush()
-            logger.info(f"✅ Master flow record flushed for foreign key visibility: {flow_id}")
+            logger.info(f"✅ Master flow record created and committed for foreign key visibility: {flow_id}")
+            # No need to flush since auto_commit=True already committed
             
             return master_flow
             

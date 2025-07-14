@@ -13,11 +13,11 @@ from pydantic import BaseModel
 
 from app.core.database import get_db
 from app.core.context import get_current_context, RequestContext
-from app.models.user import User
-from app.core.auth import get_current_user
+from app.models.client_account import User
+from app.api.v1.auth.auth_utils import get_current_user
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-from app.repositories.data_import_repository import DataImportRepository
-from app.repositories.field_mapping_repository import FieldMappingRepository
+from app.models.data_import.core import DataImport
+from app.models.data_import.mapping import ImportFieldMapping
 
 logger = logging.getLogger(__name__)
 
@@ -100,8 +100,12 @@ async def get_data_cleansing_analysis(
             )
         
         # Get data import for this flow
-        data_import_repo = DataImportRepository(db, context.client_account_id)
-        data_imports = await data_import_repo.get_by_discovery_flow_id(flow_id)
+        from sqlalchemy import select
+        data_import_query = select(DataImport).where(
+            DataImport.client_account_id == context.client_account_id
+        )
+        data_import_result = await db.execute(data_import_query)
+        data_imports = data_import_result.scalars().all()
         
         if not data_imports:
             raise HTTPException(
@@ -109,9 +113,12 @@ async def get_data_cleansing_analysis(
                 detail=f"No data imports found for flow {flow_id}"
             )
         
-        # Get field mappings
-        field_mapping_repo = FieldMappingRepository(db, context.client_account_id)
-        field_mappings = await field_mapping_repo.get_by_data_import_id(data_imports[0].id)
+        # Get field mappings  
+        field_mapping_query = select(ImportFieldMapping).where(
+            ImportFieldMapping.data_import_id == data_imports[0].id
+        )
+        field_mapping_result = await db.execute(field_mapping_query)
+        field_mappings = field_mapping_result.scalars().all()
         
         # Perform data cleansing analysis
         analysis_result = await _perform_data_cleansing_analysis(
@@ -160,8 +167,11 @@ async def get_data_cleansing_stats(
             )
         
         # Get basic stats from data import
-        data_import_repo = DataImportRepository(db, context.client_account_id)
-        data_imports = await data_import_repo.get_by_discovery_flow_id(flow_id)
+        data_import_query = select(DataImport).where(
+            DataImport.client_account_id == context.client_account_id
+        )
+        data_import_result = await db.execute(data_import_query)
+        data_imports = data_import_result.scalars().all()
         
         if not data_imports:
             # Return empty stats if no data

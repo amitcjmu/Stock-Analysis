@@ -1,86 +1,102 @@
 
-# Data Flow Analysis Report: Data Import Page
+# E2E Data Flow Analysis: Data Import
 
-This document provides a complete, end-to-end data flow analysis for the `Data Import` page of the AI Force Migration Platform.
+**Analysis Date:** 2025-07-13
 
-**Analysis Date:** 2024-07-29
+This document provides a complete, end-to-end data flow analysis for the `Data Import` process, which initiates a `Discovery` workflow.
 
-**Assumptions:**
-*   The analysis focuses on the `CMDBImport` page.
-*   The platform operates entirely within a Docker environment.
-*   All API calls require authentication and multi-tenant context headers.
+**Core Architecture:**
+*   **Modular Services:** The backend uses a modular service architecture. The API endpoint is a thin wrapper that delegates to an orchestration service.
+*   **Atomic Transactions:** All initial database records (import metadata, raw data, flow creation) are created within a single, atomic database transaction to ensure data integrity.
+*   **Asynchronous Execution:** The agentic workflow is executed asynchronously in the background after the initial API request has successfully completed.
 
 ---
 
-## 1. Frontend: Components and API Calls
+## 1. Frontend: Initiating the Import
 
-The Data Import page is the entry point for starting a discovery flow. It allows users to upload a data file (e.g., a CMDB export), which triggers a new analysis workflow.
+The Data Import page allows users to upload a data file (e.g., a CMDB export), which triggers the entire discovery analysis workflow.
 
 ### Key Components & Hooks
 *   **Page Component:** `src/pages/discovery/CMDBImport/index.tsx`
-*   **Core Logic Hooks:**
-    *   `useCMDBImport`: Orchestrates the entire data import process.
-    *   `useFileUpload`: Handles the file parsing and the initial API call to the backend.
-    *   `useUnifiedDiscoveryFlow`: Manages the state of the newly created flow.
+*   **File Upload Logic:** `src/pages/discovery/CMDBImport/hooks/useFileUpload.ts`
+*   **Flow State Management:** `src/hooks/useUnifiedDiscoveryFlow.ts`
 
 ### API Call Summary
 
-| # | Method | Endpoint                          | Trigger                                 | Description                                                                 |
-|---|--------|-----------------------------------|-----------------------------------------|-----------------------------------------------------------------------------|
-| 1 | `POST` | `/data-import/store-import`       | `useFileUpload` hook after file upload. | Sends parsed file data to the backend to store it and initiate a new flow. |
-| 2 | `GET`  | `/api/v1/flows/{flowId}/status`   | `useCMDBImport` hook (polling).         | Periodically fetches the status of the newly created and processing flow.   |
+| # | Method | Endpoint                          | Trigger                                 | Description                                                                                               |
+|---|--------|-----------------------------------|-----------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| 1 | `POST` | `/api/v1/data-import/store-import`| `useFileUpload` hook after file upload. | Sends the entire parsed file data to the backend to be stored and to trigger the Unified Discovery Flow.          |
+| 2 | `GET`  | (WebSocket or Polling)            | `useUnifiedDiscoveryFlow` hook.         | After the flow is created, the frontend listens for real-time status updates on the flow's progress. |
 
 ---
 
-## 2. Backend, CrewAI, ORM, and Database Trace
+## 2. Backend: Modular Service Orchestration
 
-The backend for data import is responsible for initiating a complex, multi-agent workflow.
+The backend is architected as a set of modular, single-responsibility services that are orchestrated by a central handler.
 
-### API Endpoint: `POST /data-import/store-import`
+### API Endpoint: `POST /api/v1/data-import/store-import`
 
-*   **FastAPI Route:** Likely located in `backend/app/api/v1/endpoints/data_import.py` in a function decorated with `@router.post("/store-import")`.
-*   **CrewAI Interaction:** This is a critical trigger point.
-    *   **Flow Initialization:** This endpoint call instantiates a new `MasterFlow` for the "discovery" type.
-    *   **Agent Trigger:** It kicks off the `MasterFlowOrchestrator`, which starts the first phase: `data_import_validation`.
-    *   **Initial Agents:** The `Data Import Validation Crew` (composed of agents like a `SecurityAgent`, `PrivacyAgent`, and `FormatValidationAgent`) is immediately tasked with analyzing the uploaded data.
-*   **ORM Layer:**
-    *   **Repository:** `MasterFlowRepository`, `DataImportSessionRepository`.
-    *   **Operation:**
-        1.  Creates a new `DataImportSession` record to log the upload event.
-        2.  Creates a new `MasterFlow` record with `flow_type='discovery'` and an initial `status='initializing'`.
-    *   **Scoping:** All records are created with the `client_account_id` and `engagement_id` from the context.
-*   **Database:**
-    *   **Tables:** `data_import_sessions`, `master_flows`.
-    *   **Query:**
-        *   `INSERT INTO data_import_sessions (...) VALUES (...);`
-        *   `INSERT INTO master_flows (..., client_account_id, engagement_id, flow_type, status) VALUES (..., ?, ?, 'discovery', 'initializing');`
+*   **FastAPI Route:** Defined in `backend/app/api/v1/endpoints/data_import/handlers/import_storage_handler.py`.
+*   **Orchestration Service:** The endpoint immediately delegates to the `handle_import` method in `backend/app/services/data_import/import_storage_handler.py`.
 
-### API Endpoint: `GET /api/v1/flows/{flowId}/status`
+### Service-Layer Execution Flow
 
-*   This endpoint was detailed in the `Discovery Overview` report. For the Data Import page, it serves to provide real-time feedback on the agents' validation progress.
+The `ImportStorageHandler` service executes the following sequence:
+
+1.  **Validation (`ImportValidator`)**:
+    *   Validates the request context (`client_account_id`, `engagement_id`).
+    *   Checks for any existing, incomplete discovery flows for the current context to prevent conflicts.
+    *   Validates the data itself (e.g., checks for valid CSV headers).
+
+2.  **Atomic Transaction (`ImportTransactionManager`)**: All subsequent database operations are wrapped in a single transaction.
+
+3.  **Data Persistence (`ImportStorageManager`)**:
+    *   A new record is created in the `data_imports` table to track the upload.
+    *   All rows from the uploaded file are stored as JSON in the `raw_import_records` table.
+    *   Initial suggestions are created in the `import_field_mappings` table.
+    *   The status in the `data_imports` table is updated to `processing`.
+
+4.  **Flow Creation (`FlowTriggerService`)**:
+    *   This service calls the `MasterFlowOrchestrator`.
+    *   The orchestrator creates a new flow record (`flow_type='discovery'`) in the `crewai_flow_state_extensions` table.
+    *   The `data_import_id` is passed to the new flow, linking the uploaded data to the workflow.
+
+5.  **Final Status Update**: The status in the `data_imports` record is updated to `discovery_initiated`.
+
+6.  **Transaction Commit**: The database transaction is committed, making all created records visible.
+
+7.  **Asynchronous Kickoff (`BackgroundExecutionService`)**:
+    *   *After* the API request has returned a success response to the user, this service starts the asynchronous execution of the CrewAI agents for the newly created flow.
+
+### Database Schema
+
+*   **`data_imports`**: The central record for the file upload. Contains metadata and status.
+*   **`raw_import_records`**: Contains the actual data from the uploaded file, one row per record.
+*   **`import_field_mappings`**: Stores suggested and confirmed field mappings.
+*   **`crewai_flow_state_extensions`**: The master table for all flows, including discovery flows. All other records are linked back to the `flow_id` created here.
 
 ---
 
-## 3. End-to-End Flow Sequence: Uploading a File
+## 3. End-to-End Flow Sequence: A Complete Trace
 
-1.  **User Uploads File:** A user drags and drops a CSV file into the `CMDBUploadSection`.
-2.  **Frontend Hook:** The `useFileUpload` hook's `handleFileUpload` function is triggered.
-3.  **File Parsing:** The hook parses the CSV data into a JSON object in the browser.
-4.  **API Call:** The hook calls `storeImportData`, which sends a `POST` request to `/data-import/store-import` with the parsed data.
-5.  **Backend Flow Creation:** The backend receives the data, creates records in the `data_import_sessions` and `master_flows` tables, and returns the new `flow_id`.
-6.  **Backend Agent Activation:** The `MasterFlowOrchestrator` starts the `data_import_validation` phase, activating the relevant CrewAI agents.
-7.  **Frontend State Update:** The `useCMDBImport` hook receives the `flow_id` and sets it as the `activeFlowId`.
-8.  **Polling Begins:** The `useCMDBImport` hook starts polling the `GET /api/v1/flows/{flowId}/status` endpoint every few seconds.
-9.  **UI Render:** The `CMDBDataTable` and `SimplifiedFlowStatus` components render, showing the real-time progress of the validation agents as reported by the status endpoint.
+1.  **User Uploads File:** A user uploads a CSV file.
+2.  **Frontend Parsing:** The `useFileUpload` hook parses the CSV data into a JSON object in the browser.
+3.  **API Call:** The hook sends a `POST` request to `/api/v1/data-import/store-import`.
+4.  **Backend Orchestration:** The `ImportStorageHandler` executes its full sequence (validation, storage, flow creation) within a single atomic transaction.
+5.  **Successful Response:** The backend returns a `200 OK` response to the frontend, including the new `flow_id`.
+6.  **Async Execution:** Simultaneously, the `BackgroundExecutionService` begins the agentic workflow on the backend.
+7.  **Frontend State Update:** The frontend receives the `flow_id` and begins monitoring it for status updates.
+8.  **Real-Time UI:** The UI components update in real-time to show the progress of the agents as they process the data.
 
 ---
 
 ## 4. Troubleshooting Breakpoints
 
-| Breakpoint              | Diagnostic Check                                                                                               | Platform-Specific Fix                                                                                              |
-|-------------------------|----------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
-| **Upload Fails**        | Check browser network tab for errors on `POST /data-import/store-import`. A 403 error indicates a context issue. | Ensure `useAuth` is providing a valid client and engagement. For admins, verify demo context is being applied correctly. |
-| **Flow Doesn't Start**  | Check the response from `/store-import`. If `flow_id` is null, the backend failed to create the flow.          | `docker exec -it migration_backend bash` and check logs for errors in the `MasterFlowOrchestrator` or `DataImportValidationCrew`. |
-| **Status Not Updating** | Verify the `useEffect` polling logic in `useCMDBImport` is firing. Check network tab for calls to `/status`.   | Ensure the `activeFlowId` is being set correctly after the initial `store-import` call returns.                    |
-| **Agent Validation Error**| Examine the `agent_insights` object within the response from the `/status` endpoint for error messages.         | Review the logic in the specific validation agent (e.g., `SecurityAgent`) to understand why it failed the data.      |
+| Breakpoint                        | Diagnostic Check                                                                                                    | Platform-Specific Fix                                                                                                    |
+|-----------------------------------|---------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| **Upload Fails (409 Conflict)**   | A `409` error on `/store-import` means an incomplete discovery flow already exists for this client/engagement.      | Use the UI to either continue or delete the existing flow before starting a new one.                                     |
+| **Flow Doesn't Start**            | Check the API response from `/store-import`. If `flow_id` is null, the backend failed during the transaction.       | `docker exec -it migration_backend bash` and check logs for errors in the `FlowTriggerService` or `MasterFlowOrchestrator`. |
+| **Status Not Updating**           | Verify that the frontend is receiving WebSocket messages or that its polling requests are succeeding.                 | Check the browser's network tab. Ensure the `activeFlowId` is set correctly in the frontend state.                         |
+| **Data Not Appearing in UI**       | The `raw_import_records` for the `data_import_id` might be missing or incorrect.                                    | Query the `raw_import_records` table in the database to inspect the JSON data for the corresponding `data_import_id`.      |
+| **Agent Processing Error**        | Check the `state` and `result` columns in the `crewai_task_execution` table for the relevant `flow_id`.               | Examine the error messages to identify which agent failed and why. Debug the agent's logic in the `crewai_flows` service. |
 

@@ -528,7 +528,11 @@ class CrewAIFlowService:
                         
                         # Initialize actual CrewAI flow for resumption
                         try:
-                            crewai_flow = UnifiedDiscoveryFlow()
+                            # UnifiedDiscoveryFlow requires crewai_service and context
+                            crewai_flow = UnifiedDiscoveryFlow(
+                                crewai_service=self,  # Pass self as the crewai_service
+                                context=context       # Use the context we created above
+                            )
                             logger.info(f"✅ Created UnifiedDiscoveryFlow instance for resumption")
                         except Exception as e:
                             logger.error(f"❌ Failed to create UnifiedDiscoveryFlow: {e}")

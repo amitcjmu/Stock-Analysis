@@ -192,7 +192,7 @@ class FieldMappingCrew:
             
             Your strength is looking beyond field names to understand what the data actually represents.""",
             "llm": self.llm,
-            "verbose": True,
+            "verbose": False,
             "allow_delegation": True,
             "tools": [pattern_tool],
             "memory": True
@@ -214,7 +214,7 @@ class FieldMappingCrew:
             You NEVER make assumptions. You analyze the actual data patterns and the complete
             Asset schema to make intelligent mapping decisions.""",
             "llm": self.llm,
-            "verbose": True,
+            "verbose": False,
             "allow_delegation": True,
             "tools": [schema_tool, pattern_tool],
             "memory": True
@@ -236,7 +236,7 @@ class FieldMappingCrew:
             You ensure that when multiple source fields contain related information, they are
             properly synthesized without overwriting each other.""",
             "llm": self.llm,
-            "verbose": True,
+            "verbose": False,
             "allow_delegation": False,
             "tools": [pattern_tool],
             "memory": True
@@ -253,25 +253,32 @@ class FieldMappingCrew:
         data_analyst, schema_expert, synthesis_specialist = agents
         
         headers = list(raw_data[0].keys()) if raw_data else []
-        # Provide more samples for better analysis
-        data_sample = raw_data[:10] if len(raw_data) >= 10 else raw_data
+        # Use minimal data sample to avoid rate limits - just headers and one sample value per field
+        sample_values = {}
+        if raw_data:
+            # Only show first 10 fields to reduce token usage
+            limited_headers = headers[:10]
+            for header in limited_headers:
+                sample_values[header] = str(raw_data[0].get(header, ""))[:30]  # Limit to 30 chars per field
+            
+            if len(headers) > 10:
+                logger.info(f"⚠️ Limiting field mapping to first 10 fields out of {len(headers)} to prevent rate limits")
+                sample_values["...more_fields"] = f"({len(headers) - 10} additional fields not shown)"
         
-        # Task 1: Analyze Data Patterns
+        # Task 1: Analyze Data Patterns (OPTIMIZED for rate limits)
         data_analysis_task = Task(
             description=f"""
-            Analyze the source data to understand patterns and semantic meaning.
+            Analyze the source data headers to understand patterns and semantic meaning.
             
-            Source Headers: {headers}
-            Sample Data: {json.dumps(data_sample, indent=2, default=str)}
+            Source Headers (Limited): {list(sample_values.keys())}
+            Sample Values: {json.dumps(sample_values, indent=2, default=str)}
             
-            For each field:
-            1. Analyze the data patterns (use the data_pattern_analyzer tool)
-            2. Understand what the data represents semantically
-            3. Identify fields that might contain composite information
-            4. Note any fields that seem to be metadata (like row numbers) vs actual data
-            5. Identify relationships between fields
+            IMPORTANT: Be concise to avoid rate limits. For each field:
+            1. Identify the semantic meaning based on the field name and sample value
+            2. Note if it's metadata (row numbers, IDs) vs actual asset data
+            3. Keep analysis brief but accurate
             
-            Provide a comprehensive analysis of what each field contains and represents.
+            Return a concise analysis focusing on field purpose and meaning.
             """,
             agent=data_analyst,
             expected_output="""
@@ -284,19 +291,18 @@ class FieldMappingCrew:
             """
         )
         
-        # Task 2: Create Intelligent Mappings
+        # Task 2: Create Intelligent Mappings (OPTIMIZED for rate limits)
         mapping_task = Task(
             description=f"""
-            Create intelligent field mappings based on the data analysis.
+            Create field mappings from source headers to Asset model fields.
             
-            Use the asset_schema_analyzer tool to understand ALL available Asset model fields.
+            Source Headers (Limited): {list(sample_values.keys())}
             
-            IMPORTANT INSTRUCTIONS:
-            1. Map based on semantic meaning, not just field names
-            2. Skip pure metadata fields (row numbers, indices, etc.)
-            3. For composite data, design how to synthesize multiple fields
-            4. Consider ALL Asset model fields, not just common ones
-            5. Provide detailed reasoning for each mapping
+            CONCISE INSTRUCTIONS (to avoid rate limits):
+            1. Map each header to the most appropriate Asset model field
+            2. Skip obvious metadata fields (row_index, etc.)
+            3. Focus on standard mappings first
+            4. Be brief in explanations
             6. Assign accurate confidence scores based on:
                - 0.9+: Perfect semantic match with clear data patterns
                - 0.7-0.89: Good match with some uncertainty
@@ -376,14 +382,15 @@ class FieldMappingCrew:
             "agents": agents,
             "tasks": tasks,
             "process": Process.sequential,
-            "verbose": True,
-            "memory": True,  # Enable memory for better decisions
-            "planning": True,  # Enable planning for complex mappings
-            "collaboration": True,  # Enable agent collaboration
-            "share_crew": True,  # Share insights between agents
-            "manager_llm": self.llm,  # Manager for coordination
-            "planning_llm": self.llm,  # Planning LLM
-            "knowledge": self.knowledge_base  # Use knowledge base if available
+            "verbose": False,  # Reduce verbosity to minimize LLM calls
+            "memory": False,  # Disable memory temporarily to reduce calls
+            "planning": False,  # Disable planning to reduce LLM calls
+            "collaboration": False,  # Disable collaboration to reduce inter-agent communication
+            "share_crew": False,  # Disable crew sharing to reduce calls
+            # Don't include manager_llm or planning_llm to avoid extra coordination calls
+            # "manager_llm": self.llm,
+            # "planning_llm": self.llm,
+            # "knowledge": self.knowledge_base
         }
         
         logger.info("Creating FULL Agentic Field Mapping Crew with complete capabilities")

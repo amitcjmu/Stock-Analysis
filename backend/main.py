@@ -91,6 +91,22 @@ async def lifespan(app: FastAPI):
         logger.warning(f"Flow initialization warning: {e}", exc_info=True)
         # Don't fail startup on flow initialization issues
     
+    # Initialize LLM rate limiting to prevent 429 errors
+    try:
+        logger.info("🔄 Initializing LLM rate limiting...")
+        # Enable rate limiting by default
+        os.environ["ENABLE_LLM_RATE_LIMITING"] = "true"
+        
+        # Enable full CrewAI functionality - no bypasses for testing
+        # os.environ["BYPASS_CREWAI_FOR_FIELD_MAPPING"] = "true"
+        logger.info("✅ Full CrewAI functionality enabled - no bypasses")
+        
+        # Log rate limiting configuration
+        from app.services.simple_rate_limiter import simple_rate_limiter
+        logger.info(f"✅ LLM rate limiting enabled: {simple_rate_limiter.max_tokens} requests/minute")
+    except Exception as e:
+        logger.warning(f"LLM rate limiting initialization warning: {e}")
+    
     logger.info("✅ Startup logic completed.")
 
     # Test database connection

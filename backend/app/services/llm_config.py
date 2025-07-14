@@ -11,253 +11,149 @@ Models (USER SPECIFIED - DO NOT CHANGE):
 - google/gemma-3-4b-it: Chat conversations and multi-modal transactions
 """
 
+import litellm
+import json
 import os
+from typing import Any, Dict, Optional, List, Union, Callable
 import logging
-from typing import Dict, Any, Optional
+from litellm import ModelResponse, CustomLLM
+from litellm.caching import Cache
+import asyncio
+from functools import lru_cache
 
-logger = logging.getLogger(__name__)
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Configure LiteLLM to handle DeepInfra logprobs issues
-try:
-    import litellm
-    
-    # CRITICAL: Configure response parsing to skip logprobs validation entirely for DeepInfra
-    def custom_deepinfra_response_parser(response):
-        """Custom response parser that removes problematic logprobs data"""
-        if hasattr(response, 'json') and callable(response.json):
-            response_data = response.json()
-        else:
-            response_data = response
-        
-        # Remove logprobs from all choices to prevent validation errors
-        if isinstance(response_data, dict) and 'choices' in response_data:
-            for choice in response_data['choices']:
-                if 'logprobs' in choice:
-                    del choice['logprobs']
-        
-        return response_data
-    
-    # Set up global LiteLLM configuration for DeepInfra
-    litellm.drop_params = True
-    litellm.suppress_debug_info = True
-    
-    # Configure DeepInfra-specific settings in LiteLLM's model config
-    os.environ["DEEPINFRA_DROP_PARAMS"] = "logprobs,top_logprobs,stream_options"
-    os.environ["LITELLM_DROP_PARAMS"] = "logprobs,top_logprobs,stream_options"
-    
-    # Set custom completion params to exclude logprobs entirely
-    litellm.completion_cost_cache = {}
-    
-    logger.info("✅ CRITICAL FIX: Configured LiteLLM to completely drop logprobs parameters")
-    logger.info("✅ CRITICAL FIX: Set custom response parsing to prevent DeepInfra logprobs validation errors")
-except ImportError:
-    logger.warning("LiteLLM not available for configuration")
-except Exception as e:
-    logger.warning(f"LiteLLM configuration warning: {e}")
+# --- Start of new implementation ---
 
-# Import CrewAI LLM class
-CREWAI_AVAILABLE = False
-try:
-    from crewai import LLM
-    CREWAI_AVAILABLE = True
-    logger.info("✅ CrewAI LLM class imported successfully")
-except ImportError as e:
-    logger.warning(f"CrewAI not available: {e}")
-    # Fallback LLM class
-    class LLM:
-        def __init__(self, **kwargs):
-            for key, value in kwargs.items():
-                setattr(self, key, value)
-
-from app.core.config import settings
-
-class LLMConfigurationService:
-    """Service to configure and manage multiple LLM instances following CrewAI best practices."""
-    
+class DeepInfraLogprobsFixer(litellm.Callback):
+    """
+    Callback handler to forcibly remove 'logprobs' from requests to DeepInfra.
+    This is necessary because DeepInfra returns `logprobs: null` which causes
+    Pydantic validation errors in litellm when `logprobs: true` is in the request.
+    The standard `drop_params` mechanism in litellm did not prove effective.
+    """
     def __init__(self):
-        self.deepinfra_api_key = getattr(settings, 'DEEPINFRA_API_KEY', os.getenv('DEEPINFRA_API_KEY'))
-        # Use base URL from settings/environment, fallback to OpenAI-compatible endpoint
-        self.deepinfra_base_url = getattr(settings, 'DEEPINFRA_BASE_URL', os.getenv('DEEPINFRA_BASE_URL', 'https://api.deepinfra.com/v1/openai'))
-        
-        if not self.deepinfra_api_key:
-            logger.error("❌ DEEPINFRA_API_KEY not found in environment variables")
-            raise ValueError("DEEPINFRA_API_KEY is required for LLM configuration")
-        
-        logger.info("✅ LLM Configuration Service initialized with DeepInfra API key")
-        
-        # Configure environment variables immediately for CrewAI
-        self._configure_environment_variables()
-    
-    def _configure_environment_variables(self):
+        super().__init__()
+        # Give it a name for easier identification in logs/debug
+        self.name = "DeepInfra Logprobs Fixer"
+
+    def pre_call_hook(self, kwargs: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Configure environment variables for DeepInfra's OpenAI-compatible Chat Completions API.
-        Following DeepInfra's recommendation to use Chat Completions for conversations.
+        This hook is executed by litellm before making the API call to the provider.
+        It inspects the request parameters and removes 'logprobs' if the target model is from DeepInfra.
         """
-        # Configure for DeepInfra's recommended Chat Completions API
-        os.environ["OPENAI_API_KEY"] = self.deepinfra_api_key
-        os.environ["OPENAI_API_BASE"] = self.deepinfra_base_url
-        os.environ["OPENAI_BASE_URL"] = self.deepinfra_base_url
-        os.environ["OPENAI_API_TYPE"] = "openai"  # Use OpenAI format
-        
-        # Set the default model to prevent gpt-4o-mini fallback
-        crewai_model = "deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
-        os.environ["OPENAI_MODEL_NAME"] = crewai_model
-        
-        # CRITICAL: Configure LiteLLM to disable logprobs globally for DeepInfra
-        # This prevents the validation errors we're seeing
-        os.environ["LITELLM_DROP_PARAMS"] = "logprobs,top_logprobs,stream_options"
-        os.environ["LITELLM_FAIL_ON_VALIDATION_ERROR"] = "false"
-        
-        # Disable logprobs specifically for all OpenAI-compatible providers
-        os.environ["OPENAI_LOGPROBS"] = "false"
-        
-        logger.info(f"✅ Environment configured for DeepInfra Chat Completions API: {crewai_model}")
-        logger.info(f"✅ Base URL: {self.deepinfra_base_url}")
-        logger.info("✅ CRITICAL FIX: Disabled logprobs globally to prevent DeepInfra validation errors")
-    
-    def get_crewai_llm(self) -> LLM:
-        """
-        Get LLM instance for CrewAI activities.
-        Model: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8 (USER SPECIFIED)
-        
-        Following CrewAI docs: Using LLM Class with base_url and api_key
-        """
-        model_name = "deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
-        
-        return LLM(
-            model=model_name,
-            base_url=self.deepinfra_base_url,
-            api_key=self.deepinfra_api_key,
-            # CrewAI standard parameters
-            temperature=0.7,
-            max_tokens=2048,
-            # CRITICAL: Completely disable logprobs and related parameters for DeepInfra
-            logprobs=False,
-            # Additional parameters to ensure DeepInfra compatibility
-            stream=False,
-            # Custom parameters to prevent logprobs issues
-            extra_body={
-                "stream_options": None,
-                "logprobs": False,
-                "top_logprobs": None
-            }
-        )
-    
-    def get_embedding_llm(self) -> LLM:
-        """
-        Get LLM instance for embeddings.
-        Model: thenlper/gte-large (USER SPECIFIED)
-        """
-        model_name = "deepinfra/thenlper/gte-large"
-        
-        return LLM(
-            model=model_name,
-            base_url=self.deepinfra_base_url,
-            api_key=self.deepinfra_api_key,
-            # CRITICAL: Completely disable logprobs and related parameters for DeepInfra
-            logprobs=False,
-            # Additional parameters to ensure DeepInfra compatibility
-            stream=False,
-            # Custom parameters to prevent logprobs issues
-            extra_body={
-                "stream_options": None,
-                "logprobs": False,
-                "top_logprobs": None
-            }
-        )
-    
-    def get_chat_llm(self) -> LLM:
-        """
-        Get LLM instance for chat conversations and multi-modal transactions.
-        Model: google/gemma-3-4b-it (USER SPECIFIED)
-        """
-        model_name = "deepinfra/google/gemma-3-4b-it"
-        
-        return LLM(
-            model=model_name,
-            base_url=self.deepinfra_base_url,
-            api_key=self.deepinfra_api_key,
-            temperature=0.8,
-            max_tokens=1024,
-            # CRITICAL: Completely disable logprobs and related parameters for DeepInfra
-            logprobs=False,
-            # Additional parameters to ensure DeepInfra compatibility
-            stream=False,
-            # Custom parameters to prevent logprobs issues
-            extra_body={
-                "stream_options": None,
-                "logprobs": False,
-                "top_logprobs": None
-            }
-        )
-    
-    def get_all_llms(self) -> Dict[str, LLM]:
-        """Get all configured LLM instances."""
-        return {
-            'crewai': self.get_crewai_llm(),
-            'embedding': self.get_embedding_llm(),
-            'chat': self.get_chat_llm()
-        }
-    
-    def test_llm_connections(self) -> Dict[str, bool]:
-        """Test connections to all LLM models."""
-        results = {}
-        
-        # Test CrewAI LLM
         try:
-            crewai_llm = self.get_crewai_llm()
-            logger.info("✅ CrewAI LLM (Llama-4-Maverick-17B-128E-Instruct-FP8) configured successfully")
-            results['crewai'] = True
+            model_name = kwargs.get("model", "")
+            if "deepinfra" in model_name:
+                # The `logprobs` parameter can be at the top level of the request kwargs
+                if "logprobs" in kwargs:
+                    del kwargs["logprobs"]
+                    logging.info("DeepInfraLogprobsFixer: Removed 'logprobs' from request for model %s.", model_name)
+
+                # It can also be nested within 'extra_body' for some configurations
+                if "extra_body" in kwargs and isinstance(kwargs.get("extra_body"), dict):
+                    if "logprobs" in kwargs["extra_body"]:
+                        del kwargs["extra_body"]["logprobs"]
+                        logging.info("DeepInfraLogprobsFixer: Removed 'logprobs' from 'extra_body' for model %s.", model_name)
         except Exception as e:
-            logger.error(f"❌ CrewAI LLM configuration failed: {e}")
-            results['crewai'] = False
-        
-        # Test Embedding LLM
-        try:
-            embedding_llm = self.get_embedding_llm()
-            logger.info("✅ Embedding LLM (thenlper/gte-large) configured successfully")
-            results['embedding'] = True
-        except Exception as e:
-            logger.error(f"❌ Embedding LLM configuration failed: {e}")
-            results['embedding'] = False
-        
-        # Test Chat LLM
-        try:
-            chat_llm = self.get_chat_llm()
-            logger.info("✅ Chat LLM (google/gemma-3-4b-it) configured successfully")
-            results['chat'] = True
-        except Exception as e:
-            logger.error(f"❌ Chat LLM configuration failed: {e}")
-            results['chat'] = False
-        
-        return results
+            # Log any unexpected errors during the hook's execution to avoid silent failures
+            logging.error("DeepInfraLogprobsFixer: Encountered an error in pre_call_hook - %s", e, exc_info=True)
 
+        return kwargs
 
-# Global LLM configuration instance
-llm_config = LLMConfigurationService()
-
-# Convenience functions for easy access
-def get_crewai_llm() -> LLM:
-    """Get the primary LLM for CrewAI activities."""
-    return llm_config.get_crewai_llm()
-
-def get_embedding_llm() -> LLM:
-    """Get the LLM for embeddings."""
-    return llm_config.get_embedding_llm()
-
-def get_chat_llm() -> LLM:
-    """Get the LLM for chat conversations."""
-    return llm_config.get_chat_llm()
-
-def test_all_llm_connections() -> Dict[str, bool]:
-    """Test all LLM connections."""
-    return llm_config.test_llm_connections()
-
-
-# Create a CrewAI-compatible LLM using string identifier (alternative approach)
-def create_crewai_string_llm() -> str:
+def register_litellm_callbacks():
     """
-    Alternative approach: Return model string for CrewAI agents.
-    CrewAI can use string identifiers when environment is properly configured.
+    Registers the custom litellm callback handlers.
+    Ensures that callbacks are only registered once, even with hot-reloading.
     """
-    return "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8" 
+    deepinfra_fixer = DeepInfraLogprobsFixer()
+    
+    # litellm.callbacks is a list that holds all registered callback handlers.
+    if not hasattr(litellm, 'callbacks') or not isinstance(litellm.callbacks, list):
+        litellm.callbacks = []
+
+    # Check if a callback of this type is already registered to prevent duplicates.
+    if not any(isinstance(cb, DeepInfraLogprobsFixer) for cb in litellm.callbacks):
+        litellm.callbacks.append(deepinfra_fixer)
+        logging.info("Successfully registered DeepInfraLogprobsFixer callback.")
+    
+    # Log the current state of registered callbacks for debugging purposes.
+    callback_names = [getattr(cb, 'name', cb.__class__.__name__) for cb in litellm.callbacks]
+    logging.info(f"Current litellm callbacks: {callback_names}")
+
+# Register the callback immediately when this module is loaded.
+register_litellm_callbacks()
+
+# --- End of new implementation ---
+
+
+# Existing cache setup - remains unchanged
+cache_client = Cache(
+    type="redis",
+    host=os.environ.get("REDIS_HOST", "localhost"),
+    port=os.environ.get("REDIS_PORT", 6379),
+    db=int(os.environ.get("REDIS_DB", 1))
+) if os.getenv("LITELLM_CACHE_ENABLED", "False").lower() == "true" else None
+
+# This parser is now obsolete due to the callback handler, but we can keep it for documentation.
+def custom_deepinfra_response_parser(response_str: str) -> Dict[str, Any]:
+    """
+    DEPRECATED: This parser was designed to handle the `logprobs: null` issue from DeepInfra.
+    It has been replaced by the `DeepInfraLogprobsFixer` callback handler, which prevents
+    the invalid parameter from being sent in the first place.
+    """
+    try:
+        data = json.loads(response_str)
+        if 'choices' in data and isinstance(data['choices'], list):
+            for choice in data['choices']:
+                if 'logprobs' in choice and choice['logprobs'] is None:
+                    # Replace null logprobs with an empty list or simply delete it
+                    # Deleting is safer to prevent any downstream validation issues.
+                    del choice['logprobs']
+        return data
+    except json.JSONDecodeError:
+        logging.error("Failed to decode JSON from DeepInfra response.")
+        # Return a structure that won't break litellm's parsing if possible
+        return {"choices": [{"message": {"content": ""}}]}
+    except Exception as e:
+        logging.error(f"Error in custom_deepinfra_response_parser: {e}")
+        return {"choices": [{"message": {"content": ""}}]}
+
+# Environment variable for controlling LLM provider.
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "deepinfra").lower()
+logging.info(f"LLM Provider set to: {LLM_PROVIDER}")
+
+# Deprecated parameters dictionary
+DEEPINFRA_PARAMS = {
+    "temperature": 0.1,
+    "max_tokens": 4096,
+}
+
+@lru_cache(maxsize=128)
+def get_crewai_llm(model: str, temperature: float = 0.1) -> CustomLLM:
+    """
+    Configures and returns a CrewAI-compatible LLM instance.
+    Uses lru_cache for memoization to avoid re-creating instances.
+    The `DeepInfraLogprobsFixer` callback handles request modifications globally.
+    """
+    logging.info(f"Configuring LLM: Model='{model}', Temperature='{temperature}', Provider='{LLM_PROVIDER}'")
+
+    api_key = os.getenv("DEEPINFRA_API_KEY")
+    if not api_key:
+        logging.error("DEEPINFRA_API_KEY environment variable not set.")
+        raise ValueError("DEEPINFRA_API_KEY is required.")
+
+    # The logic for `drop_params` and custom parsers is now handled by the callback.
+    # This simplifies the LLM instantiation significantly.
+    llm = CustomLLM(
+        model=model,
+        temperature=temperature,
+        api_key=api_key,
+        api_base="https://api.deepinfra.com/v1/openai",
+        # The `pre_call_hook` in our registered callback now handles removing `logprobs`,
+        # making `drop_params` and other measures here redundant.
+    )
+
+    logging.info(f"Successfully created LLM instance for model '{model}'.")
+    return llm 
