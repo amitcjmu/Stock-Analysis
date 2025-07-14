@@ -16,7 +16,7 @@ import json
 import os
 from typing import Any, Dict, Optional, List, Union, Callable
 import logging
-from litellm import ModelResponse, CustomLLM
+from litellm import ModelResponse
 from litellm.caching import Cache
 import asyncio
 from functools import lru_cache
@@ -97,28 +97,38 @@ DEEPINFRA_PARAMS = {
 }
 
 @lru_cache(maxsize=128)
-def get_crewai_llm(model: str, temperature: float = 0.1) -> CustomLLM:
+def get_crewai_llm(model: str = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8", temperature: float = 0.1):
     """
     Configures and returns a CrewAI-compatible LLM instance.
     Uses lru_cache for memoization to avoid re-creating instances.
     The deepinfra_logprobs_fixer input callback handles logprobs removal globally.
+    
+    Returns:
+        CrewAI LLM instance configured for DeepInfra
     """
-    logging.info(f"Configuring LLM: Model='{model}', Temperature='{temperature}', Provider='{LLM_PROVIDER}'")
+    # Import CrewAI's LLM class
+    try:
+        from crewai import LLM
+    except ImportError:
+        logging.error("CrewAI not installed. Please install crewai package.")
+        raise ImportError("CrewAI is required for LLM configuration.")
+    
+    logging.info(f"Configuring CrewAI LLM: Model='{model}', Temperature='{temperature}', Provider='{LLM_PROVIDER}'")
 
     api_key = os.getenv("DEEPINFRA_API_KEY")
     if not api_key:
         logging.error("DEEPINFRA_API_KEY environment variable not set.")
         raise ValueError("DEEPINFRA_API_KEY is required.")
 
-    # Create the LLM instance
+    # Create the CrewAI LLM instance with DeepInfra configuration
     # The input callback will handle removing logprobs from all DeepInfra requests
-    llm = CustomLLM(
-        model=model,
+    llm = LLM(
+        model=f"deepinfra/{model}",  # CrewAI expects the provider prefix
         temperature=temperature,
         api_key=api_key,
         api_base="https://api.deepinfra.com/v1/openai",
         max_tokens=DEEPINFRA_PARAMS["max_tokens"]
     )
 
-    logging.info(f"Successfully created LLM instance for model '{model}'.")
+    logging.info(f"Successfully created CrewAI LLM instance for model '{model}'.")
     return llm 
