@@ -51,7 +51,7 @@ class ImportStorageHandler:
         self,
         store_request: StoreImportRequest,
         context: RequestContext
-    ) -> ImportStorageResponse:
+    ) -> Dict[str, Any]:
         """
         Handle the complete data import process.
         
@@ -344,7 +344,7 @@ class ImportStorageHandler:
         self,
         import_id: str,
         context: RequestContext
-    ) -> Optional[ImportStorageResponse]:
+    ) -> Optional[Dict[str, Any]]:
         """
         Retry a failed import operation.
         

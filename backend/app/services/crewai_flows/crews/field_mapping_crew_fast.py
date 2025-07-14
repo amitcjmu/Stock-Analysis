@@ -45,9 +45,10 @@ def create_fast_field_mapping_crew(crewai_service, state: UnifiedDiscoveryFlowSt
     try:
         logger.info("🚀 Creating FAST Field Mapping Crew for performance")
         
-        # Get LLM configuration
-        llm = crewai_service.get_llm()
-        logger.info(f"Using LLM: {llm.model}")
+        # Get LLM configuration with proper model
+        from app.services.llm_config import get_crewai_llm
+        llm = get_crewai_llm(model="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8")
+        logger.info(f"Using LLM: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8")
         
         # Extract field names from raw data for mapping
         sample_fields = []
@@ -116,7 +117,8 @@ def create_fast_field_mapping_crew(crewai_service, state: UnifiedDiscoveryFlowSt
 def _create_minimal_mapping_fallback(crewai_service, state: UnifiedDiscoveryFlowState) -> Crew:
     """Ultra-minimal fallback crew for field mapping"""
     try:
-        llm = crewai_service.get_llm()
+        from app.services.llm_config import get_crewai_llm
+        llm = get_crewai_llm(model="meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8")
         
         minimal_agent = Agent(
             role="Field Mapper",

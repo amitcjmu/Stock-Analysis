@@ -47,7 +47,7 @@ async def store_import_data(
     request: Request,
     db: AsyncSession = Depends(get_db),
     context: RequestContext = Depends(get_current_context)
-) -> ImportStorageResponse:
+) -> Dict[str, Any]:
     """
     Store validated import data in the database and trigger Discovery Flow.
     

@@ -27,6 +27,7 @@ class ImportStorageResponse(BaseModel):
     error: Optional[str] = None
     message: str
     records_stored: int = 0
+    progress_percentage: Optional[float] = None
 
 
 class ImportResponseBuilder:
@@ -43,7 +44,7 @@ class ImportResponseBuilder:
         flow_id: Optional[str] = None,
         records_stored: int = 0,
         message: Optional[str] = None
-    ) -> ImportStorageResponse:
+    ) -> Dict[str, Any]:
         """
         Build a successful import response.
         
@@ -54,7 +55,7 @@ class ImportResponseBuilder:
             message: Success message
             
         Returns:
-            ImportStorageResponse: Formatted success response
+            Dict: Formatted success response
         """
         if not message:
             if flow_id:
@@ -64,13 +65,15 @@ class ImportResponseBuilder:
         
         logger.info(f"✅ Building success response: {message}")
         
-        return ImportStorageResponse(
-            success=True,
-            data_import_id=data_import_id,
-            flow_id=flow_id,
-            message=message,
-            records_stored=records_stored
-        )
+        # Return dict to match frontend expectations
+        return {
+            "success": True,
+            "data_import_id": data_import_id,
+            "import_flow_id": data_import_id,  # Frontend expects this field
+            "flow_id": flow_id,
+            "message": message,
+            "records_stored": records_stored
+        }
     
     def error_response(
         self,
@@ -78,7 +81,7 @@ class ImportResponseBuilder:
         data_import_id: Optional[str] = None,
         flow_id: Optional[str] = None,
         records_stored: int = 0
-    ) -> ImportStorageResponse:
+    ) -> Dict[str, Any]:
         """
         Build an error response.
         
@@ -89,18 +92,19 @@ class ImportResponseBuilder:
             records_stored: Number of records stored before error
             
         Returns:
-            ImportStorageResponse: Formatted error response
+            Dict: Formatted error response
         """
         logger.error(f"❌ Building error response: {error_message}")
         
-        return ImportStorageResponse(
-            success=False,
-            data_import_id=data_import_id,
-            flow_id=flow_id,
-            error=error_message,
-            message=f"Import failed: {error_message}",
-            records_stored=records_stored
-        )
+        return {
+            "success": False,
+            "data_import_id": data_import_id,
+            "import_flow_id": data_import_id,  # Frontend expects this field
+            "flow_id": flow_id,
+            "error": error_message,
+            "message": f"Import failed: {error_message}",
+            "records_stored": records_stored
+        }
     
     def partial_success_response(
         self,
@@ -108,7 +112,7 @@ class ImportResponseBuilder:
         records_stored: int,
         flow_error: str,
         flow_id: Optional[str] = None
-    ) -> ImportStorageResponse:
+    ) -> Dict[str, Any]:
         """
         Build a partial success response (data stored but flow failed).
         
@@ -119,20 +123,21 @@ class ImportResponseBuilder:
             flow_id: ID of the flow (if any)
             
         Returns:
-            ImportStorageResponse: Formatted partial success response
+            Dict: Formatted partial success response
         """
         message = f"Data stored ({records_stored} records) but Discovery Flow failed: {flow_error}"
         
         logger.warning(f"⚠️ Building partial success response: {message}")
         
-        return ImportStorageResponse(
-            success=False,  # Overall operation failed due to flow failure
-            data_import_id=data_import_id,
-            flow_id=flow_id,
-            error=flow_error,
-            message=message,
-            records_stored=records_stored
-        )
+        return {
+            "success": False,  # Overall operation failed due to flow failure
+            "data_import_id": data_import_id,
+            "import_flow_id": data_import_id,  # Frontend expects this field
+            "flow_id": flow_id,
+            "error": flow_error,
+            "message": message,
+            "records_stored": records_stored
+        }
     
     def validation_error_response(
         self,
