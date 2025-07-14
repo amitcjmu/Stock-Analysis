@@ -1,5 +1,37 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [1.7.4] - 2025-07-14
+
+### 🎯 **CONFIGURATION FIX** - Disable Fast Mode by Default
+
+Changed the default behavior to use proper CrewAI agents instead of fallback validation patterns.
+
+### 🔧 **CrewAI Configuration**
+
+#### **Fast Mode Disabled**
+- **Changed**: `CREWAI_FAST_MODE` default from `True` to `False`
+- **Impact**: System now uses proper CrewAI agents for validation instead of simplified pattern matching
+- **Benefit**: More accurate data validation and field mapping results
+
+#### **Phase Executor Update**
+- **Added**: Check for `settings.CREWAI_FAST_MODE` config value
+- **Maintained**: Environment variable override via `USE_FAST_DISCOVERY_MODE`
+- **Result**: Consistent configuration handling across the system
+
+### 📊 **Business Impact**
+
+- **Accuracy**: Improved validation accuracy with real CrewAI agents
+- **Quality**: Better field mapping suggestions from LLM analysis
+- **Performance**: Slightly slower but more accurate processing
+- **Reliability**: Reduced false positives in data validation
+
+### 🎯 **Technical Details**
+
+- Fast mode was causing fallback to pattern-based validation
+- Pattern validation was marking all validations as "Unknown validation failure"
+- CrewAI agents provide contextual understanding of data
+- Trade-off: 15-20 second processing vs instant but less accurate results
+
 ## [1.7.3] - 2025-07-14
 
 ### 🐛 **HOTFIX** - Data Import Response Handling

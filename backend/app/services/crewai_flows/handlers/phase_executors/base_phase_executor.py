@@ -99,7 +99,8 @@ class BasePhaseExecutor(ABC):
         try:
             # CREWAI MODE: Check if we should disable CrewAI (fast mode)
             import os
-            use_fast_mode = os.getenv("USE_FAST_DISCOVERY_MODE", "false").lower() == "true"
+            from app.core.config import settings
+            use_fast_mode = settings.CREWAI_FAST_MODE or os.getenv("USE_FAST_DISCOVERY_MODE", "false").lower() == "true"
             
             # Use CrewAI by default unless explicitly disabled
             if not use_fast_mode and CREWAI_FLOW_AVAILABLE:
