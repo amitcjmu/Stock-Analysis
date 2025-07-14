@@ -92,7 +92,9 @@ export const SimplifiedFlowStatus: React.FC<SimplifiedFlowStatusProps> = ({
       bgColor,
       statusText,
       description,
-      showAction
+      showAction,
+      current_phase,
+      progress_percentage
     };
   };
 
@@ -121,7 +123,7 @@ export const SimplifiedFlowStatus: React.FC<SimplifiedFlowStatusProps> = ({
   const display = getStatusDisplay();
   if (!display) return null;
 
-  const { Icon, iconColor, bgColor, statusText, description, showAction } = display;
+  const { Icon, iconColor, bgColor, statusText, description, showAction, current_phase, progress_percentage } = display;
 
   return (
     <Card className={`${bgColor}`}>
