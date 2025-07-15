@@ -1,0 +1,232 @@
+{
+  "system_metadata": {
+    "created_at": "2025-01-15T16:30:00Z",
+    "version": "1.0",
+    "description": "Workflow state tracking for multi-agent issue resolution",
+    "compliance_mode": "strict"
+  },
+  "workflow_states": {
+    "states": [
+      "issue_discovered",
+      "solution_design",
+      "historical_review",
+      "approved",
+      "implementation",
+      "verification",
+      "documentation",
+      "completed"
+    ],
+    "transitions": {
+      "issue_discovered": ["solution_design"],
+      "solution_design": ["historical_review"],
+      "historical_review": ["approved", "solution_design"],
+      "approved": ["implementation"],
+      "implementation": ["verification"],
+      "verification": ["documentation", "implementation"],
+      "documentation": ["completed"]
+    }
+  },
+  "issue_tracking": {
+    "DISC-001": {
+      "current_state": "completed",
+      "state_history": [
+        {"state": "issue_discovered", "timestamp": "2025-01-15T10:30:00Z", "agent": "Agent-1"},
+        {"state": "solution_design", "timestamp": "2025-01-15T10:35:00Z", "agent": "Agent-4"},
+        {"state": "historical_review", "timestamp": "2025-01-15T12:00:00Z", "agent": "Agent-5"},
+        {"state": "approved", "timestamp": "2025-01-15T12:10:00Z", "agent": "Agent-5"},
+        {"state": "implementation", "timestamp": "2025-01-15T12:15:00Z", "agent": "Agent-6"},
+        {"state": "verification", "timestamp": "2025-01-15T12:20:00Z", "agent": "Agent-7"},
+        {"state": "documentation", "timestamp": "2025-01-15T12:25:00Z", "agent": "Agent-0"},
+        {"state": "completed", "timestamp": "2025-01-15T12:30:00Z", "agent": "Agent-0"}
+      ],
+      "compliance_status": "compliant",
+      "documentation": {
+        "solution_approach": true,
+        "historical_review": true,
+        "resolution": true
+      }
+    },
+    "DISC-002": {
+      "current_state": "implementation",
+      "state_history": [
+        {"state": "issue_discovered", "timestamp": "2025-01-15T10:31:00Z", "agent": "Agent-1"},
+        {"state": "solution_design", "timestamp": "2025-01-15T13:00:00Z", "agent": "Agent-4"},
+        {"state": "implementation", "timestamp": "2025-01-15T14:00:00Z", "agent": "Agent-2"}
+      ],
+      "compliance_status": "violated",
+      "violations": ["skipped_historical_review", "implemented_without_approval"],
+      "documentation": {
+        "solution_approach": true,
+        "historical_review": false,
+        "resolution": false
+      }
+    },
+    "DISC-003": {
+      "current_state": "implementation",
+      "state_history": [
+        {"state": "issue_discovered", "timestamp": "2025-01-15T10:32:00Z", "agent": "Agent-3"},
+        {"state": "solution_design", "timestamp": "2025-01-15T13:00:00Z", "agent": "Agent-4"},
+        {"state": "implementation", "timestamp": "2025-01-15T14:00:00Z", "agent": "Agent-3"}
+      ],
+      "compliance_status": "violated",
+      "violations": ["skipped_historical_review", "implemented_without_approval"],
+      "documentation": {
+        "solution_approach": true,
+        "historical_review": false,
+        "resolution": false
+      }
+    },
+    "DISC-004": {
+      "current_state": "completed",
+      "state_history": [
+        {"state": "issue_discovered", "timestamp": "2025-01-15T10:33:00Z", "agent": "Agent-1"},
+        {"state": "verification", "timestamp": "2025-01-15T11:35:00Z", "agent": "Agent-6"},
+        {"state": "documentation", "timestamp": "2025-01-15T11:40:00Z", "agent": "Agent-0"},
+        {"state": "completed", "timestamp": "2025-01-15T11:45:00Z", "agent": "Agent-0"}
+      ],
+      "compliance_status": "violated",
+      "violations": ["skipped_solution_design", "skipped_historical_review", "skipped_implementation"],
+      "documentation": {
+        "solution_approach": true,
+        "historical_review": false,
+        "resolution": true
+      }
+    },
+    "DISC-005": {
+      "current_state": "investigation",
+      "state_history": [
+        {"state": "issue_discovered", "timestamp": "2025-01-15T10:34:00Z", "agent": "Agent-3"},
+        {"state": "solution_design", "timestamp": "2025-01-15T13:00:00Z", "agent": "Agent-4"},
+        {"state": "investigation", "timestamp": "2025-01-15T14:00:00Z", "agent": "Agent-1"}
+      ],
+      "compliance_status": "violated",
+      "violations": ["skipped_historical_review", "non_standard_state"],
+      "documentation": {
+        "solution_approach": true,
+        "historical_review": false,
+        "resolution": false
+      }
+    },
+    "DISC-006": {
+      "current_state": "implementation",
+      "state_history": [
+        {"state": "issue_discovered", "timestamp": "2025-01-15T10:35:00Z", "agent": "Agent-1"},
+        {"state": "solution_design", "timestamp": "2025-01-15T13:00:00Z", "agent": "Agent-4"},
+        {"state": "implementation", "timestamp": "2025-01-15T14:00:00Z", "agent": "Agent-4"}
+      ],
+      "compliance_status": "violated",
+      "violations": ["skipped_historical_review", "implemented_without_approval"],
+      "documentation": {
+        "solution_approach": true,
+        "historical_review": false,
+        "resolution": false
+      }
+    },
+    "DISC-007": {
+      "current_state": "implementation",
+      "state_history": [
+        {"state": "issue_discovered", "timestamp": "2025-01-15T10:36:00Z", "agent": "Agent-1"},
+        {"state": "solution_design", "timestamp": "2025-01-15T13:00:00Z", "agent": "Agent-4"},
+        {"state": "implementation", "timestamp": "2025-01-15T14:00:00Z", "agent": "Agent-5"}
+      ],
+      "compliance_status": "violated",
+      "violations": ["skipped_historical_review", "implemented_without_approval"],
+      "documentation": {
+        "solution_approach": true,
+        "historical_review": false,
+        "resolution": false
+      }
+    },
+    "DISC-008": {
+      "current_state": "implementation",
+      "state_history": [
+        {"state": "issue_discovered", "timestamp": "2025-01-15T10:37:00Z", "agent": "Agent-1"},
+        {"state": "solution_design", "timestamp": "2025-01-15T13:00:00Z", "agent": "Agent-4"},
+        {"state": "implementation", "timestamp": "2025-01-15T14:00:00Z", "agent": "Agent-6"}
+      ],
+      "compliance_status": "violated",
+      "violations": ["skipped_historical_review", "implemented_without_approval"],
+      "documentation": {
+        "solution_approach": true,
+        "historical_review": false,
+        "resolution": false
+      }
+    },
+    "DISC-009": {
+      "current_state": "implementation",
+      "state_history": [
+        {"state": "issue_discovered", "timestamp": "2025-01-15T10:38:00Z", "agent": "Agent-1"},
+        {"state": "solution_design", "timestamp": "2025-01-15T13:00:00Z", "agent": "Agent-4"},
+        {"state": "implementation", "timestamp": "2025-01-15T14:00:00Z", "agent": "Agent-7"}
+      ],
+      "compliance_status": "violated",
+      "violations": ["skipped_historical_review", "implemented_without_approval"],
+      "documentation": {
+        "solution_approach": true,
+        "historical_review": false,
+        "resolution": false
+      }
+    },
+    "DISC-010": {
+      "current_state": "implementation",
+      "state_history": [
+        {"state": "issue_discovered", "timestamp": "2025-01-15T10:39:00Z", "agent": "Agent-1"},
+        {"state": "solution_design", "timestamp": "2025-01-15T13:00:00Z", "agent": "Agent-4"},
+        {"state": "implementation", "timestamp": "2025-01-15T14:00:00Z", "agent": "Agent-0"}
+      ],
+      "compliance_status": "violated",
+      "violations": ["skipped_historical_review", "implemented_without_approval"],
+      "documentation": {
+        "solution_approach": true,
+        "historical_review": false,
+        "resolution": false
+      }
+    },
+    "DISC-011": {
+      "current_state": "completed",
+      "state_history": [
+        {"state": "issue_discovered", "timestamp": "2025-01-15T12:30:00Z", "agent": "Agent-1"},
+        {"state": "solution_design", "timestamp": "2025-01-15T12:35:00Z", "agent": "User"},
+        {"state": "implementation", "timestamp": "2025-01-15T12:40:00Z", "agent": "Agent-6"},
+        {"state": "documentation", "timestamp": "2025-01-15T12:45:00Z", "agent": "Agent-0"},
+        {"state": "completed", "timestamp": "2025-01-15T12:50:00Z", "agent": "Agent-0"}
+      ],
+      "compliance_status": "violated",
+      "violations": ["skipped_historical_review", "implemented_without_approval", "user_override"],
+      "documentation": {
+        "solution_approach": false,
+        "historical_review": false,
+        "resolution": true
+      }
+    },
+    "DISC-012": {
+      "current_state": "completed",
+      "state_history": [
+        {"state": "issue_discovered", "timestamp": "2025-01-15T13:00:00Z", "agent": "Agent-1"},
+        {"state": "solution_design", "timestamp": "2025-01-15T13:05:00Z", "agent": "Agent-4"},
+        {"state": "implementation", "timestamp": "2025-01-15T13:10:00Z", "agent": "Agent-4"},
+        {"state": "documentation", "timestamp": "2025-01-15T13:15:00Z", "agent": "Agent-0"},
+        {"state": "completed", "timestamp": "2025-01-15T13:20:00Z", "agent": "Agent-0"}
+      ],
+      "compliance_status": "violated",
+      "violations": ["skipped_historical_review", "implemented_without_approval"],
+      "documentation": {
+        "solution_approach": false,
+        "historical_review": false,
+        "resolution": true
+      }
+    }
+  },
+  "compliance_summary": {
+    "total_issues": 12,
+    "compliant": 1,
+    "violations": 11,
+    "compliance_rate": "8.3%",
+    "common_violations": {
+      "skipped_historical_review": 11,
+      "implemented_without_approval": 9,
+      "skipped_solution_design": 1,
+      "user_override": 1
+    }
+  }
+}

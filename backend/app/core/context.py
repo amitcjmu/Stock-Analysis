@@ -246,6 +246,28 @@ def get_required_context() -> RequestContext:
         raise RuntimeError("No request context available")
     return context
 
+
+async def get_current_context_dependency() -> RequestContext:
+    """
+    FastAPI dependency function for getting current request context.
+    This function can be used with Depends() to inject context into endpoints.
+    
+    Returns:
+        Current RequestContext that was set by the middleware
+        
+    Usage:
+        @app.get("/api/data")
+        async def get_data(context: RequestContext = Depends(get_current_context_dependency)):
+            # Use context.client_account_id, etc.
+    """
+    context = get_current_context()
+    if not context:
+        raise HTTPException(
+            status_code=500,
+            detail="No request context available. This usually means the context middleware is not properly configured."
+        )
+    return context
+
 def clear_request_context() -> None:
     """Clear the current request context"""
     _request_context.set(None)

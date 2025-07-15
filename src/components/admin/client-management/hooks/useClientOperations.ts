@@ -1,10 +1,12 @@
 import { useState, useCallback } from 'react';
 import { useToast } from '@/components/ui/use-toast';
+import { useDialog } from '@/hooks/useDialog';
 import { apiCall } from '@/config/api';
 import { Client, ClientFormData } from '../types';
 
 export const useClientOperations = () => {
   const { toast } = useToast();
+  const dialog = useDialog();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const createClient = useCallback(async (formData: ClientFormData): Promise<Client | null> => {
@@ -131,7 +133,16 @@ export const useClientOperations = () => {
   }, [toast]);
 
   const deleteClient = useCallback(async (clientId: string, clientName: string): Promise<boolean> => {
-    if (!confirm(`Delete client "${clientName}"? This action cannot be undone.`)) return false;
+    const confirmed = await dialog.confirm({
+      title: 'Delete Client',
+      description: `Delete client "${clientName}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'destructive',
+      icon: 'warning'
+    });
+
+    if (!confirmed) return false;
 
     try {
       setActionLoading(clientId);
@@ -167,7 +178,7 @@ export const useClientOperations = () => {
     } finally {
       setActionLoading(null);
     }
-  }, [toast]);
+  }, [toast, dialog]);
 
   return {
     actionLoading,

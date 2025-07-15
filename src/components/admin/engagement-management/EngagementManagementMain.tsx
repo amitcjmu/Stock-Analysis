@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDialog } from '@/hooks/useDialog';
 import { apiCall } from '@/config/api';
 
 import { EngagementFilters } from './EngagementFilters';
@@ -15,6 +16,7 @@ import { Engagement, EngagementFormData, Client } from './types';
 const EngagementManagementMain: React.FC = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const dialog = useDialog();
   const queryClient = useQueryClient();
 
   // UI state must be declared before useQuery hooks
@@ -227,7 +229,16 @@ const EngagementManagementMain: React.FC = () => {
 
   // Handle engagement deletion
   const handleDeleteEngagement = async (engagementId: string, engagementName: string) => {
-    if (!confirm(`Are you sure you want to delete "${engagementName}"? This action cannot be undone.`)) {
+    const confirmed = await dialog.confirm({
+      title: 'Delete Engagement',
+      description: `Are you sure you want to delete "${engagementName}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'destructive',
+      icon: 'warning'
+    });
+
+    if (!confirmed) {
       return;
     }
 

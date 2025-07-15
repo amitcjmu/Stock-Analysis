@@ -163,11 +163,16 @@ class FlowDeletionService {
       console.log('✅ Using pre-approved deletion (custom UI already confirmed)');
       userConfirmed = true;
     } else {
-      // Build user-friendly confirmation message
-      const message = this.buildConfirmationMessage(candidates, deletion_source);
+      // CRITICAL: Native browser dialogs are not allowed
+      // This blocks UI automation and provides poor user experience
+      console.error('❌ ERROR: Attempted to use native browser confirm dialog');
+      console.error('❌ Use the useFlowDeletion hook with FlowDeletionModal component instead');
       
-      // Request user confirmation
-      userConfirmed = confirm(message);
+      // Throw error to prevent fallback to native dialogs
+      throw new Error(
+        'Flow deletion requires proper React-based confirmation dialog. ' +
+        'Use FlowDeletionModal component or pass skipBrowserConfirm=true with pre-confirmed deletion.'
+      );
     }
     
     if (!userConfirmed) {

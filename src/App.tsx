@@ -7,6 +7,7 @@ import { ChatFeedbackProvider } from "./contexts/ChatFeedbackContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ClientProvider } from "./contexts/ClientContext";
 import { FieldOptionsProvider } from "./contexts/FieldOptionsContext";
+import { DialogProvider } from "./contexts/DialogContext";
 import GlobalChatFeedback from "./components/GlobalChatFeedback";
 import { AppInitializer } from "./services/appInitializer";
 
@@ -311,10 +312,12 @@ const App = () => (
       <AuthProvider>
         <ClientProvider>
           <FieldOptionsProvider>
-            <ChatFeedbackProvider>
-              <AuthenticatedApp />
-              <GlobalChatFeedback />
-            </ChatFeedbackProvider>
+            <DialogProvider>
+              <ChatFeedbackProvider>
+                <AuthenticatedApp />
+                <GlobalChatFeedback />
+              </ChatFeedbackProvider>
+            </DialogProvider>
           </FieldOptionsProvider>
         </ClientProvider>
       </AuthProvider>

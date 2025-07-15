@@ -48,6 +48,11 @@ class UserService:
                 from app.core.database import AsyncSessionLocal
                 from app.core.context import RequestContext
                 
+                # Ensure we have a client context
+                if not basic_context.client:
+                    logger.warning(f"User {current_user.id} has engagement but no client context")
+                    return basic_context
+                
                 async with AsyncSessionLocal() as db:
                     # Create RequestContext for the orchestrator
                     context = RequestContext(
@@ -66,20 +71,27 @@ class UserService:
                     for flow in flows:
                         if flow.get("status") in ["active", "in_progress", "pending"]:
                             flow_info = FlowBase(
-                                id=flow["id"],
-                                name=flow["name"],
-                                flow_type=flow["flow_type"],
-                                status=flow["status"],
-                                engagement_id=flow["engagement_id"],
-                                created_by=flow.get("created_by", current_user.id),
+                                id=flow.get("id", flow.get("flow_id")),  # Handle both id and flow_id keys
+                                name=flow.get("name", flow.get("flow_name", "Unnamed Flow")),
+                                flow_type=flow.get("flow_type", "unknown"),
+                                status=flow.get("status", "unknown"),
+                                engagement_id=flow.get("engagement_id", basic_context.engagement.id),  # Use context engagement as fallback
+                                created_by=flow.get("created_by", str(current_user.id)),
                                 metadata=flow.get("metadata", {})
                             )
                             active_flows.append(flow_info)
                             
                             # Set primary flow (first active discovery flow)
-                            if flow["flow_type"] == "discovery" and not primary_flow_id:
-                                primary_flow_id = flow["id"]
+                            if flow.get("flow_type") == "discovery" and not primary_flow_id:
+                                primary_flow_id = flow.get("id", flow.get("flow_id"))
                 
+            except AttributeError as e:
+                logger.error(f"AttributeError getting flows for user {current_user.id}: {e}", exc_info=True)
+                logger.error(f"Basic context state - client: {basic_context.client}, engagement: {basic_context.engagement}")
+                # Continue with empty flows list
+            except KeyError as e:
+                logger.error(f"KeyError getting flows for user {current_user.id}: Missing key {e}", exc_info=True)
+                # Continue with empty flows list
             except Exception as e:
                 logger.warning(f"Failed to get active flows for user {current_user.id}: {e}")
                 # Continue with empty flows list

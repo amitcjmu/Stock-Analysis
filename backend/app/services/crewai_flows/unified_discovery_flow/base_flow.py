@@ -51,6 +51,12 @@ from .phases import (
 # Import handlers for flow management
 from ..handlers.unified_flow_management import UnifiedFlowManagement
 
+# Import enhanced error handling and monitoring
+from ..handlers.enhanced_error_handler import enhanced_error_handler
+from ..persistence.checkpoint_manager import checkpoint_manager
+from ..monitoring.flow_health_monitor import flow_health_monitor
+from ..utils.retry_utils import retry_decorator, RetryConfig, retry_with_backoff
+
 
 class UnifiedDiscoveryFlow(Flow):
     """
@@ -451,7 +457,7 @@ class UnifiedDiscoveryFlow(Flow):
     
     @listen(initialize_discovery)
     async def execute_data_import_validation_agent(self, previous_result):
-        """Execute data import validation phase using real CrewAI crews"""
+        """Execute data import validation phase using real CrewAI crews with retry logic"""
         logger.info(f"📊 [ECHO] @listen(initialize_discovery) triggered - data import phase starting for flow {self._flow_id}")
         logger.info(f"🔍 [ECHO] Previous result from initialize_discovery: {previous_result}")
         logger.info(f"🎯 [ECHO] Data import phase STARTED - flow is now executing!")
@@ -482,13 +488,41 @@ class UnifiedDiscoveryFlow(Flow):
         logger.info(f"🔍 [DEBUG] state_manager.state.flow_id: {getattr(self.state_manager.state, 'flow_id', 'NOT SET') if self.state_manager else 'NO STATE MANAGER'}")
         
         try:
-            # Use PhaseExecutionManager with real CrewAI crews instead of pseudo-agents
-            result = await self.phase_executor.execute_data_import_validation_phase(previous_result)
+            # Define the phase execution function for retry
+            async def execute_phase():
+                result = await self.phase_executor.execute_data_import_validation_phase(previous_result)
+                
+                # Create checkpoint after successful execution
+                if result and result != "data_validation_failed":
+                    await checkpoint_manager.create_phase_checkpoint(
+                        flow_id=self._flow_id,
+                        phase=PhaseNames.DATA_IMPORT_VALIDATION,
+                        state=self.state,
+                        phase_result=result
+                    )
+                
+                return result
+            
+            # Execute with error handling and retry logic
+            result = await enhanced_error_handler.handle_phase_error(
+                phase_name=PhaseNames.DATA_IMPORT_VALIDATION,
+                error=None,  # Will be set if error occurs
+                state=self.state,
+                phase_func=execute_phase
+            )
+            
+            # Handle recovery result
+            if isinstance(result, dict) and result.get("status") == "recovered":
+                result = result.get("result")
+            elif isinstance(result, dict) and result.get("status") in ["failed", "recovery_failed"]:
+                logger.error(f"❌ Data import validation failed after recovery attempts")
+                self.state.status = "failed"
+                self.state.final_result = "discovery_failed"
+                await self.state_manager.safe_update_flow_state()
+                return "discovery_failed"
             
             # Mark data import as completed
             self.state.phase_completion[PhaseNames.DATA_IMPORT_VALIDATION] = True
-            # Remove invalid field assignment - data_import_completed doesn't exist
-            # self.state.data_import_completed = True
             self.state.progress_percentage = 16.7  # 1/6 phases complete
             
             # CRITICAL: Ensure state IDs before state operations
@@ -504,12 +538,24 @@ class UnifiedDiscoveryFlow(Flow):
                 
             return result
         except Exception as e:
-            logger.error(f"❌ Error in phase '{PhaseNames.DATA_IMPORT_VALIDATION}': {e}")
-            self.state_manager.add_error(PhaseNames.DATA_IMPORT_VALIDATION, str(e))
-            self.state.status = "failed"
-            self.state.final_result = "discovery_failed"
-            await self.state_manager.safe_update_flow_state()
-            return "discovery_failed"
+            # Handle error with enhanced error handler
+            recovery_result = await enhanced_error_handler.handle_phase_error(
+                phase_name=PhaseNames.DATA_IMPORT_VALIDATION,
+                error=e,
+                state=self.state,
+                phase_func=self.phase_executor.execute_data_import_validation_phase,
+                previous_result=previous_result
+            )
+            
+            if recovery_result.get("status") in ["recovered", "partial_success"]:
+                return recovery_result.get("result")
+            else:
+                logger.error(f"❌ Error in phase '{PhaseNames.DATA_IMPORT_VALIDATION}': {e}")
+                self.state_manager.add_error(PhaseNames.DATA_IMPORT_VALIDATION, str(e))
+                self.state.status = "failed"
+                self.state.final_result = "discovery_failed"
+                await self.state_manager.safe_update_flow_state()
+                return "discovery_failed"
     
     @listen(execute_data_import_validation_agent)
     async def generate_field_mapping_suggestions(self, previous_result):
@@ -591,25 +637,67 @@ class UnifiedDiscoveryFlow(Flow):
         except Exception as e:
             logger.warning(f"⚠️ Failed to send phase transition notification: {e}")
         
-        # Execute field mapping crew to generate suggestions
+        # Execute field mapping crew to generate suggestions with retry logic
         try:
-            mapping_result = await self.phase_executor.execute_field_mapping_phase(
-                previous_result, 
-                mode="suggestions_only"  # Special mode to only generate suggestions
+            # Define the phase execution function for retry
+            async def execute_mapping_suggestions():
+                result = await self.phase_executor.execute_field_mapping_phase(
+                    previous_result, 
+                    mode="suggestions_only"  # Special mode to only generate suggestions
+                )
+                
+                # Create checkpoint after successful execution
+                if result and "mappings" in result:
+                    await checkpoint_manager.create_phase_checkpoint(
+                        flow_id=self._flow_id,
+                        phase="field_mapping_suggestions",
+                        state=self.state,
+                        phase_result=result
+                    )
+                
+                return result
+            
+            # Use retry config optimized for field mapping (which often hits rate limits)
+            field_mapping_retry_config = RetryConfig(
+                max_retries=5,
+                base_delay=3.0,
+                max_delay=120.0,
+                exponential_base=2.0
             )
+            
+            # Execute with retry logic
+            from ..utils.retry_utils import retry_with_backoff
+            mapping_result = await retry_with_backoff(
+                execute_mapping_suggestions,
+                config=field_mapping_retry_config
+            )
+            
         except Exception as e:
             logger.error(f"❌ Field mapping phase execution failed: {e}")
-            # Create a fallback result to ensure flow continues
-            mapping_result = {
-                "mappings": {},
-                "clarifications": ["Field mapping generation failed. Please map fields manually."],
-                "confidence_scores": {},
-                "execution_metadata": {
-                    "method": "error_fallback",
-                    "error": str(e)
+            
+            # Try to recover with enhanced error handler
+            recovery_result = await enhanced_error_handler.handle_phase_error(
+                phase_name="field_mapping_suggestions",
+                error=e,
+                state=self.state,
+                phase_func=execute_mapping_suggestions
+            )
+            
+            if recovery_result.get("status") in ["recovered", "partial_success"]:
+                mapping_result = recovery_result.get("result")
+            else:
+                # Create a fallback result to ensure flow continues
+                mapping_result = {
+                    "mappings": {},
+                    "clarifications": ["Field mapping generation failed. Please map fields manually."],
+                    "confidence_scores": {},
+                    "execution_metadata": {
+                        "method": "error_fallback",
+                        "error": str(e),
+                        "recovery_attempted": True
+                    }
                 }
-            }
-            logger.warning("⚠️ Using error fallback result to continue flow")
+                logger.warning("⚠️ Using error fallback result to continue flow")
         
         # Debug: Log the full mapping result to identify structure issue
         logger.info(f"🔍 DEBUG: Full mapping_result structure: {mapping_result}")
@@ -701,10 +789,14 @@ class UnifiedDiscoveryFlow(Flow):
     
     @listen(generate_field_mapping_suggestions)
     async def pause_for_field_mapping_approval(self, previous_result):
-        """Pause flow for user to review and approve field mappings"""
+        """Pause flow for user to review and approve field mappings with health monitoring"""
         logger.info("⏸️ Pausing for field mapping approval")
         logger.info(f"🔍 DEBUG: Previous result: {previous_result}")
         logger.info(f"🔍 DEBUG: Rate limit fallback used: {getattr(self.state, '_rate_limit_fallback_used', False)}")
+        
+        # Start health monitoring for this flow
+        if not flow_health_monitor._monitoring_task:
+            await flow_health_monitor.start_monitoring()
         
         # Ensure state has IDs
         self._ensure_state_ids()
@@ -982,28 +1074,118 @@ class UnifiedDiscoveryFlow(Flow):
     
     @listen(apply_approved_field_mappings)
     async def execute_data_cleansing_agent(self, previous_result):
-        """Execute data cleansing phase using real CrewAI crews"""
+        """Execute data cleansing phase using real CrewAI crews with retry logic"""
         # Check if flow is paused
         if previous_result == "paused_for_field_mapping_approval":
             logger.info("⏭️ Flow paused - data cleansing will not execute")
             return previous_result
+        
+        try:
+            # Define the phase execution function for retry
+            async def execute_cleansing():
+                result = await self.phase_executor.execute_data_cleansing_phase(previous_result)
+                
+                # Create checkpoint after successful execution
+                if result and result != "data_cleansing_failed":
+                    await checkpoint_manager.create_phase_checkpoint(
+                        flow_id=self._flow_id,
+                        phase=PhaseNames.DATA_CLEANSING,
+                        state=self.state,
+                        phase_result=result
+                    )
+                
+                return result
             
-        result = await self.phase_executor.execute_data_cleansing_phase(previous_result)
-        await self.state_manager.safe_update_flow_state()
-        return result
+            # Execute with retry logic
+            result = await enhanced_error_handler.handle_phase_error(
+                phase_name=PhaseNames.DATA_CLEANSING,
+                error=None,
+                state=self.state,
+                phase_func=execute_cleansing
+            )
+            
+            # Handle recovery result
+            if isinstance(result, dict) and result.get("status") == "recovered":
+                result = result.get("result")
+            elif isinstance(result, dict) and result.get("status") in ["failed", "recovery_failed"]:
+                logger.error(f"❌ Data cleansing failed after recovery attempts")
+                self.state.status = "failed"
+                self.state.final_result = "discovery_failed"
+                await self.state_manager.safe_update_flow_state()
+                return "discovery_failed"
+            
+            await self.state_manager.safe_update_flow_state()
+            return result
+            
+        except Exception as e:
+            # Handle error with enhanced error handler
+            recovery_result = await enhanced_error_handler.handle_phase_error(
+                phase_name=PhaseNames.DATA_CLEANSING,
+                error=e,
+                state=self.state,
+                phase_func=self.phase_executor.execute_data_cleansing_phase,
+                previous_result=previous_result
+            )
+            
+            if recovery_result.get("status") in ["recovered", "partial_success", "skipped"]:
+                await self.state_manager.safe_update_flow_state()
+                return recovery_result.get("result", "data_cleansing_skipped")
+            else:
+                self.state.status = "failed"
+                await self.state_manager.safe_update_flow_state()
+                return "discovery_failed"
     
     @listen(execute_data_cleansing_agent)
     async def create_discovery_assets_from_cleaned_data(self, previous_result):
-        """Create discovery assets from cleaned data"""
+        """Create discovery assets from cleaned data with retry logic"""
         # Check if flow is paused
         if previous_result == "paused_for_field_mapping_approval":
             logger.info("⏭️ Flow paused - asset inventory will not execute")
             return previous_result
+        
+        try:
+            # Define the phase execution function for retry
+            async def execute_inventory():
+                result = await self.phase_executor.execute_asset_inventory_phase(previous_result)
+                
+                # Create checkpoint after successful execution
+                if result and result != "asset_inventory_failed":
+                    await checkpoint_manager.create_phase_checkpoint(
+                        flow_id=self._flow_id,
+                        phase=PhaseNames.ASSET_INVENTORY,
+                        state=self.state,
+                        phase_result=result
+                    )
+                
+                return result
             
-        # Use PhaseExecutionManager with real CrewAI crews
-        result = await self.phase_executor.execute_asset_inventory_phase(previous_result)
-        await self.state_manager.safe_update_flow_state()
-        return result
+            # Execute with retry logic
+            from ..utils.retry_utils import retry_with_backoff
+            result = await retry_with_backoff(
+                execute_inventory,
+                config=RetryConfig(max_retries=3, base_delay=2.0)
+            )
+            
+            await self.state_manager.safe_update_flow_state()
+            return result
+            
+        except Exception as e:
+            # Handle error with enhanced error handler
+            recovery_result = await enhanced_error_handler.handle_phase_error(
+                phase_name=PhaseNames.ASSET_INVENTORY,
+                error=e,
+                state=self.state,
+                phase_func=self.phase_executor.execute_asset_inventory_phase,
+                previous_result=previous_result
+            )
+            
+            if recovery_result.get("status") in ["recovered", "partial_success"]:
+                await self.state_manager.safe_update_flow_state()
+                return recovery_result.get("result")
+            else:
+                self.state.status = "failed"
+                await self.state_manager.safe_update_flow_state()
+                return "discovery_failed"
     
     @listen(create_discovery_assets_from_cleaned_data)
     async def promote_discovery_assets_to_assets(self, previous_result):
@@ -1018,7 +1200,7 @@ class UnifiedDiscoveryFlow(Flow):
     
     @listen(promote_discovery_assets_to_assets)
     async def execute_parallel_analysis_agents(self, previous_result):
-        """Execute dependency and tech debt analysis in parallel"""
+        """Execute dependency and tech debt analysis in parallel with retry logic"""
         # Check if flow is paused
         if previous_result == "paused_for_field_mapping_approval":
             logger.info("⏭️ Flow paused - parallel analysis will not execute")
@@ -1027,25 +1209,104 @@ class UnifiedDiscoveryFlow(Flow):
         logger.info("🚀 Starting parallel analysis agents")
         
         try:
-            # Prepare input data
-            input_data = {
-                'assets': self.state.asset_inventory.get('assets', []),
-                'field_mappings': self.state.field_mappings,
-                'cleaned_data': self.state.cleaned_data
-            }
+            # Define the phase execution function for retry
+            async def execute_parallel_phases():
+                # Prepare input data
+                input_data = {
+                    'assets': self.state.asset_inventory.get('assets', []),
+                    'field_mappings': self.state.field_mappings,
+                    'cleaned_data': self.state.cleaned_data
+                }
+                
+                # Execute parallel phases with individual retry logic
+                dependency_task = self._execute_with_retry(
+                    PhaseNames.DEPENDENCY_ANALYSIS,
+                    self.phase_executor.execute_dependency_analysis_phase,
+                    previous_result
+                )
+                
+                tech_debt_task = self._execute_with_retry(
+                    PhaseNames.TECH_DEBT_ASSESSMENT,
+                    self.phase_executor.execute_tech_debt_analysis_phase,
+                    previous_result
+                )
+                
+                # Execute in parallel
+                results = await asyncio.gather(
+                    dependency_task,
+                    tech_debt_task,
+                    return_exceptions=True
+                )
+                
+                # Handle results
+                dependency_result = results[0]
+                tech_debt_result = results[1]
+                
+                # Check for exceptions
+                if isinstance(dependency_result, Exception):
+                    logger.error(f"❌ Dependency analysis failed: {dependency_result}")
+                    # Try recovery
+                    recovery = await enhanced_error_handler.handle_phase_error(
+                        phase_name=PhaseNames.DEPENDENCY_ANALYSIS,
+                        error=dependency_result,
+                        state=self.state,
+                        phase_func=self.phase_executor.execute_dependency_analysis_phase,
+                        previous_result=previous_result
+                    )
+                    if recovery.get("status") in ["recovered", "partial_success"]:
+                        dependency_result = recovery.get("result")
+                    else:
+                        dependency_result = recovery
+                
+                if isinstance(tech_debt_result, Exception):
+                    logger.error(f"❌ Tech debt analysis failed: {tech_debt_result}")
+                    # Try recovery
+                    recovery = await enhanced_error_handler.handle_phase_error(
+                        phase_name=PhaseNames.TECH_DEBT_ASSESSMENT,
+                        error=tech_debt_result,
+                        state=self.state,
+                        phase_func=self.phase_executor.execute_tech_debt_analysis_phase,
+                        previous_result=previous_result
+                    )
+                    if recovery.get("status") in ["recovered", "partial_success"]:
+                        tech_debt_result = recovery.get("result")
+                    else:
+                        tech_debt_result = recovery
+                
+                # Create checkpoints for successful phases
+                if dependency_result and not isinstance(dependency_result, dict) or \
+                   (isinstance(dependency_result, dict) and dependency_result.get("status") != "failed"):
+                    await checkpoint_manager.create_phase_checkpoint(
+                        flow_id=self._flow_id,
+                        phase=PhaseNames.DEPENDENCY_ANALYSIS,
+                        state=self.state,
+                        phase_result=dependency_result
+                    )
+                    self.state.phase_completion['dependencies'] = True
+                
+                if tech_debt_result and not isinstance(tech_debt_result, dict) or \
+                   (isinstance(tech_debt_result, dict) and tech_debt_result.get("status") != "failed"):
+                    await checkpoint_manager.create_phase_checkpoint(
+                        flow_id=self._flow_id,
+                        phase=PhaseNames.TECH_DEBT_ASSESSMENT,
+                        state=self.state,
+                        phase_result=tech_debt_result
+                    )
+                    self.state.phase_completion['tech_debt'] = True
+                
+                return {
+                    "dependency_analysis": dependency_result,
+                    "tech_debt_assessment": tech_debt_result
+                }
             
-            # Execute parallel phases
-            results = await self.crew_coordinator.execute_parallel_agents(
-                [PhaseNames.DEPENDENCY_ANALYSIS, PhaseNames.TECH_DEBT_ASSESSMENT],
-                input_data,
-                self._init_context
+            # Execute with overall retry logic
+            results = await retry_with_backoff(
+                execute_parallel_phases,
+                config=RetryConfig(max_retries=2, base_delay=5.0)
             )
             
-            # Update phase completions
-            self.state.phase_completion['dependencies'] = True
-            self.state.phase_completion['tech_debt'] = True
+            # Update progress
             self.state.progress_percentage = 90.0
-            
             await self.state_manager.safe_update_flow_state()
             
             logger.info("✅ Parallel analysis completed")
@@ -1053,8 +1314,46 @@ class UnifiedDiscoveryFlow(Flow):
             
         except Exception as e:
             logger.error(f"❌ Parallel analysis failed: {e}")
-            self.state_manager.add_error("parallel_analysis", str(e))
-            return "parallel_analysis_failed"
+            
+            # Try final recovery
+            recovery_result = await enhanced_error_handler.handle_critical_flow_error(
+                flow_id=self._flow_id,
+                error=e,
+                state=self.state
+            )
+            
+            if recovery_result.get("can_recover"):
+                # Mark phases as partially complete
+                self.state.phase_completion['dependencies'] = False
+                self.state.phase_completion['tech_debt'] = False
+                self.state.progress_percentage = 75.0  # Partial progress
+                await self.state_manager.safe_update_flow_state()
+                return "parallel_analysis_partial"
+            else:
+                self.state_manager.add_error("parallel_analysis", str(e))
+                return "parallel_analysis_failed"
+    
+    async def _execute_with_retry(self, phase_name: str, phase_func, *args, **kwargs):
+        """Execute a phase with retry logic"""
+        try:
+            # Get phase-specific retry config
+            retry_config = RetryConfig(
+                max_retries=4 if phase_name == PhaseNames.DEPENDENCY_ANALYSIS else 3,
+                base_delay=2.0,
+                max_delay=60.0
+            )
+            
+            # Execute with retry
+            from ..utils.retry_utils import retry_with_backoff
+            return await retry_with_backoff(
+                phase_func,
+                *args,
+                config=retry_config,
+                **kwargs
+            )
+        except Exception as e:
+            # Return exception to be handled by caller
+            return e
     
     @listen(execute_parallel_analysis_agents)
     async def check_user_approval_needed(self, previous_result):

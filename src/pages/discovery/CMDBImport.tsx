@@ -1,2 +1,3 @@
-// Modularized CMDBImport - now importing from the new modular structure
-export { default } from './CMDBImport/index';
+import CMDBImportContainer from './CMDBImport/index';
+
+export default CMDBImportContainer;

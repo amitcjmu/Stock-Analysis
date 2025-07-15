@@ -212,7 +212,7 @@ class FlowExecutionEngine:
                 flow_id=flow_id,
                 status="processing",  # Changed from "running" to match DB constraint
                 phase_data={
-                    f"phase_{phase_name}": crew_result,
+                    f"phase_{phase_name}": self._ensure_json_serializable(crew_result),
                     "last_completed_phase": phase_name
                 },
                 collaboration_entry={
@@ -290,10 +290,11 @@ class FlowExecutionEngine:
                     )
                     
                     # Update flow with initialization results
+                    # Ensure init_result is JSON serializable
                     await self.master_repo.update_flow_status(
                         flow_id=flow_id,
                         status="initialized",
-                        phase_data={"initialization": init_result}
+                        phase_data={"initialization": self._ensure_json_serializable(init_result)}
                     )
                     
                     return init_result
@@ -1071,6 +1072,48 @@ class FlowExecutionEngine:
             "tech_debt_assessment": "complete"
         }
         return phase_order.get(current_phase, "complete")
+    
+    def _ensure_json_serializable(self, obj: Any) -> Any:
+        """
+        Recursively convert non-JSON-serializable objects to serializable formats.
+        
+        Handles:
+        - UUID objects -> strings
+        - datetime objects -> ISO format strings
+        - Sets -> lists
+        - Bytes -> decoded strings
+        
+        Args:
+            obj: Object to make JSON serializable
+            
+        Returns:
+            JSON-serializable version of the object
+        """
+        import uuid
+        from datetime import datetime, date
+        
+        if obj is None:
+            return None
+        elif isinstance(obj, (str, int, float, bool)):
+            return obj
+        elif isinstance(obj, uuid.UUID):
+            return str(obj)
+        elif isinstance(obj, (datetime, date)):
+            return obj.isoformat()
+        elif isinstance(obj, bytes):
+            return obj.decode('utf-8', errors='replace')
+        elif isinstance(obj, set):
+            return list(obj)
+        elif isinstance(obj, dict):
+            return {key: self._ensure_json_serializable(value) for key, value in obj.items()}
+        elif isinstance(obj, (list, tuple)):
+            return [self._ensure_json_serializable(item) for item in obj]
+        elif hasattr(obj, '__dict__'):
+            # Handle custom objects by converting to dict
+            return self._ensure_json_serializable(obj.__dict__)
+        else:
+            # For any other type, convert to string
+            return str(obj)
     
     async def _get_post_execution_decision(
         self,

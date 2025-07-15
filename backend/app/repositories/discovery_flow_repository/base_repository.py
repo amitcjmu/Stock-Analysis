@@ -36,8 +36,10 @@ class DiscoveryFlowRepository(ContextAwareRepository):
         
         # Safely convert client_account_id
         try:
-            if client_account_id and client_account_id != "None":
-                parsed_client_id = uuid.UUID(client_account_id)
+            if isinstance(client_account_id, uuid.UUID):
+                parsed_client_id = client_account_id
+            elif client_account_id and client_account_id != "None":
+                parsed_client_id = uuid.UUID(str(client_account_id))
             else:
                 parsed_client_id = demo_client_id
         except (ValueError, TypeError):
@@ -46,8 +48,10 @@ class DiscoveryFlowRepository(ContextAwareRepository):
             
         # Safely convert engagement_id
         try:
-            if engagement_id and engagement_id != "None":
-                parsed_engagement_id = uuid.UUID(engagement_id)
+            if isinstance(engagement_id, uuid.UUID):
+                parsed_engagement_id = engagement_id
+            elif engagement_id and engagement_id != "None":
+                parsed_engagement_id = uuid.UUID(str(engagement_id))
             else:
                 parsed_engagement_id = demo_engagement_id
         except (ValueError, TypeError):

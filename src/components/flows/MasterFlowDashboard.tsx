@@ -30,6 +30,9 @@ import { FlowStatus, FlowType } from '../../types/flow';
 import { flowToast } from '../../utils/toast';
 import { getFlowPhaseRoute } from '@/config/flowRoutes';
 import { useNavigate } from 'react-router-dom';
+import { useFlowDeletion } from '../../hooks/useFlowDeletion';
+import { FlowDeletionModal } from './FlowDeletionModal';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface MasterFlowDashboardProps {
   filterByType?: FlowType;
@@ -52,6 +55,7 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
   showAnalytics = true
 }) => {
   const navigate = useNavigate();
+  const { client, engagement, user } = useAuth();
   const [selectedType, setSelectedType] = useState<FlowType | 'all'>(filterByType || 'all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -62,6 +66,17 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
       autoRefresh: true,
       refreshInterval: 30000, // 30 seconds for production performance
       onError: (error) => flowToast.error(error)
+    }
+  );
+
+  // Use the flow deletion hook with modal confirmation
+  const [deletionState, deletionActions] = useFlowDeletion(
+    async (result) => {
+      // Refresh flows after successful deletion
+      await actions.refreshFlows();
+    },
+    (error) => {
+      flowToast.error(error);
     }
   );
 
@@ -127,14 +142,19 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
   };
 
   const handleDeleteFlow = async (flow: FlowStatus) => {
-    if (confirm(`Are you sure you want to delete flow ${flow.flow_name}?`)) {
-      try {
-        await actions.deleteFlow(flow.flow_id, 'User requested deletion');
-        await actions.refreshFlows();
-      } catch (error) {
-        flowToast.error(error as Error);
-      }
+    if (!client?.id) {
+      flowToast.error(new Error('Client context is required for flow deletion'));
+      return;
     }
+    
+    // Request deletion with modal confirmation
+    await deletionActions.requestDeletion(
+      [flow.flow_id],
+      client.id,
+      engagement?.id,
+      'manual',
+      user?.id
+    );
   };
 
   // Status badge component
@@ -351,6 +371,16 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
           </AlertDescription>
         </Alert>
       )}
+
+      {/* Flow Deletion Modal */}
+      <FlowDeletionModal
+        open={deletionState.isModalOpen}
+        candidates={deletionState.candidates}
+        deletionSource={deletionState.deletionSource}
+        isDeleting={deletionState.isDeleting}
+        onConfirm={deletionActions.confirmDeletion}
+        onCancel={deletionActions.cancelDeletion}
+      />
     </div>
   );
 };

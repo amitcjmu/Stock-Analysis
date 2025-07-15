@@ -21,6 +21,7 @@ from app.core.database import get_db
 from app.core.context import RequestContext, get_current_context
 from .response_mappers import ResponseMappers, DiscoveryFlowResponse, DiscoveryFlowStatusResponse
 from .status_calculator import StatusCalculator
+from app.services.user_context_service import UserContextService
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,34 @@ async def get_active_flows(
     Supports efficient polling via ETags.
     """
     try:
-        logger.info(f"Getting active flows for client {context.client_account_id}, engagement {context.engagement_id}")
+        # Validate context - check for None first
+        if not context:
+            logger.error("No request context available")
+            raise HTTPException(status_code=403, detail="Request context is required")
+            
+        if not context.client_account_id:
+            logger.error("No client account ID in context")
+            raise HTTPException(status_code=403, detail="Client account context is required")
+        
+        # Initialize user context service
+        user_service = UserContextService(db)
+        
+        # Handle cases where engagement_id might be None
+        engagement_id = context.engagement_id
+        
+        # If we have a user_id but no engagement_id, try to resolve it
+        if context.user_id and not engagement_id:
+            validation_result = await user_service.validate_user_context(
+                user_id=context.user_id,
+                client_account_id=int(context.client_account_id),
+                engagement_id=None
+            )
+            
+            if validation_result["valid"] and validation_result["resolved_engagement_id"]:
+                engagement_id = validation_result["resolved_engagement_id"]
+                logger.info(f"Resolved engagement_id from user context: {engagement_id}")
+        
+        logger.info(f"Getting active flows for client {context.client_account_id}, engagement {engagement_id}")
         
         # Query actual discovery flows from database
         # CRITICAL FIX: Only return flows that have actual imported data (data_import_id is not null)
@@ -51,7 +79,6 @@ async def get_active_flows(
         stmt = select(DiscoveryFlow).where(
             and_(
                 DiscoveryFlow.client_account_id == context.client_account_id,
-                DiscoveryFlow.engagement_id == context.engagement_id,
                 DiscoveryFlow.status != 'deleted',  # Exclude soft-deleted flows
                 DiscoveryFlow.status != 'cancelled',  # Exclude cancelled flows
                 DiscoveryFlow.data_import_id.isnot(None),  # CRITICAL FIX: Only show flows with actual data
@@ -65,7 +92,13 @@ async def get_active_flows(
                     DiscoveryFlow.status == 'initialized'  # Include initialized flows with data
                 )
             )
-        ).order_by(DiscoveryFlow.created_at.desc())
+        )
+        
+        # Add engagement filter only if we have a valid engagement_id
+        if engagement_id:
+            stmt = stmt.where(DiscoveryFlow.engagement_id == engagement_id)
+        
+        stmt = stmt.order_by(DiscoveryFlow.created_at.desc())
         
         result = await db.execute(stmt)
         flows = result.scalars().all()
@@ -96,8 +129,16 @@ async def get_active_flows(
         
         return active_flows
         
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error getting active flows: {e}")
+        logger.error(f"Error getting active flows: {e}", exc_info=True)
+        # Provide more detailed error message
+        if "engagement_id" in str(e):
+            raise HTTPException(
+                status_code=500, 
+                detail="Failed to get active flows: User context error. Please ensure proper headers are sent."
+            )
         raise HTTPException(status_code=500, detail=f"Failed to get active flows: {str(e)}")
 
 
@@ -518,20 +559,53 @@ async def get_flows_summary(
     for the current tenant.
     """
     try:
-        logger.info(f"Getting flows summary for client {context.client_account_id}")
+        # Validate context - check for None first
+        if not context:
+            logger.error("No request context available")
+            raise HTTPException(status_code=403, detail="Request context is required")
+            
+        if not context.client_account_id:
+            logger.error("No client account ID in context")
+            raise HTTPException(status_code=403, detail="Client account context is required")
+        
+        # Initialize user context service
+        user_service = UserContextService(db)
+        
+        # Handle cases where engagement_id might be None
+        engagement_id = context.engagement_id
+        
+        # If we have a user_id but no engagement_id, try to resolve it
+        if context.user_id and not engagement_id:
+            validation_result = await user_service.validate_user_context(
+                user_id=context.user_id,
+                client_account_id=int(context.client_account_id),
+                engagement_id=None
+            )
+            
+            if validation_result["valid"] and validation_result["resolved_engagement_id"]:
+                engagement_id = validation_result["resolved_engagement_id"]
+                logger.info(f"Resolved engagement_id from user context: {engagement_id}")
+        
+        logger.info(f"Getting flows summary for client {context.client_account_id}, engagement {engagement_id}")
         
         from app.models.discovery_flow import DiscoveryFlow
+        
+        # Build base query
+        base_conditions = [
+            DiscoveryFlow.client_account_id == context.client_account_id,
+            DiscoveryFlow.status != 'deleted'
+        ]
+        
+        # Add engagement filter only if we have a valid engagement_id
+        if engagement_id:
+            base_conditions.append(DiscoveryFlow.engagement_id == engagement_id)
         
         # Get flow counts by status
         status_counts_stmt = select(
             DiscoveryFlow.status,
             func.count(DiscoveryFlow.flow_id).label('count')
         ).where(
-            and_(
-                DiscoveryFlow.client_account_id == context.client_account_id,
-                DiscoveryFlow.engagement_id == context.engagement_id,
-                DiscoveryFlow.status != 'deleted'
-            )
+            and_(*base_conditions)
         ).group_by(DiscoveryFlow.status)
         
         result = await db.execute(status_counts_stmt)
@@ -558,12 +632,14 @@ async def get_flows_summary(
             "status_breakdown": status_counts,
             "success_rate": (completed_count / total_flows * 100) if total_flows > 0 else 0.0,
             "client_account_id": str(context.client_account_id),
-            "engagement_id": str(context.engagement_id),
-            "timestamp": logger.info("Summary generated successfully")
+            "engagement_id": str(engagement_id) if engagement_id else None,
+            "timestamp": datetime.utcnow().isoformat()
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error getting flows summary: {e}")
+        logger.error(f"Error getting flows summary: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to get flows summary: {str(e)}")
 
 

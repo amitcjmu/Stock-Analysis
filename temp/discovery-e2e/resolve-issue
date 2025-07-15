@@ -1,0 +1,105 @@
+#!/bin/bash
+
+# Multi-Agent Issue Resolution System - Claude Code Custom Command
+# Usage: resolve-issue [options]
+
+set -e
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PYTHON_SCRIPT="$SCRIPT_DIR/claude-code-command.py"
+
+# Check if Python script exists
+if [ ! -f "$PYTHON_SCRIPT" ]; then
+    echo "❌ Error: Python script not found at $PYTHON_SCRIPT"
+    exit 1
+fi
+
+# Check if workflow enforcement system exists
+WORKFLOW_SCRIPT="$SCRIPT_DIR/workflow-enforcement-system.py"
+if [ ! -f "$WORKFLOW_SCRIPT" ]; then
+    echo "❌ Error: Workflow enforcement system not found at $WORKFLOW_SCRIPT"
+    exit 1
+fi
+
+# Add the script directory to Python path
+export PYTHONPATH="$SCRIPT_DIR:$PYTHONPATH"
+
+# Function to show usage
+show_usage() {
+    cat << EOF
+🚀 Multi-Agent Issue Resolution System
+
+USAGE:
+    resolve-issue [OPTIONS]
+
+OPTIONS:
+    --screenshot PATH      Resolve issue from screenshot file
+    --logs "LOG_CONTENT"   Resolve issue from error logs
+    --description "DESC"   Resolve issue from manual description
+    --launch              Launch multi-agent resolution immediately
+    --status ISSUE_ID     Get status of existing issue
+    --help                Show this help message
+
+EXAMPLES:
+    # Resolve UI issue from screenshot
+    resolve-issue --screenshot /path/to/error.png --launch
+
+    # Resolve backend issue from logs
+    resolve-issue --logs "ERROR: Database connection timeout" --launch
+
+    # Resolve issue from description
+    resolve-issue --description "Login button not working" --launch
+
+    # Check issue status
+    resolve-issue --status ISSUE-20250115-001
+
+WORKFLOW:
+    1. Issue analyzed and categorized automatically
+    2. Appropriate agents assigned based on issue type
+    3. Workflow enforcement ensures proper process
+    4. Original reporter validates final resolution
+    5. Issue marked complete only after validation
+
+AGENTS:
+    • Agent-1: UI Testing & Validation
+    • Agent-2: Backend Monitoring & Validation  
+    • Agent-3: Database Validation
+    • Agent-4: Solution Architecture
+    • Agent-5: Historical Review
+    • Agent-7: Implementation Verification
+    • Agent-8: Implementation
+
+EOF
+}
+
+# Check for help
+if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
+    show_usage
+    exit 0
+fi
+
+# Check for no arguments
+if [ $# -eq 0 ]; then
+    show_usage
+    exit 1
+fi
+
+# Print banner
+echo "🚀 Multi-Agent Issue Resolution System"
+echo "====================================="
+
+# Execute the Python script with all arguments
+python3 "$PYTHON_SCRIPT" "$@"
+
+# Check exit code
+if [ $? -eq 0 ]; then
+    echo ""
+    echo "✅ Command completed successfully"
+    echo "📁 Check session directory for agent instructions and progress"
+    echo "💡 Use resolve-issue --status ISSUE_ID to check progress"
+else
+    echo ""
+    echo "❌ Command failed - check error messages above"
+    exit 1
+fi

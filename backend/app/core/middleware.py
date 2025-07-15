@@ -409,9 +409,11 @@ async def get_current_context_dependency() -> RequestContext:
         @app.get("/api/data")
         async def get_data(context: RequestContext = Depends(get_current_context_dependency)):
             # Use context.client_account_id, etc.
+    
+    Note: This function is deprecated. Use get_current_context_dependency from app.core.context instead.
     """
-    from .context import get_current_context
-    return get_current_context()
+    from .context import get_current_context_dependency as context_dependency
+    return await context_dependency()
 
 
 def create_context_aware_dependency(require_client: bool = True, require_engagement: bool = False):

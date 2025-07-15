@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { SimplifiedFlowStatus } from '@/components/discovery/SimplifiedFlowStatus';
 import { PollingStatusIndicator } from '@/components/common/PollingControls';
 import { AgentActivityViewer } from '@/components/discovery/AgentActivityViewer';
+import { FlowDeletionModal } from '@/components/flows/FlowDeletionModal';
 
 // Custom hooks and components
 import { useCMDBImport } from './hooks/useCMDBImport';
@@ -59,6 +60,10 @@ const CMDBImportContainer: React.FC = () => {
     isFlowStateLoading,
     flowStateError,
     pollingStatus,
+    
+    // Deletion state and actions
+    deletionState,
+    deletionActions,
   } = useCMDBImport();
 
   return (
@@ -215,6 +220,16 @@ const CMDBImportContainer: React.FC = () => {
               />
             </DialogContent>
           </Dialog>
+          
+          {/* Flow Deletion Modal */}
+          <FlowDeletionModal
+            open={deletionState.isModalOpen}
+            candidates={deletionState.candidates}
+            deletionSource={deletionState.deletionSource}
+            isDeleting={deletionState.isDeleting}
+            onConfirm={deletionActions.confirmDeletion}
+            onCancel={deletionActions.cancelDeletion}
+          />
         </div>
       </div>
     </div>

@@ -24,9 +24,14 @@ import { QuickActions } from './components/QuickActions';
 // Flow Management hooks
 import { useIncompleteFlowDetectionV2 } from '@/hooks/discovery/useFlowOperations';
 import { useFlowDeletion } from '@/hooks/useFlowDeletion';
+import { FlowDeletionModal } from '@/components/flows/FlowDeletionModal';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/components/ui/use-toast';
 
 const EnhancedDiscoveryDashboardContainer: React.FC = () => {
   const navigate = useNavigate();
+  const { client, engagement, user } = useAuth();
+  const { toast } = useToast();
   
   // Dashboard state and actions
   const {
@@ -60,13 +65,22 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
 
   // Flow Management hooks
   const { data: incompleteFlowsData } = useIncompleteFlowDetectionV2();
-  const { deleteFlows, isLoading: isDeleting } = useFlowDeletion({
-    deletion_source: 'discovery_dashboard',
-    onSuccess: () => {
+  const [deletionState, deletionActions] = useFlowDeletion(
+    // onDeletionComplete callback
+    () => {
       // Refresh dashboard data after successful deletion
       fetchDashboardData();
+    },
+    // onDeletionError callback
+    (error) => {
+      console.error('Flow deletion error:', error);
+      toast({
+        title: "Deletion Failed",
+        description: error.message || "Failed to delete flow",
+        variant: "destructive",
+      });
     }
-  });
+  );
   
   const incompleteFlows = incompleteFlowsData?.flows || [];
   const hasIncompleteFlows = incompleteFlows.length > 0;
@@ -100,14 +114,44 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
 
   // Handle flow deletion using centralized user-approval system
   const handleDeleteFlow = async (flowId: string) => {
+    if (!client?.id) {
+      toast({
+        title: "Error",
+        description: "Client context is required for flow deletion",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     console.log('🗑️ Discovery Dashboard: Initiating flow deletion with user approval');
-    await deleteFlows([flowId]);
+    await deletionActions.requestDeletion(
+      [flowId],
+      client.id,
+      engagement?.id,
+      'discovery_dashboard',
+      user?.id
+    );
   };
 
   // Handle batch deletion
   const handleBatchDelete = async (flowIds: string[]) => {
+    if (!client?.id) {
+      toast({
+        title: "Error",
+        description: "Client context is required for flow deletion",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     console.log(`🗑️ Discovery Dashboard: Initiating batch deletion of ${flowIds.length} flows`);
-    await deleteFlows(flowIds);
+    await deletionActions.requestDeletion(
+      flowIds,
+      client.id,
+      engagement?.id,
+      'bulk_cleanup',
+      user?.id
+    );
   };
 
   // Navigation handlers
@@ -257,10 +301,20 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
                 onBatchDelete={handleBatchDelete}
                 onViewDetails={(flowId, phase) => handleViewDetails(flowId, phase)}
                 onClose={() => toggleFlowManager(false)}
-                isLoading={isDeleting}
+                isLoading={deletionState.isDeleting}
               />
             </DialogContent>
           </Dialog>
+          
+          {/* Flow Deletion Modal */}
+          <FlowDeletionModal
+            open={deletionState.isModalOpen}
+            candidates={deletionState.candidates}
+            deletionSource={deletionState.deletionSource}
+            isDeleting={deletionState.isDeleting}
+            onConfirm={deletionActions.confirmDeletion}
+            onCancel={deletionActions.cancelDeletion}
+          />
         </div>
       </div>
     </div>

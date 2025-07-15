@@ -45,11 +45,21 @@ export const useCMDBImport = () => {
   // Flow Management hooks
   const { data: incompleteFlowsData, isLoading: checkingFlows, refetch: refetchIncompleteFlows } = useIncompleteFlowDetectionV2();
   const flowResumption = useFlowResumptionV2();
-  const { 
-    deleteFlow, 
-    bulkDeleteFlows, 
-    isDeleting 
-  } = useFlowDeletion({ deletion_source: 'manual' });
+  const [deletionState, deletionActions] = useFlowDeletion(
+    // onDeletionComplete callback
+    () => {
+      refetchIncompleteFlows();
+    },
+    // onDeletionError callback
+    (error) => {
+      console.error('Flow deletion error:', error);
+      toast({
+        title: "Deletion Failed",
+        description: error.message || "Failed to delete flow",
+        variant: "destructive",
+      });
+    }
+  );
   
   const incompleteFlows = incompleteFlowsData?.flows || [];
   const hasIncompleteFlows = incompleteFlows.length > 0;
@@ -109,22 +119,42 @@ export const useCMDBImport = () => {
   }, [flowResumption, refetchIncompleteFlows]);
 
   const handleDeleteFlow = useCallback(async (flowId: string) => {
-    try {
-      await deleteFlow(flowId);
-      refetchIncompleteFlows();
-    } catch (error) {
-      console.error('Failed to delete flow:', error);
+    if (!client?.id) {
+      toast({
+        title: "Error",
+        description: "Client context is required for flow deletion",
+        variant: "destructive",
+      });
+      return;
     }
-  }, [deleteFlow, refetchIncompleteFlows]);
+    
+    await deletionActions.requestDeletion(
+      [flowId],
+      client.id,
+      engagement?.id,
+      'manual',
+      user?.id
+    );
+  }, [deletionActions, client, engagement, user, toast]);
 
   const handleBatchDeleteFlows = useCallback(async (flowIds: string[]) => {
-    try {
-      await bulkDeleteFlows(flowIds);
-      refetchIncompleteFlows();
-    } catch (error) {
-      console.error('Failed to delete flows:', error);
+    if (!client?.id) {
+      toast({
+        title: "Error",
+        description: "Client context is required for flow deletion",
+        variant: "destructive",
+      });
+      return;
     }
-  }, [bulkDeleteFlows, refetchIncompleteFlows]);
+    
+    await deletionActions.requestDeletion(
+      flowIds,
+      client.id,
+      engagement?.id,
+      'bulk_cleanup',
+      user?.id
+    );
+  }, [deletionActions, client, engagement, user, toast]);
 
   const handleViewFlowDetails = useCallback((flowId: string, phase: string) => {
     const actualPhase = phase || 'field_mapping';
@@ -282,7 +312,7 @@ export const useCMDBImport = () => {
     
     // Loading states
     isStartingFlow: isInitializing,
-    isDeletingFlows: isDeleting,
+    isDeletingFlows: deletionState.isDeleting,
     
     // Actions
     startFlow: handleStartFlow,
@@ -295,5 +325,9 @@ export const useCMDBImport = () => {
     flowStateError,
     refreshFlow,
     pollingStatus,
+    
+    // Deletion state and actions for modal
+    deletionState,
+    deletionActions,
   };
 };

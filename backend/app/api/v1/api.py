@@ -188,6 +188,12 @@ try:
 except ImportError:
     ADMIN_HANDLERS_AVAILABLE = False
 
+try:
+    from app.api.v1.endpoints.flow_health import router as flow_health_router
+    FLOW_HEALTH_AVAILABLE = True
+except ImportError:
+    FLOW_HEALTH_AVAILABLE = False
+
 
 
 # Setup logger
@@ -366,6 +372,13 @@ try:
 except ImportError as e:
     logger.warning(f"⚠️ Flow Processing Agent router not available: {e}")
 
+# Flow Health Monitoring
+if FLOW_HEALTH_AVAILABLE:
+    api_router.include_router(flow_health_router, prefix="/flow-health", tags=["Flow Health"])
+    logger.info("✅ Flow Health router included")
+else:
+    logger.warning("⚠️ Flow Health router not available")
+
 # Session Management - REMOVED (use flow_id instead)
 
 # Admin Management (conditional)
@@ -398,6 +411,14 @@ if ADMIN_ENDPOINTS_AVAILABLE:
 
 # Admin handlers are already included through the auth router (rbac.py)
 # No need to include admin_router separately - it would create duplicate routes
+
+# Rate Limit Admin endpoints
+try:
+    from app.api.v1.endpoints.admin_rate_limit import router as admin_rate_limit_router
+    api_router.include_router(admin_rate_limit_router, prefix="/admin", tags=["Admin - Rate Limiting"])
+    logger.info("✅ Admin rate limit router included")
+except ImportError as e:
+    logger.warning(f"⚠️ Admin rate limit router not available: {e}")
 
 if SIMPLE_ADMIN_AVAILABLE:
     api_router.include_router(simple_admin_router, prefix="/api/v1", tags=["Simple Admin"])

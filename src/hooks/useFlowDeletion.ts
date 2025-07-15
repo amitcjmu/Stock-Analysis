@@ -1,221 +1,213 @@
 /**
- * Unified Flow Deletion Hook
- * Replaces all scattered deletion logic with centralized user-approval system
- * Consolidates: useFlowDeletionV2, useBulkFlowOperationsV2, and manual deletion handlers
+ * React hook for flow deletion with modal confirmation
+ * Replaces native browser dialogs with React components
+ * Fixes DISC-011: Browser native confirm dialog blocking UI access
  */
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/components/ui/use-toast';
-import { flowDeletionService, FlowDeletionResult } from '@/services/flowDeletionService';
+import { useState, useCallback } from 'react';
+import { flowDeletionService, FlowDeletionCandidate, FlowDeletionRequest, FlowDeletionResult } from '@/services/flowDeletionService';
 
-interface FlowDeletionOptions {
-  deletion_source?: 'manual' | 'bulk_cleanup' | 'navigation' | 'automatic_cleanup';
-  onSuccess?: (result: FlowDeletionResult) => void;
-  onError?: (error: any) => void;
-  skip_confirmation?: boolean; // For testing only - never use in production
-  useCustomConfirmation?: boolean; // When true, expects confirmation was already collected by custom UI
+export interface UseFlowDeletionState {
+  isModalOpen: boolean;
+  candidates: FlowDeletionCandidate[];
+  deletionSource: FlowDeletionRequest['deletion_source'];
+  isDeleting: boolean;
 }
 
-export const useFlowDeletion = (options: FlowDeletionOptions = {}) => {
-  const { client, engagement, user } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
-  const {
-    deletion_source = 'manual',
-    onSuccess,
-    onError,
-    skip_confirmation = false,
-    useCustomConfirmation = false
-  } = options;
+export interface UseFlowDeletionActions {
+  requestDeletion: (
+    flowIds: string[],
+    clientAccountId: string,
+    engagementId?: string,
+    deletion_source?: FlowDeletionRequest['deletion_source'],
+    user_id?: string
+  ) => Promise<void>;
+  confirmDeletion: () => Promise<void>;
+  cancelDeletion: () => void;
+}
 
-  const deletionMutation = useMutation({
-    mutationFn: async (flowIds: string[]) => {
-      if (!client?.id) {
-        throw new Error('Client context is required for flow deletion');
-      }
-
-      console.log('🗑️ Flow deletion requested:', {
-        flowIds,
-        deletion_source,
-        client: client.id,
-        engagement: engagement?.id,
-        user: user?.id
-      });
-
-      // Use centralized deletion service
-      const result = await flowDeletionService.requestFlowDeletion(
-        flowIds,
-        client.id,
-        engagement?.id,
-        deletion_source,
-        user?.id,
-        useCustomConfirmation // Pass through the custom confirmation flag
-      );
-
-      console.log('📋 Flow deletion result:', result);
-      return result;
-    },
-    
-    onSuccess: (result) => {
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ['incomplete-flows'] });
-      queryClient.invalidateQueries({ queryKey: ['discovery-flows'] });
-      queryClient.invalidateQueries({ queryKey: ['active-flows'] });
-      queryClient.invalidateQueries({ queryKey: ['master-flows'] });
-
-      // Show appropriate toast messages
-      if (result.success) {
-        if (result.deleted_count > 0) {
-          toast({
-            title: "✅ Flow Deletion Successful",
-            description: `Successfully deleted ${result.deleted_count} flow${result.deleted_count > 1 ? 's' : ''}${result.failed_count > 0 ? `, ${result.failed_count} failed` : ''}.`,
-            variant: "default",
-          });
-        }
-        
-        if (result.failed_count > 0) {
-          toast({
-            title: "⚠️ Some Deletions Failed",
-            description: `Failed to delete ${result.failed_count} flow${result.failed_count > 1 ? 's' : ''}. Please try again or contact support.`,
-            variant: "destructive",
-          });
-        }
-      } else {
-        if (result.audit_trail.reason === 'user_declined') {
-          toast({
-            title: "❌ Deletion Cancelled",
-            description: "Flow deletion was cancelled by user.",
-            variant: "default",
-          });
-        } else {
-          toast({
-            title: "❌ Deletion Failed",
-            description: "Flow deletion failed. Please try again or contact support.",
-            variant: "destructive",
-          });
-        }
-      }
-
-      // Call custom success handler
-      if (onSuccess) {
-        onSuccess(result);
-      }
-    },
-
-    onError: (error) => {
-      console.error('❌ Flow deletion mutation error:', error);
-      
-      toast({
-        title: "❌ Deletion Error",
-        description: error instanceof Error ? error.message : "An unexpected error occurred during deletion.",
-        variant: "destructive",
-      });
-
-      // Call custom error handler
-      if (onError) {
-        onError(error);
-      }
-    }
+export function useFlowDeletion(
+  onDeletionComplete?: (result: FlowDeletionResult) => void,
+  onDeletionError?: (error: Error) => void
+): [UseFlowDeletionState, UseFlowDeletionActions] {
+  const [state, setState] = useState<UseFlowDeletionState>({
+    isModalOpen: false,
+    candidates: [],
+    deletionSource: 'manual',
+    isDeleting: false
   });
 
-  return {
-    // Main deletion function
-    deleteFlows: deletionMutation.mutate,
-    deleteFlowsAsync: deletionMutation.mutateAsync,
-    
-    // Single flow deletion convenience method
-    deleteFlow: (flowId: string) => deletionMutation.mutate([flowId]),
-    deleteFlowAsync: (flowId: string) => deletionMutation.mutateAsync([flowId]),
-    
-    // Bulk deletion convenience method
-    bulkDeleteFlows: (flowIds: string[]) => deletionMutation.mutate(flowIds),
-    bulkDeleteFlowsAsync: (flowIds: string[]) => deletionMutation.mutateAsync(flowIds),
-    
-    // Status and loading states
-    isDeleting: deletionMutation.isPending,
-    isError: deletionMutation.isError,
-    error: deletionMutation.error,
-    isSuccess: deletionMutation.isSuccess,
-    
-    // Reset mutation state
-    reset: deletionMutation.reset,
-  };
-};
+  // Store deletion parameters for when user confirms
+  const [pendingDeletion, setPendingDeletion] = useState<{
+    flowIds: string[];
+    clientAccountId: string;
+    engagementId?: string;
+    user_id?: string;
+  } | null>(null);
 
-/**
- * Hook for cleanup recommendations (system suggests but never auto-deletes)
- */
-export const useFlowCleanupRecommendations = () => {
-  const { client, engagement } = useAuth();
-  
-  const recommendationsMutation = useMutation({
-    mutationFn: async (flowType?: string) => {
-      if (!client?.id) {
-        throw new Error('Client context is required for cleanup recommendations');
-      }
-
-      console.log('🧹 Fetching cleanup recommendations for:', {
-        client: client.id,
-        engagement: engagement?.id,
-        flowType
-      });
-
+  const requestDeletion = useCallback(async (
+    flowIds: string[],
+    clientAccountId: string,
+    engagementId?: string,
+    deletion_source: FlowDeletionRequest['deletion_source'] = 'manual',
+    user_id?: string
+  ) => {
+    try {
+      // Get flow details for confirmation
       const candidates = await flowDeletionService.identifyDeletionCandidates(
-        client.id,
-        engagement?.id,
-        flowType
+        clientAccountId,
+        engagementId
       );
 
-      console.log('📋 Cleanup recommendations:', candidates);
-      return candidates;
-    }
-  });
+      // Filter to only requested flows
+      const requestedCandidates = candidates.filter(c => 
+        flowIds.includes(c.flowId)
+      );
 
-  return {
-    getRecommendations: recommendationsMutation.mutate,
-    getRecommendationsAsync: recommendationsMutation.mutateAsync,
-    
-    recommendations: recommendationsMutation.data,
-    isLoading: recommendationsMutation.isPending,
-    isError: recommendationsMutation.isError,
-    error: recommendationsMutation.error,
-    
-    reset: recommendationsMutation.reset,
+      // If no candidates found, create minimal candidates for requested IDs
+      if (requestedCandidates.length === 0 && flowIds.length > 0) {
+        flowIds.forEach(flowId => {
+          requestedCandidates.push({
+            flowId,
+            flow_name: 'Unknown Flow',
+            status: 'unknown',
+            current_phase: 'unknown',
+            progress_percentage: 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            reason_for_deletion: deletion_source === 'manual' ? 'user_requested' : 'cleanup_recommended',
+            auto_cleanup_eligible: true,
+            deletion_impact: {
+              data_to_delete: {
+                workflow_state: 1,
+                import_sessions: 0,
+                field_mappings: 0,
+                assets: 0,
+                dependencies: 0,
+                shared_memory_refs: 0
+              },
+              estimated_cleanup_time: '30s'
+            }
+          });
+        });
+      }
+
+      // Store deletion parameters
+      setPendingDeletion({
+        flowIds,
+        clientAccountId,
+        engagementId,
+        user_id
+      });
+
+      // Update state to show modal
+      setState({
+        isModalOpen: true,
+        candidates: requestedCandidates,
+        deletionSource: deletion_source,
+        isDeleting: false
+      });
+    } catch (error) {
+      console.error('Failed to prepare deletion request:', error);
+      if (onDeletionError) {
+        onDeletionError(error instanceof Error ? error : new Error('Failed to prepare deletion'));
+      }
+    }
+  }, [onDeletionError]);
+
+  const confirmDeletion = useCallback(async () => {
+    if (!pendingDeletion || state.candidates.length === 0) {
+      return;
+    }
+
+    setState(prev => ({ ...prev, isDeleting: true }));
+
+    try {
+      // Call the service with skipBrowserConfirm=true since we're using modal
+      const result = await flowDeletionService.requestFlowDeletion(
+        pendingDeletion.flowIds,
+        pendingDeletion.clientAccountId,
+        pendingDeletion.engagementId,
+        state.deletionSource,
+        pendingDeletion.user_id,
+        true // skipBrowserConfirm - we already have user confirmation from modal
+      );
+
+      // Close modal
+      setState({
+        isModalOpen: false,
+        candidates: [],
+        deletionSource: 'manual',
+        isDeleting: false
+      });
+      setPendingDeletion(null);
+
+      // Notify completion
+      if (onDeletionComplete) {
+        onDeletionComplete(result);
+      }
+    } catch (error) {
+      console.error('Flow deletion failed:', error);
+      setState(prev => ({ ...prev, isDeleting: false }));
+      if (onDeletionError) {
+        onDeletionError(error instanceof Error ? error : new Error('Deletion failed'));
+      }
+    }
+  }, [pendingDeletion, state.candidates, state.deletionSource, onDeletionComplete, onDeletionError]);
+
+  const cancelDeletion = useCallback(() => {
+    setState({
+      isModalOpen: false,
+      candidates: [],
+      deletionSource: 'manual',
+      isDeleting: false
+    });
+    setPendingDeletion(null);
+  }, []);
+
+  const actions: UseFlowDeletionActions = {
+    requestDeletion,
+    confirmDeletion,
+    cancelDeletion
   };
-};
+
+  return [state, actions];
+}
 
 /**
- * Hook for cleanup flows specifically (what UploadBlocker should use)
+ * Hook for flow cleanup recommendations
+ * Provides cleanup recommendations without automatic execution
  */
-export const useFlowCleanup = () => {
-  const deletionHook = useFlowDeletion({ 
-    deletion_source: 'automatic_cleanup' 
-  });
-  
-  const recommendationsHook = useFlowCleanupRecommendations();
+export function useFlowCleanup() {
+  const [recommendations, setRecommendations] = useState<FlowDeletionCandidate[]>([]);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
+  const [isExecutingCleanup, setIsExecutingCleanup] = useState(false);
+
+  const getCleanupRecommendations = useCallback(async (
+    clientAccountId: string,
+    engagementId?: string,
+    flowType?: string
+  ) => {
+    setIsLoadingRecommendations(true);
+    try {
+      const candidates = await flowDeletionService.identifyDeletionCandidates(
+        clientAccountId,
+        engagementId,
+        flowType
+      );
+      setRecommendations(candidates);
+    } catch (error) {
+      console.error('Failed to get cleanup recommendations:', error);
+      setRecommendations([]);
+    } finally {
+      setIsLoadingRecommendations(false);
+    }
+  }, []);
 
   return {
-    // Get cleanup recommendations
-    getCleanupRecommendations: recommendationsHook.getRecommendationsAsync,
-    recommendations: recommendationsHook.recommendations,
-    isLoadingRecommendations: recommendationsHook.isLoading,
-    
-    // Execute cleanup with user approval
-    executeCleanup: deletionHook.deleteFlowsAsync,
-    isExecutingCleanup: deletionHook.isDeleting,
-    
-    // Combined method for full cleanup workflow
-    performCleanup: async (flowType?: string) => {
-      const recommendations = await recommendationsHook.getRecommendationsAsync(flowType);
-      
-      if (recommendations.length === 0) {
-        return { success: true, message: 'No flows need cleanup' };
-      }
-      
-      const flowIds = recommendations.map(r => r.flowId);
-      return await deletionHook.deleteFlowsAsync(flowIds);
-    }
+    recommendations,
+    isLoadingRecommendations,
+    isExecutingCleanup,
+    getCleanupRecommendations
   };
-};
+}

@@ -1,0 +1,81 @@
+{
+  "name": "multi-agent-issue-resolver",
+  "version": "1.0.0",
+  "description": "Multi-Agent Issue Resolution System with Original Reporter Validation",
+  "author": "Discovery Flow E2E Team",
+  "commands": {
+    "resolve-issue": {
+      "description": "Start multi-agent issue resolution from screenshot or error logs",
+      "script": "python3 /Users/chocka/CursorProjects/migrate-ui-orchestrator/temp/discovery-e2e/claude-code-command.py",
+      "examples": [
+        {
+          "description": "Resolve issue from screenshot",
+          "command": "resolve-issue --screenshot /path/to/screenshot.png --launch"
+        },
+        {
+          "description": "Resolve issue from error logs",
+          "command": "resolve-issue --logs 'ERROR: Database connection failed' --launch"
+        },
+        {
+          "description": "Resolve issue from manual description",
+          "command": "resolve-issue --description 'Button not working on login page' --launch"
+        },
+        {
+          "description": "Check issue status",
+          "command": "resolve-issue --status ISSUE-20250115-001"
+        }
+      ],
+      "options": [
+        {
+          "name": "--screenshot",
+          "description": "Path to screenshot file showing the issue",
+          "type": "file",
+          "required": false
+        },
+        {
+          "name": "--logs",
+          "description": "Error logs content as string",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--description",
+          "description": "Manual issue description",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "--launch",
+          "description": "Launch multi-agent resolution immediately",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "--status",
+          "description": "Get status of existing issue by ID",
+          "type": "string",
+          "required": false
+        }
+      ]
+    }
+  },
+  "dependencies": {
+    "python": ">=3.8",
+    "packages": [
+      "argparse",
+      "json",
+      "logging",
+      "datetime",
+      "uuid",
+      "base64",
+      "hashlib",
+      "shutil"
+    ]
+  },
+  "installation": {
+    "setup_commands": [
+      "pip install --upgrade pip",
+      "chmod +x /Users/chocka/CursorProjects/migrate-ui-orchestrator/temp/discovery-e2e/claude-code-command.py"
+    ]
+  }
+}

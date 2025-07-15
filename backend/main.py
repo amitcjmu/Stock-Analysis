@@ -24,7 +24,7 @@ from dotenv import load_dotenv
 
 from contextlib import asynccontextmanager
 from pathlib import Path
-from app.core.context import get_current_context, RequestContext
+from app.core.context import RequestContext, get_current_context_dependency
 
 # Import error handlers
 try:
@@ -124,11 +124,29 @@ async def lifespan(app: FastAPI):
             logger.warning(f"⚠️⚠️⚠️ Database connection test failed: {e}", exc_info=True)
             # Don't fail startup on database connection issues
     
+    # Start flow health monitor
+    try:
+        logger.info("🔄 Starting flow health monitor...")
+        from app.services.flow_health_monitor import flow_health_monitor
+        await flow_health_monitor.start()
+        logger.info("✅ Flow health monitor started successfully")
+    except Exception as e:
+        logger.warning(f"Flow health monitor initialization warning: {e}")
+    
     # Yield control to the application
     yield
     
     # Shutdown logic (if needed)
     logger.info("🔄 Application shutting down...")
+    
+    # Stop flow health monitor
+    try:
+        from app.services.flow_health_monitor import flow_health_monitor
+        await flow_health_monitor.stop()
+        logger.info("✅ Flow health monitor stopped")
+    except Exception as e:
+        logger.warning(f"Error stopping flow health monitor: {e}")
+    
     logger.info("✅ Shutdown logic completed.")
 
 # Initialize basic app first to ensure health check is always available
@@ -310,7 +328,7 @@ ENABLE_MIDDLEWARE = True  # Production setting
 if ENABLE_MIDDLEWARE:
     try:
         from app.core.middleware import ContextMiddleware, RequestLoggingMiddleware
-        from app.middleware.rate_limiter import RateLimitMiddleware
+        from app.middleware.adaptive_rate_limit_middleware import AdaptiveRateLimitMiddleware
         from app.middleware.security_headers import SecurityHeadersMiddleware, SecurityAuditMiddleware
         
         # Import request tracking middleware
@@ -385,8 +403,8 @@ if ENABLE_MIDDLEWARE:
             excluded_paths=["/health"]
         )
         
-        # Add rate limiting middleware
-        app.add_middleware(RateLimitMiddleware)
+        # Add adaptive rate limiting middleware
+        app.add_middleware(AdaptiveRateLimitMiddleware)
         
         # Add security audit middleware
         app.add_middleware(SecurityAuditMiddleware)
@@ -465,7 +483,7 @@ async def debug_routes():
 @app.get("/debug/test-dependency")
 async def debug_test_dependency(
     request: Request,
-    context: RequestContext = Depends(get_current_context)
+    context: RequestContext = Depends(get_current_context_dependency)
 ):
     """Test endpoint to debug the context dependency injection."""
     try:
