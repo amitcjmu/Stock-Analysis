@@ -83,6 +83,14 @@ class ImportStorageHandler:
             logger.info(f"🔄 Starting data import handling for session: {import_validation_id}")
             logger.info(f"🔍 File data count: {len(file_data) if file_data else 0}")
             
+            # Debug: Check the structure of the file_data
+            if file_data and len(file_data) > 0:
+                logger.info(f"🔍 DEBUG: First record keys: {list(file_data[0].keys())}")
+                logger.info(f"🔍 DEBUG: First record type: {type(file_data[0])}")
+                # Check if keys are strings or something else
+                for key in list(file_data[0].keys())[:3]:  # Check first 3 keys
+                    logger.info(f"🔍 DEBUG: Key '{key}' type: {type(key)}")
+            
             # Step 1: Validate context and import request
             await self.validator.validate_import_context(context)
             import_uuid = await self.validator.validate_import_id(import_validation_id)

@@ -118,8 +118,8 @@ class FlowContextTool(BaseTool):
                 "context_found": False,
                 "error": str(e),
                 "fallback_context": {
-                    "client_account_id": client_account_id or "dfea7406-1575-4348-a0b2-2770cbe2d9f9",
-                    "engagement_id": engagement_id or "ce27e7b1-2ac6-4b74-8dd5-b52d542a1669",
+                    "client_account_id": client_account_id or "11111111-1111-1111-1111-111111111111",
+                    "engagement_id": engagement_id or "22222222-2222-2222-2222-222222222222",
                     "flow_type": "discovery"
                 }
             })
@@ -129,8 +129,8 @@ class FlowContextTool(BaseTool):
         try:
             # Use direct service calls for context
             context = {
-                "client_account_id": client_account_id or "dfea7406-1575-4348-a0b2-2770cbe2d9f9",
-                "engagement_id": engagement_id or "ce27e7b1-2ac6-4b74-8dd5-b52d542a1669",
+                "client_account_id": client_account_id or "11111111-1111-1111-1111-111111111111",
+                "engagement_id": engagement_id or "22222222-2222-2222-2222-222222222222",
                 "user_id": user_id,
                 "flow_type": "discovery"  # Default, will be determined from flow data
             }
@@ -190,8 +190,8 @@ class FlowStatusTool(BaseTool):
             
             # Create proper context for FlowHandler
             request_context = RequestContext(
-                client_account_id=context.get("client_account_id", "dfea7406-1575-4348-a0b2-2770cbe2d9f9"),
-                engagement_id=context.get("engagement_id", "ce27e7b1-2ac6-4b74-8dd5-b52d542a1669"),
+                client_account_id=context.get("client_account_id", "11111111-1111-1111-1111-111111111111"),
+                engagement_id=context.get("engagement_id", "22222222-2222-2222-2222-222222222222"),
                 user_id=context.get("user_id")
             )
             
@@ -312,8 +312,8 @@ class FlowStatusTool(BaseTool):
             
             # Create proper context for FlowHandler
             request_context = RequestContext(
-                client_account_id=context.get("client_account_id", "dfea7406-1575-4348-a0b2-2770cbe2d9f9"),
-                engagement_id=context.get("engagement_id", "ce27e7b1-2ac6-4b74-8dd5-b52d542a1669"),
+                client_account_id=context.get("client_account_id", "11111111-1111-1111-1111-111111111111"),
+                engagement_id=context.get("engagement_id", "22222222-2222-2222-2222-222222222222"),
                 user_id=context.get("user_id")
             )
             

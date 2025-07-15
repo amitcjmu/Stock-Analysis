@@ -60,11 +60,52 @@ export const useAttributeMappingNavigation = (flowState?: any, mappingProgress?:
         return;
       }
       
-      if (flowStatus === 'paused' || flowStatus === 'waiting_for_approval' || flowStatus === 'waiting_for_user_approval') {
-        // Resume the paused flow
+      if (flowStatus === 'waiting_for_approval' || flowStatus === 'waiting_for_user_approval') {
+        // Execute the next phase for flows waiting for approval
+        toast({
+          title: "Continuing Discovery Flow",
+          description: "Applying field mappings and continuing with data cleansing...",
+        });
+        
+        try {
+          const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
+          const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
+          
+          // Execute the next phase with mapping approval data
+          await masterFlowServiceExtended.executePhase(
+            flowId, 
+            'data_cleansing', 
+            {
+              approved_mappings: true,
+              mapping_data: mappingProgress,
+              phase_transition: 'field_mapping_approval_to_data_cleansing'
+            }, 
+            clientAccountId, 
+            engagementId
+          );
+          
+          toast({
+            title: "Flow Continued",
+            description: "Discovery flow is now continuing with data cleansing phase.",
+          });
+          
+          // Navigate to data cleansing after a short delay
+          setTimeout(() => {
+            navigate('/discovery/data-cleansing');
+          }, 1500);
+        } catch (executeError) {
+          console.error('Failed to continue flow:', executeError);
+          toast({
+            title: "Continue Failed",
+            description: "Failed to continue the discovery flow. Please try again.",
+            variant: "destructive"
+          });
+        }
+      } else if (flowStatus === 'paused') {
+        // Resume truly paused flows
         toast({
           title: "Resuming Discovery Flow",
-          description: "Applying field mappings and continuing with data cleansing...",
+          description: "Resuming paused discovery flow...",
         });
         
         try {
@@ -75,7 +116,7 @@ export const useAttributeMappingNavigation = (flowState?: any, mappingProgress?:
           
           toast({
             title: "Flow Resumed",
-            description: "Discovery flow is now continuing with data cleansing phase.",
+            description: "Discovery flow has been resumed.",
           });
           
           // Navigate to data cleansing after a short delay

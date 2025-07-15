@@ -35,10 +35,14 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
       sample_mappings: fieldMappings.slice(0, 3).map(m => ({
         id: m.id,
         sourceField: m.sourceField,
+        sourceField_type: typeof m.sourceField,
+        sourceField_value: m.sourceField,
         targetAttribute: m.targetAttribute,
+        targetAttribute_type: typeof m.targetAttribute,
         status: m.status,
         confidence: m.confidence,
-        mapping_type: m.mapping_type
+        mapping_type: m.mapping_type,
+        full_object: m
       }))
     });
     
@@ -495,10 +499,16 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
     return (
       <div className={`p-4 border rounded-lg transition-all duration-200 hover:shadow-md ${isPlaceholder ? 'bg-yellow-50 border-yellow-200' : 'bg-white border-gray-200'}`}>
         <div className="flex items-center gap-2 mb-3">
-          <span className="font-medium text-gray-900">{mapping.sourceField}</span>
+          <span className="font-medium text-gray-900">
+            {typeof mapping.sourceField === 'string' ? mapping.sourceField : 
+             typeof mapping.sourceField === 'object' ? JSON.stringify(mapping.sourceField) : 
+             String(mapping.sourceField || 'Unknown Field')}
+          </span>
           <ArrowRight className="h-4 w-4 text-gray-400" />
           <span className={`font-medium ${isPlaceholder ? 'text-yellow-600' : 'text-blue-600'}`}>
-            {mapping.targetAttribute || 'No target mapping'}
+            {typeof mapping.targetAttribute === 'string' ? (mapping.targetAttribute || 'No target mapping') :
+             typeof mapping.targetAttribute === 'object' ? JSON.stringify(mapping.targetAttribute) :
+             String(mapping.targetAttribute || 'No target mapping')}
           </span>
           {isPlaceholder && (
             <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full">
@@ -606,7 +616,9 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Source Field:</label>
             <div className="px-3 py-2 bg-gray-50 rounded border text-sm font-medium">
-              {mapping.sourceField}
+              {typeof mapping.sourceField === 'string' ? mapping.sourceField : 
+               typeof mapping.sourceField === 'object' ? JSON.stringify(mapping.sourceField) : 
+               String(mapping.sourceField || 'Unknown Field')}
             </div>
           </div>
           
@@ -638,9 +650,17 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
   const ApprovedCard = ({ mapping }: { mapping: FieldMapping }) => (
     <div className="p-4 border rounded-lg transition-all duration-200 bg-green-50 border-green-200">
       <div className="flex items-center gap-2">
-        <span className="font-medium text-gray-900">{mapping.sourceField}</span>
+        <span className="font-medium text-gray-900">
+          {typeof mapping.sourceField === 'string' ? mapping.sourceField : 
+           typeof mapping.sourceField === 'object' ? JSON.stringify(mapping.sourceField) : 
+           String(mapping.sourceField || 'Unknown Field')}
+        </span>
         <ArrowRight className="h-4 w-4 text-gray-400" />
-        <span className="text-green-600 font-medium">{mapping.targetAttribute || 'No target mapping'}</span>
+        <span className="text-green-600 font-medium">
+          {typeof mapping.targetAttribute === 'string' ? (mapping.targetAttribute || 'No target mapping') :
+           typeof mapping.targetAttribute === 'object' ? JSON.stringify(mapping.targetAttribute) :
+           String(mapping.targetAttribute || 'No target mapping')}
+        </span>
       </div>
     </div>
   );

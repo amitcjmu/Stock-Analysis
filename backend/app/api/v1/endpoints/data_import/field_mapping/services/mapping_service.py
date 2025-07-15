@@ -63,6 +63,10 @@ class MappingService:
         valid_mappings = []
         for mapping in mappings:
             # Trust the agent decisions - no hardcoded filtering
+            
+            # Debug logging to identify the issue
+            logger.info(f"🔍 DEBUG: Field mapping - source_field type: {type(mapping.source_field)}, value: {mapping.source_field}")
+            logger.info(f"🔍 DEBUG: Field mapping - target_field type: {type(mapping.target_field)}, value: {mapping.target_field}")
                 
             valid_mappings.append(FieldMappingResponse(
                 id=mapping.id,
@@ -77,6 +81,7 @@ class MappingService:
                 updated_at=mapping.updated_at
             ))
         
+        logger.info(f"✅ Returning {len(valid_mappings)} field mappings for import {import_id}")
         return valid_mappings
     
     async def create_field_mapping(

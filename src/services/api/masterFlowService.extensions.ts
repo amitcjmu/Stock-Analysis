@@ -26,7 +26,13 @@ export const masterFlowServiceExtended = {
     const token = localStorage.getItem('auth_token');
     return apiClient.post(
       `/flows/${flowId}/execute`,
-      { phase, ...phaseData },
+      { 
+        phase_input: { 
+          phase: phase, 
+          ...phaseData 
+        },
+        force_execution: false
+      },
       {
         headers: {
           'X-Client-Account-ID': clientAccountId,

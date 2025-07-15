@@ -38,6 +38,14 @@ async def get_field_mappings(
     """Get all field mappings for a specific import."""
     try:
         mappings = await service.get_field_mappings(import_id)
+        
+        # Debug logging to check the response format
+        logger.info(f"🔍 DEBUG: Retrieved {len(mappings)} mappings for import {import_id}")
+        if mappings:
+            first_mapping = mappings[0]
+            logger.info(f"🔍 DEBUG: First mapping - source_field: {first_mapping.source_field} (type: {type(first_mapping.source_field)})")
+            logger.info(f"🔍 DEBUG: First mapping dict representation: {first_mapping.dict()}")
+        
         return mappings
     except Exception as e:
         logger.error(f"Error retrieving field mappings for import {import_id}: {e}")

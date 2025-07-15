@@ -146,6 +146,7 @@ class FieldMappingExecutor(BasePhaseExecutor):
     
     def _extract_mappings_from_text(self, text: str) -> Dict[str, str]:
         """Extract field mappings from text result"""
+        import re
         mappings = {}
         
         # Simple text parsing for mappings
@@ -158,6 +159,11 @@ class FieldMappingExecutor(BasePhaseExecutor):
                 if len(parts) == 2:
                     source = parts[0].strip().strip('"\'').strip(':').strip()
                     target = parts[1].strip().strip('"\'').strip()
+                    
+                    # Skip numbered list items to avoid duplicates (e.g., "1. Name", "2. IP Address")
+                    if re.match(r'^\d+\.\s*', source):
+                        source = re.sub(r'^\d+\.\s*', '', source).strip()
+                    
                     if source and target:
                         mappings[source] = target
             # Format 2: source_field: target_attribute
@@ -166,6 +172,11 @@ class FieldMappingExecutor(BasePhaseExecutor):
                 if len(parts) == 2:
                     source = parts[0].strip().strip('"\'').strip()
                     target = parts[1].strip().strip('"\'').strip()
+                    
+                    # Skip numbered list items to avoid duplicates (e.g., "1. Name", "2. IP Address")
+                    if re.match(r'^\d+\.\s*', source):
+                        source = re.sub(r'^\d+\.\s*', '', source).strip()
+                    
                     # Skip if it looks like a sentence or instruction
                     if source and target and not ' ' in source.strip() and len(source) < 50:
                         mappings[source] = target
@@ -401,7 +412,11 @@ class FieldMappingExecutor(BasePhaseExecutor):
     # COMMENTED OUT - NO FALLBACK ALLOWED
     # The entire _generate_fallback_suggestions method has been removed.
     # We should only use CrewAI agents, no hardcoded fallback logic.
-        
+    
+    # NOTE: The following orphaned code was part of a heuristic fallback method
+    # It's commented out to fix the syntax error (await outside async function)
+    # This code should NOT be used - we only use CrewAI agents
+    """
         # Try to get data from multiple sources
         raw_data = None
         
@@ -538,6 +553,7 @@ class FieldMappingExecutor(BasePhaseExecutor):
             "clarifications": clarifications,
             "confidence_scores": confidence_scores
         }
+    """
     
     def _extract_clarifications_from_text(self, text: str) -> List[str]:
         """Extract clarification questions from text result"""

@@ -423,17 +423,43 @@ export const useAttributeMappingLogic = () => {
         // Check if this is an unmapped field
         const isUnmapped = mapping.target_field === 'UNMAPPED' || mapping.target_field === null || mapping.status === 'unmapped';
         
+        // Extract source field name safely
+        let sourceFieldName = 'Unknown Field';
+        if (typeof mapping.source_field === 'string') {
+          sourceFieldName = mapping.source_field;
+        } else if (typeof mapping.sourceField === 'string') {
+          sourceFieldName = mapping.sourceField;
+        } else if (mapping.source_field && typeof mapping.source_field === 'object' && 'name' in mapping.source_field) {
+          sourceFieldName = mapping.source_field.name;
+        } else if (mapping.sourceField && typeof mapping.sourceField === 'object' && 'name' in mapping.sourceField) {
+          sourceFieldName = mapping.sourceField.name;
+        }
+        
+        // Extract target field name safely
+        let targetFieldName = null;
+        if (!isUnmapped) {
+          if (typeof mapping.target_field === 'string') {
+            targetFieldName = mapping.target_field;
+          } else if (typeof mapping.targetAttribute === 'string') {
+            targetFieldName = mapping.targetAttribute;
+          } else if (mapping.target_field && typeof mapping.target_field === 'object' && 'name' in mapping.target_field) {
+            targetFieldName = mapping.target_field.name;
+          } else if (mapping.targetAttribute && typeof mapping.targetAttribute === 'object' && 'name' in mapping.targetAttribute) {
+            targetFieldName = mapping.targetAttribute.name;
+          }
+        }
+        
         return {
           id: mapping.id,
-          sourceField: mapping.source_field || mapping.sourceField || 'Unknown Field',
-          targetAttribute: isUnmapped ? null : (mapping.target_field || mapping.targetAttribute),
+          sourceField: sourceFieldName,
+          targetAttribute: targetFieldName,
           confidence: mapping.confidence || 0,
           mapping_type: isUnmapped ? 'unmapped' : 'ai_suggested',
           sample_values: [],
           // IMPORTANT: Always present as 'pending' until user explicitly approves
           // Unmapped fields should show as 'unmapped' status
           status: isUnmapped ? 'unmapped' : (mapping.is_approved === true ? 'approved' : 'pending'),
-          ai_reasoning: isUnmapped ? `Field "${mapping.source_field || mapping.sourceField || 'Unknown'}" needs mapping assignment` : `AI suggested mapping to ${mapping.target_field || mapping.targetAttribute}`,
+          ai_reasoning: isUnmapped ? `Field "${sourceFieldName}" needs mapping assignment` : `AI suggested mapping to ${targetFieldName}`,
           is_user_defined: false,
           user_feedback: null,
           validation_method: 'semantic_analysis',

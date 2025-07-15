@@ -167,9 +167,14 @@ class ImportStorageManager:
                 # Import the intelligent mapping helper
                 from app.api.v1.endpoints.data_import.field_mapping.utils.mapping_helpers import intelligent_field_mapping, calculate_mapping_confidence
                 
+                logger.info(f"🔍 DEBUG: Sample record keys: {list(sample_record.keys())}")
+                logger.info(f"🔍 DEBUG: Sample record type: {type(sample_record)}")
+                
                 for field_name in sample_record.keys():
                     # NO HARDCODED SKIPPING - Let CrewAI agents decide what's metadata
                     # The agents should determine which fields are metadata vs real data
+                    
+                    logger.info(f"🔍 DEBUG: Processing field_name: {field_name} (type: {type(field_name)})")
                     
                     # Use intelligent mapping to get suggested target
                     suggested_target = intelligent_field_mapping(field_name)
@@ -435,6 +440,10 @@ class ImportStorageManager:
             from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
             
             async with AsyncSessionLocal() as fresh_db:
+                # Wait for master flow to be committed (transaction timing issue)
+                import asyncio
+                await asyncio.sleep(0.2)  # Increased delay to ensure master flow is committed
+                
                 # Get the master flow record to extract the PRIMARY KEY (id)
                 # CRITICAL: Foreign keys reference crewai_flow_state_extensions.id (PK), not flow_id
                 check_query = select(CrewAIFlowStateExtensions.id, CrewAIFlowStateExtensions.flow_id).where(
@@ -445,19 +454,37 @@ class ImportStorageManager:
                 master_flow_record = result.first()
             
                 if not master_flow_record:
-                    error_msg = f"Master flow {master_flow_id} not found - aborting all updates"
-                    logger.warning(f"⚠️ {error_msg}")
-                    return {
-                        "success": False,
-                        "error": error_msg,
-                        "data_import_updated": False,
-                        "raw_import_records_updated": 0,
-                        "field_mappings_updated": False
-                    }
+                    # Try waiting and checking again - transaction isolation issue
+                    logger.warning(f"⚠️ Master flow {master_flow_id} not found on first check, waiting and retrying...")
+                    await asyncio.sleep(1.0)  # Increased wait time for transaction to be committed
+                    
+                    result = await fresh_db.execute(check_query)
+                    master_flow_record = result.first()
+                    
+                    if not master_flow_record:
+                        # One more try with longer wait
+                        logger.warning(f"⚠️ Master flow {master_flow_id} not found on second check, final retry...")
+                        await asyncio.sleep(2.0)  # Final longer wait
+                        
+                        result = await fresh_db.execute(check_query)
+                        master_flow_record = result.first()
+                        
+                        if not master_flow_record:
+                            error_msg = f"Master flow {master_flow_id} not found after multiple retries - aborting all updates"
+                            logger.error(f"❌ {error_msg}")
+                            return {
+                                "success": False,
+                                "error": error_msg,
+                                "data_import_updated": False,
+                                "raw_import_records_updated": 0,
+                                "field_mappings_updated": False
+                            }
                 
-                # The foreign keys actually reference flow_id column, not the primary key id
-                # Just use the flow_id directly since that's what the FK constraint references
-                logger.info(f"✅ Master flow {master_flow_id} found in database")
+                # CRITICAL: Foreign keys reference crewai_flow_state_extensions.id (PRIMARY KEY), not flow_id
+                # We need to use the actual PRIMARY KEY (id) from the master flow record
+                master_flow_primary_key = master_flow_record[0]  # The 'id' field (primary key)
+                master_flow_flow_id = master_flow_record[1]     # The 'flow_id' field
+                logger.info(f"✅ Master flow {master_flow_flow_id} found - using PRIMARY KEY {master_flow_primary_key} for FK")
                 
                 # Initialize results tracking
                 results = {
@@ -468,20 +495,20 @@ class ImportStorageManager:
                     "error": None
                 }
             
-                # Update DataImport record using the PRIMARY KEY
+                # Update DataImport record using the PRIMARY KEY (not flow_id)
                 try:
                     update_stmt = update(DataImport).where(
                         DataImport.id == data_import_id,
                         DataImport.client_account_id == self.client_account_id
                     ).values(
-                        master_flow_id=master_flow_id,  # Use the flow_id directly as that's what the FK references
+                        master_flow_id=master_flow_primary_key,  # Use the PRIMARY KEY for FK constraint
                         updated_at=func.now()
                     )
                     result = await fresh_db.execute(update_stmt)
                     results["data_import_updated"] = result.rowcount > 0
                     
                     if results["data_import_updated"]:
-                        logger.info(f"✅ Updated DataImport record with master_flow_id: {master_flow_id}")
+                        logger.info(f"✅ Updated DataImport record with master_flow_id: {master_flow_primary_key} (flow: {master_flow_flow_id})")
                     else:
                         logger.warning(f"⚠️ No DataImport record found with ID {data_import_id}")
                         
@@ -496,13 +523,13 @@ class ImportStorageManager:
                         RawImportRecord.data_import_id == data_import_id,
                         RawImportRecord.client_account_id == self.client_account_id
                     ).values(
-                        master_flow_id=master_flow_id  # Use the flow_id directly as that's what the FK references
+                        master_flow_id=master_flow_primary_key  # Use the PRIMARY KEY for FK constraint
                     )
                     result = await fresh_db.execute(update_stmt)
                     results["raw_import_records_updated"] = result.rowcount
                     
                     if results["raw_import_records_updated"] > 0:
-                        logger.info(f"✅ Updated {results['raw_import_records_updated']} RawImportRecord records with master_flow_id: {master_flow_id}")
+                        logger.info(f"✅ Updated {results['raw_import_records_updated']} RawImportRecord records with master_flow_id: {master_flow_primary_key} (flow: {master_flow_flow_id})")
                     else:
                         logger.warning(f"⚠️ No RawImportRecord records found for data_import_id {data_import_id}")
                         
@@ -515,12 +542,12 @@ class ImportStorageManager:
                 try:
                     update_stmt = update(ImportFieldMapping).where(
                         ImportFieldMapping.data_import_id == data_import_id
-                    ).values(master_flow_id=master_flow_id, updated_at=func.now())  # Use the flow_id directly as that's what the FK references
+                    ).values(master_flow_id=master_flow_primary_key, updated_at=func.now())  # Use the PRIMARY KEY for FK constraint
                     result = await fresh_db.execute(update_stmt)
                     results["field_mappings_updated"] = result.rowcount > 0
                     
                     if results["field_mappings_updated"]:
-                        logger.info(f"✅ Updated ImportFieldMapping records with master_flow_id: {master_flow_id}")
+                        logger.info(f"✅ Updated ImportFieldMapping records with master_flow_id: {master_flow_primary_key} (flow: {master_flow_flow_id})")
                     else:
                         logger.warning(f"⚠️ No ImportFieldMapping records found for data_import_id {data_import_id}")
                         
