@@ -117,12 +117,9 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
 
   const fetchQuestions = async () => {
     try {
-      const result = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_STATUS, {
-        method: 'GET',
-        params: { page_context: pageContext }
-      });
-      if (result.status === 'success' && result.page_data?.pending_questions) {
-        const questions = result.page_data.pending_questions;
+      const result = await apiCall(`/api/v1/agents/discovery/agent-questions?page=${pageContext}`);
+      if (result.success && result.questions) {
+        const questions = result.questions;
         setQuestions(questions);
         
         // Fetch asset details for application boundary questions
@@ -209,7 +206,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
     setIsSubmitting(prev => ({ ...prev, [questionId]: true }));
 
     try {
-      const result = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_CLARIFICATION, {
+      const result = await apiCall('/api/v1/agents/discovery/agent-questions/answer', {
         method: 'POST',
         body: JSON.stringify({
           question_id: questionId,
@@ -219,7 +216,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
         })
       });
 
-      if (result.status === 'success') {
+      if (result.success) {
         // Update the question as resolved
         setQuestions(prev => prev.map(q => 
           q.id === questionId 
@@ -245,7 +242,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
     setIsSubmitting(prev => ({ ...prev, [questionId]: true }));
 
     try {
-      const result = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_CLARIFICATION, {
+      const result = await apiCall('/api/v1/agents/discovery/agent-questions/answer', {
         method: 'POST',
         body: JSON.stringify({
           question_id: questionId,
@@ -255,7 +252,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
         })
       });
 
-      if (result.status === 'success') {
+      if (result.success) {
         setQuestions(prev => prev.map(q => 
           q.id === questionId 
             ? { ...q, is_resolved: true, user_response: selectedOption, answered_at: new Date().toISOString() }

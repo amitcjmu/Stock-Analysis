@@ -288,4 +288,4 @@ class UserAccountAssociation(Base):
     )
     
     def __repr__(self):
-        return f"<UserAccountAssociation(user_id={self.user_id}, client_account_id={self.client_account_id}, role='{self.role}')>" 
+        return f"<UserAccountAssociation(user_id={self.user_id}, client_account_id={self.client_account_id}, role='{self.role}')>"

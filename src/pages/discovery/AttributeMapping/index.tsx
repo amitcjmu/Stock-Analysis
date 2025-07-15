@@ -84,6 +84,20 @@ const AttributeMappingContainer: React.FC = () => {
     flowList
   } = state;
 
+  // Debug field mappings
+  React.useEffect(() => {
+    console.log('🔍 [AttributeMapping] Field mappings debug:', {
+      fieldMappings_length: fieldMappings?.length || 0,
+      fieldMappings_sample: fieldMappings?.slice(0, 3),
+      state_keys: Object.keys(state),
+      agenticData: agenticData,
+      flowState: flowState,
+      effectiveFlowId: effectiveFlowId,
+      isLoading: isLoading,
+      hasData: hasData
+    });
+  }, [fieldMappings, state, agenticData, flowState, effectiveFlowId, isLoading, hasData]);
+
   // Add real-time flow updates via SSE
   const {
     data: flowUpdates,

@@ -175,7 +175,8 @@ class FlowStateManager:
         self, 
         flow_id: str, 
         new_phase: str,
-        phase_data: Optional[Dict[str, Any]] = None
+        phase_data: Optional[Dict[str, Any]] = None,
+        force_transition: bool = False
     ) -> Dict[str, Any]:
         """Handle phase transitions with validation"""
         try:
@@ -184,12 +185,24 @@ class FlowStateManager:
             if not current_state:
                 raise ValueError(f"Flow state not found: {flow_id}")
             
-            # Validate phase transition
-            if not self.validator.validate_phase_transition(current_state, new_phase):
-                raise InvalidTransitionError(f"Invalid transition from {current_state.get('current_phase')} to {new_phase}")
+            current_phase = current_state.get('current_phase', 'unknown')
+            
+            # Add debug logging for phase transitions
+            logger.info(f"🔄 Phase transition requested: {flow_id}")
+            logger.info(f"  - current_phase: {current_phase}")
+            logger.info(f"  - new_phase: {new_phase}")
+            logger.info(f"  - force_transition: {force_transition}")
+            
+            # Validate phase transition unless forced (for resumption scenarios)
+            if not force_transition and not self.validator.validate_phase_transition(current_state, new_phase):
+                logger.warning(f"❌ Phase transition validation failed: {current_phase} -> {new_phase}")
+                raise InvalidTransitionError(f"Invalid transition from {current_phase} to {new_phase}")
+            
+            if force_transition:
+                logger.info(f"⚡ Forced phase transition allowed: {current_phase} -> {new_phase}")
             
             # Create checkpoint before transition
-            checkpoint_id = await self.store.create_checkpoint(flow_id, current_state.get('current_phase', 'unknown'))
+            checkpoint_id = await self.store.create_checkpoint(flow_id, current_phase)
             
             # Update state for new phase
             current_state['current_phase'] = new_phase
@@ -233,6 +246,61 @@ class FlowStateManager:
             
         except Exception as e:
             logger.error(f"❌ Phase transition failed for {flow_id}: {e}")
+            raise
+    
+    async def resume_flow_state(
+        self, 
+        flow_id: str, 
+        target_phase: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Resume flow state during flow resumption - uses force transition to handle edge cases
+        """
+        try:
+            logger.info(f"🔄 Resuming flow state: {flow_id}")
+            
+            # Get current state
+            current_state = await self.store.load_state(flow_id)
+            if not current_state:
+                raise ValueError(f"Flow state not found for resume: {flow_id}")
+            
+            current_phase = current_state.get('current_phase', 'initialization')
+            
+            # If no target phase specified, stay in current phase
+            if not target_phase:
+                target_phase = current_phase
+            
+            # Update flow status to running
+            current_state['status'] = 'running'
+            current_state['updated_at'] = datetime.utcnow().isoformat()
+            
+            # If we need to transition phases during resume, use force transition
+            if target_phase != current_phase:
+                logger.info(f"🔄 Resume requires phase transition: {current_phase} -> {target_phase}")
+                return await self.transition_phase(
+                    flow_id=flow_id,
+                    new_phase=target_phase,
+                    phase_data={'resumed_from': current_phase, 'resume_reason': 'flow_resumption'},
+                    force_transition=True  # Allow transition during resume
+                )
+            else:
+                # Save current state with updated status
+                await self.store.save_state(
+                    flow_id=flow_id,
+                    state=current_state,
+                    phase=current_phase
+                )
+                
+                logger.info(f"✅ Flow state resumed in current phase: {current_phase}")
+                return {
+                    'flow_id': flow_id,
+                    'current_phase': current_phase,
+                    'status': 'running',
+                    'resumed_at': current_state['updated_at']
+                }
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to resume flow state for {flow_id}: {e}")
             raise
     
     async def complete_phase(

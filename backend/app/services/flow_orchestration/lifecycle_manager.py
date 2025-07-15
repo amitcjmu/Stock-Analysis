@@ -22,6 +22,7 @@ from app.core.exceptions import (
 from app.core.context import RequestContext
 from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from .state_transition_utils import FlowStateTransitionValidator
 
 logger = get_logger(__name__)
 
@@ -217,17 +218,21 @@ class FlowLifecycleManager:
             if not master_flow:
                 raise FlowNotFoundError(flow_id)
             
-            # Validate flow can be resumed
-            is_paused_or_waiting = master_flow.flow_status in ["paused", "waiting_for_approval"]
-            is_awaiting_user_approval = master_flow.flow_persistence_data.get("awaiting_user_approval", False)
-            is_paused_for_approval = "paused_for" in str(master_flow.flow_persistence_data.get("completion", ""))
+            # Use the centralized validation utility for comprehensive flow resume checking
+            resume_validation = FlowStateTransitionValidator.safe_resume_flow(
+                master_flow=master_flow,
+                target_status="active"
+            )
             
-            if not (is_paused_or_waiting or is_awaiting_user_approval or is_paused_for_approval):
+            if not resume_validation["success"]:
+                logger.error(f"❌ Flow resume validation failed: {resume_validation['error']}")
                 raise InvalidFlowStateError(
                     current_state=master_flow.flow_status,
                     target_state="active",
                     flow_id=flow_id
                 )
+            
+            logger.info(f"✅ Flow {flow_id} resume validation passed: {resume_validation['result']['reason']}")
             
             # Update flow status - use 'active' instead of 'resumed' for DB constraint
             # Clear awaiting user approval flag when resuming

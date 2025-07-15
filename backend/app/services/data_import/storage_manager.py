@@ -253,349 +253,22 @@ class ImportStorageManager:
             logger.error(f"Failed to update import status: {e}")
             raise DatabaseError(f"Failed to update import status: {str(e)}")
     
-    async def update_field_mappings_with_flow(
-        self, 
-        data_import_id: uuid_pkg.UUID,
-        master_flow_id: str
-    ) -> None:
-        """
-        Update field mappings with the master flow ID after flow creation.
-        
-        Args:
-            data_import_id: ID of the data import
-            master_flow_id: ID of the master flow to link to
-        """
-        try:
-            # Verify the master flow exists first
-            from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-            
-            check_query = select(CrewAIFlowStateExtensions.flow_id).where(
-                CrewAIFlowStateExtensions.flow_id == master_flow_id,
-                CrewAIFlowStateExtensions.client_account_id == self.client_account_id
-            )
-            result = await self.db.execute(check_query)
-            master_flow_exists = result.scalar() is not None
-            
-            if master_flow_exists:
-                update_stmt = update(ImportFieldMapping).where(
-                    ImportFieldMapping.data_import_id == data_import_id
-                ).values(master_flow_id=master_flow_id, updated_at=func.now())
-                await self.db.execute(update_stmt)
-                logger.info(f"✅ Updated field mappings with master_flow_id: {master_flow_id}")
-            else:
-                logger.warning(f"⚠️ Master flow {master_flow_id} not found - skipping field mapping update")
-                
-        except Exception as e:
-            logger.warning(f"⚠️ Failed to update field mappings with flow ID (non-critical): {e}")
-    
-    async def update_data_import_with_flow(
-        self, 
-        data_import_id: uuid_pkg.UUID,
-        master_flow_id: str
-    ) -> bool:
-        """
-        Update DataImport record with master flow ID after flow creation.
-        
-        Args:
-            data_import_id: ID of the data import
-            master_flow_id: ID of the master flow to link to
-            
-        Returns:
-            bool: True if update succeeded, False otherwise
-        """
-        try:
-            # Verify the master flow exists first
-            from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-            
-            check_query = select(CrewAIFlowStateExtensions.flow_id).where(
-                CrewAIFlowStateExtensions.flow_id == master_flow_id,
-                CrewAIFlowStateExtensions.client_account_id == self.client_account_id
-            )
-            result = await self.db.execute(check_query)
-            master_flow_exists = result.scalar() is not None
-            
-            if master_flow_exists:
-                # Update the DataImport record with master_flow_id
-                update_stmt = update(DataImport).where(
-                    DataImport.id == data_import_id,
-                    DataImport.client_account_id == self.client_account_id
-                ).values(
-                    master_flow_id=master_flow_id, 
-                    updated_at=func.now()
-                )
-                result = await self.db.execute(update_stmt)
-                
-                if result.rowcount > 0:
-                    logger.info(f"✅ Updated DataImport {data_import_id} with master_flow_id: {master_flow_id}")
-                    return True
-                else:
-                    logger.warning(f"⚠️ No DataImport record found with ID {data_import_id} for update")
-                    return False
-            else:
-                # Try waiting a bit and checking again - race condition mitigation
-                logger.warning(f"⚠️ Master flow {master_flow_id} not found on first check, waiting 1 second and retrying...")
-                import asyncio
-                await asyncio.sleep(1)
-                
-                # Check again
-                result = await self.db.execute(check_query)
-                master_flow_exists = result.scalar() is not None
-                
-                if master_flow_exists:
-                    logger.info(f"✅ Master flow {master_flow_id} found on retry - proceeding with update")
-                    update_stmt = update(DataImport).where(
-                        DataImport.id == data_import_id,
-                        DataImport.client_account_id == self.client_account_id
-                    ).values(
-                        master_flow_id=master_flow_id, 
-                        updated_at=func.now()
-                    )
-                    result = await self.db.execute(update_stmt)
-                    
-                    if result.rowcount > 0:
-                        logger.info(f"✅ Updated DataImport {data_import_id} with master_flow_id: {master_flow_id} (after retry)")
-                        return True
-                    else:
-                        logger.warning(f"⚠️ No DataImport record found with ID {data_import_id} for update (after retry)")
-                        return False
-                else:
-                    logger.error(f"❌ Master flow {master_flow_id} still not found after retry - skipping DataImport update")
-                    return False
-                
-        except Exception as e:
-            logger.error(f"❌ Failed to update DataImport with flow ID: {e}")
-            return False
-    
-    async def update_raw_import_records_with_flow(
-        self, 
-        data_import_id: uuid_pkg.UUID,
-        master_flow_id: str
-    ) -> int:
-        """
-        Update RawImportRecord records with master flow ID after flow creation.
-        
-        Args:
-            data_import_id: ID of the data import
-            master_flow_id: ID of the master flow to link to
-            
-        Returns:
-            int: Number of records updated
-        """
-        try:
-            # Verify the master flow exists first
-            from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-            
-            check_query = select(CrewAIFlowStateExtensions.flow_id).where(
-                CrewAIFlowStateExtensions.flow_id == master_flow_id,
-                CrewAIFlowStateExtensions.client_account_id == self.client_account_id
-            )
-            result = await self.db.execute(check_query)
-            master_flow_exists = result.scalar() is not None
-            
-            if master_flow_exists:
-                # Update all RawImportRecord records for this data import
-                update_stmt = update(RawImportRecord).where(
-                    RawImportRecord.data_import_id == data_import_id,
-                    RawImportRecord.client_account_id == self.client_account_id
-                ).values(
-                    master_flow_id=master_flow_id
-                )
-                result = await self.db.execute(update_stmt)
-                
-                updated_count = result.rowcount
-                logger.info(f"✅ Updated {updated_count} RawImportRecord records with master_flow_id: {master_flow_id}")
-                return updated_count
-            else:
-                logger.warning(f"⚠️ Master flow {master_flow_id} not found - skipping RawImportRecord update")
-                return 0
-                
-        except Exception as e:
-            logger.error(f"❌ Failed to update RawImportRecord records with flow ID: {e}")
-            return 0
-    
-    async def update_all_records_with_flow(
-        self, 
-        data_import_id: uuid_pkg.UUID,
-        master_flow_id: str
-    ) -> Dict[str, Any]:
-        """
-        Update all related records (DataImport, RawImportRecord, ImportFieldMapping) 
-        with master flow ID using a fresh database session.
-        
-        This method uses a fresh database session to avoid transaction isolation issues
-        where the master flow was committed in a different transaction.
-        
-        Args:
-            data_import_id: ID of the data import
-            master_flow_id: ID of the master flow to link to
-            
-        Returns:
-            Dict containing update results for each table
-        """
-        try:
-            logger.info(f"🔗 Starting comprehensive master_flow_id linkage for data_import_id: {data_import_id}")
-            
-            # Use a fresh database session to avoid transaction isolation issues
-            from app.core.database import AsyncSessionLocal
-            from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-            
-            async with AsyncSessionLocal() as fresh_db:
-                # Wait for master flow to be committed (transaction timing issue)
-                import asyncio
-                await asyncio.sleep(0.2)  # Increased delay to ensure master flow is committed
-                
-                # Get the master flow record to extract the PRIMARY KEY (id)
-                # CRITICAL: Foreign keys reference crewai_flow_state_extensions.id (PK), not flow_id
-                check_query = select(CrewAIFlowStateExtensions.id, CrewAIFlowStateExtensions.flow_id).where(
-                    CrewAIFlowStateExtensions.flow_id == master_flow_id,
-                    CrewAIFlowStateExtensions.client_account_id == self.client_account_id
-                )
-                result = await fresh_db.execute(check_query)
-                master_flow_record = result.first()
-            
-                if not master_flow_record:
-                    # Try waiting and checking again - transaction isolation issue
-                    logger.warning(f"⚠️ Master flow {master_flow_id} not found on first check, waiting and retrying...")
-                    await asyncio.sleep(1.0)  # Increased wait time for transaction to be committed
-                    
-                    result = await fresh_db.execute(check_query)
-                    master_flow_record = result.first()
-                    
-                    if not master_flow_record:
-                        # One more try with longer wait
-                        logger.warning(f"⚠️ Master flow {master_flow_id} not found on second check, final retry...")
-                        await asyncio.sleep(2.0)  # Final longer wait
-                        
-                        result = await fresh_db.execute(check_query)
-                        master_flow_record = result.first()
-                        
-                        if not master_flow_record:
-                            error_msg = f"Master flow {master_flow_id} not found after multiple retries - aborting all updates"
-                            logger.error(f"❌ {error_msg}")
-                            return {
-                                "success": False,
-                                "error": error_msg,
-                                "data_import_updated": False,
-                                "raw_import_records_updated": 0,
-                                "field_mappings_updated": False
-                            }
-                
-                # CRITICAL: Foreign keys reference crewai_flow_state_extensions.id (PRIMARY KEY), not flow_id
-                # We need to use the actual PRIMARY KEY (id) from the master flow record
-                master_flow_primary_key = master_flow_record[0]  # The 'id' field (primary key)
-                master_flow_flow_id = master_flow_record[1]     # The 'flow_id' field
-                logger.info(f"✅ Master flow {master_flow_flow_id} found - using PRIMARY KEY {master_flow_primary_key} for FK")
-                
-                # Initialize results tracking
-                results = {
-                    "success": True,
-                    "data_import_updated": False,
-                    "raw_import_records_updated": 0,
-                    "field_mappings_updated": False,
-                    "error": None
-                }
-            
-                # Update DataImport record using the PRIMARY KEY (not flow_id)
-                try:
-                    update_stmt = update(DataImport).where(
-                        DataImport.id == data_import_id,
-                        DataImport.client_account_id == self.client_account_id
-                    ).values(
-                        master_flow_id=master_flow_primary_key,  # Use the PRIMARY KEY for FK constraint
-                        updated_at=func.now()
-                    )
-                    result = await fresh_db.execute(update_stmt)
-                    results["data_import_updated"] = result.rowcount > 0
-                    
-                    if results["data_import_updated"]:
-                        logger.info(f"✅ Updated DataImport record with master_flow_id: {master_flow_primary_key} (flow: {master_flow_flow_id})")
-                    else:
-                        logger.warning(f"⚠️ No DataImport record found with ID {data_import_id}")
-                        
-                except Exception as e:
-                    logger.error(f"❌ Failed to update DataImport record: {e}")
-                    results["success"] = False
-                    results["error"] = f"DataImport update failed: {str(e)}"
-            
-                # Update RawImportRecord records
-                try:
-                    update_stmt = update(RawImportRecord).where(
-                        RawImportRecord.data_import_id == data_import_id,
-                        RawImportRecord.client_account_id == self.client_account_id
-                    ).values(
-                        master_flow_id=master_flow_primary_key  # Use the PRIMARY KEY for FK constraint
-                    )
-                    result = await fresh_db.execute(update_stmt)
-                    results["raw_import_records_updated"] = result.rowcount
-                    
-                    if results["raw_import_records_updated"] > 0:
-                        logger.info(f"✅ Updated {results['raw_import_records_updated']} RawImportRecord records with master_flow_id: {master_flow_primary_key} (flow: {master_flow_flow_id})")
-                    else:
-                        logger.warning(f"⚠️ No RawImportRecord records found for data_import_id {data_import_id}")
-                        
-                except Exception as e:
-                    logger.error(f"❌ Failed to update RawImportRecord records: {e}")
-                    results["success"] = False
-                    results["error"] = f"RawImportRecord update failed: {str(e)}"
-            
-                # Update ImportFieldMapping records
-                try:
-                    update_stmt = update(ImportFieldMapping).where(
-                        ImportFieldMapping.data_import_id == data_import_id
-                    ).values(master_flow_id=master_flow_primary_key, updated_at=func.now())  # Use the PRIMARY KEY for FK constraint
-                    result = await fresh_db.execute(update_stmt)
-                    results["field_mappings_updated"] = result.rowcount > 0
-                    
-                    if results["field_mappings_updated"]:
-                        logger.info(f"✅ Updated ImportFieldMapping records with master_flow_id: {master_flow_primary_key} (flow: {master_flow_flow_id})")
-                    else:
-                        logger.warning(f"⚠️ No ImportFieldMapping records found for data_import_id {data_import_id}")
-                        
-                except Exception as e:
-                    logger.error(f"❌ Failed to update ImportFieldMapping records: {e}")
-                    results["success"] = False
-                    results["error"] = f"ImportFieldMapping update failed: {str(e)}"
-            
-                # Commit all updates
-                await fresh_db.commit()
-                
-                # Log comprehensive results
-                if results["success"]:
-                    logger.info(f"🎉 Successfully completed master_flow_id linkage for data_import_id: {data_import_id}")
-                    logger.info(f"📊 Results: DataImport={results['data_import_updated']}, RawRecords={results['raw_import_records_updated']}, FieldMappings={results['field_mappings_updated']}")
-                else:
-                    logger.error(f"💥 Master_flow_id linkage failed for data_import_id: {data_import_id} - Error: {results['error']}")
-                
-                return results
-                
-        except Exception as e:
-            error_msg = f"Comprehensive master_flow_id linkage failed: {str(e)}"
-            logger.error(f"❌ {error_msg}")
-            return {
-                "success": False,
-                "error": error_msg,
-                "data_import_updated": False,
-                "raw_import_records_updated": 0,
-                "field_mappings_updated": False
-            }
-    
     async def get_import_by_id(self, import_id: str) -> Optional[DataImport]:
         """
-        Retrieve a data import by its ID.
+        Get a data import record by its ID.
         
         Args:
-            import_id: ID of the import to retrieve
+            import_id: The ID of the import to retrieve
             
         Returns:
-            DataImport or None if not found
+            Optional[DataImport]: The data import record, or None if not found
         """
         try:
-            import_query = select(DataImport).where(DataImport.id == import_id)
-            result = await self.db.execute(import_query)
+            logger.info(f"Retrieving data import record with ID: {import_id}")
+            result = await self.db.execute(select(DataImport).where(DataImport.id == import_id))
             return result.scalar_one_or_none()
-            
         except Exception as e:
-            logger.error(f"Failed to retrieve import {import_id}: {e}")
+            logger.error(f"Failed to get import by ID: {e}")
             return None
     
     async def get_raw_records(
@@ -604,30 +277,29 @@ class ImportStorageManager:
         limit: int = 1000
     ) -> List[RawImportRecord]:
         """
-        Retrieve raw import records for a data import.
+        Get raw import records for a given import ID.
         
         Args:
-            data_import_id: ID of the data import
-            limit: Maximum number of records to retrieve
+            data_import_id: The ID of the import
+            limit: The maximum number of records to return
             
         Returns:
-            List of RawImportRecord objects
+            List[RawImportRecord]: A list of raw import records
         """
         try:
-            records_query = (
-                select(RawImportRecord)
-                .where(RawImportRecord.data_import_id == data_import_id)
-                .order_by(RawImportRecord.row_number)
-                .limit(limit)
-            )
+            logger.info(f"Retrieving raw records for import {data_import_id} (limit: {limit})")
             
-            result = await self.db.execute(records_query)
+            query = select(RawImportRecord).where(
+                RawImportRecord.data_import_id == data_import_id
+            ).limit(limit)
+            
+            result = await self.db.execute(query)
             return result.scalars().all()
             
         except Exception as e:
-            logger.error(f"Failed to retrieve raw records: {e}")
+            logger.error(f"Failed to get raw records: {e}")
             return []
-    
+            
     async def update_raw_records_with_cleansed_data(
         self,
         data_import_id: uuid_pkg.UUID,
@@ -635,48 +307,109 @@ class ImportStorageManager:
         validation_results: Optional[Dict[str, Any]] = None
     ) -> int:
         """
-        Update raw import records with cleansed data and validation results.
+        Update raw records with cleansed data and validation results.
         
         Args:
-            data_import_id: ID of the data import
+            data_import_id: The ID of the import
             cleansed_data: List of cleansed data records
-            validation_results: Optional validation results from data validation phase
+            validation_results: Validation results (optional)
             
         Returns:
-            Number of records updated
+            int: Number of records updated
         """
         try:
-            # Get existing raw records
-            raw_records = await self.get_raw_records(data_import_id, limit=10000)
+            logger.info(f"Updating raw records with cleansed data for import {data_import_id}")
+            records_updated = 0
             
-            if not raw_records:
-                logger.warning(f"No raw records found for data_import_id {data_import_id}")
-                return 0
-            
-            updated_count = 0
-            
-            # Match cleansed data to raw records by index
-            for idx, raw_record in enumerate(raw_records):
-                if idx < len(cleansed_data):
-                    # Update the raw record with cleansed data
-                    raw_record.cleansed_data = cleansed_data[idx]
-                    raw_record.is_processed = True
-                    raw_record.processed_at = datetime.utcnow()
-                    
-                    # Add validation results if available
-                    if validation_results:
-                        raw_record.validation_errors = validation_results.get("validation_errors", {})
-                        raw_record.processing_notes = validation_results.get("summary", "Data cleansed and validated")
-                        raw_record.is_valid = validation_results.get("is_valid", True)
-                    
-                    updated_count += 1
-            
-            # Flush changes to database
-            await self.db.flush()
-            
-            logger.info(f"✅ Updated {updated_count} raw records with cleansed data")
-            return updated_count
+            for record in cleansed_data:
+                # Assuming 'id' in the cleansed data corresponds to RawImportRecord.id
+                record_id = record.get("id")
+                if not record_id:
+                    continue
+                
+                update_stmt = update(RawImportRecord).where(
+                    RawImportRecord.id == record_id,
+                    RawImportRecord.data_import_id == data_import_id
+                ).values(
+                    cleansed_data=record,
+                    is_processed=True,
+                    is_valid=record.get("is_valid", True),
+                    validation_errors=record.get("validation_errors")
+                )
+                await self.db.execute(update_stmt)
+                records_updated += 1
+                
+            logger.info(f"✅ Updated {records_updated} raw records with cleansed data.")
+            return records_updated
             
         except Exception as e:
             logger.error(f"Failed to update raw records with cleansed data: {e}")
             return 0
+
+    async def link_master_flow_to_import(self, data_import_id: uuid_pkg.UUID, master_flow_id: uuid_pkg.UUID):
+        """
+        Links a master flow to all relevant records of a data import.
+
+        This function ensures that the DataImport, all its RawImportRecords, and its
+        ImportFieldMapping are all associated with a master_flow_id. This should be
+        called within an existing transaction to prevent race conditions.
+
+        Args:
+            data_import_id: The ID of the data import.
+            master_flow_id: The UUID of the master flow to link (this is the flow_id from CrewAI).
+        """
+        logger.info(
+            f"Linking master flow {master_flow_id} to data import {data_import_id} and all associated records."
+        )
+        try:
+            # First, get the database record ID for the CrewAI flow_id
+            # The foreign key constraint references crewai_flow_state_extensions.id, not flow_id
+            from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+            from sqlalchemy import select
+            
+            result = await self.db.execute(
+                select(CrewAIFlowStateExtensions.id)
+                .where(CrewAIFlowStateExtensions.flow_id == master_flow_id)
+            )
+            flow_record = result.scalar_one_or_none()
+            
+            if not flow_record:
+                raise ValueError(f"Master flow with flow_id {master_flow_id} not found in database")
+            
+            # Use the database record ID for the foreign key
+            actual_master_flow_id = flow_record
+            
+            # Link the master flow to the main DataImport record
+            stmt_data_import = (
+                update(DataImport)
+                .where(DataImport.id == data_import_id)
+                .values(master_flow_id=actual_master_flow_id)
+            )
+            await self.db.execute(stmt_data_import)
+
+            # Link the master flow to all RawImportRecord children
+            stmt_raw_records = (
+                update(RawImportRecord)
+                .where(RawImportRecord.data_import_id == data_import_id)
+                .values(master_flow_id=actual_master_flow_id)
+            )
+            await self.db.execute(stmt_raw_records)
+
+            # Link the master flow to the ImportFieldMapping child
+            stmt_field_mapping = (
+                update(ImportFieldMapping)
+                .where(ImportFieldMapping.data_import_id == data_import_id)
+                .values(master_flow_id=actual_master_flow_id)
+            )
+            await self.db.execute(stmt_field_mapping)
+
+            logger.info(
+                f"Successfully prepared linkage for master flow {master_flow_id} to data import {data_import_id}."
+            )
+        except Exception as e:
+            logger.error(
+                f"Failed to link master flow {master_flow_id} to data import {data_import_id}. Error: {e}",
+                exc_info=True,
+            )
+            # Re-raise the exception to be handled by the calling transaction manager
+            raise

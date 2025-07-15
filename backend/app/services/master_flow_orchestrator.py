@@ -205,7 +205,7 @@ class MasterFlowOrchestrator:
                 raise ValueError(f"Unknown flow type: {flow_type}")
             
             # Generate CrewAI flow ID
-            flow_id = str(uuid.uuid4())
+            flow_id = uuid.uuid4()
             
             # Start performance tracking
             tracking_id = self.performance_monitor.start_operation(

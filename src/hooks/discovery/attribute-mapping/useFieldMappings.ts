@@ -123,37 +123,43 @@ export const useFieldMappings = (
                 total_csv_fields: allCsvFields.length
               });
               
-              return enhancedMappings;
+              // Transform enhanced mappings to frontend format before returning
+              const transformedEnhancedMappings = enhancedMappings.map((mapping: any) => ({
+                id: mapping.id,
+                sourceField: mapping.source_field,
+                targetAttribute: mapping.target_field === 'UNMAPPED' ? null : mapping.target_field,
+                confidence: mapping.confidence || 0,
+                mapping_type: mapping.is_approved ? 'approved' : (mapping.status === 'unmapped' ? 'unmapped' : 'ai_suggested'),
+                sample_values: [],
+                status: mapping.is_approved ? 'approved' : (mapping.status === 'unmapped' ? 'unmapped' : 'pending'),
+                ai_reasoning: '',
+                transformation_rule: mapping.transformation_rule,
+                validation_rule: mapping.validation_rule,
+                is_required: mapping.is_required,
+                is_placeholder: mapping.is_placeholder
+              }));
+              
+              console.log('✅ Transformed enhanced field mappings:', {
+                enhanced_count: enhancedMappings.length,
+                transformed_count: transformedEnhancedMappings.length,
+                sample_transformed: transformedEnhancedMappings.slice(0, 3)
+              });
+              
+              return transformedEnhancedMappings;
             }
           }
         } catch (rawDataError) {
           console.warn('⚠️ Could not fetch raw import data:', rawDataError);
         }
         
-        // Transform the backend data structure to match frontend expectations
-        const transformedMappings = mappings?.map((mapping: any) => ({
-          id: mapping.id,
-          sourceField: mapping.source_field,
-          targetAttribute: mapping.target_field,
-          confidence: mapping.confidence || 0,
-          mapping_type: mapping.is_approved ? 'approved' : 'ai_suggested',
-          sample_values: [],
-          status: mapping.is_approved ? 'approved' : 'pending',
-          ai_reasoning: '',
-          transformation_rule: mapping.transformation_rule,
-          validation_rule: mapping.validation_rule,
-          is_required: mapping.is_required
-        })) || [];
-
-        console.log('✅ Transformed field mappings:', {
+        // Return the raw mappings directly from the API
+        // The backend already provides the correct field names
+        console.log('✅ Returning raw field mappings from API:', {
           original_count: mappings?.length || 0,
-          transformed_count: transformedMappings.length,
-          approved_count: transformedMappings.filter(m => m.status === 'approved').length,
-          sample_transformed: transformedMappings.slice(0, 3),
-          all_transformed: transformedMappings
+          sample_mappings: mappings?.slice(0, 3)
         });
 
-        return transformedMappings;
+        return mappings || [];
       } catch (error) {
         console.error('❌ Error fetching field mappings:', error);
         
@@ -215,9 +221,12 @@ export const useFieldMappings = (
         // Check if this is an unmapped field
         const isUnmapped = mapping.target_field === 'UNMAPPED' || mapping.target_field === null || mapping.status === 'unmapped';
         
+        // Ensure source_field is always a string
+        const sourceField = String(mapping.source_field || 'Unknown Field');
+        
         return {
           id: mapping.id,
-          sourceField: mapping.source_field,
+          sourceField: sourceField,
           targetAttribute: isUnmapped ? null : mapping.target_field, // Show null for unmapped fields
           confidence: mapping.confidence || 0,
           mapping_type: isUnmapped ? 'unmapped' : 'ai_suggested',
@@ -225,11 +234,14 @@ export const useFieldMappings = (
           // IMPORTANT: Always present as 'pending' until user explicitly approves
           // Unmapped fields should show as 'unmapped' status
           status: isUnmapped ? 'unmapped' : (mapping.is_approved === true ? 'approved' : 'pending'),
-          ai_reasoning: isUnmapped ? `Field "${mapping.source_field}" needs mapping assignment` : `AI suggested mapping to ${mapping.target_field}`,
+          ai_reasoning: isUnmapped ? `Field "${sourceField}" needs mapping assignment` : `AI suggested mapping to ${mapping.target_field}`,
           is_user_defined: false,
           user_feedback: null,
           validation_method: 'semantic_analysis',
-          is_validated: mapping.is_approved === true
+          is_validated: mapping.is_approved === true,
+          transformation_rule: mapping.transformation_rule,
+          validation_rule: mapping.validation_rule,
+          is_required: mapping.is_required
         };
       });
       
@@ -243,8 +255,9 @@ export const useFieldMappings = (
       return mappedData;
     }
     
-    // Fallback to flow state data if API data is not available
-    if (fieldMappingData) {
+    // REMOVED FALLBACK - Always use API data to avoid field name issues
+    // The fallback logic was converting field names to numeric indices
+    if (false && fieldMappingData) {
       console.log('🔍 [DEBUG] Using fallback to flow state data:', {
         fieldMappingData_structure: {
           hasMappings: !!fieldMappingData.mappings,
@@ -262,23 +275,51 @@ export const useFieldMappings = (
         delete mappingsObj.confidence_scores; // Remove confidence_scores from main object
         delete mappingsObj.data; // Remove data object if present
         
+        console.log('🔍 [DEBUG] Processing mappingsObj:', {
+          mappingsObj_type: typeof mappingsObj,
+          mappingsObj_isArray: Array.isArray(mappingsObj),
+          mappingsObj_keys: Object.keys(mappingsObj),
+          mappingsObj_entries: Object.entries(mappingsObj).slice(0, 3),
+          mappingsObj_sample: mappingsObj
+        });
+        
         const flowStateMappings = Object.entries(mappingsObj)
-          .filter(([key, value]) => key !== 'confidence_scores')
-          .map(([sourceField, targetField]: [string, any]) => ({
-            id: crypto.randomUUID(), // Generate proper UUID
-            sourceField: sourceField === 'None' ? 'Unknown Field' : sourceField,
-            targetAttribute: typeof targetField === 'string' ? targetField : String(targetField),
-            confidence: fieldMappingData.confidence_scores?.[sourceField] || 0.5,
-            mapping_type: 'ai_suggested',
-            sample_values: [],
-            status: 'pending', // Ensure mappings are editable
-            ai_reasoning: `AI suggested mapping to ${targetField}`,
-            is_user_defined: false,
-            user_feedback: null,
-            validation_method: 'semantic_analysis',
-            is_validated: false,
-            is_fallback: true // Mark as fallback to prevent approval attempts
-          }));
+          .filter(([key, value]) => {
+            console.log('🔍 [DEBUG] Processing entry:', { key, key_type: typeof key, value, value_type: typeof value });
+            return key !== 'confidence_scores' && key !== 'data';
+          })
+          .map(([sourceField, targetField]: [string, any]) => {
+            console.log('🔍 [DEBUG] Mapping entry:', { 
+              sourceField, 
+              sourceField_type: typeof sourceField,
+              targetField, 
+              targetField_type: typeof targetField 
+            });
+            
+            // Ensure sourceField is always a string, not an array index
+            const cleanSourceField = String(sourceField).trim();
+            const isNumericIndex = /^\d+$/.test(cleanSourceField);
+            
+            if (isNumericIndex) {
+              console.warn('⚠️ [WARNING] Detected numeric index as sourceField:', cleanSourceField);
+            }
+            
+            return {
+              id: crypto.randomUUID(), // Generate proper UUID
+              sourceField: (cleanSourceField === 'None' || isNumericIndex) ? 'Unknown Field' : cleanSourceField,
+              targetAttribute: typeof targetField === 'string' ? targetField : String(targetField),
+              confidence: fieldMappingData.confidence_scores?.[sourceField] || 0.5,
+              mapping_type: 'ai_suggested',
+              sample_values: [],
+              status: 'pending', // Ensure mappings are editable
+              ai_reasoning: `AI suggested mapping to ${targetField}`,
+              is_user_defined: false,
+              user_feedback: null,
+              validation_method: 'semantic_analysis',
+              is_validated: false,
+              is_fallback: true // Mark as fallback to prevent approval attempts
+            };
+          });
         console.log('🔄 [DEBUG] Using direct field mappings fallback:', {
           mappings_count: flowStateMappings.length,
           sample_mappings: flowStateMappings.slice(0, 2)

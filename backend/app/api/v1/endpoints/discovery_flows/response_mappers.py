@@ -123,7 +123,7 @@ class ResponseMappers:
                 "error": None,
                 "flow_name": flow.flow_name,
                 "flow_description": flow.description if hasattr(flow, 'description') else None,
-                "can_resume": flow.status in ['paused', 'waiting_for_approval']
+                "can_resume": flow.status in ['initialized', 'paused', 'waiting_for_approval']
             }
         except Exception as e:
             logger.error(f"Error mapping flow to response: {e}")

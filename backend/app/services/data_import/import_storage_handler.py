@@ -178,8 +178,12 @@ class ImportStorageHandler:
                     logger.error(f"❌ Discovery flow creation failed: {flow_error}")
                     flow_error_message = f"Discovery Flow failed: {str(flow_error)}"
                 
-                # Step 6: Update final import status
-                if flow_success:
+                # Step 6: Link master flow and update status
+                if flow_success and flow_id:
+                    await self.storage_manager.link_master_flow_to_import(
+                        data_import_id=data_import.id,
+                        master_flow_id=flow_id
+                    )
                     await self.storage_manager.update_import_status(
                         data_import=data_import,
                         status="discovery_initiated"
@@ -197,21 +201,6 @@ class ImportStorageHandler:
             
             # Step 8: Post-commit operations (outside the transaction context)
             if flow_success and flow_id:
-                # Now update ALL related records with master_flow_id (comprehensive linkage)
-                # This happens AFTER the transaction commit to avoid foreign key constraint violations
-                linkage_results = await self.storage_manager.update_all_records_with_flow(
-                    data_import_id=data_import.id,
-                    master_flow_id=flow_id
-                )
-                
-                # Log linkage results for troubleshooting
-                if linkage_results["success"]:
-                    logger.info(f"🔗 Master flow linkage completed successfully for flow {flow_id}")
-                    logger.info(f"📊 Linkage details: {linkage_results}")
-                else:
-                    logger.error(f"💥 Master flow linkage failed for flow {flow_id}: {linkage_results['error']}")
-                    # Continue with background execution even if linkage partially fails
-                
                 # Start background flow execution
                 await self.background_service.start_background_flow_execution(
                     flow_id=flow_id,
@@ -396,20 +385,16 @@ class ImportStorageHandler:
                         status="discovery_initiated"
                     )
                     
-                    # Update ALL related records with master_flow_id (retry scenario)
-                    # The flow creation should be committed by the flow orchestrator
-                    linkage_results = await self.storage_manager.update_all_records_with_flow(
-                        data_import_id=data_import.id,
-                        master_flow_id=flow_id
-                    )
-                    
-                    # Log linkage results for troubleshooting
-                    if linkage_results["success"]:
-                        logger.info(f"🔗 Master flow linkage completed successfully for retry flow {flow_id}")
-                    else:
-                        logger.error(f"💥 Master flow linkage failed for retry flow {flow_id}: {linkage_results['error']}")
-                        # Continue even if linkage fails - non-critical for retry
-                    
+                    try:
+                        logger.info(f"🔗 Linking master flow {flow_id} to data import {data_import.id} (retry)")
+                        await self.storage_manager.link_master_flow_to_import(
+                            data_import_id=data_import.id,
+                            master_flow_id=flow_id
+                        )
+                        logger.info(f"✅ Master flow linkage completed successfully for retry flow {flow_id}")
+                    except Exception as e:
+                        logger.error(f"💥 Master flow linkage failed for retry flow {flow_id}: {e}", exc_info=True)
+
                     # Start background execution
                     await self.background_service.start_background_flow_execution(
                         flow_id=flow_id,

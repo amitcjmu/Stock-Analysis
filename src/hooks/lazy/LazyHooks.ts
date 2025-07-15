@@ -13,7 +13,7 @@ import { LoadingPriority } from '@/types/lazy';
 export const useLazyAttributeMappingLogic = (immediate = false) => {
   return useLazyHook(
     'attribute-mapping-logic',
-    () => import('@/hooks/discovery/useAttributeMappingLogic'),
+    () => import('@/hooks/discovery/attribute-mapping'),
     {
       priority: LoadingPriority.HIGH,
       immediate,

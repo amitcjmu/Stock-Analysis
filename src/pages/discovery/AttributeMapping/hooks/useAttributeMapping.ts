@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useAttributeMappingLogic } from '../../../../hooks/discovery/useAttributeMappingLogic';
+import { useAttributeMappingLogic } from '../../../../hooks/discovery/attribute-mapping';
 import { useAttributeMappingNavigation } from '../../../../hooks/discovery/useAttributeMappingNavigation';
 import type { AttributeMappingState, AttributeMappingActions, NavigationState, SessionInfo } from '../types';
 

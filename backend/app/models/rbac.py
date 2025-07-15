@@ -54,37 +54,38 @@ class RoleType(str, PyEnum):
 
 class UserProfile(Base):
     """
-    Extended user profile with RBAC and approval workflow.
-    Extends the basic User model with approval and access control.
+    Extends the core User model with a detailed profile for RBAC, an approval workflow,
+    and enhanced security tracking. This table separates sensitive profile and status
+    information from the core user authentication record.
     """
     
     __tablename__ = "user_profiles"
     
     # Primary Key (references users.id)
-    user_id = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
+    user_id = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), primary_key=True, comment="Foreign key to the users table, serving as the primary key for this profile.")
     
     # User status and approval workflow
-    status = Column(String(20), default=UserStatus.PENDING_APPROVAL, nullable=False, index=True)
-    approval_requested_at = Column(DateTime(timezone=True), server_default=func.now())
-    approved_at = Column(DateTime(timezone=True))
-    approved_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
+    status = Column(String(20), default=UserStatus.PENDING_APPROVAL, nullable=False, index=True, comment="The current status of the user's profile (e.g., pending, active, suspended).")
+    approval_requested_at = Column(DateTime(timezone=True), server_default=func.now(), comment="Timestamp when the user first requested access.")
+    approved_at = Column(DateTime(timezone=True), comment="Timestamp when an admin approved the user's access.")
+    approved_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=True, comment="The user ID of the admin who approved the access request.")
     
     # Registration details
-    registration_reason = Column(Text)  # Why they need access
-    organization = Column(String(255))  # Their organization/company
-    role_description = Column(String(255))  # Their role in their organization
-    requested_access_level = Column(String(20), default=AccessLevel.READ_ONLY)
+    registration_reason = Column(Text, comment="The reason provided by the user for requesting access to the platform.")
+    organization = Column(String(255), comment="The organization or company the user belongs to.")
+    role_description = Column(String(255), comment="The user's job title or role within their organization.")
+    requested_access_level = Column(String(20), default=AccessLevel.READ_ONLY, comment="The initial access level requested by the user during registration.")
     
     # Contact and verification
-    phone_number = Column(String(20))
-    manager_email = Column(String(255))  # For verification
-    linkedin_profile = Column(String(255))
+    phone_number = Column(String(20), comment="The user's contact phone number. This is PII.")
+    manager_email = Column(String(255), comment="The email address of the user's manager, for verification purposes. This is PII.")
+    linkedin_profile = Column(String(255), comment="A link to the user's LinkedIn profile for identity verification.")
     
     # Access tracking
-    last_login_at = Column(DateTime(timezone=True))
-    login_count = Column(Integer, default=0)
-    failed_login_attempts = Column(Integer, default=0)
-    last_failed_login = Column(DateTime(timezone=True))
+    last_login_at = Column(DateTime(timezone=True), comment="Timestamp of the user's last successful login.")
+    login_count = Column(Integer, default=0, comment="A counter for the total number of successful logins.")
+    failed_login_attempts = Column(Integer, default=0, comment="A counter for consecutive failed login attempts since the last success.")
+    last_failed_login = Column(DateTime(timezone=True), comment="Timestamp of the last failed login attempt.")
     
     # Notification preferences
     notification_preferences = Column(JSON, default=lambda: {
@@ -92,11 +93,11 @@ class UserProfile(Base):
         "system_alerts": True,
         "learning_updates": False,
         "weekly_reports": True
-    })
+    }, comment="User-configurable settings for receiving platform notifications.")
     
     # Audit
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), comment="Timestamp of when the profile was created.")
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), comment="Timestamp of the last update to the profile.")
     
     # Relationships
     user = relationship("User", foreign_keys=[user_id])
@@ -153,19 +154,20 @@ class UserProfile(Base):
 
 class UserRole(Base):
     """
-    User roles for different types of access.
-    A user can have multiple roles across different contexts.
+    Defines a specific role that can be assigned to a user, granting a set of permissions.
+    Roles can be scoped globally, to a client, or to a specific engagement, allowing for
+    flexible and granular access control.
     """
     
     __tablename__ = "user_roles"
     
-    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    user_id = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True, comment="Unique identifier for the user role assignment.")
+    user_id = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True, comment="Foreign key linking to the user who is assigned this role.")
     
     # Role definition
-    role_type = Column(String(50), nullable=False)  # RoleType enum
-    role_name = Column(String(100), nullable=False)
-    description = Column(Text)
+    role_type = Column(String(50), nullable=False, comment="The type of the role, from the RoleType enum (e.g., 'platform_admin', 'analyst').")
+    role_name = Column(String(100), nullable=False, comment="A human-readable name for this specific role instance.")
+    description = Column(Text, comment="A detailed description of the role's purpose and responsibilities.")
     
     # Scope and permissions
     permissions = Column(JSON, default=lambda: {
@@ -177,22 +179,22 @@ class UserRole(Base):
         "can_manage_users": False,
         "can_configure_agents": False,
         "can_access_admin_console": False
-    })
+    }, comment="A JSON blob defining the specific permissions granted by this role.")
     
     # Context scope (global, client-specific, engagement-specific)
-    scope_type = Column(String(20), default="global")  # global, client, engagement
-    scope_client_id = Column(PostgresUUID(as_uuid=True), ForeignKey('client_accounts.id'), nullable=True)
-    scope_engagement_id = Column(PostgresUUID(as_uuid=True), ForeignKey('engagements.id'), nullable=True)
+    scope_type = Column(String(20), default="global", comment="The scope at which this role applies (e.g., 'global', 'client', 'engagement').")
+    scope_client_id = Column(PostgresUUID(as_uuid=True), ForeignKey('client_accounts.id'), nullable=True, comment="If scope is 'client', this links to the relevant client account.")
+    scope_engagement_id = Column(PostgresUUID(as_uuid=True), ForeignKey('engagements.id'), nullable=True, comment="If scope is 'engagement', this links to the relevant engagement.")
     
     # Role lifecycle
-    is_active = Column(Boolean, default=True, index=True)
-    assigned_at = Column(DateTime(timezone=True), server_default=func.now())
-    assigned_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=True)
-    expires_at = Column(DateTime(timezone=True))  # Optional expiration
+    is_active = Column(Boolean, default=True, index=True, comment="A flag to enable or disable the role assignment without deleting it.")
+    assigned_at = Column(DateTime(timezone=True), server_default=func.now(), comment="Timestamp when the role was assigned to the user.")
+    assigned_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=True, comment="The user ID of the admin who assigned this role.")
+    expires_at = Column(DateTime(timezone=True), comment="An optional expiration date for time-bound role assignments.")
     
     # Audit
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), comment="Timestamp of when this role assignment was created.")
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), comment="Timestamp of the last update to this role assignment.")
     
     # Relationships
     user = relationship("User", foreign_keys=[user_id])
@@ -216,18 +218,19 @@ class UserRole(Base):
 
 class ClientAccess(Base):
     """
-    Client-level access control for users.
-    Defines which clients a user can access and with what permissions.
+    Links a user profile to a client account, defining their access level and
+    specific permissions within that client's context. This table is a key part
+    of the multi-tenant security model.
     """
     
     __tablename__ = "client_access"
     
-    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    user_profile_id = Column(PostgresUUID(as_uuid=True), ForeignKey('user_profiles.user_id', ondelete='CASCADE'), nullable=False, index=True)
-    client_account_id = Column(PostgresUUID(as_uuid=True), ForeignKey('client_accounts.id', ondelete='CASCADE'), nullable=False, index=True)
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True, comment="Unique identifier for the client access record.")
+    user_profile_id = Column(PostgresUUID(as_uuid=True), ForeignKey('user_profiles.user_id', ondelete='CASCADE'), nullable=False, index=True, comment="Foreign key to the user's profile.")
+    client_account_id = Column(PostgresUUID(as_uuid=True), ForeignKey('client_accounts.id', ondelete='CASCADE'), nullable=False, index=True, comment="Foreign key to the client account being accessed.")
     
     # Access level for this client
-    access_level = Column(String(20), nullable=False)  # AccessLevel enum
+    access_level = Column(String(20), nullable=False, comment="The general access level for the user within this client (e.g., 'admin', 'read_only').")
     
     # Specific permissions for this client
     permissions = Column(JSON, default=lambda: {
@@ -237,25 +240,25 @@ class ClientAccess(Base):
         "can_manage_engagements": False,
         "can_configure_client_settings": False,
         "can_manage_client_users": False
-    })
+    }, comment="A JSON blob for fine-grained permission overrides specific to this client.")
     
     # Access restrictions
-    restricted_environments = Column(JSON, default=lambda: [])  # Environments user cannot access
-    restricted_data_types = Column(JSON, default=lambda: [])  # Data types user cannot access
+    restricted_environments = Column(JSON, default=lambda: [], comment="A list of environments (e.g., 'production') within this client the user CANNOT access.")
+    restricted_data_types = Column(JSON, default=lambda: [], comment="A list of data types (e.g., 'financial') within this client the user CANNOT access.")
     
     # Access lifecycle
-    granted_at = Column(DateTime(timezone=True), server_default=func.now())
-    granted_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
-    expires_at = Column(DateTime(timezone=True))  # Optional expiration
-    is_active = Column(Boolean, default=True, index=True)
+    granted_at = Column(DateTime(timezone=True), server_default=func.now(), comment="Timestamp when access was granted.")
+    granted_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=False, comment="The user ID of the admin who granted this access.")
+    expires_at = Column(DateTime(timezone=True), comment="An optional expiration date for time-bound access.")
+    is_active = Column(Boolean, default=True, index=True, comment="A flag to enable or disable this access record without deleting it.")
     
     # Usage tracking
-    last_accessed_at = Column(DateTime(timezone=True))
-    access_count = Column(Integer, default=0)
+    last_accessed_at = Column(DateTime(timezone=True), comment="Timestamp of the last time the user accessed resources in this client.")
+    access_count = Column(Integer, default=0, comment="A counter for how many times the user has accessed this client's resources.")
     
     # Audit
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), comment="Timestamp of when the access record was created.")
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), comment="Timestamp of the last update to the access record.")
     
     # Relationships
     user_profile = relationship("UserProfile", back_populates="client_access")
@@ -280,21 +283,21 @@ class ClientAccess(Base):
 
 class EngagementAccess(Base):
     """
-    Engagement-level access control for users.
-    More granular access control within specific engagements.
+    Provides the most granular level of access control, linking a user profile
+    to a specific engagement within a client account.
     """
     
     __tablename__ = "engagement_access"
     
-    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    user_profile_id = Column(PostgresUUID(as_uuid=True), ForeignKey('user_profiles.user_id', ondelete='CASCADE'), nullable=False, index=True)
-    engagement_id = Column(PostgresUUID(as_uuid=True), ForeignKey('engagements.id', ondelete='CASCADE'), nullable=False, index=True)
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True, comment="Unique identifier for the engagement access record.")
+    user_profile_id = Column(PostgresUUID(as_uuid=True), ForeignKey('user_profiles.user_id', ondelete='CASCADE'), nullable=False, index=True, comment="Foreign key to the user's profile.")
+    engagement_id = Column(PostgresUUID(as_uuid=True), ForeignKey('engagements.id', ondelete='CASCADE'), nullable=False, index=True, comment="Foreign key to the engagement being accessed.")
     
     # Access level for this engagement
-    access_level = Column(String(20), nullable=False)  # AccessLevel enum
+    access_level = Column(String(20), nullable=False, comment="The general access level for the user within this engagement.")
     
     # Engagement-specific role
-    engagement_role = Column(String(100))  # "Project Manager", "Lead Analyst", "Stakeholder", etc.
+    engagement_role = Column(String(100), comment="A descriptive role for the user in this engagement (e.g., 'Project Manager', 'Lead Analyst').")
     
     # Specific permissions for this engagement
     permissions = Column(JSON, default=lambda: {
@@ -305,25 +308,25 @@ class EngagementAccess(Base):
         "can_configure_agents": False,
         "can_approve_migration_decisions": False,
         "can_access_sensitive_data": False
-    })
+    }, comment="A JSON blob for fine-grained permission overrides specific to this engagement.")
     
     # Session-level restrictions
-    restricted_sessions = Column(JSON, default=lambda: [])  # Session IDs user cannot access
-    allowed_session_types = Column(JSON, default=lambda: ["data_import", "validation_run"])
+    restricted_sessions = Column(JSON, default=lambda: [], comment="A list of specific session IDs within this engagement that the user is barred from accessing.")
+    allowed_session_types = Column(JSON, default=lambda: ["data_import", "validation_run"], comment="A whitelist of session types the user is allowed to interact with.")
     
     # Access lifecycle
-    granted_at = Column(DateTime(timezone=True), server_default=func.now())
-    granted_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
-    expires_at = Column(DateTime(timezone=True))  # Optional expiration
-    is_active = Column(Boolean, default=True, index=True)
+    granted_at = Column(DateTime(timezone=True), server_default=func.now(), comment="Timestamp when engagement access was granted.")
+    granted_by = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=False, comment="The user ID of the admin who granted this access.")
+    expires_at = Column(DateTime(timezone=True), comment="An optional expiration date for time-bound access.")
+    is_active = Column(Boolean, default=True, index=True, comment="A flag to enable or disable this access record without deleting it.")
     
     # Usage tracking
-    last_accessed_at = Column(DateTime(timezone=True))
-    access_count = Column(Integer, default=0)
+    last_accessed_at = Column(DateTime(timezone=True), comment="Timestamp of the last time the user accessed this engagement.")
+    access_count = Column(Integer, default=0, comment="A counter for how many times the user has accessed this engagement.")
     
     # Audit
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), comment="Timestamp of when the access record was created.")
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), comment="Timestamp of the last update to the access record.")
     
     # Relationships
     user_profile = relationship("UserProfile", back_populates="engagement_access")
@@ -348,34 +351,35 @@ class EngagementAccess(Base):
 
 class AccessAuditLog(Base):
     """
-    Audit log for tracking access attempts and administrative actions.
+    Logs significant security and access-related events for auditing and monitoring.
+    This provides a persistent, immutable record of actions taken by users and the system.
     """
     
     __tablename__ = "access_audit_log"
     
-    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True, comment="Unique identifier for the audit log entry.")
     
     # Who and what
-    user_id = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=False, index=True)
-    action_type = Column(String(50), nullable=False, index=True)  # login, access_granted, access_denied, etc.
-    resource_type = Column(String(50))  # client, engagement, session, admin_console
-    resource_id = Column(String(255))  # ID of the resource accessed
+    user_id = Column(PostgresUUID(as_uuid=True), ForeignKey('users.id'), nullable=False, index=True, comment="The user who performed the action or was the subject of the event.")
+    action_type = Column(String(50), nullable=False, index=True, comment="The type of action being logged (e.g., 'login', 'access_granted', 'resource_deleted').")
+    resource_type = Column(String(50), comment="The type of resource that was affected (e.g., 'client', 'engagement', 'user_profile').")
+    resource_id = Column(String(255), comment="The ID of the specific resource that was affected.")
     
     # Context
-    client_account_id = Column(PostgresUUID(as_uuid=True), ForeignKey('client_accounts.id'), nullable=True)
-    engagement_id = Column(PostgresUUID(as_uuid=True), ForeignKey('engagements.id'), nullable=True)
+    client_account_id = Column(PostgresUUID(as_uuid=True), ForeignKey('client_accounts.id'), nullable=True, comment="The client account context in which the action occurred.")
+    engagement_id = Column(PostgresUUID(as_uuid=True), ForeignKey('engagements.id'), nullable=True, comment="The engagement context in which the action occurred.")
     
     # Result and details
-    result = Column(String(20), nullable=False)  # success, denied, error
-    reason = Column(Text)  # Why access was granted/denied
-    ip_address = Column(String(45))  # IPv4/IPv6 address
-    user_agent = Column(Text)
+    result = Column(String(20), nullable=False, comment="The outcome of the action (e.g., 'success', 'denied', 'error').")
+    reason = Column(Text, comment="A human-readable reason for the outcome (e.g., 'insufficient_permissions').")
+    ip_address = Column(String(45), comment="The source IP address of the request.")
+    user_agent = Column(Text, comment="The user agent string of the client that made the request.")
     
     # Additional context
-    details = Column(JSON, default=lambda: {})
+    details = Column(JSON, default=lambda: {}, comment="A JSON blob for storing any other relevant details about the event.")
     
     # Timestamp
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True, comment="The timestamp when the event occurred.")
     
     # Relationships
     user = relationship("User")

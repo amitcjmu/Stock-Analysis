@@ -38,25 +38,8 @@ export const ClientProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const navigate = useNavigate();
 
   useEffect(() => {
-    // For demo user, set demo client immediately
-    if (user && user.id === '33333333-3333-3333-3333-333333333333') {
-      setCurrentClient({
-        id: '21990f3a-abb6-4862-be06-cb6f854e167b',
-        name: 'Demo Corporation',
-        status: 'active',
-        type: 'enterprise',
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z',
-        metadata: {
-          industry: 'Technology',
-          size: 'Enterprise',
-          location: 'Global'
-        }
-      });
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
+    // Don't hardcode client for demo user - let them choose from available demo clients
+    // The -def0-def0-def0- pattern identifies demo data
 
     const initializeClient = async () => {
       try {

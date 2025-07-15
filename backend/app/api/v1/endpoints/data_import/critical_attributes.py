@@ -370,6 +370,7 @@ async def _trigger_field_mapping_reanalysis(
         # Use the field mapping executor to regenerate mappings
         from app.services.crewai_flows.handlers.phase_executors.field_mapping_executor import FieldMappingExecutor
         from app.services.crewai_flows.handlers.unified_flow_crew_manager import UnifiedFlowCrewManager
+        from app.services.crewai_flow_service import CrewAIFlowService
         
         # Create a minimal state object for the executor
         class FlowState:
@@ -383,11 +384,9 @@ async def _trigger_field_mapping_reanalysis(
         
         flow_state = FlowState()
         
-        # Create crew manager
-        crew_manager = UnifiedFlowCrewManager(
-            llm_config={"model": "deepinfra"},
-            flow_state=flow_state
-        )
+        # Create crew manager with proper CrewAI service
+        crewai_service = CrewAIFlowService()
+        crew_manager = UnifiedFlowCrewManager(crewai_service, flow_state)
         
         # Create and execute field mapping executor
         executor = FieldMappingExecutor(crew_manager, flow_state)

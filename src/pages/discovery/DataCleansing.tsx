@@ -116,7 +116,12 @@ const DataCleansing: React.FC = () => {
   // Determine state conditions - use real data cleansing analysis
   const hasError = !!(error || latestImportError);
   const errorMessage = error?.message || latestImportError?.message;
-  const hasData = !!(qualityIssues.length > 0 || agentRecommendations.length > 0 || cleansingProgress.total_records > 0);
+  
+  // Check if we have data available for cleansing - this includes imported data from previous phases
+  const hasImportedData = !!(flow?.raw_data?.length > 0 || flow?.field_mappings || latestImportData?.data?.length > 0);
+  const hasCleansingResults = !!(qualityIssues.length > 0 || agentRecommendations.length > 0 || cleansingProgress.total_records > 0);
+  const hasData = hasImportedData || hasCleansingResults;
+  
   const isAnalyzing = isUpdating;
   const isLoadingData = isLoading || isLatestImportLoading || isFlowListLoading;
 
@@ -145,6 +150,18 @@ const DataCleansing: React.FC = () => {
     cleansingProgress,
     flowKeys: flow ? Object.keys(flow) : [],
     dataCleansingKeys: flowDataCleansing ? Object.keys(flowDataCleansing) : []
+  });
+
+  console.log('🔍 DataCleansing data availability check:', {
+    hasImportedData,
+    hasCleansingResults,
+    hasData,
+    rawDataLength: flow?.raw_data?.length || 0,
+    hasFieldMappings: !!flow?.field_mappings,
+    latestImportDataLength: latestImportData?.data?.length || 0,
+    hasError,
+    errorMessage,
+    isLoadingData
   });
 
   return (

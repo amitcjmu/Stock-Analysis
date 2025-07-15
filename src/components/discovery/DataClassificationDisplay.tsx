@@ -69,20 +69,14 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
     setError(null);
     
     try {
-      const result = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_STATUS, {
-        method: 'GET',
-        params: { 
-          page_context: pageContext,
-          flow_id: session?.id
-        }
-      });
+      const result = await apiCall(`/api/v1/agents/discovery/data-classifications?page=${pageContext}`);
       
       // Process the result
-      if (result && result.data) {
+      if (result.success && result.classifications) {
         setClassifications({
-          good_data: result.data.good_data || [],
-          needs_clarification: result.data.needs_clarification || [],
-          unusable: result.data.unusable || []
+          good_data: result.classifications.good_data || [],
+          needs_clarification: result.classifications.needs_clarification || [],
+          unusable: result.classifications.unusable || []
         });
       }
     } catch (err: any) {
@@ -125,7 +119,7 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
 
   const updateClassification = async (itemId: string, newClassification: 'good_data' | 'needs_clarification' | 'unusable') => {
     try {
-      const result = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_LEARNING, {
+      const result = await apiCall('/api/v1/agents/discovery/learning/agent-learning', {
         method: 'POST',
         body: JSON.stringify({
           learning_type: 'data_classification',
@@ -136,7 +130,7 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
         })
       });
 
-      if (result.status === 'success') {
+      if (result.success) {
         // Update local state
         const updatedClassifications = { ...classifications };
         

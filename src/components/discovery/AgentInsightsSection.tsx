@@ -80,12 +80,9 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
 
   const fetchInsights = async () => {
     try {
-      const result = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_STATUS, {
-        method: 'GET',
-        params: { page_context: pageContext }
-      });
-      if (result.status === 'success' && result.page_data?.agent_insights) {
-        setInsights(result.page_data.agent_insights);
+      const result = await apiCall(`/api/v1/agents/discovery/agent-insights?page=${pageContext}`);
+      if (result.success && result.insights) {
+        setInsights(result.insights);
       }
       setError(null);
     } catch (err: any) {
@@ -217,7 +214,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
         page_context: pageContext
       };
 
-      await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AGENT_LEARNING, {
+      await apiCall('/api/v1/agents/discovery/learning/agent-learning', {
         method: 'POST',
         body: JSON.stringify(feedbackData)
       });

@@ -143,8 +143,8 @@ async def get_context_clients(
                     status="active" if client.is_active else "inactive"
                 ))
 
-            # If no clients found and user is demo user, return demo client
-            if not client_responses and str(current_user.id) == "44444444-4444-4444-4444-444444444444":
+            # If no clients found and user is demo user (check email pattern), return demo client
+            if not client_responses and current_user.email and current_user.email.endswith("@demo-corp.com"):
                 demo_client_query = select(ClientAccount).where(
                     and_(
                         ClientAccount.id == "11111111-1111-1111-1111-111111111111",
@@ -168,7 +168,7 @@ async def get_context_clients(
     except Exception as e:
         logger.error(f"Error in context establishment - get clients: {e}")
         # Return demo data as fallback for demo user only
-        if str(current_user.id) == "44444444-4444-4444-4444-444444444444":
+        if current_user.email and current_user.email.endswith("@demo-corp.com"):
             demo_clients = [
                 ClientResponse(
                     id="11111111-1111-1111-1111-111111111111",
@@ -255,7 +255,7 @@ async def get_context_engagements(
             
             # Special case for demo user accessing demo client
             is_demo_access = (
-                str(current_user.id) == "44444444-4444-4444-4444-444444444444" and
+                current_user.email and current_user.email.endswith("@demo-corp.com") and
                 client_id == "11111111-1111-1111-1111-111111111111"
             )
             
@@ -305,4 +305,76 @@ async def get_context_engagements(
             ]
             return EngagementsListResponse(engagements=demo_engagements)
         else:
-            return EngagementsListResponse(engagements=[]) 
+            return EngagementsListResponse(engagements=[])
+
+class ContextUpdateRequest(BaseModel):
+    client_id: str
+    engagement_id: str
+
+class ContextUpdateResponse(BaseModel):
+    status: str
+    message: str
+    client_id: str
+    engagement_id: str
+
+@router.post("/update-context", response_model=ContextUpdateResponse)
+async def update_user_context(
+    request: ContextUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Update the user's default client and engagement context.
+    
+    This persists the user's context selection in the database so it's
+    remembered across sessions.
+    """
+    try:
+        logger.info(f"🔄 Updating context for user {current_user.id}: client={request.client_id}, engagement={request.engagement_id}")
+        
+        # Verify client exists and user has access
+        if CLIENT_ACCOUNT_AVAILABLE:
+            # Check client exists
+            client = await db.get(ClientAccount, request.client_id)
+            if not client or not client.is_active:
+                raise HTTPException(status_code=404, detail="Client not found")
+            
+            # Check engagement exists and belongs to client
+            engagement = await db.get(Engagement, request.engagement_id)
+            if not engagement or not engagement.is_active:
+                raise HTTPException(status_code=404, detail="Engagement not found")
+            
+            if str(engagement.client_account_id) != request.client_id:
+                raise HTTPException(status_code=400, detail="Engagement does not belong to specified client")
+            
+            # Update user's default context
+            user = await db.get(User, current_user.id)
+            if user:
+                user.default_client_id = request.client_id
+                user.default_engagement_id = request.engagement_id
+                await db.commit()
+                
+                logger.info(f"✅ Updated default context for user {current_user.email}")
+                
+                return ContextUpdateResponse(
+                    status="success",
+                    message="Context updated successfully",
+                    client_id=request.client_id,
+                    engagement_id=request.engagement_id
+                )
+            else:
+                raise HTTPException(status_code=404, detail="User not found")
+        else:
+            # Models not available, return success for demo
+            return ContextUpdateResponse(
+                status="success",
+                message="Context updated (demo mode)",
+                client_id=request.client_id,
+                engagement_id=request.engagement_id
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating user context: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update context") 

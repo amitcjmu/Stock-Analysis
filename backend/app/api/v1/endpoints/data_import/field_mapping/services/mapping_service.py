@@ -68,15 +68,27 @@ class MappingService:
             logger.info(f"🔍 DEBUG: Field mapping - source_field type: {type(mapping.source_field)}, value: {mapping.source_field}")
             logger.info(f"🔍 DEBUG: Field mapping - target_field type: {type(mapping.target_field)}, value: {mapping.target_field}")
                 
+            # Convert JSON transformation_rules to string, handle None values
+            transformation_rule_str = None
+            if mapping.transformation_rules:
+                if isinstance(mapping.transformation_rules, dict):
+                    # Convert dict to JSON string if needed
+                    import json
+                    transformation_rule_str = json.dumps(mapping.transformation_rules)
+                elif isinstance(mapping.transformation_rules, str):
+                    transformation_rule_str = mapping.transformation_rules
+                else:
+                    transformation_rule_str = str(mapping.transformation_rules)
+            
             valid_mappings.append(FieldMappingResponse(
                 id=mapping.id,
-                source_field=mapping.source_field,
-                target_field=None if mapping.target_field == "UNMAPPED" else mapping.target_field,  # Convert back to None for UI
-                transformation_rule=mapping.transformation_rules,
-                validation_rule=mapping.transformation_rules,  # Using transformation_rules for now
+                source_field=str(mapping.source_field),  # Ensure string type
+                target_field=str(mapping.target_field),  # Keep as string, frontend handles "UNMAPPED"
+                transformation_rule=transformation_rule_str,
+                validation_rule=transformation_rule_str,  # Using transformation_rules for now
                 is_required=getattr(mapping, 'is_required', False),
                 is_approved=mapping.status == "approved",
-                confidence=mapping.confidence_score or 0.0,
+                confidence=float(mapping.confidence_score) if mapping.confidence_score is not None else 0.0,
                 created_at=mapping.created_at,
                 updated_at=mapping.updated_at
             ))
