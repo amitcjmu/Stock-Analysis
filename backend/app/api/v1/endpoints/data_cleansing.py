@@ -185,7 +185,8 @@ async def get_data_cleansing_stats(
         
         # Calculate stats from first data import
         data_import = data_imports[0]
-        total_records = len(data_import.raw_data.get("data", [])) if data_import.raw_data else 0
+        total_records = data_import.total_records if data_import.total_records else 0
+        # Use the total_records field which should be properly set during import
         
         # For now, return basic calculated stats
         # TODO: Integrate with actual data cleansing crew results
@@ -231,9 +232,12 @@ async def _perform_data_cleansing_analysis(
     
     # Get the first data import (primary)
     data_import = data_imports[0] if data_imports else None
-    raw_data = data_import.raw_data.get("data", []) if data_import and data_import.raw_data else []
     
-    total_records = len(raw_data)
+    # Get raw data from the data import (using the correct attribute)
+    total_records = data_import.total_records if data_import else 0
+    # Use the total_records field which should be properly set during import
+    # Avoid accessing lazy-loaded relationships in async context
+    
     total_fields = len(field_mappings)
     
     # Mock quality issues for demo (replace with actual data cleansing crew analysis)

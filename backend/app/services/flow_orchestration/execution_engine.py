@@ -436,7 +436,7 @@ class FlowExecutionEngine:
                         current_phase="initialization",
                         progress_percentage=0.0,
                         user_id=self.context.user_id or "system",
-                        master_flow_id=flow_id,  # Link to master flow
+                        master_flow_id=flow_id,  # Link to master flow using flow_id
                         data_import_id=initial_state.get("data_import_id") if initial_state else None
                     )
                     

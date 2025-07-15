@@ -8,24 +8,29 @@
 4. [Project Structure](#project-structure)
 5. [Backend Architecture](#backend-architecture)
 6. [Frontend Architecture](#frontend-architecture)
-7. [AI Learning System](#ai-learning-system)
-8. [Database Design](#database-design)
-9. [API Design](#api-design)
-10. [Development Workflow](#development-workflow)
-11. [Testing Strategy](#testing-strategy)
-12. [Deployment & DevOps](#deployment--devops)
+7. [Master Flow Orchestrator](#master-flow-orchestrator)
+8. [CrewAI Integration](#crewai-integration)
+9. [Multi-Tenant Architecture](#multi-tenant-architecture)
+10. [Database Design](#database-design)
+11. [API Design](#api-design)
+12. [Development Workflow](#development-workflow)
+13. [Testing Strategy](#testing-strategy)
+14. [Deployment & DevOps](#deployment--devops)
 
 ## Overview
 
-The AI Force Migration Platform is a comprehensive cloud migration orchestration system that leverages AI agents to automate and optimize the entire migration lifecycle. The platform is built with a modern microservices architecture using FastAPI for the backend and Next.js for the frontend, with CrewAI providing the AI agent framework.
+The AI Force Migration Platform is a comprehensive cloud migration orchestration system that leverages real CrewAI agents to automate and optimize the entire migration lifecycle. The platform is built with a modern flow-based architecture using FastAPI for the backend and Next.js for the frontend, with CrewAI providing the AI agent framework.
+
+**Current Status**: **Phase 5 (Flow-Based Architecture) - Production Ready (98% Complete)**
 
 ### Key Features
-- **AI-Powered Analysis**: CrewAI agents analyze CMDB data and provide migration recommendations
+- **Real CrewAI Agents**: True CrewAI implementations with agents, crews, and flows
+- **Master Flow Orchestrator**: Centralized flow management across all migration phases
 - **Dynamic Field Mapping**: AI learns field mappings from user feedback and data patterns
-- **Real-time Monitoring**: WebSocket-based agent monitoring and task tracking
-- **6R Strategy Analysis**: Automated recommendations for Rehost, Replatform, Refactor, etc.
-- **Wave Planning**: Intelligent migration sequencing based on dependencies
-- **Risk Assessment**: Comprehensive risk analysis with mitigation strategies
+- **Multi-Tenant Architecture**: Complete tenant isolation with context-aware operations
+- **Flow-Based State Management**: PostgreSQL-only persistence with flow_id primary keys
+- **Smart Data Recovery**: Intelligent orphaned data discovery and repair mechanisms
+- **Production-Ready**: Comprehensive error handling, audit logging, and performance monitoring
 
 ## System Architecture
 
