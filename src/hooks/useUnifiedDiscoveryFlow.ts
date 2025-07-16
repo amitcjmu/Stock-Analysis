@@ -61,21 +61,26 @@ const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string
       engagement_id: engagementId || '',
       user_id: '',
       current_phase: response.phase || response.currentPhase || '',
-      phase_completion: {},
-      crew_status: {},
+      phase_completion: response.phase_completion || {},
+      crew_status: response.crew_status || {},
       raw_data: response.raw_data || [],
       field_mappings: response.field_mappings || {},
-      cleaned_data: [],
-      asset_inventory: {},
-      dependencies: {},
-      technical_debt: {},
+      cleaned_data: response.cleaned_data || response.data_cleansing_results?.cleaned_data || [],
+      asset_inventory: response.asset_inventory || response.inventory_results || {},
+      dependencies: response.dependencies || response.dependency_results || {},
+      technical_debt: response.technical_debt || response.tech_debt_results || {},
       agent_insights: response.agent_insights || [],
       status: response.status || 'unknown',
       progress_percentage: response.progress_percentage || response.progress || 0,
       errors: response.errors || [],
-      warnings: [],
+      warnings: response.warnings || [],
       created_at: response.created_at || '',
-      updated_at: response.updated_at || ''
+      updated_at: response.updated_at || '',
+      // Additional fields that might be in the response
+      data_cleansing_results: response.data_cleansing_results || response.data_cleansing || {},
+      inventory_results: response.inventory_results || response.inventory || {},
+      dependency_results: response.dependency_results || response.dependencies || {},
+      tech_debt_results: response.tech_debt_results || response.tech_debt || {}
     };
     
     console.log(`🔍 [DEBUG] Mapped response field_mappings:`, mappedResponse.field_mappings);

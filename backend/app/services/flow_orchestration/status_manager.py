@@ -137,6 +137,13 @@ class FlowStatusManager:
         import_metadata = {}
         if master_flow.flow_type == "discovery":
             raw_data, import_metadata = await self._get_discovery_import_data(master_flow)
+        
+        # Get phase-specific results from state data
+        data_cleansing_results = state_data.get('data_cleansing_results', {})
+        inventory_results = state_data.get('inventory_results', {})
+        asset_inventory = state_data.get('asset_inventory', inventory_results)  # Support both naming conventions
+        dependency_results = state_data.get('dependency_results', {})
+        tech_debt_results = state_data.get('tech_debt_results', {})
 
         detailed_status = {
             "configuration": master_flow.flow_configuration,
@@ -147,7 +154,14 @@ class FlowStatusManager:
             "agent_insights": agent_insights,
             "field_mappings": field_mappings,
             "raw_data": raw_data,
-            "import_metadata": import_metadata
+            "import_metadata": import_metadata,
+            # Phase-specific results
+            "data_cleansing_results": data_cleansing_results,
+            "cleaned_data": data_cleansing_results.get('cleaned_data', []),
+            "asset_inventory": asset_inventory,
+            "inventory_results": inventory_results,
+            "dependency_results": dependency_results,
+            "tech_debt_results": tech_debt_results
         }
         
         return detailed_status

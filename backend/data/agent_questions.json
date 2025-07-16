@@ -1985,9 +1985,9 @@
     "confidence": "high",
     "priority": "high",
     "created_at": "2025-06-06T04:57:08.713124",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-07-16T13:17:45.852965",
+    "user_response": "Yes",
+    "is_resolved": true
   },
   "b2749c01-e32d-4ac5-9f23-3265fa0db3f4": {
     "id": "b2749c01-e32d-4ac5-9f23-3265fa0db3f4",
@@ -2013,9 +2013,9 @@
     "confidence": "high",
     "priority": "medium",
     "created_at": "2025-06-06T04:57:08.721337",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-07-16T13:18:29.684149",
+    "user_response": "Include (data may be elsewhere)",
+    "is_resolved": true
   },
   "aebe4239-b020-40ad-8154-d3812ffbd427": {
     "id": "aebe4239-b020-40ad-8154-d3812ffbd427",
@@ -2057,9 +2057,9 @@
     "confidence": "medium",
     "priority": "medium",
     "created_at": "2025-06-06T04:57:08.724987",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-07-16T13:18:18.032163",
+    "user_response": "Asset identifier",
+    "is_resolved": true
   },
   "154f9a38-dfda-4c95-8677-9842d1572331": {
     "id": "154f9a38-dfda-4c95-8677-9842d1572331",
@@ -2082,9 +2082,9 @@
     "confidence": "medium",
     "priority": "low",
     "created_at": "2025-06-06T04:57:08.728083",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-07-16T13:19:05.240218",
+    "user_response": "Skip validation",
+    "is_resolved": true
   },
   "7c4a37c6-3b3a-485a-92b1-cfa77f95b4a3": {
     "id": "7c4a37c6-3b3a-485a-92b1-cfa77f95b4a3",
@@ -2107,9 +2107,9 @@
     "confidence": "low",
     "priority": "low",
     "created_at": "2025-06-06T04:57:08.732460",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-07-16T13:18:49.904971",
+    "user_response": "Somewhat important",
+    "is_resolved": true
   },
   "8028a107-88c4-41e8-a32b-adb6d7a10da3": {
     "id": "8028a107-88c4-41e8-a32b-adb6d7a10da3",
@@ -2136,9 +2136,9 @@
     "confidence": "medium",
     "priority": "medium",
     "created_at": "2025-06-06T11:55:06.668433",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-07-16T04:43:54.431541",
+    "user_response": "Yes, standardize automatically",
+    "is_resolved": true
   },
   "2d213f20-5786-4620-b253-9ff6ce70f67b": {
     "id": "2d213f20-5786-4620-b253-9ff6ce70f67b",
@@ -2161,9 +2161,9 @@
     "confidence": "medium",
     "priority": "low",
     "created_at": "2025-06-06T11:55:06.688946",
-    "answered_at": null,
-    "user_response": null,
-    "is_resolved": false
+    "answered_at": "2025-07-16T13:18:40.369145",
+    "user_response": "Will provide later",
+    "is_resolved": true
   },
   "fee31c84-d29b-4494-9cfc-8fbab9f3d043": {
     "id": "fee31c84-d29b-4494-9cfc-8fbab9f3d043",

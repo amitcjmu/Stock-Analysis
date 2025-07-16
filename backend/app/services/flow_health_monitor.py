@@ -6,7 +6,7 @@ Monitors flow health and handles stuck flows automatically.
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any
 from sqlalchemy import select, and_, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -68,7 +68,7 @@ class FlowHealthMonitor:
         try:
             async with AsyncSessionLocal() as db:
                 # Find flows stuck at initialization/active with 0% progress for > 1 hour
-                cutoff_time = datetime.utcnow() - timedelta(hours=1)
+                cutoff_time = datetime.now(timezone.utc) - timedelta(hours=1)
                 
                 stmt = select(DiscoveryFlow).where(
                     and_(
@@ -104,7 +104,7 @@ class FlowHealthMonitor:
                 result = await db.execute(stmt)
                 active_flows = result.scalars().all()
                 
-                now = datetime.utcnow()
+                now = datetime.now(timezone.utc)
                 
                 for flow in active_flows:
                     # Check timeout in metadata
@@ -132,9 +132,9 @@ class FlowHealthMonitor:
             flow.error_phase = 'initialization'
             flow.error_details = {
                 'reason': 'stuck_at_zero_progress',
-                'stuck_duration_hours': (datetime.utcnow() - flow.created_at).total_seconds() / 3600
+                'stuck_duration_hours': (datetime.now(timezone.utc) - flow.created_at).total_seconds() / 3600
             }
-            flow.updated_at = datetime.utcnow()
+            flow.updated_at = datetime.now(timezone.utc)
             
             # Update state data
             if not flow.crewai_state_data:
@@ -161,7 +161,7 @@ class FlowHealthMonitor:
                 'timeout_hours': 24,
                 'last_progress': flow.progress_percentage
             }
-            flow.updated_at = datetime.utcnow()
+            flow.updated_at = datetime.now(timezone.utc)
             
             # Update state data
             if not flow.crewai_state_data:
@@ -202,7 +202,7 @@ class FlowHealthMonitor:
                         master.flow_metadata['discovery_progress'] = discovery_flow.progress_percentage
                         master.flow_metadata['discovery_status'] = discovery_flow.status
                         master.flow_metadata['discovery_phase'] = discovery_flow.current_phase
-                        master.updated_at = datetime.utcnow()
+                        master.updated_at = datetime.now(timezone.utc)
                         
                 await db.commit()
                 
@@ -221,7 +221,7 @@ class FlowHealthMonitor:
                     status_counts[status] = result.scalar() or 0
                     
                 # Find stuck flows
-                cutoff_time = datetime.utcnow() - timedelta(hours=1)
+                cutoff_time = datetime.now(timezone.utc) - timedelta(hours=1)
                 stuck_stmt = select(func.count()).where(
                     and_(
                         DiscoveryFlow.status.in_(['active', 'initialized', 'running']),
@@ -244,7 +244,7 @@ class FlowHealthMonitor:
                         progress_by_status[status] = round(avg_progress, 1)
                         
                 return {
-                    'timestamp': datetime.utcnow().isoformat(),
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
                     'status_counts': status_counts,
                     'stuck_flows': stuck_count,
                     'average_progress': progress_by_status,
@@ -254,7 +254,7 @@ class FlowHealthMonitor:
         except Exception as e:
             logger.error(f"❌ Error generating health report: {e}")
             return {
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'error': str(e),
                 'health_status': 'error'
             }

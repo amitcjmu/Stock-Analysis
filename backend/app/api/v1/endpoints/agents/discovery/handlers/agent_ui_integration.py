@@ -7,6 +7,7 @@ Implements Phase 2 of the Discovery Flow redesign.
 import logging
 from typing import Dict, List, Any, Optional
 from datetime import datetime
+from dataclasses import asdict
 from fastapi import APIRouter, HTTPException, Depends, Body, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -180,7 +181,7 @@ async def answer_agent_question(
             'response': response_data.response,
             'confidence': response_data.confidence,
             'timestamp': datetime.now().isoformat(),
-            'context': context.dict()
+            'context': asdict(context)
         })
         
         return {
@@ -262,7 +263,7 @@ async def perform_insight_action(
             'insight_id': action_data.insight_id,
             'action': action_data.action,
             'data': action_data.data,
-            'context': context.dict()
+            'context': asdict(context)
         })
         
         return {
