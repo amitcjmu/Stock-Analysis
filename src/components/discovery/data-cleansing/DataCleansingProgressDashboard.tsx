@@ -7,6 +7,7 @@ interface DataCleansingProgress {
   quality_score: number;
   completion_percentage: number;
   issues_resolved: number;
+  issues_found?: number;
   crew_completion_status: Record<string, boolean>;
 }
 
@@ -72,7 +73,7 @@ const DataCleansingProgressDashboard: React.FC<DataCleansingProgressDashboardPro
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600">Issues Found</p>
-            <p className="text-2xl font-bold text-gray-900">{progress.total_records - progress.cleaned_records}</p>
+            <p className="text-2xl font-bold text-gray-900">{progress.issues_found ?? 0}</p>
             <p className="text-xs text-gray-500">{progress.issues_resolved} resolved</p>
           </div>
           <XCircle className="h-8 w-8 text-red-600" />

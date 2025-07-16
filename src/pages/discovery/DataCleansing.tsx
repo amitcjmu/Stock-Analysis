@@ -16,7 +16,6 @@ import DataCleansingNavigationButtons from '../../components/discovery/data-clea
 import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
 import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
 import AgentPlanningDashboard from '../../components/discovery/AgentPlanningDashboard';
-import EnhancedAgentOrchestrationPanel from '../../components/discovery/EnhancedAgentOrchestrationPanel';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
@@ -69,11 +68,12 @@ const DataCleansing: React.FC = () => {
   const qualityIssues = flowDataCleansing?.quality_issues || [];
   const agentRecommendations = flowDataCleansing?.recommendations || [];
   const cleansingProgress = {
-    total_records: flowDataCleansing?.metadata?.original_records || 0,
+    total_records: flow?.raw_data?.length || flowDataCleansing?.metadata?.original_records || 0,
     quality_score: flowDataCleansing?.data_quality_metrics?.overall_improvement?.quality_score || 0,
     completion_percentage: flowDataCleansing?.data_quality_metrics?.overall_improvement?.completeness_improvement || 0,
     cleaned_records: flowDataCleansing?.metadata?.cleaned_records || 0,
     issues_resolved: qualityIssues.filter(issue => issue.status === 'resolved').length,
+    issues_found: qualityIssues.length,
     crew_completion_status: flowDataCleansing?.crew_status?.status || 'unknown'
   };
 
@@ -88,17 +88,15 @@ const DataCleansing: React.FC = () => {
     dataCleansingKeys: flowDataCleansing ? Object.keys(flowDataCleansing) : []
   });
 
-  // Handle data cleansing execution
+  // Handle data cleansing execution - READ-ONLY mode to prevent flow execution errors
   const handleTriggerDataCleansingCrew = async () => {
     try {
-      console.log('🧹 Triggering data cleansing phase...');
-      await updatePhase('data_cleansing');
-      // Refresh the data after triggering
-      setTimeout(() => {
-        refresh();
-      }, 2000);
+      console.log('🧹 Refreshing data cleansing data (read-only mode)...');
+      // Just refresh the data without triggering execution to prevent DB errors
+      await refresh();
+      console.log('✅ Data cleansing data refreshed successfully');
     } catch (error) {
-      console.error('Failed to execute data cleansing phase:', error);
+      console.error('Failed to refresh data cleansing data:', error);
     }
   };
 
@@ -119,7 +117,7 @@ const DataCleansing: React.FC = () => {
   
   // Check if we have data available for cleansing - this includes imported data from previous phases
   const hasImportedData = !!(flow?.raw_data?.length > 0 || Object.keys(flow?.field_mappings || {}).length > 0 || latestImportData?.data?.length > 0);
-  const hasCleansingResults = !!(qualityIssues.length > 0 || agentRecommendations.length > 0 || cleansingProgress.total_records > 0);
+  const hasCleansingResults = !!(qualityIssues.length > 0 || agentRecommendations.length > 0 || flow?.raw_data?.length > 0 || cleansingProgress.total_records > 0);
   const hasData = hasImportedData || hasCleansingResults;
   
   const isAnalyzing = isUpdating;
@@ -207,25 +205,63 @@ const DataCleansing: React.FC = () => {
               isLoading={isLoadingData}
             />
 
+            {/* Agent Clarifications - Primary Focus */}
+            <div className="mb-6">
+              <AgentClarificationPanel 
+                pageContext="data-cleansing"
+                refreshTrigger={0}
+                onQuestionAnswered={(questionId, response) => {
+                  console.log('Data cleansing question answered:', questionId, response);
+                  refresh();
+                }}
+              />
+            </div>
+
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
               <div className="xl:col-span-3 space-y-6">
-                <QualityIssuesPanel 
-                  qualityIssues={qualityIssues}
-                  onResolveIssue={(issueId) => {
-                    console.log('Resolving issue:', issueId);
-                    // Implementation for resolving issues
-                  }}
-                  isLoading={isLoadingData}
-                />
+                {/* Only show Quality Issues if there are actual issues */}
+                {(qualityIssues.length > 0 || isLoadingData) && (
+                  <QualityIssuesPanel 
+                    qualityIssues={qualityIssues}
+                    onResolveIssue={(issueId) => {
+                      console.log('Resolving issue:', issueId);
+                      // Implementation for resolving issues
+                    }}
+                    isLoading={isLoadingData}
+                  />
+                )}
 
-                <CleansingRecommendationsPanel 
-                  recommendations={agentRecommendations}
-                  onApplyRecommendation={(recommendationId) => {
-                    console.log('Applying recommendation:', recommendationId);
-                    // Implementation for applying recommendations
-                  }}
-                  isLoading={isLoadingData}
-                />
+                {/* Only show Recommendations if there are actual recommendations */}
+                {(agentRecommendations.length > 0 || isLoadingData) && (
+                  <CleansingRecommendationsPanel 
+                    recommendations={agentRecommendations}
+                    onApplyRecommendation={(recommendationId) => {
+                      console.log('Applying recommendation:', recommendationId);
+                      // Implementation for applying recommendations
+                    }}
+                    isLoading={isLoadingData}
+                  />
+                )}
+
+                {/* Show placeholder when no issues or recommendations */}
+                {!isLoadingData && qualityIssues.length === 0 && agentRecommendations.length === 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        Data Analysis In Progress
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-gray-600">
+                        Your data is being analyzed by our AI agents. No quality issues have been detected yet.
+                      </p>
+                      <p className="text-gray-600 mt-2">
+                        <span className="font-medium">Check the agent clarifications above</span> - the agents may need your input to proceed with the analysis.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Enhanced Data Samples Section */}
                 {(rawDataSample.length > 0 || cleanedDataSample.length > 0) && (
@@ -326,15 +362,6 @@ const DataCleansing: React.FC = () => {
               </div>
 
               <div className="xl:col-span-1 space-y-6">
-                <AgentClarificationPanel 
-                  pageContext="data-cleansing"
-                  refreshTrigger={0}
-                  onQuestionAnswered={(questionId, response) => {
-                    console.log('Data cleansing question answered:', questionId, response);
-                    refresh();
-                  }}
-                />
-
                 {/* Agent Insights */}
                 <AgentInsightsSection 
                   pageContext="data-cleansing"
@@ -352,22 +379,7 @@ const DataCleansing: React.FC = () => {
               </div>
             </div>
 
-            {/* Move crew progress to bottom of page */}
-            {flow?.flow_id && (
-              <div className="mt-8">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Discovery Flow Crew Progress</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <EnhancedAgentOrchestrationPanel
-                      flowId={flow.flow_id}
-                      flowState={flow}
-                    />
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+            {/* Removed Discovery Flow Crew Progress - never had useful info */}
           </div>
         </div>
       </div>

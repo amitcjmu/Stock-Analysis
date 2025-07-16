@@ -82,6 +82,8 @@ class FlowStatusResponse(BaseModel):
     performance_metrics: Dict[str, Any]
     agent_insights: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Real-time agent insights for this flow")
     field_mappings: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Field mappings for discovery flows")
+    raw_data: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Raw import data for discovery flows")
+    import_metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Import metadata for discovery flows")
     awaitingUserApproval: Optional[bool] = Field(None, description="Whether the flow is waiting for user approval")
     currentPhase: Optional[str] = Field(None, description="Current phase of the flow")
     progress: Optional[float] = Field(None, description="Progress percentage (alias for progress_percentage)")
@@ -585,6 +587,8 @@ async def get_flow_status(
             performance_metrics=flow_data.get("performance_metrics", {}),
             agent_insights=flow_data.get("agent_insights", []),
             field_mappings=flow_data.get("field_mappings", []),
+            raw_data=flow_data.get("raw_data", []),
+            import_metadata=flow_data.get("import_metadata", {}),
             awaitingUserApproval=awaiting_approval,
             currentPhase=flow_data.get("current_phase"),
             progress=flow_data.get("progress_percentage", 0.0)

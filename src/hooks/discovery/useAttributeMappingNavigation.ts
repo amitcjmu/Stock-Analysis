@@ -91,7 +91,7 @@ export const useAttributeMappingNavigation = (flowState?: any, mappingProgress?:
           
           // Navigate to data cleansing after a short delay
           setTimeout(() => {
-            navigate('/discovery/data-cleansing');
+            navigate(`/discovery/data-cleansing/${flowId}`);
           }, 1500);
         } catch (executeError) {
           console.error('Failed to continue flow:', executeError);
@@ -121,7 +121,7 @@ export const useAttributeMappingNavigation = (flowState?: any, mappingProgress?:
           
           // Navigate to data cleansing after a short delay
           setTimeout(() => {
-            navigate('/discovery/data-cleansing');
+            navigate(`/discovery/data-cleansing/${flowId}`);
           }, 1500);
         } catch (resumeError) {
           console.error('Failed to resume flow:', resumeError);
@@ -150,7 +150,7 @@ export const useAttributeMappingNavigation = (flowState?: any, mappingProgress?:
           
           // Navigate to data cleansing after a short delay
           setTimeout(() => {
-            navigate('/discovery/data-cleansing');
+            navigate(`/discovery/data-cleansing/${flowId}`);
           }, 1500);
           
         } catch (resumeError) {
@@ -165,7 +165,7 @@ export const useAttributeMappingNavigation = (flowState?: any, mappingProgress?:
           
           console.log('🔍 Falling back to direct phase execution with data:', phaseData);
           await updatePhase('data_cleansing', phaseData);
-          navigate('/discovery/data-cleansing');
+          navigate(`/discovery/data-cleansing/${flowId}`);
         }
       }
     } catch (error) {

@@ -1,5 +1,45 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [1.14.0] - 2025-01-16
+
+### 🎯 **UI/UX** - Data Cleansing Page Redesign for Better Agent Interaction
+
+This release redesigns the Data Cleansing page to prioritize agent clarifications and remove wasted screen real estate, improving the user experience when agents need input to proceed with analysis.
+
+### 🚀 **User Interface Improvements**
+
+#### **Agent Clarification Prioritization**
+- **Type**: Frontend layout restructuring
+- **Impact**: Agent clarifications now appear prominently at the top of the page, ensuring users don't miss critical questions
+- **Technical Details**: Moved AgentClarificationPanel component above main content grid for immediate visibility
+
+#### **Smart Section Visibility**
+- **Type**: Conditional rendering optimization
+- **Impact**: Empty sections (Quality Issues, Recommendations) are now hidden when they contain no data
+- **Technical Details**: Added conditional checks for qualityIssues.length and agentRecommendations.length before rendering panels
+
+#### **Helpful Empty State Messaging**
+- **Type**: User guidance enhancement
+- **Impact**: When no issues are detected, users see a clear message directing them to check agent clarifications
+- **Technical Details**: Added placeholder Card component with informative messaging and visual indicators
+
+#### **Removed Non-Functional Components**
+- **Type**: Code cleanup and UX improvement
+- **Impact**: Removed "Discovery Flow Crew Progress" section that never displayed useful information
+- **Technical Details**: Eliminated EnhancedAgentOrchestrationPanel component and related imports
+
+### 📊 **Business Impact**
+- **Reduced User Confusion**: Clear visual hierarchy guides users to pending agent questions
+- **Improved Task Completion**: Users won't miss agent clarifications that block analysis progress
+- **Cleaner Interface**: Removal of empty sections creates more focused, professional appearance
+- **Better Screen Utilization**: Valuable screen space now dedicated to actionable content
+
+### 🎯 **Success Metrics**
+- **Visual Hierarchy**: Agent clarifications moved from sidebar to primary content area
+- **Code Reduction**: Removed ~15 lines of non-functional component code
+- **Dynamic Content**: 100% of empty sections now hidden when not needed
+- **User Guidance**: Added contextual messaging for empty states
+
 ## [1.13.0] - 2025-01-16
 
 ### 🐛 **BUG FIX** - Field Mapping Approval System Restoration

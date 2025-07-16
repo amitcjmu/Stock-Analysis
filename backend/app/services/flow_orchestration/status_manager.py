@@ -132,6 +132,12 @@ class FlowStatusManager:
         # Get state data
         state_data = master_flow.flow_persistence_data if master_flow.flow_persistence_data else {}
         
+        # Get raw data and import metadata for discovery flows
+        raw_data = []
+        import_metadata = {}
+        if master_flow.flow_type == "discovery":
+            raw_data, import_metadata = await self._get_discovery_import_data(master_flow)
+
         detailed_status = {
             "configuration": master_flow.flow_configuration,
             "phases": phase_info,
@@ -139,7 +145,9 @@ class FlowStatusManager:
             "collaboration_log": collaboration_log,
             "state_data": state_data,
             "agent_insights": agent_insights,
-            "field_mappings": field_mappings
+            "field_mappings": field_mappings,
+            "raw_data": raw_data,
+            "import_metadata": import_metadata
         }
         
         return detailed_status
@@ -515,6 +523,141 @@ class FlowStatusManager:
         except Exception as e:
             logger.error(f"❌ Smart discovery of field mappings failed: {e}")
             return []
+    
+    async def _get_discovery_import_data(self, master_flow) -> tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        """
+        Get raw import data and metadata for discovery flows
+        
+        Args:
+            master_flow: The master flow object
+            
+        Returns:
+            Tuple of (raw_data, import_metadata)
+        """
+        try:
+            flow_id = master_flow.flow_id
+            logger.info(f"🔍 Getting import data for discovery flow {flow_id}")
+            
+            # Strategy 1: Get from flow persistence data
+            persistence_data = master_flow.flow_persistence_data or {}
+            data_import_id = persistence_data.get('data_import_id')
+            
+            if data_import_id:
+                logger.info(f"📄 Found data_import_id in persistence data: {data_import_id}")
+                raw_data, import_metadata = await self._load_import_data_by_id(data_import_id)
+                if raw_data:
+                    return raw_data, import_metadata
+            
+            # Strategy 2: Smart discovery via master flow ID linkage
+            logger.info(f"🔍 No data_import_id found, attempting smart discovery for flow {flow_id}")
+            raw_data, import_metadata = await self._smart_discover_import_data(master_flow)
+            
+            return raw_data, import_metadata
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to get discovery import data: {e}")
+            return [], {}
+    
+    async def _load_import_data_by_id(self, data_import_id: str) -> tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        """Load import data by data_import_id"""
+        try:
+            from app.models.data_import import DataImport, RawImportRecord
+            from sqlalchemy import select
+            
+            # Get the data import record
+            import_query = select(DataImport).where(DataImport.id == data_import_id)
+            import_result = await self.db.execute(import_query)
+            data_import = import_result.scalar_one_or_none()
+            
+            if not data_import:
+                logger.warning(f"⚠️ No data import found for ID: {data_import_id}")
+                return [], {}
+            
+            # Get raw import records (limit to avoid overwhelming the response)
+            raw_records_query = select(RawImportRecord).where(
+                RawImportRecord.data_import_id == data_import_id
+            ).limit(100)  # Limit to first 100 records for performance
+            
+            raw_result = await self.db.execute(raw_records_query)
+            raw_records = raw_result.scalars().all()
+            
+            # Convert to frontend format
+            raw_data = []
+            for record in raw_records:
+                if record.raw_data:
+                    raw_data.append(record.raw_data)
+            
+            # Build import metadata
+            import_metadata = {
+                "data_import_id": str(data_import.id),
+                "filename": data_import.filename,
+                "import_type": data_import.import_type,
+                "status": data_import.status,
+                "total_records": data_import.total_records,
+                "records_fetched": len(raw_data),
+                "created_at": data_import.created_at.isoformat() if data_import.created_at else None,
+                "updated_at": data_import.updated_at.isoformat() if data_import.updated_at else None
+            }
+            
+            logger.info(f"✅ Loaded {len(raw_data)} raw records for data_import_id {data_import_id}")
+            return raw_data, import_metadata
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to load import data by ID {data_import_id}: {e}")
+            return [], {}
+    
+    async def _smart_discover_import_data(self, master_flow) -> tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        """Smart discovery of import data for orphaned flows"""
+        try:
+            from app.models.data_import import DataImport, RawImportRecord
+            from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+            from sqlalchemy import select, and_, or_
+            
+            flow_id = master_flow.flow_id
+            
+            # Get the database ID for this flow_id (FK references id, not flow_id)
+            db_id_query = select(CrewAIFlowStateExtensions.id).where(
+                CrewAIFlowStateExtensions.flow_id == flow_id
+            )
+            db_id_result = await self.db.execute(db_id_query)
+            flow_db_id = db_id_result.scalar_one_or_none()
+            
+            # Strategy: Find data imports that should be linked to this flow
+            if flow_db_id:
+                # Look for imports with matching master_flow_id or orphaned imports for this client/engagement
+                import_query = select(DataImport).where(
+                    and_(
+                        DataImport.client_account_id == self.context.client_account_id,
+                        DataImport.engagement_id == self.context.engagement_id,
+                        or_(
+                            DataImport.master_flow_id == flow_db_id,  # Use database ID
+                            DataImport.master_flow_id.is_(None)  # Include orphaned imports
+                        )
+                    )
+                ).order_by(DataImport.created_at.desc()).limit(1)  # Get most recent
+            else:
+                # No database ID, just look for orphaned imports
+                import_query = select(DataImport).where(
+                    and_(
+                        DataImport.client_account_id == self.context.client_account_id,
+                        DataImport.engagement_id == self.context.engagement_id,
+                        DataImport.master_flow_id.is_(None)
+                    )
+                ).order_by(DataImport.created_at.desc()).limit(1)
+            
+            import_result = await self.db.execute(import_query)
+            data_import = import_result.scalar_one_or_none()
+            
+            if data_import:
+                logger.info(f"🔍 Found related data import: {data_import.id} for flow {flow_id}")
+                return await self._load_import_data_by_id(str(data_import.id))
+            
+            logger.warning(f"⚠️ No import data found via smart discovery for flow {flow_id}")
+            return [], {}
+            
+        except Exception as e:
+            logger.error(f"❌ Smart discovery of import data failed: {e}")
+            return [], {}
     
     def _get_phase_information(self, master_flow, flow_config) -> Dict[str, Any]:
         """Get phase information for a flow"""
