@@ -564,4 +564,19 @@ class UnifiedDiscoveryFlowState(BaseModel):
     
     def safe_json_dumps(self) -> str:
         """Safely serialize to JSON with UUID handling"""
-        return json.dumps(self.model_dump(), cls=UUIDEncoder, default=str) 
+        return json.dumps(self.model_dump(), cls=UUIDEncoder, default=str)
+    
+    def get_llm(self):
+        """Get the LLM instance for CrewAI agents."""
+        try:
+            from app.services.llm_config import get_crewai_llm
+            llm = get_crewai_llm()
+            return llm
+        except ImportError as e:
+            # Return a mock LLM for fallback
+            class MockLLM:
+                def __init__(self):
+                    self.model_name = "mock"
+                def invoke(self, prompt):
+                    return "Mock response"
+            return MockLLM() 

@@ -100,27 +100,68 @@ class FlowStateManager:
             raise
     
     async def get_flow_state(self, flow_id: str) -> Optional[Dict[str, Any]]:
-        """Get current flow state"""
+        """
+        Get current flow state for agent analysis
+        
+        ADR-012: Uses child flow data for operational decisions, not master flow
+        """
         try:
-            state = await self.store.load_state(flow_id)
+            # ADR-012: Get operational state from child flow repository
+            logger.info(f"🔄 [ADR-012] Getting operational state from child flow: {flow_id}")
             
-            if state:
-                # Validate state integrity
-                validation_result = self.validator.validate_complete_state(state)
-                if not validation_result['valid']:
-                    logger.warning(f"⚠️ State validation failed for {flow_id}: {validation_result['errors']}")
-                    # Attempt automatic repair
-                    try:
-                        await self.recovery.handle_corrupted_state(flow_id)
-                        # Reload after repair
-                        state = await self.store.load_state(flow_id)
-                    except StateRecoveryError:
-                        logger.error(f"❌ Failed to recover corrupted state for {flow_id}")
-                
-                return state
-            else:
-                logger.warning(f"⚠️ No state found for flow {flow_id}")
+            # First, determine flow type to get appropriate child flow
+            from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
+            master_repo = CrewAIFlowStateExtensionsRepository(self.db, self.context.client_account_id, self.context.engagement_id, self.context.user_id)
+            master_flow = await master_repo.get_by_flow_id(flow_id)
+            
+            if not master_flow:
+                logger.warning(f"⚠️ Master flow not found: {flow_id}")
                 return None
+            
+            # Get child flow based on type (assuming discovery for now)
+            if master_flow.flow_type == "discovery":
+                from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+                child_repo = DiscoveryFlowRepository(self.db, self.context.client_account_id, self.context.engagement_id, self.context.user_id)
+                child_flow = await child_repo.get_by_flow_id(flow_id)
+                
+                if child_flow:
+                    # Create UnifiedDiscoveryFlowState from child flow operational data
+                    state = {
+                        'flow_id': flow_id,
+                        'client_account_id': str(self.context.client_account_id),
+                        'engagement_id': str(self.context.engagement_id),
+                        'user_id': str(self.context.user_id),
+                        'current_phase': child_flow.current_phase,
+                        'status': child_flow.status,  # ADR-012: Use child flow operational status
+                        'progress_percentage': child_flow.progress_percentage,
+                        'phase_completion': {
+                            'data_import': child_flow.data_import_completed or False,
+                            'field_mapping': child_flow.field_mapping_completed or False,
+                            'data_cleansing': child_flow.data_cleansing_completed or False,
+                            'asset_inventory': child_flow.asset_inventory_completed or False
+                        },
+                        'errors': child_flow.error_details or [],
+                        'raw_data': child_flow.imported_data or [],
+                        'field_mappings': child_flow.field_mappings or {},
+                        'validation_results': child_flow.validation_results or {},
+                        'created_at': child_flow.created_at.isoformat() if child_flow.created_at else None,
+                        'updated_at': child_flow.updated_at.isoformat() if child_flow.updated_at else None
+                    }
+                    
+                    logger.info(f"✅ [ADR-012] Operational state loaded from child flow: {flow_id}")
+                    return state
+                else:
+                    logger.warning(f"⚠️ Child flow not found: {flow_id}")
+                    return None
+            else:
+                # For non-discovery flows, fall back to master flow data (to be expanded)
+                logger.warning(f"⚠️ [ADR-012] Non-discovery flow type not yet supported: {master_flow.flow_type}")
+                # Fall back to original behavior for now
+                state = await self.store.load_state(flow_id)
+                if state:
+                    return state
+                else:
+                    return None
                 
         except Exception as e:
             logger.error(f"❌ Failed to get flow state for {flow_id}: {e}")

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import masterFlowServiceExtended from '../services/api/masterFlowService.extensions';
 import type { FlowStatusResponse } from '../services/api/masterFlowService';
+import discoveryFlowService, { DiscoveryFlowStatusResponse } from '../services/api/discoveryFlowService';
 
 // Types for UnifiedDiscoveryFlow
 interface UnifiedDiscoveryFlowState {
@@ -43,44 +44,55 @@ interface UseUnifiedDiscoveryFlowReturn {
   flowId: string | null;
 }
 
-// Use extended master flow service for all API calls
+// Use discovery flow service for operational status (ADR-012)
 const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string) => ({
   async getFlowStatus(flowId: string): Promise<UnifiedDiscoveryFlowState> {
     console.log(`🔍 [DEBUG] useUnifiedDiscoveryFlow.getFlowStatus called for flowId: ${flowId}`);
-    const response: FlowStatusResponse = await masterFlowServiceExtended.getFlowStatus(flowId, clientAccountId, engagementId);
+    
+    // ADR-012: Use discovery flow service for operational status
+    // This provides child flow status for operational decisions
+    const response: DiscoveryFlowStatusResponse = await discoveryFlowService.getOperationalStatus(flowId, clientAccountId, engagementId);
     
     console.log(`🔍 [DEBUG] Raw API response:`, response);
     console.log(`🔍 [DEBUG] Field mappings in response:`, response.field_mappings);
     console.log(`🔍 [DEBUG] Field mappings type:`, typeof response.field_mappings);
     console.log(`🔍 [DEBUG] Field mappings length:`, Array.isArray(response.field_mappings) ? response.field_mappings.length : 'not array');
     
-    // Map backend response to frontend format
+    // Map discovery flow response to frontend format
+    // ADR-012: This now uses child flow status for operational decisions
     const mappedResponse = {
-      flow_id: response.flow_id || response.flowId || flowId,
+      flow_id: response.flow_id || flowId,
       client_account_id: clientAccountId,
       engagement_id: engagementId || '',
       user_id: '',
-      current_phase: response.phase || response.currentPhase || '',
-      phase_completion: response.phase_completion || {},
-      crew_status: response.crew_status || {},
-      raw_data: response.raw_data || [],
+      current_phase: response.current_phase || '',
+      phase_completion: {
+        data_import: response.summary?.data_import_completed || false,
+        field_mapping: response.summary?.field_mapping_completed || false,
+        data_cleansing: response.summary?.data_cleansing_completed || false,
+        asset_inventory: response.summary?.asset_inventory_completed || false,
+        dependency_analysis: response.summary?.dependency_analysis_completed || false,
+        tech_debt_analysis: response.summary?.tech_debt_assessment_completed || false,
+      },
+      crew_status: {}, // Will be populated by discovery flow service
+      raw_data: [], // Will be populated by discovery flow service
       field_mappings: response.field_mappings || {},
-      cleaned_data: response.cleaned_data || response.data_cleansing_results?.cleaned_data || [],
-      asset_inventory: response.asset_inventory || response.inventory_results || {},
-      dependencies: response.dependencies || response.dependency_results || {},
-      technical_debt: response.technical_debt || response.tech_debt_results || {},
+      cleaned_data: response.cleaned_data || [],
+      asset_inventory: response.asset_inventory || {},
+      dependencies: response.dependencies || {},
+      technical_debt: response.technical_debt || {},
       agent_insights: response.agent_insights || [],
       status: response.status || 'unknown',
-      progress_percentage: response.progress_percentage || response.progress || 0,
+      progress_percentage: response.progress_percentage || 0,
       errors: response.errors || [],
       warnings: response.warnings || [],
       created_at: response.created_at || '',
       updated_at: response.updated_at || '',
-      // Additional fields that might be in the response
-      data_cleansing_results: response.data_cleansing_results || response.data_cleansing || {},
-      inventory_results: response.inventory_results || response.inventory || {},
-      dependency_results: response.dependency_results || response.dependencies || {},
-      tech_debt_results: response.tech_debt_results || response.tech_debt || {}
+      // Additional fields from discovery flow
+      data_cleansing_results: response.cleaned_data ? { cleaned_data: response.cleaned_data } : {},
+      inventory_results: response.asset_inventory || {},
+      dependency_results: response.dependencies || {},
+      tech_debt_results: response.technical_debt || {}
     };
     
     console.log(`🔍 [DEBUG] Mapped response field_mappings:`, mappedResponse.field_mappings);
@@ -94,8 +106,8 @@ const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string
   },
 
   async executePhase(flowId: string, phase: string, data: any = {}): Promise<any> {
-    // Now using the extended service with proper phase execution
-    return masterFlowServiceExtended.executePhase(flowId, phase, data, clientAccountId, engagementId);
+    // ADR-012: Use discovery flow service for operational phase execution
+    return discoveryFlowService.executePhase(flowId, phase, data, clientAccountId, engagementId);
   },
 
   async getHealthStatus(): Promise<any> {

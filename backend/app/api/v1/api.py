@@ -20,6 +20,7 @@ from app.api.v1.endpoints import (
     assessment_flow_router,
     assessment_events_router,
 )
+from app.api.v1.endpoints.flow_sync_debug import router as flow_sync_debug_router
 
 # Decommission endpoints
 try:
@@ -295,6 +296,10 @@ try:
     logger.info("✅ Unified Flow API router included")
 except ImportError as e:
     logger.warning(f"⚠️ Unified Flow API router not available: {e}")
+
+# Flow Status Sync Debug endpoints (ADR-012)
+api_router.include_router(flow_sync_debug_router, prefix="/debug/flow-sync", tags=["Flow Sync Debug"])
+logger.info("✅ Flow Sync Debug router included")
 
 api_router.include_router(context_router, prefix="/context", tags=["Context Management"])
 

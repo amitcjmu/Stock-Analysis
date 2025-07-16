@@ -778,21 +778,91 @@ class FlowExecutionEngine:
                     "method": "crewai_flow_resume"
                 }
             else:
-                # Advance to the next phase
-                advance_result = await crewai_service.advance_flow_phase(
-                    flow_id=str(master_flow.flow_id),
-                    next_phase=crewai_phase,
-                    context=context
+                # Actually execute the phase using PhaseExecutionManager
+                logger.info(f"🚀 Executing discovery flow phase {crewai_phase} for flow {master_flow.flow_id}")
+                
+                # Import required modules for phase execution
+                from app.services.crewai_flows.handlers.phase_executors import PhaseExecutionManager
+                from app.services.crewai_flows.flow_state_bridge import FlowStateBridge
+                from app.services.crewai_flows.handlers.unified_flow_crew_manager import UnifiedFlowCrewManager
+                from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
+                from app.core.context import RequestContext
+                
+                # Create request context
+                request_context = RequestContext(
+                    client_account_id=master_flow.client_account_id,
+                    engagement_id=master_flow.engagement_id,
+                    user_id=master_flow.user_id
                 )
                 
-                logger.info(f"✅ Advanced discovery flow to phase {crewai_phase}: {advance_result}")
+                # Get flow state from the bridge
+                flow_bridge = FlowStateBridge(request_context)
+                state = await flow_bridge.recover_flow_state(str(master_flow.flow_id))
                 
-                return {
-                    "phase": phase_config.name,
-                    "status": advance_result.get("status", "completed"),
-                    "crew_results": advance_result.get("result", {}),
-                    "method": "crewai_flow_advance"
+                if not state:
+                    logger.error(f"❌ No flow state found for {master_flow.flow_id}")
+                    return {
+                        "phase": phase_config.name,
+                        "status": "failed",
+                        "error": "Flow state not found",
+                        "crew_results": {},
+                        "method": "phase_execution_failed"
+                    }
+                
+                # Create crew manager
+                crew_manager = UnifiedFlowCrewManager(state, crewai_service)
+                
+                # Create phase execution manager
+                phase_manager = PhaseExecutionManager(state, crew_manager, flow_bridge)
+                
+                # Get previous phase result if needed
+                previous_result = {
+                    "raw_data": state.raw_data or [],
+                    "field_mappings": state.field_mappings or {},
+                    "cleansed_data": getattr(state, 'cleansed_data', state.raw_data) or []
                 }
+                
+                try:
+                    # Execute the phase
+                    if crewai_phase == "asset_inventory":
+                        result = await phase_manager.execute_asset_inventory_phase(previous_result)
+                    elif crewai_phase == "field_mapping":
+                        result = await phase_manager.execute_field_mapping_phase(previous_result)
+                    elif crewai_phase == "data_cleansing":
+                        result = await phase_manager.execute_data_cleansing_phase(previous_result)
+                    elif crewai_phase == "dependency_analysis":
+                        result = await phase_manager.execute_dependency_analysis_phase(previous_result)
+                    elif crewai_phase == "data_import_validation":
+                        result = await phase_manager.execute_data_import_validation_phase(previous_result)
+                    else:
+                        logger.warning(f"⚠️ Phase execution not implemented for: {crewai_phase}")
+                        result = {"status": "skipped", "message": f"Phase {crewai_phase} execution not implemented"}
+                    
+                    logger.info(f"✅ Phase {crewai_phase} executed successfully for flow {master_flow.flow_id}")
+                    
+                    # Update flow state with results
+                    if result and hasattr(state, crewai_phase):
+                        setattr(state, crewai_phase, result)
+                    
+                    # Save updated state
+                    await flow_bridge.update_flow_state(state)
+                    
+                    return {
+                        "phase": phase_config.name,
+                        "status": "completed",
+                        "crew_results": result or {},
+                        "method": "phase_execution_manager"
+                    }
+                    
+                except Exception as phase_error:
+                    logger.error(f"❌ Error executing phase {crewai_phase}: {phase_error}", exc_info=True)
+                    return {
+                        "phase": phase_config.name,
+                        "status": "failed",
+                        "error": str(phase_error),
+                        "crew_results": {},
+                        "method": "phase_execution_error"
+                    }
     
     async def _execute_assessment_phase(
         self,
@@ -1090,17 +1160,33 @@ class FlowExecutionEngine:
         return state
     
     def _get_default_next_phase(self, current_phase: str) -> str:
-        """Get default next phase for fallback"""
-        phase_order = {
-            "initialization": "data_import",
-            "data_import": "field_mapping",
-            "field_mapping": "data_cleansing",
-            "data_cleansing": "asset_inventory",
-            "asset_inventory": "dependency_analysis",
-            "dependency_analysis": "tech_debt_assessment",
-            "tech_debt_assessment": "complete"
-        }
-        return phase_order.get(current_phase, "complete")
+        """Get default next phase using FlowTypeRegistry"""
+        try:
+            # Use the FlowTypeRegistry to get the proper next phase
+            discovery_config = self.flow_registry.get_flow_config("discovery")
+            next_phase = discovery_config.get_next_phase(current_phase)
+            
+            if next_phase:
+                logger.info(f"🔄 FlowTypeRegistry: next phase after '{current_phase}' is '{next_phase}'")
+                return next_phase
+            else:
+                logger.info(f"🏁 FlowTypeRegistry: no next phase after '{current_phase}' - flow complete")
+                return "complete"
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to get next phase from FlowTypeRegistry: {e}")
+            # Fallback to hardcoded phase order for discovery flows only
+            phase_order = {
+                "data_import": "field_mapping",
+                "field_mapping": "data_cleansing",
+                "data_cleansing": "asset_creation",
+                "asset_creation": "asset_inventory",
+                "asset_inventory": "dependency_analysis",
+                "dependency_analysis": "complete"
+            }
+            fallback_phase = phase_order.get(current_phase, "complete")
+            logger.warning(f"⚠️ Using fallback phase sequence: '{current_phase}' -> '{fallback_phase}'")
+            return fallback_phase
     
     def _is_recoverable_error(self, error: Exception) -> bool:
         """

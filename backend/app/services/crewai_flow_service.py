@@ -772,6 +772,24 @@ class CrewAIFlowService:
                 "message": "Failed to resume flow at phase"
             }
 
+    def add_error(self, error_message: str, phase: str = None, details: Dict[str, Any] = None):
+        """Add error to the flow service for tracking"""
+        error_entry = {
+            "error": error_message,
+            "phase": phase or "unknown",
+            "timestamp": datetime.now().isoformat(),
+            "details": details or {}
+        }
+        
+        # Store in internal error list for tracking
+        if not hasattr(self, '_errors'):
+            self._errors = []
+        self._errors.append(error_entry)
+        
+        logger.error(f"❌ CrewAI Flow Error in phase {phase}: {error_message}")
+        if details:
+            logger.error(f"   Details: {details}")
+
 
 # Factory function for dependency injection
 async def get_crewai_flow_service(

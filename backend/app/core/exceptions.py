@@ -452,4 +452,18 @@ class BackgroundTaskError(BaseApplicationError):
         self.details.update({
             "task_name": task_name,
             "task_id": task_id
-        }) 
+        })
+
+
+class FlowStateUpdateError(FlowError):
+    """Raised when flow state update operations fail"""
+    
+    def __init__(self, message: str, flow_id: Optional[str] = None, **kwargs):
+        super().__init__(message, flow_id=flow_id, **kwargs)
+        self.error_code = "FLOW_004"
+        self.user_message = "Failed to update workflow status"
+        self.recovery_suggestions = [
+            "The system will retry the operation",
+            "Try refreshing the page to see current status",
+            "Contact support if the issue persists"
+        ] 

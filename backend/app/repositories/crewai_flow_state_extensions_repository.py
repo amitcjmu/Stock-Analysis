@@ -227,7 +227,8 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
         flow_id: str,
         status: str,
         phase_data: Dict[str, Any] = None,
-        collaboration_entry: Dict[str, Any] = None
+        collaboration_entry: Dict[str, Any] = None,
+        metadata: Dict[str, Any] = None
     ) -> CrewAIFlowStateExtensions:
         """Update master flow status and state"""
         
@@ -262,6 +263,12 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
                 if len(collaboration_log) > 100:
                     collaboration_log = collaboration_log[-100:]
                 update_values["agent_collaboration_log"] = collaboration_log
+                
+            # Update metadata (ADR-012 sync metadata)
+            if metadata:
+                flow_metadata = existing_flow.flow_metadata or {}
+                flow_metadata.update(metadata)
+                update_values["flow_metadata"] = flow_metadata
         
         # Execute update
         stmt = update(CrewAIFlowStateExtensions).where(

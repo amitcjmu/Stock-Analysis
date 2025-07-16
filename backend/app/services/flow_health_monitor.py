@@ -51,9 +51,12 @@ class FlowHealthMonitor:
         """Main monitoring loop"""
         while self.running:
             try:
-                # Run health checks
-                await self.check_stuck_flows()
-                await self.check_timeout_flows()
+                # DISABLED: Auto-failing flows based on timeouts is problematic
+                # We should handle stuck flows manually through admin UI
+                # await self.check_stuck_flows()
+                # await self.check_timeout_flows()
+                
+                # Only update metrics, don't auto-fail flows
                 await self.update_flow_metrics()
                 
                 # Sleep for 5 minutes
@@ -64,7 +67,11 @@ class FlowHealthMonitor:
                 await asyncio.sleep(60)  # Sleep for 1 minute on error
                 
     async def check_stuck_flows(self):
-        """Check for flows stuck at 0% progress"""
+        """Check for flows stuck at 0% progress
+        
+        DISABLED: This method is no longer called. Auto-failing flows is problematic.
+        Flows should be managed manually through admin UI.
+        """
         try:
             async with AsyncSessionLocal() as db:
                 # Find flows stuck at initialization/active with 0% progress for > 1 hour
@@ -93,7 +100,11 @@ class FlowHealthMonitor:
             logger.error(f"❌ Error checking stuck flows: {e}")
             
     async def check_timeout_flows(self):
-        """Check for flows that have exceeded their timeout"""
+        """Check for flows that have exceeded their timeout
+        
+        DISABLED: This method is no longer called. Auto-failing flows is problematic.
+        Flows should be managed manually through admin UI.
+        """
         try:
             async with AsyncSessionLocal() as db:
                 # Get all active flows
@@ -130,9 +141,14 @@ class FlowHealthMonitor:
             flow.status = 'failed'
             flow.error_message = 'Flow stuck at initialization with no progress after 1 hour'
             flow.error_phase = 'initialization'
+            # Ensure created_at is timezone-aware
+            created_at = flow.created_at
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=timezone.utc)
+            
             flow.error_details = {
                 'reason': 'stuck_at_zero_progress',
-                'stuck_duration_hours': (datetime.now(timezone.utc) - flow.created_at).total_seconds() / 3600
+                'stuck_duration_hours': (datetime.now(timezone.utc) - created_at).total_seconds() / 3600
             }
             flow.updated_at = datetime.now(timezone.utc)
             

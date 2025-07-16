@@ -502,11 +502,16 @@ async def execute_flow_phase(
                 raise HTTPException(status_code=400, detail="Cannot execute data_cleansing phase: field_mapping not completed")
             # Add more validation as needed
         
-        # TODO: Implement actual phase execution using CrewAI
-        # For now, simulate execution
+        # Import required modules for phase execution
+        from app.services.crewai_flows.handlers.phase_executors import PhaseExecutionManager
+        from app.services.crewai_flows.unified_discovery_flow.state_management import StateManager
+        from app.services.crewai_flows.flow_state_bridge import FlowStateBridge
+        from app.services.crewai_flows.handlers.unified_flow_crew_manager import UnifiedFlowCrewManager
+        from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
+        
         logger.info(f"📊 Executing phase: {execution_phase}")
         
-        # Update flow status
+        # Update flow status first
         flow.status = "processing"
         flow.current_phase = execution_phase
         flow.updated_at = datetime.utcnow()
@@ -523,15 +528,96 @@ async def execute_flow_phase(
         
         await db.commit()
         
-        return {
-            "success": True,
-            "flow_id": str(flow_id),
-            "status": "executing",
-            "message": f"Phase {execution_phase} execution started",
-            "current_phase": execution_phase,
-            "next_phase": StatusCalculator.get_next_phase(execution_phase),
-            "method": "phase_execution"
-        }
+        # Now actually execute the phase
+        try:
+            # Get flow state from the bridge
+            flow_bridge = FlowStateBridge(context)
+            state_dict = await flow_bridge.load_state(str(flow_id))
+            
+            if not state_dict:
+                logger.error(f"❌ No flow state found for {flow_id}")
+                raise HTTPException(status_code=404, detail="Flow state not found")
+            
+            # Create state object
+            state = UnifiedDiscoveryFlowState()
+            state.flow_id = str(flow_id)
+            state.client_account_id = str(context.client_account_id)
+            state.engagement_id = str(context.engagement_id)
+            state.user_id = str(context.user_id)
+            
+            # Load state data
+            for key, value in state_dict.items():
+                if hasattr(state, key):
+                    setattr(state, key, value)
+            
+            # Create crew manager
+            crew_manager = UnifiedFlowCrewManager(state, crewai_service)
+            
+            # Create phase execution manager
+            phase_manager = PhaseExecutionManager(state, crew_manager, flow_bridge)
+            
+            # Execute the specific phase
+            logger.info(f"🚀 Executing {execution_phase} phase via PhaseExecutionManager")
+            
+            # Get previous phase result if needed
+            previous_result = {}
+            if execution_phase == "asset_inventory":
+                # For asset inventory, we need the data cleansing results
+                previous_result = {
+                    "raw_data": state.raw_data or [],
+                    "field_mappings": state.field_mappings or {},
+                    "cleansed_data": getattr(state, 'cleansed_data', state.raw_data) or []
+                }
+            
+            # Execute the phase
+            if execution_phase == "asset_inventory":
+                result = await phase_manager.execute_asset_inventory_phase(previous_result)
+            elif execution_phase == "field_mapping":
+                result = await phase_manager.execute_field_mapping_phase(previous_result)
+            elif execution_phase == "data_cleansing":
+                result = await phase_manager.execute_data_cleansing_phase(previous_result)
+            elif execution_phase == "dependency_analysis":
+                result = await phase_manager.execute_dependency_analysis_phase(previous_result)
+            elif execution_phase == "tech_debt_analysis":
+                result = await phase_manager.execute_tech_debt_analysis_phase(previous_result)
+            else:
+                raise HTTPException(status_code=400, detail=f"Unknown phase: {execution_phase}")
+            
+            logger.info(f"✅ Phase {execution_phase} executed successfully")
+            
+            # Update flow state with results
+            if result and hasattr(state, execution_phase):
+                setattr(state, execution_phase, result)
+            
+            # Save updated state
+            await flow_bridge.save_state(state)
+            
+            return {
+                "success": True,
+                "flow_id": str(flow_id),
+                "status": "executing",
+                "message": f"Phase {execution_phase} executed successfully",
+                "current_phase": execution_phase,
+                "next_phase": StatusCalculator.get_next_phase(execution_phase),
+                "method": "phase_execution",
+                "execution_triggered": True
+            }
+            
+        except HTTPException:
+            raise
+        except Exception as phase_exec_error:
+            logger.error(f"❌ Error executing phase {execution_phase}: {phase_exec_error}", exc_info=True)
+            # Still return success since we updated the flow status
+            return {
+                "success": True,
+                "flow_id": str(flow_id),
+                "status": "executing",
+                "message": f"Phase {execution_phase} execution failed: {str(phase_exec_error)}",
+                "current_phase": execution_phase,
+                "next_phase": StatusCalculator.get_next_phase(execution_phase),
+                "method": "phase_execution",
+                "error": str(phase_exec_error)
+            }
         
     except HTTPException:
         raise

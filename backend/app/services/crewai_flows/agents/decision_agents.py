@@ -198,6 +198,8 @@ class PhaseTransitionAgent(BaseDecisionAgent):
             return self._decide_after_mapping(analysis)
         elif current_phase == "data_cleansing":
             return self._decide_after_cleansing(analysis)
+        elif current_phase == "asset_creation":
+            return self._decide_after_asset_creation(analysis)
         else:
             # Default progression
             return AgentDecision(
@@ -213,15 +215,31 @@ class PhaseTransitionAgent(BaseDecisionAgent):
         metrics = analysis.get("import_metrics", {})
         data_quality = analysis.get("data_quality", 0)
         
+        # Calculate confidence based on data quality and import success
+        import_success_rate = metrics.get("success_rate", 0)
+        completeness = analysis.get("completeness", 0)
+        
         if data_quality < 0.3:
+            # High confidence in failure decision when data quality is very poor
+            failure_confidence = self._calculate_confidence({
+                "data_quality_severity": 1.0 - data_quality,  # Higher severity = higher confidence
+                "import_metrics_support": import_success_rate < 0.5,
+                "completeness_check": completeness < 0.3
+            })
             return AgentDecision(
                 action=PhaseAction.FAIL,
                 next_phase="",
-                confidence=0.9,
+                confidence=failure_confidence,
                 reasoning="Data quality is too poor to proceed with migration. "
                          "Source data needs to be cleaned or re-exported.",
                 metadata={
                     "data_quality_score": data_quality,
+                    "import_success_rate": import_success_rate,
+                    "confidence_factors": {
+                        "data_quality_severity": 1.0 - data_quality,
+                        "import_metrics_support": import_success_rate < 0.5,
+                        "completeness_check": completeness < 0.3
+                    },
                     "recommendations": [
                         "Review source data export process",
                         "Check for data corruption",
@@ -230,116 +248,248 @@ class PhaseTransitionAgent(BaseDecisionAgent):
                 }
             )
         
-        # Check if field mapping review is needed
-        complexity = analysis.get("complexity", 0)
-        if complexity > 0.7 or self._has_ambiguous_fields(analysis):
-            return AgentDecision(
-                action=PhaseAction.PAUSE,
-                next_phase="field_mapping",
-                confidence=0.85,
-                reasoning="Complex or ambiguous field mappings detected that require human review",
-                metadata={
-                    "complexity_score": complexity,
-                    "ambiguous_fields": analysis.get("ambiguous_fields", [])
-                }
-            )
+        # CRITICAL: Always proceed to field_mapping after data_import
+        # Field mapping is required for all subsequent phases to work properly
+        proceed_confidence = self._calculate_confidence({
+            "data_quality_adequate": data_quality >= 0.3,
+            "import_success": import_success_rate >= 0.7,
+            "field_mapping_necessity": 1.0,  # Always necessary
+            "completeness_sufficient": completeness >= 0.5
+        })
         
-        # High quality data can skip manual review
-        if data_quality > 0.9 and complexity < 0.3:
-            return AgentDecision(
-                action=PhaseAction.PROCEED,
-                next_phase="data_cleansing",
-                confidence=0.95,
-                reasoning="High quality data with clear field mappings. "
-                         "Automated mapping is sufficient.",
-                metadata={
-                    "auto_mapped": True,
-                    "quality_score": data_quality
-                }
-            )
-        
-        # Standard flow - generate suggestions
         return AgentDecision(
             action=PhaseAction.PROCEED,
             next_phase="field_mapping",
-            confidence=0.8,
-            reasoning="Data imported successfully. Proceeding to field mapping.",
-            metadata=metrics
+            confidence=proceed_confidence,
+            reasoning="Proceeding to field mapping phase. Field mappings are required "
+                     "for all subsequent phases including asset creation and inventory. "
+                     "This ensures proper data transformation and validation.",
+            metadata={
+                "data_quality_score": data_quality,
+                "import_metrics": metrics,
+                "confidence_factors": {
+                    "data_quality_adequate": data_quality >= 0.3,
+                    "import_success": import_success_rate >= 0.7,
+                    "field_mapping_necessity": 1.0,
+                    "completeness_sufficient": completeness >= 0.5
+                },
+                "required_for_phases": ["data_cleansing", "asset_creation", "asset_inventory"]
+            }
         )
     
     def _decide_after_mapping(self, analysis: Dict[str, Any]) -> AgentDecision:
         """Decision logic after field mapping phase"""
         mapping_quality = analysis.get("mapping_quality", {})
-        confidence = mapping_quality.get("confidence", 0)
+        mapping_confidence = mapping_quality.get("confidence", 0)
         missing_critical = mapping_quality.get("missing_critical_fields", [])
         
         # Dynamic threshold based on data characteristics
         required_confidence = self._calculate_required_confidence(analysis)
         
         if missing_critical:
+            # High confidence in pause decision when critical fields are missing
+            pause_confidence = self._calculate_confidence({
+                "critical_fields_missing": len(missing_critical) > 0,
+                "mapping_completeness": 1.0 - (len(missing_critical) / max(1, mapping_quality.get("total_fields", 1))),
+                "business_impact": 1.0,  # Critical fields always have high business impact
+                "human_intervention_needed": 1.0
+            })
             return AgentDecision(
                 action=PhaseAction.PAUSE,
                 next_phase="field_mapping",
-                confidence=0.95,
+                confidence=pause_confidence,
                 reasoning=f"Critical fields are not mapped: {', '.join(missing_critical)}. "
                          "Human intervention required.",
                 metadata={
                     "missing_fields": missing_critical,
-                    "user_action": "map_critical_fields"
+                    "user_action": "map_critical_fields",
+                    "confidence_factors": {
+                        "critical_fields_missing": len(missing_critical) > 0,
+                        "mapping_completeness": 1.0 - (len(missing_critical) / max(1, mapping_quality.get("total_fields", 1))),
+                        "business_impact": 1.0,
+                        "human_intervention_needed": 1.0
+                    }
                 }
             )
         
-        if confidence < required_confidence:
+        if mapping_confidence < required_confidence:
+            # Confidence in pause decision based on mapping quality gap
+            confidence_gap = required_confidence - mapping_confidence
+            pause_confidence = self._calculate_confidence({
+                "mapping_quality_insufficient": confidence_gap > 0.2,
+                "confidence_gap_severity": min(1.0, confidence_gap * 2),  # Scale gap to 0-1
+                "risk_of_errors": 1.0 - mapping_confidence,
+                "human_review_value": 0.8
+            })
             return AgentDecision(
                 action=PhaseAction.PAUSE,
                 next_phase="field_mapping",
-                confidence=0.8,
-                reasoning=f"Mapping confidence ({confidence:.1%}) is below required threshold ({required_confidence:.1%}). "
+                confidence=pause_confidence,
+                reasoning=f"Mapping confidence ({mapping_confidence:.1%}) is below required threshold ({required_confidence:.1%}). "
                          "Human review recommended.",
                 metadata={
-                    "current_confidence": confidence,
+                    "current_confidence": mapping_confidence,
                     "required_confidence": required_confidence,
-                    "user_action": "review_mappings"
+                    "confidence_gap": confidence_gap,
+                    "user_action": "review_mappings",
+                    "confidence_factors": {
+                        "mapping_quality_insufficient": confidence_gap > 0.2,
+                        "confidence_gap_severity": min(1.0, confidence_gap * 2),
+                        "risk_of_errors": 1.0 - mapping_confidence,
+                        "human_review_value": 0.8
+                    }
                 }
             )
         
         # High confidence - proceed automatically
+        proceed_confidence = self._calculate_confidence({
+            "mapping_quality_high": mapping_confidence >= required_confidence,
+            "no_critical_missing": len(missing_critical) == 0,
+            "data_cleansing_readiness": mapping_confidence > 0.7,
+            "field_coverage": mapping_quality.get("field_coverage", 0.8)
+        })
+        
         return AgentDecision(
             action=PhaseAction.PROCEED,
             next_phase="data_cleansing",
-            confidence=confidence,
-            reasoning=f"Field mappings have high confidence ({confidence:.1%}). "
+            confidence=proceed_confidence,
+            reasoning=f"Field mappings have high confidence ({mapping_confidence:.1%}). "
                      "Proceeding to data cleansing.",
-            metadata=mapping_quality
+            metadata={
+                **mapping_quality,
+                "confidence_factors": {
+                    "mapping_quality_high": mapping_confidence >= required_confidence,
+                    "no_critical_missing": len(missing_critical) == 0,
+                    "data_cleansing_readiness": mapping_confidence > 0.7,
+                    "field_coverage": mapping_quality.get("field_coverage", 0.8)
+                }
+            }
         )
     
     def _decide_after_cleansing(self, analysis: Dict[str, Any]) -> AgentDecision:
         """Decision logic after data cleansing phase"""
         cleansing_impact = analysis.get("cleansing_impact", {})
         failure_rate = cleansing_impact.get("failure_rate", 0)
+        success_rate = 1.0 - failure_rate
+        records_processed = cleansing_impact.get("records_processed", 0)
         
         if failure_rate > 0.1:  # More than 10% failures
+            # Calculate confidence based on failure severity and impact
+            pause_confidence = self._calculate_confidence({
+                "failure_rate_high": failure_rate > 0.1,
+                "failure_severity": min(1.0, failure_rate * 2),  # Scale failure rate
+                "records_at_risk": min(1.0, (failure_rate * records_processed) / 100),
+                "human_intervention_needed": 0.9
+            })
             return AgentDecision(
                 action=PhaseAction.PAUSE,
                 next_phase="data_cleansing",
-                confidence=0.9,
+                confidence=pause_confidence,
                 reasoning=f"High cleansing failure rate ({failure_rate:.1%}). "
                          "Manual review of failed records required.",
                 metadata={
                     "failure_rate": failure_rate,
                     "failed_records": cleansing_impact.get("failed_records", []),
-                    "user_action": "review_failures"
+                    "user_action": "review_failures",
+                    "confidence_factors": {
+                        "failure_rate_high": failure_rate > 0.1,
+                        "failure_severity": min(1.0, failure_rate * 2),
+                        "records_at_risk": min(1.0, (failure_rate * records_processed) / 100),
+                        "human_intervention_needed": 0.9
+                    }
                 }
             )
         
         # Successful cleansing - proceed to asset creation
+        proceed_confidence = self._calculate_confidence({
+            "cleansing_success_rate": success_rate,
+            "failure_rate_acceptable": failure_rate <= 0.1,
+            "records_processed_sufficient": records_processed > 0,
+            "asset_creation_readiness": success_rate > 0.8,
+            "data_quality_improved": cleansing_impact.get("quality_improvement", 0) > 0
+        })
+        
+        return AgentDecision(
+            action=PhaseAction.PROCEED,
+            next_phase="asset_creation",
+            confidence=proceed_confidence,
+            reasoning="Data cleansing completed successfully. "
+                     "Proceeding to asset creation phase to build initial asset inventory.",
+            metadata={
+                **cleansing_impact,
+                "confidence_factors": {
+                    "cleansing_success_rate": success_rate,
+                    "failure_rate_acceptable": failure_rate <= 0.1,
+                    "records_processed_sufficient": records_processed > 0,
+                    "asset_creation_readiness": success_rate > 0.8,
+                    "data_quality_improved": cleansing_impact.get("quality_improvement", 0) > 0
+                }
+            }
+        )
+    
+    def _decide_after_asset_creation(self, analysis: Dict[str, Any]) -> AgentDecision:
+        """Decision logic after asset creation phase"""
+        
+        # Check if assets were actually created
+        has_assets = self._check_assets_created(analysis)
+        asset_creation_results = analysis.get("asset_creation_results", {})
+        assets_created_count = asset_creation_results.get("assets_created", 0)
+        creation_success_rate = asset_creation_results.get("success_rate", 0)
+        
+        if not has_assets:
+            # Calculate confidence for retry based on failure analysis
+            retry_confidence = self._calculate_confidence({
+                "no_assets_created": assets_created_count == 0,
+                "creation_failure_clear": creation_success_rate == 0,
+                "retry_likely_to_succeed": analysis.get("data_quality", 0) > 0.5,
+                "database_connection_ok": True  # Assume database is working
+            })
+            return AgentDecision(
+                action=PhaseAction.RETRY,
+                next_phase="asset_creation",
+                confidence=retry_confidence,
+                reasoning="No assets were created during asset creation phase. "
+                         "Retrying asset creation to ensure inventory is populated.",
+                metadata={
+                    "retry_reason": "no_assets_created",
+                    "user_action": "verify_data_quality",
+                    "assets_created_count": assets_created_count,
+                    "creation_success_rate": creation_success_rate,
+                    "confidence_factors": {
+                        "no_assets_created": assets_created_count == 0,
+                        "creation_failure_clear": creation_success_rate == 0,
+                        "retry_likely_to_succeed": analysis.get("data_quality", 0) > 0.5,
+                        "database_connection_ok": True
+                    }
+                }
+            )
+        
+        # Assets successfully created - proceed to asset inventory
+        proceed_confidence = self._calculate_confidence({
+            "assets_created_successfully": assets_created_count > 0,
+            "creation_success_rate_good": creation_success_rate > 0.8,
+            "inventory_phase_ready": has_assets,
+            "data_quality_supports_analysis": analysis.get("data_quality", 0) > 0.7
+        })
+        
         return AgentDecision(
             action=PhaseAction.PROCEED,
             next_phase="asset_inventory",
-            confidence=0.9,
-            reasoning="Data cleansing completed successfully. "
-                     "Proceeding to asset inventory creation.",
-            metadata=cleansing_impact
+            confidence=proceed_confidence,
+            reasoning="Assets successfully created from cleansed data. "
+                     "Proceeding to asset inventory phase for detailed analysis.",
+            metadata={
+                "assets_created": True,
+                "assets_created_count": assets_created_count,
+                "creation_success_rate": creation_success_rate,
+                "next_phase_purpose": "detailed_asset_analysis",
+                "confidence_factors": {
+                    "assets_created_successfully": assets_created_count > 0,
+                    "creation_success_rate_good": creation_success_rate > 0.8,
+                    "inventory_phase_ready": has_assets,
+                    "data_quality_supports_analysis": analysis.get("data_quality", 0) > 0.7
+                }
+            }
         )
     
     # Helper methods
@@ -356,6 +506,20 @@ class PhaseTransitionAgent(BaseDecisionAgent):
         if errors:
             return len([e for e in errors if e.get('severity') == 'critical']) > 0
         return False
+    
+    def _check_assets_created(self, analysis: Dict[str, Any]) -> bool:
+        """Check if assets were actually created in the database"""
+        # Check if asset creation results indicate success
+        asset_creation_results = analysis.get("asset_creation_results", {})
+        assets_created = asset_creation_results.get("assets_created", 0)
+        
+        # Also check if there are any assets in the state
+        state = analysis.get("state", {})
+        asset_inventory = self._get_state_attr(state, 'asset_inventory', {})
+        state_assets = asset_inventory.get("assets", []) if asset_inventory else []
+        
+        # Return True if either database shows assets created OR state has assets
+        return assets_created > 0 or len(state_assets) > 0
     
     def _assess_data_quality(self, state: UnifiedDiscoveryFlowState) -> float:
         """Assess overall data quality (0-1)"""

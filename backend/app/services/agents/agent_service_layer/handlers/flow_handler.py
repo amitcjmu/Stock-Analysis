@@ -20,37 +20,32 @@ class FlowHandler:
         self.context = context
     
     async def get_flow_status(self, flow_id: str) -> Dict[str, Any]:
-        """Get flow status using Master Flow Orchestrator for ALL flow types, with discovery fallback"""
+        """
+        Get flow status prioritizing child flow operational data per ADR-012
+        
+        ADR-012: Use child flow status for operational decisions, master flow for lifecycle only
+        """
         async with AsyncSessionLocal() as db:
             try:
-                # First try: Use Master Flow Orchestrator to check ALL flow types (discovery, assessment, planning, etc.)
-                from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+                # ADR-012: First determine flow type from master flow
+                from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
+                master_repo = CrewAIFlowStateExtensionsRepository(db, self.context.client_account_id, self.context.engagement_id, self.context.user_id)
+                master_flow = await master_repo.get_by_flow_id(flow_id)
                 
-                orchestrator = MasterFlowOrchestrator(db, self.context)
+                if not master_flow:
+                    logger.info(f"Master flow not found: {flow_id}")
+                    return {"status": "not_found", "flow_exists": False}
                 
-                # Get flow status from master orchestrator (works for all flow types)
-                flow_status = await orchestrator.get_flow_status(flow_id, include_details=True)
-                
-                return {
-                    "status": "success",
-                    "flow_exists": True,
-                    "flow": flow_status,
-                    "flow_type": flow_status.get("flow_type", "unknown")
-                }
-                
-            except ValueError:
-                # Flow not found in master orchestrator - try discovery flows fallback
-                logger.info(f"Flow not found in master orchestrator, checking discovery flows: {flow_id}")
-                
-                try:
-                    # Fallback: Check discovery_flows table for backward compatibility
+                # ADR-012: Get operational status from appropriate child flow
+                if master_flow.flow_type == "discovery":
+                    # Use discovery flow repository for operational status
                     flow_repo = DiscoveryFlowRepository(
                         db=db,
                         client_account_id=str(self.context.client_account_id),
                         engagement_id=str(self.context.engagement_id)
                     )
                     
-                    # Get real flow data from discovery flows table
+                    # Get real flow data from discovery flows table (child flow)
                     flow = await flow_repo.get_by_flow_id(flow_id)
                     
                     if flow:
@@ -91,22 +86,39 @@ class FlowHandler:
                             "flow_type": "discovery"
                         }
                     else:
+                        logger.info(f"Discovery flow not found in child repository: {flow_id}")
                         return {
                             "status": "not_found",
                             "flow_exists": False,
-                            "message": "Flow not found in master orchestrator or discovery flows"
+                            "message": "Discovery flow not found in child repository"
                         }
                         
-                except Exception as fallback_error:
-                    logger.error(f"Discovery flows fallback also failed: {fallback_error}")
+                elif master_flow.flow_type == "assessment":
+                    # TODO: Add assessment flow repository support
+                    logger.warning(f"[ADR-012] Assessment flow type not yet fully supported: {flow_id}")
                     return {
-                        "status": "not_found",
-                        "flow_exists": False,
-                        "message": f"Flow not found: {str(fallback_error)}"
+                        "status": "not_implemented", 
+                        "flow_exists": True,
+                        "message": "Assessment flows not yet supported in child flow status"
                     }
-                
+                else:
+                    # Other flow types - return master flow data for now
+                    logger.warning(f"[ADR-012] Unsupported flow type, using master flow: {master_flow.flow_type}")
+                    return {
+                        "status": "success",
+                        "flow_exists": True,
+                        "flow": {
+                            "flow_id": flow_id,
+                            "flow_type": master_flow.flow_type,
+                            "status": master_flow.flow_status,  # Using master status for unsupported types
+                            "current_phase": master_flow.current_phase,
+                            "message": f"Using master flow status for unsupported type: {master_flow.flow_type}"
+                        },
+                        "flow_type": master_flow.flow_type
+                    }
+                        
             except Exception as e:
-                logger.error(f"Error getting flow status from master orchestrator: {e}")
+                logger.error(f"[ADR-012] Error getting flow status: {e}")
                 return {
                     "status": "error",
                     "error": str(e),
