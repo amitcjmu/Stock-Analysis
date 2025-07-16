@@ -26,12 +26,5 @@ services:
 
 volumes:
   postgres_data:
-    # External volume - must be created manually but survives docker-compose down -v
-    # external: true
-    
-    # OR use internal volume with explicit driver
+    # Use standard named volume (recommended for development)
     driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${PWD}/postgres-data-volume

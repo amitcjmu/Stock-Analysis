@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useUnifiedDiscoveryFlow } from '../../../hooks/useUnifiedDiscoveryFlow';
 
@@ -36,19 +37,84 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   flowId
 }) => {
   const { client, engagement } = useAuth();
-  const { flowState: flow, getPhaseData } = useUnifiedDiscoveryFlow(flowId);
-  const getAssets = () => flow?.asset_inventory?.assets || [];
+  const { flowState: flow, getPhaseData, executeFlowPhase, isExecutingPhase, refreshFlow } = useUnifiedDiscoveryFlow(flowId);
+  
+  // Debug logging
+  console.log('🔍 InventoryContent flow state:', {
+    flowId,
+    currentPhase: flow?.current_phase,
+    hasAssetInventory: !!flow?.asset_inventory,
+    assetCount: flow?.asset_inventory?.assets?.length || 0,
+    rawDataCount: flow?.raw_data?.length || 0,
+    phaseCompletion: flow?.phase_completion
+  });
+  
+  // Get assets from flow if available, but this should not be the only source
+  const getAssetsFromFlow = () => flow?.asset_inventory?.assets || [];
   const getFlow = () => flow;
 
   // State
   const [selectedColumns, setSelectedColumns] = useState(DEFAULT_COLUMNS);
   const [currentPage, setCurrentPage] = useState(1);
+  const [hasTriggeredInventory, setHasTriggeredInventory] = useState(false);
 
-  // Get assets data
+  // Get assets data - fetch from API endpoint that returns all assets for the client/engagement
   const { data: assetsData, isLoading: assetsLoading, refetch: refetchAssets } = useQuery({
-    queryKey: ['discovery-assets', flowId, client?.id, engagement?.id],
-    queryFn: () => getAssets(),
-    enabled: !!client && !!engagement && !!flowId,
+    queryKey: ['discovery-assets', client?.id, engagement?.id, flowId],
+    queryFn: async () => {
+      try {
+        // Import API call function with proper headers
+        const { apiCall } = await import('../../../config/api');
+        
+        // First try to fetch from the database API with proper context headers
+        // The apiCall function will handle the proxy and headers correctly
+        const response = await apiCall('/assets/list/paginated?page=1&page_size=100');
+        
+        console.log('📊 Assets API response:', response);
+        
+        // Check if the response indicates an error
+        if (response && response.data_source === 'error') {
+          console.warn('⚠️ Assets API returned error state. Backend may have failed to fetch assets.');
+        }
+        
+        if (response && response.assets && response.assets.length > 0) {
+          console.log('📊 Assets from API:', response.assets.length);
+          // Transform API assets to match expected format
+          return response.assets.map((asset: any) => ({
+            id: asset.id,
+            asset_name: asset.name,
+            asset_type: asset.asset_type,
+            environment: asset.environment,
+            criticality: asset.criticality,
+            status: asset.status,
+            six_r_strategy: asset.six_r_strategy,
+            migration_wave: asset.migration_wave,
+            application_name: asset.application_name,
+            hostname: asset.hostname,
+            operating_system: asset.operating_system,
+            cpu_cores: asset.cpu_cores,
+            memory_gb: asset.memory_gb,
+            storage_gb: asset.storage_gb,
+            business_criticality: asset.criticality,
+            risk_score: 0,
+            migration_readiness: 'pending',
+            dependencies: 0,
+            last_updated: asset.updated_at
+          }));
+        }
+        
+        // Fallback to flow assets if API returns no data
+        const flowAssets = getAssetsFromFlow();
+        console.log('📊 Using flow assets as fallback:', flowAssets.length);
+        return flowAssets;
+      } catch (error) {
+        console.error('Error fetching assets:', error);
+        // Return flow assets on error
+        const flowAssets = getAssetsFromFlow();
+        return flowAssets;
+      }
+    },
+    enabled: !!client && !!engagement,
     staleTime: 30000,
     refetchOnWindowFocus: false
   });
@@ -105,13 +171,122 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     exportAssets(filteredAssets, selectedColumns);
   };
 
-  if (assetsLoading) {
+  // Auto-execute asset inventory phase if conditions are met
+  useEffect(() => {
+    // Check if we have raw data but no assets
+    const hasRawData = flow && flow.raw_data && flow.raw_data.length > 0;
+    const hasNoAssets = assets.length === 0;
+    const notExecuting = !isExecutingPhase;
+    const notTriggered = !hasTriggeredInventory;
+    
+    // Log the conditions for debugging
+    console.log('🔍 Auto-execute conditions:', {
+      hasRawData,
+      rawDataCount: flow?.raw_data?.length || 0,
+      hasNoAssets,
+      notExecuting,
+      notTriggered,
+      currentPhase: flow?.current_phase,
+      phaseCompletion: flow?.phase_completion
+    });
+
+    const shouldAutoExecute = hasRawData && hasNoAssets && notExecuting && notTriggered;
+
+    if (shouldAutoExecute) {
+      console.log('🚀 Auto-executing asset inventory phase...');
+      setHasTriggeredInventory(true);
+      executeFlowPhase('asset_inventory', {
+        trigger: 'auto',
+        source: 'inventory_page_load'
+      }).then(() => {
+        console.log('✅ Asset inventory phase execution initiated');
+        // Refetch after a delay
+        setTimeout(() => {
+          refetchAssets();
+          refreshFlow();
+        }, 3000);
+      }).catch(error => {
+        console.error('❌ Failed to auto-execute asset inventory phase:', error);
+        setHasTriggeredInventory(false); // Reset so user can try manually
+      });
+    }
+  }, [flow, isExecutingPhase, hasTriggeredInventory, assets.length, executeFlowPhase, refetchAssets, refreshFlow]);
+
+  // No phase-based restrictions - inventory should be accessible at any time
+
+  if (assetsLoading || isExecutingPhase) {
     return (
       <div className={`space-y-6 ${className}`}>
         <div className="animate-pulse">
           <div className="h-32 bg-gray-200 rounded mb-4"></div>
           <div className="h-64 bg-gray-200 rounded"></div>
         </div>
+        {isExecutingPhase && (
+          <div className="text-center text-gray-600 mt-4">
+            <p>Executing asset inventory phase...</p>
+            <p className="text-sm">This may take a few moments.</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Show a helpful message when there are no assets
+  if (assets.length === 0 && !assetsLoading) {
+    // Check if we need to execute the asset inventory phase
+    const shouldExecuteInventoryPhase = flow && 
+      flow.phase_completion?.data_cleansing === true && 
+      flow.phase_completion?.inventory !== true &&
+      flow.current_phase !== 'asset_inventory' &&
+      !isExecutingPhase;
+
+    return (
+      <div className={`space-y-6 ${className}`}>
+        <Card>
+          <CardContent className="p-8">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Assets Found</h3>
+              <p className="text-gray-600 mb-4">
+                {flow ? 
+                  "The asset inventory will be populated once the inventory phase is executed." :
+                  "No assets have been discovered yet for this client and engagement."
+                }
+              </p>
+              <p className="text-sm text-gray-500">
+                Assets are created during the discovery flow process or can be imported directly.
+              </p>
+              {shouldExecuteInventoryPhase && (
+                <div className="mt-6">
+                  <p className="text-sm text-gray-600 mb-4">
+                    Data cleansing is complete. Click below to create the asset inventory.
+                  </p>
+                  <button
+                    onClick={async () => {
+                      try {
+                        console.log('📦 Executing asset inventory phase...');
+                        await executeFlowPhase('asset_inventory', {
+                          trigger: 'user_initiated',
+                          source: 'inventory_page'
+                        });
+                        // Refetch assets after execution
+                        setTimeout(() => {
+                          refetchAssets();
+                          refreshFlow();
+                        }, 2000);
+                      } catch (error) {
+                        console.error('Failed to execute asset inventory phase:', error);
+                      }
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={isExecutingPhase}
+                  >
+                    Create Asset Inventory
+                  </button>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }

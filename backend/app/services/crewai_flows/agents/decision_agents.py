@@ -6,7 +6,7 @@ business logic with intelligent, context-aware decisions.
 """
 
 import logging
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple, Union
 from datetime import datetime
 from enum import Enum
 from abc import ABC, abstractmethod
@@ -344,21 +344,31 @@ class PhaseTransitionAgent(BaseDecisionAgent):
     
     # Helper methods
     
+    def _get_state_attr(self, state: Any, attr: str, default: Any = None) -> Any:
+        """Get attribute from state, handling both dict and object types"""
+        if isinstance(state, dict):
+            return state.get(attr, default)
+        return getattr(state, attr, default)
+    
     def _check_for_errors(self, state: UnifiedDiscoveryFlowState) -> bool:
         """Check if there are critical errors in the state"""
-        if hasattr(state, 'errors') and state.errors:
-            return len([e for e in state.errors if e.get('severity') == 'critical']) > 0
+        errors = self._get_state_attr(state, 'errors', [])
+        if errors:
+            return len([e for e in errors if e.get('severity') == 'critical']) > 0
         return False
     
     def _assess_data_quality(self, state: UnifiedDiscoveryFlowState) -> float:
         """Assess overall data quality (0-1)"""
-        if not hasattr(state, 'raw_data') or not state.raw_data:
+        # Handle both dict and object types
+        raw_data = state.get('raw_data', []) if isinstance(state, dict) else getattr(state, 'raw_data', [])
+        
+        if not raw_data:
             return 0.0
             
         quality_score = 1.0
-        sample_size = min(100, len(state.raw_data))
+        sample_size = min(100, len(raw_data))
         
-        for record in state.raw_data[:sample_size]:
+        for record in raw_data[:sample_size]:
             # Check for missing values
             missing_count = sum(1 for v in record.values() if v is None or v == "")
             if len(record) > 0:
@@ -368,19 +378,20 @@ class PhaseTransitionAgent(BaseDecisionAgent):
     
     def _assess_completeness(self, phase: str, state: UnifiedDiscoveryFlowState) -> float:
         """Assess phase completeness"""
-        if hasattr(state, 'phase_completion'):
-            return 1.0 if state.phase_completion.get(phase, False) else 0.0
-        return 0.0
+        phase_completion = self._get_state_attr(state, 'phase_completion', {})
+        return 1.0 if phase_completion.get(phase, False) else 0.0
     
     def _assess_complexity(self, state: UnifiedDiscoveryFlowState) -> float:
         """Assess data/mapping complexity"""
-        if not hasattr(state, 'raw_data') or not state.raw_data:
+        raw_data = self._get_state_attr(state, 'raw_data', [])
+        
+        if not raw_data:
             return 0.0
             
         # Analyze field names for complexity indicators
         complexity_score = 0.0
-        if state.raw_data:
-            field_names = list(state.raw_data[0].keys())
+        if raw_data:
+            field_names = list(raw_data[0].keys())
             for field in field_names:
                 field_lower = field.lower()
                 # Complex field indicators
@@ -396,7 +407,8 @@ class PhaseTransitionAgent(BaseDecisionAgent):
         risks = []
         
         # Check data volume
-        if hasattr(state, 'raw_data') and len(state.raw_data) > 10000:
+        raw_data = self._get_state_attr(state, 'raw_data', [])
+        if len(raw_data) > 10000:
             risks.append("large_data_volume")
             
         # Check for sensitive data patterns
@@ -407,27 +419,30 @@ class PhaseTransitionAgent(BaseDecisionAgent):
     
     def _analyze_import_metrics(self, results: Any, state: UnifiedDiscoveryFlowState) -> Dict[str, Any]:
         """Analyze data import metrics"""
+        raw_data = self._get_state_attr(state, 'raw_data', [])
         return {
-            "total_records": len(state.raw_data) if hasattr(state, 'raw_data') else 0,
-            "field_count": len(state.raw_data[0]) if state.raw_data else 0,
+            "total_records": len(raw_data),
+            "field_count": len(raw_data[0]) if raw_data else 0,
             "import_duration": results.get("duration", 0) if isinstance(results, dict) else 0
         }
     
     def _analyze_mapping_quality(self, state: UnifiedDiscoveryFlowState) -> Dict[str, Any]:
         """Analyze field mapping quality"""
-        if not hasattr(state, 'field_mappings'):
+        field_mappings = self._get_state_attr(state, 'field_mappings', {})
+        
+        if not field_mappings:
             return {"confidence": 0, "missing_critical_fields": []}
             
         # Identify which fields are actually critical based on data
         critical_fields = self._identify_critical_fields(state)
-        mapped_fields = set(state.field_mappings.keys())
+        mapped_fields = set(field_mappings.keys())
         missing_critical = [f for f in critical_fields if f not in mapped_fields]
         
-        confidence = getattr(state, 'field_mapping_confidence', 0.5)
+        confidence = self._get_state_attr(state, 'field_mapping_confidence', 0.5)
         
         return {
             "confidence": confidence,
-            "total_fields": len(state.field_mappings),
+            "total_fields": len(field_mappings),
             "critical_fields": critical_fields,
             "missing_critical_fields": missing_critical
         }
@@ -477,13 +492,15 @@ class PhaseTransitionAgent(BaseDecisionAgent):
     
     def _has_sensitive_data_patterns(self, state: UnifiedDiscoveryFlowState) -> bool:
         """Check for sensitive data patterns"""
-        if not hasattr(state, 'raw_data') or not state.raw_data:
+        raw_data = self._get_state_attr(state, 'raw_data', [])
+        
+        if not raw_data:
             return False
             
         sensitive_patterns = ['ssn', 'social', 'tax', 'ein', 'credit', 'account']
         
-        if state.raw_data:
-            field_names = list(state.raw_data[0].keys())
+        if raw_data:
+            field_names = list(raw_data[0].keys())
             for field in field_names:
                 if any(pattern in field.lower() for pattern in sensitive_patterns):
                     return True
@@ -495,11 +512,13 @@ class PhaseTransitionAgent(BaseDecisionAgent):
         Dynamically identify critical fields based on data analysis.
         This replaces the hardcoded critical fields list.
         """
-        if not hasattr(state, 'raw_data') or not state.raw_data:
+        raw_data = self._get_state_attr(state, 'raw_data', [])
+        
+        if not raw_data:
             return []
             
         critical_fields = []
-        field_names = list(state.raw_data[0].keys()) if state.raw_data else []
+        field_names = list(raw_data[0].keys()) if raw_data else []
         
         for field in field_names:
             field_lower = field.lower()
@@ -559,6 +578,12 @@ class FieldMappingDecisionAgent(BaseDecisionAgent):
             You determine which fields are critical, assess mapping confidence,
             and decide when human review is necessary."""
         )
+    
+    def _get_state_attr(self, state: Any, attr: str, default: Any = None) -> Any:
+        """Get attribute from state, handling both dict and object types"""
+        if isinstance(state, dict):
+            return state.get(attr, default)
+        return getattr(state, attr, default)
         
     async def analyze_phase_transition(
         self,
@@ -607,14 +632,16 @@ class FieldMappingDecisionAgent(BaseDecisionAgent):
     
     async def analyze_field_mappings(self, state: UnifiedDiscoveryFlowState) -> Dict[str, Any]:
         """Comprehensive field mapping analysis"""
-        if not hasattr(state, 'field_mappings'):
+        field_mappings = self._get_state_attr(state, 'field_mappings', {})
+        
+        if not field_mappings:
             return {"confidence": 0, "analysis": "No field mappings found"}
             
-        total_fields = len(state.field_mappings)
+        total_fields = len(field_mappings)
         high_confidence_mappings = 0
         ambiguous_mappings = []
         
-        for source, target in state.field_mappings.items():
+        for source, target in field_mappings.items():
             confidence = self._assess_mapping_confidence(source, target)
             if confidence > 0.8:
                 high_confidence_mappings += 1
@@ -627,7 +654,8 @@ class FieldMappingDecisionAgent(BaseDecisionAgent):
             "confidence": overall_confidence,
             "total_fields": total_fields,
             "high_confidence_count": high_confidence_mappings,
-            "ambiguous_mappings": ambiguous_mappings
+            "ambiguous_mappings": ambiguous_mappings,
+            "mapped_fields": list(field_mappings.keys())  # Add this for critical field checking
         }
     
     def identify_critical_fields_for_migration(self, state: UnifiedDiscoveryFlowState) -> List[str]:
@@ -637,11 +665,13 @@ class FieldMappingDecisionAgent(BaseDecisionAgent):
         """
         critical = []
         
-        if not hasattr(state, 'raw_data') or not state.raw_data:
+        raw_data = self._get_state_attr(state, 'raw_data', [])
+        
+        if not raw_data:
             return critical
             
         # Analyze data to determine critical fields
-        field_stats = self._analyze_field_statistics(state.raw_data)
+        field_stats = self._analyze_field_statistics(raw_data)
         
         for field, stats in field_stats.items():
             # High cardinality unique fields are likely identifiers

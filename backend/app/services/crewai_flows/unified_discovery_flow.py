@@ -35,14 +35,7 @@ from .unified_discovery_flow.flow_initialization import FlowInitializer
 from .unified_discovery_flow.flow_finalization import FlowFinalizer
 
 # Export phase implementations if needed
-from .unified_discovery_flow.phases import (
-    DataValidationPhase,
-    FieldMappingPhase,
-    DataCleansingPhase,
-    AssetInventoryPhase,
-    DependencyAnalysisPhase,
-    TechDebtAssessmentPhase
-)
+# Phase modules removed - using Executor pattern instead
 
 # Maintain backward compatibility
 __all__ = [
@@ -56,10 +49,4 @@ __all__ = [
     'FlowManager',
     'FlowInitializer',
     'FlowFinalizer',
-    'DataValidationPhase',
-    'FieldMappingPhase',
-    'DataCleansingPhase',
-    'AssetInventoryPhase',
-    'DependencyAnalysisPhase',
-    'TechDebtAssessmentPhase',
 ]

@@ -59,13 +59,31 @@ class AssetCommands:
                 if 'custom_attributes' in asset_data:
                     custom_attributes.update(asset_data['custom_attributes'])
                 
-                # Create asset
+                # Create asset with additional fields from normalized data
+                normalized_data = asset_data.get('normalized_data', {})
+                
                 asset = Asset(
                     client_account_id=self.client_account_id,
                     engagement_id=self.engagement_id,
                     name=name,
-                    type=asset_type,
+                    asset_name=name,  # Set asset_name same as name
+                    asset_type=asset_type,  # Changed from 'type' to 'asset_type'
                     status='discovered',
+                    environment=normalized_data.get('environment', custom_attributes.get('environment', 'Unknown')),
+                    hostname=normalized_data.get('hostname', custom_attributes.get('hostname')),
+                    operating_system=normalized_data.get('operating_system', custom_attributes.get('operating_system')),
+                    cpu_cores=normalized_data.get('cpu_cores', custom_attributes.get('cpu_cores')),
+                    memory_gb=normalized_data.get('memory_gb', custom_attributes.get('memory_gb')),
+                    storage_gb=normalized_data.get('storage_gb', custom_attributes.get('storage_gb')),
+                    criticality=normalized_data.get('criticality', custom_attributes.get('criticality', 'Medium')),
+                    application_name=normalized_data.get('application_name', custom_attributes.get('application_name')),
+                    six_r_strategy=normalized_data.get('six_r_strategy', custom_attributes.get('six_r_strategy')),
+                    migration_wave=normalized_data.get('migration_wave', custom_attributes.get('migration_wave')),
+                    discovery_flow_id=discovery_flow_id,  # Keep as UUID
+                    discovery_method='flow_based',
+                    discovery_source='Discovery Flow',
+                    discovery_timestamp=datetime.utcnow(),
+                    raw_data=asset_data.get('raw_data', {}),
                     custom_attributes=custom_attributes,
                     created_at=datetime.utcnow(),
                     updated_at=datetime.utcnow()

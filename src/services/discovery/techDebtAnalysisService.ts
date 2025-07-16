@@ -39,11 +39,10 @@ export interface TechDebtSummary {
 
 export const fetchTechDebtAnalysis = async (clientAccountId: string, engagementId: string) => {
   try {
-    const response = await apiCall({
-      url: `${API_CONFIG.ENDPOINTS.DISCOVERY}/tech-debt-analysis`,
-      method: 'GET',
-      params: { client_account_id: clientAccountId, engagement_id: engagementId },
-    });
+    const response = await apiCall(
+      `${API_CONFIG.ENDPOINTS.DISCOVERY}/tech-debt-analysis?client_account_id=${clientAccountId}&engagement_id=${engagementId}`,
+      { method: 'GET' }
+    );
     return response.data;
   } catch (error) {
     console.error('Error fetching tech debt analysis:', error);
@@ -53,15 +52,20 @@ export const fetchTechDebtAnalysis = async (clientAccountId: string, engagementI
 
 export const generateMigrationPlan = async (clientAccountId: string, engagementId: string, items: string[]) => {
   try {
-    const response = await apiCall({
-      url: `${API_CONFIG.ENDPOINTS.DISCOVERY}/generate-migration-plan`,
-      method: 'POST',
-      data: {
-        client_account_id: clientAccountId,
-        engagement_id: engagementId,
-        items,
-      },
-    });
+    const response = await apiCall(
+      `${API_CONFIG.ENDPOINTS.DISCOVERY}/generate-migration-plan`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          client_account_id: clientAccountId,
+          engagement_id: engagementId,
+          items,
+        }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
     return response.data;
   } catch (error) {
     console.error('Error generating migration plan:', error);

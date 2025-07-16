@@ -21,14 +21,7 @@ from ..flow_state_bridge import FlowStateBridge
 # Real CrewAI agents are managed by UnifiedFlowCrewManager - no individual agent imports needed
 
 # Import phase classes
-from .phases import (
-    DataValidationPhase,
-    FieldMappingPhase,
-    DataCleansingPhase,
-    AssetInventoryPhase,
-    DependencyAnalysisPhase,
-    TechDebtAssessmentPhase
-)
+# Phase modules removed - using Executor pattern instead
 
 logger = logging.getLogger(__name__)
 

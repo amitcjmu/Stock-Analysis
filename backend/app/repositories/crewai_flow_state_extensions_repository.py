@@ -163,7 +163,15 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             )
             
             result = await self.db.execute(stmt)
-            return result.scalar_one_or_none()
+            flow = result.scalar_one_or_none()
+            
+            # Ensure flow has a valid status (fix for NULL status issue)
+            if flow and flow.flow_status is None:
+                logger.warning(f"⚠️ Flow {flow_id} has NULL status, setting to 'processing'")
+                flow.flow_status = "processing"
+                await self.db.commit()
+            
+            return flow
             
         except Exception as e:
             logger.error(f"❌ Database error in get_by_flow_id: {e}")
@@ -198,6 +206,11 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             
             if flow:
                 # Flow belongs to current client, safe to return
+                # Ensure flow has a valid status (fix for NULL status issue)
+                if flow.flow_status is None:
+                    logger.warning(f"⚠️ Flow {flow_id} has NULL status, setting to 'processing'")
+                    flow.flow_status = "processing"
+                    await self.db.commit()
                 return flow
             
             # SECURITY: Only allow global query for system operations

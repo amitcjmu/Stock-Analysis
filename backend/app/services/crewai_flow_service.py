@@ -526,7 +526,10 @@ class CrewAIFlowService:
                             raise ValueError(f"Flow not found: {flow_id}")
                     
                     # Validate flow status - prevent resuming flows in terminal states
-                    terminal_statuses = ['deleted', 'cancelled', 'completed', 'failed']
+                    terminal_statuses = ['deleted', 'cancelled', 'completed']
+                    # Allow resuming flows with 'error' or 'failed' status if they can be recovered
+                    non_resumable_statuses = terminal_statuses + ['failed']
+                    
                     if flow.status in terminal_statuses:
                         logger.warning(f"❌ Cannot resume flow {flow_id} with terminal status '{flow.status}'")
                         raise InvalidFlowStateError(
@@ -534,6 +537,12 @@ class CrewAIFlowService:
                             target_state="resuming",
                             flow_id=flow_id
                         )
+                    
+                    # For failed flows, check if they can be recovered
+                    if flow.status == 'failed':
+                        # Check if the last error was recoverable
+                        # For now, we'll log a warning but allow the attempt
+                        logger.warning(f"⚠️ Attempting to resume failed flow {flow_id} - this may require manual intervention")
                     
                     logger.info(f"✅ Flow {flow_id} status '{flow.status}' is valid for resumption")
                     

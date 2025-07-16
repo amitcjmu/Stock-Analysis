@@ -148,49 +148,13 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
       if (question.question_type === 'application_boundary' && question.context?.components) {
         for (const componentName of question.context.components) {
           if (!assetDetailsMap[componentName]) {
-            try {
-              // Try to fetch asset details by name
-              const assetResponse = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?search=${encodeURIComponent(componentName)}&page_size=1`, {
-                method: 'GET'
-              });
-              
-              if (assetResponse.assets && assetResponse.assets.length > 0) {
-                const asset = assetResponse.assets[0];
-                assetDetailsMap[componentName] = {
-                  id: asset.id,
-                  name: asset.name || asset.asset_name || componentName,
-                  asset_type: asset.asset_type || asset.intelligent_asset_type || 'Unknown',
-                  hostname: asset.hostname,
-                  ip_address: asset.ip_address,
-                  operating_system: asset.operating_system,
-                  environment: asset.environment,
-                  business_criticality: asset.business_criticality,
-                  department: asset.department,
-                  business_owner: asset.business_owner,
-                  technical_owner: asset.technical_owner,
-                  description: asset.description,
-                  cpu_cores: asset.cpu_cores,
-                  memory_gb: asset.memory_gb,
-                  storage_gb: asset.storage_gb,
-                  location: asset.location || asset.datacenter,
-                  datacenter: asset.datacenter
-                };
-              } else {
-                // Create a placeholder with the component name
-                assetDetailsMap[componentName] = {
-                  name: componentName,
-                  asset_type: 'Unknown',
-                  description: 'Asset details not found in inventory'
-                };
-              }
-            } catch (err) {
-              console.warn(`Failed to fetch details for asset ${componentName}:`, err);
-              assetDetailsMap[componentName] = {
-                name: componentName,
-                asset_type: 'Unknown',
-                description: 'Unable to fetch asset details'
-              };
-            }
+            // For now, just create placeholder entries since the assets API doesn't exist yet
+            // In the future, this should fetch from the actual inventory when it's available
+            assetDetailsMap[componentName] = {
+              name: componentName,
+              asset_type: 'Server', // Default type
+              description: 'Asset details will be available after inventory phase completion'
+            };
           }
         }
       }

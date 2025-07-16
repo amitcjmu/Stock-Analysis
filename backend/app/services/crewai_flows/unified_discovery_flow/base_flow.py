@@ -38,15 +38,7 @@ from .flow_management import FlowManager
 from .flow_initialization import FlowInitializer
 from .flow_finalization import FlowFinalizer
 
-# Import phase modules
-from .phases import (
-    DataValidationPhase,
-    FieldMappingPhase,
-    DataCleansingPhase,
-    AssetInventoryPhase,
-    DependencyAnalysisPhase,
-    TechDebtAssessmentPhase
-)
+# Phase modules removed - using Executor pattern instead
 
 # Import handlers for flow management
 from ..handlers.unified_flow_management import UnifiedFlowManagement

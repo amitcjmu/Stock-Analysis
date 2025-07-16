@@ -238,16 +238,37 @@ class FlowExecutionEngine:
         except Exception as e:
             logger.error(f"❌ Phase execution failed for {flow_id}, phase {phase_name}: {e}")
             
-            # Update flow status to failed
+            # Check if this is a recoverable error
+            is_recoverable = self._is_recoverable_error(e)
+            
+            # Update flow status - use "error" for recoverable errors, "failed" for fatal ones
+            flow_status = "error" if is_recoverable else "failed"
+            
             await self.master_repo.update_flow_status(
                 flow_id=flow_id,
-                status="failed",
+                status=flow_status,
                 collaboration_entry={
                     "timestamp": datetime.utcnow().isoformat(),
                     "phase": phase_name,
                     "action": "phase_failed",
-                    "error": str(e)
+                    "error": str(e),
+                    "recoverable": is_recoverable
                 }
+            )
+            
+            # Store error details in phase data
+            error_details = {
+                f"{phase_name}_error": {
+                    "error": str(e),
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "recoverable": is_recoverable
+                }
+            }
+            
+            await self.master_repo.update_flow_status(
+                flow_id=flow_id,
+                status=flow_status,
+                phase_data=error_details
             )
             
             raise RuntimeError(f"Phase execution failed: {str(e)}")
@@ -915,10 +936,18 @@ class FlowExecutionEngine:
             decision: Agent decision
         """
         try:
+            # Get current flow to preserve status
+            master_flow = await self.master_repo.get_by_flow_id(flow_id)
+            if not master_flow:
+                logger.warning(f"Flow not found for decision logging: {flow_id}")
+                return
+            
+            current_status = master_flow.flow_status or "processing"
+            
             # Add to collaboration log
             await self.master_repo.update_flow_status(
                 flow_id=flow_id,
-                status=None,  # Don't change status
+                status=current_status,  # Preserve current status
                 collaboration_entry={
                     "timestamp": datetime.utcnow().isoformat(),
                     "phase": phase_name,
@@ -940,7 +969,7 @@ class FlowExecutionEngine:
             
             await self.master_repo.update_flow_status(
                 flow_id=flow_id,
-                status=None,
+                status=current_status,  # Preserve current status
                 phase_data=phase_data
             )
             
@@ -1038,8 +1067,8 @@ class FlowExecutionEngine:
         if master_flow.flow_type == "discovery":
             from app.services.crewai_flows.flow_state_manager import FlowStateManager
             
-            state_manager = FlowStateManager()
-            state = await state_manager.get_state(master_flow.flow_id)
+            state_manager = FlowStateManager(self.db, self.context)
+            state = await state_manager.get_flow_state(master_flow.flow_id)
             
             if state:
                 return state
@@ -1072,6 +1101,40 @@ class FlowExecutionEngine:
             "tech_debt_assessment": "complete"
         }
         return phase_order.get(current_phase, "complete")
+    
+    def _is_recoverable_error(self, error: Exception) -> bool:
+        """
+        Determine if an error is recoverable
+        
+        Args:
+            error: The exception that occurred
+            
+        Returns:
+            True if the error is recoverable, False otherwise
+        """
+        # Database transaction errors are often recoverable
+        error_str = str(error).lower()
+        recoverable_patterns = [
+            "transaction",
+            "deadlock",
+            "timeout",
+            "connection",
+            "temporary",
+            "retry",
+            "agent decision failed"
+        ]
+        
+        # Check if error matches any recoverable pattern
+        for pattern in recoverable_patterns:
+            if pattern in error_str:
+                return True
+        
+        # Check error type
+        if isinstance(error, (TimeoutError, ConnectionError)):
+            return True
+        
+        # Default to non-recoverable for unknown errors
+        return False
     
     def _ensure_json_serializable(self, obj: Any) -> Any:
         """

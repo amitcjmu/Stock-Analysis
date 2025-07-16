@@ -42,7 +42,7 @@ const DataCleansing: React.FC = () => {
     flowState: flow,
     isLoading,
     error,
-    executeFlowPhase: updatePhase,
+    executeFlowPhase,
     isExecutingPhase: isUpdating,
     refreshFlow: refresh,
     isPhaseComplete,
@@ -120,12 +120,28 @@ const DataCleansing: React.FC = () => {
     window.history.back();
   };
 
-  const handleContinueToInventory = () => {
-    // Navigate to asset inventory with flow ID
-    if (effectiveFlowId) {
-      window.location.href = `/discovery/inventory/${effectiveFlowId}`;
-    } else {
-      window.location.href = '/discovery/inventory';
+  const handleContinueToInventory = async () => {
+    try {
+      // First, mark the data cleansing phase as complete
+      if (flow && !flow.phase_completion?.data_cleansing) {
+        console.log('📌 Marking data cleansing phase as complete...');
+        await executeFlowPhase('data_cleansing', { complete: true });
+      }
+      
+      // Navigate to asset inventory with flow ID
+      if (effectiveFlowId) {
+        window.location.href = `/discovery/inventory/${effectiveFlowId}`;
+      } else {
+        window.location.href = '/discovery/inventory';
+      }
+    } catch (error) {
+      console.error('Failed to complete data cleansing phase:', error);
+      // Still navigate even if phase completion fails
+      if (effectiveFlowId) {
+        window.location.href = `/discovery/inventory/${effectiveFlowId}`;
+      } else {
+        window.location.href = '/discovery/inventory';
+      }
     }
   };
 
@@ -141,30 +157,36 @@ const DataCleansing: React.FC = () => {
   const isAnalyzing = isUpdating;
   const isLoadingData = isLoading || isLatestImportLoading || isFlowListLoading;
 
-  // Check for pending agent questions
+  // Check for pending agent questions (disabled polling for now as endpoint returns empty array)
   useEffect(() => {
     const checkPendingQuestions = async () => {
       if (!client?.id || !engagement?.id) return;
       
       try {
-        const response = await apiCall({
-          endpoint: `${API_CONFIG.BASE_URL}/api/v1/agents/discovery/agent-questions?page=data-cleansing`,
-          method: 'GET',
-          requiresAuth: true
-        });
+        const response = await apiCall(
+          `/api/v1/agents/discovery/agent-questions?page=data-cleansing`,
+          { method: 'GET' }
+        );
         
-        const unansweredQuestions = response.questions?.filter(q => !q.is_resolved) || [];
+        // Handle both array and object response formats
+        let questions = [];
+        if (Array.isArray(response)) {
+          questions = response;
+        } else if (response?.questions) {
+          questions = response.questions;
+        }
+        
+        const unansweredQuestions = questions.filter(q => !q.is_resolved) || [];
         setPendingQuestions(unansweredQuestions.length);
       } catch (error) {
         console.error('Failed to check pending questions:', error);
+        // Set to 0 if endpoint fails
+        setPendingQuestions(0);
       }
     };
     
+    // Only check once on mount - no polling since endpoint returns empty array
     checkPendingQuestions();
-    // Refresh every 5 seconds to check for new questions
-    const interval = setInterval(checkPendingQuestions, 5000);
-    
-    return () => clearInterval(interval);
   }, [client, engagement]);
 
   // Get data cleansing specific data from V2 flow (keep for compatibility)

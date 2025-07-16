@@ -19,8 +19,14 @@ WORKDIR /app
 # Copy package files with correct ownership
 COPY --chown=nodejs:nodejs package*.json ./
 
+# Create npm directories with correct permissions
+RUN mkdir -p /app/.npm-cache /app/.npm-global && \
+    chown -R nodejs:nodejs /app/.npm-cache /app/.npm-global
+
 # Install dependencies with legacy peer deps to resolve React version conflicts
-RUN npm install --legacy-peer-deps && \
+RUN npm config set cache /app/.npm-cache && \
+    npm config set prefix /app/.npm-global && \
+    npm install --legacy-peer-deps && \
     npm cache clean --force
 
 # Copy the rest of the application with correct ownership
@@ -31,6 +37,10 @@ RUN mkdir -p node_modules && chown -R nodejs:nodejs /app
 
 # Switch to non-root user
 USER nodejs
+
+# Set npm environment for runtime
+ENV NPM_CONFIG_CACHE=/app/.npm-cache
+ENV NPM_CONFIG_PREFIX=/app/.npm-global
 
 # Expose port 8081
 EXPOSE 8081
