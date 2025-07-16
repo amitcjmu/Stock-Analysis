@@ -337,12 +337,14 @@ def upgrade() -> None:
     sa.Column('source_filename', sa.VARCHAR(length=255), nullable=True),
     sa.Column('raw_data', sa.TEXT(), nullable=True),
     sa.Column('field_mappings_used', postgresql.JSON(astext_type=sa.Text()), nullable=True),
+    sa.Column('raw_import_records_id', sa.UUID(), nullable=True),
     sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=True),
     sa.Column('updated_at', sa.TIMESTAMP(timezone=True), nullable=True),
     sa.Column('created_by', sa.UUID(), nullable=True),
     sa.Column('updated_by', sa.UUID(), nullable=True),
     sa.ForeignKeyConstraint(['client_account_id'], ['client_accounts.id'], name=op.f('fk_assets_client_account_id_client_accounts')),
     sa.ForeignKeyConstraint(['engagement_id'], ['engagements.id'], name=op.f('fk_assets_engagement_id_engagements')),
+    sa.ForeignKeyConstraint(['raw_import_records_id'], ['raw_import_records.id'], name=op.f('fk_assets_raw_import_records_id_raw_import_records')),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_assets'))
     )
     # ### end Alembic commands ###

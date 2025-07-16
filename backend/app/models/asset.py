@@ -184,6 +184,7 @@ class Asset(Base):
     source_filename = Column(String(255), comment="The original filename from which this asset was imported.")
     raw_data = Column(JSON, comment="A JSON blob of the original, raw data for this asset from the import source.")
     field_mappings_used = Column(JSON, comment="The specific field mappings that were applied to create this asset record.")
+    raw_import_records_id = Column(PostgresUUID(as_uuid=True), ForeignKey('raw_import_records.id'), nullable=True, comment="The raw import record this asset was created from.")
     
     # is_mock removed - use multi-tenant isolation instead
     

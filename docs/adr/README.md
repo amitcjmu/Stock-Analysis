@@ -6,11 +6,17 @@ This directory contains Architecture Decision Records for the AI Force Migration
 
 | ADR | Title | Status | Date |
 |-----|-------|--------|------|
-| [ADR-001](001-session-to-flow-migration.md) | Migrate from Session ID to Flow ID as Primary Identifier | Accepted | 2024-01-20 |
+| [ADR-001](001-session-to-flow-migration.md) | Migrate from Session ID to Flow ID as Primary Identifier | Superseded | 2024-01-20 |
 | [ADR-002](002-api-consolidation-strategy.md) | Consolidate APIs into Unified v3 Interface | Accepted | 2024-01-20 |
 | [ADR-003](003-postgresql-only-state-management.md) | PostgreSQL-Only State Management for CrewAI Flows | Accepted | 2024-01-20 |
 | [ADR-004](004-field-mapping-stabilization.md) | Field Mapping UI/UX Stabilization Strategy | Accepted | 2024-01-20 |
 | [ADR-005](005-database-consolidation-architecture.md) | Database Consolidation Architecture | Accepted | 2025-06-27 |
+| [ADR-006](006-master-flow-orchestrator.md) | Master Flow Orchestrator | Accepted | 2025 |
+| [ADR-007](007-comprehensive-modularization-architecture.md) | Comprehensive Modularization Architecture | Accepted | 2025-07-11 |
+| [ADR-008](008-agentic-intelligence-system-architecture.md) | Agentic Intelligence System Architecture | Accepted | 2025-07-12 |
+| [ADR-009](009-multi-tenant-architecture.md) | Multi-Tenant Architecture | Accepted | 2024-2025 |
+| [ADR-010](010-docker-first-development-mandate.md) | Docker-First Development Mandate | Accepted | 2024-2025 |
+| [ADR-011](011-flow-based-architecture-evolution.md) | Flow-Based Architecture Evolution | Accepted | 2025 |
 
 ## ADR Template
 
@@ -48,8 +54,20 @@ What other options were considered and why were they rejected?
 ## Reading Order
 
 For new team members, we recommend reading ADRs in this order:
-1. ADR-001 - Understand the identifier migration
-2. ADR-003 - Understand state management architecture
-3. ADR-005 - Understand database consolidation architecture
-4. ADR-002 - Understand API consolidation
-5. ADR-004 - Understand UI stabilization approach
+
+### Foundation Architecture (Start Here)
+1. **ADR-009** - Multi-Tenant Architecture - Core tenant isolation and security model
+2. **ADR-010** - Docker-First Development Mandate - Development environment setup
+3. **ADR-003** - PostgreSQL-Only State Management - Database architecture foundation
+
+### Platform Evolution
+4. **ADR-007** - Comprehensive Modularization Architecture - Codebase organization principles
+5. **ADR-011** - Flow-Based Architecture Evolution - Core flow patterns (supersedes ADR-001)
+6. **ADR-006** - Master Flow Orchestrator - Central orchestration system
+7. **ADR-008** - Agentic Intelligence System - AI/ML integration patterns
+
+### Legacy Context
+8. **ADR-005** - Database Consolidation Architecture - Historical database decisions
+9. **ADR-002** - API Consolidation Strategy - API versioning and migration
+10. **ADR-004** - Field Mapping UI/UX Stabilization - UI stabilization patterns
+11. **ADR-001** - Session to Flow Migration - Original identifier migration (superseded by ADR-011)
