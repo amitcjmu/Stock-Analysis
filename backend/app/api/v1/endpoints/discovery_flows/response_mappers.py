@@ -52,6 +52,8 @@ class DiscoveryFlowStatusResponse(BaseModel):
     agent_insights: List[Dict[str, Any]] = Field(default_factory=list)
     phase_completion: Dict[str, bool] = Field(default_factory=dict)
     field_mappings: Dict[str, Any] = Field(default_factory=dict)
+    raw_data: List[Dict[str, Any]] = Field(default_factory=list)
+    import_metadata: Dict[str, Any] = Field(default_factory=dict)
     last_updated: str
 
 
@@ -136,7 +138,7 @@ class ResponseMappers:
             }
     
     @staticmethod
-    def map_flow_to_status_response(flow, extensions=None, context=None) -> Dict[str, Any]:
+    async def map_flow_to_status_response(flow, extensions=None, context=None, db=None) -> Dict[str, Any]:
         """Convert a DiscoveryFlow model to detailed status response format"""
         try:
             # Calculate current phase from completion flags
@@ -237,6 +239,55 @@ class ResponseMappers:
             if not field_mappings and flow.crewai_state_data:
                 field_mappings = flow.crewai_state_data.get("field_mappings", {})
             
+            # Fetch actual import data if we have a data_import_id and db session
+            raw_data = []
+            import_metadata = {}
+            actual_field_mappings = field_mappings
+            
+            if flow.data_import_id and db:
+                try:
+                    # Import the service and get import data
+                    from app.services.data_import import ImportStorageHandler
+                    import_handler = ImportStorageHandler(db, context.client_account_id if context else "system")
+                    
+                    # Get the import data
+                    import_data = await import_handler.get_import_data(str(flow.data_import_id))
+                    
+                    if import_data and import_data.get("success"):
+                        raw_data = import_data.get("data", [])
+                        import_metadata = import_data.get("import_metadata", {})
+                        logger.info(f"✅ Retrieved {len(raw_data)} import records for flow {flow.flow_id}")
+                    
+                    # Also get field mappings from the data import system
+                    from sqlalchemy import select
+                    from app.models.data_import.mapping import ImportFieldMapping
+                    
+                    mapping_stmt = select(ImportFieldMapping).where(
+                        ImportFieldMapping.data_import_id == flow.data_import_id
+                    )
+                    mapping_result = await db.execute(mapping_stmt)
+                    mappings = mapping_result.scalars().all()
+                    
+                    if mappings:
+                        # Convert database field mappings to dict format
+                        db_field_mappings = {}
+                        for mapping in mappings:
+                            db_field_mappings[mapping.source_field] = {
+                                "target_field": mapping.target_field,
+                                "confidence": mapping.confidence,
+                                "is_approved": mapping.is_approved,
+                                "is_critical": getattr(mapping, 'is_critical', False)
+                            }
+                        
+                        # Use database field mappings if we have them and they're more complete
+                        if db_field_mappings and (not actual_field_mappings or len(db_field_mappings) > len(actual_field_mappings)):
+                            actual_field_mappings = db_field_mappings
+                            logger.info(f"✅ Retrieved {len(db_field_mappings)} field mappings from database for flow {flow.flow_id}")
+                    
+                except Exception as import_error:
+                    logger.warning(f"Failed to retrieve import data for flow {flow.flow_id}: {import_error}")
+                    # Continue with empty data rather than failing completely
+            
             return {
                 "flow_id": str(flow.flow_id),
                 "data_import_id": str(flow.data_import_id) if flow.data_import_id else str(flow.flow_id),
@@ -257,7 +308,9 @@ class ResponseMappers:
                 "crewai_status": final_status,
                 "agent_insights": agent_insights,
                 "phase_completion": phase_completion,
-                "field_mappings": field_mappings,
+                "field_mappings": actual_field_mappings,
+                "raw_data": raw_data,
+                "import_metadata": import_metadata,
                 "last_updated": flow.updated_at.isoformat() if flow.updated_at else ""
             }
         except Exception as e:
@@ -267,7 +320,10 @@ class ResponseMappers:
                 "status": "error",
                 "type": "discovery",
                 "error": str(e),
-                "metadata": {}
+                "metadata": {},
+                "field_mappings": {},
+                "raw_data": [],
+                "import_metadata": {}
             }
     
     @staticmethod
@@ -305,6 +361,8 @@ class ResponseMappers:
                 "agent_insights": state_dict.get("agent_insights", []),
                 "phase_completion": state_dict.get("phase_completion", {}),
                 "field_mappings": state_dict.get("field_mappings", {}),
+                "raw_data": state_dict.get("raw_data", []),
+                "import_metadata": state_dict.get("import_metadata", {}),
                 "awaiting_user_approval": state_dict.get("awaiting_user_approval", False),
                 "last_updated": state_dict.get("updated_at", "")
             }

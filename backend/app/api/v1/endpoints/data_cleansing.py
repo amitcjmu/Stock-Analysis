@@ -84,14 +84,16 @@ async def get_data_cleansing_analysis(
     Get comprehensive data cleansing analysis for a discovery flow.
     
     Returns quality issues, recommendations, and field-level analysis.
+    This is a READ-ONLY operation that should NOT trigger any agent execution
+    or modify flow status.
     """
     try:
-        logger.info(f"Getting data cleansing analysis for flow {flow_id}")
+        logger.info(f"📊 READ-ONLY: Getting data cleansing analysis for flow {flow_id} (should not modify flow status)")
         
         # Get flow repository with proper context
         flow_repo = DiscoveryFlowRepository(db, context.client_account_id)
         
-        # Verify flow exists and user has access
+        # Verify flow exists and user has access (READ-ONLY check)
         flow = await flow_repo.get_by_flow_id(flow_id)
         if not flow:
             raise HTTPException(
@@ -99,19 +101,55 @@ async def get_data_cleansing_analysis(
                 detail=f"Flow {flow_id} not found"
             )
         
-        # Get data import for this flow
-        from sqlalchemy import select
-        data_import_query = select(DataImport).where(
-            DataImport.client_account_id == context.client_account_id
-        )
-        data_import_result = await db.execute(data_import_query)
-        data_imports = data_import_result.scalars().all()
+        # Log current flow status for debugging
+        logger.info(f"🔍 Flow {flow_id} current status: {flow.status} (before data lookup)")
         
-        if not data_imports:
+        # Important: We are only READING data, not executing any agents
+        # This endpoint should never modify flow status or trigger execution
+        
+        # Get data import for this flow using the same logic as import storage handler
+        from sqlalchemy import select
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+        
+        # First try to get data import via discovery flow's data_import_id
+        data_import = None
+        if flow.data_import_id:
+            data_import_query = select(DataImport).where(
+                DataImport.id == flow.data_import_id
+            )
+            data_import_result = await db.execute(data_import_query)
+            data_import = data_import_result.scalar_one_or_none()
+            
+        # If not found, try master flow ID lookup (same as import storage handler)
+        if not data_import:
+            logger.info(f"Flow {flow_id} has no data_import_id, trying master flow ID lookup")
+            
+            # Get the database ID for this flow_id (FK references id, not flow_id)
+            db_id_query = select(CrewAIFlowStateExtensions.id).where(
+                CrewAIFlowStateExtensions.flow_id == flow_id
+            )
+            db_id_result = await db.execute(db_id_query)
+            flow_db_id = db_id_result.scalar_one_or_none()
+            
+            if flow_db_id:
+                # Look for data imports with this master_flow_id
+                import_query = select(DataImport).where(
+                    DataImport.master_flow_id == flow_db_id
+                ).order_by(DataImport.created_at.desc()).limit(1)
+                
+                import_result = await db.execute(import_query)
+                data_import = import_result.scalar_one_or_none()
+                
+                if data_import:
+                    logger.info(f"✅ Found data import via master flow ID lookup: {data_import.id}")
+        
+        if not data_import:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"No data imports found for flow {flow_id}"
+                detail=f"No data import found for flow {flow_id}"
             )
+            
+        data_imports = [data_import]  # Convert to list for compatibility with existing code
         
         # Get field mappings  
         field_mapping_query = select(ImportFieldMapping).where(
@@ -166,14 +204,39 @@ async def get_data_cleansing_stats(
                 detail=f"Flow {flow_id} not found"
             )
         
-        # Get basic stats from data import
-        data_import_query = select(DataImport).where(
-            DataImport.client_account_id == context.client_account_id
-        )
-        data_import_result = await db.execute(data_import_query)
-        data_imports = data_import_result.scalars().all()
+        # Get data import for this flow using the same logic as import storage handler
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
         
-        if not data_imports:
+        # First try to get data import via discovery flow's data_import_id
+        data_import = None
+        if flow.data_import_id:
+            data_import_query = select(DataImport).where(
+                DataImport.id == flow.data_import_id
+            )
+            data_import_result = await db.execute(data_import_query)
+            data_import = data_import_result.scalar_one_or_none()
+            
+        # If not found, try master flow ID lookup (same as import storage handler)
+        if not data_import:
+            logger.info(f"Flow {flow_id} has no data_import_id, trying master flow ID lookup")
+            
+            # Get the database ID for this flow_id (FK references id, not flow_id)
+            db_id_query = select(CrewAIFlowStateExtensions.id).where(
+                CrewAIFlowStateExtensions.flow_id == flow_id
+            )
+            db_id_result = await db.execute(db_id_query)
+            flow_db_id = db_id_result.scalar_one_or_none()
+            
+            if flow_db_id:
+                # Look for data imports with this master_flow_id
+                import_query = select(DataImport).where(
+                    DataImport.master_flow_id == flow_db_id
+                ).order_by(DataImport.created_at.desc()).limit(1)
+                
+                import_result = await db.execute(import_query)
+                data_import = import_result.scalar_one_or_none()
+        
+        if not data_import:
             # Return empty stats if no data
             return DataCleansingStats(
                 total_records=0,
@@ -182,6 +245,8 @@ async def get_data_cleansing_stats(
                 issues_by_severity={"low": 0, "medium": 0, "high": 0, "critical": 0},
                 completion_percentage=0.0
             )
+            
+        data_imports = [data_import]  # Convert to list for compatibility with existing code
         
         # Calculate stats from first data import
         data_import = data_imports[0]

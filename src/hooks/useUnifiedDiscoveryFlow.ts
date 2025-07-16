@@ -63,7 +63,7 @@ const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string
       current_phase: response.phase || response.currentPhase || '',
       phase_completion: {},
       crew_status: {},
-      raw_data: [],
+      raw_data: response.raw_data || [],
       field_mappings: response.field_mappings || {},
       cleaned_data: [],
       asset_inventory: {},

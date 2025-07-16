@@ -189,7 +189,7 @@ async def get_flow_status(
             extensions = ext_result.scalar_one_or_none()
             
             # Use ResponseMappers to create standardized response
-            status_response = ResponseMappers.map_flow_to_status_response(flow, extensions, context)
+            status_response = await ResponseMappers.map_flow_to_status_response(flow, extensions, context, db)
             
             # Generate ETag from response data
             response_dict = status_response.dict() if hasattr(status_response, 'dict') else status_response

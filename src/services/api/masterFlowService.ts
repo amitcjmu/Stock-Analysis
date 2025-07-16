@@ -75,6 +75,8 @@ export interface FlowStatusResponse {
     recommendation?: string;
     severity?: string;
   }>;
+  raw_data?: Array<Record<string, any>>;
+  import_metadata?: Record<string, any>;
 }
 
 /**

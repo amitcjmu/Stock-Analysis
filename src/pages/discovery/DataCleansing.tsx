@@ -118,7 +118,7 @@ const DataCleansing: React.FC = () => {
   const errorMessage = error?.message || latestImportError?.message;
   
   // Check if we have data available for cleansing - this includes imported data from previous phases
-  const hasImportedData = !!(flow?.raw_data?.length > 0 || flow?.field_mappings || latestImportData?.data?.length > 0);
+  const hasImportedData = !!(flow?.raw_data?.length > 0 || Object.keys(flow?.field_mappings || {}).length > 0 || latestImportData?.data?.length > 0);
   const hasCleansingResults = !!(qualityIssues.length > 0 || agentRecommendations.length > 0 || cleansingProgress.total_records > 0);
   const hasData = hasImportedData || hasCleansingResults;
   
@@ -157,8 +157,10 @@ const DataCleansing: React.FC = () => {
     hasCleansingResults,
     hasData,
     rawDataLength: flow?.raw_data?.length || 0,
+    fieldMappingsCount: Object.keys(flow?.field_mappings || {}).length,
     hasFieldMappings: !!flow?.field_mappings,
     latestImportDataLength: latestImportData?.data?.length || 0,
+    importMetadata: flow?.import_metadata,
     hasError,
     errorMessage,
     isLoadingData
