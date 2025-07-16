@@ -343,7 +343,6 @@ def upgrade() -> None:
     sa.Column('updated_by', sa.UUID(), nullable=True),
     sa.ForeignKeyConstraint(['client_account_id'], ['client_accounts.id'], name=op.f('fk_assets_client_account_id_client_accounts')),
     sa.ForeignKeyConstraint(['engagement_id'], ['engagements.id'], name=op.f('fk_assets_engagement_id_engagements')),
-    sa.ForeignKeyConstraint(['raw_import_records_id'], ['raw_import_records.id'], name=op.f('fk_assets_raw_import_records_id_raw_import_records')),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_assets'))
     )
     # ### end Alembic commands ###

@@ -210,6 +210,46 @@ async def get_import_data_by_flow_id(
         
         if not discovery_flow:
             logger.warning(f"❌ Discovery flow not found: {flow_id}")
+            
+            # Try to find data import directly using master flow ID
+            # This handles cases where discovery flow record is missing but data exists
+            from app.models.data_import import DataImport
+            from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+            
+            # Get the database ID for this flow_id (FK references id, not flow_id)
+            db_id_query = select(CrewAIFlowStateExtensions.id).where(
+                CrewAIFlowStateExtensions.flow_id == flow_id
+            )
+            db_id_result = await db.execute(db_id_query)
+            flow_db_id = db_id_result.scalar_one_or_none()
+            
+            if flow_db_id:
+                # Look for data imports with this master_flow_id
+                import_query = select(DataImport).where(
+                    DataImport.master_flow_id == flow_db_id
+                ).order_by(DataImport.created_at.desc()).limit(1)
+                
+                import_result = await db.execute(import_query)
+                data_import = import_result.scalar_one_or_none()
+                
+                if data_import:
+                    logger.info(f"✅ Found data import via master flow ID lookup: {data_import.id}")
+                    # Initialize the modular import handler
+                    import_handler = ImportStorageHandler(db, context.client_account_id)
+                    
+                    # Get the import data using the modular service
+                    import_data = await import_handler.get_import_data(str(data_import.id))
+                    
+                    # Add flow context to the response
+                    if import_data and import_data.get("success"):
+                        import_data["flow_context"] = {
+                            "flow_id": flow_id,
+                            "discovery_method": "master_flow_lookup",
+                            "data_import_id": str(data_import.id)
+                        }
+                    
+                    return import_data
+            
             return {
                 "success": False,
                 "message": f"Discovery flow not found: {flow_id}",

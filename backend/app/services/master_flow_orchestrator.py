@@ -173,6 +173,33 @@ class MasterFlowOrchestrator:
         
         logger.info(f"✅ Master Flow Orchestrator initialized for client {context.client_account_id}")
     
+    async def _get_flow_db_id(self, flow_id: str) -> Optional[uuid_pkg.UUID]:
+        """
+        Get the database ID for a given flow_id.
+        
+        The foreign key constraint on data_imports.master_flow_id references 
+        crewai_flow_state_extensions.id, not flow_id. This helper method 
+        translates between the two.
+        
+        Args:
+            flow_id: The CrewAI flow UUID
+            
+        Returns:
+            The database record ID if found, None otherwise
+        """
+        try:
+            from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+            from sqlalchemy import select
+            
+            query = select(CrewAIFlowStateExtensions.id).where(
+                CrewAIFlowStateExtensions.flow_id == flow_id
+            )
+            result = await self.db.execute(query)
+            return result.scalar_one_or_none()
+        except Exception as e:
+            logger.warning(f"Failed to get database ID for flow_id {flow_id}: {e}")
+            return None
+    
     async def create_flow(
         self,
         flow_type: str,
@@ -739,8 +766,12 @@ class MasterFlowOrchestrator:
         """Find related data using timestamp correlation"""
         try:
             from app.models.data_import import DataImport, RawImportRecord, ImportFieldMapping
+            from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
             from sqlalchemy import select, and_, or_, text
             from datetime import datetime, timedelta
+            
+            # Get the database ID for this flow_id
+            flow_db_id = await self._get_flow_db_id(flow_id)
             
             # Try to extract timestamp from flow_id if it's UUID-based
             # Look for data imports created around the same time
@@ -749,16 +780,27 @@ class MasterFlowOrchestrator:
             # Use a broader time window for discovery
             time_window = timedelta(hours=24)  # Look within 24 hours
             
-            query = select(DataImport).where(
-                and_(
-                    DataImport.client_account_id == self.context.client_account_id,
-                    or_(
+            if flow_db_id:
+                # If we found the database ID, include it in the search
+                query = select(DataImport).where(
+                    and_(
+                        DataImport.client_account_id == self.context.client_account_id,
+                        or_(
+                            DataImport.master_flow_id.is_(None),
+                            DataImport.master_flow_id == flow_db_id  # Use database ID here
+                        ),
+                        DataImport.created_at >= datetime.utcnow() - time_window
+                    )
+                ).order_by(DataImport.created_at.desc()).limit(5)
+            else:
+                # No database ID found, just look for orphaned imports
+                query = select(DataImport).where(
+                    and_(
+                        DataImport.client_account_id == self.context.client_account_id,
                         DataImport.master_flow_id.is_(None),
-                        DataImport.master_flow_id == flow_id
-                    ),
-                    DataImport.created_at >= datetime.utcnow() - time_window
-                )
-            ).order_by(DataImport.created_at.desc()).limit(5)
+                        DataImport.created_at >= datetime.utcnow() - time_window
+                    )
+                ).order_by(DataImport.created_at.desc()).limit(5)
             
             result = await self.db.execute(query)
             imports = result.scalars().all()
@@ -790,19 +832,35 @@ class MasterFlowOrchestrator:
         """Find related data using client context"""
         try:
             from app.models.data_import import DataImport, RawImportRecord
-            from sqlalchemy import select, and_, or_
+            from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+            from sqlalchemy import select, and_, or_, join
             
-            # Look for data imports with NULL master_flow_id for this client/engagement
-            query = select(DataImport).where(
-                and_(
-                    DataImport.client_account_id == self.context.client_account_id,
-                    DataImport.engagement_id == self.context.engagement_id,
-                    or_(
-                        DataImport.master_flow_id.is_(None),
-                        DataImport.master_flow_id == flow_id
+            # Get the database ID for this flow_id
+            flow_db_id = await self._get_flow_db_id(flow_id)
+            
+            # Look for data imports with NULL master_flow_id or matching master_flow_id
+            # Note: master_flow_id FK references crewai_flow_state_extensions.id, not flow_id
+            if flow_db_id:
+                # If we found the database ID, include it in the search
+                query = select(DataImport).where(
+                    and_(
+                        DataImport.client_account_id == self.context.client_account_id,
+                        DataImport.engagement_id == self.context.engagement_id,
+                        or_(
+                            DataImport.master_flow_id.is_(None),
+                            DataImport.master_flow_id == flow_db_id  # Use database ID here
+                        )
                     )
-                )
-            ).order_by(DataImport.created_at.desc()).limit(3)
+                ).order_by(DataImport.created_at.desc()).limit(3)
+            else:
+                # No database ID found, just look for orphaned imports
+                query = select(DataImport).where(
+                    and_(
+                        DataImport.client_account_id == self.context.client_account_id,
+                        DataImport.engagement_id == self.context.engagement_id,
+                        DataImport.master_flow_id.is_(None)
+                    )
+                ).order_by(DataImport.created_at.desc()).limit(3)
             
             result = await self.db.execute(query)
             imports = result.scalars().all()
@@ -876,25 +934,56 @@ class MasterFlowOrchestrator:
             discovery_method = discovered_data.get("discovery_method", "unknown")
             confidence = discovered_data.get("confidence", "low")
             
-            # Base status structure
+            # Get field mappings to determine the correct flow state
+            field_mappings = await self._retrieve_field_mappings_from_discovered_data(discovered_data)
+            
+            # Determine the actual flow state based on field mappings
+            flow_status = "running"
+            current_phase = "data_import"
+            progress_percentage = 30.0
+            awaiting_user_approval = False
+            
+            if field_mappings:
+                # We have field mappings, check their status
+                approved_count = sum(1 for mapping in field_mappings if mapping.get("status") == "approved")
+                total_count = len(field_mappings)
+                
+                if approved_count == total_count and total_count > 0:
+                    # All mappings are approved - flow should be ready to continue
+                    flow_status = "running"
+                    current_phase = "field_mapping"
+                    progress_percentage = 80.0
+                    awaiting_user_approval = False
+                else:
+                    # Some mappings are not approved - waiting for user approval
+                    flow_status = "waiting_for_approval"
+                    current_phase = "field_mapping"
+                    progress_percentage = 60.0
+                    awaiting_user_approval = True
+            
+            # Base status structure with proper frontend-compatible values
             status = {
                 "flow_id": flow_id,
-                "flow_type": "discovery",  # Assume discovery for orphaned data
-                "flow_name": f"Discovered Flow ({discovery_method})",
-                "status": "orphaned_data_discovered",
+                "flow_type": "discovery",
+                "flow_name": f"Discovery Flow",
+                "status": flow_status,
                 "discovery_method": discovery_method,
                 "confidence": confidence,
                 "created_at": datetime.utcnow().isoformat(),
                 "updated_at": datetime.utcnow().isoformat(),
                 "created_by": self.context.user_id,
-                "current_phase": "data_recovery",
-                "progress_percentage": 0.0,
+                "current_phase": current_phase,
+                "progress_percentage": progress_percentage,
                 "configuration": {},
                 "metadata": {
                     "is_discovered": True,
                     "original_data_orphaned": True,
                     "discovery_method": discovery_method
-                }
+                },
+                "awaiting_user_approval": awaiting_user_approval,
+                "awaitingUserApproval": awaiting_user_approval,  # Frontend expects camelCase
+                "currentPhase": current_phase,  # Frontend expects camelCase
+                "progress": progress_percentage  # Frontend expects this alias
             }
             
             if include_details:
@@ -905,13 +994,12 @@ class MasterFlowOrchestrator:
                     "orphaned_data_summary": await self._summarize_orphaned_data(discovered_data)
                 }
                 
-                # Add field mappings from discovered data
-                field_mappings = await self._retrieve_field_mappings_from_discovered_data(discovered_data)
+                # Add field mappings
                 details["field_mappings"] = field_mappings
                 
                 status.update(details)
             
-            logger.info(f"🔧 Built status from discovered data for flow {flow_id} using {discovery_method}")
+            logger.info(f"🔧 Built status from discovered data for flow {flow_id} using {discovery_method}: {flow_status}/{current_phase} ({progress_percentage}%)")
             return status
             
         except Exception as e:

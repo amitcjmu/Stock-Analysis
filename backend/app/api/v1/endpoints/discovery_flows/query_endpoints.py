@@ -61,7 +61,7 @@ async def get_active_flows(
         if context.user_id and not engagement_id:
             validation_result = await user_service.validate_user_context(
                 user_id=context.user_id,
-                client_account_id=int(context.client_account_id),
+                client_account_id=context.client_account_id,
                 engagement_id=None
             )
             
@@ -89,7 +89,8 @@ async def get_active_flows(
                     DiscoveryFlow.status == 'processing',
                     DiscoveryFlow.status == 'ready',
                     DiscoveryFlow.status == 'waiting_for_approval',
-                    DiscoveryFlow.status == 'initialized'  # Include initialized flows with data
+                    DiscoveryFlow.status == 'initialized',  # Include initialized flows with data
+                    DiscoveryFlow.status == 'orphaned'  # Include orphaned flows with data for testing
                 )
             )
         )
@@ -578,7 +579,7 @@ async def get_flows_summary(
         if context.user_id and not engagement_id:
             validation_result = await user_service.validate_user_context(
                 user_id=context.user_id,
-                client_account_id=int(context.client_account_id),
+                client_account_id=context.client_account_id,
                 engagement_id=None
             )
             

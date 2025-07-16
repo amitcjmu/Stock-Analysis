@@ -376,17 +376,33 @@ class FlowStatusManager:
         """Load field mappings by data_import_id"""
         try:
             from app.models.data_import.mapping import ImportFieldMapping
+            from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
             from sqlalchemy import select, or_
             
             logger.info(f"🔍 Loading field mappings for data_import_id: {data_import_id}")
             
-            # Query with fallback to master_flow_id if direct data_import_id fails
-            query = select(ImportFieldMapping).where(
-                or_(
-                    ImportFieldMapping.data_import_id == data_import_id,
-                    ImportFieldMapping.master_flow_id == flow_id
-                )
+            # Get the database ID for this flow_id (FK references id, not flow_id)
+            db_id_query = select(CrewAIFlowStateExtensions.id).where(
+                CrewAIFlowStateExtensions.flow_id == flow_id
             )
+            db_id_result = await self.db.execute(db_id_query)
+            flow_db_id = db_id_result.scalar_one_or_none()
+            
+            # Query with fallback to master_flow_id if direct data_import_id fails
+            # Note: master_flow_id FK references crewai_flow_state_extensions.id
+            if flow_db_id:
+                query = select(ImportFieldMapping).where(
+                    or_(
+                        ImportFieldMapping.data_import_id == data_import_id,
+                        ImportFieldMapping.master_flow_id == flow_db_id  # Use database ID
+                    )
+                )
+            else:
+                # No database ID found, just use data_import_id
+                query = select(ImportFieldMapping).where(
+                    ImportFieldMapping.data_import_id == data_import_id
+                )
+            
             result = await self.db.execute(query)
             mappings = result.scalars().all()
             
@@ -427,19 +443,40 @@ class FlowStatusManager:
             
             flow_id = master_flow.flow_id
             
+            # Get the database ID for this flow_id (FK references id, not flow_id)
+            from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+            db_id_query = select(CrewAIFlowStateExtensions.id).where(
+                CrewAIFlowStateExtensions.flow_id == flow_id
+            )
+            db_id_result = await self.db.execute(db_id_query)
+            flow_db_id = db_id_result.scalar_one_or_none()
+            
             # Strategy 1: Find field mappings with NULL master_flow_id for this client/engagement
-            orphaned_mappings_query = select(ImportFieldMapping).join(
-                DataImport, ImportFieldMapping.data_import_id == DataImport.id
-            ).where(
-                and_(
-                    DataImport.client_account_id == self.context.client_account_id,
-                    DataImport.engagement_id == self.context.engagement_id,
-                    or_(
-                        ImportFieldMapping.master_flow_id.is_(None),
-                        ImportFieldMapping.master_flow_id == flow_id
+            # Note: master_flow_id FK references crewai_flow_state_extensions.id
+            if flow_db_id:
+                orphaned_mappings_query = select(ImportFieldMapping).join(
+                    DataImport, ImportFieldMapping.data_import_id == DataImport.id
+                ).where(
+                    and_(
+                        DataImport.client_account_id == self.context.client_account_id,
+                        DataImport.engagement_id == self.context.engagement_id,
+                        or_(
+                            ImportFieldMapping.master_flow_id.is_(None),
+                            ImportFieldMapping.master_flow_id == flow_db_id  # Use database ID
+                        )
                     )
-                )
-            ).order_by(ImportFieldMapping.created_at.desc())
+                ).order_by(ImportFieldMapping.created_at.desc())
+            else:
+                # No database ID found, just look for orphaned mappings
+                orphaned_mappings_query = select(ImportFieldMapping).join(
+                    DataImport, ImportFieldMapping.data_import_id == DataImport.id
+                ).where(
+                    and_(
+                        DataImport.client_account_id == self.context.client_account_id,
+                        DataImport.engagement_id == self.context.engagement_id,
+                        ImportFieldMapping.master_flow_id.is_(None)
+                    )
+                ).order_by(ImportFieldMapping.created_at.desc())
             
             result = await self.db.execute(orphaned_mappings_query)
             orphaned_mappings = result.scalars().all()

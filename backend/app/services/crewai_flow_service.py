@@ -487,7 +487,43 @@ class CrewAIFlowService:
                     flow = await discovery_service.get_flow_by_id(flow_id)
                     
                     if not flow:
-                        raise ValueError(f"Flow not found: {flow_id}")
+                        # Check if master flow exists and create missing discovery flow record
+                        async with AsyncSessionLocal() as db:
+                            from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+                            from sqlalchemy import select
+                            
+                            master_flow_query = select(CrewAIFlowStateExtensions).where(
+                                CrewAIFlowStateExtensions.flow_id == flow_id,
+                                CrewAIFlowStateExtensions.flow_type == 'discovery'
+                            )
+                            master_flow_result = await db.execute(master_flow_query)
+                            master_flow = master_flow_result.scalar_one_or_none()
+                            
+                            if master_flow:
+                                logger.info(f"🔧 Master flow found but discovery flow missing, creating discovery flow record")
+                                # Create missing discovery flow record
+                                from app.models.discovery_flow import DiscoveryFlow
+                                discovery_flow = DiscoveryFlow(
+                                    flow_id=master_flow.flow_id,
+                                    master_flow_id=master_flow.flow_id,
+                                    client_account_id=master_flow.client_account_id,
+                                    engagement_id=master_flow.engagement_id,
+                                    user_id=master_flow.user_id,
+                                    flow_name=master_flow.flow_name or f"Discovery Flow {str(master_flow.flow_id)[:8]}",
+                                    status=master_flow.flow_status,
+                                    current_phase="resuming",
+                                    created_at=master_flow.created_at,
+                                    updated_at=master_flow.updated_at
+                                )
+                                db.add(discovery_flow)
+                                await db.commit()
+                                logger.info(f"✅ Created discovery flow record for {flow_id}")
+                                
+                                # Retry getting the flow
+                                flow = await discovery_service.get_flow_by_id(flow_id)
+                                
+                        if not flow:
+                            raise ValueError(f"Flow not found: {flow_id}")
                     
                     # Validate flow status - prevent resuming flows in terminal states
                     terminal_statuses = ['deleted', 'cancelled', 'completed', 'failed']

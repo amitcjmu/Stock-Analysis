@@ -49,9 +49,8 @@ class UserContextService:
             
             # Query user with all necessary relationships
             stmt = select(User).options(
-                selectinload(User.engagement),
-                selectinload(User.client_account),
-                selectinload(User.profile)
+                selectinload(User.default_client),
+                selectinload(User.default_engagement)
             ).where(User.id == user_uuid)
             
             result = await self.db.execute(stmt)
@@ -71,7 +70,7 @@ class UserContextService:
     async def get_user_flows(
         self, 
         user_id: str, 
-        client_account_id: int,
+        client_account_id: str,
         engagement_id: Optional[str] = None
     ) -> List[DiscoveryFlow]:
         """
@@ -79,7 +78,7 @@ class UserContextService:
         
         Args:
             user_id: The user ID
-            client_account_id: The client account ID
+            client_account_id: The client account ID (UUID string)
             engagement_id: Optional engagement ID (will be derived from user if not provided)
             
         Returns:
@@ -97,8 +96,15 @@ class UserContextService:
                     logger.info(f"Using user's default engagement: {engagement_id}")
             
             # Build query based on available context
+            # Convert client_account_id to UUID for comparison
+            try:
+                client_account_uuid = uuid.UUID(client_account_id)
+            except ValueError:
+                logger.error(f"Invalid client_account_id format: {client_account_id}")
+                return []
+            
             stmt = select(DiscoveryFlow).where(
-                DiscoveryFlow.client_account_id == client_account_id,
+                DiscoveryFlow.client_account_id == client_account_uuid,
                 DiscoveryFlow.status != 'deleted',
                 DiscoveryFlow.status != 'cancelled'
             )
@@ -127,7 +133,7 @@ class UserContextService:
     async def validate_user_context(
         self,
         user_id: str,
-        client_account_id: int,
+        client_account_id: str,
         engagement_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
@@ -135,7 +141,7 @@ class UserContextService:
         
         Args:
             user_id: The user ID
-            client_account_id: The client account ID
+            client_account_id: The client account ID (UUID string)
             engagement_id: Optional engagement ID
             
         Returns:
@@ -160,7 +166,14 @@ class UserContextService:
             result["user_exists"] = True
             
             # Check client account access
-            if user.client_account_id == client_account_id:
+            # Convert client_account_id to UUID for comparison
+            try:
+                client_account_uuid = uuid.UUID(client_account_id)
+            except ValueError:
+                result["error"] = f"Invalid client_account_id format: {client_account_id}"
+                return result
+            
+            if user.default_client_id == client_account_uuid:
                 result["has_client_access"] = True
             else:
                 result["error"] = "User does not have access to this client account"
@@ -171,7 +184,7 @@ class UserContextService:
                 # Validate provided engagement belongs to client
                 stmt = select(Engagement).where(
                     Engagement.id == engagement_id,
-                    Engagement.client_account_id == client_account_id
+                    Engagement.client_account_id == client_account_uuid
                 )
                 eng_result = await self.db.execute(stmt)
                 engagement = eng_result.scalar_one_or_none()
@@ -205,14 +218,14 @@ class UserContextService:
     async def get_user_active_flows_count(
         self,
         user_id: str,
-        client_account_id: int
+        client_account_id: str
     ) -> int:
         """
         Get count of active flows for a user.
         
         Args:
             user_id: The user ID
-            client_account_id: The client account ID
+            client_account_id: The client account ID (UUID string)
             
         Returns:
             Count of active flows
