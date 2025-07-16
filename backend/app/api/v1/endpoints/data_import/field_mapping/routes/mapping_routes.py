@@ -124,8 +124,19 @@ async def trigger_field_mapping_reanalysis(
         # Get the data import
         from app.models.data_import import DataImport
         from sqlalchemy import select
+        from uuid import UUID
         
-        import_query = select(DataImport).where(DataImport.id == import_id)
+        # Convert string UUID to UUID object if needed
+        try:
+            if isinstance(import_id, str):
+                import_uuid = UUID(import_id)
+            else:
+                import_uuid = import_id
+        except ValueError as e:
+            logger.error(f"❌ Invalid UUID format: {e}")
+            raise HTTPException(status_code=400, detail=f"Invalid UUID format for import_id: {import_id}")
+        
+        import_query = select(DataImport).where(DataImport.id == import_uuid)
         import_result = await db.execute(import_query)
         data_import = import_result.scalar_one_or_none()
         

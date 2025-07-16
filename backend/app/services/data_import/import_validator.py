@@ -9,8 +9,9 @@ Handles all data validation logic including:
 - Import format verification
 """
 
+from __future__ import annotations
 import logging
-import uuid as uuid_pkg
+import uuid
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 
@@ -107,7 +108,7 @@ class ImportValidator:
                 }
             )
             
-    async def validate_import_id(self, import_validation_id: str) -> uuid_pkg.UUID:
+    async def validate_import_id(self, import_validation_id: str) -> uuid.UUID:
         """
         Validate that the import validation ID is a proper UUID.
         
@@ -121,7 +122,7 @@ class ImportValidator:
             AppValidationError: If the UUID format is invalid
         """
         try:
-            uuid_obj = uuid_pkg.UUID(import_validation_id)
+            uuid_obj = uuid.UUID(import_validation_id)
             logger.info(f"Validated import ID: {import_validation_id}")
             return uuid_obj
         except ValueError as e:

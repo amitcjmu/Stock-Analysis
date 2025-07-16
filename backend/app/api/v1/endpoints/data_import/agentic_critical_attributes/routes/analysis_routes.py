@@ -88,11 +88,27 @@ async def trigger_field_mapping_crew_analysis(
         # Get the import data
         from app.models.data_import import DataImport
         from sqlalchemy import select, and_
+        from uuid import UUID
+        
+        # Convert string UUID to UUID object if needed
+        try:
+            if isinstance(request.import_id, str):
+                import_uuid = UUID(request.import_id)
+            else:
+                import_uuid = request.import_id
+                
+            if isinstance(coordinator.context.client_account_id, str):
+                client_account_uuid = UUID(coordinator.context.client_account_id)
+            else:
+                client_account_uuid = coordinator.context.client_account_id
+        except ValueError as e:
+            logger.error(f"❌ Invalid UUID format: {e}")
+            raise HTTPException(status_code=400, detail=f"Invalid UUID format: {e}")
         
         import_query = select(DataImport).where(
             and_(
-                DataImport.id == request.import_id,
-                DataImport.client_account_id == coordinator.context.client_account_id
+                DataImport.id == import_uuid,
+                DataImport.client_account_id == client_account_uuid
             )
         )
         import_result = await coordinator.db.execute(import_query)

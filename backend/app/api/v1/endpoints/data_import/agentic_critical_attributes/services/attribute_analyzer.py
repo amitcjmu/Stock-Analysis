@@ -113,19 +113,51 @@ class AttributeAnalyzer:
         """Get the data import to analyze based on request parameters."""
         
         if request.import_id:
+            # Convert string UUID to UUID object if needed
+            from uuid import UUID
+            try:
+                if isinstance(request.import_id, str):
+                    import_uuid = UUID(request.import_id)
+                else:
+                    import_uuid = request.import_id
+                    
+                if isinstance(self.context.client_account_id, str):
+                    client_account_uuid = UUID(self.context.client_account_id)
+                else:
+                    client_account_uuid = self.context.client_account_id
+            except ValueError as e:
+                logger.error(f"❌ Invalid UUID format: {e}")
+                return None
+            
             # Use specific import ID
             query = select(DataImport).where(
                 and_(
-                    DataImport.id == request.import_id,
-                    DataImport.client_account_id == self.context.client_account_id
+                    DataImport.id == import_uuid,
+                    DataImport.client_account_id == client_account_uuid
                 )
             )
         else:
+            # Convert client_account_id and engagement_id to UUID objects if needed
+            from uuid import UUID
+            try:
+                if isinstance(self.context.client_account_id, str):
+                    client_account_uuid = UUID(self.context.client_account_id)
+                else:
+                    client_account_uuid = self.context.client_account_id
+                    
+                if isinstance(self.context.engagement_id, str):
+                    engagement_uuid = UUID(self.context.engagement_id)
+                else:
+                    engagement_uuid = self.context.engagement_id
+            except ValueError as e:
+                logger.error(f"❌ Invalid UUID format in context: {e}")
+                return None
+            
             # Use latest import for the engagement
             query = select(DataImport).where(
                 and_(
-                    DataImport.client_account_id == self.context.client_account_id,
-                    DataImport.engagement_id == self.context.engagement_id,
+                    DataImport.client_account_id == client_account_uuid,
+                    DataImport.engagement_id == engagement_uuid,
                     DataImport.status.in_(['processed', 'completed'])
                 )
             ).order_by(DataImport.completed_at.desc()).limit(1)

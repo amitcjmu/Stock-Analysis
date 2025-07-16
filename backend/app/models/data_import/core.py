@@ -1,7 +1,7 @@
 """
 Core Data Import Models
 """
-import uuid as uuid_pkg
+from __future__ import annotations
 from datetime import datetime
 from sqlalchemy import (
     Column,
@@ -13,8 +13,8 @@ from sqlalchemy import (
     Boolean,
     ForeignKey,
     Float,
-    UUID,
 )
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -32,7 +32,7 @@ class DataImport(Base):
 
     __tablename__ = "data_imports"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid_pkg.uuid4, comment="Unique identifier for the data import job.")
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid(), comment="Unique identifier for the data import job.")
     client_account_id = Column(UUID(as_uuid=True), ForeignKey("client_accounts.id", ondelete="CASCADE"), nullable=True, comment="The client account this import belongs to.")
     engagement_id = Column(UUID(as_uuid=True), ForeignKey("engagements.id", ondelete="CASCADE"), nullable=True, comment="The engagement this import is associated with.")
     master_flow_id = Column(UUID(as_uuid=True), ForeignKey("crewai_flow_state_extensions.flow_id", ondelete="CASCADE"), nullable=True, comment="The master flow ID that was initiated by this data import.")
@@ -95,7 +95,7 @@ class RawImportRecord(Base):
 
     __tablename__ = "raw_import_records"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid_pkg.uuid4, comment="Unique identifier for the raw record.")
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid(), comment="Unique identifier for the raw record.")
     data_import_id = Column(UUID(as_uuid=True), ForeignKey("data_imports.id", ondelete="CASCADE"), nullable=False, comment="Foreign key to the parent data import job.")
     
     # Context IDs for direct querying
@@ -141,7 +141,7 @@ class ImportProcessingStep(Base):
     
     __tablename__ = "import_processing_steps"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid_pkg.uuid4, comment="Unique identifier for the processing step log.")
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid(), comment="Unique identifier for the processing step log.")
     data_import_id = Column(UUID(as_uuid=True), ForeignKey("data_imports.id", ondelete="CASCADE"), nullable=False, comment="Foreign key to the parent data import job.")
     
     step_name = Column(String(100), nullable=False, comment="The name of the processing step (e.g., 'validation', 'field_mapping').")

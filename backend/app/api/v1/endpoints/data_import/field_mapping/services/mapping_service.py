@@ -47,10 +47,27 @@ class MappingService:
     
     async def get_field_mappings(self, import_id: str) -> List[FieldMappingResponse]:
         """Get all field mappings for an import."""
+        
+        # Convert string UUIDs to UUID objects if needed
+        from uuid import UUID
+        try:
+            if isinstance(import_id, str):
+                import_uuid = UUID(import_id)
+            else:
+                import_uuid = import_id
+            
+            if isinstance(self.context.client_account_id, str):
+                client_account_uuid = UUID(self.context.client_account_id)
+            else:
+                client_account_uuid = self.context.client_account_id
+        except ValueError as e:
+            logger.error(f"❌ Invalid UUID format: {e}")
+            raise ValueError(f"Invalid UUID format for import_id: {import_id}")
+        
         query = select(ImportFieldMapping).where(
             and_(
-                ImportFieldMapping.data_import_id == import_id,
-                ImportFieldMapping.client_account_id == self.context.client_account_id
+                ImportFieldMapping.data_import_id == import_uuid,
+                ImportFieldMapping.client_account_id == client_account_uuid
             )
         )
         result = await self.db.execute(query)
@@ -103,6 +120,22 @@ class MappingService:
     ) -> FieldMappingResponse:
         """Create a new field mapping."""
         
+        # Convert string UUIDs to UUID objects if needed
+        from uuid import UUID
+        try:
+            if isinstance(import_id, str):
+                import_uuid = UUID(import_id)
+            else:
+                import_uuid = import_id
+            
+            if isinstance(self.context.client_account_id, str):
+                client_account_uuid = UUID(self.context.client_account_id)
+            else:
+                client_account_uuid = self.context.client_account_id
+        except ValueError as e:
+            logger.error(f"❌ Invalid UUID format: {e}")
+            raise ValueError(f"Invalid UUID format for import_id: {import_id}")
+        
         # Validate mapping data
         validation_result = await self.validator.validate_mapping(mapping_data)
         if not validation_result.is_valid:
@@ -110,8 +143,8 @@ class MappingService:
         
         # Create mapping record
         mapping = ImportFieldMapping(
-            data_import_id=import_id,
-            client_account_id=self.context.client_account_id,
+            data_import_id=import_uuid,
+            client_account_id=client_account_uuid,
             source_field=mapping_data.source_field,
             target_field=mapping_data.target_field,
             match_type="user_defined",
@@ -126,12 +159,23 @@ class MappingService:
         
         logger.info(f"Created field mapping: {mapping_data.source_field} -> {mapping_data.target_field}")
         
+        # Serialize transformation_rules properly for response
+        transformation_rule_str = None
+        if mapping.transformation_rules:
+            if isinstance(mapping.transformation_rules, dict):
+                import json
+                transformation_rule_str = json.dumps(mapping.transformation_rules)
+            elif isinstance(mapping.transformation_rules, str):
+                transformation_rule_str = mapping.transformation_rules
+            else:
+                transformation_rule_str = str(mapping.transformation_rules)
+        
         return FieldMappingResponse(
             id=mapping.id,
             source_field=mapping.source_field,
             target_field=mapping.target_field,
-            transformation_rule=mapping.transformation_rules,
-            validation_rule=mapping.transformation_rules,
+            transformation_rule=transformation_rule_str,
+            validation_rule=transformation_rule_str,
             is_required=False,
             is_approved=True,
             confidence=mapping.confidence_score or 0.7,
@@ -146,11 +190,24 @@ class MappingService:
     ) -> Dict[str, Any]:
         """Update multiple field mappings in a single database transaction."""
         
+        # Convert string UUIDs to UUID objects
+        from uuid import UUID
+        try:
+            mapping_uuids = [UUID(id_str) if isinstance(id_str, str) else id_str for id_str in mapping_ids]
+            
+            if isinstance(self.context.client_account_id, str):
+                client_account_uuid = UUID(self.context.client_account_id)
+            else:
+                client_account_uuid = self.context.client_account_id
+        except ValueError as e:
+            logger.error(f"❌ Invalid UUID format in bulk update: {e}")
+            raise ValueError(f"Invalid UUID format in mapping_ids: {e}")
+        
         # Get all mappings to update
         query = select(ImportFieldMapping).where(
             and_(
-                ImportFieldMapping.id.in_(mapping_ids),
-                ImportFieldMapping.client_account_id == self.context.client_account_id
+                ImportFieldMapping.id.in_(mapping_uuids),
+                ImportFieldMapping.client_account_id == client_account_uuid
             )
         )
         result = await self.db.execute(query)
@@ -210,18 +267,44 @@ class MappingService:
     ) -> FieldMappingResponse:
         """Update an existing field mapping."""
         
+        # Convert string UUID to UUID object if needed
+        from uuid import UUID
+        try:
+            if isinstance(mapping_id, str):
+                mapping_uuid = UUID(mapping_id)
+            else:
+                mapping_uuid = mapping_id
+            
+            if isinstance(self.context.client_account_id, str):
+                client_account_uuid = UUID(self.context.client_account_id)
+            else:
+                client_account_uuid = self.context.client_account_id
+        except ValueError as e:
+            logger.error(f"❌ Invalid UUID format: {e}")
+            raise ValueError(f"Invalid UUID format for mapping_id: {mapping_id}")
+        
         # Get existing mapping
         query = select(ImportFieldMapping).where(
             and_(
-                ImportFieldMapping.id == mapping_id,
-                ImportFieldMapping.client_account_id == self.context.client_account_id
+                ImportFieldMapping.id == mapping_uuid,
+                ImportFieldMapping.client_account_id == client_account_uuid
             )
         )
         result = await self.db.execute(query)
         mapping = result.scalar_one_or_none()
         
         if not mapping:
-            raise ValueError(f"Field mapping {mapping_id} not found")
+            # Check if mapping exists but access is denied (different client_account)
+            debug_query = select(ImportFieldMapping).where(ImportFieldMapping.id == mapping_uuid)
+            debug_result = await self.db.execute(debug_query)
+            debug_mapping = debug_result.scalar_one_or_none()
+            
+            if debug_mapping:
+                logger.warning(f"Field mapping {mapping_id} access denied - different client account")
+                raise ValueError(f"Field mapping {mapping_id} not found")
+            else:
+                logger.info(f"Field mapping {mapping_id} does not exist")
+                raise ValueError(f"Field mapping {mapping_id} not found")
         
         # Update fields
         if update_data.target_field is not None:
@@ -243,12 +326,23 @@ class MappingService:
         
         logger.info(f"Updated field mapping {mapping_id}")
         
+        # Serialize transformation_rules properly for response
+        transformation_rule_str = None
+        if mapping.transformation_rules:
+            if isinstance(mapping.transformation_rules, dict):
+                import json
+                transformation_rule_str = json.dumps(mapping.transformation_rules)
+            elif isinstance(mapping.transformation_rules, str):
+                transformation_rule_str = mapping.transformation_rules
+            else:
+                transformation_rule_str = str(mapping.transformation_rules)
+        
         return FieldMappingResponse(
             id=mapping.id,
             source_field=mapping.source_field,
             target_field=mapping.target_field,
-            transformation_rule=mapping.transformation_rules,
-            validation_rule=mapping.transformation_rules,
+            transformation_rule=transformation_rule_str,
+            validation_rule=transformation_rule_str,
             is_required=False,  # is_required field doesn't exist in ImportFieldMapping model
             is_approved=mapping.status == "approved",
             confidence=mapping.confidence_score or 0.7,
@@ -323,10 +417,27 @@ class MappingService:
     
     async def delete_field_mapping(self, mapping_id: str) -> bool:
         """Delete a field mapping."""
+        
+        # Convert string UUID to UUID object if needed
+        from uuid import UUID
+        try:
+            if isinstance(mapping_id, str):
+                mapping_uuid = UUID(mapping_id)
+            else:
+                mapping_uuid = mapping_id
+            
+            if isinstance(self.context.client_account_id, str):
+                client_account_uuid = UUID(self.context.client_account_id)
+            else:
+                client_account_uuid = self.context.client_account_id
+        except ValueError as e:
+            logger.error(f"❌ Invalid UUID format: {e}")
+            raise ValueError(f"Invalid UUID format for mapping_id: {mapping_id}")
+        
         query = select(ImportFieldMapping).where(
             and_(
-                ImportFieldMapping.id == mapping_id,
-                ImportFieldMapping.client_account_id == self.context.client_account_id
+                ImportFieldMapping.id == mapping_uuid,
+                ImportFieldMapping.client_account_id == client_account_uuid
             )
         )
         result = await self.db.execute(query)

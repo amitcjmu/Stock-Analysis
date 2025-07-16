@@ -141,11 +141,52 @@ async def _get_agentic_critical_attributes(
         from sqlalchemy import select
         
         # Get the discovery flow for this data import
+        # First try direct data_import_id lookup
         flow_query = select(DiscoveryFlow).where(
             DiscoveryFlow.data_import_id == data_import.id
         )
         flow_result = await db.execute(flow_query)
         discovery_flow = flow_result.scalar_one_or_none()
+        
+        # If not found by data_import_id, try lookup through master flow relationship
+        if not discovery_flow and data_import.master_flow_id:
+            logger.info(f"🔍 Discovery flow not found by data_import_id, trying master flow lookup for: {data_import.master_flow_id}")
+            
+            # Look for discovery flow with matching master_flow_id
+            master_flow_query = select(DiscoveryFlow).where(
+                DiscoveryFlow.master_flow_id == data_import.master_flow_id
+            )
+            master_flow_result = await db.execute(master_flow_query)
+            discovery_flow = master_flow_result.scalar_one_or_none()
+            
+            if discovery_flow:
+                logger.info(f"✅ Found discovery flow through master flow relationship: {discovery_flow.flow_id}")
+            else:
+                logger.info(f"🔍 No discovery flow found by master_flow_id, trying configuration-based lookup")
+                
+                # Additional fallback: Look for discovery flows where the master flow configuration contains this data import ID
+                from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+                from sqlalchemy import text as sql_text
+                config_query = select(CrewAIFlowStateExtensions).where(
+                    sql_text(f"flow_configuration::text LIKE '%{data_import.id}%'")
+                )
+                config_result = await db.execute(config_query)
+                master_flows_with_import = config_result.scalars().all()
+                
+                for master_flow in master_flows_with_import:
+                    # Check if there's a discovery flow linked to this master flow
+                    linked_flow_query = select(DiscoveryFlow).where(
+                        DiscoveryFlow.master_flow_id == master_flow.flow_id
+                    )
+                    linked_flow_result = await db.execute(linked_flow_query)
+                    discovery_flow = linked_flow_result.scalar_one_or_none()
+                    
+                    if discovery_flow:
+                        logger.info(f"✅ Found discovery flow through configuration-based lookup: {discovery_flow.flow_id}")
+                        break
+                
+                if not discovery_flow:
+                    logger.warning(f"⚠️ No discovery flow found through any lookup method")
         
         if discovery_flow and discovery_flow.field_mappings:
             logger.info("🤖 Found existing discovery flow field mapping results")
@@ -335,14 +376,52 @@ async def _trigger_field_mapping_reanalysis(
         # Get the discovery flow associated with this data import
         from app.models.discovery_flow import DiscoveryFlow
         
+        # First try direct data_import_id lookup
         flow_query = select(DiscoveryFlow).where(
             DiscoveryFlow.data_import_id == data_import.id
         )
         flow_result = await db.execute(flow_query)
         discovery_flow = flow_result.scalar_one_or_none()
         
+        # If not found by data_import_id, try lookup through master flow relationship
+        if not discovery_flow and data_import.master_flow_id:
+            logger.info(f"🔍 Discovery flow not found by data_import_id for re-analysis, trying master flow lookup for: {data_import.master_flow_id}")
+            
+            # Look for discovery flow with matching master_flow_id
+            master_flow_query = select(DiscoveryFlow).where(
+                DiscoveryFlow.master_flow_id == data_import.master_flow_id
+            )
+            master_flow_result = await db.execute(master_flow_query)
+            discovery_flow = master_flow_result.scalar_one_or_none()
+            
+            if discovery_flow:
+                logger.info(f"✅ Found discovery flow for re-analysis through master flow relationship: {discovery_flow.flow_id}")
+            else:
+                logger.info(f"🔍 No discovery flow found by master_flow_id for re-analysis, trying configuration-based lookup")
+                
+                # Additional fallback: Look for discovery flows where the master flow configuration contains this data import ID
+                from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+                from sqlalchemy import text as sql_text
+                config_query = select(CrewAIFlowStateExtensions).where(
+                    sql_text(f"flow_configuration::text LIKE '%{data_import.id}%'")
+                )
+                config_result = await db.execute(config_query)
+                master_flows_with_import = config_result.scalars().all()
+                
+                for master_flow in master_flows_with_import:
+                    # Check if there's a discovery flow linked to this master flow
+                    linked_flow_query = select(DiscoveryFlow).where(
+                        DiscoveryFlow.master_flow_id == master_flow.flow_id
+                    )
+                    linked_flow_result = await db.execute(linked_flow_query)
+                    discovery_flow = linked_flow_result.scalar_one_or_none()
+                    
+                    if discovery_flow:
+                        logger.info(f"✅ Found discovery flow for re-analysis through configuration-based lookup: {discovery_flow.flow_id}")
+                        break
+        
         if not discovery_flow:
-            logger.error(f"❌ No discovery flow found for data_import_id: {data_import.id}")
+            logger.error(f"❌ No discovery flow found for data_import_id: {data_import.id} (tried all lookup methods)")
             return
         
         # Get raw data from the import
@@ -389,7 +468,7 @@ async def _trigger_field_mapping_reanalysis(
         crew_manager = UnifiedFlowCrewManager(crewai_service, flow_state)
         
         # Create and execute field mapping executor
-        executor = FieldMappingExecutor(crew_manager, flow_state)
+        executor = FieldMappingExecutor(flow_state, crew_manager)
         
         # Execute field mapping analysis
         logger.info("🤖 Executing field mapping re-analysis with CrewAI agents...")

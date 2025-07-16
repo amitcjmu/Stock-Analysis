@@ -1,7 +1,7 @@
 """
 Data Import Field Mapping Model
 """
-import uuid as uuid_pkg
+from __future__ import annotations
 from datetime import datetime
 from sqlalchemy import (
     Column,
@@ -12,8 +12,8 @@ from sqlalchemy import (
     Boolean,
     ForeignKey,
     Float,
-    UUID,
 )
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -32,7 +32,7 @@ class ImportFieldMapping(Base):
     
     __tablename__ = "import_field_mappings"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid_pkg.uuid4, comment="Unique identifier for the field mapping record.")
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid(), comment="Unique identifier for the field mapping record.")
     data_import_id = Column(UUID(as_uuid=True), ForeignKey("data_imports.id", ondelete="CASCADE"), nullable=False, comment="Foreign key to the parent data import job.")
     client_account_id = Column(UUID(as_uuid=True), nullable=False, comment="Denormalized client account ID for efficient multi-tenant queries.")
     master_flow_id = Column(UUID(as_uuid=True), ForeignKey("crewai_flow_state_extensions.id"), nullable=True, comment="The master flow ID this mapping is associated with.")

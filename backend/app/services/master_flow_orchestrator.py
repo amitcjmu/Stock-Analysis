@@ -173,7 +173,7 @@ class MasterFlowOrchestrator:
         
         logger.info(f"✅ Master Flow Orchestrator initialized for client {context.client_account_id}")
     
-    async def _get_flow_db_id(self, flow_id: str) -> Optional[uuid_pkg.UUID]:
+    async def _get_flow_db_id(self, flow_id: str) -> Optional[uuid.UUID]:
         """
         Get the database ID for a given flow_id.
         

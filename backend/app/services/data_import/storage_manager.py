@@ -8,8 +8,9 @@ Handles all database storage operations including:
 - Raw record management
 """
 
+from __future__ import annotations
 import logging
-import uuid as uuid_pkg
+import uuid
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 
@@ -34,7 +35,7 @@ class ImportStorageManager:
         
     async def find_or_create_import(
         self, 
-        import_id: uuid_pkg.UUID,
+        import_id: uuid.UUID,
         engagement_id: str,
         user_id: str,
         filename: str,
@@ -273,7 +274,7 @@ class ImportStorageManager:
     
     async def get_raw_records(
         self, 
-        data_import_id: uuid_pkg.UUID,
+        data_import_id: uuid.UUID,
         limit: int = 1000
     ) -> List[RawImportRecord]:
         """
@@ -302,7 +303,7 @@ class ImportStorageManager:
             
     async def update_raw_records_with_cleansed_data(
         self,
-        data_import_id: uuid_pkg.UUID,
+        data_import_id: uuid.UUID,
         cleansed_data: List[Dict[str, Any]],
         validation_results: Optional[Dict[str, Any]] = None
     ) -> int:
@@ -346,7 +347,7 @@ class ImportStorageManager:
             logger.error(f"Failed to update raw records with cleansed data: {e}")
             return 0
 
-    async def link_master_flow_to_import(self, data_import_id: uuid_pkg.UUID, master_flow_id: uuid_pkg.UUID):
+    async def link_master_flow_to_import(self, data_import_id: uuid.UUID, master_flow_id: uuid.UUID):
         """
         Links a master flow to all relevant records of a data import.
 

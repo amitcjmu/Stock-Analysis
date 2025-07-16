@@ -219,7 +219,7 @@ export const useFieldMappings = (
     if (realFieldMappings && Array.isArray(realFieldMappings)) {
       const mappedData = realFieldMappings.map(mapping => {
         // Check if this is an unmapped field
-        const isUnmapped = mapping.target_field === 'UNMAPPED' || mapping.target_field === null || mapping.status === 'unmapped';
+        const isUnmapped = mapping.target_field === 'UNMAPPED' || mapping.target_field === null;
         
         // Ensure source_field is always a string
         const sourceField = String(mapping.source_field || 'Unknown Field');

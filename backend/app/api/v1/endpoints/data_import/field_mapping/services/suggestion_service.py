@@ -37,11 +37,27 @@ class SuggestionService:
     ) -> FieldMappingAnalysis:
         """Get AI-powered field mapping suggestions for an import."""
         
+        # Convert string UUID to UUID object if needed
+        from uuid import UUID
+        try:
+            if isinstance(import_id, str):
+                import_uuid = UUID(import_id)
+            else:
+                import_uuid = import_id
+                
+            if isinstance(self.context.client_account_id, str):
+                client_account_uuid = UUID(self.context.client_account_id)
+            else:
+                client_account_uuid = self.context.client_account_id
+        except ValueError as e:
+            logger.error(f"❌ Invalid UUID format: {e}")
+            raise ValueError(f"Invalid UUID format for import_id: {import_id}")
+        
         # Get import data
         import_query = select(DataImport).where(
             and_(
-                DataImport.id == import_id,
-                DataImport.client_account_id == self.context.client_account_id
+                DataImport.id == import_uuid,
+                DataImport.client_account_id == client_account_uuid
             )
         )
         import_result = await self.db.execute(import_query)

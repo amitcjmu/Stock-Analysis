@@ -140,9 +140,9 @@ export const useAttributeMappingActions = (
         return;
       }
       
-      // Create URL with proper query parameters
+      // Create URL with proper query parameters - using simplified endpoint
       const approvalNote = encodeURIComponent('User approved mapping from UI');
-      const approvalUrl = `/api/v1/data-import/field-mapping/approval/approve-mapping/${mappingId}?approved=true&approval_note=${approvalNote}`;
+      const approvalUrl = `/api/v1/field-mapping/approve/${mappingId}?approved=true&approval_note=${approvalNote}`;
       
       // Make API call to approve the specific mapping
       const approvalResult = await apiCall(approvalUrl, {

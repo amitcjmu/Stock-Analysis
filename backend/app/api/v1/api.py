@@ -345,6 +345,14 @@ else:
 api_router.include_router(data_import_router, prefix="/data-import", tags=["Data Import"])
 api_router.include_router(asset_inventory_router, prefix="/assets", tags=["Asset Inventory"])
 
+# Top-level Field Mapping API (frontend compatibility)
+try:
+    from app.api.v1.endpoints.field_mapping import router as field_mapping_router
+    api_router.include_router(field_mapping_router, tags=["Field Mapping"])
+    logger.info("✅ Top-level Field Mapping router included for frontend compatibility")
+except ImportError as e:
+    logger.warning(f"⚠️ Top-level Field Mapping router not available: {e}")
+
 # System Management
 api_router.include_router(monitoring_router, prefix="/monitoring", tags=["Monitoring"])
 
