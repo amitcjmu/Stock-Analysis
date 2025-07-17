@@ -247,6 +247,9 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 
                 logger.info(f"✅ Successfully persisted {len(created_assets)} assets to database")
                 
+                # CC FIX: Perform post-persistence data enrichment
+                await self._perform_post_persistence_enrichment(created_assets, db, context)
+                
                 # Update state with created asset information
                 asset_ids = [str(asset.id) for asset in created_assets]
                 
@@ -266,22 +269,281 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             logger.error(f"❌ Failed to persist assets to database: {e}", exc_info=True)
     
     def _determine_asset_type(self, asset: Dict[str, Any]) -> str:
-        """Determine asset type from asset data"""
+        """Determine asset type from asset data with comprehensive classification"""
         asset_type = asset.get('Asset_Type') or asset.get('asset_type') or ''
-        asset_type = asset_type.lower()
+        asset_name = asset.get('Asset_Name') or asset.get('name') or ''
         
-        if 'server' in asset_type:
+        # Convert to lowercase for comparison
+        asset_type_lower = asset_type.lower()
+        asset_name_lower = asset_name.lower()
+        
+        # Server classification
+        if ('server' in asset_type_lower or 'host' in asset_type_lower or 
+            'vm' in asset_type_lower or 'virtual' in asset_type_lower or
+            'linux' in asset_type_lower or 'windows' in asset_type_lower or
+            'unix' in asset_type_lower or 'centos' in asset_type_lower or
+            'ubuntu' in asset_type_lower or 'redhat' in asset_type_lower):
             return 'server'
-        elif 'application' in asset_type or 'app' in asset_type:
+        
+        # Application classification
+        elif ('application' in asset_type_lower or 'app' in asset_type_lower or
+              'service' in asset_type_lower or 'software' in asset_type_lower or
+              'web' in asset_type_lower or 'api' in asset_type_lower or
+              'microservice' in asset_type_lower):
             return 'application'
-        elif 'database' in asset_type or 'db' in asset_type:
+        
+        # Database classification
+        elif ('database' in asset_type_lower or 'db' in asset_type_lower or
+              'mysql' in asset_type_lower or 'postgresql' in asset_type_lower or
+              'oracle' in asset_type_lower or 'sql' in asset_type_lower or
+              'mongo' in asset_type_lower or 'redis' in asset_type_lower):
             return 'database'
-        elif 'network' in asset_type:
-            return 'network'
-        elif 'storage' in asset_type:
-            return 'storage'
+        
+        # Network/Device classification (covers various device types)
+        elif ('network' in asset_type_lower or 'device' in asset_type_lower or
+              'router' in asset_type_lower or 'switch' in asset_type_lower or
+              'firewall' in asset_type_lower or 'load' in asset_type_lower or
+              'balancer' in asset_type_lower or 'storage' in asset_type_lower or
+              'security' in asset_type_lower or 'infrastructure' in asset_type_lower or
+              'appliance' in asset_type_lower):
+            return 'device'
+        
+        # Fallback: check asset name for hints
+        elif ('server' in asset_name_lower or 'host' in asset_name_lower or
+              'vm' in asset_name_lower):
+            return 'server'
+        elif ('app' in asset_name_lower or 'service' in asset_name_lower or
+              'web' in asset_name_lower):
+            return 'application'
+        elif ('db' in asset_name_lower or 'database' in asset_name_lower):
+            return 'database'
+        elif ('device' in asset_name_lower or 'network' in asset_name_lower or
+              'router' in asset_name_lower or 'switch' in asset_name_lower):
+            return 'device'
+        
+        # Default classification
         else:
             return 'other'
+    
+    async def _perform_post_persistence_enrichment(self, created_assets: List, db, context) -> None:
+        """
+        Perform post-persistence data enrichment on created assets.
+        
+        This method enriches assets with additional classification data, 
+        normalization, and enhanced metadata after they've been persisted.
+        """
+        try:
+            logger.info(f"🔄 Starting post-persistence enrichment for {len(created_assets)} assets")
+            
+            enriched_count = 0
+            
+            for asset in created_assets:
+                try:
+                    # Enrich asset with additional metadata
+                    enriched_metadata = await self._enrich_asset_metadata(asset)
+                    
+                    # Update asset with enriched data
+                    if enriched_metadata:
+                        # Update custom attributes with enriched data
+                        if asset.custom_attributes:
+                            asset.custom_attributes.update(enriched_metadata)
+                        else:
+                            asset.custom_attributes = enriched_metadata
+                        
+                        # Mark as enriched
+                        asset.custom_attributes['enriched'] = True
+                        asset.custom_attributes['enriched_at'] = datetime.utcnow().isoformat()
+                        
+                        # Commit enrichment to database
+                        await db.commit()
+                        await db.refresh(asset)
+                        
+                        enriched_count += 1
+                        logger.debug(f"✅ Enriched asset: {asset.name}")
+                    
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to enrich asset {asset.name}: {e}")
+                    continue
+            
+            logger.info(f"✅ Post-persistence enrichment completed: {enriched_count}/{len(created_assets)} assets enriched")
+            
+        except Exception as e:
+            logger.error(f"❌ Post-persistence enrichment failed: {e}")
+    
+    async def _enrich_asset_metadata(self, asset) -> Dict[str, Any]:
+        """Enrich asset with additional metadata and classification"""
+        enriched_data = {}
+        
+        try:
+            # Enhanced classification based on multiple factors
+            enriched_data['classification_confidence'] = self._calculate_classification_confidence(asset)
+            enriched_data['classification_method'] = 'post_persistence_enrichment'
+            
+            # Add technology stack detection
+            if asset.raw_data:
+                tech_stack = self._detect_technology_stack(asset.raw_data)
+                if tech_stack:
+                    enriched_data['technology_stack'] = tech_stack
+            
+            # Add migration complexity assessment
+            complexity = self._assess_migration_complexity(asset)
+            if complexity:
+                enriched_data['migration_complexity'] = complexity
+            
+            # Add environment classification
+            environment = self._classify_environment(asset)
+            if environment:
+                enriched_data['environment_classification'] = environment
+            
+            # Add criticality assessment
+            criticality = self._assess_criticality(asset)
+            if criticality:
+                enriched_data['criticality_assessment'] = criticality
+            
+            logger.debug(f"🔍 Enriched asset {asset.name} with {len(enriched_data)} metadata fields")
+            return enriched_data
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to enrich metadata for asset {asset.name}: {e}")
+            return {}
+    
+    def _calculate_classification_confidence(self, asset) -> float:
+        """Calculate confidence score for asset classification"""
+        confidence = 0.5  # Base confidence
+        
+        # Increase confidence based on available data
+        if asset.hostname:
+            confidence += 0.1
+        if asset.operating_system:
+            confidence += 0.1
+        if asset.application_name:
+            confidence += 0.1
+        if asset.raw_data:
+            confidence += 0.1
+        
+        # Asset type specific confidence adjustments
+        if asset.asset_type in ['server', 'application', 'database']:
+            confidence += 0.1
+        
+        return min(confidence, 1.0)
+    
+    def _detect_technology_stack(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Detect technology stack from raw asset data"""
+        tech_stack = {}
+        
+        # Operating System detection
+        os_indicators = ['windows', 'linux', 'unix', 'centos', 'ubuntu', 'redhat']
+        for key, value in raw_data.items():
+            if isinstance(value, str):
+                value_lower = value.lower()
+                for os_name in os_indicators:
+                    if os_name in value_lower:
+                        tech_stack['operating_system'] = os_name
+                        break
+        
+        # Database technology detection
+        db_indicators = ['mysql', 'postgresql', 'oracle', 'sql server', 'mongodb', 'redis']
+        for key, value in raw_data.items():
+            if isinstance(value, str):
+                value_lower = value.lower()
+                for db_name in db_indicators:
+                    if db_name in value_lower:
+                        tech_stack['database_technology'] = db_name
+                        break
+        
+        # Web technology detection
+        web_indicators = ['apache', 'nginx', 'iis', 'tomcat', 'java', 'python', 'nodejs']
+        for key, value in raw_data.items():
+            if isinstance(value, str):
+                value_lower = value.lower()
+                for web_tech in web_indicators:
+                    if web_tech in value_lower:
+                        tech_stack['web_technology'] = web_tech
+                        break
+        
+        return tech_stack
+    
+    def _assess_migration_complexity(self, asset) -> str:
+        """Assess migration complexity based on asset characteristics"""
+        complexity_score = 0
+        
+        # Increase complexity based on asset type
+        if asset.asset_type == 'database':
+            complexity_score += 3
+        elif asset.asset_type == 'application':
+            complexity_score += 2
+        elif asset.asset_type == 'server':
+            complexity_score += 1
+        
+        # Increase complexity based on custom attributes
+        if asset.custom_attributes:
+            if asset.custom_attributes.get('has_dependencies'):
+                complexity_score += 2
+            if asset.custom_attributes.get('legacy_system'):
+                complexity_score += 3
+        
+        # Determine complexity level
+        if complexity_score >= 6:
+            return 'high'
+        elif complexity_score >= 3:
+            return 'medium'
+        else:
+            return 'low'
+    
+    def _classify_environment(self, asset) -> str:
+        """Classify the environment type of the asset"""
+        env_indicators = {
+            'production': ['prod', 'production', 'prd'],
+            'development': ['dev', 'development', 'devel'],
+            'testing': ['test', 'testing', 'qa', 'uat'],
+            'staging': ['stage', 'staging', 'stg']
+        }
+        
+        # Check hostname for environment indicators
+        if asset.hostname:
+            hostname_lower = asset.hostname.lower()
+            for env_type, indicators in env_indicators.items():
+                if any(indicator in hostname_lower for indicator in indicators):
+                    return env_type
+        
+        # Check asset name for environment indicators
+        if asset.name:
+            name_lower = asset.name.lower()
+            for env_type, indicators in env_indicators.items():
+                if any(indicator in name_lower for indicator in indicators):
+                    return env_type
+        
+        return 'unknown'
+    
+    def _assess_criticality(self, asset) -> str:
+        """Assess asset criticality based on various factors"""
+        criticality_score = 0
+        
+        # Base criticality on asset type
+        if asset.asset_type == 'database':
+            criticality_score += 3
+        elif asset.asset_type == 'application':
+            criticality_score += 2
+        elif asset.asset_type == 'server':
+            criticality_score += 1
+        
+        # Increase criticality for production environments
+        if asset.environment == 'production':
+            criticality_score += 2
+        
+        # Check for business criticality indicators
+        if asset.custom_attributes and asset.custom_attributes.get('business_critical'):
+            criticality_score += 3
+        
+        # Determine criticality level
+        if criticality_score >= 6:
+            return 'critical'
+        elif criticality_score >= 4:
+            return 'high'
+        elif criticality_score >= 2:
+            return 'medium'
+        else:
+            return 'low'
     
     def _parse_int(self, value: Any) -> Optional[int]:
         """Safely parse integer value"""
