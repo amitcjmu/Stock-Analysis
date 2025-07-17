@@ -11,6 +11,10 @@ os.environ.setdefault("OTEL_METRICS_EXPORTER", "none")
 os.environ.setdefault("OTEL_LOGS_EXPORTER", "none")
 os.environ.setdefault("OTEL_PYTHON_DISABLED_INSTRUMENTATIONS", "all")
 
+# Configure Rich console early to prevent display conflicts
+from app.core.rich_config import configure_rich_for_backend
+configure_rich_for_backend()
+
 import sys
 import traceback
 import logging

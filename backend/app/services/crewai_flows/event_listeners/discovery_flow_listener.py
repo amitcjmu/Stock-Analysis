@@ -17,6 +17,9 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 from dataclasses import dataclass, field
 
+# Import console manager to prevent Rich display conflicts
+from .console_manager import console_manager
+
 try:
     from crewai.utilities.events import (
         # Flow Events - These are what we need for flow tracking
@@ -103,6 +106,9 @@ class DiscoveryFlowEventListener(BaseEventListener):
             "field_mapping", "data_cleansing", "inventory_building",
             "app_server_dependencies", "app_app_dependencies", "technical_debt"
         ]
+        
+        # Disable Rich output globally for event processing to prevent conflicts
+        console_manager.disable_rich_output()
         
         logger.info("🎯 Discovery Flow Event Listener initialized")
         if not CREWAI_EVENTS_AVAILABLE:
@@ -424,38 +430,45 @@ class DiscoveryFlowEventListener(BaseEventListener):
         @crewai_event_bus.on(TaskCompletedEvent)
         def on_task_completed(source, event: TaskCompletedEvent):
             """Track task completion for progress updates"""
-            flow_id = self._extract_flow_id(source, event)
+            # Disable Rich output to prevent display conflicts
+            console_manager.disable_rich_output()
             
-            if not flow_id:
-                logger.warning("⚠️ TaskCompletedEvent received but could not extract flow_id, skipping tracking")
-                return
-            
-            # Safely extract task description
-            task = getattr(event, 'task', None)
-            if task:
-                task_description = getattr(task, 'description', 'unknown_task')
-            else:
-                task_description = 'unknown_task'
-            
-            # Safely extract agent name
-            agent = getattr(event, 'agent', None)
-            if agent:
-                agent_name = getattr(agent, 'role', 'unknown')
-            else:
-                agent_name = 'unknown'
-            
-            self._add_flow_event(
-                flow_id=flow_id,
-                event_type="task_completed",
-                source="discovery_flow",
-                task_name=task_description[:50] + "..." if len(task_description) > 50 else task_description,
-                data={
-                    "task_description": task_description,
-                    "output": getattr(event, 'output', ''),
-                    "agent": agent_name
-                },
-                status="completed"
-            )
+            try:
+                flow_id = self._extract_flow_id(source, event)
+                
+                if not flow_id:
+                    logger.warning("⚠️ TaskCompletedEvent received but could not extract flow_id, skipping tracking")
+                    return
+                
+                # Safely extract task description
+                task = getattr(event, 'task', None)
+                if task:
+                    task_description = getattr(task, 'description', 'unknown_task')
+                else:
+                    task_description = 'unknown_task'
+                
+                # Safely extract agent name
+                agent = getattr(event, 'agent', None)
+                if agent:
+                    agent_name = getattr(agent, 'role', 'unknown')
+                else:
+                    agent_name = 'unknown'
+                
+                self._add_flow_event(
+                    flow_id=flow_id,
+                    event_type="task_completed",
+                    source="discovery_flow",
+                    task_name=task_description[:50] + "..." if len(task_description) > 50 else task_description,
+                    data={
+                        "task_description": task_description,
+                        "output": getattr(event, 'output', ''),
+                        "agent": agent_name
+                    },
+                    status="completed"
+                )
+            finally:
+                # Re-enable Rich output after processing
+                console_manager.enable_rich_output()
         
         logger.info("✅ Discovery Flow Event Listeners registered successfully")
     

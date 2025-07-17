@@ -296,8 +296,16 @@ class InventoryBuildingCrew:
         # Step 3: Final Consolidation and Relationship Mapping
         # This task runs last, after all experts have finished.
         consolidation_task = Task(
-            description="Consolidate the outputs from the server, application, and device experts into a single, unified asset inventory. Then, analyze the consolidated data to map relationships between the assets.",
-            expected_output="A final JSON object containing three lists: 'servers', 'applications', and 'devices', and a fourth list 'relationships' detailing all identified connections.",
+            description="""Consolidate the outputs from the server, application, and device experts into a single, unified asset inventory. 
+            
+            CRITICAL DEDUPLICATION STEP:
+            1. BEFORE finalizing the inventory, you MUST use the asset_deduplication_checker tool
+            2. Pass ALL assets from all categories (servers, applications, devices) to the tool
+            3. The tool will return only the unique assets that don't already exist in the database
+            4. Only include the assets returned by the deduplication tool in your final output
+            
+            After deduplication, analyze the consolidated data to map relationships between the assets.""",
+            expected_output="A final JSON object containing three lists: 'servers', 'applications', and 'devices' (only unique assets), and a fourth list 'relationships' detailing all identified connections.",
             agent=manager,
             context=[server_classification_task, app_classification_task, device_classification_task] # Depends on all classification tasks
         )

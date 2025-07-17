@@ -272,6 +272,12 @@ interface ApiError extends Error {
   retryAfter?: number;
   isAuthError?: boolean;
   isForbidden?: boolean;
+  isTimeout?: boolean;
+}
+
+// Extend RequestInit to include timeout
+interface ApiRequestInit extends RequestInit {
+  timeout?: number;
 }
 
 /**
@@ -282,7 +288,7 @@ interface ApiError extends Error {
  */
 export const apiCall = async (
   endpoint: string, 
-  options: RequestInit = {}, 
+  options: ApiRequestInit = {}, 
   includeContext: boolean = true
 ): Promise<any> => {
   const requestId = Math.random().toString(36).substring(2, 8);
@@ -426,12 +432,30 @@ export const apiCall = async (
       // Log final headers being sent
       console.log(`🔗 API Call [${requestId}] - Final headers:`, headers);
       
-      // Make the request
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutMs = options.timeout || (
+        // Different timeouts for different operations
+        normalizedEndpoint.includes('/assets/list/paginated') ? 120000 : // 2 minutes for asset listing
+        normalizedEndpoint.includes('/assets/analyze') ? 300000 : // 5 minutes for AI analysis
+        normalizedEndpoint.includes('/bulk') ? 180000 : // 3 minutes for bulk operations
+        60000 // Default 1 minute
+      );
+      
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.error(`⏱️ API Call [${requestId}] - Timeout after ${timeoutMs}ms`);
+      }, timeoutMs);
+      
+      // Make the request with abort signal
       const response = await fetch(url, {
         ...options,
         method, // Ensure method is uppercase
         headers,
         credentials: 'include',
+        signal: controller.signal,
+      }).finally(() => {
+        clearTimeout(timeoutId);
       });
       
       const endTime = performance.now();
@@ -500,7 +524,16 @@ export const apiCall = async (
       const duration = (endTime - startTime).toFixed(2);
       
       let apiError: ApiError;
-      if (error instanceof Error) {
+      
+      // Handle timeout errors specifically
+      if (error.name === 'AbortError') {
+        apiError = new Error(`Request timed out after ${duration}ms. The server may be processing a large dataset.`) as ApiError;
+        apiError.status = 408; // Request Timeout
+        apiError.statusText = 'Request Timeout';
+        apiError.requestId = requestId;
+        apiError.isApiError = true;
+        apiError.isTimeout = true;
+      } else if (error instanceof Error) {
         apiError = error as ApiError;
         apiError.isApiError = true;
       } else {

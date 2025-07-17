@@ -110,21 +110,35 @@ if CREWAI_TOOLS_AVAILABLE:
                     existing_hostnames = {asset.hostname.lower() for asset in existing_assets if asset.hostname}
                     existing_names = {asset.name.lower() for asset in existing_assets if asset.name}
                     
-                    # Filter out duplicates
+                    # Filter out duplicates - check all fields dynamically
                     unique_assets = []
                     for asset in assets_to_check:
-                        hostname = asset.get('hostname') or asset.get('Hostname') or asset.get('Host_Name')
-                        name = asset.get('name') or asset.get('Asset_Name') or asset.get('Name')
+                        # Check if asset exists based on any unique identifier fields
+                        is_duplicate = False
                         
-                        if hostname and hostname.lower() in existing_hostnames:
-                            logger.debug(f"⏭️ Asset with hostname '{hostname}' already exists - skipping")
-                            continue
+                        # Check all fields in the asset for potential matches
+                        for field, value in asset.items():
+                            if not value:
+                                continue
+                                
+                            # Convert to string for comparison
+                            value_str = str(value).lower()
+                            
+                            # Check against existing assets' fields
+                            for existing_asset in existing_assets:
+                                existing_value = getattr(existing_asset, field, None)
+                                if existing_value and str(existing_value).lower() == value_str:
+                                    # Check if it's a meaningful match (not just common values)
+                                    if field in ['hostname', 'name', 'ip_address', 'asset_id', 'serial_number']:
+                                        logger.debug(f"⏭️ Asset with {field}='{value}' already exists - skipping")
+                                        is_duplicate = True
+                                        break
+                            
+                            if is_duplicate:
+                                break
                         
-                        if not hostname and name and name.lower() in existing_names:
-                            logger.debug(f"⏭️ Asset with name '{name}' already exists - skipping")
-                            continue
-                        
-                        unique_assets.append(asset)
+                        if not is_duplicate:
+                            unique_assets.append(asset)
                     
                     logger.info(f"✅ Deduplication complete: {len(assets_to_check)} → {len(unique_assets)} unique assets")
                     return unique_assets

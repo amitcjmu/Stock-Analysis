@@ -6,6 +6,10 @@ FROM python:3.11-slim-bookworm
 # Set working directory
 WORKDIR /app
 
+# Set environment variable to indicate Docker container
+ENV DOCKER_CONTAINER=1
+ENV PYTHONUNBUFFERED=1
+
 # Install system dependencies including PostgreSQL client tools
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \

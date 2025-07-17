@@ -54,6 +54,31 @@ class AssetInventoryExecutor(BasePhaseExecutor):
         logger.error("❌ If you see this error, fix the actual crew execution issues")
         raise RuntimeError("Asset inventory fallback disabled - crew execution failed")
     
+    def _get_crew_context(self) -> Dict[str, Any]:
+        """Override to provide context for deduplication tools"""
+        context = super()._get_crew_context()
+        
+        # Add context info needed for deduplication tools
+        context_info = {
+            'client_account_id': getattr(self.state, 'client_account_id', None),
+            'engagement_id': getattr(self.state, 'engagement_id', None),
+            'user_id': getattr(self.state, 'user_id', None),
+            'flow_id': getattr(self.state, 'flow_id', None)
+        }
+        
+        # If state attributes are not available, try to get from flow_bridge
+        if not context_info['client_account_id'] and self.flow_bridge and hasattr(self.flow_bridge, 'context'):
+            bridge_context = self.flow_bridge.context
+            context_info['client_account_id'] = bridge_context.client_account_id
+            context_info['engagement_id'] = bridge_context.engagement_id
+            context_info['user_id'] = bridge_context.user_id
+            context_info['flow_id'] = bridge_context.flow_id
+        
+        context['context_info'] = context_info
+        logger.info(f"🔧 Providing context for deduplication tools: client={context_info['client_account_id']}, engagement={context_info['engagement_id']}")
+        
+        return context
+    
     def _prepare_crew_input(self) -> Dict[str, Any]:
         import logging
         logger = logging.getLogger(__name__)

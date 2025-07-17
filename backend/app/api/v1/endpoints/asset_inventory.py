@@ -15,6 +15,7 @@ from app.schemas.asset_schemas import AssetCreate, AssetUpdate, AssetResponse, P
 from app.core.context import get_user_id, get_current_context, RequestContext
 from app.repositories.asset_repository import AssetRepository
 from app.core.database import get_db
+from app.core.database_timeout import get_db_for_asset_list, get_db_for_asset_analysis
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +145,7 @@ async def analyze_assets_intelligently(
     request: AssetAnalysisRequest,
     service: CrewAIFlowService = Depends(get_crewai_flow_service),
     context: RequestContext = Depends(get_current_context),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db_for_asset_analysis)
 ):
     """
     Use Asset Intelligence Agent to analyze asset patterns, quality issues, and provide recommendations.
@@ -452,7 +453,7 @@ async def create_asset(
 async def list_assets_paginated_fallback(
     page: int = 1,
     page_size: int = 50,
-    db: Optional[Session] = Depends(get_db),
+    db: Optional[Session] = Depends(get_db_for_asset_list),
     context: RequestContext = Depends(get_current_context)
 ):
     """Lightweight fallback that returns an empty asset list when DB or context unavailable."""
@@ -503,7 +504,7 @@ async def list_assets_paginated_fallback(
 
 @router.get("/list/paginated")
 async def list_assets_paginated(
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db_for_asset_list),
     context: RequestContext = Depends(get_current_context),
     page: int = Query(1, gt=0),
     page_size: int = Query(20, gt=0, le=100),
@@ -546,29 +547,72 @@ async def list_assets_paginated(
         # Calculate totals
         total_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 0
         
-        # Build response
+        # Build response - optimize by pre-calculating summary stats
+        # Convert assets to dicts first to avoid multiple attribute access
+        asset_dicts = []
+        for asset in assets:
+            asset_dicts.append({
+                "id": str(asset.id),
+                "name": asset.name,
+                "asset_type": asset.asset_type,
+                "environment": asset.environment,
+                "criticality": asset.criticality,
+                "status": asset.status,
+                "six_r_strategy": asset.six_r_strategy,
+                "migration_wave": asset.migration_wave,
+                "application_name": asset.application_name,
+                "hostname": asset.hostname,
+                "operating_system": asset.operating_system,
+                "cpu_cores": asset.cpu_cores,
+                "memory_gb": asset.memory_gb,
+                "storage_gb": asset.storage_gb,
+                "created_at": asset.created_at.isoformat() if asset.created_at else None,
+                "updated_at": asset.updated_at.isoformat() if asset.updated_at else None
+            })
+        
+        # Calculate summary stats efficiently using the dictionaries
+        summary_stats = {
+            "total": total_items,
+            "filtered": total_items,
+            "applications": 0,
+            "servers": 0,
+            "databases": 0,
+            "devices": 0,
+            "unknown": 0,
+            "discovered": 0,
+            "pending": 0,
+            "device_breakdown": {}
+        }
+        
+        # Single pass through assets for counting
+        for asset_dict in asset_dicts:
+            asset_type = (asset_dict.get('asset_type') or '').lower()
+            status = asset_dict.get('status')
+            
+            if asset_type == 'application':
+                summary_stats['applications'] += 1
+            elif asset_type == 'server':
+                summary_stats['servers'] += 1
+            elif asset_type == 'database':
+                summary_stats['databases'] += 1
+            elif any(term in asset_type for term in ['device', 'network', 'storage', 'security', 'infrastructure']):
+                summary_stats['devices'] += 1
+            elif not asset_type or asset_type == 'unknown':
+                summary_stats['unknown'] += 1
+                
+            if status == 'discovered':
+                summary_stats['discovered'] += 1
+            elif status == 'pending':
+                summary_stats['pending'] += 1
+        
+        # Find last updated efficiently
+        last_updated = None
+        for asset_dict in asset_dicts:
+            if asset_dict.get('updated_at') and (not last_updated or asset_dict['updated_at'] > last_updated):
+                last_updated = asset_dict['updated_at']
+        
         return {
-            "assets": [
-                {
-                    "id": str(asset.id),
-                    "name": asset.name,
-                    "asset_type": asset.asset_type,
-                    "environment": asset.environment,
-                    "criticality": asset.criticality,
-                    "status": asset.status,
-                    "six_r_strategy": asset.six_r_strategy,
-                    "migration_wave": asset.migration_wave,
-                    "application_name": asset.application_name,
-                    "hostname": asset.hostname,
-                    "operating_system": asset.operating_system,
-                    "cpu_cores": asset.cpu_cores,
-                    "memory_gb": asset.memory_gb,
-                    "storage_gb": asset.storage_gb,
-                    "created_at": asset.created_at.isoformat() if asset.created_at else None,
-                    "updated_at": asset.updated_at.isoformat() if asset.updated_at else None
-                }
-                for asset in assets
-            ],
+            "assets": asset_dicts,
             "pagination": {
                 "current_page": page,
                 "page_size": page_size,
@@ -577,21 +621,8 @@ async def list_assets_paginated(
                 "has_next": page < total_pages,
                 "has_previous": page > 1
             },
-            "summary": {
-                "total": total_items,
-                "filtered": total_items,
-                "applications": sum(1 for a in assets if a.asset_type and a.asset_type.lower() == 'application'),
-                "servers": sum(1 for a in assets if a.asset_type and a.asset_type.lower() == 'server'),
-                "databases": sum(1 for a in assets if a.asset_type and a.asset_type.lower() == 'database'),
-                "devices": sum(1 for a in assets if a.asset_type and any(
-                    term in a.asset_type.lower() for term in ['device', 'network', 'storage', 'security', 'infrastructure']
-                )),
-                "unknown": sum(1 for a in assets if not a.asset_type or a.asset_type.lower() == 'unknown'),
-                "discovered": sum(1 for a in assets if a.status == 'discovered'),
-                "pending": sum(1 for a in assets if a.status == 'pending'),
-                "device_breakdown": {}
-            },
-            "last_updated": max((a.updated_at for a in assets if a.updated_at), default=None),
+            "summary": summary_stats,
+            "last_updated": last_updated,
             "data_source": "database",
             "suggested_headers": [],
             "app_mappings": [],
