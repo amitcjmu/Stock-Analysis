@@ -99,6 +99,12 @@ class InventoryBuildingCrew:
             backstory="""You are a senior enterprise architect with specialized expertise in IT asset inventory 
             management and CMDB classification for large-scale migration projects. Your specific role and boundaries:
             
+            INTELLIGENCE & EFFICIENCY RESPONSIBILITIES:
+            - FIRST: Use task_completion_checker tool to verify if asset inventory has been completed recently
+            - If completed recently, use existing_results_retriever to get previous results instead of re-processing
+            - Only proceed with full inventory if no recent completion or results are insufficient
+            - Avoid redundant work by intelligently managing task execution
+            
             CORE COORDINATION RESPONSIBILITIES:
             - Orchestrate asset classification across server, application, and device domains
             - Ensure comprehensive asset inventory coverage with cross-domain validation
@@ -302,9 +308,20 @@ class InventoryBuildingCrew:
             consolidation_task
         ]
     
-    def create_crew(self, cleaned_data: List[Dict[str, Any]], field_mappings: Dict[str, Any]):
+    def create_crew(self, cleaned_data: List[Dict[str, Any]], field_mappings: Dict[str, Any], context_info: Dict[str, Any] = None):
         """Create the inventory building crew with agents and tasks"""
         agents = self.create_agents()
+        
+        # Add task completion tools to the inventory manager
+        if context_info:
+            from app.services.crewai_flows.tools.task_completion_tools import create_task_completion_tools
+            completion_tools = create_task_completion_tools(context_info)
+            # Add tools to the inventory manager (first agent)
+            if agents and hasattr(agents[0], 'tools'):
+                agents[0].tools.extend(completion_tools)
+            else:
+                agents[0].tools = completion_tools
+        
         tasks = self.create_tasks(agents, cleaned_data, field_mappings)
         
         # Use hierarchical process if advanced features available
@@ -393,7 +410,7 @@ class InventoryBuildingCrew:
 
 def create_inventory_building_crew(crewai_service, cleaned_data: List[Dict[str, Any]], 
                                   field_mappings: Dict[str, Any], shared_memory=None, 
-                                  knowledge_base=None) -> Crew:
+                                  knowledge_base=None, context_info: Dict[str, Any] = None) -> Crew:
     """Factory function to create enhanced Inventory Building Crew"""
     crew_instance = InventoryBuildingCrew(crewai_service, shared_memory, knowledge_base)
-    return crew_instance.create_crew(cleaned_data, field_mappings)
+    return crew_instance.create_crew(cleaned_data, field_mappings, context_info)

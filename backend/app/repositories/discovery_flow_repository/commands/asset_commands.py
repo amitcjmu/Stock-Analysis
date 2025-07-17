@@ -9,9 +9,10 @@ import logging
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import update, and_
+from sqlalchemy import update, and_, select
 
 from app.models.asset import Asset
+from app.models.discovery_flow import DiscoveryFlow
 from ..queries.asset_queries import AssetQueries
 
 logger = logging.getLogger(__name__)
@@ -30,12 +31,35 @@ class AssetCommands:
     async def create_assets_from_discovery(
         self, 
         discovery_flow_id: uuid.UUID, 
-        assets_data: List[Dict[str, Any]]
+        asset_data_list: List[Dict[str, Any]],
+        discovered_in_phase: str = "inventory"
     ) -> List[Asset]:
         """Create multiple assets from discovery data"""
         created_assets = []
         
-        for asset_data in assets_data:
+        # 🔧 CC FIX: Get master_flow_id from discovery flow before creating assets
+        # This ensures assets have both discovery_flow_id AND master_flow_id set correctly
+        master_flow_id = None
+        try:
+            discovery_flow_query = select(DiscoveryFlow).where(
+                and_(
+                    DiscoveryFlow.id == discovery_flow_id,
+                    DiscoveryFlow.client_account_id == self.client_account_id,
+                    DiscoveryFlow.engagement_id == self.engagement_id
+                )
+            )
+            result = await self.db.execute(discovery_flow_query)
+            discovery_flow = result.scalar_one_or_none()
+            
+            if discovery_flow and discovery_flow.master_flow_id:
+                master_flow_id = discovery_flow.master_flow_id
+                logger.info(f"✅ Found master_flow_id: {master_flow_id} for discovery_flow_id: {discovery_flow_id}")
+            else:
+                logger.warning(f"⚠️ No master_flow_id found for discovery_flow_id: {discovery_flow_id}")
+        except Exception as e:
+            logger.error(f"❌ Failed to get master_flow_id for discovery_flow_id {discovery_flow_id}: {e}")
+        
+        for asset_data in asset_data_list:
             try:
                 # Extract asset information
                 name = asset_data.get('name', f'Asset_{uuid.uuid4().hex[:8]}')
@@ -45,6 +69,7 @@ class AssetCommands:
                 custom_attributes = {
                     'discovery_flow_id': str(discovery_flow_id),
                     'discovered_at': datetime.utcnow().isoformat(),
+                    'discovered_in_phase': discovered_in_phase,  # 🔧 CC FIX: Track which phase discovered this asset
                     'discovery_method': 'flow_based',
                     'raw_data': asset_data.get('raw_data', {}),
                     'normalized_data': asset_data.get('normalized_data', {}),
@@ -80,6 +105,7 @@ class AssetCommands:
                     six_r_strategy=normalized_data.get('six_r_strategy', custom_attributes.get('six_r_strategy')),
                     migration_wave=normalized_data.get('migration_wave', custom_attributes.get('migration_wave')),
                     discovery_flow_id=discovery_flow_id,  # Keep as UUID
+                    master_flow_id=master_flow_id,  # 🔧 CC FIX: Set master_flow_id from discovery flow
                     discovery_method='flow_based',
                     discovery_source='Discovery Flow',
                     discovery_timestamp=datetime.utcnow(),
@@ -207,7 +233,7 @@ class AssetCommands:
                 and_(
                     Asset.client_account_id == self.client_account_id,
                     Asset.engagement_id == self.engagement_id,
-                    Asset.custom_attributes['discovery_flow_id'].astext == str(discovery_flow_id)
+                    Asset.discovery_flow_id == discovery_flow_id  # CC FIX: Use column field, not custom_attributes
                 )
             ).values(**update_values)
             

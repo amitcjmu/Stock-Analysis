@@ -33,37 +33,37 @@ async def initialize_flow(
     """
     Initialize a new discovery flow.
     
-    This endpoint creates a new discovery flow for the current tenant context.
+    NOTE: This is a placeholder endpoint. In proper flow architecture, 
+    discovery flows should be created during data import process, not on-demand.
     """
     try:
-        logger.info(f"Initializing new flow for client {context.client_account_id}")
+        logger.warning(f"⚠️ PLACEHOLDER: Discovery flow initialization requested for client {context.client_account_id}")
+        logger.warning("⚠️ This indicates flows are not being created during data import as expected")
         
-        # Generate a flow ID
+        # Generate a flow ID for placeholder response
         import uuid
-        flow_id = f"flow_{uuid.uuid4().hex[:8]}"
+        flow_id = f"placeholder_{uuid.uuid4().hex[:8]}"
         
-        # TODO: Replace with real flow database creation and CrewAI flow startup
-        # For now, return minimal response for frontend compatibility
+        # Return placeholder response - do not create actual database records
         return {
             "flow_id": flow_id,
-            "status": "initialized",
+            "status": "placeholder",
             "type": "discovery",
             "client_account_id": str(context.client_account_id),
             "engagement_id": str(context.engagement_id),
-            "message": "Discovery flow initialized successfully",
+            "message": "PLACEHOLDER: Flows should be created during data import, not on-demand",
             "next_steps": [
-                "Upload data files",
-                "Configure field mappings",
-                "Start discovery process"
+                "Use proper data import workflow",
+                "Fix flow creation during import process"
             ],
             "metadata": {
-                "note": "Placeholder flow - CrewAI implementation pending"
+                "note": "This is a placeholder response - fix the data import flow creation process"
             }
         }
         
     except Exception as e:
-        logger.error(f"Error initializing flow: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to initialize flow: {str(e)}")
+        logger.error(f"Error in placeholder flow initialization: {e}")
+        raise HTTPException(status_code=500, detail=f"Placeholder endpoint error: {str(e)}")
 
 
 @lifecycle_router.post("/flow/{flow_id}/pause", response_model=FlowOperationResponse)

@@ -260,6 +260,7 @@ class FlowStateBridge:
         self._state_sync_enabled = True
         logger.info("🔄 PostgreSQL updates re-enabled")
     
+    
     @asynccontextmanager
     async def sync_disabled(self, reason: str = "temporary_optimization"):
         """
@@ -275,6 +276,72 @@ class FlowStateBridge:
             yield
         finally:
             self.enable_sync()
+    
+    async def load_state(self, flow_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Load flow state from PostgreSQL.
+        
+        Args:
+            flow_id: The flow ID to load state for
+            
+        Returns:
+            Dictionary containing the flow state or None if not found
+        """
+        try:
+            logger.info(f"📥 Loading flow state for: {flow_id}")
+            
+            async with AsyncSessionLocal() as db:
+                store = PostgresFlowStateStore(db, self.context)
+                
+                # Load the state by flow_id
+                state_data = await store.load_state(flow_id)
+                
+                if state_data:
+                    logger.info(f"✅ Loaded flow state for: {flow_id}")
+                    return state_data
+                else:
+                    logger.warning(f"⚠️ No flow state found for: {flow_id}")
+                    return None
+                    
+        except Exception as e:
+            logger.error(f"❌ Error loading flow state for {flow_id}: {e}")
+            raise
+    
+    async def save_state(self, flow_id: str, state_dict: Dict[str, Any]) -> bool:
+        """
+        Save flow state to PostgreSQL.
+        
+        Args:
+            flow_id: The flow ID to save state for
+            state_dict: Dictionary containing the flow state
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            logger.info(f"💾 Saving flow state for: {flow_id}")
+            
+            async with AsyncSessionLocal() as db:
+                store = PostgresFlowStateStore(db, self.context)
+                
+                # Ensure required fields are in state_dict
+                state_dict['flow_id'] = flow_id
+                state_dict['client_account_id'] = str(self.context.client_account_id)
+                state_dict['engagement_id'] = str(self.context.engagement_id)
+                state_dict['user_id'] = str(self.context.user_id) if self.context.user_id else None
+                state_dict['last_updated'] = datetime.utcnow().isoformat()
+                
+                # Save the state (determine current phase from state)
+                current_phase = state_dict.get('current_phase', 'unknown')
+                await store.save_state(flow_id, state_dict, current_phase)
+                
+                logger.info(f"✅ Saved flow state for: {flow_id}")
+                await db.commit()
+                return True
+                
+        except Exception as e:
+            logger.error(f"❌ Error saving flow state for {flow_id}: {e}")
+            raise
 
 # Factory function for creating flow state bridges
 def create_flow_state_bridge(context: RequestContext) -> FlowStateBridge:
@@ -305,4 +372,4 @@ async def managed_flow_bridge(context: RequestContext):
         yield bridge
     finally:
         # Cleanup if needed
-        pass 
+        pass

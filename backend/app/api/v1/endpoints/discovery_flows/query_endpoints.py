@@ -120,8 +120,7 @@ async def get_active_flows(
         
         # Check if content has changed
         if if_none_match == etag:
-            response.status_code = 304  # Not Modified
-            return None
+            return Response(status_code=304, headers={"ETag": etag})
         
         # Set response headers
         response.headers["ETag"] = etag
@@ -198,8 +197,7 @@ async def get_flow_status(
             
             # Check if content has changed
             if if_none_match == etag:
-                response.status_code = 304  # Not Modified
-                return None
+                return Response(status_code=304, headers={"ETag": etag})
             
             # Set response headers
             response.headers["ETag"] = etag
@@ -226,8 +224,7 @@ async def get_flow_status(
                 
                 # Check if content has changed
                 if if_none_match == etag:
-                    response.status_code = 304  # Not Modified
-                    return None
+                    return Response(status_code=304, headers={"ETag": etag})
                 
                 # Set response headers
                 response.headers["ETag"] = etag
@@ -253,8 +250,7 @@ async def get_flow_status(
         
         # Check if content has changed
         if if_none_match == etag:
-            response.status_code = 304  # Not Modified
-            return None
+            return Response(status_code=304, headers={"ETag": etag})
         
         # Set response headers
         response.headers["ETag"] = etag
@@ -334,8 +330,7 @@ async def get_flow_agent_insights(
             
             # Check if content has changed
             if if_none_match == etag:
-                response.status_code = 304  # Not Modified
-                return None
+                return Response(status_code=304, headers={"ETag": etag})
             
             # Set response headers
             response.headers["ETag"] = etag
@@ -353,8 +348,7 @@ async def get_flow_agent_insights(
         
         # Check if content has changed
         if if_none_match == etag:
-            response.status_code = 304  # Not Modified
-            return None
+            return Response(status_code=304, headers={"ETag": etag})
         
         # Set response headers
         response.headers["ETag"] = etag
@@ -718,8 +712,7 @@ async def get_flow_health(
         
         # Check if content has changed
         if if_none_match == etag:
-            response.status_code = 304  # Not Modified
-            return None
+            return Response(status_code=304, headers={"ETag": etag})
         
         # Set response headers
         response.headers["ETag"] = etag

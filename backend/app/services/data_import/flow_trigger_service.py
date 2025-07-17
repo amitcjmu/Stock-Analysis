@@ -86,8 +86,49 @@ class FlowTriggerService:
             # Extract flow_id from result tuple
             if isinstance(flow_result, tuple) and len(flow_result) >= 1:
                 master_flow_id = flow_result[0]
-                logger.info(f"✅ Discovery flow created atomically: {master_flow_id}")
-                return master_flow_id
+                logger.info(f"✅ Master flow created atomically: {master_flow_id}")
+                
+                # 🔧 CC FIX: Now create the actual discovery flow that links to this master flow
+                # This is the missing piece - we need BOTH master flow AND discovery flow
+                try:
+                    from app.services.discovery_flow_service import DiscoveryFlowService
+                    
+                    # Generate unique discovery flow ID for CrewAI
+                    import uuid
+                    discovery_flow_id = str(uuid.uuid4())
+                    
+                    # Create discovery flow service
+                    discovery_service = DiscoveryFlowService(self.db, context)
+                    
+                    # Create the discovery flow linked to the master flow
+                    discovery_flow = await discovery_service.create_discovery_flow(
+                        flow_id=discovery_flow_id,
+                        raw_data=file_data,
+                        metadata={
+                            "source": "data_import",
+                            "import_id": data_import_id,
+                            "master_flow_id": master_flow_id,
+                            "import_timestamp": datetime.utcnow().isoformat()
+                        },
+                        data_import_id=data_import_id,
+                        user_id=user_id,
+                        master_flow_id=master_flow_id  # 🔧 CC FIX: Pass existing master flow ID
+                    )
+                    
+                    logger.info(f"✅ Discovery flow created and linked: {discovery_flow_id}")
+                    logger.info(f"   Master Flow ID: {master_flow_id}")
+                    logger.info(f"   Discovery Flow ID: {discovery_flow_id}")
+                    
+                    # Return the discovery flow ID since that's what the rest of the system expects
+                    return discovery_flow_id
+                    
+                except Exception as discovery_error:
+                    logger.error(f"❌ Failed to create discovery flow after master flow: {discovery_error}")
+                    # Don't fail the entire import - master flow exists
+                    # But log this as a critical issue
+                    logger.error("❌ CRITICAL: Master flow created but discovery flow failed - assets will not link properly")
+                    return master_flow_id
+                
             else:
                 logger.error(f"❌ Unexpected flow creation result: {flow_result}")
                 return None

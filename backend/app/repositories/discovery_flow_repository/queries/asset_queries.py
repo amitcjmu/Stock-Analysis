@@ -26,12 +26,12 @@ class AssetQueries:
     
     async def get_assets_by_flow_id(self, discovery_flow_id: uuid.UUID) -> List[Asset]:
         """Get all assets created during a discovery flow"""
-        # Query assets that have discovery_flow_id in custom_attributes
+        # CC FIX: Query assets using the discovery_flow_id column, not custom_attributes
         stmt = select(Asset).where(
             and_(
                 Asset.client_account_id == self.client_account_id,
                 Asset.engagement_id == self.engagement_id,
-                Asset.custom_attributes['discovery_flow_id'].astext == str(discovery_flow_id)
+                Asset.discovery_flow_id == discovery_flow_id
             )
         )
         
@@ -99,7 +99,7 @@ class AssetQueries:
             and_(
                 Asset.client_account_id == self.client_account_id,
                 Asset.engagement_id == self.engagement_id,
-                Asset.custom_attributes['discovery_flow_id'].astext == str(discovery_flow_id)
+                Asset.discovery_flow_id == discovery_flow_id  # CC FIX: Use column field, not custom_attributes
             )
         )
         

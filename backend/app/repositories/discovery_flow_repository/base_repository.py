@@ -182,11 +182,12 @@ class DiscoveryFlowRepository(ContextAwareRepository):
     async def create_assets_from_discovery(
         self, 
         discovery_flow_id: uuid.UUID, 
-        assets_data: List[Dict[str, Any]]
+        asset_data_list: List[Dict[str, Any]],
+        discovered_in_phase: str = "inventory"
     ) -> List[Asset]:
         """Create assets from discovery data"""
         return await self.asset_commands.create_assets_from_discovery(
-            discovery_flow_id, assets_data
+            discovery_flow_id, asset_data_list, discovered_in_phase
         )
     
     async def update_asset_validation(

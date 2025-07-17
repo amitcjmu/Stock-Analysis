@@ -446,6 +446,7 @@ async def execute_flow_phase(
     flow_id: str,
     request: Dict[str, Any] = {},
     context: RequestContext = Depends(get_current_context),
+    crewai_service: CrewAIFlowService = Depends(get_crewai_flow_service),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -590,7 +591,7 @@ async def execute_flow_phase(
                 setattr(state, execution_phase, result)
             
             # Save updated state
-            await flow_bridge.save_state(state)
+            await flow_bridge.save_state(str(flow_id), state.model_dump())
             
             return {
                 "success": True,

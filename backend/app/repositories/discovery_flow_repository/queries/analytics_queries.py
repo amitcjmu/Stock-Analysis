@@ -163,7 +163,7 @@ class AnalyticsQueries:
             
             # Get asset count by flow
             asset_stmt = select(
-                Asset.custom_attributes['discovery_flow_id'].astext,
+                Asset.discovery_flow_id,  # CC FIX: Use column field, not custom_attributes
                 func.count(Asset.id)
             ).where(
                 and_(
@@ -171,7 +171,7 @@ class AnalyticsQueries:
                     Asset.engagement_id == self.engagement_id,
                     Asset.created_at >= start_date
                 )
-            ).group_by(Asset.custom_attributes['discovery_flow_id'].astext)
+            ).group_by(Asset.discovery_flow_id)
             
             asset_result = await self.db.execute(asset_stmt)
             assets_by_flow = dict(asset_result.all())

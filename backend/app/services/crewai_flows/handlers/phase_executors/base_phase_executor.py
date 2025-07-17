@@ -117,13 +117,15 @@ class BasePhaseExecutor(ABC):
                     # Add timeout for crew execution
                     import asyncio
                     try:
+                        # Set timeout based on phase complexity
+                        phase_timeout = self._get_phase_timeout()
                         results = await asyncio.wait_for(
                             self.execute_with_crew(crew_input),
-                            timeout=20  # 20 second hard timeout
+                            timeout=phase_timeout
                         )
                     except asyncio.TimeoutError:
                         # NO FALLBACK - Timeout is a real issue that needs to be fixed
-                        logger.error(f"⏱️ Crew execution timed out after 20s - NO FALLBACK")
+                        logger.error(f"⏱️ Crew execution timed out after {phase_timeout}s - NO FALLBACK")
                         raise RuntimeError(f"CrewAI crew execution timed out for {phase_name}. This needs to be fixed.")
                 else:
                     # NO FALLBACK - Crew creation failure is a real issue
@@ -200,6 +202,10 @@ class BasePhaseExecutor(ABC):
         return {
             "shared_memory": getattr(self.state, 'shared_memory_reference', None)
         }
+    
+    def _get_phase_timeout(self) -> int:
+        """Get timeout in seconds for this phase - override in subclasses for custom timeouts"""
+        return 20  # Default 20 second timeout
     
     @abstractmethod
     def _prepare_crew_input(self) -> Dict[str, Any]:

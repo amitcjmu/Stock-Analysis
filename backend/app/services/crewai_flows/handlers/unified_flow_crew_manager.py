@@ -94,12 +94,20 @@ class UnifiedFlowCrewManager:
                 # 🚀 OPTIMIZED: Use state-based crew creation  
                 crew = factory(self.crewai_service, self.state)
             elif crew_type == "inventory":
+                # Build context info from state for intelligent task management
+                context_info = {
+                    'client_account_id': getattr(self.state, 'client_account_id', None),
+                    'engagement_id': getattr(self.state, 'engagement_id', None),
+                    'flow_id': getattr(self.state, 'flow_id', None),
+                    'user_id': getattr(self.state, 'user_id', None)
+                }
                 crew = factory(
                     self.crewai_service,
                     kwargs.get('cleaned_data', []),
                     kwargs.get('field_mappings', {}),
                     kwargs.get('shared_memory'),
-                    kwargs.get('knowledge_base')
+                    kwargs.get('knowledge_base'),
+                    context_info
                 )
             elif crew_type == "dependencies":
                 crew = factory(
