@@ -28,11 +28,12 @@ RUN pip install --no-cache-dir --upgrade pip \
 # Copy backend application code
 COPY backend/ .
 
-# Copy startup script from deployment directory to root
+# Copy startup scripts
 COPY backend/scripts/deployment/start.sh .
+COPY backend/entrypoint.sh .
 
-# Make startup script executable (only start.sh exists, start.py is already in root)
-RUN chmod +x start.sh start.py || true
+# Make scripts executable
+RUN chmod +x start.sh entrypoint.sh || true
 
 # Create non-root user for security
 RUN adduser --disabled-password --gecos '' appuser \
@@ -49,5 +50,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 # Switch to non-root user
 USER appuser
 
-# Start command using start.sh which handles Railway's PORT variable
-CMD ["./start.sh"] 
+# Start command - use entrypoint.sh which handles migrations
+CMD ["./entrypoint.sh"] 

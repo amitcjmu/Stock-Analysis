@@ -122,6 +122,24 @@ async def lifespan(app: FastAPI):
             if health_check_result:
                 logger.info("✅✅✅ Database connection test successful.")
                 
+                # Run migrations if on Railway and they haven't been run yet
+                if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID"):
+                    logger.info("🚂 Detected Railway environment - ensuring migrations are up to date...")
+                    try:
+                        import subprocess
+                        result = subprocess.run(
+                            ["python", "-m", "alembic", "upgrade", "head"],
+                            capture_output=True,
+                            text=True,
+                            timeout=60
+                        )
+                        if result.returncode == 0:
+                            logger.info("✅ Railway migrations completed successfully")
+                        else:
+                            logger.warning(f"⚠️ Railway migrations may have issues: {result.stderr}")
+                    except Exception as e:
+                        logger.warning(f"⚠️ Could not run Railway migrations: {e}")
+                
                 # Initialize database with required data (platform admin, test users in development)
                 if os.getenv("SKIP_DB_INIT", "false").lower() != "true":
                     try:
