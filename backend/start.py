@@ -8,9 +8,43 @@ import os
 import sys
 import subprocess
 
+def run_migrations():
+    """Run database migrations before starting the app."""
+    print("🔄 Running database migrations...")
+    try:
+        result = subprocess.run(
+            [sys.executable, "-m", "alembic", "upgrade", "head"],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            cwd=os.path.dirname(os.path.abspath(__file__))
+        )
+        
+        if result.returncode == 0:
+            print("✅ Migrations completed successfully!")
+            if result.stdout:
+                print(f"Migration output: {result.stdout}")
+            return True
+        else:
+            print(f"❌ Migration failed with code {result.returncode}")
+            print(f"Error: {result.stderr}")
+            print(f"Output: {result.stdout}")
+            return False
+    except Exception as e:
+        print(f"❌ Exception running migrations: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
 def main():
     """Start the FastAPI application with proper environment handling."""
     print("🚀 Starting AI Modernize Migration Platform API...")
+    
+    # Run migrations first
+    print("📋 Checking database migrations...")
+    migration_success = run_migrations()
+    if not migration_success:
+        print("⚠️  Warning: Migrations failed, but continuing with startup...")
     
     # Get environment variables
     environment = os.getenv("ENVIRONMENT", "production")

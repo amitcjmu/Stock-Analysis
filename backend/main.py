@@ -41,6 +41,35 @@ except ImportError:
 # Load environment variables
 load_dotenv()
 
+# Run database migrations immediately on Railway
+if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID") or os.getenv("RAILWAY_SERVICE_ID"):
+    print("🚂 Railway environment detected - Running database migrations immediately...")
+    try:
+        import subprocess
+        import sys
+        
+        # Try to run migrations synchronously before app starts
+        result = subprocess.run(
+            [sys.executable, "-m", "alembic", "upgrade", "head"],
+            capture_output=True,
+            text=True,
+            timeout=120
+        )
+        
+        if result.returncode == 0:
+            print("✅ Railway migrations completed successfully!")
+            print(f"Output: {result.stdout}")
+        else:
+            print(f"❌ Railway migrations failed with code {result.returncode}")
+            print(f"Error: {result.stderr}")
+            print(f"Output: {result.stdout}")
+            # Don't exit - let the app start anyway
+    except Exception as e:
+        print(f"❌ Exception running Railway migrations: {e}")
+        import traceback
+        traceback.print_exc()
+        # Don't exit - let the app start anyway
+
 # Import our structured logging module
 try:
     from app.core.logging import configure_logging, get_logger, set_trace_id
