@@ -26,7 +26,17 @@ import sys
 
 async def check():
     try:
-        conn = await asyncpg.connect(os.getenv('DATABASE_URL'))
+        # Get DATABASE_URL and convert from SQLAlchemy format to asyncpg format
+        db_url = os.getenv('DATABASE_URL', '')
+        
+        # Handle different URL formats
+        if 'postgresql+asyncpg://' in db_url:
+            # Convert SQLAlchemy URL to asyncpg format
+            asyncpg_url = db_url.replace('postgresql+asyncpg://', 'postgresql://')
+        else:
+            asyncpg_url = db_url
+            
+        conn = await asyncpg.connect(asyncpg_url)
         await conn.execute('SELECT 1')
         await conn.close()
         sys.exit(0)
@@ -35,7 +45,7 @@ async def check():
         sys.exit(1)
 
 asyncio.run(check())
-" 2>/dev/null; then
+" 2>&1 | tail -n 1; then
             echo "✅ Database is ready!"
             return 0
         fi
@@ -53,38 +63,13 @@ asyncio.run(check())
 run_database_setup() {
     echo "🔧 Running database setup..."
     
-    # Try to run our comprehensive database fix script
-    if python scripts/deployment/fix-railway-db.py; then
+    # Run the consolidated railway setup script
+    if python railway_setup.py; then
         echo "✅ Database setup completed successfully!"
         return 0
     else
-        echo "⚠️ Database setup script failed, trying basic migration..."
-        
-        # Fallback to basic migration
-        if python -m alembic upgrade head; then
-            echo "✅ Basic migration completed!"
-            
-            # Try to run data initialization
-            if python -c "
-import asyncio
-from app.core.database_initialization import initialize_database
-from app.core.database import AsyncSessionLocal
-
-async def init():
-    async with AsyncSessionLocal() as db:
-        await initialize_database(db)
-
-asyncio.run(init())
-"; then
-                echo "✅ Data initialization completed!"
-            else
-                echo "⚠️ Data initialization failed, but continuing..."
-            fi
-            return 0
-        else
-            echo "❌ Even basic migration failed!"
-            return 1
-        fi
+        echo "❌ Railway setup failed! Check logs above for details."
+        return 1
     fi
 }
 

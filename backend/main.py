@@ -121,6 +121,20 @@ async def lifespan(app: FastAPI):
             health_check_result = await db_manager.health_check()
             if health_check_result:
                 logger.info("✅✅✅ Database connection test successful.")
+                
+                # Initialize database with required data (platform admin, test users in development)
+                if os.getenv("SKIP_DB_INIT", "false").lower() != "true":
+                    try:
+                        from app.core.database_initialization import initialize_database
+                        from app.core.database import AsyncSessionLocal
+                        
+                        logger.info("📦 Initializing database with required data...")
+                        async with AsyncSessionLocal() as db:
+                            await initialize_database(db)
+                        logger.info("✅ Database initialization completed")
+                    except Exception as e:
+                        logger.warning(f"Database initialization warning: {e}")
+                        # Don't fail startup on initialization issues
             else:
                 logger.warning("⚠️⚠️⚠️ Database connection test failed, but continuing...")
             

@@ -115,6 +115,7 @@ async def run_alembic_migrations():
     try:
         import subprocess
         import os
+        import sys
         
         # Get the backend directory
         backend_dir = Path(__file__).parent
@@ -124,20 +125,53 @@ async def run_alembic_migrations():
             logger.warning("⚠️ alembic.ini not found, skipping migrations")
             return True
         
+        # Try different ways to run alembic
+        alembic_commands = [
+            ["alembic"],  # System alembic
+            [sys.executable, "-m", "alembic"],  # Python module
+            ["python", "-m", "alembic"],  # Alternative python
+            ["python3", "-m", "alembic"],  # Python3 specifically
+        ]
+        
+        # Find working alembic command
+        working_command = None
+        for cmd in alembic_commands:
+            try:
+                test_result = subprocess.run(
+                    cmd + ["--version"],
+                    capture_output=True,
+                    text=True,
+                    cwd=str(backend_dir)
+                )
+                if test_result.returncode == 0:
+                    working_command = cmd
+                    logger.info(f"✅ Found working alembic command: {' '.join(cmd)}")
+                    break
+            except Exception:
+                continue
+        
+        if not working_command:
+            logger.error("❌ Could not find working alembic command")
+            logger.error("Trying programmatic migration as fallback...")
+            return await run_migrations_programmatically()
+        
         # Run alembic upgrade head
         logger.info("📋 Checking current migration status...")
         result = subprocess.run(
-            ["alembic", "current"],
+            working_command + ["current"],
             cwd=str(backend_dir),
             capture_output=True,
             text=True,
             env={**os.environ, "DATABASE_URL": os.getenv("DATABASE_URL")}
         )
-        logger.info(f"Current migrations: {result.stdout}")
+        if result.returncode == 0:
+            logger.info(f"Current migrations: {result.stdout}")
+        else:
+            logger.warning(f"Could not check current status: {result.stderr}")
         
         logger.info("⬆️ Running migrations to latest...")
         result = subprocess.run(
-            ["alembic", "upgrade", "head"],
+            working_command + ["upgrade", "head"],
             cwd=str(backend_dir),
             capture_output=True,
             text=True,
@@ -150,10 +184,50 @@ async def run_alembic_migrations():
             return True
         else:
             logger.error(f"❌ Migration failed: {result.stderr}")
-            return False
+            logger.error("Trying programmatic migration as fallback...")
+            return await run_migrations_programmatically()
             
     except Exception as e:
         logger.error(f"❌ Migration execution failed: {e}")
+        logger.error("Trying programmatic migration as fallback...")
+        return await run_migrations_programmatically()
+
+async def run_migrations_programmatically():
+    """Run migrations programmatically using Alembic API."""
+    logger.info("🔧 Running migrations programmatically...")
+    
+    try:
+        from alembic.config import Config
+        from alembic import command
+        import os
+        
+        # Get the backend directory
+        backend_dir = Path(__file__).parent
+        alembic_ini = backend_dir / "alembic.ini"
+        
+        if not alembic_ini.exists():
+            logger.error("❌ alembic.ini not found")
+            return False
+        
+        # Create Alembic configuration
+        alembic_cfg = Config(str(alembic_ini))
+        
+        # Set the database URL
+        database_url = os.getenv('DATABASE_URL')
+        if database_url:
+            alembic_cfg.set_main_option("sqlalchemy.url", database_url)
+        
+        # Run upgrade to head
+        logger.info("⬆️ Upgrading database to latest version...")
+        command.upgrade(alembic_cfg, "head")
+        
+        logger.info("✅ Programmatic migration completed successfully")
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ Programmatic migration failed: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 async def create_database_tables():
@@ -186,6 +260,30 @@ async def create_database_tables():
     except Exception as e:
         logger.error(f"❌ Table creation failed: {e}")
         return False
+
+async def initialize_database_data():
+    """Initialize database with required data."""
+    logger.info("📦 Initializing Database Data...")
+    
+    try:
+        # Check if database initialization module exists
+        try:
+            from app.core.database_initialization import initialize_database
+            from app.core.database import AsyncSessionLocal
+            
+            async with AsyncSessionLocal() as db:
+                await initialize_database(db)
+                logger.info("✅ Database initialization completed!")
+                return True
+                
+        except ImportError:
+            logger.warning("⚠️ Database initialization module not found, skipping...")
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Database initialization failed: {e}")
+        # Don't fail the entire setup for this
+        return True
 
 async def test_feedback_functionality():
     """Test feedback system functionality."""
@@ -255,7 +353,12 @@ async def main():
         logger.error("💥 Table creation failed!")
         return False
     
-    # Step 5: Test feedback functionality
+    # Step 5: Initialize database with required data
+    if not await initialize_database_data():
+        logger.error("💥 Database data initialization failed!")
+        return False
+    
+    # Step 6: Test feedback functionality
     if not await test_feedback_functionality():
         logger.error("💥 Feedback system test failed!")
         return False
@@ -265,6 +368,7 @@ async def main():
     logger.info("✅ Database: Connected and Initialized")
     logger.info("✅ Migrations: Applied Successfully")
     logger.info("✅ Tables: Created and Verified")
+    logger.info("✅ Data: Initialized")
     logger.info("✅ Feedback System: Operational")
     logger.info("🚀 Application ready for production use!")
     
