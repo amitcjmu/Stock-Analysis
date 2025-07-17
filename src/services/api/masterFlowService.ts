@@ -117,9 +117,17 @@ export const masterFlowService = {
    */
   async initializeFlow(request: MasterFlowRequest): Promise<MasterFlowResponse> {
     try {
-      const response = await apiClient.post<MasterFlowResponse>(
+      // Transform the request to match backend expectations
+      const backendRequest = {
+        flow_type: request.flowType,
+        flow_name: request.config?.flow_name || `${request.flowType} Flow`,
+        configuration: request.config || {},
+        initial_state: {}
+      };
+      
+      const response = await apiClient.post<any>(
         '/flows/',
-        request,
+        backendRequest,
         {
           headers: getMultiTenantHeaders(
             request.clientAccountId,
@@ -128,7 +136,18 @@ export const masterFlowService = {
           ),
         }
       );
-      return response;
+      
+      // Transform backend response to match frontend expectations
+      return {
+        flowId: response.flow_id,
+        status: response.status,
+        flowType: response.flow_type,
+        progress: response.progress_percentage || 0,
+        currentPhase: response.phase || 'initialization',
+        metadata: response.metadata || {},
+        createdAt: response.created_at,
+        updatedAt: response.updated_at
+      };
     } catch (error) {
       handleApiError(error, 'initializeFlow');
       throw error;

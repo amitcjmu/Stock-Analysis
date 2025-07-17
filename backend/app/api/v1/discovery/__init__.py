@@ -40,7 +40,6 @@ from .serialization import (
 
 # Import routers for modular endpoints
 from .app_server_mappings import router as app_server_mappings_router
-from .testing_endpoints import router as testing_endpoints_router
 from .chat_interface import router as chat_interface_router
 
 __all__ = [
@@ -77,6 +76,5 @@ __all__ = [
     
     # Routers
     "app_server_mappings_router",
-    "testing_endpoints_router",
     "chat_interface_router"
 ] 

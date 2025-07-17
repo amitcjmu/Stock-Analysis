@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import masterFlowServiceExtended from '../services/api/masterFlowService.extensions';
 import type { FlowStatusResponse } from '../services/api/masterFlowService';
-import discoveryFlowService, { DiscoveryFlowStatusResponse } from '../services/api/discoveryFlowService';
+import { discoveryFlowService } from '../services/api/discoveryFlowService';
+import type { DiscoveryFlowStatusResponse } from '../services/api/discoveryFlowService';
 
 // Types for UnifiedDiscoveryFlow
 interface UnifiedDiscoveryFlowState {
@@ -57,6 +58,9 @@ const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string
     console.log(`🔍 [DEBUG] Field mappings in response:`, response.field_mappings);
     console.log(`🔍 [DEBUG] Field mappings type:`, typeof response.field_mappings);
     console.log(`🔍 [DEBUG] Field mappings length:`, Array.isArray(response.field_mappings) ? response.field_mappings.length : 'not array');
+    console.log(`🔍 [DEBUG] Raw data in response:`, response.raw_data);
+    console.log(`🔍 [DEBUG] Raw data length:`, Array.isArray(response.raw_data) ? response.raw_data.length : 'not array');
+    console.log(`🔍 [DEBUG] Raw data type:`, typeof response.raw_data);
     
     // Map discovery flow response to frontend format
     // ADR-012: This now uses child flow status for operational decisions
@@ -75,7 +79,7 @@ const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string
         tech_debt_analysis: response.summary?.tech_debt_assessment_completed || false,
       },
       crew_status: {}, // Will be populated by discovery flow service
-      raw_data: [], // Will be populated by discovery flow service
+      raw_data: response.raw_data || [], // ADR-012: Use actual raw data from discovery flow response
       field_mappings: response.field_mappings || {},
       cleaned_data: response.cleaned_data || [],
       asset_inventory: response.asset_inventory || {},

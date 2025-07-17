@@ -136,27 +136,140 @@ async def get_discovery_flow_status(
     context: RequestContext = Depends(get_current_context)
 ):
     """
-    Get discovery flow status through Master Flow Orchestrator.
+    Get discovery flow operational status.
     
-    This ensures consistent status reporting across all flow types.
+    ADR-012: This endpoint returns child flow status for operational decisions.
+    The child flow (discovery_flows table) contains the operational state needed
+    for frontend display and agent decisions.
     """
     try:
-        logger.info(f"🔍 Getting discovery flow status: {flow_id}")
+        logger.info(f"🔍 Getting discovery flow operational status: {flow_id}")
+        logger.info(f"🔍 Context: Client={context.client_account_id}, Engagement={context.engagement_id}")
         
-        # Ensure flow configurations are initialized
-        initialize_all_flows()
+        # ADR-012: Get child flow status directly from discovery_flows table
+        from app.models.discovery_flow import DiscoveryFlow
+        from sqlalchemy import select, and_
         
-        # Initialize Master Flow Orchestrator
-        orchestrator = MasterFlowOrchestrator(db, context)
+        # Query discovery flow with tenant context
+        stmt = select(DiscoveryFlow).where(
+            and_(
+                DiscoveryFlow.flow_id == flow_id,
+                DiscoveryFlow.client_account_id == context.client_account_id,
+                DiscoveryFlow.engagement_id == context.engagement_id
+            )
+        )
         
-        # Get flow status
-        status = await orchestrator.get_flow_status(flow_id)
+        result = await db.execute(stmt)
+        discovery_flow = result.scalar_one_or_none()
         
-        logger.info(f"✅ Retrieved flow status for {flow_id}: {status.get('status', 'unknown')}")
-        return status
+        if not discovery_flow:
+            logger.warning(f"Discovery flow not found in child table: {flow_id} for client {context.client_account_id}")
+            
+            # ADR-012 Fallback: If child flow doesn't exist, try to get from master flow
+            # This handles cases where the flow was created but child flow sync failed
+            logger.info(f"🔄 Attempting fallback to master flow for {flow_id}")
+            
+            # Initialize Master Flow Orchestrator as fallback
+            initialize_all_flows()
+            orchestrator = MasterFlowOrchestrator(db, context)
+            
+            try:
+                # Get master flow status
+                master_status = await orchestrator.get_flow_status(flow_id)
+                
+                logger.info(f"✅ Found master flow status for {flow_id}, returning degraded response")
+                
+                # Return a degraded response with master flow data
+                response = {
+                    "success": True,
+                    "flow_id": flow_id,
+                    "status": master_status.get("status", "unknown"),
+                    "current_phase": master_status.get("current_phase", "unknown"),
+                    "progress_percentage": master_status.get("progress_percentage", 0),
+                    "summary": {
+                        "data_import_completed": master_status.get("phase_completion", {}).get("data_import", False),
+                        "field_mapping_completed": master_status.get("phase_completion", {}).get("field_mapping", False),
+                        "data_cleansing_completed": master_status.get("phase_completion", {}).get("data_cleansing", False),
+                        "asset_inventory_completed": master_status.get("phase_completion", {}).get("asset_inventory", False),
+                        "dependency_analysis_completed": master_status.get("phase_completion", {}).get("dependency_analysis", False),
+                        "tech_debt_assessment_completed": master_status.get("phase_completion", {}).get("tech_debt_analysis", False),
+                        "total_records": 0,
+                        "records_processed": 0,
+                        "quality_score": 0
+                    },
+                    "created_at": master_status.get("created_at"),
+                    "updated_at": master_status.get("updated_at"),
+                    # Return field mappings from master flow if available
+                    "field_mappings": master_status.get("field_mappings", []),
+                    "errors": ["Child flow record missing - using master flow data"],
+                    "warnings": ["This is a degraded response. Some operational data may be missing."]
+                }
+                
+                # Log this as a data integrity issue
+                logger.error(f"⚠️ DATA INTEGRITY: Discovery flow {flow_id} exists in master but not in child table")
+                
+                return response
+                
+            except Exception as e:
+                logger.error(f"❌ Master flow fallback also failed for {flow_id}: {e}")
+                raise ValueError(f"Discovery flow not found: {flow_id}")
         
+        # Get field mappings
+        from app.models.field_mapping import FieldMapping
+        field_mappings_stmt = select(FieldMapping).where(FieldMapping.flow_id == flow_id)
+        field_mappings_result = await db.execute(field_mappings_stmt)
+        field_mappings = field_mappings_result.scalars().all()
+        
+        # Build operational status response
+        response = {
+            "success": True,
+            "flow_id": discovery_flow.flow_id,
+            "status": discovery_flow.status,
+            "current_phase": discovery_flow.current_phase,
+            "progress_percentage": discovery_flow.progress_percentage or 0,
+            "summary": {
+                "data_import_completed": discovery_flow.data_import_completed or False,
+                "field_mapping_completed": discovery_flow.field_mapping_completed or False,
+                "data_cleansing_completed": discovery_flow.data_cleansing_completed or False,
+                "asset_inventory_completed": discovery_flow.asset_inventory_completed or False,
+                "dependency_analysis_completed": discovery_flow.dependency_analysis_completed or False,
+                "tech_debt_assessment_completed": discovery_flow.tech_debt_assessment_completed or False,
+                "total_records": discovery_flow.total_records or 0,
+                "records_processed": discovery_flow.records_processed or 0,
+                "quality_score": discovery_flow.quality_score or 0
+            },
+            "created_at": discovery_flow.created_at.isoformat() if discovery_flow.created_at else None,
+            "updated_at": discovery_flow.updated_at.isoformat() if discovery_flow.updated_at else None,
+            # Additional operational fields
+            "field_mappings": [
+                {
+                    "id": str(fm.id),
+                    "source_field": fm.source_field,
+                    "target_field": fm.target_field,
+                    "confidence": fm.confidence,
+                    "is_approved": fm.is_approved,
+                    "status": fm.status,
+                    "match_type": fm.match_type
+                } for fm in field_mappings
+            ] if field_mappings else [],
+            "errors": [],
+            "warnings": []
+        }
+        
+        logger.info(f"✅ Retrieved discovery flow operational status for {flow_id}")
+        return response
+        
+    except ValueError as e:
+        # Flow not found - proper 404 handling
+        logger.warning(f"Flow not found: {flow_id}")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Flow {flow_id} not found"
+        )
     except Exception as e:
-        logger.error(f"❌ Failed to get flow status for {flow_id}: {e}")
+        logger.error(f"❌ Failed to get discovery flow status for {flow_id}: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to get flow status: {str(e)}"

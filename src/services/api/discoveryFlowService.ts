@@ -11,8 +11,9 @@
  * - Agent decision context
  */
 
-import { apiClient } from './apiClient';
-import { FlowStatusResponse } from './masterFlowService';
+import { ApiClient } from '../ApiClient';
+
+const apiClient = ApiClient.getInstance();
 
 export interface DiscoveryFlowStatusResponse {
   success: boolean;
@@ -67,61 +68,71 @@ class DiscoveryFlowServiceImpl implements DiscoveryFlowService {
   async getOperationalStatus(flowId: string, clientAccountId: string, engagementId: string): Promise<DiscoveryFlowStatusResponse> {
     console.log(`🔍 [DiscoveryFlowService] Getting operational status for flow: ${flowId}`);
     
-    const response = await apiClient.get(`/api/v1/discovery/flow/status`, {
-      params: {
-        flow_id: flowId,
-        client_account_id: clientAccountId,
-        engagement_id: engagementId
-      },
-      headers: {
-        'X-Client-Account-ID': clientAccountId,
-        'X-Engagement-ID': engagementId
+    const response = await apiClient.get<DiscoveryFlowStatusResponse>(
+      `/discovery/flows/${flowId}/status`,
+      {
+        headers: {
+          'X-Client-Account-ID': clientAccountId,
+          'X-Engagement-ID': engagementId
+        }
       }
-    });
+    );
     
-    console.log(`✅ [DiscoveryFlowService] Retrieved operational status:`, response.data);
-    return response.data;
+    console.log(`✅ [DiscoveryFlowService] Retrieved operational status:`, response);
+    return response;
   }
   
   async executePhase(flowId: string, phase: string, data: any, clientAccountId: string, engagementId: string): Promise<any> {
     console.log(`🚀 [DiscoveryFlowService] Executing phase ${phase} for flow: ${flowId}`);
     
-    // For now, fall back to the extended master flow service for phase execution
-    // This will be updated once we implement proper discovery flow phase execution endpoints
-    const response = await apiClient.post(`/api/v1/flows/${flowId}/execute`, {
-      phase,
-      data,
-      client_account_id: clientAccountId,
-      engagement_id: engagementId
-    }, {
-      headers: {
-        'X-Client-Account-ID': clientAccountId,
-        'X-Engagement-ID': engagementId
+    // FIXED: Use discovery flow execution endpoint that only requires client/engagement context
+    // instead of the master flow endpoint that requires user authentication
+    const response = await apiClient.post<any>(
+      `/discovery/flow/${flowId}/execute`,
+      {
+        phase,
+        data,
+        client_account_id: clientAccountId,
+        engagement_id: engagementId
+      },
+      {
+        headers: {
+          'X-Client-Account-ID': clientAccountId,
+          'X-Engagement-ID': engagementId
+        }
       }
-    });
+    );
     
-    console.log(`✅ [DiscoveryFlowService] Phase execution result:`, response.data);
-    return response.data;
+    console.log(`✅ [DiscoveryFlowService] Phase execution result:`, response);
+    return response;
   }
   
   async submitClarificationAnswers(flowId: string, answers: any, clientAccountId: string, engagementId: string): Promise<any> {
     console.log(`📝 [DiscoveryFlowService] Submitting clarification answers for flow: ${flowId}`);
     
-    const response = await apiClient.post(`/api/v1/discovery/flows/${flowId}/clarifications/submit`, {
-      answers,
-      client_account_id: clientAccountId,
-      engagement_id: engagementId
-    }, {
-      headers: {
-        'X-Client-Account-ID': clientAccountId,
-        'X-Engagement-ID': engagementId
+    const response = await apiClient.post<any>(
+      `/discovery/flows/${flowId}/clarifications/submit`,
+      {
+        answers,
+        client_account_id: clientAccountId,
+        engagement_id: engagementId
+      },
+      {
+        headers: {
+          'X-Client-Account-ID': clientAccountId,
+          'X-Engagement-ID': engagementId
+        }
       }
-    });
+    );
     
-    console.log(`✅ [DiscoveryFlowService] Clarification submission result:`, response.data);
-    return response.data;
+    console.log(`✅ [DiscoveryFlowService] Clarification submission result:`, response);
+    return response;
   }
 }
 
-export const discoveryFlowService = new DiscoveryFlowServiceImpl();
+// Create singleton instance
+const discoveryFlowService = new DiscoveryFlowServiceImpl();
+
+// Export both named and default exports for compatibility
+export { discoveryFlowService };
 export default discoveryFlowService;

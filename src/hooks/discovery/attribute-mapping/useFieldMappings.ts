@@ -260,16 +260,16 @@ export const useFieldMappings = (
     if (false && fieldMappingData) {
       console.log('🔍 [DEBUG] Using fallback to flow state data:', {
         fieldMappingData_structure: {
-          hasMappings: !!fieldMappingData.mappings,
-          hasAttributes: !!fieldMappingData.attributes,
-          hasData: !!fieldMappingData.data,
-          hasConfidenceScores: !!fieldMappingData.confidence_scores,
-          keys: Object.keys(fieldMappingData)
+          hasMappings: fieldMappingData ? !!fieldMappingData.mappings : false,
+          hasAttributes: fieldMappingData ? !!fieldMappingData.attributes : false,
+          hasData: fieldMappingData ? !!fieldMappingData.data : false,
+          hasConfidenceScores: fieldMappingData ? !!fieldMappingData.confidence_scores : false,
+          keys: fieldMappingData ? Object.keys(fieldMappingData) : []
         }
       });
       
       // Case 1: Handle direct field mappings structure from backend
-      if (typeof fieldMappingData === 'object' && !fieldMappingData.mappings && !fieldMappingData.attributes) {
+      if (fieldMappingData && typeof fieldMappingData === 'object' && !fieldMappingData.mappings && !fieldMappingData.attributes) {
         // Backend returns field_mappings directly as object with confidence_scores
         const mappingsObj = { ...fieldMappingData };
         delete mappingsObj.confidence_scores; // Remove confidence_scores from main object
@@ -328,7 +328,7 @@ export const useFieldMappings = (
       }
       
       // Handle structured mappings format
-      if (fieldMappingData.mappings) {
+      if (fieldMappingData && fieldMappingData.mappings) {
         const mappingsObj = fieldMappingData.mappings;
         const flowStateMappings = Object.entries(mappingsObj).map(([sourceField, mapping]: [string, any]) => ({
           id: crypto.randomUUID(), // Generate proper UUID
