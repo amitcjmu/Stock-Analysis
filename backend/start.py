@@ -16,7 +16,7 @@ def run_migrations():
             [sys.executable, "-m", "alembic", "upgrade", "head"],
             capture_output=True,
             text=True,
-            timeout=120,
+            timeout=300,  # Increase timeout to 5 minutes
             cwd=os.path.dirname(os.path.abspath(__file__))
         )
         

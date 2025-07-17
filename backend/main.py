@@ -53,7 +53,7 @@ if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID") or os.get
             [sys.executable, "-m", "alembic", "upgrade", "head"],
             capture_output=True,
             text=True,
-            timeout=120
+            timeout=300  # Increase timeout to 5 minutes
         )
         
         if result.returncode == 0:
