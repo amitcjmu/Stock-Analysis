@@ -1,7 +1,7 @@
 # Phase 1 - Agent D1: Field Mapping Quick Fixes
 
 ## Context
-You are part of a parallel remediation effort to fix critical architectural issues in the AI Force Migration Platform. This is Track D of Phase 1, focusing on immediate user-facing field mapping issues that are blocking productivity.
+You are part of a parallel remediation effort to fix critical architectural issues in the AI Modernize Migration Platform. This is Track D of Phase 1, focusing on immediate user-facing field mapping issues that are blocking productivity.
 
 ### Required Reading Before Starting
 - `docs/planning/PHASE-1-REMEDIATION-PLAN.md` - Overall Phase 1 objectives

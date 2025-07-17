@@ -5,7 +5,7 @@ Accepted and Implemented (2025-07-12)
 
 ## Context
 
-The AI Force Migration Platform initially relied on rule-based logic and pattern matching for asset analysis, data validation, and field mapping, which created several critical limitations:
+The AI Modernize Migration Platform initially relied on rule-based logic and pattern matching for asset analysis, data validation, and field mapping, which created several critical limitations:
 
 ### Problems with Rule-Based Approach
 1. **Static Business Rules**: Hardcoded logic couldn't adapt to new data patterns or business requirements

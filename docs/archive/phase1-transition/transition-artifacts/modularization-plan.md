@@ -1,4 +1,4 @@
-# AI Force Migration Platform - Modularization Plan
+# AI Modernize Migration Platform - Modularization Plan
 
 ## Overview
 

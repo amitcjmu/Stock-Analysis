@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e
 
-# AI Force Migration Platform - Docker Entrypoint Script
+# AI Modernize Migration Platform - Docker Entrypoint Script
 # Ensures proper database initialization before starting the application
 
-echo "🚀 AI Force Migration Platform - Starting Backend Services"
+echo "🚀 AI Modernize Migration Platform - Starting Backend Services"
 echo "============================================================="
 
 # Environment variables with defaults

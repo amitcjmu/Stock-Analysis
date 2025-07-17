@@ -1,7 +1,7 @@
 # Phase 1 - Agent B2: Frontend API Client v3
 
 ## Context
-You are part of a parallel remediation effort to fix critical architectural issues in the AI Force Migration Platform. This is Track B (Frontend) of Phase 1, working with Agent B1 to create a TypeScript client for the new consolidated v3 API.
+You are part of a parallel remediation effort to fix critical architectural issues in the AI Modernize Migration Platform. This is Track B (Frontend) of Phase 1, working with Agent B1 to create a TypeScript client for the new consolidated v3 API.
 
 ### Required Reading Before Starting
 - `docs/planning/PHASE-1-REMEDIATION-PLAN.md` - Overall Phase 1 objectives

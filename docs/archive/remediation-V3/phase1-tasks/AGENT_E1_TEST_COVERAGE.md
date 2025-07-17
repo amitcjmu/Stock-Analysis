@@ -1,7 +1,7 @@
 # Phase 1 - Agent E1: Test Coverage & Automation
 
 ## Context
-You are part of a parallel remediation effort to fix critical architectural issues in the AI Force Migration Platform. This is Track E (Testing) of Phase 1, focusing on establishing comprehensive test coverage and automation for all Phase 1 changes.
+You are part of a parallel remediation effort to fix critical architectural issues in the AI Modernize Migration Platform. This is Track E (Testing) of Phase 1, focusing on establishing comprehensive test coverage and automation for all Phase 1 changes.
 
 ### Required Reading Before Starting
 - `docs/planning/PHASE-1-REMEDIATION-PLAN.md` - Overall Phase 1 objectives

@@ -1,6 +1,6 @@
-# pgvector Integration Guide for AI Force Migration Platform
+# pgvector Integration Guide for AI Modernize Migration Platform
 
-This document outlines the steps to integrate the `pgvector` extension into the AI Force Migration Platform, enabling vector-based storage and querying within the existing PostgreSQL database. The integration supports AI-driven features like semantic search for CMDB assets while maintaining multi-tenant data isolation and compatibility with the platform’s FastAPI, SQLAlchemy, and CrewAI architecture.
+This document outlines the steps to integrate the `pgvector` extension into the AI Modernize Migration Platform, enabling vector-based storage and querying within the existing PostgreSQL database. The integration supports AI-driven features like semantic search for CMDB assets while maintaining multi-tenant data isolation and compatibility with the platform’s FastAPI, SQLAlchemy, and CrewAI architecture.
 
 ## Table of Contents
 1. [Prerequisites](#prerequisites)
@@ -430,4 +430,4 @@ class CMDBSimilarityTool(Tool):
 
 ## Conclusion
 
-This guide provides a comprehensive approach to integrating `pgvector` into the AI Force Migration Platform, enabling vector-based features like semantic search for CMDB assets while maintaining multi-tenant isolation and RBAC. By leveraging `pgvector` within PostgreSQL, you avoid the complexity of a separate vector database while enhancing AI-driven capabilities. The integration aligns with your existing FastAPI, SQLAlchemy, and CrewAI architecture and supports future Entra SSO integration.
+This guide provides a comprehensive approach to integrating `pgvector` into the AI Modernize Migration Platform, enabling vector-based features like semantic search for CMDB assets while maintaining multi-tenant isolation and RBAC. By leveraging `pgvector` within PostgreSQL, you avoid the complexity of a separate vector database while enhancing AI-driven capabilities. The integration aligns with your existing FastAPI, SQLAlchemy, and CrewAI architecture and supports future Entra SSO integration.

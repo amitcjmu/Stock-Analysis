@@ -7,7 +7,7 @@
 
 ## Overview
 
-This document describes the current network architecture of the AI Force Migration Platform running on a single AWS EC2 instance. The platform uses Docker containers orchestrated by docker-compose to provide a complete development environment.
+This document describes the current network architecture of the AI Modernize Migration Platform running on a single AWS EC2 instance. The platform uses Docker containers orchestrated by docker-compose to provide a complete development environment.
 
 ## Current Network Architecture
 

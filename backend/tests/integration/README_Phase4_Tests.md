@@ -1,6 +1,6 @@
 # Phase 4: Discovery Flow Data Integrity Test Suite
 
-This directory contains the comprehensive Phase 4 test suite for validating discovery flow data integrity in the AI Force Migration Platform. The test suite provides end-to-end validation of data relationships, constraints, API consistency, performance, and deployment readiness.
+This directory contains the comprehensive Phase 4 test suite for validating discovery flow data integrity in the AI Modernize Migration Platform. The test suite provides end-to-end validation of data relationships, constraints, API consistency, performance, and deployment readiness.
 
 ## 🎯 Test Suite Overview
 

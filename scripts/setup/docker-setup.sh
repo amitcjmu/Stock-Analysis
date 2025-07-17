@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Docker Setup Script for AI Force Migration Platform
+# Docker Setup Script for AI Modernize Migration Platform
 # This script helps with Docker authentication and container management
 
-echo "🐳 AI Force Migration Platform - Docker Setup"
+echo "🐳 AI Modernize Migration Platform - Docker Setup"
 echo "=============================================="
 
 # Check if Docker is running

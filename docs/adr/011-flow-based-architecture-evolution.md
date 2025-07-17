@@ -5,7 +5,7 @@ Accepted and Implemented (2025) - Supersedes ADR-001
 
 ## Context
 
-The AI Force Migration Platform evolved through 6 distinct architectural phases, with the need to complete the transition from session-based to flow-based architecture while integrating with CrewAI's native flow patterns:
+The AI Modernize Migration Platform evolved through 6 distinct architectural phases, with the need to complete the transition from session-based to flow-based architecture while integrating with CrewAI's native flow patterns:
 
 ### Evolution Through 6 Architectural Phases
 

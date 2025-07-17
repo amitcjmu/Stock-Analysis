@@ -1,4 +1,4 @@
-# AI Force Migration Platform - API Reference
+# AI Modernize Migration Platform - API Reference
 
 ## Table of Contents
 
@@ -13,7 +13,7 @@
 
 ## Overview
 
-The AI Force Migration Platform API provides comprehensive endpoints for managing cloud migration discovery, assessment, planning, and execution flows.
+The AI Modernize Migration Platform API provides comprehensive endpoints for managing cloud migration discovery, assessment, planning, and execution flows.
 
 ### Base URL
 ```

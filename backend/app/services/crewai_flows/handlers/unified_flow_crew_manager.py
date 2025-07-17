@@ -47,7 +47,7 @@ class UnifiedFlowCrewManager:
             logger.info("✅ Using OPTIMIZED field mapping crew for performance")
             from app.services.crewai_flows.crews.data_cleansing_crew import create_data_cleansing_crew
             from app.services.crewai_flows.crews.inventory_building_crew import create_inventory_building_crew
-            from app.services.crewai_flows.crews.app_server_dependency_crew import create_app_server_dependency_crew
+            from app.services.crewai_flows.crews.dependency_analysis_crew import create_dependency_analysis_crew
             from app.services.crewai_flows.crews.technical_debt_crew import create_technical_debt_crew
             from app.services.crewai_flows.crews.data_import_validation_crew import create_data_import_validation_crew
             
@@ -58,7 +58,7 @@ class UnifiedFlowCrewManager:
                 "attribute_mapping": field_mapping_factory,  # Dynamic based on CREWAI_FAST_MODE setting
                 "data_cleansing": create_data_cleansing_crew,
                 "inventory": create_inventory_building_crew,  # Fixed: Use inventory to match DB schema
-                "dependencies": create_app_server_dependency_crew,  # Fixed: Use dependencies to match DB schema
+                "dependencies": create_dependency_analysis_crew,  # Fixed: Use dependencies to match DB schema
                 "tech_debt": create_technical_debt_crew  # Fixed: Use tech_debt to match DB schema
             }
             

@@ -1,7 +1,7 @@
 # Discovery Flow Synchronization Issues - Troubleshooting Guide
 
 ## Overview
-This document summarizes the learnings from troubleshooting discovery flow synchronization issues in the AI Force Migration Platform. These issues manifested as flows showing as active on the overview page but displaying "flow not found" when viewing details, along with missing data and UI components.
+This document summarizes the learnings from troubleshooting discovery flow synchronization issues in the AI Modernize Migration Platform. These issues manifested as flows showing as active on the overview page but displaying "flow not found" when viewing details, along with missing data and UI components.
 
 ## Architecture Understanding
 

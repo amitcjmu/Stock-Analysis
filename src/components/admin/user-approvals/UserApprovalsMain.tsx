@@ -148,7 +148,7 @@ export const UserApprovalsMain: React.FC = () => {
             email: 'admin@aiforce.com',
             full_name: 'Platform Administrator',
             username: 'admin',
-            organization: 'AI Force Platform',
+            organization: 'AI Modernize Platform',
             role_description: 'System Administrator',
             access_level: 'admin',
             role_name: 'Administrator',

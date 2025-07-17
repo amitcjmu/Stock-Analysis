@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This document outlines the design and implementation plan for integrating Azure Active Directory (Azure AD) Single Sign-On (SSO) with Multi-Factor Authentication (MFA) into the AI Force Migration Platform. The integration is designed to be **environment-specific**, allowing Azure AD SSO to be mandatory for AWS deployments (for security compliance) while remaining optional or disabled for local development and Vercel deployments.
+This document outlines the design and implementation plan for integrating Azure Active Directory (Azure AD) Single Sign-On (SSO) with Multi-Factor Authentication (MFA) into the AI Modernize Migration Platform. The integration is designed to be **environment-specific**, allowing Azure AD SSO to be mandatory for AWS deployments (for security compliance) while remaining optional or disabled for local development and Vercel deployments.
 
 ## Business Requirements
 
@@ -500,7 +500,7 @@ export const Login: React.FC = () => {
 
   return (
     <div className="login-container">
-      <h1>AI Force Migration Platform</h1>
+      <h1>AI Modernize Migration Platform</h1>
       
       {config?.standardLoginEnabled && (
         <StandardLoginForm 

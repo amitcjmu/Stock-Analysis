@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# AI Force Migration Platform - Database Restore Script
+# AI Modernize Migration Platform - Database Restore Script
 # Restore database from backup created by backup_database.sh
 
 set -e
@@ -17,7 +17,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🔄 AI Force Migration Platform - Database Restore${NC}"
+echo -e "${BLUE}🔄 AI Modernize Migration Platform - Database Restore${NC}"
 echo -e "${BLUE}=================================================${NC}"
 
 # Check if backup file is provided

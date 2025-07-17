@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-The Master Flow Orchestrator is a unified service that replaces all individual flow managers in the AI Force Migration Platform. It provides a single, consistent interface for managing all flow types (Discovery, Assessment, Planning, Execution, Modernize, FinOps, Observability, Decommission) while eliminating redundancy and ensuring consistent behavior across the platform.
+The Master Flow Orchestrator is a unified service that replaces all individual flow managers in the AI Modernize Migration Platform. It provides a single, consistent interface for managing all flow types (Discovery, Assessment, Planning, Execution, Modernize, FinOps, Observability, Decommission) while eliminating redundancy and ensuring consistent behavior across the platform.
 
 ## Table of Contents
 
@@ -1195,7 +1195,7 @@ class FlowLogger:
 
 ## Conclusion
 
-The Master Flow Orchestrator design provides a unified, extensible, and maintainable solution for managing all flow types in the AI Force Migration Platform. By consolidating redundant code and establishing clear patterns, it will significantly reduce complexity while improving consistency and reliability across the platform.
+The Master Flow Orchestrator design provides a unified, extensible, and maintainable solution for managing all flow types in the AI Modernize Migration Platform. By consolidating redundant code and establishing clear patterns, it will significantly reduce complexity while improving consistency and reliability across the platform.
 
 Key benefits:
 - Single source of truth for all flows

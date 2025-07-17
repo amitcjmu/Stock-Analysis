@@ -33,7 +33,7 @@ const SidebarHeader: React.FC<SidebarHeaderProps> = ({
       >
         <Cloud className={`h-8 w-8 ${getCloudIconColor()} group-hover:scale-110 transition-transform duration-200`} />
         <div className="flex-1">
-          <h1 className="text-lg font-semibold group-hover:text-white transition-colors">AI Force</h1>
+          <h1 className="text-lg font-semibold group-hover:text-white transition-colors">AI Modernize</h1>
           <p className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors">
             Migration Platform
           </p>

@@ -50,30 +50,65 @@ class AssetFeedbackRequest(BaseModel):
 
 # Dependency to get asset data
 async def get_asset_data(asset_ids: Optional[List[str]] = None, 
-                        filters: Optional[Dict[str, Any]] = None):
-    """Get asset data based on IDs or filters."""
+                        filters: Optional[Dict[str, Any]] = None,
+                        context: Optional[RequestContext] = None,
+                        db: Optional[Session] = None):
+    """Get asset data based on IDs or filters with proper multitenancy filtering."""
     try:
-        from app.api.v1.discovery.persistence import get_processed_assets
-        
-        # Get all assets (in production, implement proper filtering)
-        all_assets = get_processed_assets()
-        
-        # Filter by asset IDs if provided
-        if asset_ids:
-            filtered_assets = [
-                asset for asset in all_assets 
-                if str(asset.get('id', '')) in asset_ids
+        # IMPORTANT: Enforce multitenancy - if context is available, filter by it
+        if context and context.client_account_id and context.engagement_id:
+            # Use database query with context filtering
+            from app.models.asset import Asset
+            from sqlalchemy import select
+            from app.core.database import get_db
+            
+            # If no db session provided, get one
+            if db is None:
+                # This is a simplified approach for sync session
+                # In practice, we should use dependency injection
+                logger.warning("No database session provided to get_asset_data")
+                return []
+            
+            # Use the repository pattern for proper context filtering
+            from app.repositories.asset_repository import AssetRepository
+            repo = AssetRepository(db, context.client_account_id)
+            
+            if asset_ids:
+                # Get multiple assets by IDs
+                assets = []
+                for asset_id in asset_ids:
+                    asset = await repo.get_by_id(asset_id)
+                    if asset:
+                        assets.append(asset)
+            else:
+                # Get all assets for the context
+                assets = await repo.get_all(limit=1000)  # Reasonable limit
+            
+            # Convert to dict format
+            return [
+                {
+                    'id': str(asset.id),
+                    'name': asset.name,
+                    'asset_type': asset.asset_type,
+                    'environment': asset.environment,
+                    'criticality': asset.criticality,
+                    'status': asset.status,
+                    'six_r_strategy': asset.six_r_strategy,
+                    'migration_wave': asset.migration_wave,
+                    'application_name': asset.application_name,
+                    'hostname': asset.hostname,
+                    'operating_system': asset.operating_system,
+                    'cpu_cores': asset.cpu_cores,
+                    'memory_gb': asset.memory_gb,
+                    'storage_gb': asset.storage_gb
+                }
+                for asset in assets
             ]
         else:
-            filtered_assets = all_assets
-        
-        # Apply additional filters if provided
-        if filters:
-            # Implement filter logic here
-            pass
-        
-        return filtered_assets
-        
+            # Fallback to persistence layer with warning
+            logger.warning("No context available for multitenancy filtering - returning empty dataset for security")
+            return []
+            
     except ImportError:
         logger.warning("Asset persistence not available, using empty dataset")
         return []
@@ -107,7 +142,9 @@ async def asset_inventory_health(service: CrewAIFlowService = Depends(get_crewai
 @router.post("/analyze")
 async def analyze_assets_intelligently(
     request: AssetAnalysisRequest,
-    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+    service: CrewAIFlowService = Depends(get_crewai_flow_service),
+    context: RequestContext = Depends(get_current_context),
+    db: Session = Depends(get_db)
 ):
     """
     Use Asset Intelligence Agent to analyze asset patterns, quality issues, and provide recommendations.
@@ -121,8 +158,8 @@ async def analyze_assets_intelligently(
     try:
         logger.info(f"Starting intelligent asset analysis for operation: {request.operation}")
         
-        # Get asset data
-        assets = await get_asset_data(request.asset_ids, request.filters)
+        # Get asset data with context for multitenancy
+        assets = await get_asset_data(request.asset_ids, request.filters, context, db)
         
         if not assets:
             return {
@@ -170,7 +207,9 @@ async def analyze_assets_intelligently(
 @router.post("/bulk-update-plan")
 async def plan_bulk_update(
     request: BulkUpdatePlanRequest,
-    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+    service: CrewAIFlowService = Depends(get_crewai_flow_service),
+    context: RequestContext = Depends(get_current_context),
+    db: Session = Depends(get_db)
 ):
     """
     Use Asset Intelligence Agent to plan optimal bulk update strategy.
@@ -184,8 +223,8 @@ async def plan_bulk_update(
     try:
         logger.info(f"Planning bulk update for {len(request.asset_ids)} assets")
         
-        # Validate asset IDs exist
-        assets = await get_asset_data(request.asset_ids)
+        # Validate asset IDs exist with context for multitenancy
+        assets = await get_asset_data(request.asset_ids, None, context, db)
         existing_asset_ids = [str(asset.get('id', '')) for asset in assets]
         missing_asset_ids = [aid for aid in request.asset_ids if aid not in existing_asset_ids]
         
@@ -236,7 +275,9 @@ async def plan_bulk_update(
 @router.post("/auto-classify")
 async def auto_classify_assets(
     request: AssetClassificationRequest,
-    service: CrewAIFlowService = Depends(get_crewai_flow_service)
+    service: CrewAIFlowService = Depends(get_crewai_flow_service),
+    context: RequestContext = Depends(get_current_context),
+    db: Session = Depends(get_db)
 ):
     """
     Use Asset Intelligence Agent to automatically classify assets based on learned patterns.
@@ -250,8 +291,8 @@ async def auto_classify_assets(
     try:
         logger.info(f"Auto-classifying {len(request.asset_ids)} assets")
         
-        # Get asset data for classification
-        assets = await get_asset_data(request.asset_ids)
+        # Get asset data for classification with context for multitenancy
+        assets = await get_asset_data(request.asset_ids, None, context, db)
         
         if not assets:
             return {
@@ -479,33 +520,18 @@ async def list_assets_paginated(
         from app.models.asset import Asset
         
         # Build base query with context filtering
-        # Platform admins should see all assets across all clients
-        if hasattr(context, 'user_id') and context.user_id:
-            # Check if user is platform admin (user ID acb04904-98a7-4f45-aacd-174d28dd3aad)
-            is_platform_admin = context.user_id == "acb04904-98a7-4f45-aacd-174d28dd3aad"
-        else:
-            is_platform_admin = False
-            
-        if is_platform_admin:
-            # Platform admin sees all assets
-            query = select(Asset).order_by(Asset.created_at.desc())
-        else:
-            # Regular users see only their context assets
-            query = select(Asset).where(
-                Asset.client_account_id == context.client_account_id,
-                Asset.engagement_id == context.engagement_id
-            ).order_by(Asset.created_at.desc())
+        # SECURITY: Always enforce multi-tenancy - no platform admin bypass for regular users
+        # Regular users see only their context assets
+        query = select(Asset).where(
+            Asset.client_account_id == context.client_account_id,
+            Asset.engagement_id == context.engagement_id
+        ).order_by(Asset.created_at.desc())
         
-        # Get total count
-        if is_platform_admin:
-            # Platform admin sees count of all assets
-            count_query = select(func.count()).select_from(Asset)
-        else:
-            # Regular users see count of their context assets
-            count_query = select(func.count()).select_from(Asset).where(
-                Asset.client_account_id == context.client_account_id,
-                Asset.engagement_id == context.engagement_id
-            )
+        # Get total count with proper context filtering
+        count_query = select(func.count()).select_from(Asset).where(
+            Asset.client_account_id == context.client_account_id,
+            Asset.engagement_id == context.engagement_id
+        )
         count_result = await db.execute(count_query)
         total_items = count_result.scalar() or 0
         

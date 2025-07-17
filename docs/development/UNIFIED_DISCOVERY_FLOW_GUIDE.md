@@ -6,7 +6,7 @@
 
 ## 📋 Overview
 
-The Unified Discovery Flow is the single source of truth for all discovery-related functionality in the AI Force Migration Platform. This guide consolidates all previous documentation and provides comprehensive guidance for developers working with the discovery flow system.
+The Unified Discovery Flow is the single source of truth for all discovery-related functionality in the AI Modernize Migration Platform. This guide consolidates all previous documentation and provides comprehensive guidance for developers working with the discovery flow system.
 
 ## 🏗️ Architecture Overview
 

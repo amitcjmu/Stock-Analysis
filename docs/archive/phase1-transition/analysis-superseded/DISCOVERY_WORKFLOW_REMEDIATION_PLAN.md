@@ -6,7 +6,7 @@
 
 ## 1. Objective
 
-This document is the single source of truth for the remediation of the Discovery Workflow in the AI Force Migration Platform. It is designed to resolve all critical gaps in state management, session handling, agentic compliance, and multi-tenancy. This revised version reflects the **actual state of the codebase** after a detailed audit and prioritizes fixing a core architectural flaw that prevents state persistence.
+This document is the single source of truth for the remediation of the Discovery Workflow in the AI Modernize Migration Platform. It is designed to resolve all critical gaps in state management, session handling, agentic compliance, and multi-tenancy. This revised version reflects the **actual state of the codebase** after a detailed audit and prioritizes fixing a core architectural flaw that prevents state persistence.
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The V3 API provides a consolidated, RESTful interface for the AI Force Migration Platform. It features improved consistency, better error handling, and full backward compatibility during the migration period.
+The V3 API provides a consolidated, RESTful interface for the AI Modernize Migration Platform. It features improved consistency, better error handling, and full backward compatibility during the migration period.
 
 ## Authentication
 

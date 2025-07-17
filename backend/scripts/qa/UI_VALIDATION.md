@@ -1,7 +1,7 @@
 # UI Validation Checklist
 
 ## Overview
-This document provides a comprehensive checklist for validating the AI Force Migration Platform UI after database seeding. Each user role should be tested to ensure proper data visibility and permission boundaries.
+This document provides a comprehensive checklist for validating the AI Modernize Migration Platform UI after database seeding. Each user role should be tested to ensure proper data visibility and permission boundaries.
 
 ## Test Environment Setup
 

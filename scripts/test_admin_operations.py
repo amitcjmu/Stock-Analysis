@@ -272,7 +272,7 @@ class AdminOperationsTester:
 
 async def main():
     """Main test execution function."""
-    print("🧪 AI Force Migration Platform - Admin Operations Test")
+    print("🧪 AI Modernize Migration Platform - Admin Operations Test")
     print("Testing cascade deletion and CRUD operations...")
     
     async with AdminOperationsTester() as tester:

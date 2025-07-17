@@ -14,7 +14,7 @@ export const getVersionInfo = () => {
   const version = getCurrentVersion();
   return {
     version,
-    fullVersion: `AI Force v${version}`,
+    fullVersion: `AI Modernize v${version}`,
     buildDate: new Date().toLocaleDateString(),
   };
 }; 

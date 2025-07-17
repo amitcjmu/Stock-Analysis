@@ -1,13 +1,13 @@
 """
-AI Force Migration Platform - Version Information
+AI Modernize Migration Platform - Version Information
 """
 
 __version__ = "0.2.0"
-__title__ = "AI Force Migration Platform"
+__title__ = "AI Modernize Migration Platform"
 __description__ = "AI-powered cloud migration management platform with intelligent automation"
-__author__ = "AI Force Migration Team"
+__author__ = "AI Modernize Migration Team"
 __license__ = "MIT"
-__copyright__ = "Copyright 2025 AI Force Migration Platform"
+__copyright__ = "Copyright 2025 AI Modernize Migration Platform"
 
 # Release Information
 RELEASE_NAME = "Sprint 1 Complete - Backend & Docker"

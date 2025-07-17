@@ -4,7 +4,7 @@
 
 set -e
 
-echo "🔐 AI Force Migration Platform - Local Security Scanner"
+echo "🔐 AI Modernize Migration Platform - Local Security Scanner"
 echo "======================================================"
 echo ""
 

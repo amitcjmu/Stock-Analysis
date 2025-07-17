@@ -1,4 +1,4 @@
-# AI Force Migration Platform - Discovery Flow Redesign Specification
+# AI Modernize Migration Platform - Discovery Flow Redesign Specification
 
 ## 🎯 Executive Summary
 

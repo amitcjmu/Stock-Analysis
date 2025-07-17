@@ -3,7 +3,7 @@
 Performance Validation Tests
 
 This script tests database and application performance with seeded demo data
-to ensure acceptable response times for the AI Force Migration Platform.
+to ensure acceptable response times for the AI Modernize Migration Platform.
 
 Usage:
     python scripts/qa/performance_validation.py [--verbose] [--benchmark]

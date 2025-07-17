@@ -2,7 +2,7 @@
 
 ## Overview
 
-The AI Force Migration Platform uses environment variables to configure API endpoints and backend services for different deployment scenarios. This guide covers configuration for local development, Docker, and production deployments with Vercel (frontend) + Railway (backend).
+The AI Modernize Migration Platform uses environment variables to configure API endpoints and backend services for different deployment scenarios. This guide covers configuration for local development, Docker, and production deployments with Vercel (frontend) + Railway (backend).
 
 ## Environment Variables
 

@@ -22,7 +22,7 @@ Sidebar (Main Composition)
 **File:** `SidebarHeader.tsx`  
 **Purpose:** Header with logo, brand, and authentication state  
 **Features:**
-- Brand display with AI Force logo
+- Brand display with AI Modernize logo
 - Authentication state visualization via icon color
 - Click-to-login/logout functionality
 - Hover effects and transitions

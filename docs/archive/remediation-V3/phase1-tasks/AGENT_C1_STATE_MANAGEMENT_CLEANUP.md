@@ -1,7 +1,7 @@
 # Phase 1 - Agent C1: State Management Cleanup
 
 ## Context
-You are part of a parallel remediation effort to fix critical architectural issues in the AI Force Migration Platform. This is Track C of Phase 1, focusing on simplifying state management by removing the complex dual persistence system (CrewAI SQLite + PostgreSQL) and implementing a clean PostgreSQL-only solution.
+You are part of a parallel remediation effort to fix critical architectural issues in the AI Modernize Migration Platform. This is Track C of Phase 1, focusing on simplifying state management by removing the complex dual persistence system (CrewAI SQLite + PostgreSQL) and implementing a clean PostgreSQL-only solution.
 
 ### Required Reading Before Starting
 - `docs/planning/PHASE-1-REMEDIATION-PLAN.md` - Overall Phase 1 objectives

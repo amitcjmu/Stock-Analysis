@@ -2,7 +2,7 @@
 
 ## Overview
 
-The AI Force Migration Platform's Role-Based Access Control (RBAC) system is designed with enterprise SSO integration in mind, particularly Microsoft Entra (formerly Azure AD). This document outlines the current architecture and the path to Entra integration.
+The AI Modernize Migration Platform's Role-Based Access Control (RBAC) system is designed with enterprise SSO integration in mind, particularly Microsoft Entra (formerly Azure AD). This document outlines the current architecture and the path to Entra integration.
 
 ## Current RBAC Architecture
 

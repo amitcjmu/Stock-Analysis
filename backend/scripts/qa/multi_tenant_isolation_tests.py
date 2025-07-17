@@ -3,7 +3,7 @@
 Multi-Tenant Isolation Validation Tests
 
 This script specifically tests multi-tenant data isolation to ensure
-proper security boundaries in the AI Force Migration Platform.
+proper security boundaries in the AI Modernize Migration Platform.
 
 Usage:
     python scripts/qa/multi_tenant_isolation_tests.py [--verbose] [--client-id ID]

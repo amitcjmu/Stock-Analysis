@@ -6,7 +6,7 @@ You are responsible for creating the database schema, core backend models, and f
 ## Context
 
 ### Project Overview
-The AI Force Migration Platform is implementing an Assessment Flow as the second major CrewAI flow after Discovery Flow. The Assessment Flow takes selected applications from the inventory and determines optimal 6R migration strategies (Rehost, Replatform, Refactor, Repurchase, Retire, Retain).
+The AI Modernize Migration Platform is implementing an Assessment Flow as the second major CrewAI flow after Discovery Flow. The Assessment Flow takes selected applications from the inventory and determines optimal 6R migration strategies (Rehost, Replatform, Refactor, Repurchase, Retire, Retain).
 
 ### Technical Stack
 - **Backend**: Python 3.11, FastAPI, SQLAlchemy, Alembic

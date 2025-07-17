@@ -2,7 +2,7 @@
 
 ## Overview
 
-The AI Force Migration Platform has been successfully migrated to use **DeepInfra's Llama 4 Maverick model exclusively**, removing all OpenAI dependencies. This ensures consistent AI provider usage and eliminates any fallback to OpenAI services.
+The AI Modernize Migration Platform has been successfully migrated to use **DeepInfra's Llama 4 Maverick model exclusively**, removing all OpenAI dependencies. This ensures consistent AI provider usage and eliminates any fallback to OpenAI services.
 
 ## Changes Made
 

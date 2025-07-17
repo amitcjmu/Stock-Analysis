@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the implementation plan for the Master Flow Orchestrator, a complete rip-and-replace solution that will unify all flow management in the AI Force Migration Platform. The implementation will be done in a single coordinated effort to minimize disruption and ensure consistency.
+This document outlines the implementation plan for the Master Flow Orchestrator, a complete rip-and-replace solution that will unify all flow management in the AI Modernize Migration Platform. The implementation will be done in a single coordinated effort to minimize disruption and ensure consistency.
 
 ## Timeline
 

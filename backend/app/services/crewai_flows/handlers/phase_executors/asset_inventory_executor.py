@@ -201,39 +201,39 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 from app.services.discovery_flow_service.managers.asset_manager import AssetManager
                 asset_manager = AssetManager(db, context)
                 
-                # Prepare asset data for persistence
+                # Prepare asset data for persistence using field mappings
                 asset_data_list = []
                 for asset in all_assets:
-                    # Transform raw asset data to the expected format
+                    # Transform raw asset data using field mappings
                     asset_data = {
-                        'name': asset.get('Asset_Name') or asset.get('name') or 'Unknown Asset',
-                        'type': self._determine_asset_type(asset),  # CC FIX: Use 'type' not 'asset_type' for AssetCommands
-                        'hostname': asset.get('Hostname') or asset.get('hostname'),
-                        'ip_address': asset.get('IP_Address') or asset.get('ip_address'),
-                        'operating_system': asset.get('Operating_System') or asset.get('os'),
-                        'environment': asset.get('Environment') or asset.get('environment') or 'production',
-                        'criticality': asset.get('Criticality') or asset.get('criticality') or 'medium',
+                        'name': self._get_mapped_value(asset, 'asset_name') or 'Unknown Asset',
+                        'type': self._determine_asset_type(asset),
+                        'hostname': self._get_mapped_value(asset, 'hostname'),
+                        'ip_address': self._get_mapped_value(asset, 'ip_address'),
+                        'operating_system': self._get_mapped_value(asset, 'operating_system'),
+                        'environment': self._get_mapped_value(asset, 'environment') or 'production',
+                        'criticality': self._get_mapped_value(asset, 'criticality') or 'medium',
                         'status': 'discovered',
-                        'application_name': asset.get('Application_Name') or asset.get('application_name'),
-                        'cpu_cores': self._parse_int(asset.get('CPU_Cores') or asset.get('cpu_cores')),
-                        'memory_gb': self._parse_float(asset.get('Memory_GB') or asset.get('memory_gb')),
-                        'storage_gb': self._parse_float(asset.get('Storage_GB') or asset.get('storage_gb')),
-                        'business_owner': asset.get('Business_Owner') or asset.get('business_owner'),
-                        'technical_owner': asset.get('Technical_Owner') or asset.get('technical_owner'),
-                        'department': asset.get('Department') or asset.get('department'),
-                        'location': asset.get('Location') or asset.get('location'),
-                        'datacenter': asset.get('Datacenter') or asset.get('datacenter'),
+                        'application_name': self._get_mapped_value(asset, 'application_name'),
+                        'cpu_cores': self._parse_int(self._get_mapped_value(asset, 'cpu_cores')),
+                        'memory_gb': self._parse_float(self._get_mapped_value(asset, 'memory_gb')),
+                        'storage_gb': self._parse_float(self._get_mapped_value(asset, 'storage_gb')),
+                        'business_owner': self._get_mapped_value(asset, 'business_owner'),
+                        'technical_owner': self._get_mapped_value(asset, 'technical_owner'),
+                        'department': self._get_mapped_value(asset, 'department'),
+                        'location': self._get_mapped_value(asset, 'location'),
+                        'datacenter': self._get_mapped_value(asset, 'datacenter'),
                         'raw_data': asset,  # Store original data
                         'field_mappings_used': getattr(self.state, 'field_mappings', {}),
-                        'normalized_data': {  # CC FIX: Add normalized_data structure for better field mapping
-                            'hostname': asset.get('Hostname') or asset.get('hostname'),
-                            'operating_system': asset.get('Operating_System') or asset.get('os'),
-                            'environment': asset.get('Environment') or asset.get('environment') or 'production',
-                            'criticality': asset.get('Criticality') or asset.get('criticality') or 'medium',
-                            'application_name': asset.get('Application_Name') or asset.get('application_name'),
-                            'cpu_cores': self._parse_int(asset.get('CPU_Cores') or asset.get('cpu_cores')),
-                            'memory_gb': self._parse_float(asset.get('Memory_GB') or asset.get('memory_gb')),
-                            'storage_gb': self._parse_float(asset.get('Storage_GB') or asset.get('storage_gb'))
+                        'normalized_data': {  # Normalized data using field mappings
+                            'hostname': self._get_mapped_value(asset, 'hostname'),
+                            'operating_system': self._get_mapped_value(asset, 'operating_system'),
+                            'environment': self._get_mapped_value(asset, 'environment') or 'production',
+                            'criticality': self._get_mapped_value(asset, 'criticality') or 'medium',
+                            'application_name': self._get_mapped_value(asset, 'application_name'),
+                            'cpu_cores': self._parse_int(self._get_mapped_value(asset, 'cpu_cores')),
+                            'memory_gb': self._parse_float(self._get_mapped_value(asset, 'memory_gb')),
+                            'storage_gb': self._parse_float(self._get_mapped_value(asset, 'storage_gb'))
                         }
                     }
                     asset_data_list.append(asset_data)
@@ -269,62 +269,88 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             logger.error(f"❌ Failed to persist assets to database: {e}", exc_info=True)
     
     def _determine_asset_type(self, asset: Dict[str, Any]) -> str:
-        """Determine asset type from asset data with comprehensive classification"""
-        asset_type = asset.get('Asset_Type') or asset.get('asset_type') or ''
-        asset_name = asset.get('Asset_Name') or asset.get('name') or ''
+        """Determine asset type from asset data using field mappings"""
+        # Use field mappings from the attribute mapping phase
+        field_mappings = getattr(self.state, 'field_mappings', {})
+        
+        # Get the source field that maps to asset_type
+        asset_type_field = None
+        asset_name_field = None
+        os_field = None
+        
+        for source_field, target_field in field_mappings.items():
+            if target_field == 'asset_type':
+                asset_type_field = source_field
+            elif target_field == 'asset_name':
+                asset_name_field = source_field
+            elif target_field == 'operating_system':
+                os_field = source_field
+        
+        # Extract values using mapped fields
+        asset_type = asset.get(asset_type_field, '') if asset_type_field else ''
+        asset_name = asset.get(asset_name_field, '') if asset_name_field else ''
+        os_info = asset.get(os_field, '') if os_field else ''
         
         # Convert to lowercase for comparison
-        asset_type_lower = asset_type.lower()
-        asset_name_lower = asset_name.lower()
+        asset_type_lower = str(asset_type).lower()
+        asset_name_lower = str(asset_name).lower()
+        os_info_lower = str(os_info).lower()
         
-        # Server classification
-        if ('server' in asset_type_lower or 'host' in asset_type_lower or 
-            'vm' in asset_type_lower or 'virtual' in asset_type_lower or
-            'linux' in asset_type_lower or 'windows' in asset_type_lower or
-            'unix' in asset_type_lower or 'centos' in asset_type_lower or
-            'ubuntu' in asset_type_lower or 'redhat' in asset_type_lower):
+        # PRIORITY 1: Direct asset type mapping from field mappings
+        if asset_type_lower:
+            if 'server' in asset_type_lower or 'host' in asset_type_lower or 'vm' in asset_type_lower or 'virtual' in asset_type_lower:
+                return 'server'
+            elif 'application' in asset_type_lower or 'app' in asset_type_lower or 'service' in asset_type_lower or 'software' in asset_type_lower:
+                return 'application'
+            elif 'database' in asset_type_lower or 'db' in asset_type_lower:
+                return 'database'
+            elif 'network' in asset_type_lower or 'device' in asset_type_lower or 'router' in asset_type_lower or 'switch' in asset_type_lower or 'firewall' in asset_type_lower:
+                return 'device'
+        
+        # PRIORITY 2: OS-based classification (typically indicates servers)
+        if os_info_lower and any(os in os_info_lower for os in ['linux', 'windows', 'unix', 'centos', 'ubuntu', 'redhat', 'solaris', 'aix']):
             return 'server'
         
-        # Application classification
-        elif ('application' in asset_type_lower or 'app' in asset_type_lower or
-              'service' in asset_type_lower or 'software' in asset_type_lower or
-              'web' in asset_type_lower or 'api' in asset_type_lower or
-              'microservice' in asset_type_lower):
+        # PRIORITY 3: Name-based classification
+        if asset_name_lower:
+            if any(keyword in asset_name_lower for keyword in ['server', 'host', 'vm', 'srv']):
+                return 'server'
+            elif any(keyword in asset_name_lower for keyword in ['app', 'api', 'service', 'web']):
+                return 'application'
+            elif any(keyword in asset_name_lower for keyword in ['db', 'database', 'mysql', 'postgresql', 'oracle', 'sql']):
+                return 'database'
+            elif any(keyword in asset_name_lower for keyword in ['device', 'network', 'router', 'switch', 'firewall']):
+                return 'device'
+        
+        # PRIORITY 4: Advanced pattern matching for applications
+        if any(keyword in asset_type_lower for keyword in ['web', 'api', 'microservice']) or \
+           any(keyword in asset_name_lower for keyword in ['payment', 'user', 'order', 'inventory']):
             return 'application'
         
-        # Database classification
-        elif ('database' in asset_type_lower or 'db' in asset_type_lower or
-              'mysql' in asset_type_lower or 'postgresql' in asset_type_lower or
-              'oracle' in asset_type_lower or 'sql' in asset_type_lower or
-              'mongo' in asset_type_lower or 'redis' in asset_type_lower):
+        # PRIORITY 5: Advanced pattern matching for databases
+        if any(keyword in asset_type_lower for keyword in ['mysql', 'postgresql', 'oracle', 'sql', 'mongo', 'redis']) or \
+           any(keyword in asset_name_lower for keyword in ['userdb', 'orderdb', 'paymentdb']):
             return 'database'
-        
-        # Network/Device classification (covers various device types)
-        elif ('network' in asset_type_lower or 'device' in asset_type_lower or
-              'router' in asset_type_lower or 'switch' in asset_type_lower or
-              'firewall' in asset_type_lower or 'load' in asset_type_lower or
-              'balancer' in asset_type_lower or 'storage' in asset_type_lower or
-              'security' in asset_type_lower or 'infrastructure' in asset_type_lower or
-              'appliance' in asset_type_lower):
-            return 'device'
-        
-        # Fallback: check asset name for hints
-        elif ('server' in asset_name_lower or 'host' in asset_name_lower or
-              'vm' in asset_name_lower):
-            return 'server'
-        elif ('app' in asset_name_lower or 'service' in asset_name_lower or
-              'web' in asset_name_lower):
-            return 'application'
-        elif ('db' in asset_name_lower or 'database' in asset_name_lower):
-            return 'database'
-        elif ('device' in asset_name_lower or 'network' in asset_name_lower or
-              'router' in asset_name_lower or 'switch' in asset_name_lower):
-            return 'device'
         
         # Default classification
-        else:
-            return 'other'
+        return 'other'
     
+    def _get_mapped_value(self, asset: Dict[str, Any], target_field: str) -> Any:
+        """Get value from asset using field mappings"""
+        field_mappings = getattr(self.state, 'field_mappings', {})
+        
+        # Find the source field that maps to the target field
+        source_field = None
+        for source, target in field_mappings.items():
+            if target == target_field:
+                source_field = source
+                break
+        
+        # Return the value from the source field if found
+        if source_field:
+            return asset.get(source_field)
+        
+        return None
     
     def _parse_int(self, value: Any) -> Optional[int]:
         """Safely parse integer value"""

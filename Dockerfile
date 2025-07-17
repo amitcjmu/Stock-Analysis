@@ -1,4 +1,4 @@
-# AI Force Migration Platform - Railway Deployment Dockerfile
+# AI Modernize Migration Platform - Railway Deployment Dockerfile
 # This Dockerfile is specifically for Railway.com deployment
 
 FROM python:3.11-slim-bookworm@sha256:139020233cc412efe4c8135b0efe1c7569dc8b28ddd88bddb109b764f8977e30

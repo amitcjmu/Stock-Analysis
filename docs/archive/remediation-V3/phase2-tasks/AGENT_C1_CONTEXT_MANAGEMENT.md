@@ -1,7 +1,7 @@
 # Phase 2 - Agent C1: Context Management & Multi-Tenant Infrastructure
 
 ## Context
-You are part of Phase 2 remediation effort to transform the AI Force Migration Platform to proper CrewAI architecture. This is Track C focusing on implementing a robust context injection framework, enhancing multi-tenant isolation, and ensuring context flows seamlessly through all CrewAI components.
+You are part of Phase 2 remediation effort to transform the AI Modernize Migration Platform to proper CrewAI architecture. This is Track C focusing on implementing a robust context injection framework, enhancing multi-tenant isolation, and ensuring context flows seamlessly through all CrewAI components.
 
 ### Required Reading Before Starting
 - `docs/planning/PHASE-2-REMEDIATION-PLAN.md` - Phase 2 objectives

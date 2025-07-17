@@ -1,5 +1,5 @@
 """
-Crew Management System for AI Force Migration Platform
+Crew Management System for AI Modernize Migration Platform
 
 This package provides:
 - BaseDiscoveryCrew: Abstract base class for all crews

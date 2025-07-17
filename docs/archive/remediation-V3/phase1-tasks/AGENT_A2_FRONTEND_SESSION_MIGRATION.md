@@ -1,7 +1,7 @@
 # Phase 1 - Agent A2: Frontend Session-to-Flow Migration
 
 ## Context
-You are part of a parallel remediation effort to fix critical architectural issues in the AI Force Migration Platform. This is Track A (Frontend) of Phase 1, working in coordination with Agent A1 who is handling the backend migration from session_id to flow_id.
+You are part of a parallel remediation effort to fix critical architectural issues in the AI Modernize Migration Platform. This is Track A (Frontend) of Phase 1, working in coordination with Agent A1 who is handling the backend migration from session_id to flow_id.
 
 ### Required Reading Before Starting
 - `docs/planning/PHASE-1-REMEDIATION-PLAN.md` - Overall Phase 1 objectives

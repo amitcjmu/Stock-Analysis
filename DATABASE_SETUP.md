@@ -1,6 +1,6 @@
 # Database Setup Guide
 
-This guide provides comprehensive instructions for setting up the AI Force Migration Platform database for development and deployment.
+This guide provides comprehensive instructions for setting up the AI Modernize Migration Platform database for development and deployment.
 
 ## 🚀 Quick Start (Recommended)
 

@@ -1,6 +1,6 @@
 # 🔄 **SESSION ID MIGRATION GUIDE**
 
-*AI Force Migration Platform - Discovery Flow Remediation*
+*AI Modernize Migration Platform - Discovery Flow Remediation*
 
 **Migration Date:** January 2025  
 **Scope:** Complete session_id → flow_id migration  

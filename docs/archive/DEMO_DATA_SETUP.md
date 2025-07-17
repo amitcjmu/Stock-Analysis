@@ -1,6 +1,6 @@
 # Demo Data Setup Guide
 
-This guide explains how to set up and use the persistent demo data system in the AI Force Migration Platform.
+This guide explains how to set up and use the persistent demo data system in the AI Modernize Migration Platform.
 
 ## Overview
 

@@ -1,7 +1,7 @@
 {
-  "name": "ai-force-migration-platform",
+  "name": "ai-modernize-migration-platform",
   "private": true,
-  "version": "0.4.9",
+  "version": "1.21.0",
   "description": "AI-powered cloud migration management platform with intelligent automation and comprehensive workflow orchestration",
   "type": "module",
   "repository": {
@@ -17,7 +17,7 @@
     "crewai",
     "postgresql"
   ],
-  "author": "AI Force Migration Team",
+  "author": "AI Modernize Migration Team",
   "license": "MIT",
   "scripts": {
     "dev": "vite",

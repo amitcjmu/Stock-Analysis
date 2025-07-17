@@ -1,0 +1,19 @@
+CI Type,Name,Host Name,IP Address,OS,Environment,Application,Department,Owner,Status,Description,Location,CPU Cores,Memory GB,Storage GB
+Server,prod-web-01,prod-web-01.demo-corp.com,192.168.1.10,Linux Ubuntu 20.04,Production,eCommerce Platform,IT,John Smith,Active,Primary web server for customer portal,US-East,8,32,500
+Server,prod-web-02,prod-web-02.demo-corp.com,192.168.1.11,Linux Ubuntu 20.04,Production,eCommerce Platform,IT,John Smith,Active,Secondary web server for customer portal,US-East,8,32,500
+Server,prod-app-01,prod-app-01.demo-corp.com,192.168.1.20,Linux RHEL 8,Production,eCommerce Platform,IT,Sarah Johnson,Active,Primary application server,US-East,16,64,1000
+Server,prod-app-02,prod-app-02.demo-corp.com,192.168.1.21,Linux RHEL 8,Production,eCommerce Platform,IT,Sarah Johnson,Active,Secondary application server,US-East,16,64,1000
+Server,prod-db-01,prod-db-01.demo-corp.com,192.168.1.30,Linux RHEL 8,Production,Database Server,IT,Mike Brown,Active,Primary database server,US-East,32,128,5000
+Server,prod-db-02,prod-db-02.demo-corp.com,192.168.1.31,Linux RHEL 8,Production,Database Server,IT,Mike Brown,Standby,Standby database server,US-East,32,128,5000
+Application,PaymentAPI,api-payment.demo-corp.com,192.168.2.10,Linux Ubuntu 22.04,Production,Payment Processing,Finance,David Lee,Active,Payment gateway API service,US-West,8,16,200
+Application,UserManagementAPI,api-user.demo-corp.com,192.168.2.11,Linux Ubuntu 22.04,Production,User Management,IT,Lisa Wang,Active,User authentication and management API,US-West,8,16,200
+Application,OrderProcessingAPI,api-order.demo-corp.com,192.168.2.12,Linux Ubuntu 22.04,Production,Order Management,Sales,Tom Wilson,Active,Order processing and fulfillment API,US-Central,12,24,300
+Database,CustomerDB,db-customer.demo-corp.com,192.168.3.10,Linux PostgreSQL 14,Production,Customer Database,IT,Amy Chen,Active,Primary customer data repository,US-East,16,64,2000
+Database,InventoryDB,db-inventory.demo-corp.com,192.168.3.11,Linux PostgreSQL 14,Production,Inventory Database,Operations,Chris Taylor,Active,Product inventory management database,US-East,16,64,2000
+Database,AnalyticsDB,db-analytics.demo-corp.com,192.168.3.12,Linux PostgreSQL 14,Production,Analytics Database,Analytics,Kevin Park,Active,Business intelligence and analytics database,US-West,24,96,3000
+Network Device,core-switch-01,switch-core-01,192.168.4.10,Cisco IOS,Production,Network Infrastructure,Network,Nancy White,Active,Core network switch for data center,US-East,,,
+Network Device,firewall-01,fw-perimeter-01,192.168.4.20,Fortinet FortiOS,Production,Security Infrastructure,Security,Robert Johnson,Active,Perimeter firewall for external access,US-East,,,
+Network Device,load-balancer-01,lb-web-01,192.168.4.30,F5 BIG-IP,Production,Load Balancing,Network,Alice Brown,Active,Web traffic load balancer,US-East,,,
+Virtual Machine,dev-app-01,dev-app-01.demo-corp.com,192.168.5.10,Linux Ubuntu 20.04,Development,Development Environment,Engineering,Charlie Davis,Active,Development application server,US-East,4,16,200
+Virtual Machine,test-web-01,test-web-01.demo-corp.com,192.168.5.11,Linux Ubuntu 20.04,Testing,Testing Environment,QA,Diana Martinez,Active,Testing web server,US-East,4,16,200
+Virtual Machine,stage-app-01,stage-app-01.demo-corp.com,192.168.5.12,Linux Ubuntu 20.04,Staging,Staging Environment,IT,Frank Wilson,Active,Staging application server,US-East,8,32,500

@@ -1,5 +1,5 @@
 """
-Database initialization script for AI Force Migration Platform.
+Database initialization script for AI Modernize Migration Platform.
 Populates the database with mock data for demo purposes.
 """
 

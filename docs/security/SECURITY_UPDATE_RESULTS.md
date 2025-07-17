@@ -2,7 +2,7 @@
 
 ## Summary
 
-Successfully applied security updates to the AI Force Migration Platform with minimal compatibility issues.
+Successfully applied security updates to the AI Modernize Migration Platform with minimal compatibility issues.
 
 ## Updates Applied
 

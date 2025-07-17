@@ -5,7 +5,7 @@
 
 ## Executive Summary: A Platform in Crisis
 
-The AI Force Migration Platform's discovery flow system is fundamentally broken due to:
+The AI Modernize Migration Platform's discovery flow system is fundamentally broken due to:
 - **4+ overlapping storage mechanisms** causing state synchronization chaos
 - **Field mapping approval flow** stuck in limbo, blocking user progress
 - **Event-driven architecture** with race conditions and incomplete implementations

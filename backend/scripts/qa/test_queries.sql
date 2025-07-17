@@ -1,4 +1,4 @@
--- AI Force Migration Platform - Database Validation Test Queries
+-- AI Modernize Migration Platform - Database Validation Test Queries
 -- Manual verification queries for seeded demo data
 -- Execute these in PostgreSQL to manually verify data integrity
 

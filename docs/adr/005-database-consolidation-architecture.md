@@ -4,7 +4,7 @@
 Accepted
 
 ## Context
-The AI Force Migration Platform database currently operates with a **dual session/flow-based architecture** that creates architectural confusion and data duplication. The system has evolved through multiple phases but lacks a unified flow coordination system across all migration phases (discovery, assessment, planning, execution).
+The AI Modernize Migration Platform database currently operates with a **dual session/flow-based architecture** that creates architectural confusion and data duplication. The system has evolved through multiple phases but lacks a unified flow coordination system across all migration phases (discovery, assessment, planning, execution).
 
 ### Current State Problems:
 

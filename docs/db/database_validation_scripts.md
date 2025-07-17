@@ -1,6 +1,6 @@
 # Database Validation Scripts
 
-This document contains SQL scripts for validating database integrity and monitoring the health of the AI Force Migration Platform database.
+This document contains SQL scripts for validating database integrity and monitoring the health of the AI Modernize Migration Platform database.
 
 ## Quick Health Check Script
 
@@ -509,4 +509,4 @@ FROM health_metrics;
 
 ---
 
-*Database validation scripts for AI Force Migration Platform - January 2025*
+*Database validation scripts for AI Modernize Migration Platform - January 2025*

@@ -1,7 +1,7 @@
 # Cloudflare R2 + Upstash Redis Implementation Guide
 
 ## Overview
-This guide provides step-by-step instructions for adding Cloudflare R2 object storage and Upstash Redis to the AI Force Migration Platform's Railway + Vercel deployment.
+This guide provides step-by-step instructions for adding Cloudflare R2 object storage and Upstash Redis to the AI Modernize Migration Platform's Railway + Vercel deployment.
 
 ## Architecture Overview
 

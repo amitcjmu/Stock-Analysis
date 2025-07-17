@@ -1,7 +1,7 @@
 # Phase 2 - Agent B1: CrewAI Flow Framework Implementation
 
 ## Context
-You are part of Phase 2 remediation effort to transform the AI Force Migration Platform to proper CrewAI architecture. This is Track B (Flows) focusing on implementing proper CrewAI Flow patterns with `@start` and `@listen` decorators, replacing manual orchestration.
+You are part of Phase 2 remediation effort to transform the AI Modernize Migration Platform to proper CrewAI architecture. This is Track B (Flows) focusing on implementing proper CrewAI Flow patterns with `@start` and `@listen` decorators, replacing manual orchestration.
 
 ### Required Reading Before Starting
 - `docs/planning/PHASE-2-REMEDIATION-PLAN.md` - Phase 2 objectives

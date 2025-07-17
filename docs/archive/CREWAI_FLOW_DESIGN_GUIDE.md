@@ -1,7 +1,7 @@
 # CrewAI Flow Design Guide
 ## Designing Agentic Workflows Following CrewAI Best Practices
 
-This guide documents the comprehensive redesign of the AI Force Migration Platform's Discovery Flow, following official CrewAI best practices for creating truly agentic workflows. This serves as a blueprint for designing future agentic workflows in the platform.
+This guide documents the comprehensive redesign of the AI Modernize Migration Platform's Discovery Flow, following official CrewAI best practices for creating truly agentic workflows. This serves as a blueprint for designing future agentic workflows in the platform.
 
 ---
 

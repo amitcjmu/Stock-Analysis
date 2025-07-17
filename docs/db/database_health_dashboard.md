@@ -2,7 +2,7 @@
 
 ## Overview
 
-This dashboard provides a real-time view of database health metrics and remediation progress for the AI Force Migration Platform.
+This dashboard provides a real-time view of database health metrics and remediation progress for the AI Modernize Migration Platform.
 
 ## 📊 Current Health Status
 

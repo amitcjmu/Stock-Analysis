@@ -1,7 +1,7 @@
 # Phase 2 - Agent A1: Agent System Core Infrastructure
 
 ## Context
-You are part of Phase 2 remediation effort to transform the AI Force Migration Platform to proper CrewAI architecture. This is Track A (Core) focusing on building the foundational agent system infrastructure that all other agents will depend on.
+You are part of Phase 2 remediation effort to transform the AI Modernize Migration Platform to proper CrewAI architecture. This is Track A (Core) focusing on building the foundational agent system infrastructure that all other agents will depend on.
 
 ### Required Reading Before Starting
 - `docs/planning/PHASE-2-REMEDIATION-PLAN.md` - Phase 2 objectives

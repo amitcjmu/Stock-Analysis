@@ -126,7 +126,11 @@ class DependencyAnalysisCrew:
     Uses parallel analysis with synthesis pattern.
     """
     
-    def __init__(self):
+    def __init__(self, crewai_service=None, asset_inventory=None, shared_memory=None, knowledge_base=None):
+        self.crewai_service = crewai_service
+        self.asset_inventory = asset_inventory or []
+        self.shared_memory = shared_memory
+        self.knowledge_base = knowledge_base
         self.network_topology_tool = NetworkTopologyTool()
         
         # Initialize agents
@@ -274,9 +278,9 @@ class DependencyAnalysisCrew:
         }
 
 # Factory function for crew creation
-def create_dependency_analysis_crew() -> DependencyAnalysisCrew:
+def create_dependency_analysis_crew(crewai_service=None, asset_inventory=None, shared_memory=None, knowledge_base=None) -> DependencyAnalysisCrew:
     """Create and return a Dependency Analysis Crew instance"""
-    return DependencyAnalysisCrew()
+    return DependencyAnalysisCrew(crewai_service, asset_inventory, shared_memory, knowledge_base)
 
 # Export the crew class and factory function
 __all__ = ["DependencyAnalysisCrew", "create_dependency_analysis_crew", "DependencyAnalysisResult"]

@@ -1,7 +1,7 @@
 # Phase 1 - Agent B1: Backend API Consolidation
 
 ## Context
-You are part of a parallel remediation effort to fix critical architectural issues in the AI Force Migration Platform. This is Track B (Backend) of Phase 1, focusing on consolidating the fragmented API endpoints into a clean, unified v3 API.
+You are part of a parallel remediation effort to fix critical architectural issues in the AI Modernize Migration Platform. This is Track B (Backend) of Phase 1, focusing on consolidating the fragmented API endpoints into a clean, unified v3 API.
 
 ### Required Reading Before Starting
 - `docs/planning/PHASE-1-REMEDIATION-PLAN.md` - Overall Phase 1 objectives

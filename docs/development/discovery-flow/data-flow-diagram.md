@@ -1,7 +1,7 @@
-# AI Force Migration Platform - Data Flow Diagram
+# AI Modernize Migration Platform - Data Flow Diagram
 
 ## Overview
-This document provides a comprehensive data flow diagram for the AI Force Migration Platform, showing how data moves through the system from user interaction to final processing.
+This document provides a comprehensive data flow diagram for the AI Modernize Migration Platform, showing how data moves through the system from user interaction to final processing.
 
 ## High-Level Data Flow
 

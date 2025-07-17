@@ -1,4 +1,4 @@
-# AI Force Migration Platform - Backend Development Dockerfile
+# AI Modernize Migration Platform - Backend Development Dockerfile
 # This Dockerfile is for local development with docker-compose
 
 FROM python:3.11-slim-bookworm

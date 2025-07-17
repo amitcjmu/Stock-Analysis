@@ -1,6 +1,6 @@
 # Database Seeding Scripts
 
-This directory contains database seeding scripts for the AI Force Migration Platform.
+This directory contains database seeding scripts for the AI Modernize Migration Platform.
 
 ## Agent 2: Core Data Engineer
 

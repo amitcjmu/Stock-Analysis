@@ -8,19 +8,19 @@ sys.path.append('backend')
 async def check_asset_count():
     try:
         from app.core.database import AsyncSessionLocal
-        from app.models.cmdb_asset import CMDBAsset
+        from app.models.asset import Asset
         from sqlalchemy import select, func
         
         print("🔍 Checking asset count in database...")
         
         async with AsyncSessionLocal() as session:
             # Get total count
-            result = await session.execute(select(func.count(CMDBAsset.id)))
+            result = await session.execute(select(func.count(Asset.id)))
             total_count = result.scalar()
             print(f"📊 Total assets in database: {total_count}")
             
             # Get first 5 assets for verification
-            result = await session.execute(select(CMDBAsset).limit(5))
+            result = await session.execute(select(Asset).limit(5))
             assets = result.scalars().all()
             
             print(f"📋 Sample assets:")
@@ -29,8 +29,8 @@ async def check_asset_count():
                 
             # Check asset types
             result = await session.execute(
-                select(CMDBAsset.asset_type, func.count(CMDBAsset.id))
-                .group_by(CMDBAsset.asset_type)
+                select(Asset.asset_type, func.count(Asset.id))
+                .group_by(Asset.asset_type)
             )
             type_counts = result.all()
             

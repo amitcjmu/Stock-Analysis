@@ -1,4 +1,4 @@
-# AI Force Migration Platform - Security-Hardened Dockerfile
+# AI Modernize Migration Platform - Security-Hardened Dockerfile
 # This Dockerfile uses security best practices to minimize vulnerabilities
 
 # Use specific version with security updates

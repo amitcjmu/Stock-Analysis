@@ -216,7 +216,7 @@ The migration to a single pgvector database was completed successfully. The plat
 - **Full functionality** including vector operations for AI features
 - **Maintainable codebase** with reduced complexity
 
-The unified pgvector database provides all the capabilities needed for the AI Force Migration Platform while maintaining simplicity and cost-effectiveness.
+The unified pgvector database provides all the capabilities needed for the AI Modernize Migration Platform while maintaining simplicity and cost-effectiveness.
 
 ---
 

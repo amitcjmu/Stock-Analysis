@@ -4,7 +4,7 @@
 Accepted
 
 ## Context
-The AI Force Migration Platform has evolved multiple API versions and endpoints that create fragmentation:
+The AI Modernize Migration Platform has evolved multiple API versions and endpoints that create fragmentation:
 
 ### Current API Landscape
 - **`/api/v1/unified-discovery/`** - Original unified approach with session-based operations

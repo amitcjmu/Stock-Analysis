@@ -1,8 +1,8 @@
-# AI Force Migration Platform
+# AI Modernize Migration Platform
 
 ## Overview
 
-The **AI Force Migration Platform** is a comprehensive cloud migration management application designed to orchestrate the entire cloud migration journey from discovery to decommission. Powered by **AI-driven automation** with **CrewAI agents**, this platform streamlines complex migration processes through intelligent insights, automated workflows, and continuous learning.
+The **AI Modernize Migration Platform** is a comprehensive cloud migration management application designed to orchestrate the entire cloud migration journey from discovery to decommission. Powered by **AI-driven automation** with **CrewAI agents**, this platform streamlines complex migration processes through intelligent insights, automated workflows, and continuous learning.
 
 Built with a modern tech stack featuring a **Next.js frontend** and **FastAPI backend**, the platform integrates with **CrewAI** for advanced agentic AI capabilities. The application runs **entirely in Docker containers** for consistent development and deployment. The platform features **17 operational AI agents** (13 active, 4 planned) with comprehensive multi-tenant architecture, AI learning systems, and LLM cost tracking, preparing for **CloudBridge integration** expected in September 2025.
 
@@ -516,7 +516,7 @@ This project is licensed under the **MIT License**.
 ```
 MIT License
 
-Copyright (c) 2025 AI Force Migration Platform
+Copyright (c) 2025 AI Modernize Migration Platform
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -548,6 +548,6 @@ For questions, feedback, or support:
 
 ---
 
-**🚀 Built with AI-Powered Intelligence by the AI Force Migration Team**
+**🚀 Built with AI-Powered Intelligence by the AI Modernize Migration Team**
 
 *Empowering enterprise cloud migrations through agentic AI, continuous learning, and intelligent automation.*

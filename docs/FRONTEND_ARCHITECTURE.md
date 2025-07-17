@@ -65,7 +65,7 @@ import { Toaster } from '@/components/ui/toaster'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'AI Force Migration Platform',
+  title: 'AI Modernize Migration Platform',
   description: 'Intelligent cloud migration orchestration platform',
 }
 
@@ -425,7 +425,7 @@ export function Sidebar() {
   return (
     <div className="w-64 bg-card border-r">
       <div className="p-6">
-        <h1 className="text-xl font-bold">AI Force Migration</h1>
+        <h1 className="text-xl font-bold">AI Modernize Migration</h1>
       </div>
       <nav className="px-4 space-y-2">
         {navigationItems.map((item) => {
@@ -1052,4 +1052,4 @@ import Image from 'next/image'
 />
 ```
 
-This frontend architecture provides a modern, scalable, and maintainable foundation for the AI Force Migration Platform with excellent developer experience and user interface. 
+This frontend architecture provides a modern, scalable, and maintainable foundation for the AI Modernize Migration Platform with excellent developer experience and user interface. 

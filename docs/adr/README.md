@@ -1,6 +1,6 @@
 # Architecture Decision Records (ADRs)
 
-This directory contains Architecture Decision Records for the AI Force Migration Platform. ADRs document important architectural decisions made during the project lifecycle.
+This directory contains Architecture Decision Records for the AI Modernize Migration Platform. ADRs document important architectural decisions made during the project lifecycle.
 
 ## Index of ADRs
 

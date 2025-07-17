@@ -1,5 +1,5 @@
 """
-Main API router for the AI Force Migration Platform.
+Main API router for the AI Modernize Migration Platform.
 Includes all endpoint routers and API versioning.
 """
 

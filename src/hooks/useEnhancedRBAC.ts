@@ -109,7 +109,7 @@ export const useEnhancedRBAC = (): UseEnhancedRBACReturn => {
           status: 'active',
           approval_requested_at: new Date().toISOString(),
           approved_at: new Date().toISOString(),
-          organization: 'AI Force Platform',
+          organization: 'AI Modernize Platform',
           role_description: 'Platform Administrator',
           login_count: 0,
           failed_login_attempts: 0,

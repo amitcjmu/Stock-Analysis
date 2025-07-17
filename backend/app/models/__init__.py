@@ -1,5 +1,5 @@
 """
-AI Force Migration Platform - Database Models
+AI Modernize Migration Platform - Database Models
 
 V2 Discovery Flow Architecture:
 - Uses CrewAI Flow ID as single source of truth

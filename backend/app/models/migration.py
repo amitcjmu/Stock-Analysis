@@ -1,5 +1,5 @@
 """
-Migration models for the AI Force Migration Platform.
+Migration models for the AI Modernize Migration Platform.
 Defines database schema for migration projects and related entities.
 """
 

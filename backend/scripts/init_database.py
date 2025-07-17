@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Database Initialization Script for AI Force Migration Platform
+Database Initialization Script for AI Modernize Migration Platform
 
 This script provides a comprehensive, robust database initialization solution
 that works reliably for developers setting up the project from scratch.
@@ -399,7 +399,7 @@ class DatabaseSetup:
 
 async def main():
     """Main entry point"""
-    parser = argparse.ArgumentParser(description="Initialize AI Force Migration Platform Database")
+    parser = argparse.ArgumentParser(description="Initialize AI Modernize Migration Platform Database")
     parser.add_argument("--force", action="store_true", 
                        help="Drop and recreate database if it exists")
     parser.add_argument("--seed-only", action="store_true", 

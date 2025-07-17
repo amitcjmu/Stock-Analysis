@@ -79,7 +79,7 @@ const Index = () => {
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
               <h1 className="text-4xl font-bold text-gray-900 mb-4">
-                AI Force Migration Platform
+                AI Modernize Migration Platform
               </h1>
               <p className="text-xl text-gray-600">
                 Manage your entire cloud migration journey from discovery to decommission with AI-powered automation

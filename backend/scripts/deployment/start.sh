@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e
 
-# AI Force Migration Platform - Railway Startup Script
+# AI Modernize Migration Platform - Railway Startup Script
 # This script handles environment variable expansion for Railway deployment
 
-echo "🚀 Starting AI Force Migration Platform API..."
+echo "🚀 Starting AI Modernize Migration Platform API..."
 echo "Environment: ${ENVIRONMENT:-production}"
 echo "Port: ${PORT:-8000}"
 echo "Debug: ${DEBUG:-false}"

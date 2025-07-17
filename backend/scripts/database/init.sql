@@ -1,4 +1,4 @@
--- AI Force Migration Platform Database Initialization
+-- AI Modernize Migration Platform Database Initialization
 -- This script sets up the initial database structure
 
 -- Create database if it doesn't exist (handled by Docker)
@@ -23,5 +23,5 @@ ALTER DATABASE migration_db SET search_path TO migration, public;
 -- Create initial admin user (optional)
 -- This will be handled by the application's user management system
 
-COMMENT ON DATABASE migration_db IS 'AI Force Migration Platform Database';
+COMMENT ON DATABASE migration_db IS 'AI Modernize Migration Platform Database';
 COMMENT ON SCHEMA migration IS 'Main application schema for migration data'; 

@@ -245,7 +245,7 @@ async def auto_remediate_violations(violations: List[Dict]) -> Dict[str, Any]:
 
 async def main():
     """Main security audit function."""
-    print("🛡️  AI Force Migration Platform - Demo Account Security Audit")
+    print("🛡️  AI Modernize Migration Platform - Demo Account Security Audit")
     print("=" * 60)
     
     # Run security audit

@@ -1,5 +1,5 @@
 """
-Configuration settings for the AI Force Migration Platform.
+Configuration settings for the AI Modernize Migration Platform.
 Supports both local development and Railway.app deployment.
 """
 
@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     """Application settings with environment variable support."""
     
     # Application settings
-    APP_NAME: str = "AI Force Migration Platform"
+    APP_NAME: str = "AI Modernize Migration Platform"
     VERSION: str = "1.0.0"
     ENVIRONMENT: str = Field(default="development", env="ENVIRONMENT")
     DEBUG: bool = Field(default=True, env="DEBUG")

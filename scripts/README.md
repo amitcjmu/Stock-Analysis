@@ -1,6 +1,6 @@
 # Scripts Directory
 
-This directory contains utility scripts for maintaining and analyzing the AI Force Migration Platform codebase.
+This directory contains utility scripts for maintaining and analyzing the AI Modernize Migration Platform codebase.
 
 ## Available Scripts
 

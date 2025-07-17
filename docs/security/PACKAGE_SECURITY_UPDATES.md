@@ -1,6 +1,6 @@
 # Package Security Updates Summary
 
-This document details all package updates performed to address security vulnerabilities across the AI Force Migration Platform.
+This document details all package updates performed to address security vulnerabilities across the AI Modernize Migration Platform.
 
 ## Update Summary
 

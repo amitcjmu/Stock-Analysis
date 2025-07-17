@@ -1,7 +1,7 @@
 # Phase 1 Deployment Guide
 
 ## Overview
-This guide provides comprehensive instructions for deploying Phase 1 improvements to the AI Force Migration Platform, including session-to-flow migration, API v3 consolidation, PostgreSQL-only state management, and field mapping fixes.
+This guide provides comprehensive instructions for deploying Phase 1 improvements to the AI Modernize Migration Platform, including session-to-flow migration, API v3 consolidation, PostgreSQL-only state management, and field mapping fixes.
 
 ## Phase 1 Changes Summary
 

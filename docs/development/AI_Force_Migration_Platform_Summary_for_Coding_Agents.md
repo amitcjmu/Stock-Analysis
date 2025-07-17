@@ -1,4 +1,4 @@
-# AI Force Migration Platform - Coding Agent Quick Reference
+# AI Modernize Migration Platform - Coding Agent Quick Reference
 
 > **🚨 IMPORTANT**: This platform is in a critical transition phase. A new `MasterFlowOrchestrator` has been implemented as the single source of truth for all workflows, but the frontend and some backend services still use a mix of legacy APIs. This creates a "competing controller" problem and is the source of known bugs.
 

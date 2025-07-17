@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script to populate demo data for the AI Force Migration Platform.
+Script to populate demo data for the AI Modernize Migration Platform.
 This script uses the backend API to create demo data, ensuring consistency with application logic.
 """
 

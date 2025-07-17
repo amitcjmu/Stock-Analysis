@@ -1,6 +1,6 @@
-# CrewAI Development Guide for AI Force Migration Platform
+# CrewAI Development Guide for AI Modernize Migration Platform
 
-This comprehensive guide explains how to work with CrewAI agents, tasks, crews, and flows within the AI Force Migration Platform, including our custom PostgreSQL persistence layer.
+This comprehensive guide explains how to work with CrewAI agents, tasks, crews, and flows within the AI Modernize Migration Platform, including our custom PostgreSQL persistence layer.
 
 ## Table of Contents
 
@@ -590,4 +590,4 @@ async def capture_learning(self):
     await self.learning_service.record_agent_performance(learning_data)
 ```
 
-This guide provides the foundation for developing with CrewAI in the AI Force Migration Platform. Remember to always follow the agentic-first approach, use Docker containers, and leverage our custom PostgreSQL persistence layer for enterprise-grade multi-tenancy.
+This guide provides the foundation for developing with CrewAI in the AI Modernize Migration Platform. Remember to always follow the agentic-first approach, use Docker containers, and leverage our custom PostgreSQL persistence layer for enterprise-grade multi-tenancy.

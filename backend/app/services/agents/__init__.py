@@ -1,5 +1,5 @@
 """
-Agents package for the AI Force Migration Platform.
+Agents package for the AI Modernize Migration Platform.
 Contains specialized agents for discovery, analysis, and orchestration.
 """
 

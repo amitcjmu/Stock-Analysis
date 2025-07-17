@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# AI Force Migration Platform Setup Script
+# AI Modernize Migration Platform Setup Script
 # This script sets up the development environment for both local and Docker deployment
 
 set -e
 
-echo "🚀 Setting up AI Force Migration Platform..."
+echo "🚀 Setting up AI Modernize Migration Platform..."
 
 # Colors for output
 RED='\033[0;31m'

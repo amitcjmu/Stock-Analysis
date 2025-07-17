@@ -1,7 +1,7 @@
 
 # Data Flow Analysis Report: Wave Planning Page
 
-This document provides a complete, end-to-end data flow analysis for the `Wave Planning` page of the AI Force Migration Platform.
+This document provides a complete, end-to-end data flow analysis for the `Wave Planning` page of the AI Modernize Migration Platform.
 
 **Analysis Date:** 2024-07-29
 

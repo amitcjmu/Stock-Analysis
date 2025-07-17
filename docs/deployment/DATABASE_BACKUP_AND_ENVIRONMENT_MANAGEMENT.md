@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document covers the comprehensive backup and environment management system for the AI Force Migration Platform, designed to prevent data loss and provide environment-specific configurations.
+This document covers the comprehensive backup and environment management system for the AI Modernize Migration Platform, designed to prevent data loss and provide environment-specific configurations.
 
 ## 🛡️ Database Backup System
 

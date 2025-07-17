@@ -1,7 +1,7 @@
 # Phase 2 - Agent A2: Crew Factory and Management
 
 ## Context
-You are part of Phase 2 remediation effort to transform the AI Force Migration Platform to proper CrewAI architecture. This is Track A (Crews) focusing on implementing proper CrewAI Crew patterns, task orchestration, and crew coordination.
+You are part of Phase 2 remediation effort to transform the AI Modernize Migration Platform to proper CrewAI architecture. This is Track A (Crews) focusing on implementing proper CrewAI Crew patterns, task orchestration, and crew coordination.
 
 ### Required Reading Before Starting
 - `docs/planning/PHASE-2-REMEDIATION-PLAN.md` - Phase 2 objectives

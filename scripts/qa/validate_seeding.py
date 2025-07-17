@@ -2,7 +2,7 @@
 """
 Database Seeding Validation Script
 
-This script validates the integrity of seeded demo data for the AI Force Migration Platform.
+This script validates the integrity of seeded demo data for the AI Modernize Migration Platform.
 Checks multi-tenant isolation, referential integrity, and data completeness.
 
 Usage:

@@ -3,7 +3,7 @@
 ## Test Execution Summary
 
 Date: January 27, 2025  
-Platform: AI Force Migration Platform  
+Platform: AI Modernize Migration Platform  
 Test Type: File Upload and Discovery Flow Initiation  
 
 ## Test Approach

@@ -2,7 +2,7 @@
 """
 Full Validation Test Suite
 
-This script orchestrates all validation tests for the AI Force Migration Platform
+This script orchestrates all validation tests for the AI Modernize Migration Platform
 after database seeding is complete.
 
 Usage:
@@ -414,7 +414,7 @@ def print_final_report(report: Dict[str, Any]):
     # Final verdict
     if summary['ready_for_demo']:
         print(f"\n🎉 VALIDATION SUCCESSFUL!")
-        print("The AI Force Migration Platform is ready for demonstration.")
+        print("The AI Modernize Migration Platform is ready for demonstration.")
     else:
         print(f"\n⚠️ VALIDATION ISSUES DETECTED")
         print("Address critical issues before demo deployment.")

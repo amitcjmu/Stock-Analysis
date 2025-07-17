@@ -1,7 +1,7 @@
 
 # Complete Auth and RBAC Workflow Guide
 
-This document provides a detailed, step-by-step guide to the authentication (AuthN) and Role-Based Access Control (RBAC) mechanisms within the AI Force Migration Platform. It is intended to help developers and other coding agents understand and troubleshoot the system.
+This document provides a detailed, step-by-step guide to the authentication (AuthN) and Role-Based Access Control (RBAC) mechanisms within the AI Modernize Migration Platform. It is intended to help developers and other coding agents understand and troubleshoot the system.
 
 The analysis follows a user performing a standard workflow: logging in and uploading a CMDB file.
 

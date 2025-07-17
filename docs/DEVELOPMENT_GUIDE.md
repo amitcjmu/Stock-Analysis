@@ -1048,4 +1048,4 @@ export async function checkHealth() {
 3. **Communication**: Use clear commit messages and PR descriptions
 4. **Testing**: Ensure all tests pass before merging
 
-This development guide provides a comprehensive foundation for working on the AI Force Migration Platform. Follow these guidelines to maintain code quality, consistency, and team productivity. 
+This development guide provides a comprehensive foundation for working on the AI Modernize Migration Platform. Follow these guidelines to maintain code quality, consistency, and team productivity. 

@@ -4,7 +4,7 @@
 Accepted
 
 ## Context
-The AI Force Migration Platform previously used a **dual persistence system** for CrewAI flow state management:
+The AI Modernize Migration Platform previously used a **dual persistence system** for CrewAI flow state management:
 
 ### Previous Architecture
 ```

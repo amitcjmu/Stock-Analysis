@@ -1,6 +1,6 @@
 # 🤖 **AGENT CONVERSION PLAN**
 
-*AI Force Migration Platform - Discovery Flow Remediation*
+*AI Modernize Migration Platform - Discovery Flow Remediation*
 
 **Conversion Date:** January 2025  
 **Scope:** Pseudo-agent → True CrewAI agent migration  

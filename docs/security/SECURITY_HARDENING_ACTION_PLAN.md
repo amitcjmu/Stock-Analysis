@@ -1,8 +1,8 @@
-# AI Force Migration Platform - Security Hardening Action Plan
+# AI Modernize Migration Platform - Security Hardening Action Plan
 
 ## Executive Summary
 
-This document outlines a comprehensive security hardening plan to ensure the AI Force Migration Platform passes security assessment. The plan is organized into immediate fixes (1-2 days), short-term improvements (1 week), and medium-term enhancements (2-4 weeks).
+This document outlines a comprehensive security hardening plan to ensure the AI Modernize Migration Platform passes security assessment. The plan is organized into immediate fixes (1-2 days), short-term improvements (1 week), and medium-term enhancements (2-4 weeks).
 
 ## Security Assessment Gap Analysis
 
@@ -323,7 +323,7 @@ class MFAHandler:
         secret = pyotp.random_base32()
         provisioning_uri = pyotp.totp.TOTP(secret).provisioning_uri(
             name=user_email,
-            issuer_name='AI Force Migration Platform'
+            issuer_name='AI Modernize Migration Platform'
         )
         
         # Generate QR code

@@ -2,7 +2,7 @@
 
 ## 🎯 **Project Overview**
 
-**Objective**: Implement comprehensive multi-tenancy architecture for AI Force Migration Platform to support client/engagement/session isolation with RBAC and foundational setup for all future modules (Discovery → Decommission).
+**Objective**: Implement comprehensive multi-tenancy architecture for AI Modernize Migration Platform to support client/engagement/session isolation with RBAC and foundational setup for all future modules (Discovery → Decommission).
 
 **Architecture Approach**:
 - **Client Level**: Organizations (Apple, Baker & Hughes, Marathon Petroleum, Merck, etc.)

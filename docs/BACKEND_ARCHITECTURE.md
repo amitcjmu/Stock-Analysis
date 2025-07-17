@@ -559,7 +559,7 @@ async def websocket_endpoint(websocket: WebSocket):
 ```python
 class Settings(BaseSettings):
     # API Configuration
-    PROJECT_NAME: str = "AI Force Migration Platform"
+    PROJECT_NAME: str = "AI Modernize Migration Platform"
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
     
@@ -659,4 +659,4 @@ async def test_ai_learning_scenario():
     assert len(missing_after) < len(missing_before)
 ```
 
-This backend architecture provides a robust, scalable foundation for the AI Force Migration Platform with clear separation of concerns, comprehensive error handling, and extensive AI integration capabilities. 
+This backend architecture provides a robust, scalable foundation for the AI Modernize Migration Platform with clear separation of concerns, comprehensive error handling, and extensive AI integration capabilities. 

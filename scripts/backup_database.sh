@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# AI Force Migration Platform - Database Backup Script
+# AI Modernize Migration Platform - Database Backup Script
 # Run this before any schema updates or major changes
 
 set -e
@@ -19,7 +19,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🗄️  AI Force Migration Platform - Database Backup${NC}"
+echo -e "${BLUE}🗄️  AI Modernize Migration Platform - Database Backup${NC}"
 echo -e "${BLUE}=================================================${NC}"
 
 # Create backup directory if it doesn't exist

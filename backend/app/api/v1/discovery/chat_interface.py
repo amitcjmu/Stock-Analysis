@@ -60,7 +60,7 @@ User Question: {user_message}"""
             response = await multi_model_service.generate_response(
                 prompt=user_message,
                 task_type="chat",  # Specify task type for model selection
-                system_message="You are a helpful AI assistant for the AI Force migration platform."
+                system_message="You are a helpful AI assistant for the AI Modernize migration platform."
             )
             
             # Store message and response

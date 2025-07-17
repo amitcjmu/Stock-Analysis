@@ -18,7 +18,7 @@
 
 ## Overview
 
-The AI Learning System is the core intelligence layer that transforms the AI Force Migration Platform from static rule-based analysis to truly intelligent, learning-enabled agents that adapt to organizational patterns and improve continuously. This system provides platform-wide learning infrastructure and seamless cross-page agent communication for enterprise cloud migration workflows.
+The AI Learning System is the core intelligence layer that transforms the AI Modernize Migration Platform from static rule-based analysis to truly intelligent, learning-enabled agents that adapt to organizational patterns and improve continuously. This system provides platform-wide learning infrastructure and seamless cross-page agent communication for enterprise cloud migration workflows.
 
 ### Core Capabilities
 
@@ -58,7 +58,7 @@ The AI Learning System is the core intelligence layer that transforms the AI For
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                        AI Force Learning System Architecture                        │
+│                        AI Modernize Learning System Architecture                        │
 ├─────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                     │
 │  ┌─────────────────┐    ┌──────────────────┐    ┌──────────────────┐                │

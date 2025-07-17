@@ -1,7 +1,7 @@
 # Phase 2 - Agent D1: Tool System Implementation
 
 ## Context
-You are part of Phase 2 remediation effort to transform the AI Force Migration Platform to proper CrewAI architecture. This is Track D focusing on implementing a comprehensive tool system with auto-discovery, context awareness, and proper agent-tool integration.
+You are part of Phase 2 remediation effort to transform the AI Modernize Migration Platform to proper CrewAI architecture. This is Track D focusing on implementing a comprehensive tool system with auto-discovery, context awareness, and proper agent-tool integration.
 
 ### Required Reading Before Starting
 - `docs/planning/PHASE-2-REMEDIATION-PLAN.md` - Phase 2 objectives

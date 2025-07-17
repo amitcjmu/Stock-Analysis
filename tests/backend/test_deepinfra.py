@@ -106,7 +106,7 @@ async def test_6r_analysis():
 
 async def main():
     """Run all tests."""
-    print("🚀 AI Force Migration Platform - DeepInfra Integration Test")
+    print("🚀 AI Modernize Migration Platform - DeepInfra Integration Test")
     print("=" * 60)
     
     # Test configuration

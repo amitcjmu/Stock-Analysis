@@ -1,6 +1,6 @@
 # 📋 **LEGACY CODE CLEANUP MANIFEST**
 
-*AI Force Migration Platform - Discovery Flow Remediation*
+*AI Modernize Migration Platform - Discovery Flow Remediation*
 
 **Manifest Date:** January 2025  
 **Scope:** File-by-file legacy cleanup action plan  

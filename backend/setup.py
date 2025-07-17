@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Setup script for AI Force Migration Platform backend.
+Setup script for AI Modernize Migration Platform backend.
 Handles database initialization, environment setup, and development tools.
 """
 
@@ -115,7 +115,7 @@ def print_next_steps():
 
 async def main():
     """Main setup function."""
-    print("🚀 AI Force Migration Platform - Backend Setup")
+    print("🚀 AI Modernize Migration Platform - Backend Setup")
     print("=" * 50)
     
     # Step 1: Create .env file

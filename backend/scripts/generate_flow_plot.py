@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Generate Discovery Flow Plot
-Creates an HTML visualization of the AI Force Migration Platform Discovery Flow
+Creates an HTML visualization of the AI Modernize Migration Platform Discovery Flow
 """
 
 import sys
@@ -28,7 +28,7 @@ def generate_flow_plot():
         <!DOCTYPE html>
         <html>
         <head>
-            <title>AI Force Migration Platform - Discovery Flow</title>
+            <title>AI Modernize Migration Platform - Discovery Flow</title>
             <style>
                 body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
                 .flow-container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -53,7 +53,7 @@ def generate_flow_plot():
         </head>
         <body>
             <div class="flow-container">
-                <h1 class="flow-title">🚀 AI Force Migration Platform - Discovery Flow</h1>
+                <h1 class="flow-title">🚀 AI Modernize Migration Platform - Discovery Flow</h1>
                 <p style="text-align: center; color: #666; margin-bottom: 40px;">
                     Comprehensive asset discovery workflow with CrewAI agents and PostgreSQL persistence
                 </p>

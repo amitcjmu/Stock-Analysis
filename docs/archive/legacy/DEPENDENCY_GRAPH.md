@@ -1,6 +1,6 @@
 # 🔗 **LEGACY CODE DEPENDENCY GRAPH ANALYSIS**
 
-*AI Force Migration Platform - Discovery Flow Remediation*
+*AI Modernize Migration Platform - Discovery Flow Remediation*
 
 **Analysis Date:** January 2025  
 **Scope:** Backend legacy code dependencies and cleanup sequence  

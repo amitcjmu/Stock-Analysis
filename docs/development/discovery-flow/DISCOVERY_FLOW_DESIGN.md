@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-The Discovery Flow is the foundational CrewAI flow in the AI Force Migration Platform, designed to solve the critical challenge of creating an accurate, comprehensive IT asset inventory from disparate, often conflicting data sources. It employs intelligent agents to consolidate information from CMDBs, assessment tools, monitoring systems, and documentation into a unified view of applications, servers, and their dependencies.
+The Discovery Flow is the foundational CrewAI flow in the AI Modernize Migration Platform, designed to solve the critical challenge of creating an accurate, comprehensive IT asset inventory from disparate, often conflicting data sources. It employs intelligent agents to consolidate information from CMDBs, assessment tools, monitoring systems, and documentation into a unified view of applications, servers, and their dependencies.
 
 This flow operates on a continuous refinement model where each data import enhances existing asset records rather than creating discrete sessions. The system prioritizes agent-driven intelligence with human-in-the-loop validation, ensuring accuracy while minimizing manual effort.
 

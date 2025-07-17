@@ -4,7 +4,7 @@
 Accepted
 
 ## Context
-The field mapping interface in the AI Force Migration Platform has suffered from several critical usability and functionality issues:
+The field mapping interface in the AI Modernize Migration Platform has suffered from several critical usability and functionality issues:
 
 ### Critical Issues Identified
 1. **Dropdown Behavior Problems**:

@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-The Assessment Flow is the second major CrewAI flow in the AI Force Migration Platform, following the Discovery Flow. It takes selected applications from the inventory page and performs comprehensive assessment to determine the optimal 6R migration strategy for each application and its components. The flow operates independently from Discovery, consuming the curated application inventory marked as "ready for assessment".
+The Assessment Flow is the second major CrewAI flow in the AI Modernize Migration Platform, following the Discovery Flow. It takes selected applications from the inventory page and performs comprehensive assessment to determine the optimal 6R migration strategy for each application and its components. The flow operates independently from Discovery, consuming the curated application inventory marked as "ready for assessment".
 
 ## Flow Overview
 

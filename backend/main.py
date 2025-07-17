@@ -1,5 +1,5 @@
 """
-AI Force Migration Platform - FastAPI Backend
+AI Modernize Migration Platform - FastAPI Backend
 Main application entry point with CORS, routing, and WebSocket support.
 """
 
@@ -151,7 +151,7 @@ async def lifespan(app: FastAPI):
 
 # Initialize basic app first to ensure health check is always available
 app = FastAPI(
-    title="AI Force Migration Platform API",
+    title="AI Modernize Migration Platform API",
     description="AI-powered cloud migration management platform",
     version="0.2.0",
     docs_url="/docs",
@@ -184,7 +184,7 @@ async def cors_test():
 async def root():
     """Root endpoint with API information."""
     return {
-        "message": "AI Force Migration Platform API",
+        "message": "AI Modernize Migration Platform API",
         "version": "0.2.0",
         "status": "running",
         "docs": "/docs",

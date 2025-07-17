@@ -6,7 +6,7 @@
 
 ## 🎯 **Overview**
 
-This guide provides comprehensive testing patterns and utilities for the modularized AI Force Migration Platform. The platform has evolved from monolithic patterns to a sophisticated modular architecture with lazy loading, code splitting, and clean module boundaries.
+This guide provides comprehensive testing patterns and utilities for the modularized AI Modernize Migration Platform. The platform has evolved from monolithic patterns to a sophisticated modular architecture with lazy loading, code splitting, and clean module boundaries.
 
 ## 🏗️ **Architecture Changes Requiring Test Updates**
 

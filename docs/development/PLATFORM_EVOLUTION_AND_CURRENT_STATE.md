@@ -1,4 +1,4 @@
-# AI Force Migration Platform - Evolution Journey & Current State
+# AI Modernize Migration Platform - Evolution Journey & Current State
 
 ## 🚨 **CRITICAL CONTEXT FOR AGENTS**
 

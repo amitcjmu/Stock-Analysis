@@ -1,5 +1,5 @@
 """
-Core exception classes for the AI Force Migration Platform.
+Core exception classes for the AI Modernize Migration Platform.
 
 Provides a comprehensive hierarchy of exceptions with:
 - Specific error codes for tracking

@@ -1,5 +1,5 @@
 """
-Structured logging configuration for the AI Force Migration Platform.
+Structured logging configuration for the AI Modernize Migration Platform.
 
 Provides centralized logging with:
 - Request trace IDs for tracking

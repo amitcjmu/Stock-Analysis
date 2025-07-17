@@ -5,7 +5,7 @@ Accepted and Implemented (2025-07-05)
 
 ## Context
 
-The AI Force Migration Platform evolved through multiple architectural phases, resulting in significant technical debt and architectural fragmentation:
+The AI Modernize Migration Platform evolved through multiple architectural phases, resulting in significant technical debt and architectural fragmentation:
 
 ### Problems Identified
 1. **Multiple Flow Managers**: Each flow type (Discovery, Assessment, Planning, etc.) had its own manager implementation with duplicated code

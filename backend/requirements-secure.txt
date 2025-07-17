@@ -1,4 +1,4 @@
-# Security-patched requirements for AI Force Migration Platform
+# Security-patched requirements for AI Modernize Migration Platform
 # Updated: 2025-07-03
 # This file pins versions to eliminate known vulnerabilities
 

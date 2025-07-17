@@ -1,4 +1,4 @@
-# Lessons Learned - AI Force Migration Platform Development
+# Lessons Learned - AI Modernize Migration Platform Development
 
 ## Authentication & User Management
 

@@ -1,4 +1,4 @@
-# AI Force Migration Platform - Technical Architecture Documentation
+# AI Modernize Migration Platform - Technical Architecture Documentation
 
 ## Table of Contents
 
@@ -19,7 +19,7 @@
 
 ## Overview
 
-The AI Force Migration Platform is a comprehensive cloud migration orchestration system that leverages real CrewAI agents to automate and optimize the entire migration lifecycle. The platform is built with a modern flow-based architecture using FastAPI for the backend and Next.js for the frontend, with CrewAI providing the AI agent framework.
+The AI Modernize Migration Platform is a comprehensive cloud migration orchestration system that leverages real CrewAI agents to automate and optimize the entire migration lifecycle. The platform is built with a modern flow-based architecture using FastAPI for the backend and Next.js for the frontend, with CrewAI providing the AI agent framework.
 
 **Current Status**: **Phase 5 (Flow-Based Architecture) - Production Ready (98% Complete)**
 
@@ -36,7 +36,7 @@ The AI Force Migration Platform is a comprehensive cloud migration orchestration
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────┐
-│                    AI Force Migration Platform (Phase 5)                        │
+│                    AI Modernize Migration Platform (Phase 5)                        │
 ├──────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                  │
 │  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐               │
@@ -1305,7 +1305,7 @@ GET /api/v1/health
 
 ## Summary
 
-The AI Force Migration Platform represents a **production-ready, enterprise-grade** cloud migration orchestration system with the following key achievements:
+The AI Modernize Migration Platform represents a **production-ready, enterprise-grade** cloud migration orchestration system with the following key achievements:
 
 ### ✅ Production Ready (98% Complete)
 - **Real CrewAI Integration**: True CrewAI agents, crews, and flows

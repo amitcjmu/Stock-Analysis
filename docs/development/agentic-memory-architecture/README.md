@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory contains the complete architecture and implementation plan for transforming the AI Force Migration Platform from a disabled-memory, rule-based system to a fully functional, learning-based agentic platform.
+This directory contains the complete architecture and implementation plan for transforming the AI Modernize Migration Platform from a disabled-memory, rule-based system to a fully functional, learning-based agentic platform.
 
 ## Key Documents
 

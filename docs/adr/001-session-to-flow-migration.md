@@ -4,7 +4,7 @@
 Accepted
 
 ## Context
-The AI Force Migration Platform currently uses two different identification systems:
+The AI Modernize Migration Platform currently uses two different identification systems:
 - **Session IDs** (format: `disc_session_*`) for user sessions and frontend tracking
 - **Flow IDs** (UUID v4) for CrewAI flows and backend processing
 

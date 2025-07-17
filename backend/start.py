@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AI Force Migration Platform - Railway Startup Script
+AI Modernize Migration Platform - Railway Startup Script
 This script handles environment variable expansion and starts the FastAPI server.
 """
 
@@ -10,7 +10,7 @@ import subprocess
 
 def main():
     """Start the FastAPI application with proper environment handling."""
-    print("🚀 Starting AI Force Migration Platform API...")
+    print("🚀 Starting AI Modernize Migration Platform API...")
     
     # Get environment variables
     environment = os.getenv("ENVIRONMENT", "production")

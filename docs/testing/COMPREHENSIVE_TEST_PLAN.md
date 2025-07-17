@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This document outlines a comprehensive testing strategy to ensure the AI Force Migration Platform can successfully simulate a complete user journey from CMDB file upload through discovery processing to assessment completion and 6R treatment recommendations.
+This document outlines a comprehensive testing strategy to ensure the AI Modernize Migration Platform can successfully simulate a complete user journey from CMDB file upload through discovery processing to assessment completion and 6R treatment recommendations.
 
 ## Test Objectives
 
@@ -193,7 +193,7 @@ Standardized test applications with known characteristics for predictable assess
 
 ## Conclusion
 
-This comprehensive test plan ensures the AI Force Migration Platform can reliably handle the complete user journey from CMDB upload to 6R treatment recommendations. By implementing these tests, we can confidently validate that:
+This comprehensive test plan ensures the AI Modernize Migration Platform can reliably handle the complete user journey from CMDB upload to 6R treatment recommendations. By implementing these tests, we can confidently validate that:
 
 1. Users can successfully navigate the complete workflow
 2. Real CrewAI agents process data accurately

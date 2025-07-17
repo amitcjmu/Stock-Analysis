@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# AI Force Migration Platform - Environment Setup Script
+# AI Modernize Migration Platform - Environment Setup Script
 # Creates environment files for different deployment scenarios
 
 set -e

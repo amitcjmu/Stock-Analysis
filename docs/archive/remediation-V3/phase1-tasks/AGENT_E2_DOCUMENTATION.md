@@ -1,7 +1,7 @@
 # Phase 1 - Agent E2: Documentation & Architecture Records
 
 ## Context
-You are part of a parallel remediation effort to fix critical architectural issues in the AI Force Migration Platform. This is Track E (Documentation) of Phase 1, focusing on documenting all changes, creating architecture decision records, and ensuring knowledge transfer.
+You are part of a parallel remediation effort to fix critical architectural issues in the AI Modernize Migration Platform. This is Track E (Documentation) of Phase 1, focusing on documenting all changes, creating architecture decision records, and ensuring knowledge transfer.
 
 ### Required Reading Before Starting
 - `docs/planning/PHASE-1-REMEDIATION-PLAN.md` - Overall Phase 1 objectives

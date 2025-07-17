@@ -7,17 +7,17 @@
 
 ## Executive Summary
 
-This document provides the detailed solution architecture for the AI Force Migration Platform currently running on a single AWS EC2 instance. The platform uses Docker containerization to provide a complete development environment with all necessary components for cloud migration orchestration.
+This document provides the detailed solution architecture for the AI Modernize Migration Platform currently running on a single AWS EC2 instance. The platform uses Docker containerization to provide a complete development environment with all necessary components for cloud migration orchestration.
 
 ## Solution Overview
 
-The AI Force Migration Platform is deployed as a containerized application stack on a single EC2 instance, providing a complete development environment for cloud migration assessment and planning activities.
+The AI Modernize Migration Platform is deployed as a containerized application stack on a single EC2 instance, providing a complete development environment for cloud migration assessment and planning activities.
 
 ## High-Level Solution Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                        AI Force Migration Platform                                  │
+│                        AI Modernize Migration Platform                                  │
 │                       (Single EC2 Instance Solution)                                │
 ├─────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                     │

@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This document outlines the design for implementing a comprehensive Client Account and Engagement segregation system across the AI Force Migration Platform. This feature ensures complete data isolation between different clients and supports multiple engagements per client, enabling the platform to serve multiple organizations simultaneously while maintaining strict data privacy and security.
+This document outlines the design for implementing a comprehensive Client Account and Engagement segregation system across the AI Modernize Migration Platform. This feature ensures complete data isolation between different clients and supports multiple engagements per client, enabling the platform to serve multiple organizations simultaneously while maintaining strict data privacy and security.
 
 ## Table of Contents
 
@@ -1254,4 +1254,4 @@ Context-specific error responses:
 
 ---
 
-This design provides a comprehensive foundation for implementing client account and engagement segregation across the AI Force Migration Platform, ensuring complete data isolation while maintaining a seamless user experience.
+This design provides a comprehensive foundation for implementing client account and engagement segregation across the AI Modernize Migration Platform, ensuring complete data isolation while maintaining a seamless user experience.

@@ -1,12 +1,12 @@
 # 🏗️ End-to-End Network Architecture Diagram
-**AI Force Migration Platform - Active Directory Registration**  
+**AI Modernize Migration Platform - Active Directory Registration**  
 **Diagram Date:** July 10, 2025  
 **Architecture Type:** Production Network Security Architecture  
 **Scope:** Complete traffic flow, ports, services, authentication, authorization, and security controls  
 
 ## 📋 Architecture Overview
 
-This document provides a comprehensive network architecture diagram showing the complete traffic flow, security controls, authentication mechanisms, and infrastructure components of the AI Force Migration Platform.
+This document provides a comprehensive network architecture diagram showing the complete traffic flow, security controls, authentication mechanisms, and infrastructure components of the AI Modernize Migration Platform.
 
 ## 🌐 High-Level Architecture Diagram
 

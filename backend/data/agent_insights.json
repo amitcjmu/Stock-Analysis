@@ -127,10 +127,54 @@
     },
     "page": "flow_5d4149d3-ac32-40ea-85d1-56ebea8d5e17",
     "actionable": true,
-    "client_account_id": "21990f3a-abb6-4862-be06-cb6f854e167b",
-    "engagement_id": "58467010-6a72-44e8-ba37-cc0238724455",
-    "flow_id": "5d4149d3-ac32-40ea-85d1-56ebea8d5e17",
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
     "created_at": "2025-07-17T05:37:30.308217",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "3f179d3a-5254-45e8-9927-7dc632f6ccf9": {
+    "id": "3f179d3a-5254-45e8-9927-7dc632f6ccf9",
+    "agent_id": "dependencies_executor",
+    "agent_name": "Dependencies Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Dependencies",
+    "description": "Beginning execution of dependencies phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "dependencies",
+      "status": "starting",
+      "progress": 66.7
+    },
+    "page": "flow_5d4149d3-ac32-40ea-85d1-56ebea8d5e17",
+    "actionable": true,
+    "client_account_id": null,
+    "engagement_id": null,
+    "flow_id": null,
+    "created_at": "2025-07-17T07:37:49.059365",
+    "user_feedback": null,
+    "is_validated": false
+  },
+  "1068041e-1ca2-42fa-9104-1c438db56974": {
+    "id": "1068041e-1ca2-42fa-9104-1c438db56974",
+    "agent_id": "dependencies_executor",
+    "agent_name": "Dependencies Phase",
+    "insight_type": "phase_start",
+    "title": "Starting Dependencies",
+    "description": "Beginning execution of dependencies phase",
+    "confidence": "high",
+    "supporting_data": {
+      "phase": "dependencies",
+      "status": "starting",
+      "progress": 66.7
+    },
+    "page": "flow_e9cad44b-ba3d-4474-b5bc-0ed1ade52ed3",
+    "actionable": true,
+    "client_account_id": "11111111-1111-1111-1111-111111111111",
+    "engagement_id": "22222222-2222-2222-2222-222222222222",
+    "flow_id": "e9cad44b-ba3d-4474-b5bc-0ed1ade52ed3",
+    "created_at": "2025-07-17T08:03:11.812834",
     "user_feedback": null,
     "is_validated": false
   }

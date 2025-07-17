@@ -1,6 +1,6 @@
 # Platform Admin Setup Guide
 
-This document describes the platform admin setup and database initialization process for the AI Force Migration Platform.
+This document describes the platform admin setup and database initialization process for the AI Modernize Migration Platform.
 
 ## Overview
 
