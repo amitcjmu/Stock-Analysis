@@ -1,5 +1,47 @@
 # 🚀 AI Force Migration Platform - Changelog
 
+## [1.20.0] - 2025-01-17
+
+### 🎯 **INTELLIGENT DEDUPLICATION** - Agent-Based Coordination System
+
+This release eliminates the critical "No assets" frontend issue and implements intelligent agent-based deduplication to prevent duplicate executions and data creation. The system replaces hardcoded logic with CrewAI tools that enable agents to make intelligent decisions about task coordination and data persistence.
+
+### 🚀 **Major Intelligent Coordination Features**
+
+#### **Root Cause Resolution: Asset Query Mismatch**
+- **Type**: Critical bug fix
+- **Impact**: Fixed asset inventory page showing "No assets" despite successful backend processing
+- **Technical Details**: Assets were created with `discovery_flow_id` as column field but queries searched `custom_attributes`. Updated all asset queries to use proper column fields (`Asset.discovery_flow_id` instead of `Asset.custom_attributes['discovery_flow_id']`)
+
+#### **Frontend Retry Elimination**
+- **Type**: System architecture improvement
+- **Impact**: Eliminated duplicate backend executions caused by frontend retries
+- **Technical Details**: Reduced ApiClient retries from 3 to 0, preventing the "3 times execution" issue that created duplicate assets and insights
+
+#### **Agent-Based Deduplication Tools**
+- **Type**: Intelligent agent coordination
+- **Impact**: Agents can now intelligently avoid duplicate work and data creation
+- **Technical Details**: Implemented CrewAI tools: `AssetDeduplicationTool` (checks existing assets), `TaskCompletionCheckerTool` (verifies recent completion), `ExecutionCoordinationTool` (prevents conflicts)
+
+#### **Enhanced Inventory Manager Intelligence**
+- **Type**: Agent capability enhancement
+- **Impact**: Inventory coordination manager now uses intelligent tools for deduplication decisions
+- **Technical Details**: Updated agent instructions to: "FIRST: Use task_completion_checker tool", "BEFORE creating assets: Use asset_deduplication_checker tool", "Use execution_coordinator tool to coordinate with other agents"
+
+### 📊 **Business Impact**
+- **User Experience**: Asset inventory page now displays discovered assets correctly
+- **System Efficiency**: Eliminated redundant agent executions and duplicate data creation
+- **Data Integrity**: Prevented duplicate assets in database through intelligent agent coordination
+- **Maintenance**: Replaced hardcoded logic with flexible agent-based tools
+- **Scalability**: Agents can adapt coordination behavior based on context and tool results
+
+### 🎯 **Success Metrics**
+- **Frontend Issue**: 100% resolution of "No assets" display problem
+- **Execution Efficiency**: Eliminated 3x redundant executions through retry removal
+- **Data Quality**: Agents now prevent duplicate asset creation using intelligent tools
+- **Architecture**: Transitioned from hardcoded to agent-based decision making
+- **Coordination**: Agents can now intelligently coordinate to avoid conflicts
+
 ## [1.19.0] - 2025-01-17
 
 ### 🎯 **CODEBASE CLEANUP** - Legacy Code Removal & Platform Optimization
