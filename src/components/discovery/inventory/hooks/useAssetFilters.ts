@@ -26,8 +26,25 @@ export const useAssetFilters = (assets: AssetInventory[]) => {
           String(value).toLowerCase().includes(filters.searchTerm.toLowerCase())
         );
       
-      const matchesType = filters.selectedAssetType === 'all' || 
-        asset.asset_type === filters.selectedAssetType;
+      const matchesType = filters.selectedAssetType === 'all' || (() => {
+        const assetType = asset.asset_type?.toLowerCase();
+        const filterType = filters.selectedAssetType.toLowerCase();
+        
+        if (filterType === 'server') {
+          return assetType?.includes('server');
+        } else if (filterType === 'application') {
+          return assetType?.includes('application');
+        } else if (filterType === 'database') {
+          return assetType?.includes('database');
+        } else if (filterType === 'device') {
+          return assetType?.includes('device') || 
+                 assetType?.includes('network') || 
+                 assetType?.includes('storage') || 
+                 assetType?.includes('security') || 
+                 assetType?.includes('infrastructure');
+        }
+        return asset.asset_type === filters.selectedAssetType;
+      })();
       
       const matchesEnvironment = filters.selectedEnvironment === 'all' || 
         asset.environment === filters.selectedEnvironment;

@@ -16,10 +16,14 @@ export const useInventoryProgress = (assets: AssetInventory[]): InventoryProgres
       asset.asset_type?.toLowerCase().includes('database') || 
       asset.asset_type?.toLowerCase() === 'database'
     ).length;
-    const devices = assets.filter(asset => 
-      asset.asset_type?.toLowerCase().includes('device') || 
-      asset.asset_type?.toLowerCase().includes('network')
-    ).length;
+    const devices = assets.filter(asset => {
+      const assetType = asset.asset_type?.toLowerCase();
+      return assetType?.includes('device') || 
+             assetType?.includes('network') || 
+             assetType?.includes('storage') || 
+             assetType?.includes('security') || 
+             assetType?.includes('infrastructure');
+    }).length;
     
     return {
       total_assets: total,

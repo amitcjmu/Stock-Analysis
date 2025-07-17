@@ -554,11 +554,13 @@ async def list_assets_paginated(
             "summary": {
                 "total": total_items,
                 "filtered": total_items,
-                "applications": sum(1 for a in assets if a.asset_type == 'application'),
-                "servers": sum(1 for a in assets if a.asset_type == 'server'),
-                "databases": sum(1 for a in assets if a.asset_type == 'database'),
-                "devices": sum(1 for a in assets if a.asset_type not in ['application', 'server', 'database']),
-                "unknown": 0,
+                "applications": sum(1 for a in assets if a.asset_type and a.asset_type.lower() == 'application'),
+                "servers": sum(1 for a in assets if a.asset_type and a.asset_type.lower() == 'server'),
+                "databases": sum(1 for a in assets if a.asset_type and a.asset_type.lower() == 'database'),
+                "devices": sum(1 for a in assets if a.asset_type and any(
+                    term in a.asset_type.lower() for term in ['device', 'network', 'storage', 'security', 'infrastructure']
+                )),
+                "unknown": sum(1 for a in assets if not a.asset_type or a.asset_type.lower() == 'unknown'),
                 "discovered": sum(1 for a in assets if a.status == 'discovered'),
                 "pending": sum(1 for a in assets if a.status == 'pending'),
                 "device_breakdown": {}
