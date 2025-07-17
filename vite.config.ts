@@ -51,17 +51,16 @@ export default defineConfig(({ mode }) => ({
           ],
           
           // NORMAL PRIORITY - Feature chunks
-          'discovery': ['./src/pages/Discovery.tsx', './src/pages/discovery/'],
-          'assessment': ['./src/pages/Assess.tsx', './src/pages/assess/'],
-          'planning': ['./src/pages/Plan.tsx', './src/pages/plan/'],
-          'execution': ['./src/pages/Execute.tsx', './src/pages/execute/'],
-          'modernization': ['./src/pages/Modernize.tsx', './src/pages/modernize/'],
-          'finops': ['./src/pages/FinOps.tsx', './src/pages/finops/'],
-          'decommission': ['./src/pages/Decommission.tsx', './src/pages/decommission/'],
+          'discovery': ['./src/pages/Discovery.tsx'],
+          'assessment': ['./src/pages/Assess.tsx'],
+          'planning': ['./src/pages/Plan.tsx'],
+          'execution': ['./src/pages/Execute.tsx'],
+          'modernization': ['./src/pages/Modernize.tsx'],
+          'finops': ['./src/pages/FinOps.tsx'],
+          'decommission': ['./src/pages/Decommission.tsx'],
           
-          // LOW PRIORITY - Admin and utilities
-          'admin': ['./src/pages/admin/', './src/components/admin/'],
-          'utils': ['./src/utils/', './src/hooks/'],
+          // LOW PRIORITY - utilities
+          'utils': [],
           'icons': ['lucide-react'],
           'charts': ['recharts']
         },

@@ -108,6 +108,54 @@ async def test_database_connection():
         logger.error(f"❌ Database Connection Failed: {e}")
         return False
 
+async def run_alembic_migrations():
+    """Run Alembic migrations to keep database schema up to date."""
+    logger.info("🔄 Running Alembic Migrations...")
+    
+    try:
+        import subprocess
+        import os
+        
+        # Get the backend directory
+        backend_dir = Path(__file__).parent
+        alembic_ini = backend_dir / "alembic.ini"
+        
+        if not alembic_ini.exists():
+            logger.warning("⚠️ alembic.ini not found, skipping migrations")
+            return True
+        
+        # Run alembic upgrade head
+        logger.info("📋 Checking current migration status...")
+        result = subprocess.run(
+            ["alembic", "current"],
+            cwd=str(backend_dir),
+            capture_output=True,
+            text=True,
+            env={**os.environ, "DATABASE_URL": os.getenv("DATABASE_URL")}
+        )
+        logger.info(f"Current migrations: {result.stdout}")
+        
+        logger.info("⬆️ Running migrations to latest...")
+        result = subprocess.run(
+            ["alembic", "upgrade", "head"],
+            cwd=str(backend_dir),
+            capture_output=True,
+            text=True,
+            env={**os.environ, "DATABASE_URL": os.getenv("DATABASE_URL")}
+        )
+        
+        if result.returncode == 0:
+            logger.info("✅ Migrations completed successfully")
+            logger.info(f"Output: {result.stdout}")
+            return True
+        else:
+            logger.error(f"❌ Migration failed: {result.stderr}")
+            return False
+            
+    except Exception as e:
+        logger.error(f"❌ Migration execution failed: {e}")
+        return False
+
 async def create_database_tables():
     """Create database tables if they don't exist."""
     logger.info("🏗️ Creating Database Tables...")
@@ -197,12 +245,17 @@ async def main():
         logger.error("💥 Database connection failed!")
         return False
     
-    # Step 3: Create tables
+    # Step 3: Run Alembic migrations (this will create/update all tables)
+    if not await run_alembic_migrations():
+        logger.error("💥 Database migrations failed!")
+        return False
+    
+    # Step 4: Create tables (fallback if migrations don't exist)
     if not await create_database_tables():
         logger.error("💥 Table creation failed!")
         return False
     
-    # Step 4: Test feedback functionality
+    # Step 5: Test feedback functionality
     if not await test_feedback_functionality():
         logger.error("💥 Feedback system test failed!")
         return False
@@ -210,6 +263,7 @@ async def main():
     logger.info("=" * 60)
     logger.info("🎉 Railway Setup: COMPLETE")
     logger.info("✅ Database: Connected and Initialized")
+    logger.info("✅ Migrations: Applied Successfully")
     logger.info("✅ Tables: Created and Verified")
     logger.info("✅ Feedback System: Operational")
     logger.info("🚀 Application ready for production use!")
