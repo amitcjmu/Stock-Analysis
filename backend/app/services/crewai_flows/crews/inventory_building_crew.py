@@ -103,6 +103,7 @@ class InventoryBuildingCrew:
             - FIRST: Use task_completion_checker tool to verify if asset inventory has been completed recently
             - If completed recently, return existing results instead of re-processing to avoid redundant work
             - BEFORE creating any assets: Use asset_deduplication_checker tool to ensure no duplicates are created
+            - AFTER asset classification: Use asset_enrichment_analyzer tool to enrich each asset with metadata
             - Use execution_coordinator tool to coordinate with other agents and avoid conflicts
             - Only proceed with full inventory if no recent completion or results are insufficient
             
