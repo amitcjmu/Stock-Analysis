@@ -94,9 +94,9 @@ export const API_CONFIG = {
   },
   ENDPOINTS: {
     DISCOVERY: {
-      AGENT_ANALYSIS: '/discovery/flow/agent/analysis', // Updated to use CrewAI Flow endpoint
-      ANALYZE_CMDB: '/discovery/flow/agent/analysis', // Updated to use CrewAI Flow endpoint
-      PROCESS_CMDB: '/discovery/flow/run', // Updated to use CrewAI Flow endpoint
+      AGENT_ANALYSIS: '/agents/discovery/analysis', // FIXED: Use actual agent analysis endpoint
+      ANALYZE_CMDB: '/agents/discovery/analysis', // FIXED: Use actual agent analysis endpoint  
+      PROCESS_CMDB: '/discovery/flow/run', // Discovery flow execution endpoint
       CMDB_TEMPLATES: '/discovery/cmdb-templates',
       CMDB_FEEDBACK: '/discovery/cmdb-feedback',
       ASSETS: '/discovery/assets',
