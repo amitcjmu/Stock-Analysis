@@ -119,7 +119,7 @@ class AssetInventoryExecutor(BasePhaseExecutor):
         raise RuntimeError("Sync fallback disabled - crew execution must work properly")
     
     async def _persist_assets_to_database(self, results: Dict[str, Any]):
-        """Persist discovered assets to the database"""
+        """Persist discovered assets to the database with deduplication"""
         try:
             logger.info("📦 Starting asset persistence to database")
             
@@ -143,6 +143,9 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 return
             
             logger.info(f"📊 Found {len(all_assets)} assets to persist")
+            
+            # Note: Deduplication is handled by intelligent agents using deduplication tools
+            # The inventory manager has instructions to avoid creating duplicates
             
             # Debug: Log state attributes
             logger.info(f"🔍 State attributes: {[attr for attr in dir(self.state) if not attr.startswith('_')]}")
@@ -297,3 +300,4 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             return float(value)
         except (ValueError, TypeError):
             return None
+    

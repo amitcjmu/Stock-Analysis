@@ -105,3 +105,15 @@ class AssetQueries:
         
         result = await self.db.execute(stmt)
         return result.scalar() or 0
+    
+    async def get_assets_by_client_engagement(self) -> List[Asset]:
+        """Get all assets for client and engagement context (for deduplication)"""
+        stmt = select(Asset).where(
+            and_(
+                Asset.client_account_id == self.client_account_id,
+                Asset.engagement_id == self.engagement_id
+            )
+        )
+        
+        result = await self.db.execute(stmt)
+        return result.scalars().all()

@@ -24,7 +24,7 @@ export class ApiClient {
     this.config = {
       baseURL: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1`,
       timeout: 30000,
-      retries: 3,
+      retries: 0,  // CC FIX: Remove retries to prevent duplicate backend executions
       defaultHeaders: {
         'Content-Type': 'application/json',
       }

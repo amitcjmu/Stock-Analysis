@@ -101,9 +101,10 @@ class InventoryBuildingCrew:
             
             INTELLIGENCE & EFFICIENCY RESPONSIBILITIES:
             - FIRST: Use task_completion_checker tool to verify if asset inventory has been completed recently
-            - If completed recently, use existing_results_retriever to get previous results instead of re-processing
+            - If completed recently, return existing results instead of re-processing to avoid redundant work
+            - BEFORE creating any assets: Use asset_deduplication_checker tool to ensure no duplicates are created
+            - Use execution_coordinator tool to coordinate with other agents and avoid conflicts
             - Only proceed with full inventory if no recent completion or results are insufficient
-            - Avoid redundant work by intelligently managing task execution
             
             CORE COORDINATION RESPONSIBILITIES:
             - Orchestrate asset classification across server, application, and device domains
