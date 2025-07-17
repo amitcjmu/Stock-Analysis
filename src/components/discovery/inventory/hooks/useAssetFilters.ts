@@ -31,17 +31,21 @@ export const useAssetFilters = (assets: AssetInventory[]) => {
         const filterType = filters.selectedAssetType.toLowerCase();
         
         if (filterType === 'server') {
-          return assetType?.includes('server');
+          return assetType?.includes('server') || assetType === 'server';
         } else if (filterType === 'application') {
-          return assetType?.includes('application');
+          return assetType?.includes('application') || assetType === 'application';
         } else if (filterType === 'database') {
-          return assetType?.includes('database');
+          return assetType?.includes('database') || assetType === 'database';
         } else if (filterType === 'device') {
           return assetType?.includes('device') || 
                  assetType?.includes('network') || 
                  assetType?.includes('storage') || 
                  assetType?.includes('security') || 
-                 assetType?.includes('infrastructure');
+                 assetType?.includes('infrastructure') ||
+                 assetType === 'load_balancer' ||
+                 assetType === 'firewall' ||
+                 assetType === 'router' ||
+                 assetType === 'switch';
         }
         return asset.asset_type === filters.selectedAssetType;
       })();

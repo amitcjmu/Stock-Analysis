@@ -315,6 +315,36 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
             onAssetTypeSelect={handleClassificationCardClick}
           />
           <NextStepCard inventoryProgress={inventoryProgress} />
+          
+          {/* Show filtered asset details below Next Step when a type is selected */}
+          {filters.selectedAssetType !== 'all' && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-4">
+                {filters.selectedAssetType.charAt(0).toUpperCase() + filters.selectedAssetType.slice(1)} Assets
+              </h3>
+              <AssetTable
+                assets={assets}
+                filteredAssets={filteredAssets}
+                selectedAssets={selectedAssets}
+                onSelectAsset={handleSelectAsset}
+                onSelectAll={handleSelectAll}
+                searchTerm={filters.searchTerm}
+                onSearchChange={(value) => updateFilter('searchTerm', value)}
+                selectedEnvironment={filters.selectedEnvironment}
+                onEnvironmentChange={(value) => updateFilter('selectedEnvironment', value)}
+                uniqueEnvironments={uniqueEnvironments}
+                showAdvancedFilters={filters.showAdvancedFilters}
+                onToggleAdvancedFilters={() => updateFilter('showAdvancedFilters', !filters.showAdvancedFilters)}
+                onExport={handleExportAssets}
+                currentPage={currentPage}
+                recordsPerPage={RECORDS_PER_PAGE}
+                onPageChange={setCurrentPage}
+                selectedColumns={selectedColumns}
+                allColumns={allColumns}
+                onToggleColumn={toggleColumn}
+              />
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="inventory">
