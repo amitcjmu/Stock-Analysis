@@ -178,7 +178,15 @@ class ResponseMappers:
             
             actual_status = flow.status
             actual_progress = flow.progress_percentage
-            actual_current_phase = flow.current_phase or current_phase
+            
+            # ADR-012: Trust the agent's phase determination
+            # Use the stored current_phase from the database, which is set by agents
+            actual_current_phase = flow.current_phase
+            
+            # If no phase is stored (shouldn't happen), use a sensible fallback
+            if not actual_current_phase:
+                logger.warning(f"No current_phase stored for flow {flow.flow_id}, using calculated fallback")
+                actual_current_phase = current_phase
             
             if extensions and extensions.flow_persistence_data:
                 # Get additional state from master table if available
@@ -214,17 +222,13 @@ class ResponseMappers:
             completed_phases = sum(1 for v in phase_completion.values() if v)
             total_phases = 6
             
-            # If we're in field mapping phase and have data imported, ensure minimum progress
-            if flow.data_import_completed and actual_current_phase in ["field_mapping", "attribute_mapping"]:
-                # At least 1 phase complete (data import) + partial progress for field mapping
-                min_progress = (1.0 / total_phases) * 100  # 16.7% for data import
-                if not flow.field_mapping_completed:
-                    min_progress += (0.5 / total_phases) * 100  # Add 8.3% for in-progress field mapping
-                actual_progress = max(actual_progress, min_progress)
-            elif completed_phases > 0:
-                # Calculate progress based on completed phases
+            # ADR-012: Trust the stored progress from agents/flow state
+            # Only use calculated progress as a fallback if no progress is stored
+            if actual_progress is None or actual_progress == 0:
+                # Fallback calculation if no progress is stored
                 calculated_progress = (completed_phases / total_phases) * 100
-                actual_progress = max(actual_progress, calculated_progress)
+                actual_progress = calculated_progress
+                logger.info(f"No progress stored for flow {flow.flow_id}, using calculated: {calculated_progress}%")
             
             # Override with persistence data if available
             if extensions and extensions.flow_persistence_data and "phase_completion" in extensions.flow_persistence_data:
@@ -253,10 +257,13 @@ class ResponseMappers:
                     # Get the import data
                     import_data = await import_handler.get_import_data(str(flow.data_import_id))
                     
-                    if import_data and import_data.get("success"):
+                    # FIXED: ImportStorageHandler.get_import_data() doesn't return "success" field, just check if data exists
+                    if import_data and import_data.get("data"):
                         raw_data = import_data.get("data", [])
                         import_metadata = import_data.get("import_metadata", {})
                         logger.info(f"✅ Retrieved {len(raw_data)} import records for flow {flow.flow_id}")
+                    else:
+                        logger.warning(f"No import data found for flow {flow.flow_id} with data_import_id {flow.data_import_id}")
                     
                     # Also get field mappings from the data import system
                     from sqlalchemy import select

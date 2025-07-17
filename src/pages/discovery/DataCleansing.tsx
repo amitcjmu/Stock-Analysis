@@ -69,8 +69,18 @@ const DataCleansing: React.FC = () => {
   const flowDataCleansing = (flow as any)?.data_cleansing_results || (flow as any)?.data_cleansing || (flow as any)?.results?.data_cleansing || {};
   const qualityIssues = flowDataCleansing?.quality_issues || [];
   const agentRecommendations = flowDataCleansing?.recommendations || [];
-  // Calculate cleansing statistics
-  const totalRecords = flow?.raw_data?.length || flowDataCleansing?.metadata?.original_records || 0;
+  
+  // ADR-012: Extract data from discovery flow response (child flow)
+  // The data should be in the flow.raw_data and flow.field_mappings from the response mapper
+  // Backend FIXED: Response mapper now properly fetches import data
+  const totalRecords = 
+    flow?.raw_data?.length || 
+    flowDataCleansing?.metadata?.original_records || 
+    flow?.import_metadata?.record_count ||
+    latestImportData?.data?.length || // Fallback to separate API call if needed
+    (flow?.field_mappings && Object.keys(flow.field_mappings).length > 0 ? 100 : 0) || // Fallback estimate if we have mappings
+    0;
+    
   const cleanedRecords = flowDataCleansing?.metadata?.cleaned_records || totalRecords;
   const fieldsAnalyzed = Object.keys(flow?.field_mappings || {}).length;
   const dataCompleteness = flowDataCleansing?.data_quality_metrics?.overall_improvement?.completeness_improvement || 
@@ -99,7 +109,17 @@ const DataCleansing: React.FC = () => {
     recommendationsCount: agentRecommendations.length,
     cleansingProgress,
     flowKeys: flow ? Object.keys(flow) : [],
-    dataCleansingKeys: flowDataCleansing ? Object.keys(flowDataCleansing) : []
+    dataCleansingKeys: flowDataCleansing ? Object.keys(flowDataCleansing) : [],
+    // ADR-012: Debug discovery flow data extraction
+    flowRawData: flow?.raw_data,
+    flowRawDataLength: flow?.raw_data?.length,
+    flowFieldMappings: flow?.field_mappings,
+    flowFieldMappingsKeys: flow?.field_mappings ? Object.keys(flow.field_mappings) : [],
+    flowImportMetadata: flow?.import_metadata,
+    flowProgressPercentage: flow?.progress_percentage,
+    totalRecordsCalculated: totalRecords,
+    cleanedRecordsCalculated: cleanedRecords,
+    fieldsAnalyzedCalculated: fieldsAnalyzed
   });
 
   // Handle data cleansing execution - READ-ONLY mode to prevent flow execution errors
@@ -150,9 +170,30 @@ const DataCleansing: React.FC = () => {
   const errorMessage = error?.message || latestImportError?.message;
   
   // Check if we have data available for cleansing - this includes imported data from previous phases
-  const hasImportedData = !!(flow?.raw_data?.length > 0 || Object.keys(flow?.field_mappings || {}).length > 0 || latestImportData?.data?.length > 0);
-  const hasCleansingResults = !!(qualityIssues.length > 0 || agentRecommendations.length > 0 || flow?.raw_data?.length > 0 || cleansingProgress.total_records > 0);
-  const hasData = hasImportedData || hasCleansingResults;
+  // Be more robust in checking for data existence
+  const hasRawData = !!(flow?.raw_data?.length > 0 || latestImportData?.data?.length > 0);
+  const hasFieldMappings = !!(
+    Object.keys(flow?.field_mappings || {}).length > 0 ||
+    (flow?.field_mappings && typeof flow.field_mappings === 'object' && Object.keys(flow.field_mappings).length > 0)
+  );
+  const hasFlowWithDataImport = !!(flow?.data_import_id || flow?.import_metadata);
+  const hasImportedData = hasRawData || hasFieldMappings || hasFlowWithDataImport;
+  
+  const hasCleansingResults = !!(
+    qualityIssues.length > 0 || 
+    agentRecommendations.length > 0 || 
+    cleansingProgress.total_records > 0 ||
+    flow?.progress_percentage > 0
+  );
+  
+  // If we have a flow and it's past data_import phase, we should have data
+  const isPostDataImport = !!(flow && (
+    flow.current_phase !== 'data_import' ||
+    flow.phase_completion?.data_import ||
+    flow.progress_percentage > 0
+  ));
+  
+  const hasData = hasImportedData || hasCleansingResults || isPostDataImport;
   
   const isAnalyzing = isUpdating;
   const isLoadingData = isLoading || isLatestImportLoading || isFlowListLoading;
@@ -219,14 +260,23 @@ const DataCleansing: React.FC = () => {
   });
 
   console.log('🔍 DataCleansing data availability check:', {
+    hasRawData,
+    hasFieldMappings, 
+    hasFlowWithDataImport,
     hasImportedData,
     hasCleansingResults,
+    isPostDataImport,
     hasData,
     rawDataLength: flow?.raw_data?.length || 0,
     fieldMappingsCount: Object.keys(flow?.field_mappings || {}).length,
-    hasFieldMappings: !!flow?.field_mappings,
+    fieldMappingsType: typeof flow?.field_mappings,
+    fieldMappings: flow?.field_mappings,
     latestImportDataLength: latestImportData?.data?.length || 0,
     importMetadata: flow?.import_metadata,
+    dataImportId: flow?.data_import_id,
+    currentPhase: flow?.current_phase,
+    progressPercentage: flow?.progress_percentage,
+    phaseCompletion: flow?.phase_completion,
     hasError,
     errorMessage,
     isLoadingData
