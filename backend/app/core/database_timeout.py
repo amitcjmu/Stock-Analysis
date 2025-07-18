@@ -128,3 +128,41 @@ async def get_db_for_bulk_operations() -> AsyncGenerator[AsyncSession, None]:
     """Get DB session optimized for bulk operations."""
     async for session in get_db_with_timeout(operation_type="bulk_operations"):
         yield session
+
+def get_db_timeout() -> Optional[int]:
+    """
+    Get database timeout based on current operation context.
+    Returns None for agentic activities, timeout in seconds for UI interactions.
+    """
+    import inspect
+    
+    # Check the call stack to determine operation type
+    frame = inspect.currentframe()
+    try:
+        # Go up the call stack to find operation indicators
+        for _ in range(10):  # Check up to 10 frames up
+            frame = frame.f_back
+            if frame is None:
+                break
+            
+            # Check function names and file paths for agentic operation indicators
+            func_name = frame.f_code.co_name
+            file_path = frame.f_code.co_filename
+            
+            # Check for agentic activity indicators
+            if any(indicator in func_name.lower() for indicator in [
+                'asset_inventory', 'inventory_executor', 'crew', 'agent', 'classification',
+                'discovery_flow', 'phase_executor', 'asset_analysis'
+            ]):
+                return None  # No timeout for agentic activities
+            
+            if any(indicator in file_path for indicator in [
+                'asset_inventory_executor', 'crew', 'phase_executor',
+                'discovery_flow', 'crewai_flows'
+            ]):
+                return None  # No timeout for agentic activities
+    finally:
+        del frame
+    
+    # Default to timeout for UI interactions
+    return TIMEOUT_CONFIG["default"]

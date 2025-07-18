@@ -345,15 +345,37 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 
                 # Update asset_inventory field with results
                 if hasattr(self.state, 'asset_inventory'):
+                    # Ensure asset_inventory is a dictionary, not a string
+                    if not isinstance(self.state.asset_inventory, dict):
+                        self.state.asset_inventory = {}
+                    
                     self.state.asset_inventory['created_asset_ids'] = asset_ids
                     self.state.asset_inventory['total_assets'] = len(created_assets)
                     self.state.asset_inventory['status'] = 'completed'
                     self.state.asset_inventory['created_at'] = datetime.utcnow().isoformat()
+                else:
+                    # Initialize asset_inventory if it doesn't exist
+                    self.state.asset_inventory = {
+                        'created_asset_ids': asset_ids,
+                        'total_assets': len(created_assets),
+                        'status': 'completed',
+                        'created_at': datetime.utcnow().isoformat()
+                    }
                 
                 # Also update asset_creation_results for backward compatibility
                 if hasattr(self.state, 'asset_creation_results'):
+                    # Ensure asset_creation_results is a dictionary
+                    if not isinstance(self.state.asset_creation_results, dict):
+                        self.state.asset_creation_results = {}
+                    
                     self.state.asset_creation_results['created_asset_ids'] = asset_ids
                     self.state.asset_creation_results['total_created'] = len(created_assets)
+                else:
+                    # Initialize asset_creation_results if it doesn't exist
+                    self.state.asset_creation_results = {
+                        'created_asset_ids': asset_ids,
+                        'total_created': len(created_assets)
+                    }
                 
         except Exception as e:
             logger.error(f"❌ Failed to persist assets to database: {e}", exc_info=True)

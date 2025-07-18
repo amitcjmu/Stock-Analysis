@@ -191,24 +191,34 @@ async def get_db() -> AsyncSession:
     session = None
     
     try:
-        # ⚡ TIMEOUT: Limit session creation time to prevent hanging
-        async with asyncio.timeout(60):  # 60 second timeout for session creation (increased for CrewAI operations)
+        # ⚡ TIMEOUT: Use database timeout configuration for different operation types
+        from app.core.database_timeout import get_db_timeout
+        timeout_seconds = get_db_timeout()  # Get timeout from configuration
+        
+        if timeout_seconds is not None:
+            async with asyncio.timeout(timeout_seconds):
+                session = AsyncSessionLocal()
+                
+                # ⚡ HEALTH CHECK: Quick ping to verify connection
+                await session.execute(text("SELECT 1"))
+        else:
+            # No timeout for agentic activities
             session = AsyncSessionLocal()
             
             # ⚡ HEALTH CHECK: Quick ping to verify connection
             await session.execute(text("SELECT 1"))
-            
-            response_time = (datetime.utcnow() - start_time).total_seconds()
-            connection_health.record_connection_attempt(True, response_time)
-            
-            yield session
-            
-            # Only commit if there's no active transaction error
-            try:
-                await session.commit()
-            except Exception as commit_error:
-                logger.warning(f"Could not commit transaction: {commit_error}")
-                await session.rollback()
+        
+        response_time = (datetime.utcnow() - start_time).total_seconds()
+        connection_health.record_connection_attempt(True, response_time)
+        
+        yield session
+        
+        # Only commit if there's no active transaction error
+        try:
+            await session.commit()
+        except Exception as commit_error:
+            logger.warning(f"Could not commit transaction: {commit_error}")
+            await session.rollback()
     
     except asyncio.TimeoutError:
         logger.error("Database session creation timeout")
