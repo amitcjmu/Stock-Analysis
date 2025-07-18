@@ -16,7 +16,7 @@ attempt=1
 while [ $attempt -le $max_attempts ]; do
     if python -c "
 import os
-import psycopg2
+import psycopg
 from urllib.parse import urlparse
 
 db_url = os.getenv('DATABASE_URL', '')
@@ -24,12 +24,13 @@ if 'postgresql+asyncpg://' in db_url:
     db_url = db_url.replace('postgresql+asyncpg://', 'postgresql://')
 
 try:
-    conn = psycopg2.connect(db_url)
+    conn = psycopg.connect(db_url)
     conn.close()
     exit(0)
-except:
+except Exception as e:
+    print(f'Connection failed: {e}')
     exit(1)
-" 2>/dev/null; then
+" 2>&1; then
         echo "✅ Database is ready!"
         break
     fi
