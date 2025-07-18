@@ -266,6 +266,38 @@ def upgrade() -> None:
         sa.UniqueConstraint('flow_id', name=op.f('uq_crewai_flow_state_extensions_flow_id'))
     )
     
+    # Create data_imports table
+    op.create_table('data_imports',
+        sa.Column('id', sa.UUID(), nullable=False),
+        sa.Column('client_account_id', sa.UUID(), nullable=True),
+        sa.Column('engagement_id', sa.UUID(), nullable=True),
+        sa.Column('master_flow_id', sa.UUID(), nullable=True),
+        sa.Column('import_name', sa.VARCHAR(length=255), nullable=False),
+        sa.Column('import_type', sa.VARCHAR(length=50), nullable=False),
+        sa.Column('description', sa.TEXT(), nullable=True),
+        sa.Column('filename', sa.VARCHAR(length=255), nullable=False),
+        sa.Column('file_size', sa.INTEGER(), nullable=True),
+        sa.Column('mime_type', sa.VARCHAR(length=100), nullable=True),
+        sa.Column('source_system', sa.VARCHAR(length=100), nullable=True),
+        sa.Column('status', sa.VARCHAR(length=20), server_default='pending', nullable=False),
+        sa.Column('progress_percentage', sa.DOUBLE_PRECISION(precision=53), server_default=sa.text("'0'::double precision"), nullable=True),
+        sa.Column('total_records', sa.INTEGER(), nullable=True),
+        sa.Column('processed_records', sa.INTEGER(), server_default=sa.text('0'), nullable=True),
+        sa.Column('failed_records', sa.INTEGER(), server_default=sa.text('0'), nullable=True),
+        sa.Column('imported_by', sa.UUID(), nullable=False),
+        sa.Column('error_message', sa.TEXT(), nullable=True),
+        sa.Column('error_details', postgresql.JSON(astext_type=sa.Text()), nullable=True),
+        sa.Column('started_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=True),
+        sa.Column('completed_at', sa.TIMESTAMP(timezone=True), nullable=True),
+        sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=True),
+        sa.Column('updated_at', sa.TIMESTAMP(timezone=True), nullable=True),
+        sa.ForeignKeyConstraint(['client_account_id'], ['client_accounts.id'], name=op.f('fk_data_imports_client_account_id_client_accounts')),
+        sa.ForeignKeyConstraint(['engagement_id'], ['engagements.id'], name=op.f('fk_data_imports_engagement_id_engagements')),
+        sa.ForeignKeyConstraint(['imported_by'], ['users.id'], name=op.f('fk_data_imports_imported_by_users')),
+        sa.ForeignKeyConstraint(['master_flow_id'], ['crewai_flow_state_extensions.flow_id'], name=op.f('fk_data_imports_master_flow_id_crewai_flow_state_extensions')),
+        sa.PrimaryKeyConstraint('id', name=op.f('pk_data_imports'))
+    )
+    
     # Create discovery_flows table
     op.create_table('discovery_flows',
         sa.Column('id', sa.UUID(), nullable=False),
@@ -318,38 +350,6 @@ def upgrade() -> None:
     op.create_index(op.f('ix_discovery_flows_engagement_id'), 'discovery_flows', ['engagement_id'], unique=False)
     op.create_index(op.f('ix_discovery_flows_data_import_id'), 'discovery_flows', ['data_import_id'], unique=False)
     op.create_index(op.f('ix_discovery_flows_status'), 'discovery_flows', ['status'], unique=False)
-    
-    # Create data_imports table
-    op.create_table('data_imports',
-        sa.Column('id', sa.UUID(), nullable=False),
-        sa.Column('client_account_id', sa.UUID(), nullable=True),
-        sa.Column('engagement_id', sa.UUID(), nullable=True),
-        sa.Column('master_flow_id', sa.UUID(), nullable=True),
-        sa.Column('import_name', sa.VARCHAR(length=255), nullable=False),
-        sa.Column('import_type', sa.VARCHAR(length=50), nullable=False),
-        sa.Column('description', sa.TEXT(), nullable=True),
-        sa.Column('filename', sa.VARCHAR(length=255), nullable=False),
-        sa.Column('file_size', sa.INTEGER(), nullable=True),
-        sa.Column('mime_type', sa.VARCHAR(length=100), nullable=True),
-        sa.Column('source_system', sa.VARCHAR(length=100), nullable=True),
-        sa.Column('status', sa.VARCHAR(length=20), server_default='pending', nullable=False),
-        sa.Column('progress_percentage', sa.DOUBLE_PRECISION(precision=53), server_default=sa.text("'0'::double precision"), nullable=True),
-        sa.Column('total_records', sa.INTEGER(), nullable=True),
-        sa.Column('processed_records', sa.INTEGER(), server_default=sa.text('0'), nullable=True),
-        sa.Column('failed_records', sa.INTEGER(), server_default=sa.text('0'), nullable=True),
-        sa.Column('imported_by', sa.UUID(), nullable=False),
-        sa.Column('error_message', sa.TEXT(), nullable=True),
-        sa.Column('error_details', postgresql.JSON(astext_type=sa.Text()), nullable=True),
-        sa.Column('started_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=True),
-        sa.Column('completed_at', sa.TIMESTAMP(timezone=True), nullable=True),
-        sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=True),
-        sa.Column('updated_at', sa.TIMESTAMP(timezone=True), nullable=True),
-        sa.ForeignKeyConstraint(['client_account_id'], ['client_accounts.id'], name=op.f('fk_data_imports_client_account_id_client_accounts')),
-        sa.ForeignKeyConstraint(['engagement_id'], ['engagements.id'], name=op.f('fk_data_imports_engagement_id_engagements')),
-        sa.ForeignKeyConstraint(['imported_by'], ['users.id'], name=op.f('fk_data_imports_imported_by_users')),
-        sa.ForeignKeyConstraint(['master_flow_id'], ['crewai_flow_state_extensions.flow_id'], name=op.f('fk_data_imports_master_flow_id_crewai_flow_state_extensions')),
-        sa.PrimaryKeyConstraint('id', name=op.f('pk_data_imports'))
-    )
     
     # Create raw_import_records table
     op.create_table('raw_import_records',
