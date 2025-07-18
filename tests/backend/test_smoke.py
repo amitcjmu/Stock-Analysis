@@ -12,13 +12,13 @@ def test_basic_imports():
     import app.core.config
     import app.services.memory
     import app.services.agents
-    import app.services.crewai_service_modular
+    import app.services.crewai_flow_service
     import app.services.deepinfra_llm
 
 @pytest.mark.smoke
 def test_crewai_service_initialization():
     """Test that CrewAI service can be instantiated."""
-    from app.services.crewai_service_modular import CrewAIService
+    from app.services.crewai_flow_service import CrewAIService
     service = CrewAIService()
     assert hasattr(service, 'analyze_with_agents')
 

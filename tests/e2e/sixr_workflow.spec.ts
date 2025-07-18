@@ -1,7 +1,7 @@
 import { test, expect, Page } from '@playwright/test';
 
 // Test configuration
-const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:3000';
+const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:8081';
 const API_BASE_URL = process.env.E2E_API_BASE_URL || 'http://localhost:8000';
 
 // Test data

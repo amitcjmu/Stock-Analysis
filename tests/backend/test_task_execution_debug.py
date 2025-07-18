@@ -2,7 +2,7 @@ import asyncio
 import time
 import signal
 import sys
-from app.services.crewai_service_modular import crewai_service
+from app.services.crewai_flow_service import crewai_service
 
 class TimeoutHandler:
     def __init__(self, timeout_seconds=30):

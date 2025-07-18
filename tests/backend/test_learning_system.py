@@ -18,7 +18,7 @@ sys.path.insert(0, str(backend_path))
 from app.services.memory import AgentMemory
 from app.services.feedback import FeedbackProcessor
 from app.services.analysis import IntelligentAnalyzer
-from app.services.crewai_service_modular import CrewAIService
+from app.services.crewai_flow_service import CrewAIService
 
 
 class TestLearningSystem:

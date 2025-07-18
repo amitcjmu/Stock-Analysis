@@ -37,8 +37,10 @@ async function testEndpoint(url, description) {
 async function testFieldMappingAPI() {
   const baseURL = 'http://localhost:8000/api/v1';
   const headers = {
-    'X-Client-Account-Id': 'dfea7406-1575-4348-a0b2-2770cbe2d9f9',
-    'X-Engagement-Id': 'ce27e7b1-2ac6-4b74-8dd5-b52d542a1669'
+    'X-Client-Account-Id': '11111111-1111-1111-1111-111111111111',  // Demo Corporation
+    'X-Engagement-Id': '58467010-6a72-44e8-ba37-cc0238724455',     // Azure Transformation 2025
+    'X-User-Id': '77b30e13-c331-40eb-a0ec-ed0717f72b22',           // chocka@gmail.com
+    'Content-Type': 'application/json'
   };
   
   console.log('🚀 Testing Field Mapping APIs...\n');

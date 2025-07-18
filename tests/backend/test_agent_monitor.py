@@ -15,7 +15,7 @@ backend_path = Path(__file__).parent.parent.parent / "backend"
 sys.path.insert(0, str(backend_path))
 
 from app.services.agent_monitor import agent_monitor, TaskStatus
-from app.services.crewai_service_modular import crewai_service
+from app.services.crewai_flow_service import crewai_service
 
 
 class TestAgentMonitor:

@@ -7,8 +7,8 @@ test.describe('Discovery Flow End-to-End', () => {
     await page.goto('http://localhost:8081/login');
     
     // Login with provided credentials
-    await page.fill('input[name="email"]', 'cryptoyogi.llc@gmail.com');
-    await page.fill('input[name="password"]', 'yogiyogi');
+    await page.fill('input[type="email"]', 'chocka@gmail.com');
+    await page.fill('input[type="password"]', 'Password123!');
     await page.click('button[type="submit"]');
     
     // Wait for navigation to complete

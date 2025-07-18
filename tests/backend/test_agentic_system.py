@@ -6,7 +6,7 @@ This shows how the system learns from feedback and improves over time.
 
 import asyncio
 import json
-from app.services.crewai_service_modular import CrewAIService
+from app.services.crewai_flow_service import CrewAIService
 
 async def test_agentic_system():
     """Test the agentic system with memory and learning."""

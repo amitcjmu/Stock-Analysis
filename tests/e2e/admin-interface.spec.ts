@@ -10,15 +10,17 @@ async function loginAsAdmin(page: Page) {
   await page.evaluate(() => localStorage.clear());
   await page.goto(`${TEST_BASE_URL}/login`, { waitUntil: 'networkidle' });
   
-  await page.fill('input[type="email"]', 'admin@democorp.com');
-  await page.fill('input[type="password"]', 'admin123');
+  await page.fill('input[type="email"]', 'chocka@gmail.com');
+  await page.fill('input[type="password"]', 'Password123!');
   
   // Click and then wait for navigation, with better debugging
   await page.click('button[type="submit"]');
   try {
-    await page.waitForURL(`${TEST_BASE_URL}/admin`, { timeout: 15000 });
+    await page.waitForURL(`${TEST_BASE_URL}/dashboard`, { timeout: 15000 });
+    // Navigate to admin after successful login
+    await page.goto(`${TEST_BASE_URL}/admin`);
   } catch(e) {
-    console.error("Failed to navigate to admin page after login.", e);
+    console.error("Failed to navigate after login.", e);
     await page.screenshot({ path: 'playwright-debug/login-failure.png' });
     throw e;
   }

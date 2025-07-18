@@ -42,35 +42,7 @@ export const UserApprovalsMain: React.FC = () => {
     rejection_reason: ''
   });
 
-  useEffect(() => {
-    fetchPendingUsers();
-    fetchActiveUsers();
-  }, [fetchPendingUsers, fetchActiveUsers]);
-
-  useEffect(() => {
-    // Listen for user creation events
-    const handleUserCreated = (event: CustomEvent) => {
-      console.log('User created event received:', event.detail);
-      // Refresh the user lists
-      fetchPendingUsers();
-      fetchActiveUsers();
-      
-      toast({
-        title: "User Created",
-        description: "New user has been created successfully",
-        variant: "default"
-      });
-    };
-
-    // Add event listener
-    window.addEventListener('userCreated', handleUserCreated as EventListener);
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('userCreated', handleUserCreated as EventListener);
-    };
-  }, [toast, fetchPendingUsers, fetchActiveUsers]);
-
+  // Define fetch functions before they're used to avoid temporal dead zone
   const fetchPendingUsers = useCallback(async () => {
     try {
       setLoading(true);
@@ -180,6 +152,36 @@ export const UserApprovalsMain: React.FC = () => {
       });
     }
   }, [toast]);
+
+  // Initialize data on component mount (no function dependencies to avoid temporal dead zone)
+  useEffect(() => {
+    fetchPendingUsers();
+    fetchActiveUsers();
+  }, []); // Empty dependency array - runs once on mount
+
+  useEffect(() => {
+    // Listen for user creation events
+    const handleUserCreated = (event: CustomEvent) => {
+      console.log('User created event received:', event.detail);
+      // Refresh the user lists
+      fetchPendingUsers();
+      fetchActiveUsers();
+      
+      toast({
+        title: "User Created",
+        description: "New user has been created successfully",
+        variant: "default"
+      });
+    };
+
+    // Add event listener
+    window.addEventListener('userCreated', handleUserCreated as EventListener);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('userCreated', handleUserCreated as EventListener);
+    };
+  }, [toast, fetchPendingUsers, fetchActiveUsers]);
 
   const handleApprove = async () => {
     if (!selectedUser) return;

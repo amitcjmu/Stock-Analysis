@@ -24,7 +24,7 @@ except ImportError as e:
     print(f"❌ CrewAI import failed: {e}")
     CREWAI_AVAILABLE = False
 
-from app.services.crewai_service_modular import crewai_service
+from app.services.crewai_flow_service import crewai_service
 from app.services.agent_monitor import agent_monitor, TaskStatus
 
 class HangingDebugger:

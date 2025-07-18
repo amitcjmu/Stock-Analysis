@@ -1,5 +1,5 @@
 import asyncio
-from app.services.crewai_service_modular import crewai_service
+from app.services.crewai_flow_service import crewai_service
 
 async def test_analysis():
     print("Testing CrewAI CMDB analysis...")

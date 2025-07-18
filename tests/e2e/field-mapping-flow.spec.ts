@@ -106,8 +106,15 @@ test.describe('Field Mapping Flow', () => {
       });
     });
 
+    // First login to authenticate
+    await page.goto('http://localhost:8081/login');
+    await page.fill('input[type="email"]', 'chocka@gmail.com');
+    await page.fill('input[type="password"]', 'Password123!');
+    await page.click('button[type="submit"]');
+    await page.waitForURL('**/dashboard', { timeout: 10000 });
+    
     // Navigate to field mapping page
-    await page.goto('/discovery/attribute-mapping');
+    await page.goto('http://localhost:8081/discovery/attribute-mapping');
     
     // Wait for initial load
     await page.waitForLoadState('networkidle');
@@ -225,8 +232,15 @@ test.describe('Field Mapping Flow', () => {
       });
     });
     
+    // First login to authenticate
+    await page.goto('http://localhost:8081/login');
+    await page.fill('input[type="email"]', 'chocka@gmail.com');
+    await page.fill('input[type="password"]', 'Password123!');
+    await page.click('button[type="submit"]');
+    await page.waitForURL('**/dashboard', { timeout: 10000 });
+    
     // Navigate to page
-    await page.goto('/discovery/attribute-mapping');
+    await page.goto('http://localhost:8081/discovery/attribute-mapping');
     
     // Verify loading state is shown
     await expect(page.locator('[data-testid="field-mapping-loading"]')).toBeVisible();

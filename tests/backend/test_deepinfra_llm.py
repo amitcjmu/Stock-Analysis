@@ -69,7 +69,7 @@ async def test_crewai_integration():
     print("=" * 40)
     
     try:
-        from app.services.crewai_service_modular import CrewAIService
+        from app.services.crewai_flow_service import CrewAIService
         
         # Initialize service
         service = CrewAIService()

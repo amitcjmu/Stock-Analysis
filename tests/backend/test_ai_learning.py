@@ -12,8 +12,8 @@ import os
 # Add the backend directory to the Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
 
-from app.services.field_mapper import field_mapper
-from app.services.crewai_service_modular import crewai_service
+from app.services.field_mapper_modular import field_mapper
+from app.services.crewai_flow_service import crewai_service
 
 async def test_ai_learning_scenario():
     """Test the exact scenario described by the user."""
