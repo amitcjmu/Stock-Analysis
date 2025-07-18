@@ -317,7 +317,10 @@ def get_cors_origins():
         logger.info("Using production CORS origins")
     
     # Railway/Vercel detection - if we detect Railway deployment, force production origins
-    if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_NAME"):
+    if (os.getenv("RAILWAY_ENVIRONMENT") or 
+        os.getenv("RAILWAY_PROJECT_NAME") or 
+        os.getenv("PORT") or 
+        "railway.app" in os.getenv("DATABASE_URL", "")):
         cors_origins.extend([
             "https://aiforce-assess.vercel.app",
             "https://migrate-ui-orchestrator-production.up.railway.app"
@@ -331,6 +334,13 @@ def get_cors_origins():
     # Add explicit allowed origins from environment
     if hasattr(settings, 'allowed_origins_list'):
         cors_origins.extend(settings.allowed_origins_list)
+    
+    # Ensure Vercel domain is always included if we're on Railway
+    if (os.getenv("DATABASE_URL") and "railway.app" in os.getenv("DATABASE_URL", "")) or os.getenv("PORT"):
+        vercel_domain = "https://aiforce-assess.vercel.app"
+        if vercel_domain not in cors_origins:
+            cors_origins.append(vercel_domain)
+            logger.info(f"Force-added Vercel domain to CORS origins: {vercel_domain}")
     
     # Remove duplicates and filter out empty strings
     return list(set(filter(None, cors_origins)))
