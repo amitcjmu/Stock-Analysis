@@ -1,6 +1,6 @@
 """Add missing RBAC tables (user_roles and user_account_associations)
 
-Revision ID: 004_add_missing_rbac_tables
+Revision ID: 20250718_add_missing_rbac_tables
 Revises: 20250117_unique_assets
 Create Date: 2025-07-18
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '004_add_missing_rbac_tables'
+revision = '20250718_add_missing_rbac_tables'
 down_revision = '20250117_unique_assets'
 branch_labels = None
 depends_on = None
