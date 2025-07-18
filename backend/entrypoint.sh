@@ -40,6 +40,30 @@ except Exception as e:
     attempt=$((attempt + 1))
 done
 
+# Reset migration history for clean slate
+echo "🔄 Resetting migration history for clean deployment..."
+python -c "
+import os
+import asyncio
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import create_async_engine
+
+async def reset_migration_history():
+    database_url = os.getenv('DATABASE_URL', '')
+    if database_url.startswith('postgresql://'):
+        database_url = database_url.replace('postgresql://', 'postgresql+asyncpg://', 1)
+    
+    engine = create_async_engine(database_url)
+    async with engine.begin() as conn:
+        # Drop and recreate alembic_version table
+        await conn.execute(text('DROP TABLE IF EXISTS alembic_version'))
+        await conn.execute(text('CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL, CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))'))
+        print('✅ Migration history reset')
+    await engine.dispose()
+
+asyncio.run(reset_migration_history())
+"
+
 # Run database migrations
 echo "🔄 Running database migrations..."
 if python -m alembic upgrade head; then
