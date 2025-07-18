@@ -40,51 +40,42 @@ except Exception as e:
     attempt=$((attempt + 1))
 done
 
-# Create database schema directly using SQLAlchemy
-echo "🔄 Creating database schema directly..."
+# Bootstrap clean migration state for fresh deployment
+echo "🔄 Bootstrapping clean migration state..."
 python -c "
 import os
-import sys
 import asyncio
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
-sys.path.insert(0, '/app')
-
-async def create_database_schema():
+async def bootstrap_migration_state():
     database_url = os.getenv('DATABASE_URL', '')
     if database_url.startswith('postgresql://'):
         database_url = database_url.replace('postgresql://', 'postgresql+asyncpg://', 1)
     
     engine = create_async_engine(database_url)
     
-    try:
-        # Import models to register them with SQLAlchemy
-        from app.core.database import Base
-        from app.models import *
+    async with engine.begin() as conn:
+        # Drop all existing tables for clean slate
+        await conn.execute(text('DROP SCHEMA public CASCADE'))
+        await conn.execute(text('CREATE SCHEMA public'))
         
-        async with engine.begin() as conn:
-            # Drop all existing tables
-            await conn.execute(text('DROP SCHEMA public CASCADE'))
-            await conn.execute(text('CREATE SCHEMA public'))
-            
-            # Create all tables using SQLAlchemy metadata
-            await conn.run_sync(Base.metadata.create_all)
-            
-            # Create alembic_version table and mark as current
-            await conn.execute(text('CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL, CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))'))
-            await conn.execute(text('INSERT INTO alembic_version (version_num) VALUES (\\'001_comprehensive_initial_schema\\\')'))
-            
-            print('✅ Database schema created successfully')
-            
-    except Exception as e:
-        print(f'❌ Database schema creation failed: {e}')
-        raise
-    finally:
-        await engine.dispose()
+        # Create clean alembic_version table
+        await conn.execute(text('CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL, CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))'))
+        print('✅ Clean migration state bootstrapped')
+        
+    await engine.dispose()
 
-asyncio.run(create_database_schema())
+asyncio.run(bootstrap_migration_state())
 "
+
+# Run Alembic migrations from clean state
+echo "🔄 Running Alembic migrations from clean state..."
+if python -m alembic upgrade head; then
+    echo "✅ Alembic migrations completed successfully!"
+else
+    echo "❌ Alembic migration failed, but continuing..."
+fi
 
 # Initialize database with default users and data
 echo "🔄 Initializing database with default users and data..."
