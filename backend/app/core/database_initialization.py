@@ -34,8 +34,9 @@ from app.models.client_account import UserAccountAssociation
 try:
     from app.models.assessment_flow import EngagementArchitectureStandard
     ASSESSMENT_MODELS_AVAILABLE = True
-except Exception:
-    # Models not available yet (during migration)
+except Exception as e:
+    # Models not available yet (during migration) or schema mismatch
+    logger.warning(f"Assessment models not available: {e}")
     ASSESSMENT_MODELS_AVAILABLE = False
     EngagementArchitectureStandard = None
 
@@ -121,7 +122,11 @@ class DatabaseInitializer:
             await self.ensure_demo_data()
             
             # Step 4: Initialize assessment standards for existing engagements
-            await self.ensure_engagement_assessment_standards()
+            try:
+                await self.ensure_engagement_assessment_standards()
+            except Exception as e:
+                logger.error(f"Failed to ensure engagement assessment standards: {e}")
+                logger.warning("Continuing with database initialization without assessment standards")
             
             # Step 5: Verify all users have profiles
             await self.ensure_user_profiles()
