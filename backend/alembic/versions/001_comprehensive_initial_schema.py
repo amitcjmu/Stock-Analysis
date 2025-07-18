@@ -454,6 +454,40 @@ def upgrade() -> None:
     op.create_index('ix_assets_unique_ip_per_context', 'assets', ['client_account_id', 'engagement_id', 'ip_address'], unique=True, postgresql_where=sa.text("ip_address IS NOT NULL AND ip_address != ''"))
     op.create_check_constraint('ck_assets_has_identifier', 'assets', sa.text("hostname IS NOT NULL OR name IS NOT NULL OR ip_address IS NOT NULL"))
     
+    # Create migration_waves table
+    op.create_table('migration_waves',
+        sa.Column('id', sa.UUID(), nullable=False),
+        sa.Column('client_account_id', sa.UUID(), nullable=False),
+        sa.Column('engagement_id', sa.UUID(), nullable=False),
+        sa.Column('wave_number', sa.INTEGER(), nullable=False),
+        sa.Column('name', sa.VARCHAR(length=255), nullable=False),
+        sa.Column('description', sa.TEXT(), nullable=True),
+        sa.Column('status', sa.VARCHAR(length=50), server_default='planned', nullable=True),
+        sa.Column('planned_start_date', sa.TIMESTAMP(timezone=True), nullable=True),
+        sa.Column('planned_end_date', sa.TIMESTAMP(timezone=True), nullable=True),
+        sa.Column('actual_start_date', sa.TIMESTAMP(timezone=True), nullable=True),
+        sa.Column('actual_end_date', sa.TIMESTAMP(timezone=True), nullable=True),
+        sa.Column('total_assets', sa.INTEGER(), server_default=sa.text('0'), nullable=True),
+        sa.Column('completed_assets', sa.INTEGER(), server_default=sa.text('0'), nullable=True),
+        sa.Column('failed_assets', sa.INTEGER(), server_default=sa.text('0'), nullable=True),
+        sa.Column('estimated_cost', sa.FLOAT(), nullable=True),
+        sa.Column('actual_cost', sa.FLOAT(), nullable=True),
+        sa.Column('estimated_effort_hours', sa.FLOAT(), nullable=True),
+        sa.Column('actual_effort_hours', sa.FLOAT(), nullable=True),
+        sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=True),
+        sa.Column('updated_at', sa.TIMESTAMP(timezone=True), nullable=True),
+        sa.Column('created_by', sa.UUID(), nullable=True),
+        sa.ForeignKeyConstraint(['client_account_id'], ['client_accounts.id'], name=op.f('fk_migration_waves_client_account_id_client_accounts'), ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['engagement_id'], ['engagements.id'], name=op.f('fk_migration_waves_engagement_id_engagements'), ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['created_by'], ['users.id'], name=op.f('fk_migration_waves_created_by_users')),
+        sa.PrimaryKeyConstraint('id', name=op.f('pk_migration_waves'))
+    )
+    op.create_index(op.f('ix_migration_waves_id'), 'migration_waves', ['id'], unique=False)
+    op.create_index(op.f('ix_migration_waves_client_account_id'), 'migration_waves', ['client_account_id'], unique=False)
+    op.create_index(op.f('ix_migration_waves_engagement_id'), 'migration_waves', ['engagement_id'], unique=False)
+    op.create_index(op.f('ix_migration_waves_wave_number'), 'migration_waves', ['wave_number'], unique=False)
+    op.create_index(op.f('ix_migration_waves_status'), 'migration_waves', ['status'], unique=False)
+    
     # Create assessment flow tables (from migration 003)
     op.create_table('assessment_flows',
         sa.Column('id', sa.UUID(), nullable=False),
@@ -583,6 +617,14 @@ def downgrade() -> None:
     
     # Drop main tables
     op.drop_table('assets')
+    
+    # Drop migration_waves table
+    op.drop_index(op.f('ix_migration_waves_status'), table_name='migration_waves')
+    op.drop_index(op.f('ix_migration_waves_wave_number'), table_name='migration_waves')
+    op.drop_index(op.f('ix_migration_waves_engagement_id'), table_name='migration_waves')
+    op.drop_index(op.f('ix_migration_waves_client_account_id'), table_name='migration_waves')
+    op.drop_index(op.f('ix_migration_waves_id'), table_name='migration_waves')
+    op.drop_table('migration_waves')
     op.drop_table('assessments')
     op.drop_table('import_field_mappings')
     op.drop_table('raw_import_records')
