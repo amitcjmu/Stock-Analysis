@@ -48,6 +48,70 @@ if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID") or os.get
         import subprocess
         import sys
         
+        # Force create missing table first using raw SQL
+        print("🔧 Creating crewai_flow_state_extensions table if missing...")
+        try:
+            import asyncio
+            import asyncpg
+            
+            async def create_missing_table():
+                db_url = os.getenv('DATABASE_URL', '')
+                if 'postgresql+asyncpg://' in db_url:
+                    db_url = db_url.replace('postgresql+asyncpg://', 'postgresql://')
+                
+                conn = await asyncpg.connect(db_url)
+                
+                # Check if table exists
+                exists = await conn.fetchval("""
+                    SELECT EXISTS (
+                        SELECT 1 FROM information_schema.tables 
+                        WHERE table_name = 'crewai_flow_state_extensions'
+                    )
+                """)
+                
+                if not exists:
+                    print("🔨 Creating crewai_flow_state_extensions table...")
+                    await conn.execute("""
+                        CREATE TABLE crewai_flow_state_extensions (
+                            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                            flow_id UUID NOT NULL UNIQUE,
+                            client_account_id UUID,
+                            engagement_id UUID,
+                            user_id UUID,
+                            flow_type VARCHAR(100),
+                            flow_name VARCHAR(255),
+                            flow_status VARCHAR(50),
+                            flow_configuration JSONB,
+                            flow_persistence_data JSONB,
+                            agent_collaboration_log JSONB,
+                            memory_usage_metrics JSONB,
+                            knowledge_base_analytics JSONB,
+                            phase_execution_times JSONB,
+                            agent_performance_metrics JSONB,
+                            crew_coordination_analytics JSONB,
+                            learning_patterns JSONB,
+                            user_feedback_history JSONB,
+                            adaptation_metrics JSONB,
+                            phase_transitions JSONB,
+                            error_history JSONB,
+                            retry_count INTEGER DEFAULT 0,
+                            parent_flow_id UUID,
+                            child_flow_ids JSONB,
+                            flow_metadata JSONB,
+                            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                        )
+                    """)
+                    print("✅ crewai_flow_state_extensions table created!")
+                else:
+                    print("✅ crewai_flow_state_extensions table already exists")
+                
+                await conn.close()
+            
+            asyncio.run(create_missing_table())
+        except Exception as table_error:
+            print(f"⚠️ Could not create table directly: {table_error}")
+        
         # Try to run migrations synchronously before app starts
         result = subprocess.run(
             [sys.executable, "-m", "alembic", "upgrade", "head"],
