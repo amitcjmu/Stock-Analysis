@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers
 revision = 'add_asset_performance_indexes'
-down_revision = '002_add_raw_import_records_id'
+down_revision = '003_add_assessment_flow_tables'
 branch_labels = None
 depends_on = None
 
