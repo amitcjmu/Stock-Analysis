@@ -266,6 +266,59 @@ def upgrade() -> None:
         sa.UniqueConstraint('flow_id', name=op.f('uq_crewai_flow_state_extensions_flow_id'))
     )
     
+    # Create discovery_flows table
+    op.create_table('discovery_flows',
+        sa.Column('id', sa.UUID(), nullable=False),
+        sa.Column('flow_id', sa.UUID(), nullable=False),
+        sa.Column('master_flow_id', sa.UUID(), nullable=True),
+        sa.Column('client_account_id', sa.UUID(), nullable=False),
+        sa.Column('engagement_id', sa.UUID(), nullable=False),
+        sa.Column('user_id', sa.VARCHAR(), nullable=False),
+        sa.Column('data_import_id', sa.UUID(), nullable=True),
+        sa.Column('flow_name', sa.VARCHAR(length=255), nullable=False),
+        sa.Column('status', sa.VARCHAR(length=20), server_default='active', nullable=False),
+        sa.Column('progress_percentage', sa.FLOAT(), server_default=sa.text('0.0'), nullable=False),
+        sa.Column('data_import_completed', sa.BOOLEAN(), server_default=sa.text('false'), nullable=False),
+        sa.Column('field_mapping_completed', sa.BOOLEAN(), server_default=sa.text('false'), nullable=False),
+        sa.Column('data_cleansing_completed', sa.BOOLEAN(), server_default=sa.text('false'), nullable=False),
+        sa.Column('asset_inventory_completed', sa.BOOLEAN(), server_default=sa.text('false'), nullable=False),
+        sa.Column('dependency_analysis_completed', sa.BOOLEAN(), server_default=sa.text('false'), nullable=False),
+        sa.Column('tech_debt_assessment_completed', sa.BOOLEAN(), server_default=sa.text('false'), nullable=False),
+        sa.Column('learning_scope', sa.VARCHAR(length=50), server_default='engagement', nullable=False),
+        sa.Column('memory_isolation_level', sa.VARCHAR(length=20), server_default='strict', nullable=False),
+        sa.Column('assessment_ready', sa.BOOLEAN(), server_default=sa.text('false'), nullable=False),
+        sa.Column('phase_state', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
+        sa.Column('agent_state', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
+        sa.Column('flow_type', sa.VARCHAR(length=100), nullable=True),
+        sa.Column('current_phase', sa.VARCHAR(length=100), nullable=True),
+        sa.Column('phases_completed', postgresql.JSON(astext_type=sa.Text()), nullable=True),
+        sa.Column('flow_state', postgresql.JSON(astext_type=sa.Text()), server_default=sa.text("'{}'::json"), nullable=True),
+        sa.Column('crew_outputs', postgresql.JSON(astext_type=sa.Text()), nullable=True),
+        sa.Column('field_mappings', postgresql.JSON(astext_type=sa.Text()), nullable=True),
+        sa.Column('discovered_assets', postgresql.JSON(astext_type=sa.Text()), nullable=True),
+        sa.Column('dependencies', postgresql.JSON(astext_type=sa.Text()), nullable=True),
+        sa.Column('tech_debt_analysis', postgresql.JSON(astext_type=sa.Text()), nullable=True),
+        sa.Column('crewai_persistence_id', sa.UUID(), nullable=True),
+        sa.Column('crewai_state_data', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=False),
+        sa.Column('error_message', sa.TEXT(), nullable=True),
+        sa.Column('error_phase', sa.VARCHAR(length=100), nullable=True),
+        sa.Column('error_details', postgresql.JSON(astext_type=sa.Text()), nullable=True),
+        sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('updated_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('completed_at', sa.TIMESTAMP(timezone=True), nullable=True),
+        sa.ForeignKeyConstraint(['data_import_id'], ['data_imports.id'], name=op.f('fk_discovery_flows_data_import_id_data_imports')),
+        sa.ForeignKeyConstraint(['master_flow_id'], ['crewai_flow_state_extensions.flow_id'], name=op.f('fk_discovery_flows_master_flow_id_crewai_flow_state_extensions'), ondelete='CASCADE'),
+        sa.PrimaryKeyConstraint('id', name=op.f('pk_discovery_flows')),
+        sa.UniqueConstraint('flow_id', name=op.f('uq_discovery_flows_flow_id'))
+    )
+    op.create_index(op.f('ix_discovery_flows_id'), 'discovery_flows', ['id'], unique=False)
+    op.create_index(op.f('ix_discovery_flows_flow_id'), 'discovery_flows', ['flow_id'], unique=False)
+    op.create_index(op.f('ix_discovery_flows_master_flow_id'), 'discovery_flows', ['master_flow_id'], unique=False)
+    op.create_index(op.f('ix_discovery_flows_client_account_id'), 'discovery_flows', ['client_account_id'], unique=False)
+    op.create_index(op.f('ix_discovery_flows_engagement_id'), 'discovery_flows', ['engagement_id'], unique=False)
+    op.create_index(op.f('ix_discovery_flows_data_import_id'), 'discovery_flows', ['data_import_id'], unique=False)
+    op.create_index(op.f('ix_discovery_flows_status'), 'discovery_flows', ['status'], unique=False)
+    
     # Create data_imports table
     op.create_table('data_imports',
         sa.Column('id', sa.UUID(), nullable=False),
@@ -629,6 +682,17 @@ def downgrade() -> None:
     op.drop_table('import_field_mappings')
     op.drop_table('raw_import_records')
     op.drop_table('data_imports')
+    
+    # Drop discovery_flows table
+    op.drop_index(op.f('ix_discovery_flows_status'), table_name='discovery_flows')
+    op.drop_index(op.f('ix_discovery_flows_data_import_id'), table_name='discovery_flows')
+    op.drop_index(op.f('ix_discovery_flows_engagement_id'), table_name='discovery_flows')
+    op.drop_index(op.f('ix_discovery_flows_client_account_id'), table_name='discovery_flows')
+    op.drop_index(op.f('ix_discovery_flows_master_flow_id'), table_name='discovery_flows')
+    op.drop_index(op.f('ix_discovery_flows_flow_id'), table_name='discovery_flows')
+    op.drop_index(op.f('ix_discovery_flows_id'), table_name='discovery_flows')
+    op.drop_table('discovery_flows')
+    
     op.drop_table('crewai_flow_state_extensions')
     op.drop_table('client_access')
     
