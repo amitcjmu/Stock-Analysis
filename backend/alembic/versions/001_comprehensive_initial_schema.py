@@ -472,26 +472,35 @@ def upgrade() -> None:
     op.create_table('engagement_architecture_standards',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('engagement_id', sa.UUID(), nullable=False),
-        sa.Column('standard_name', sa.String(length=255), nullable=False),
-        sa.Column('standard_description', sa.Text(), nullable=True),
-        sa.Column('standard_config', sa.JSON(), nullable=True),
-        sa.Column('is_active', sa.Boolean(), nullable=False, default=True),
+        sa.Column('requirement_type', sa.String(length=100), nullable=False),
+        sa.Column('description', sa.Text(), nullable=True),
+        sa.Column('mandatory', sa.Boolean(), server_default=sa.text('true'), nullable=False),
+        sa.Column('supported_versions', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column('requirement_details', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column('created_by', sa.String(length=100), nullable=True),
         sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=True),
         sa.Column('updated_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=True),
-        sa.ForeignKeyConstraint(['engagement_id'], ['engagements.id'], ),
+        sa.ForeignKeyConstraint(['engagement_id'], ['engagements.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id')
     )
     
     op.create_table('application_architecture_overrides',
         sa.Column('id', sa.UUID(), nullable=False),
-        sa.Column('engagement_id', sa.UUID(), nullable=False),
-        sa.Column('application_name', sa.String(length=255), nullable=False),
-        sa.Column('override_config', sa.JSON(), nullable=True),
-        sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=True),
+        sa.Column('assessment_flow_id', sa.UUID(), nullable=False),
+        sa.Column('application_id', sa.UUID(), nullable=False),
+        sa.Column('standard_id', sa.UUID(), nullable=True),
+        sa.Column('override_type', sa.String(length=100), nullable=False),
+        sa.Column('override_details', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column('rationale', sa.Text(), nullable=True),
+        sa.Column('approved_by', sa.String(length=100), nullable=True),
+        sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.Column('updated_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=True),
-        sa.ForeignKeyConstraint(['engagement_id'], ['engagements.id'], ),
+        sa.ForeignKeyConstraint(['assessment_flow_id'], ['assessment_flows.id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['standard_id'], ['engagement_architecture_standards.id'], ondelete='SET NULL'),
         sa.PrimaryKeyConstraint('id')
     )
+    op.create_index(op.f('ix_application_architecture_overrides_assessment_flow_id'), 'application_architecture_overrides', ['assessment_flow_id'], unique=False)
+    op.create_index(op.f('ix_application_architecture_overrides_application_id'), 'application_architecture_overrides', ['application_id'], unique=False)
     
     op.create_table('application_components',
         sa.Column('id', sa.UUID(), nullable=False),
