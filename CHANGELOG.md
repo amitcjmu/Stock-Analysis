@@ -1,5 +1,47 @@
 # 🚀 AI Modernize Migration Platform - Changelog
 
+## [1.29.0] - 2025-01-18
+
+### 🎯 **PERFORMANCE** - Unlimited Agentic Classification Processing
+
+This release removes all timeout restrictions for agentic classification activities while maintaining UI interaction timeouts, enabling scalable asset processing that adapts to varying data loads without artificial time constraints.
+
+### 🚀 **Major Performance Optimizations**
+
+#### **Unlimited Agentic Processing**
+- **Type**: Infrastructure enhancement
+- **Impact**: Asset classification can now process large inventories without timeout failures
+- **Technical Details**: Removed restrictive 15-second timeouts and implemented selective timeout strategy distinguishing agentic activities from UI interactions
+
+#### **Scalable Database Operations**
+- **Type**: Database performance optimization
+- **Impact**: Database operations for classification have no time limits while maintaining connection health
+- **Technical Details**: Updated database timeout configuration to handle `None` timeouts with proper session management
+
+#### **Enhanced CrewAI Agent Execution**
+- **Type**: Agent processing enhancement
+- **Impact**: Inventory Manager, Server Expert, Application Expert, and Device Expert can collaborate without artificial deadlines
+- **Technical Details**: Removed `max_execution_time` constraints from all classification agents while maintaining retry limits
+
+#### **Smart Frontend Timeout Management**
+- **Type**: Frontend performance optimization
+- **Impact**: Classification requests run indefinitely while UI interactions remain responsive
+- **Technical Details**: Selective timeout configuration with agentic activity detection and proper cleanup handling
+
+### 📊 Business Impact
+
+- **Scalability**: System now handles large asset inventories without timeout-related failures
+- **Reliability**: Eliminates premature classification termination due to artificial time constraints
+- **User Experience**: Users can process complex inventories without timeout errors while maintaining responsive UI
+- **Data Processing**: Classification accuracy improves as agents have unlimited time for thorough analysis
+
+### 🎯 Success Metrics
+
+- **Timeout Eliminations**: 8 timeout configurations removed for agentic activities
+- **System Flexibility**: Classification processing adapts to data complexity without fixed time limits
+- **UI Responsiveness**: Maintained 60-second timeouts for UI interactions while removing limits for background processing
+- **Database Efficiency**: Unlimited processing time for classification queries with maintained connection health
+
 ## [1.28.0] - 2025-07-18
 
 ### 🎯 **CODE QUALITY** - Parallel Agentic Lint Remediation

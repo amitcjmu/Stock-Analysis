@@ -20,8 +20,8 @@ class AssetInventoryExecutor(BasePhaseExecutor):
         return 50.0  # 3/6 phases
     
     def _get_phase_timeout(self) -> int:
-        """Asset inventory needs more time for processing"""
-        return 360  # 6 minutes for asset processing with no delegations
+        """Asset inventory processing has no timeout restrictions for agentic activities"""
+        return None  # No timeout for asset classification processing
     
     async def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
         # Get required data for inventory crew

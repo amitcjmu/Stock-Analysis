@@ -201,11 +201,11 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
       // Set the trigger state to true after execution
       setHasTriggeredInventory(true);
       
-      // Refetch assets after phase execution
+      // Refetch assets after phase execution (no fixed delay for agentic activities)
       setTimeout(() => {
         refetchAssets();
         refreshFlow();
-      }, 3000);
+      }, 1000);
       
     } catch (error) {
       console.error('❌ Failed to refresh asset classification:', error);

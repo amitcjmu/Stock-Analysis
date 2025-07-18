@@ -147,9 +147,9 @@ class Settings(BaseSettings):
     DEFAULT_MIGRATION_TIMELINE_DAYS: int = Field(default=90, env="DEFAULT_MIGRATION_TIMELINE_DAYS")
     
     # Enhanced CrewAI Flow Service Configuration
-    CREWAI_TIMEOUT_DATA_VALIDATION: float = 15.0
-    CREWAI_TIMEOUT_FIELD_MAPPING: float = 20.0  
-    CREWAI_TIMEOUT_ASSET_CLASSIFICATION: float = 15.0
+    # Note: Removed timeout restrictions for agentic classification activities
+    # These operations can take varying amounts of time based on data load
+    # and should not be artificially limited by timeouts
     CREWAI_LLM_MODEL: str = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
     CREWAI_LLM_TEMPERATURE: float = 0.0
     CREWAI_LLM_MAX_TOKENS: int = 1500

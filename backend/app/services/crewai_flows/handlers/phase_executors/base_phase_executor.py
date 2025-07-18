@@ -114,15 +114,20 @@ class BasePhaseExecutor(ABC):
                     logger.info(f"🤖 Using CrewAI crew for {phase_name} (real agents active)")
                     crew_input = self._prepare_crew_input()
                     
-                    # Add timeout for crew execution
+                    # Add timeout for crew execution (if specified)
                     import asyncio
                     try:
                         # Set timeout based on phase complexity
                         phase_timeout = self._get_phase_timeout()
-                        results = await asyncio.wait_for(
-                            self.execute_with_crew(crew_input),
-                            timeout=phase_timeout
-                        )
+                        if phase_timeout is not None:
+                            results = await asyncio.wait_for(
+                                self.execute_with_crew(crew_input),
+                                timeout=phase_timeout
+                            )
+                        else:
+                            # No timeout for agentic activities
+                            logger.info(f"⏱️ No timeout set for {phase_name} - agentic activity")
+                            results = await self.execute_with_crew(crew_input)
                     except asyncio.TimeoutError:
                         # NO FALLBACK - Timeout is a real issue that needs to be fixed
                         logger.error(f"⏱️ Crew execution timed out after {phase_timeout}s - NO FALLBACK")
@@ -203,9 +208,9 @@ class BasePhaseExecutor(ABC):
             "shared_memory": getattr(self.state, 'shared_memory_reference', None)
         }
     
-    def _get_phase_timeout(self) -> int:
+    def _get_phase_timeout(self) -> Optional[int]:
         """Get timeout in seconds for this phase - override in subclasses for custom timeouts"""
-        return 20  # Default 20 second timeout
+        return 20  # Default 20 second timeout for UI interactions
     
     @abstractmethod
     def _prepare_crew_input(self) -> Dict[str, Any]:

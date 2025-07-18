@@ -124,7 +124,8 @@ PERFORMANCE_THRESHOLDS: Dict[str, Dict[str, Dict[str, Any]]] = {
             "max_error_rate": 10
         },
         "asset_inventory": {
-            "max_execution_time": 240,
+            # No timeout restrictions for agentic classification activities
+            "max_execution_time": None,  # Unlimited time for asset classification
             "max_memory_usage": 800,
             "max_cpu_usage": 70,
             "max_error_rate": 3

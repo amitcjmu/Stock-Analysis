@@ -148,7 +148,6 @@ class InventoryBuildingCrew:
             verbose=True,
             allow_delegation=False,  # Disabled to prevent back-and-forth delays
             max_delegation=0,  # No delegations to speed up processing
-            max_execution_time=300,  # 5 minute timeout
             max_retry=1,  # Prevent retry loops
             collaboration=False  # Disabled for faster processing
         )
@@ -209,7 +208,6 @@ class InventoryBuildingCrew:
             knowledge_base=self.knowledge_base,
             verbose=True,
             allow_delegation=False,  # Disabled to prevent back-and-forth
-            max_execution_time=180,  # 3 minute timeout
             max_retry=1,  # Prevent retry loops
             collaboration=False,  # Disabled to speed up processing
             tools=[]  # Tools will be added later
@@ -227,8 +225,7 @@ class InventoryBuildingCrew:
             knowledge_base=self.knowledge_base,
             verbose=True,
             allow_delegation=False,  # Disabled to prevent back-and-forth
-            max_execution_time=180,  # ADD: 3 minute timeout
-            max_retry=1,  # ADD: Prevent retry loops
+            max_retry=1,  # Prevent retry loops
             collaboration=False,  # Disabled to speed up processing
             tools=self._create_app_classification_tools()
         )
@@ -245,8 +242,7 @@ class InventoryBuildingCrew:
             knowledge_base=self.knowledge_base,
             verbose=True,
             allow_delegation=False,  # Disabled to prevent back-and-forth
-            max_execution_time=180,  # ADD: 3 minute timeout
-            max_retry=1,  # ADD: Prevent retry loops
+            max_retry=1,  # Prevent retry loops
             collaboration=False,  # Disabled to speed up processing
             tools=self._create_device_classification_tools()
         )

@@ -434,19 +434,33 @@ export const apiCall = async (
       
       // Create abort controller for timeout
       const controller = new AbortController();
-      const timeoutMs = options.timeout || (
-        // Different timeouts for different operations
-        normalizedEndpoint.includes('/assets/list/paginated') ? 360000 : // 6 minutes for asset listing with inventory processing
-        normalizedEndpoint.includes('/discovery/flow/run') ? 360000 : // 6 minutes for discovery flow execution
-        normalizedEndpoint.includes('/assets/analyze') ? 300000 : // 5 minutes for AI analysis
-        normalizedEndpoint.includes('/bulk') ? 180000 : // 3 minutes for bulk operations
-        60000 // Default 1 minute
+      
+      // Determine timeout based on operation type
+      // Agentic activities (classification, analysis, flow execution) have no timeout
+      // UI interactions have reasonable timeouts
+      const isAgenticActivity = (
+        normalizedEndpoint.includes('/assets/list/paginated') ||
+        normalizedEndpoint.includes('/discovery/flow/run') ||
+        normalizedEndpoint.includes('/assets/analyze') ||
+        normalizedEndpoint.includes('/asset_inventory') ||
+        normalizedEndpoint.includes('/classification')
       );
       
-      const timeoutId = setTimeout(() => {
-        controller.abort();
-        console.error(`⏱️ API Call [${requestId}] - Timeout after ${timeoutMs}ms`);
-      }, timeoutMs);
+      const timeoutMs = options.timeout || (
+        isAgenticActivity ? null : // No timeout for agentic activities
+        normalizedEndpoint.includes('/bulk') ? 180000 : // 3 minutes for bulk operations (UI-based)
+        60000 // Default 1 minute for UI interactions
+      );
+      
+      let timeoutId = null;
+      if (timeoutMs !== null) {
+        timeoutId = setTimeout(() => {
+          controller.abort();
+          console.error(`⏱️ API Call [${requestId}] - Timeout after ${timeoutMs}ms`);
+        }, timeoutMs);
+      } else {
+        console.log(`🔄 API Call [${requestId}] - No timeout set for agentic activity`);
+      }
       
       // Make the request with abort signal
       const response = await fetch(url, {
@@ -456,7 +470,9 @@ export const apiCall = async (
         credentials: 'include',
         signal: controller.signal,
       }).finally(() => {
-        clearTimeout(timeoutId);
+        if (timeoutId !== null) {
+          clearTimeout(timeoutId);
+        }
       });
       
       const endTime = performance.now();
