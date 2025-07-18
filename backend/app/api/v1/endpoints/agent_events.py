@@ -224,7 +224,7 @@ async def get_flow_status_with_etag(
         response_data["latest_agent_decision"] = flow_state.agent_decisions[-1]
     
     # Generate ETag from response data
-    state_json = json.dumps(response_data, sort_keys=True)
+    state_json = json.dumps(response_data, sort_keys=True, default=str)
     etag = f'"{hashlib.md5(state_json.encode()).hexdigest()}"'
     
     # Check if content has changed

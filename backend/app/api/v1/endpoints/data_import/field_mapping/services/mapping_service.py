@@ -91,7 +91,7 @@ class MappingService:
                 if isinstance(mapping.transformation_rules, dict):
                     # Convert dict to JSON string if needed
                     import json
-                    transformation_rule_str = json.dumps(mapping.transformation_rules)
+                    transformation_rule_str = json.dumps(mapping.transformation_rules, default=str)
                 elif isinstance(mapping.transformation_rules, str):
                     transformation_rule_str = mapping.transformation_rules
                 else:
@@ -164,7 +164,7 @@ class MappingService:
         if mapping.transformation_rules:
             if isinstance(mapping.transformation_rules, dict):
                 import json
-                transformation_rule_str = json.dumps(mapping.transformation_rules)
+                transformation_rule_str = json.dumps(mapping.transformation_rules, default=str)
             elif isinstance(mapping.transformation_rules, str):
                 transformation_rule_str = mapping.transformation_rules
             else:
@@ -331,7 +331,7 @@ class MappingService:
         if mapping.transformation_rules:
             if isinstance(mapping.transformation_rules, dict):
                 import json
-                transformation_rule_str = json.dumps(mapping.transformation_rules)
+                transformation_rule_str = json.dumps(mapping.transformation_rules, default=str)
             elif isinstance(mapping.transformation_rules, str):
                 transformation_rule_str = mapping.transformation_rules
             else:

@@ -40,95 +40,32 @@ except Exception as e:
     attempt=$((attempt + 1))
 done
 
-# Bootstrap clean migration state for fresh deployment
-echo "🔄 Bootstrapping clean migration state..."
-python -c "
-import os
-import asyncio
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine
+# Fix migration state issues intelligently instead of destructive cleanup
+echo "🔧 Checking and fixing migration state..."
+if python scripts/fix_migration_state.py; then
+    echo "✅ Migration state validated/fixed successfully"
+else
+    echo "❌ Migration state fix failed, continuing with standard migration process..."
+fi
 
-async def bootstrap_migration_state():
-    database_url = os.getenv('DATABASE_URL', '')
-    if database_url.startswith('postgresql://'):
-        database_url = database_url.replace('postgresql://', 'postgresql+asyncpg://', 1)
-    
-    engine = create_async_engine(database_url)
-    
-    async with engine.begin() as conn:
-        # Drop all existing tables for clean slate
-        await conn.execute(text('DROP SCHEMA IF EXISTS public CASCADE'))
-        await conn.execute(text('CREATE SCHEMA public'))
-        
-        # Drop migration schema if it exists
-        await conn.execute(text('DROP SCHEMA IF EXISTS migration CASCADE'))
-        await conn.execute(text('CREATE SCHEMA migration'))
-        
-        print('✅ Clean migration state bootstrapped')
-        
-    await engine.dispose()
+# Run Alembic migrations with intelligent error handling
+echo "🔄 Running Alembic migrations..."
 
-asyncio.run(bootstrap_migration_state())
-"
-
-# Run Alembic migrations from clean state
-echo "🔄 Running Alembic migrations from clean state..."
-
-# Follow Alembic best practices for squashed migrations
-echo "🔄 Running Alembic migrations using best practices..."
-
-# The key insight: Let Alembic handle everything after clean bootstrap
-# Our comprehensive migration has down_revision = None, so it should work cleanly
 if python -m alembic upgrade head; then
     echo "✅ Alembic migrations completed successfully!"
 else
-    echo "❌ Alembic migration failed. Attempting recovery..."
+    echo "❌ Alembic migration failed. Running fix script again..."
     
-    # Recovery: Use stamp then upgrade approach
-    echo "🔄 Attempting recovery with stamp approach..."
-    if python -m alembic stamp base; then
-        echo "✅ Stamped to base revision"
+    # Try fix script one more time in case of race conditions
+    if python scripts/fix_migration_state.py; then
+        echo "✅ Migration state re-fixed, trying upgrade again..."
         if python -m alembic upgrade head; then
-            echo "✅ Upgrade successful after stamp!"
+            echo "✅ Alembic migrations completed after fix!"
         else
-            echo "❌ Upgrade still failed. Using direct schema creation as fallback..."
-            
-            # Final fallback: Direct schema creation
-            python -c "
-import os
-import asyncio
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine
-
-async def create_schema_directly():
-    database_url = os.getenv('DATABASE_URL', '')
-    if database_url.startswith('postgresql://'):
-        database_url = database_url.replace('postgresql://', 'postgresql+asyncpg://', 1)
-    
-    engine = create_async_engine(database_url)
-    
-    async with engine.begin() as conn:
-        # Create the comprehensive schema using the Base.metadata
-        import sys
-        sys.path.append('.')
-        from app.core.database import Base
-        
-        # Create all tables
-        await conn.run_sync(Base.metadata.create_all)
-        
-        print('✅ Schema created directly from SQLAlchemy metadata!')
-        
-    await engine.dispose()
-
-asyncio.run(create_schema_directly())
-"
-            
-            # Let Alembic manage its own version table
-            echo "🔄 Letting Alembic manage version state..."
-            python -m alembic stamp head
+            echo "❌ Migration still failed, but continuing with app startup..."
         fi
     else
-        echo "❌ Failed to stamp base revision"
+        echo "❌ Migration fix failed, but continuing with app startup..."
     fi
 fi
 

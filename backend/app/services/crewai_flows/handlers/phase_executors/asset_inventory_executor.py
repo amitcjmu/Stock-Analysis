@@ -85,8 +85,30 @@ class AssetInventoryExecutor(BasePhaseExecutor):
         
         cleaned_data = getattr(self.state, 'cleaned_data', [])
         raw_data = getattr(self.state, 'raw_data', [])
+        field_mappings = getattr(self.state, 'field_mappings', {})
         
         logger.info(f"🔍 Asset inventory crew input: {len(cleaned_data)} cleaned_data, {len(raw_data)} raw_data")
+        logger.info(f"🔍 Field mappings available: {list(field_mappings.keys()) if field_mappings else 'None'}")
+        
+        # If cleaned_data is empty but raw_data exists, use raw_data with field mappings
+        if not cleaned_data and raw_data:
+            logger.info("🔧 Using raw_data since cleaned_data is empty - applying field mappings")
+            
+            # Apply field mappings to raw data to create cleaned data
+            processed_data = []
+            for item in raw_data:
+                cleaned_item = {}
+                # Apply field mappings
+                for source_field, target_field in field_mappings.items():
+                    if source_field in item:
+                        cleaned_item[target_field] = item[source_field]
+                
+                # Also keep original data for reference
+                cleaned_item['_original'] = item
+                processed_data.append(cleaned_item)
+            
+            logger.info(f"✅ Processed {len(processed_data)} items with field mappings")
+            return {"cleaned_data": processed_data}
         
         return {"cleaned_data": cleaned_data}
     
@@ -249,43 +271,44 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 
                 for idx, asset in enumerate(all_assets):
                     # Transform raw asset data using field mappings
-                    # Generate unique name if asset name is not available
+                    # Get asset name from field mappings - don't generate random names
                     asset_name = self._get_mapped_value(asset, 'asset_name')
+                    hostname = self._get_mapped_value(asset, 'hostname')
+                    ip_address = self._get_mapped_value(asset, 'ip_address')
+                    
+                    # If no asset name, use hostname or IP as identifier, or leave blank
                     if not asset_name or asset_name.strip() == '':
-                        # Create unique name based on asset type, hostname, or IP
-                        asset_type = self._determine_asset_type(asset)
-                        hostname = self._get_mapped_value(asset, 'hostname')
-                        ip_address = self._get_mapped_value(asset, 'ip_address')
-                        
-                        # Try to create a meaningful name using available identifiers
                         if hostname:
-                            asset_name = f"{hostname}-{asset_type}"
+                            asset_name = hostname
                         elif ip_address:
-                            asset_name = f"{ip_address}-{asset_type}"
+                            asset_name = ip_address
                         else:
-                            # Last resort: use timestamp to ensure uniqueness
-                            import time
-                            timestamp = int(time.time() * 1000)  # milliseconds
-                            asset_name = f"{asset_type.title()}-{timestamp}-{idx + 1}"
+                            # Leave blank for user to fill in manually
+                            asset_name = ""
+                    
+                    # Handle empty names (database constraint requires non-empty name)
+                    if not asset_name:
+                        asset_name = f"Asset-{idx + 1}"  # Simple numeric identifier
                     
                     # Ensure unique names by adding suffix if needed (check against both existing DB names and current batch)
                     original_name = asset_name
                     counter = 1
                     while asset_name in seen_names:
-                        asset_name = f"{original_name}-{counter}"
+                        if original_name:
+                            asset_name = f"{original_name}-{counter}"
+                        else:
+                            asset_name = f"Asset-{idx + 1}-{counter}"
                         counter += 1
                     seen_names.add(asset_name)
                     
-                    # Also check for hostname conflicts and skip if duplicate
-                    hostname = self._get_mapped_value(asset, 'hostname')
+                    # Check for hostname conflicts and skip if duplicate
                     if hostname and hostname in seen_hostnames:
                         logger.warning(f"⚠️ Skipping asset {idx + 1} - hostname '{hostname}' already exists")
                         continue
                     elif hostname:
                         seen_hostnames.add(hostname)
                     
-                    # Also check for IP conflicts and skip if duplicate
-                    ip_address = self._get_mapped_value(asset, 'ip_address')
+                    # Check for IP conflicts and skip if duplicate
                     if ip_address and ip_address in seen_ips:
                         logger.warning(f"⚠️ Skipping asset {idx + 1} - IP address '{ip_address}' already exists")
                         continue
@@ -345,16 +368,22 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 
                 # Update asset_inventory field with results
                 if hasattr(self.state, 'asset_inventory'):
+                    logger.info(f"🔍 Current asset_inventory type: {type(self.state.asset_inventory)}")
+                    logger.info(f"🔍 Current asset_inventory value: {self.state.asset_inventory}")
+                    
                     # Ensure asset_inventory is a dictionary, not a string
                     if not isinstance(self.state.asset_inventory, dict):
+                        logger.info(f"🔧 Converting asset_inventory from {type(self.state.asset_inventory)} to dict")
                         self.state.asset_inventory = {}
                     
                     self.state.asset_inventory['created_asset_ids'] = asset_ids
                     self.state.asset_inventory['total_assets'] = len(created_assets)
                     self.state.asset_inventory['status'] = 'completed'
                     self.state.asset_inventory['created_at'] = datetime.utcnow().isoformat()
+                    logger.info(f"✅ Updated asset_inventory: {self.state.asset_inventory}")
                 else:
                     # Initialize asset_inventory if it doesn't exist
+                    logger.info("🔧 Initializing asset_inventory (not found)")
                     self.state.asset_inventory = {
                         'created_asset_ids': asset_ids,
                         'total_assets': len(created_assets),
@@ -468,6 +497,11 @@ class AssetInventoryExecutor(BasePhaseExecutor):
     
     def _get_mapped_value(self, asset: Dict[str, Any], target_field: str) -> Any:
         """Get value from asset using field mappings"""
+        # First, try to get the value directly from the target field (if data was already processed)
+        if target_field in asset:
+            return asset.get(target_field)
+        
+        # If not found, try to use field mappings to find the source field
         field_mappings = getattr(self.state, 'field_mappings', {})
         
         # Find the source field that maps to the target field
@@ -479,6 +513,10 @@ class AssetInventoryExecutor(BasePhaseExecutor):
         
         # Return the value from the source field if found
         if source_field:
+            # Try original data first
+            if '_original' in asset and source_field in asset['_original']:
+                return asset['_original'][source_field]
+            # Then try the asset itself
             return asset.get(source_field)
         
         return None

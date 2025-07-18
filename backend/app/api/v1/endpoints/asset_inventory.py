@@ -316,15 +316,74 @@ async def auto_classify_assets(
             }
         }
         
-        # Use Asset Intelligence Agent for classification
-        classification_result = await service.call_ai_agent(
-            prompt=f"Classify the following assets: {classification_data}"
-        )
+        # Use real CrewAI inventory building crew for classification
+        from app.services.crewai_flows.crews.inventory_building_crew import InventoryBuildingCrew
+        from app.services.crewai_flows.handlers.unified_flow_crew_manager import UnifiedFlowCrewManager
+        
+        # Create crew manager and inventory crew
+        crew_manager = UnifiedFlowCrewManager()
+        inventory_crew = InventoryBuildingCrew()
+        
+        # Prepare assets for reclassification
+        assets_for_classification = []
+        for asset in assets:
+            # Convert asset to format expected by crew
+            asset_data = {
+                'id': asset.get('id'),
+                'name': asset.get('asset_name', ''),
+                'raw_data': asset.get('raw_data', {}),
+                'current_type': asset.get('asset_type', ''),
+                'hostname': asset.get('hostname', ''),
+                'ip_address': asset.get('ip_address', ''),
+                'operating_system': asset.get('operating_system', ''),
+                'application_name': asset.get('application_name', ''),
+                # Include all available asset data
+                **asset
+            }
+            assets_for_classification.append(asset_data)
+        
+        # Use inventory crew to reclassify assets
+        classification_input = {
+            "assets": assets_for_classification,
+            "operation": "reclassify_selected",
+            "confidence_threshold": request.confidence_threshold
+        }
+        
+        try:
+            # Execute crew in thread to avoid blocking
+            import asyncio
+            classification_result = await asyncio.to_thread(
+                inventory_crew.kickoff, 
+                inputs=classification_input
+            )
+            
+            # Parse crew results
+            if hasattr(classification_result, 'raw') and classification_result.raw:
+                import json
+                try:
+                    if '{' in classification_result.raw and '}' in classification_result.raw:
+                        start = classification_result.raw.find('{')
+                        end = classification_result.raw.rfind('}') + 1
+                        json_str = classification_result.raw[start:end]
+                        parsed_result = json.loads(json_str)
+                        classification_result = parsed_result
+                    else:
+                        classification_result = {"status": "no_json", "raw": classification_result.raw}
+                except json.JSONDecodeError:
+                    classification_result = {"status": "parse_error", "raw": classification_result.raw}
+            else:
+                classification_result = {"status": "no_results", "message": "No classification results returned"}
+                
+        except Exception as crew_error:
+            logger.error(f"CrewAI classification failed: {crew_error}")
+            classification_result = {"status": "error", "message": str(crew_error)}
 
         result_data = {
             "classification_results": classification_result,
             "assets_processed": len(assets),
             "agentic_classification": True,
+            "crew_used": "inventory_building_crew",
+            "real_agents": True,
             "parameters": {
                 "use_learned_patterns": request.use_learned_patterns,
                 "confidence_threshold": request.confidence_threshold

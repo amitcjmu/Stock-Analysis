@@ -98,11 +98,14 @@ async def initialize_discovery_flow(
             flow_id = flow_result[0]
             flow_details = flow_result[1] if len(flow_result) > 1 else {}
             
-            logger.info(f"✅ Discovery flow created successfully: {flow_id}")
+            # Convert UUID to string if needed
+            flow_id_str = str(flow_id) if flow_id else None
+            
+            logger.info(f"✅ Discovery flow created successfully: {flow_id_str}")
             
             return FlowInitializationResponse(
                 success=True,
-                flow_id=flow_id,
+                flow_id=flow_id_str,
                 flow_name=request.flow_name or flow_details.get("flow_name"),
                 status="initialized",
                 message=f"Discovery flow initialized successfully with automatic kickoff"
