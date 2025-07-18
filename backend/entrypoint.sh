@@ -48,6 +48,14 @@ else
     echo "❌ Migration failed, but continuing..."
 fi
 
+# Initialize database with default users and data
+echo "🔄 Initializing database with default users and data..."
+if python -m app.core.database_initialization; then
+    echo "✅ Database initialization completed successfully!"
+else
+    echo "❌ Database initialization failed, but continuing..."
+fi
+
 # Start the application directly
 echo "🚀 Starting application..."
 exec python start.py
