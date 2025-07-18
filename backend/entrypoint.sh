@@ -40,37 +40,51 @@ except Exception as e:
     attempt=$((attempt + 1))
 done
 
-# Reset migration history for clean slate
-echo "🔄 Resetting migration history for clean deployment..."
+# Create database schema directly using SQLAlchemy
+echo "🔄 Creating database schema directly..."
 python -c "
 import os
+import sys
 import asyncio
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
-async def reset_migration_history():
+sys.path.insert(0, '/app')
+
+async def create_database_schema():
     database_url = os.getenv('DATABASE_URL', '')
     if database_url.startswith('postgresql://'):
         database_url = database_url.replace('postgresql://', 'postgresql+asyncpg://', 1)
     
     engine = create_async_engine(database_url)
-    async with engine.begin() as conn:
-        # Drop and recreate alembic_version table
-        await conn.execute(text('DROP TABLE IF EXISTS alembic_version'))
-        await conn.execute(text('CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL, CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))'))
-        print('✅ Migration history reset')
-    await engine.dispose()
+    
+    try:
+        # Import models to register them with SQLAlchemy
+        from app.core.database import Base
+        from app.models import *
+        
+        async with engine.begin() as conn:
+            # Drop all existing tables
+            await conn.execute(text('DROP SCHEMA public CASCADE'))
+            await conn.execute(text('CREATE SCHEMA public'))
+            
+            # Create all tables using SQLAlchemy metadata
+            await conn.run_sync(Base.metadata.create_all)
+            
+            # Create alembic_version table and mark as current
+            await conn.execute(text('CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL, CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))'))
+            await conn.execute(text('INSERT INTO alembic_version (version_num) VALUES (\\'001_comprehensive_initial_schema\\\')'))
+            
+            print('✅ Database schema created successfully')
+            
+    except Exception as e:
+        print(f'❌ Database schema creation failed: {e}')
+        raise
+    finally:
+        await engine.dispose()
 
-asyncio.run(reset_migration_history())
+asyncio.run(create_database_schema())
 "
-
-# Run database migrations
-echo "🔄 Running database migrations..."
-if python -m alembic upgrade head; then
-    echo "✅ Migrations completed successfully!"
-else
-    echo "❌ Migration failed, but continuing..."
-fi
 
 # Initialize database with default users and data
 echo "🔄 Initializing database with default users and data..."
