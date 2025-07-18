@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('React Key Warning Test', () => {
   let hasReactKeyWarnings = false;
-  let consoleMessages: string[] = [];
+  const consoleMessages: string[] = [];
 
   test('should login and test for React key warnings', async ({ page }) => {
     // Monitor console for React warnings

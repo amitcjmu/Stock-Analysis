@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,9 +72,9 @@ export const UserAccessManagement: React.FC = () => {
     loadClients();
     loadEngagements();
     loadAccessGrants();
-  }, []);
+  }, [loadUsers, loadClients, loadEngagements, loadAccessGrants]);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       const response = await apiCall('/auth/active-users');
 
@@ -106,9 +106,9 @@ export const UserAccessManagement: React.FC = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [toast]);
 
-  const loadClients = async () => {
+  const loadClients = useCallback(async () => {
     try {
       const response = await apiCall('/admin/clients/?page_size=100');
 
@@ -133,9 +133,9 @@ export const UserAccessManagement: React.FC = () => {
     } catch (error) {
       console.error('Error loading clients:', error);
     }
-  };
+  }, []);
 
-  const loadEngagements = async () => {
+  const loadEngagements = useCallback(async () => {
     try {
       const response = await apiCall('/admin/engagements/?page_size=100&client_account_id=11111111-1111-1111-1111-111111111111');
 
@@ -160,9 +160,9 @@ export const UserAccessManagement: React.FC = () => {
     } catch (error) {
       console.error('Error loading engagements:', error);
     }
-  };
+  }, []);
 
-  const loadAccessGrants = async () => {
+  const loadAccessGrants = useCallback(async () => {
     try {
       // This would be a real API call in production
       // For now, using demo data
@@ -191,7 +191,7 @@ export const UserAccessManagement: React.FC = () => {
     } catch (error) {
       console.error('Error loading access grants:', error);
     }
-  };
+  }, []);
 
   const handleGrantAccess = async () => {
     if (!selectedUser || !selectedResource || !selectedAccessLevel) {

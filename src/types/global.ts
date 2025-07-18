@@ -5,123 +5,46 @@
  * that extend the application's type system.
  */
 
-// Global namespace declarations for module boundaries
+// Global interface merging for module boundaries
 declare global {
-  namespace MigrationPlatform {
-    namespace Types {
-      // Module namespace references
-      type DiscoveryFlow = import('./modules/discovery').DiscoveryFlow;
-      type FlowOrchestration = import('./modules/flow-orchestration').FlowOrchestration;
-      type SharedUtilities = import('./modules/shared-utilities').SharedUtilities;
-      
-      // Component type references
-      type NavigationComponents = typeof import('./components/navigation');
-      type DiscoveryComponents = typeof import('./components/discovery');
-      type SharedComponents = typeof import('./components/shared');
-      type FormComponents = typeof import('./components/forms');
-      type LayoutComponents = typeof import('./components/layout');
-      type DataDisplayComponents = typeof import('./components/data-display');
-      type FeedbackComponents = typeof import('./components/feedback');
-      type AdminComponents = typeof import('./components/admin');
-      
-      // Hook type references
-      type DiscoveryHooks = typeof import('./hooks/discovery');
-      type SharedHooks = typeof import('./hooks/shared');
-      type APIHooks = typeof import('./hooks/api');
-      type StateManagementHooks = typeof import('./hooks/state-management');
-      type FlowOrchestrationHooks = typeof import('./hooks/flow-orchestration');
-      type AdminHooks = typeof import('./hooks/admin');
-      
-      // API type references
-      type DiscoveryAPI = typeof import('./api/discovery');
-      type AssessmentAPI = typeof import('./api/assessment');
-      type PlanningAPI = typeof import('./api/planning');
-      type ExecutionAPI = typeof import('./api/execution');
-      type ModernizeAPI = typeof import('./api/modernize');
-      type FinOpsAPI = typeof import('./api/finops');
-      type ObservabilityAPI = typeof import('./api/observability');
-      type DecommissionAPI = typeof import('./api/decommission');
-      type AdminAPI = typeof import('./api/admin');
-      type AuthAPI = typeof import('./api/auth');
-      type SharedAPI = typeof import('./api/shared');
-    }
-    
-    namespace Utilities {
-      type TypeGuards = typeof import('./guards');
-      type ModuleBoundaries = typeof import('./index').MODULE_BOUNDARIES;
-    }
+  interface MigrationPlatform {
+    Types: typeof import('./platform-types');
+    Utilities: {
+      TypeGuards: typeof import('./guards');
+      ModuleBoundaries: typeof import('./index').MODULE_BOUNDARIES;
+    };
   }
   
-  // Global type utilities
-  namespace TypeUtils {
-    // Utility for creating branded types
-    type Brand<T, B> = T & { __brand: B };
-    
-    // Flow ID branded type
-    type FlowId = Brand<string, 'FlowId'>;
-    type UserId = Brand<string, 'UserId'>;
-    type ClientAccountId = Brand<string, 'ClientAccountId'>;
-    type EngagementId = Brand<string, 'EngagementId'>;
-    
-    // Common utility types
-    type Nullable<T> = T | null;
-    type Optional<T> = T | undefined;
-    type Maybe<T> = T | null | undefined;
-    
-    // Deep partial type
-    type DeepPartial<T> = {
-      [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
-    };
-    
-    // Deep readonly type
-    type DeepReadonly<T> = {
-      readonly [P in keyof T]: T[P] extends object ? DeepReadonly<T[P]> : T[P];
-    };
-    
-    // Exact type (prevents excess properties)
-    type Exact<T, U> = T & Record<Exclude<keyof U, keyof T>, never>;
-    
-    // Extract function parameter types
-    type Parameters<T> = T extends (...args: infer P) => any ? P : never;
-    
-    // Extract function return type
-    type ReturnType<T> = T extends (...args: any[]) => infer R ? R : any;
-    
-    // Extract promise type
-    type PromiseType<T> = T extends Promise<infer P> ? P : T;
-    
-    // Extract array element type
-    type ArrayElement<T> = T extends (infer U)[] ? U : never;
-    
-    // Create union from object values
-    type ValueOf<T> = T[keyof T];
-    
-    // Create union from object keys
-    type KeyOf<T> = keyof T;
-    
-    // Non-nullable version of a type
-    type NonNullable<T> = T extends null | undefined ? never : T;
-    
-    // Required version of optional properties
-    type RequireFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
-    
-    // Optional version of required properties
-    type OptionalFields<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
-    
-    // Mutable version of readonly type
-    type Mutable<T> = {
-      -readonly [P in keyof T]: T[P];
-    };
-    
-    // Deep mutable version
-    type DeepMutable<T> = {
-      -readonly [P in keyof T]: T[P] extends object ? DeepMutable<T[P]> : T[P];
-    };
+  // Global type utilities interface
+  interface TypeUtils {
+    // Re-export from type-utils module
+    Brand: typeof import('./type-utils').Brand;
+    FlowId: typeof import('./type-utils').FlowId;
+    UserId: typeof import('./type-utils').UserId;
+    ClientAccountId: typeof import('./type-utils').ClientAccountId;
+    EngagementId: typeof import('./type-utils').EngagementId;
+    Nullable: typeof import('./type-utils').Nullable;
+    Optional: typeof import('./type-utils').Optional;
+    Maybe: typeof import('./type-utils').Maybe;
+    DeepPartial: typeof import('./type-utils').DeepPartial;
+    DeepReadonly: typeof import('./type-utils').DeepReadonly;
+    Exact: typeof import('./type-utils').Exact;
+    Parameters: typeof import('./type-utils').Parameters;
+    ReturnType: typeof import('./type-utils').ReturnType;
+    PromiseType: typeof import('./type-utils').PromiseType;
+    ArrayElement: typeof import('./type-utils').ArrayElement;
+    ValueOf: typeof import('./type-utils').ValueOf;
+    KeyOf: typeof import('./type-utils').KeyOf;
+    NonNullable: typeof import('./type-utils').NonNullable;
+    RequireFields: typeof import('./type-utils').RequireFields;
+    OptionalFields: typeof import('./type-utils').OptionalFields;
+    Mutable: typeof import('./type-utils').Mutable;
+    DeepMutable: typeof import('./type-utils').DeepMutable;
   }
   
   // Environment-specific types
-  namespace Environment {
-    interface ProcessEnv {
+  interface Environment {
+    ProcessEnv: {
       NODE_ENV: 'development' | 'production' | 'test';
       NEXT_PUBLIC_API_URL: string;
       NEXT_PUBLIC_API_V1_ONLY: string;
@@ -129,7 +52,7 @@ declare global {
       DEEPINFRA_API_KEY: string;
       CREWAI_ENABLED: string;
       ALLOWED_ORIGINS: string;
-    }
+    };
   }
   
   // Window object extensions
@@ -205,12 +128,12 @@ declare module '@tanstack/react-query' {
   interface Register {
     defaultError: Error;
     queryMeta: {
-      module?: keyof MigrationPlatform.Types;
+      module?: string;
       feature?: string;
       version?: string;
     };
     mutationMeta: {
-      module?: keyof MigrationPlatform.Types;
+      module?: string;
       feature?: string;
       optimistic?: boolean;
     };
@@ -218,26 +141,29 @@ declare module '@tanstack/react-query' {
 }
 
 // Export global types for use in other files
-export type FlowId = TypeUtils.FlowId;
-export type UserId = TypeUtils.UserId;
-export type ClientAccountId = TypeUtils.ClientAccountId;
-export type EngagementId = TypeUtils.EngagementId;
-
-export type Nullable<T> = TypeUtils.Nullable<T>;
-export type Optional<T> = TypeUtils.Optional<T>;
-export type Maybe<T> = TypeUtils.Maybe<T>;
-export type DeepPartial<T> = TypeUtils.DeepPartial<T>;
-export type DeepReadonly<T> = TypeUtils.DeepReadonly<T>;
-export type Exact<T, U> = TypeUtils.Exact<T, U>;
-export type PromiseType<T> = TypeUtils.PromiseType<T>;
-export type ArrayElement<T> = TypeUtils.ArrayElement<T>;
-export type ValueOf<T> = TypeUtils.ValueOf<T>;
-export type RequireFields<T, K extends keyof T> = TypeUtils.RequireFields<T, K>;
-export type OptionalFields<T, K extends keyof T> = TypeUtils.OptionalFields<T, K>;
-export type Mutable<T> = TypeUtils.Mutable<T>;
-export type DeepMutable<T> = TypeUtils.DeepMutable<T>;
+export type {
+  FlowId,
+  UserId,
+  ClientAccountId,
+  EngagementId,
+  Nullable,
+  Optional,
+  Maybe,
+  DeepPartial,
+  DeepReadonly,
+  Exact,
+  PromiseType,
+  ArrayElement,
+  ValueOf,
+  RequireFields,
+  OptionalFields,
+  Mutable,
+  DeepMutable
+} from './type-utils';
 
 // Brand type creators
+import type { FlowId, UserId, ClientAccountId, EngagementId } from './type-utils';
+
 export const createFlowId = (id: string): FlowId => id as FlowId;
 export const createUserId = (id: string): UserId => id as UserId;
 export const createClientAccountId = (id: string): ClientAccountId => id as ClientAccountId;

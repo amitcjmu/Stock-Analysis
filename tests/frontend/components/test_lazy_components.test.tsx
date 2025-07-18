@@ -29,10 +29,10 @@ import {
 import { LoadingFallback, ErrorFallback, SkeletonFallback } from '@/components/lazy/LoadingFallback';
 
 // Mock the dynamic imports
-const mockFileUploadComponent = () => <div data-testid="file-upload-component">File Upload Component</div>;
-const mockProjectDialogComponent = () => <div data-testid="project-dialog-component">Project Dialog Component</div>;
-const mockNavigationTabsComponent = () => <div data-testid="navigation-tabs-component">Navigation Tabs Component</div>;
-const mockQualityDashboardComponent = () => <div data-testid="quality-dashboard-component">Quality Dashboard Component</div>;
+const mockFileUploadComponent = () => React.createElement('div', { 'data-testid': 'file-upload-component' }, 'File Upload Component');
+const mockProjectDialogComponent = () => React.createElement('div', { 'data-testid': 'project-dialog-component' }, 'Project Dialog Component');
+const mockNavigationTabsComponent = () => React.createElement('div', { 'data-testid': 'navigation-tabs-component' }, 'Navigation Tabs Component');
+const mockQualityDashboardComponent = () => React.createElement('div', { 'data-testid': 'quality-dashboard-component' }, 'Quality Dashboard Component');
 
 // Mock React.lazy
 const originalLazy = React.lazy;
@@ -60,7 +60,7 @@ beforeEach(() => {
     }
     
     // Default mock component
-    return React.forwardRef(() => <div data-testid="mock-lazy-component">Mock Lazy Component</div>);
+    return React.forwardRef(() => React.createElement('div', { 'data-testid': 'mock-lazy-component' }, 'Mock Lazy Component'));
   });
 });
 
@@ -166,7 +166,7 @@ describe('Error Boundary Behavior', () => {
       if (attemptCount === 1) {
         return Promise.reject(new Error('First attempt failed'));
       }
-      return Promise.resolve({ default: () => <div data-testid="success-component">Success!</div> });
+      return Promise.resolve({ default: () => React.createElement('div', { 'data-testid': 'success-component' }, 'Success!') });
     });
 
     // Act

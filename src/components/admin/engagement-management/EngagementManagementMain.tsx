@@ -106,7 +106,7 @@ const EngagementManagementMain: React.FC = () => {
       queryIsEnabled: engagementsQuery.isEnabled,
       queryKey: engagementsQuery.queryKey
     });
-  }, [engagementsLoading, engagementsError, engagements.length, engagementsQuery.status, engagementsQuery.fetchStatus, engagementsQuery.isStale, engagementsQuery.isEnabled]);
+  }, [engagementsLoading, engagementsError, engagements.length, engagementsQuery.status, engagementsQuery.fetchStatus, engagementsQuery.isStale, engagementsQuery.isEnabled, engagementsQuery.queryKey]);
 
   const clientsQuery = useQuery<Client[]>({
     queryKey: ['clients'],

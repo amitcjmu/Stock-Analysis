@@ -432,7 +432,7 @@ describe('Discovery Flow Frontend Integration Tests', () => {
     };
 
     vi.stubGlobal('URL', { createObjectURL: mockCreateObjectURL });
-    vi.spyOn(document, 'createElement').mockReturnValue(mockAnchorElement as any);
+    vi.spyOn(document, 'createElement').mockReturnValue(mockAnchorElement as HTMLAnchorElement);
 
     // Act
     await waitFor(() => {

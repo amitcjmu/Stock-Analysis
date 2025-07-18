@@ -323,7 +323,7 @@ describe('Hook Performance and Caching', () => {
 
   it('should handle concurrent loading requests efficiently', async () => {
     // Arrange
-    let resolveImport: (value: any) => void;
+    let resolveImport: (value: { default: () => unknown }) => void;
     const importPromise = new Promise(resolve => {
       resolveImport = resolve;
     });

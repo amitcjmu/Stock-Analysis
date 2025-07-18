@@ -14,7 +14,7 @@ import { LoadingPriority } from '@/types/lazy';
 export interface LazyComponentTestConfig {
   componentName: string;
   importPath: string;
-  mockImplementation?: React.ComponentType<any>;
+  mockImplementation?: React.ComponentType<unknown>;
   shouldFail?: boolean;
   loadDelay?: number;
   priority?: LoadingPriority;
@@ -24,7 +24,7 @@ export interface ModuleBoundaryTestConfig {
   moduleName: string;
   dependencies: string[];
   exports: string[];
-  mockDependencies?: Record<string, any>;
+  mockDependencies?: Record<string, unknown>;
 }
 
 export interface PerformanceTestConfig {
@@ -37,14 +37,14 @@ export interface PerformanceTestConfig {
 // Mock Implementations for Lazy Components
 export class LazyComponentMocker {
   private mocks = new Map<string, React.ComponentType>();
-  private importPromises = new Map<string, Promise<any>>();
+  private importPromises = new Map<string, Promise<{ default: React.ComponentType }>>();
 
   createMockComponent(
     testId: string, 
     content: string = 'Mock Component',
-    props: any = {}
+    props: Record<string, unknown> = {}
   ): React.ComponentType {
-    return React.forwardRef<any, any>((componentProps, ref) => 
+    return React.forwardRef<HTMLDivElement, Record<string, unknown>>((componentProps, ref) => 
       React.createElement('div', {
         'data-testid': testId,
         ref,
@@ -92,13 +92,13 @@ export class LazyComponentMocker {
 
 // Module Boundary Testing
 export class ModuleBoundaryTester {
-  private originalModules = new Map<string, any>();
+  private originalModules = new Map<string, unknown>();
 
-  mockModule(modulePath: string, mockImplementation: any): void {
+  async mockModule(modulePath: string, mockImplementation: unknown): Promise<void> {
     // Store original module for restoration
     if (!this.originalModules.has(modulePath)) {
       try {
-        const original = require(modulePath);
+        const original = await import(modulePath);
         this.originalModules.set(modulePath, original);
       } catch {
         // Module doesn't exist yet
@@ -108,24 +108,24 @@ export class ModuleBoundaryTester {
     vi.doMock(modulePath, () => mockImplementation);
   }
 
-  testModuleBoundary(config: ModuleBoundaryTestConfig): {
+  async testModuleBoundary(config: ModuleBoundaryTestConfig): Promise<{
     isIsolated: boolean;
     circularDependencies: string[];
     unexpectedDependencies: string[];
-  } {
+  }> {
     const { moduleName, dependencies, exports } = config;
     
     // Mock all dependencies
-    dependencies.forEach(dep => {
+    await Promise.all(dependencies.map(async dep => {
       if (config.mockDependencies?.[dep]) {
-        this.mockModule(dep, config.mockDependencies[dep]);
+        await this.mockModule(dep, config.mockDependencies[dep]);
       } else {
-        this.mockModule(dep, { default: vi.fn() });
+        await this.mockModule(dep, { default: vi.fn() });
       }
-    });
+    }));
 
     try {
-      const module = require(moduleName);
+      const module = await import(moduleName);
       
       // Check exports
       const actualExports = Object.keys(module);
@@ -228,7 +228,7 @@ export class ViewportTester {
   constructor() {
     this.observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
-        const element = entry.target as any;
+        const element = entry.target as Element & { _intersectionCallback?: (entries: IntersectionObserverEntry[]) => void };
         if (element._intersectionCallback) {
           element._intersectionCallback([entry]);
         }
@@ -240,11 +240,11 @@ export class ViewportTester {
     global.IntersectionObserver = vi.fn().mockImplementation((callback) => ({
       observe: vi.fn((element) => {
         this.observedElements.add(element);
-        (element as any)._intersectionCallback = callback;
+        (element as Element & { _intersectionCallback?: (entries: IntersectionObserverEntry[]) => void })._intersectionCallback = callback;
       }),
       unobserve: vi.fn((element) => {
         this.observedElements.delete(element);
-        delete (element as any)._intersectionCallback;
+        delete (element as Element & { _intersectionCallback?: (entries: IntersectionObserverEntry[]) => void })._intersectionCallback;
       }),
       disconnect: vi.fn(() => {
         this.observedElements.clear();
@@ -253,7 +253,7 @@ export class ViewportTester {
   }
 
   triggerIntersection(element: Element, isIntersecting: boolean = true): void {
-    const callback = (element as any)._intersectionCallback;
+    const callback = (element as Element & { _intersectionCallback?: (entries: IntersectionObserverEntry[]) => void })._intersectionCallback;
     if (callback) {
       callback([{
         target: element,
@@ -368,9 +368,9 @@ export const modularAssertions = {
     });
   },
 
-  toHaveModuleBoundary: (modulePath: string, expectedExports: string[]) => {
+  toHaveModuleBoundary: async (modulePath: string, expectedExports: string[]) => {
     try {
-      const module = require(modulePath);
+      const module = await import(modulePath);
       const actualExports = Object.keys(module);
       const hasAllExports = expectedExports.every(exp => actualExports.includes(exp));
       

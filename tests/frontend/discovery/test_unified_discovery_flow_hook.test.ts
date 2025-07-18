@@ -67,17 +67,15 @@ const createWrapper = () => {
   });
 
   return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
+    React.createElement(QueryClientProvider, { client: queryClient }, children)
   );
 };
 
 describe('useUnifiedDiscoveryFlow Hook', () => {
-  let mockFetch: any;
+  let mockFetch: jest.MockedFunction<typeof fetch>;
 
   beforeEach(() => {
-    mockFetch = global.fetch as any;
+    mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
     mockFetch.mockClear();
     
     // Default successful API response

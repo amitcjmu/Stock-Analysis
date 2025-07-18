@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Bot, Loader2, AlertTriangle, Activity, Clock, CheckCircle, XCircle, 
   AlertCircle, Play, Pause, StopCircle, RefreshCw, Users, Zap,
@@ -83,7 +83,27 @@ const Phase2CrewMonitor: React.FC = () => {
   
   const { getAuthHeaders } = useAuth();
 
-  const fetchCrewData = async () => {
+  const fetchCrewAgents = useCallback(async (crewType: string) => {
+    try {
+      const response = await fetch(`/api/v1/monitoring/crews/${crewType}/status`, {
+        headers: getAuthHeaders()
+      });
+      
+      if (response.ok) {
+        const crewData = await response.json();
+        setCrewAgents(prev => ({
+          ...prev,
+          [crewType]: crewData.agents || []
+        }));
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`Failed to fetch agents for crew ${crewType}:`, error);
+      }
+    }
+  }, [getAuthHeaders]);
+
+  const fetchCrewData = useCallback(async () => {
     try {
       setRefreshing(true);
       setError(null);
@@ -151,33 +171,13 @@ const Phase2CrewMonitor: React.FC = () => {
       setIsLoading(false);
       setRefreshing(false);
     }
-  };
-
-  const fetchCrewAgents = async (crewType: string) => {
-    try {
-      const response = await fetch(`/api/v1/monitoring/crews/${crewType}/status`, {
-        headers: getAuthHeaders()
-      });
-      
-      if (response.ok) {
-        const crewData = await response.json();
-        setCrewAgents(prev => ({
-          ...prev,
-          [crewType]: crewData.agents || []
-        }));
-      }
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error(`Failed to fetch agents for crew ${crewType}:`, error);
-      }
-    }
-  };
+  }, [getAuthHeaders, fetchCrewAgents]);
 
   useEffect(() => {
     fetchCrewData();
     const interval = setInterval(fetchCrewData, 30000); // Poll every 30 seconds (reduced frequency)
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchCrewData]);
 
   const getStatusColor = (status: string): string => {
     const colors: Record<string, string> = {

@@ -24,26 +24,26 @@ vi.mock('../../src/config/api', () => ({
 
 // Mock lucide-react icons
 vi.mock('lucide-react', () => ({
-  Download: () => <div data-testid="download-icon">Download</div>,
-  Filter: () => <div data-testid="filter-icon">Filter</div>,
-  Database: () => <div data-testid="database-icon">Database</div>,
-  Server: () => <div data-testid="server-icon">Server</div>,
-  HardDrive: () => <div data-testid="harddrive-icon">HardDrive</div>,
-  RefreshCw: ({ className }) => <div data-testid="refresh-icon" className={className}>Refresh</div>,
-  Router: () => <div data-testid="router-icon">Router</div>,
-  Shield: () => <div data-testid="shield-icon">Shield</div>,
-  Cpu: () => <div data-testid="cpu-icon">Cpu</div>,
-  Cloud: () => <div data-testid="cloud-icon">Cloud</div>,
-  Zap: () => <div data-testid="zap-icon">Zap</div>
+  Download: () => React.createElement('div', { 'data-testid': 'download-icon' }, 'Download'),
+  Filter: () => React.createElement('div', { 'data-testid': 'filter-icon' }, 'Filter'),
+  Database: () => React.createElement('div', { 'data-testid': 'database-icon' }, 'Database'),
+  Server: () => React.createElement('div', { 'data-testid': 'server-icon' }, 'Server'),
+  HardDrive: () => React.createElement('div', { 'data-testid': 'harddrive-icon' }, 'HardDrive'),
+  RefreshCw: ({ className }) => React.createElement('div', { 'data-testid': 'refresh-icon', className: className }, 'Refresh'),
+  Router: () => React.createElement('div', { 'data-testid': 'router-icon' }, 'Router'),
+  Shield: () => React.createElement('div', { 'data-testid': 'shield-icon' }, 'Shield'),
+  Cpu: () => React.createElement('div', { 'data-testid': 'cpu-icon' }, 'Cpu'),
+  Cloud: () => React.createElement('div', { 'data-testid': 'cloud-icon' }, 'Cloud'),
+  Zap: () => React.createElement('div', { 'data-testid': 'zap-icon' }, 'Zap')
 }));
 
 // Mock components
 vi.mock('../../src/components/Sidebar', () => ({
-  default: () => <div data-testid="sidebar">Sidebar</div>
+  default: () => React.createElement('div', { 'data-testid': 'sidebar' }, 'Sidebar')
 }));
 
 vi.mock('../../src/components/FeedbackWidget', () => ({
-  default: () => <div data-testid="feedback-widget">Feedback Widget</div>
+  default: () => React.createElement('div', { 'data-testid': 'feedback-widget' }, 'Feedback Widget')
 }));
 
 // Sample test data with enhanced classifications

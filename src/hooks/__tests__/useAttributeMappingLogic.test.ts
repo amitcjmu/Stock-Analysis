@@ -1,6 +1,11 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
 import { useAttributeMappingLogic } from '../discovery/useAttributeMappingLogic';
+import { useDiscoveryFlowV2 } from '../discovery/useDiscoveryFlowV2';
+import { useAttributeMappingFlowDetection } from '../discovery/useDiscoveryFlowAutoDetection';
+import { useAuth } from '../../contexts/AuthContext';
+import { apiCall } from '../../config/api';
+import { useNavigate } from 'react-router-dom';
 
 // Mock dependencies
 vi.mock('../discovery/useDiscoveryFlowV2', () => ({
@@ -122,13 +127,7 @@ describe('useAttributeMappingLogic', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Import mocked modules
-    const { useDiscoveryFlowV2 } = require('../discovery/useDiscoveryFlowV2');
-    const { useAttributeMappingFlowDetection } = require('../discovery/useDiscoveryFlowAutoDetection');
-    const { useAuth } = require('../../contexts/AuthContext');
-    const { apiCall } = require('../../config/api');
-    const { useNavigate } = require('react-router-dom');
-
+    // Use imported mocked modules
     mockUseDiscoveryFlowV2 = useDiscoveryFlowV2 as Mock;
     mockUseAttributeMappingFlowDetection = useAttributeMappingFlowDetection as Mock;
     mockUseAuth = useAuth as Mock;

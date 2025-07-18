@@ -26,9 +26,9 @@ describe('Attribute Mapping Hooks - Modular Architecture', () => {
   
   it('should export all required types', () => {
     // These should not throw TypeScript errors
-    const exampleResult: AttributeMappingLogicResult = {} as any;
-    const exampleMapping: FieldMapping = {} as any;
-    const exampleAttribute: CriticalAttribute = {} as any;
+    const exampleResult: AttributeMappingLogicResult = {} as AttributeMappingLogicResult;
+    const exampleMapping: FieldMapping = {} as FieldMapping;
+    const exampleAttribute: CriticalAttribute = {} as CriticalAttribute;
     
     expect(exampleResult).toBeDefined();
     expect(exampleMapping).toBeDefined();

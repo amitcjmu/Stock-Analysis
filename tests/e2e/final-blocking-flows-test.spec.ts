@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Final Blocking Flows Test - UUID Fix & React Keys', () => {
   let hasReactKeyWarnings = false;
-  let consoleMessages: string[] = [];
+  const consoleMessages: string[] = [];
 
   test('should test complete blocking flows functionality without issues', async ({ page }) => {
     // Monitor console for React warnings and errors

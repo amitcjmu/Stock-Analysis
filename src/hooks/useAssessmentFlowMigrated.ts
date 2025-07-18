@@ -74,41 +74,37 @@ export function useAssessmentFlow(): UseAssessmentFlowReturn {
 
   // Initialize assessment flow
   const initializeAssessment = useCallback(async (applications: any[]) => {
-    try {
-      const flow = await actions.createAssessmentFlow({
-        flow_name: `Assessment - ${new Date().toISOString()}`,
-        configuration: {
-          assessment: {
-            assessment_depth: 'comprehensive',
-            include_business_impact: true,
-            risk_tolerance: 'medium',
-            complexity_thresholds: {
-              low: 30,
-              medium: 60,
-              high: 80
-            }
+    const flow = await actions.createAssessmentFlow({
+      flow_name: `Assessment - ${new Date().toISOString()}`,
+      configuration: {
+        assessment: {
+          assessment_depth: 'comprehensive',
+          include_business_impact: true,
+          risk_tolerance: 'medium',
+          complexity_thresholds: {
+            low: 30,
+            medium: 60,
+            high: 80
           }
-        },
-        initial_state: {
-          applications
-        },
-        metadata: {
-          applications,
-          source: 'assessment_flow'
         }
-      });
+      },
+      initial_state: {
+        applications
+      },
+      metadata: {
+        applications,
+        source: 'assessment_flow'
+      }
+    });
 
-      // Start polling for updates
-      actions.startPolling(flow.flow_id);
+    // Start polling for updates
+    actions.startPolling(flow.flow_id);
 
-      return {
-        flow_id: flow.flow_id,
-        status: 'initialized',
-        message: 'Assessment flow initialized successfully'
-      };
-    } catch (error) {
-      throw error;
-    }
+    return {
+      flow_id: flow.flow_id,
+      status: 'initialized',
+      message: 'Assessment flow initialized successfully'
+    };
   }, [actions]);
 
   // Execute business impact analysis phase
@@ -117,18 +113,14 @@ export function useAssessmentFlow(): UseAssessmentFlowReturn {
       throw new Error('No active assessment flow');
     }
 
-    try {
-      const result = await actions.executePhase(state.flow.flow_id, {
-        phase_name: 'business_impact_analysis',
-        phase_input: {
-          applications: flowState?.applications || []
-        }
-      });
+    const result = await actions.executePhase(state.flow.flow_id, {
+      phase_name: 'business_impact_analysis',
+      phase_input: {
+        applications: flowState?.applications || []
+      }
+    });
 
-      return result;
-    } catch (error) {
-      throw error;
-    }
+    return result;
   }, [state.flow, actions, flowState]);
 
   // Execute complexity calculation phase
@@ -137,19 +129,15 @@ export function useAssessmentFlow(): UseAssessmentFlowReturn {
       throw new Error('No active assessment flow');
     }
 
-    try {
-      const result = await actions.executePhase(state.flow.flow_id, {
-        phase_name: 'complexity_scoring',
-        phase_input: {
-          applications: flowState?.applications || [],
-          business_impact: flowState?.business_impact || {}
-        }
-      });
+    const result = await actions.executePhase(state.flow.flow_id, {
+      phase_name: 'complexity_scoring',
+      phase_input: {
+        applications: flowState?.applications || [],
+        business_impact: flowState?.business_impact || {}
+      }
+    });
 
-      return result;
-    } catch (error) {
-      throw error;
-    }
+    return result;
   }, [state.flow, actions, flowState]);
 
   // Execute 6R strategy determination phase
@@ -158,20 +146,16 @@ export function useAssessmentFlow(): UseAssessmentFlowReturn {
       throw new Error('No active assessment flow');
     }
 
-    try {
-      const result = await actions.executePhase(state.flow.flow_id, {
-        phase_name: 'six_r_determination',
-        phase_input: {
-          applications: flowState?.applications || [],
-          complexity_scores: flowState?.complexity_scores || {},
-          business_impact: flowState?.business_impact || {}
-        }
-      });
+    const result = await actions.executePhase(state.flow.flow_id, {
+      phase_name: 'six_r_determination',
+      phase_input: {
+        applications: flowState?.applications || [],
+        complexity_scores: flowState?.complexity_scores || {},
+        business_impact: flowState?.business_impact || {}
+      }
+    });
 
-      return result;
-    } catch (error) {
-      throw error;
-    }
+    return result;
   }, [state.flow, actions, flowState]);
 
   // Execute dependency mapping phase
@@ -180,19 +164,15 @@ export function useAssessmentFlow(): UseAssessmentFlowReturn {
       throw new Error('No active assessment flow');
     }
 
-    try {
-      const result = await actions.executePhase(state.flow.flow_id, {
-        phase_name: 'dependency_mapping',
-        phase_input: {
-          applications: flowState?.applications || [],
-          six_r_decisions: flowState?.six_r_decisions || {}
-        }
-      });
+    const result = await actions.executePhase(state.flow.flow_id, {
+      phase_name: 'dependency_mapping',
+      phase_input: {
+        applications: flowState?.applications || [],
+        six_r_decisions: flowState?.six_r_decisions || {}
+      }
+    });
 
-      return result;
-    } catch (error) {
-      throw error;
-    }
+    return result;
   }, [state.flow, actions, flowState]);
 
   // Get assessment results

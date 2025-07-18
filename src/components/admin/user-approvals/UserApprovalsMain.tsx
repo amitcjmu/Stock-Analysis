@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -45,7 +45,7 @@ export const UserApprovalsMain: React.FC = () => {
   useEffect(() => {
     fetchPendingUsers();
     fetchActiveUsers();
-  }, []);
+  }, [fetchPendingUsers, fetchActiveUsers]);
 
   useEffect(() => {
     // Listen for user creation events
@@ -69,9 +69,9 @@ export const UserApprovalsMain: React.FC = () => {
     return () => {
       window.removeEventListener('userCreated', handleUserCreated as EventListener);
     };
-  }, [toast]);
+  }, [toast, fetchPendingUsers, fetchActiveUsers]);
 
-  const fetchPendingUsers = async () => {
+  const fetchPendingUsers = useCallback(async () => {
     try {
       setLoading(true);
       const response = await apiCall('/auth/pending-approvals');
@@ -132,9 +132,9 @@ export const UserApprovalsMain: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const fetchActiveUsers = async () => {
+  const fetchActiveUsers = useCallback(async () => {
     try {
       const response = await apiCall('/auth/active-users');
 
@@ -179,7 +179,7 @@ export const UserApprovalsMain: React.FC = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [toast]);
 
   const handleApprove = async () => {
     if (!selectedUser) return;

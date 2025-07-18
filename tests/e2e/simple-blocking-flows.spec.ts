@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Simple Blocking Flows Test', () => {
   let hasReactKeyWarnings = false;
-  let consoleMessages: string[] = [];
+  const consoleMessages: string[] = [];
 
   test('should test blocking flows without React key warnings', async ({ page }) => {
     // Monitor console for React warnings and errors

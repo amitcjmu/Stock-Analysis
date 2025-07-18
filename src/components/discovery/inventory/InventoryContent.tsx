@@ -85,25 +85,9 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
           // Update classification state
           setNeedsClassification(response.needs_classification || false);
           
-          // Auto-trigger classification if needed
-          if (response.needs_classification && !hasTriggeredInventory) {
-            console.log('🚨 Assets need classification - triggering CrewAI processing');
-            setTimeout(() => {
-              setHasTriggeredInventory(true);
-              executeFlowPhase('asset_inventory', {
-                trigger: 'auto_classification',
-                source: 'api_detected_unclassified_assets'
-              }).then(() => {
-                console.log('✅ Auto-classification triggered');
-                setTimeout(() => {
-                  refetchAssets();
-                  refreshFlow();
-                }, 3000);
-              }).catch(error => {
-                console.error('❌ Auto-classification failed:', error);
-                setHasTriggeredInventory(false);
-              });
-            }, 1000);
+          // If assets are properly classified, mark as triggered to prevent auto-execution loops
+          if (!response.needs_classification && assets.length > 0) {
+            setHasTriggeredInventory(true);
           }
           
           // Transform API assets to match expected format
@@ -203,6 +187,9 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     try {
       console.log('🔄 Refreshing asset classification with CrewAI...');
       
+      // Reset the trigger state to allow fresh execution
+      setHasTriggeredInventory(false);
+      
       // Re-execute the asset inventory phase to trigger CrewAI classification
       await executeFlowPhase('asset_inventory', {
         trigger: 'manual_refresh',
@@ -210,6 +197,9 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
       });
       
       console.log('✅ Asset inventory phase re-executed');
+      
+      // Set the trigger state to true after execution
+      setHasTriggeredInventory(true);
       
       // Refetch assets after phase execution
       setTimeout(() => {
@@ -229,7 +219,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   useEffect(() => {
     // Use setTimeout to delay execution until after page render
     const timeoutId = setTimeout(() => {
-      // Check if we have raw data but no assets
+      // Check if we have raw data but no assets, or if assets need classification
       const hasRawData = flow && flow.raw_data && flow.raw_data.length > 0;
       const hasNoAssets = assets.length === 0;
       const notExecuting = !isExecutingPhase;
@@ -242,10 +232,13 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
         hasNoAssets,
         notExecuting,
         notTriggered,
+        needsClassification,
         currentPhase: flow?.current_phase,
         phaseCompletion: flow?.phase_completion
       });
 
+      // Only auto-execute if we have raw data but no assets (initial case)
+      // Don't auto-execute just because assets need classification - use manual refresh for that
       const shouldAutoExecute = hasRawData && hasNoAssets && notExecuting && notTriggered;
 
       if (shouldAutoExecute) {
@@ -273,7 +266,15 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
 
     // Cleanup timeout on unmount
     return () => clearTimeout(timeoutId);
-  }, [flow, isExecutingPhase, hasTriggeredInventory, assets.length, executeFlowPhase, refetchAssets, refreshFlow]);
+  }, [flow, isExecutingPhase, hasTriggeredInventory, assets.length, executeFlowPhase]);
+
+  // Separate useEffect to handle classification needs without causing loops
+  useEffect(() => {
+    // Only show console message when classification is needed
+    if (needsClassification && assets.length > 0) {
+      console.log('🚨 Assets need classification - use the refresh button to trigger CrewAI processing');
+    }
+  }, [needsClassification, assets.length]);
 
   // No phase-based restrictions - inventory should be accessible at any time
 

@@ -8,6 +8,104 @@
 import { ReactNode, RefObject } from 'react';
 import { BaseComponentProps, InteractiveComponentProps } from './shared';
 
+// Form field control interface
+export interface FormFieldControl {
+  value: unknown;
+  onChange: (value: unknown) => void;
+  onBlur: () => void;
+  onFocus: () => void;
+  name: string;
+  [key: string]: unknown;
+}
+
+// Mask state interface
+export interface MaskState {
+  value: string;
+  selection: {
+    start: number;
+    end: number;
+  };
+  [key: string]: unknown;
+}
+
+// Select-related interfaces
+export interface SelectState {
+  value: unknown;
+  options: SelectOption[];
+  inputValue: string;
+  isOpen: boolean;
+  [key: string]: unknown;
+}
+
+export interface SelectActionMeta {
+  action: 'select-option' | 'deselect-option' | 'remove-value' | 'pop-value' | 'set-value' | 'clear' | 'create-option';
+  option?: SelectOption;
+  removedValue?: SelectOption;
+  [key: string]: unknown;
+}
+
+export interface SelectLabelMeta {
+  context: 'menu' | 'value';
+  inputValue: string;
+  selectValue: unknown;
+  [key: string]: unknown;
+}
+
+export interface SelectTheme {
+  borderRadius: number;
+  colors: Record<string, string>;
+  spacing: Record<string, number>;
+  [key: string]: unknown;
+}
+
+export interface UploadFileActions {
+  download?: () => void;
+  preview?: () => void;
+  remove?: () => void;
+  [key: string]: unknown;
+}
+
+export interface ValidationOptions {
+  first?: boolean;
+  messages?: Record<string, string>;
+  [key: string]: unknown;
+}
+
+export interface ValidationCallback {
+  (error?: string | Error): void;
+}
+
+export interface FormInternalHooks {
+  dispatch: (action: FormAction) => void;
+  registerField: (entity: FormFieldEntity) => () => void;
+  useSubscribe: (subscribable: boolean) => void;
+  setInitialValues: (values: Record<string, unknown>, init: boolean) => void;
+  setCallbacks: (callbacks: Record<string, unknown>) => void;
+  getFields: () => FormFieldEntity[];
+  setValidateMessages: (messages: Record<string, string>) => void;
+  setPreserve: (preserve: boolean) => void;
+  getInitialValue: (name: string | string[]) => unknown;
+}
+
+export interface FormAction {
+  type: string;
+  payload?: unknown;
+}
+
+export interface FormFieldEntity {
+  name: string | string[];
+  validateTrigger?: string | string[];
+  rules?: ValidationRule[];
+  dependencies?: string[][];
+  initialValue?: unknown;
+}
+
+export interface FormErrorField {
+  name: string | string[];
+  errors: string[];
+  warnings?: string[];
+}
+
 // Base form types
 export interface BaseFormProps extends BaseComponentProps {
   name?: string;
@@ -50,8 +148,8 @@ export interface FormProps extends BaseComponentProps {
   disabled?: boolean;
   loading?: boolean;
   schema?: FormSchema;
-  defaultValues?: Record<string, any>;
-  values?: Record<string, any>;
+  defaultValues?: Record<string, unknown>;
+  values?: Record<string, unknown>;
   errors?: Record<string, string>;
   touched?: Record<string, boolean>;
   dirty?: boolean;
@@ -65,9 +163,9 @@ export interface FormProps extends BaseComponentProps {
   shouldUseNativeValidation?: boolean;
   criteriaMode?: 'firstError' | 'all';
   delayError?: number;
-  onValuesChange?: (values: Record<string, any>, changedValues: Record<string, any>) => void;
+  onValuesChange?: (values: Record<string, unknown>, changedValues: Record<string, unknown>) => void;
   onFieldsChange?: (changedFields: FormField[], allFields: FormField[]) => void;
-  onFinish?: (values: Record<string, any>) => void;
+  onFinish?: (values: Record<string, unknown>) => void;
   onFinishFailed?: (errorInfo: FormErrorInfo) => void;
   validateMessages?: Record<string, string>;
   preserve?: boolean;
@@ -80,10 +178,10 @@ export interface FormProps extends BaseComponentProps {
   labelAlign?: 'left' | 'right';
   labelWrap?: boolean;
   size?: 'small' | 'middle' | 'large';
-  component?: boolean | string | React.ComponentType<any>;
+  component?: boolean | string | React.ComponentType<unknown>;
   fields?: FormField[];
   form?: FormInstance;
-  initialValues?: Record<string, any>;
+  initialValues?: Record<string, unknown>;
   validateTrigger?: string | string[];
   preserve?: boolean;
   onReset?: () => void;
@@ -92,18 +190,18 @@ export interface FormProps extends BaseComponentProps {
 export interface FormFieldProps extends BaseFormProps {
   fieldKey?: string | number | (string | number)[];
   dependencies?: string[][];
-  getValueFromEvent?: (...args: any[]) => any;
-  getValueProps?: (value: any) => any;
-  normalize?: (value: any, prevValue: any, allValues: Record<string, any>) => any;
+  getValueFromEvent?: (...args: unknown[]) => unknown;
+  getValueProps?: (value: unknown) => unknown;
+  normalize?: (value: unknown, prevValue: unknown, allValues: Record<string, unknown>) => unknown;
   preserve?: boolean;
   trigger?: string;
   validateFirst?: boolean;
   validateTrigger?: string | string[];
   valuePropName?: string;
   rules?: ValidationRule[];
-  shouldUpdate?: boolean | ((prevValues: any, curValues: any) => boolean);
+  shouldUpdate?: boolean | ((prevValues: unknown, curValues: unknown) => boolean);
   messageVariables?: Record<string, string>;
-  initialValue?: any;
+  initialValue?: unknown;
   tooltip?: ReactNode;
   extra?: ReactNode;
   hasFeedback?: boolean;
@@ -115,7 +213,7 @@ export interface FormFieldProps extends BaseFormProps {
   colon?: boolean;
   labelAlign?: 'left' | 'right';
   htmlFor?: string;
-  children?: ReactNode | ((control: any, meta: FormFieldMeta, form: FormInstance) => ReactNode);
+  children?: ReactNode | ((control: FormFieldControl, meta: FormFieldMeta, form: FormInstance) => ReactNode);
 }
 
 // Input component types
@@ -158,7 +256,7 @@ export interface TextInputProps extends BaseFormProps {
   mask?: string | ((value: string) => string);
   maskChar?: string;
   formatChars?: Record<string, string>;
-  beforeMaskedValueChange?: (newState: any, oldState: any, userInput: string) => any;
+  beforeMaskedValueChange?: (newState: MaskState, oldState: MaskState, userInput: string) => MaskState;
   inputRef?: RefObject<HTMLInputElement>;
   containerRef?: RefObject<HTMLDivElement>;
   wrapperClassName?: string;
@@ -256,19 +354,19 @@ export interface TextareaProps extends BaseFormProps {
 
 // Select component types
 export interface SelectOption {
-  value: any;
+  value: unknown;
   label: ReactNode;
   disabled?: boolean;
   hidden?: boolean;
   group?: string;
   icon?: ReactNode;
   description?: ReactNode;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface SelectProps extends BaseFormProps {
-  value?: any;
-  defaultValue?: any;
+  value?: unknown;
+  defaultValue?: unknown;
   placeholder?: string;
   options?: SelectOption[];
   children?: ReactNode;
@@ -305,13 +403,13 @@ export interface SelectProps extends BaseFormProps {
   openMenuOnClick?: boolean;
   openMenuOnFocus?: boolean;
   pageSize?: number;
-  screenReaderStatus?: (state: any) => string;
+  screenReaderStatus?: (state: SelectState) => string;
   tabIndex?: number;
   tabSelectsValue?: boolean;
-  onChange?: (value: any, actionMeta?: any) => void;
+  onChange?: (value: unknown, actionMeta?: SelectActionMeta) => void;
   onBlur?: (event: React.FocusEvent) => void;
   onFocus?: (event: React.FocusEvent) => void;
-  onInputChange?: (inputValue: string, actionMeta: any) => void;
+  onInputChange?: (inputValue: string, actionMeta: SelectActionMeta) => void;
   onKeyDown?: (event: React.KeyboardEvent) => void;
   onMenuOpen?: () => void;
   onMenuClose?: () => void;
@@ -319,15 +417,15 @@ export interface SelectProps extends BaseFormProps {
   onMenuScrollToBottom?: (event: React.SyntheticEvent) => void;
   onClear?: () => void;
   onCreate?: (inputValue: string) => void;
-  formatOptionLabel?: (option: SelectOption, labelMeta: any) => ReactNode;
+  formatOptionLabel?: (option: SelectOption, labelMeta: SelectLabelMeta) => ReactNode;
   formatGroupLabel?: (group: string) => ReactNode;
   formatCreateLabel?: (inputValue: string) => ReactNode;
   getOptionLabel?: (option: SelectOption) => string;
-  getOptionValue?: (option: SelectOption) => any;
+  getOptionValue?: (option: SelectOption) => unknown;
   getNewOptionData?: (inputValue: string, optionLabel: ReactNode) => SelectOption;
-  isOptionDisabled?: (option: SelectOption, selectValue: any) => boolean;
-  isOptionSelected?: (option: SelectOption, selectValue: any) => boolean;
-  isValidNewOption?: (inputValue: string, selectValue: any, selectOptions: SelectOption[]) => boolean;
+  isOptionDisabled?: (option: SelectOption, selectValue: unknown) => boolean;
+  isOptionSelected?: (option: SelectOption, selectValue: unknown) => boolean;
+  isValidNewOption?: (inputValue: string, selectValue: unknown, selectOptions: SelectOption[]) => boolean;
   filterOption?: (option: SelectOption, inputValue: string) => boolean;
   sortOption?: (a: SelectOption, b: SelectOption) => number;
   groupBy?: (option: SelectOption) => string;
@@ -340,17 +438,17 @@ export interface SelectProps extends BaseFormProps {
   cacheOptions?: boolean;
   loadingMessage?: (obj: { inputValue: string }) => ReactNode;
   noOptionsMessage?: (obj: { inputValue: string }) => ReactNode;
-  components?: Record<string, React.ComponentType<any>>;
-  styles?: Record<string, (base: any, state: any) => any>;
-  theme?: (theme: any) => any;
+  components?: Record<string, React.ComponentType<unknown>>;
+  styles?: Record<string, (base: unknown, state: unknown) => unknown>;
+  theme?: (theme: SelectTheme) => SelectTheme;
   classNamePrefix?: string;
   className?: string;
   classNames?: Record<string, string>;
   unstyled?: boolean;
-  controlRef?: RefObject<any>;
-  menuRef?: RefObject<any>;
-  inputRef?: RefObject<any>;
-  selectRef?: RefObject<any>;
+  controlRef?: RefObject<HTMLDivElement>;
+  menuRef?: RefObject<HTMLDivElement>;
+  inputRef?: RefObject<HTMLInputElement>;
+  selectRef?: RefObject<HTMLSelectElement>;
 }
 
 // Checkbox and radio component types
@@ -358,7 +456,7 @@ export interface CheckboxProps extends BaseFormProps {
   checked?: boolean;
   defaultChecked?: boolean;
   indeterminate?: boolean;
-  value?: any;
+  value?: unknown;
   onChange?: (checked: boolean, event: React.ChangeEvent<HTMLInputElement>) => void;
   onBlur?: (event: React.FocusEvent<HTMLInputElement>) => void;
   onFocus?: (event: React.FocusEvent<HTMLInputElement>) => void;
@@ -383,11 +481,11 @@ export interface CheckboxProps extends BaseFormProps {
 }
 
 export interface CheckboxGroupProps extends BaseFormProps {
-  value?: any[];
-  defaultValue?: any[];
+  value?: unknown[];
+  defaultValue?: unknown[];
   options?: CheckboxOption[];
   children?: ReactNode;
-  onChange?: (value: any[], event?: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange?: (value: unknown[], event?: React.ChangeEvent<HTMLInputElement>) => void;
   direction?: 'horizontal' | 'vertical';
   spacing?: number | string;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -409,8 +507,8 @@ export interface CheckboxGroupProps extends BaseFormProps {
 export interface RadioProps extends BaseFormProps {
   checked?: boolean;
   defaultChecked?: boolean;
-  value?: any;
-  onChange?: (value: any, event: React.ChangeEvent<HTMLInputElement>) => void;
+  value?: unknown;
+  onChange?: (value: unknown, event: React.ChangeEvent<HTMLInputElement>) => void;
   onBlur?: (event: React.FocusEvent<HTMLInputElement>) => void;
   onFocus?: (event: React.FocusEvent<HTMLInputElement>) => void;
   children?: ReactNode;
@@ -432,11 +530,11 @@ export interface RadioProps extends BaseFormProps {
 }
 
 export interface RadioGroupProps extends BaseFormProps {
-  value?: any;
-  defaultValue?: any;
+  value?: unknown;
+  defaultValue?: unknown;
   options?: RadioOption[];
   children?: ReactNode;
-  onChange?: (value: any, event: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange?: (value: unknown, event: React.ChangeEvent<HTMLInputElement>) => void;
   direction?: 'horizontal' | 'vertical';
   spacing?: number | string;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -456,7 +554,7 @@ export interface RadioGroupProps extends BaseFormProps {
 export interface SwitchProps extends BaseFormProps {
   checked?: boolean;
   defaultChecked?: boolean;
-  value?: any;
+  value?: unknown;
   onChange?: (checked: boolean, event: React.ChangeEvent<HTMLInputElement>) => void;
   onBlur?: (event: React.FocusEvent<HTMLInputElement>) => void;
   onFocus?: (event: React.FocusEvent<HTMLInputElement>) => void;
@@ -549,7 +647,7 @@ export interface FileUploadProps extends BaseFormProps {
   onFileDialogOpen?: () => void;
   onError?: (error: Error) => void;
   validator?: (file: File) => FileError | FileError[] | null;
-  getFilesFromEvent?: (event: any) => Promise<File[]>;
+  getFilesFromEvent?: (event: DragEvent | React.ChangeEvent<HTMLInputElement>) => Promise<File[]>;
   onDragEnter?: (event: React.DragEvent) => void;
   onDragLeave?: (event: React.DragEvent) => void;
   onDragOver?: (event: React.DragEvent) => void;
@@ -580,7 +678,7 @@ export interface FileUploadProps extends BaseFormProps {
   method?: 'post' | 'put' | 'patch';
   headers?: Record<string, string>;
   withCredentials?: boolean;
-  data?: Record<string, any> | ((file: File) => Record<string, any>);
+  data?: Record<string, unknown> | ((file: File) => Record<string, unknown>);
   beforeUpload?: (file: File, fileList: File[]) => boolean | Promise<boolean>;
   customRequest?: (options: UploadRequestOption) => void;
   directory?: boolean;
@@ -594,7 +692,7 @@ export interface FileUploadProps extends BaseFormProps {
   iconRender?: (file: UploadFile, listType?: string) => ReactNode;
   isImageUrl?: (file: UploadFile) => boolean;
   progress?: UploadProgressProps;
-  itemRender?: (originNode: ReactNode, file: UploadFile, fileList: UploadFile[], actions: any) => ReactNode;
+  itemRender?: (originNode: ReactNode, file: UploadFile, fileList: UploadFile[], actions: UploadFileActions) => ReactNode;
   maxCount?: number;
   capture?: boolean | 'user' | 'environment';
   showUploadList?: boolean | ShowUploadListInterface;
@@ -609,27 +707,27 @@ export interface FileUploadProps extends BaseFormProps {
 
 // Form validation types
 export interface ValidationRule {
-  type?: 'string' | 'number' | 'boolean' | 'method' | 'regexp' | 'integer' | 'float' | 'array' | 'object' | 'enum' | 'date' | 'url' | 'hex' | 'email' | 'pattern' | 'any';
+  type?: 'string' | 'number' | 'boolean' | 'method' | 'regexp' | 'integer' | 'float' | 'array' | 'object' | 'enum' | 'date' | 'url' | 'hex' | 'email' | 'pattern' | 'unknown';
   required?: boolean;
   pattern?: RegExp;
   min?: number;
   max?: number;
   len?: number;
-  enum?: any[];
+  enum?: unknown[];
   whitespace?: boolean;
   fields?: Record<string, ValidationRule>;
-  options?: any;
+  options?: ValidationOptions;
   defaultField?: ValidationRule;
-  transform?: (value: any) => any;
-  message?: string | ((rule: any, value: any, callback: any, source?: any, options?: any) => string);
-  asyncValidator?: (rule: any, value: any, callback: any, source?: any, options?: any) => void;
-  validator?: (rule: any, value: any, callback: any, source?: any, options?: any) => void;
+  transform?: (value: unknown) => unknown;
+  message?: string | ((rule: ValidationRule, value: unknown, callback: ValidationCallback, source?: Record<string, unknown>, options?: ValidationOptions) => string);
+  asyncValidator?: (rule: ValidationRule, value: unknown, callback: ValidationCallback, source?: Record<string, unknown>, options?: ValidationOptions) => void;
+  validator?: (rule: ValidationRule, value: unknown, callback: ValidationCallback, source?: Record<string, unknown>, options?: ValidationOptions) => void;
 }
 
 export interface FormSchema {
   fields: Record<string, FieldSchema>;
   rules?: ValidationRule[];
-  initialValues?: Record<string, any>;
+  initialValues?: Record<string, unknown>;
   validateTrigger?: string | string[];
   validateMessages?: Record<string, string>;
   preserve?: boolean;
@@ -645,7 +743,7 @@ export interface FieldSchema {
   readonly?: boolean;
   hidden?: boolean;
   rules?: ValidationRule[];
-  initialValue?: any;
+  initialValue?: unknown;
   options?: SelectOption[];
   dependencies?: string[];
   tooltip?: string;
@@ -653,13 +751,13 @@ export interface FieldSchema {
   help?: string;
   validateTrigger?: string | string[];
   preserve?: boolean;
-  component?: string | React.ComponentType<any>;
-  componentProps?: any;
-  render?: (value: any, record: any, index: number) => ReactNode;
-  shouldUpdate?: boolean | ((prevValues: any, curValues: any) => boolean);
-  getValueFromEvent?: (...args: any[]) => any;
-  getValueProps?: (value: any) => any;
-  normalize?: (value: any, prevValue: any, allValues: Record<string, any>) => any;
+  component?: string | React.ComponentType<unknown>;
+  componentProps?: Record<string, unknown>;
+  render?: (value: unknown, record: Record<string, unknown>, index: number) => ReactNode;
+  shouldUpdate?: boolean | ((prevValues: unknown, curValues: unknown) => boolean);
+  getValueFromEvent?: (...args: unknown[]) => unknown;
+  getValueProps?: (value: unknown) => unknown;
+  normalize?: (value: unknown, prevValue: unknown, allValues: Record<string, unknown>) => unknown;
   trigger?: string;
   validateFirst?: boolean;
   valuePropName?: string;
@@ -676,7 +774,7 @@ export interface FieldSchema {
 // Supporting types
 export interface CheckboxOption {
   label: ReactNode;
-  value: any;
+  value: unknown;
   disabled?: boolean;
   checked?: boolean;
   indeterminate?: boolean;
@@ -688,7 +786,7 @@ export interface CheckboxOption {
 
 export interface RadioOption {
   label: ReactNode;
-  value: any;
+  value: unknown;
   disabled?: boolean;
   color?: string;
   size?: string;
@@ -736,8 +834,8 @@ export interface FileUploadRenderProps {
   isFocused: boolean;
   acceptedFiles: File[];
   rejectedFiles: FileRejection[];
-  getRootProps: (props?: any) => any;
-  getInputProps: (props?: any) => any;
+  getRootProps: (props?: Record<string, unknown>) => Record<string, unknown>;
+  getInputProps: (props?: Record<string, unknown>) => Record<string, unknown>;
   open: () => void;
 }
 
@@ -750,9 +848,9 @@ export interface UploadFile {
   status?: 'uploading' | 'done' | 'error' | 'removed';
   percent?: number;
   originFileObj?: File;
-  response?: any;
-  error?: any;
-  linkProps?: any;
+  response?: unknown;
+  error?: unknown;
+  linkProps?: Record<string, unknown>;
   thumbUrl?: string;
   crossOrigin?: React.ImgHTMLAttributes<HTMLImageElement>['crossOrigin'];
   preview?: string;
@@ -760,9 +858,9 @@ export interface UploadFile {
 
 export interface UploadRequestOption {
   onProgress?: (event: { percent: number }, file: File) => void;
-  onError?: (error: Error, response?: any) => void;
-  onSuccess?: (response: any, file: File) => void;
-  data?: Record<string, any>;
+  onError?: (error: Error, response?: unknown) => void;
+  onSuccess?: (response: unknown, file: File) => void;
+  data?: Record<string, unknown>;
   filename?: string;
   file: File;
   withCredentials?: boolean;
@@ -823,7 +921,7 @@ export interface ColSize {
 
 export interface FormField {
   name: string | string[];
-  value?: any;
+  value?: unknown;
   touched?: boolean;
   validating?: boolean;
   errors?: string[];
@@ -839,10 +937,10 @@ export interface FormFieldMeta {
 }
 
 export interface FormInstance {
-  getFieldValue: (name: string | string[]) => any;
-  getFieldsValue: (nameList?: (string | string[])[] | true, filterFunc?: (meta: any) => boolean) => any;
+  getFieldValue: (name: string | string[]) => unknown;
+  getFieldsValue: (nameList?: (string | string[])[] | true, filterFunc?: (meta: FormFieldMeta) => boolean) => Record<string, unknown>;
   getFieldError: (name: string | string[]) => string[];
-  getFieldsError: (nameList?: (string | string[])[]) => any;
+  getFieldsError: (nameList?: (string | string[])[]) => Record<string, string[]>;
   getFieldWarning: (name: string | string[]) => string[];
   isFieldsTouched: (nameList?: (string | string[])[], allFieldsTouched?: boolean) => boolean;
   isFieldTouched: (name: string | string[]) => boolean;
@@ -850,17 +948,17 @@ export interface FormInstance {
   isFieldsValidating: (nameList: (string | string[])[]) => boolean;
   resetFields: (fields?: (string | string[])[]) => void;
   setFields: (fields: FormField[]) => void;
-  setFieldValue: (name: string | string[], value: any) => void;
-  setFieldsValue: (values: any) => void;
-  validateFields: (nameList?: (string | string[])[]) => Promise<any>;
+  setFieldValue: (name: string | string[], value: unknown) => void;
+  setFieldsValue: (values: Record<string, unknown>) => void;
+  validateFields: (nameList?: (string | string[])[]) => Promise<Record<string, unknown>>;
   submit: () => void;
-  getInternalHooks: (key: string) => any;
+  getInternalHooks: (key: string) => FormInternalHooks;
   scrollToField: (name: string | string[], options?: ScrollToFirstErrorOptions) => void;
 }
 
 export interface FormErrorInfo {
-  values: any;
-  errorFields: any[];
+  values: Record<string, unknown>;
+  errorFields: FormErrorField[];
   outOfDate: boolean;
 }
 

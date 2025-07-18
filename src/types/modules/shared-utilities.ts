@@ -14,7 +14,7 @@ export interface BaseUtilityProps {
 }
 
 export interface ConfigurationOptions {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ErrorContext {
@@ -23,7 +23,7 @@ export interface ErrorContext {
   userId?: string;
   flowId?: string;
   timestamp: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // Shared Utilities namespace declaration
@@ -60,7 +60,7 @@ declare namespace SharedUtilities {
     }
 
     interface SessionService {
-      createSession: (userId: string, metadata?: Record<string, any>) => Promise<Session>;
+      createSession: (userId: string, metadata?: Record<string, unknown>) => Promise<Session>;
       getSession: (sessionId: string) => Promise<Session>;
       updateSession: (sessionId: string, updates: Partial<Session>) => Promise<void>;
       destroySession: (sessionId: string) => Promise<void>;
@@ -151,7 +151,7 @@ declare namespace SharedUtilities {
       tenantId?: string;
       engagementId?: string;
       resourceId?: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }
 
     interface Tenant {
@@ -193,7 +193,7 @@ declare namespace SharedUtilities {
       expiresAt: string;
       ipAddress: string;
       userAgent: string;
-      metadata: Record<string, any>;
+      metadata: Record<string, unknown>;
     }
 
     interface SessionValidation {
@@ -219,7 +219,7 @@ declare namespace SharedUtilities {
     interface PermissionCondition {
       field: string;
       operator: 'eq' | 'ne' | 'in' | 'not_in' | 'gt' | 'lt' | 'gte' | 'lte';
-      value: any;
+      value: unknown;
     }
 
     interface TenantLimits {
@@ -257,7 +257,7 @@ declare namespace SharedUtilities {
 
     interface IntegrationSettings {
       enabledIntegrations: string[];
-      configurations: Record<string, any>;
+      configurations: Record<string, unknown>;
       webhooks: WebhookConfig[];
     }
 
@@ -303,7 +303,7 @@ declare namespace SharedUtilities {
       id: string;
       type: 'email' | 'sms' | 'push' | 'slack' | 'webhook';
       name: string;
-      configuration: Record<string, any>;
+      configuration: Record<string, unknown>;
       enabled: boolean;
     }
 
@@ -320,9 +320,9 @@ declare namespace SharedUtilities {
   namespace API {
     interface ApiClientService {
       get: <T>(url: string, options?: RequestOptions) => Promise<ApiResponse<T>>;
-      post: <T>(url: string, data?: any, options?: RequestOptions) => Promise<ApiResponse<T>>;
-      put: <T>(url: string, data?: any, options?: RequestOptions) => Promise<ApiResponse<T>>;
-      patch: <T>(url: string, data?: any, options?: RequestOptions) => Promise<ApiResponse<T>>;
+      post: <T>(url: string, data?: unknown, options?: RequestOptions) => Promise<ApiResponse<T>>;
+      put: <T>(url: string, data?: unknown, options?: RequestOptions) => Promise<ApiResponse<T>>;
+      patch: <T>(url: string, data?: unknown, options?: RequestOptions) => Promise<ApiResponse<T>>;
       delete: <T>(url: string, options?: RequestOptions) => Promise<ApiResponse<T>>;
       upload: <T>(url: string, file: File, options?: UploadOptions) => Promise<ApiResponse<T>>;
       download: (url: string, options?: DownloadOptions) => Promise<Blob>;
@@ -352,7 +352,7 @@ declare namespace SharedUtilities {
     }
 
     // API Models
-    interface ApiResponse<T = any> {
+    interface ApiResponse<T = unknown> {
       success: boolean;
       data: T;
       message?: string;
@@ -365,7 +365,7 @@ declare namespace SharedUtilities {
       code: string;
       message: string;
       field?: string;
-      details?: Record<string, any>;
+      details?: Record<string, unknown>;
     }
 
     interface ResponseMetadata {
@@ -392,8 +392,8 @@ declare namespace SharedUtilities {
       cache?: boolean;
       cacheTtl?: number;
       validateStatus?: (status: number) => boolean;
-      transformRequest?: (data: any) => any;
-      transformResponse?: (data: any) => any;
+      transformRequest?: (data: unknown) => unknown;
+      transformResponse?: (data: unknown) => unknown;
     }
 
     interface UploadOptions extends RequestOptions {
@@ -432,8 +432,8 @@ declare namespace SharedUtilities {
       url: string;
       method: string;
       headers: Record<string, string>;
-      data?: any;
-      params?: Record<string, any>;
+      data?: unknown;
+      params?: Record<string, unknown>;
       timeout: number;
       baseURL?: string;
     }
@@ -446,7 +446,7 @@ declare namespace SharedUtilities {
     }
 
     interface Response {
-      data: any;
+      data: unknown;
       status: number;
       statusText: string;
       headers: Record<string, string>;
@@ -457,8 +457,8 @@ declare namespace SharedUtilities {
   // Validation Utilities namespace
   namespace Validation {
     interface ValidationService {
-      validate: (data: any, schema: ValidationSchema) => ValidationResult;
-      validateAsync: (data: any, schema: ValidationSchema) => Promise<ValidationResult>;
+      validate: (data: unknown, schema: ValidationSchema) => ValidationResult;
+      validateAsync: (data: unknown, schema: ValidationSchema) => Promise<ValidationResult>;
       createSchema: (definition: SchemaDefinition) => ValidationSchema;
       addRule: (name: string, rule: ValidationRule) => void;
       removeRule: (name: string) => void;
@@ -466,7 +466,7 @@ declare namespace SharedUtilities {
     }
 
     interface SanitizationService {
-      sanitize: (data: any, rules: SanitizationRules) => any;
+      sanitize: (data: unknown, rules: SanitizationRules) => unknown;
       sanitizeHtml: (html: string, options?: HtmlSanitizationOptions) => string;
       sanitizeInput: (input: string, type: InputType) => string;
       preventXSS: (input: string) => string;
@@ -475,7 +475,7 @@ declare namespace SharedUtilities {
 
     interface FormValidationService {
       validateForm: (formData: FormData, schema: FormSchema) => FormValidationResult;
-      validateField: (fieldName: string, value: any, rules: FieldRules) => FieldValidationResult;
+      validateField: (fieldName: string, value: unknown, rules: FieldRules) => FieldValidationResult;
       createFormSchema: (fields: FieldDefinition[]) => FormSchema;
       addFieldRule: (fieldName: string, rule: FieldRule) => void;
       removeFieldRule: (fieldName: string, ruleName: string) => void;
@@ -486,8 +486,8 @@ declare namespace SharedUtilities {
       isValid: boolean;
       errors: ValidationError[];
       warnings: ValidationWarning[];
-      data?: any;
-      metadata?: Record<string, any>;
+      data?: unknown;
+      metadata?: Record<string, unknown>;
     }
 
     interface ValidationSchema {
@@ -501,9 +501,9 @@ declare namespace SharedUtilities {
 
     interface ValidationRule {
       name: string;
-      validate: (value: any, context?: ValidationContext) => boolean | Promise<boolean>;
+      validate: (value: unknown, context?: ValidationContext) => boolean | Promise<boolean>;
       message: string;
-      parameters?: Record<string, any>;
+      parameters?: Record<string, unknown>;
       severity: 'error' | 'warning' | 'info';
     }
 
@@ -511,25 +511,25 @@ declare namespace SharedUtilities {
       field: string;
       message: string;
       code: string;
-      value: any;
+      value: unknown;
       severity: 'error' | 'warning' | 'info';
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }
 
     interface ValidationWarning {
       field: string;
       message: string;
       code: string;
-      value: any;
+      value: unknown;
       suggestion?: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }
 
     interface ValidationContext {
-      parentValue?: any;
-      rootValue?: any;
+      parentValue?: unknown;
+      rootValue?: unknown;
       path: string[];
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }
 
     interface SchemaDefinition {
@@ -539,7 +539,7 @@ declare namespace SharedUtilities {
       rules?: string[];
       required?: string[];
       optional?: string[];
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }
 
     interface SanitizationRules {
@@ -548,8 +548,8 @@ declare namespace SharedUtilities {
 
     interface SanitizationRule {
       type: 'trim' | 'lowercase' | 'uppercase' | 'escape' | 'strip' | 'replace' | 'custom';
-      parameters?: Record<string, any>;
-      apply: (value: any, parameters?: Record<string, any>) => any;
+      parameters?: Record<string, unknown>;
+      apply: (value: unknown, parameters?: Record<string, unknown>) => unknown;
     }
 
     interface HtmlSanitizationOptions {
@@ -561,13 +561,13 @@ declare namespace SharedUtilities {
     }
 
     interface FormData {
-      [field: string]: any;
+      [field: string]: unknown;
     }
 
     interface FormSchema {
       fields: Record<string, FieldSchema>;
       rules: FormRule[];
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }
 
     interface FieldSchema {
@@ -576,8 +576,8 @@ declare namespace SharedUtilities {
       required: boolean;
       label: string;
       placeholder?: string;
-      defaultValue?: any;
-      metadata?: Record<string, any>;
+      defaultValue?: unknown;
+      metadata?: Record<string, unknown>;
     }
 
     interface FormValidationResult {
@@ -585,14 +585,14 @@ declare namespace SharedUtilities {
       errors: Record<string, FieldValidationResult>;
       warnings: Record<string, FieldValidationResult>;
       data: FormData;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }
 
     interface FieldValidationResult {
       isValid: boolean;
       errors: ValidationError[];
       warnings: ValidationWarning[];
-      value: any;
+      value: unknown;
     }
 
     interface FieldDefinition {
@@ -602,8 +602,8 @@ declare namespace SharedUtilities {
       required: boolean;
       rules: FieldRule[];
       placeholder?: string;
-      defaultValue?: any;
-      metadata?: Record<string, any>;
+      defaultValue?: unknown;
+      metadata?: Record<string, unknown>;
     }
 
     interface FieldRules {
@@ -612,9 +612,9 @@ declare namespace SharedUtilities {
 
     interface FieldRule {
       name: string;
-      validate: (value: any, context?: FieldValidationContext) => boolean | Promise<boolean>;
+      validate: (value: unknown, context?: FieldValidationContext) => boolean | Promise<boolean>;
       message: string;
-      parameters?: Record<string, any>;
+      parameters?: Record<string, unknown>;
       severity: 'error' | 'warning' | 'info';
     }
 
@@ -622,19 +622,19 @@ declare namespace SharedUtilities {
       name: string;
       validate: (formData: FormData, context?: FormValidationContext) => boolean | Promise<boolean>;
       message: string;
-      parameters?: Record<string, any>;
+      parameters?: Record<string, unknown>;
       severity: 'error' | 'warning' | 'info';
     }
 
     interface FieldValidationContext {
       fieldName: string;
       formData: FormData;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }
 
     interface FormValidationContext {
       formData: FormData;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }
 
     type InputType = 'text' | 'email' | 'url' | 'number' | 'phone' | 'html' | 'json' | 'sql';
@@ -646,7 +646,7 @@ declare namespace SharedUtilities {
       handleError: (error: Error, context?: ErrorContext) => void;
       reportError: (error: Error, context?: ErrorContext) => Promise<void>;
       logError: (error: Error, context?: ErrorContext) => void;
-      createError: (message: string, code?: string, details?: Record<string, any>) => AppError;
+      createError: (message: string, code?: string, details?: Record<string, unknown>) => AppError;
       isRetryableError: (error: Error) => boolean;
       getErrorSeverity: (error: Error) => ErrorSeverity;
     }
@@ -670,7 +670,7 @@ declare namespace SharedUtilities {
       code: string;
       severity: ErrorSeverity;
       context?: ErrorContext;
-      details?: Record<string, any>;
+      details?: Record<string, unknown>;
       timestamp: string;
       userId?: string;
       sessionId?: string;
@@ -706,7 +706,7 @@ declare namespace SharedUtilities {
       sessionId?: string;
       stackTrace: string;
       breadcrumbs: ErrorBreadcrumb[];
-      metadata: Record<string, any>;
+      metadata: Record<string, unknown>;
     }
 
     interface ErrorBreadcrumb {
@@ -714,7 +714,7 @@ declare namespace SharedUtilities {
       message: string;
       category: string;
       level: 'info' | 'warning' | 'error';
-      data?: Record<string, any>;
+      data?: Record<string, unknown>;
     }
 
     type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical';
@@ -728,7 +728,7 @@ declare namespace SharedUtilities {
       addDays: (date: Date, days: number) => Date;
       subtractDays: (date: Date, days: number) => Date;
       diffDays: (date1: Date, date2: Date) => number;
-      isValidDate: (date: any) => boolean;
+      isValidDate: (date: unknown) => boolean;
       getTimeAgo: (date: Date) => string;
       getTimezone: () => string;
       convertTimezone: (date: Date, timezone: string) => Date;
@@ -757,9 +757,9 @@ declare namespace SharedUtilities {
       formatBytes: (bytes: number, decimals?: number) => string;
       clamp: (value: number, min: number, max: number) => number;
       round: (value: number, decimals: number) => number;
-      isNumber: (value: any) => boolean;
-      isInteger: (value: any) => boolean;
-      isFloat: (value: any) => boolean;
+      isNumber: (value: unknown) => boolean;
+      isInteger: (value: unknown) => boolean;
+      isFloat: (value: unknown) => boolean;
       randomInt: (min: number, max: number) => number;
       randomFloat: (min: number, max: number) => number;
     }
@@ -775,8 +775,8 @@ declare namespace SharedUtilities {
       difference: <T>(array1: T[], array2: T[]) => T[];
       intersection: <T>(array1: T[], array2: T[]) => T[];
       union: <T>(array1: T[], array2: T[]) => T[];
-      isEmpty: (array: any[]) => boolean;
-      isEqual: (array1: any[], array2: any[]) => boolean;
+      isEmpty: (array: unknown[]) => boolean;
+      isEqual: (array1: unknown[], array2: unknown[]) => boolean;
     }
 
     interface ObjectUtilityService {
@@ -784,15 +784,15 @@ declare namespace SharedUtilities {
       merge: <T>(target: T, ...sources: Partial<T>[]) => T;
       pick: <T, K extends keyof T>(obj: T, keys: K[]) => Pick<T, K>;
       omit: <T, K extends keyof T>(obj: T, keys: K[]) => Omit<T, K>;
-      has: (obj: any, path: string) => boolean;
-      get: (obj: any, path: string, defaultValue?: any) => any;
-      set: (obj: any, path: string, value: any) => void;
-      isEmpty: (obj: any) => boolean;
-      isEqual: (obj1: any, obj2: any) => boolean;
-      keys: (obj: any) => string[];
-      values: (obj: any) => any[];
-      entries: (obj: any) => [string, any][];
-      invert: (obj: Record<string, any>) => Record<string, string>;
+      has: (obj: unknown, path: string) => boolean;
+      get: (obj: unknown, path: string, defaultValue?: unknown) => unknown;
+      set: (obj: unknown, path: string, value: unknown) => void;
+      isEmpty: (obj: unknown) => boolean;
+      isEqual: (obj1: unknown, obj2: unknown) => boolean;
+      keys: (obj: unknown) => string[];
+      values: (obj: unknown) => unknown[];
+      entries: (obj: unknown) => [string, unknown][];
+      invert: (obj: Record<string, unknown>) => Record<string, string>;
     }
 
     interface ColorUtilityService {
@@ -896,22 +896,22 @@ declare namespace SharedUtilities {
     }
 
     interface ObjectStore {
-      add: (value: any, key?: any) => Promise<any>;
-      put: (value: any, key?: any) => Promise<any>;
-      get: (key: any) => Promise<any>;
-      delete: (key: any) => Promise<void>;
+      add: (value: unknown, key?: unknown) => Promise<unknown>;
+      put: (value: unknown, key?: unknown) => Promise<unknown>;
+      get: (key: unknown) => Promise<unknown>;
+      delete: (key: unknown) => Promise<void>;
       clear: () => Promise<void>;
       count: () => Promise<number>;
-      getAll: () => Promise<any[]>;
-      getAllKeys: () => Promise<any[]>;
+      getAll: () => Promise<unknown[]>;
+      getAllKeys: () => Promise<unknown[]>;
       index: (name: string) => Index;
     }
 
     interface Index {
-      get: (key: any) => Promise<any>;
-      getAll: (query?: any, count?: number) => Promise<any[]>;
-      getAllKeys: (query?: any, count?: number) => Promise<any[]>;
-      count: (query?: any) => Promise<number>;
+      get: (key: unknown) => Promise<unknown>;
+      getAll: (query?: unknown, count?: number) => Promise<unknown[]>;
+      getAllKeys: (query?: unknown, count?: number) => Promise<unknown[]>;
+      count: (query?: unknown) => Promise<number>;
     }
   }
 
@@ -924,12 +924,12 @@ declare namespace SharedUtilities {
       remove: (key: string) => void;
       clear: () => void;
       keys: () => string[];
-      values: () => any[];
-      entries: () => [string, any][];
-      merge: (config: Record<string, any>) => void;
+      values: () => unknown[];
+      entries: () => [string, unknown][];
+      merge: (config: Record<string, unknown>) => void;
       load: (source: ConfigurationSource) => Promise<void>;
       save: (target: ConfigurationTarget) => Promise<void>;
-      watch: (key: string, callback: (value: any, oldValue: any) => void) => () => void;
+      watch: (key: string, callback: (value: unknown, oldValue: unknown) => void) => () => void;
       validate: (schema: ConfigurationSchema) => ValidationResult;
     }
 
@@ -958,13 +958,13 @@ declare namespace SharedUtilities {
     interface ConfigurationSource {
       type: 'file' | 'env' | 'remote' | 'memory';
       location?: string;
-      options?: Record<string, any>;
+      options?: Record<string, unknown>;
     }
 
     interface ConfigurationTarget {
       type: 'file' | 'env' | 'remote' | 'memory';
       location?: string;
-      options?: Record<string, any>;
+      options?: Record<string, unknown>;
     }
 
     interface ConfigurationSchema {
@@ -974,8 +974,8 @@ declare namespace SharedUtilities {
     interface ConfigurationProperty {
       type: 'string' | 'number' | 'boolean' | 'array' | 'object';
       required?: boolean;
-      default?: any;
-      enum?: any[];
+      default?: unknown;
+      enum?: unknown[];
       pattern?: string;
       minimum?: number;
       maximum?: number;
@@ -988,13 +988,13 @@ declare namespace SharedUtilities {
       tenantId?: string;
       environment?: string;
       version?: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }
 
     interface FlagValue {
       enabled: boolean;
-      value?: any;
-      metadata?: Record<string, any>;
+      value?: unknown;
+      metadata?: Record<string, unknown>;
     }
   }
 }

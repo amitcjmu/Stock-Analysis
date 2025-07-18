@@ -12,8 +12,31 @@ import {
   BaseMutationHookReturn
 } from './shared';
 
+// Upload response interface
+export interface UploadResponse {
+  success: boolean;
+  data?: {
+    url?: string;
+    key?: string;
+    filename?: string;
+    size?: number;
+    type?: string;
+  };
+  error?: string;
+  message?: string;
+}
+
+// API response interface
+export interface ApiResponse<T = unknown> {
+  data: T;
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
+  config: RequestConfig;
+}
+
 // Base API Hook Types
-export interface UseApiParams<TParams = any> extends BaseAsyncHookParams {
+export interface UseApiParams<TParams = unknown> extends BaseAsyncHookParams {
   endpoint: string;
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   params?: TParams;
@@ -22,14 +45,14 @@ export interface UseApiParams<TParams = any> extends BaseAsyncHookParams {
   timeout?: number;
   withCredentials?: boolean;
   validateStatus?: (status: number) => boolean;
-  transformRequest?: (data: any) => any;
-  transformResponse?: (data: any) => any;
+  transformRequest?: (data: unknown) => unknown;
+  transformResponse?: (data: unknown) => unknown;
   cancelOnUnmount?: boolean;
   retryConfig?: RetryConfig;
   cacheConfig?: CacheConfig;
 }
 
-export interface UseApiReturn<TData = any, TError = Error> extends BaseAsyncHookReturn<TData, TError> {
+export interface UseApiReturn<TData = unknown, TError = Error> extends BaseAsyncHookReturn<TData, TError> {
   data: TData | undefined;
   error: TError | null;
   loading: boolean;
@@ -45,22 +68,22 @@ export interface UseApiReturn<TData = any, TError = Error> extends BaseAsyncHook
 }
 
 // Query Hook Types
-export interface UseQueryParams<TParams = any> extends UseApiParams<TParams> {
+export interface UseQueryParams<TParams = unknown> extends UseApiParams<TParams> {
   queryKey: string | string[];
-  dependencies?: any[];
+  dependencies?: unknown[];
   enabled?: boolean;
   retryOnMount?: boolean;
   backgroundRefetch?: boolean;
   pollingInterval?: number;
-  onSuccess?: (data: any) => void;
+  onSuccess?: (data: TData) => void;
   onError?: (error: Error) => void;
-  onSettled?: (data: any | undefined, error: Error | null) => void;
-  select?: (data: any) => any;
+  onSettled?: (data: TData | undefined, error: Error | null) => void;
+  select?: (data: TData) => TData;
   keepPreviousData?: boolean;
   suspense?: boolean;
 }
 
-export interface UseQueryReturn<TData = any, TError = Error> extends UseApiReturn<TData, TError> {
+export interface UseQueryReturn<TData = unknown, TError = Error> extends UseApiReturn<TData, TError> {
   data: TData | undefined;
   error: TError | null;
   isLoading: boolean;
@@ -74,13 +97,13 @@ export interface UseQueryReturn<TData = any, TError = Error> extends UseApiRetur
   dataUpdatedAt: number;
   errorUpdatedAt: number;
   failureCount: number;
-  refetch: (options?: RefetchOptions) => Promise<any>;
+  refetch: (options?: RefetchOptions) => Promise<UseQueryReturn<TData, TError>>;
   remove: () => void;
   cancel: () => void;
 }
 
 // Mutation Hook Types
-export interface UseMutationParams<TData = any, TError = Error, TVariables = any, TContext = any> 
+export interface UseMutationParams<TData = unknown, TError = Error, TVariables = unknown, TContext = unknown> 
   extends BaseMutationHookParams<TData, TError, TVariables, TContext> {
   endpoint: string;
   method: 'POST' | 'PUT' | 'DELETE' | 'PATCH';
@@ -97,7 +120,7 @@ export interface UseMutationParams<TData = any, TError = Error, TVariables = any
   onSettled?: (data: TData | undefined, error: TError | null, variables: TVariables, context: TContext | undefined) => Promise<void> | void;
 }
 
-export interface UseMutationReturn<TData = any, TError = Error, TVariables = any, TContext = any> 
+export interface UseMutationReturn<TData = unknown, TError = Error, TVariables = unknown, TContext = unknown> 
   extends BaseMutationHookReturn<TData, TError, TVariables, TContext> {
   data: TData | undefined;
   error: TError | null;
@@ -117,17 +140,17 @@ export interface UseMutationReturn<TData = any, TError = Error, TVariables = any
 }
 
 // Infinite Query Hook Types
-export interface UseInfiniteQueryParams<TParams = any> extends UseQueryParams<TParams> {
-  getNextPageParam: (lastPage: any, allPages: any[]) => any;
-  getPreviousPageParam?: (firstPage: any, allPages: any[]) => any;
+export interface UseInfiniteQueryParams<TParams = unknown> extends UseQueryParams<TParams> {
+  getNextPageParam: (lastPage: TData, allPages: TData[]) => unknown;
+  getPreviousPageParam?: (firstPage: TData, allPages: TData[]) => unknown;
   maxPages?: number;
-  initialPageParam?: any;
+  initialPageParam?: unknown;
 }
 
-export interface UseInfiniteQueryReturn<TData = any, TError = Error> extends Omit<UseQueryReturn<TData, TError>, 'data'> {
+export interface UseInfiniteQueryReturn<TData = unknown, TError = Error> extends Omit<UseQueryReturn<TData, TError>, 'data'> {
   data: InfiniteData<TData> | undefined;
-  fetchNextPage: (options?: FetchNextPageOptions) => Promise<any>;
-  fetchPreviousPage: (options?: FetchPreviousPageOptions) => Promise<any>;
+  fetchNextPage: (options?: FetchNextPageOptions) => Promise<UseInfiniteQueryReturn<TData, TError>>;
+  fetchPreviousPage: (options?: FetchPreviousPageOptions) => Promise<UseInfiniteQueryReturn<TData, TError>>;
   hasNextPage: boolean;
   hasPreviousPage: boolean;
   isFetchingNextPage: boolean;
@@ -135,7 +158,7 @@ export interface UseInfiniteQueryReturn<TData = any, TError = Error> extends Omi
 }
 
 // Subscription Hook Types
-export interface UseSubscriptionParams<TData = any> {
+export interface UseSubscriptionParams<TData = unknown> {
   endpoint: string;
   protocol?: 'websocket' | 'sse' | 'polling';
   options?: SubscriptionOptions;
@@ -145,14 +168,14 @@ export interface UseSubscriptionParams<TData = any> {
   onConnect?: () => void;
   onDisconnect?: () => void;
   onReconnect?: () => void;
-  transformData?: (rawData: any) => TData;
+  transformData?: (rawData: unknown) => TData;
   filterData?: (data: TData) => boolean;
   bufferSize?: number;
   reconnectAttempts?: number;
   reconnectDelay?: number;
 }
 
-export interface UseSubscriptionReturn<TData = any> {
+export interface UseSubscriptionReturn<TData = unknown> {
   data: TData | undefined;
   error: Error | null;
   isConnected: boolean;
@@ -164,8 +187,8 @@ export interface UseSubscriptionReturn<TData = any> {
   connect: () => void;
   disconnect: () => void;
   reconnect: () => void;
-  send: (message: any) => void;
-  subscribe: (event: string, handler: (data: any) => void) => () => void;
+  send: (message: unknown) => void;
+  subscribe: (event: string, handler: (data: unknown) => void) => () => void;
   unsubscribe: (event: string) => void;
 }
 
@@ -183,12 +206,12 @@ export interface UseApiClientParams {
 
 export interface UseApiClientReturn {
   client: ApiClient;
-  get: <T = any>(endpoint: string, config?: RequestConfig) => Promise<T>;
-  post: <T = any>(endpoint: string, data?: any, config?: RequestConfig) => Promise<T>;
-  put: <T = any>(endpoint: string, data?: any, config?: RequestConfig) => Promise<T>;
-  patch: <T = any>(endpoint: string, data?: any, config?: RequestConfig) => Promise<T>;
-  delete: <T = any>(endpoint: string, config?: RequestConfig) => Promise<T>;
-  upload: (endpoint: string, file: File, config?: UploadConfig) => Promise<any>;
+  get: <T = unknown>(endpoint: string, config?: RequestConfig) => Promise<T>;
+  post: <T = unknown>(endpoint: string, data?: unknown, config?: RequestConfig) => Promise<T>;
+  put: <T = unknown>(endpoint: string, data?: unknown, config?: RequestConfig) => Promise<T>;
+  patch: <T = unknown>(endpoint: string, data?: unknown, config?: RequestConfig) => Promise<T>;
+  delete: <T = unknown>(endpoint: string, config?: RequestConfig) => Promise<T>;
+  upload: (endpoint: string, file: File, config?: UploadConfig) => Promise<UploadResponse>;
   download: (endpoint: string, config?: DownloadConfig) => Promise<Blob>;
   setAuthToken: (token: string) => void;
   clearAuth: () => void;
@@ -197,10 +220,10 @@ export interface UseApiClientReturn {
 }
 
 // Request Hook Types
-export interface UseRequestParams<TData = any, TParams = any> {
+export interface UseRequestParams<TData = unknown, TParams = unknown> {
   url: string;
   method?: HttpMethod;
-  data?: any;
+  data?: unknown;
   params?: TParams;
   headers?: Record<string, string>;
   timeout?: number;
@@ -208,13 +231,13 @@ export interface UseRequestParams<TData = any, TParams = any> {
   cacheConfig?: CacheConfig;
   onUploadProgress?: (progress: ProgressEvent) => void;
   onDownloadProgress?: (progress: ProgressEvent) => void;
-  transformRequest?: (data: any) => any;
-  transformResponse?: (data: any) => TData;
+  transformRequest?: (data: unknown) => unknown;
+  transformResponse?: (data: unknown) => TData;
   validateStatus?: (status: number) => boolean;
   signal?: AbortSignal;
 }
 
-export interface UseRequestReturn<TData = any> {
+export interface UseRequestReturn<TData = unknown> {
   data: TData | undefined;
   error: Error | null;
   loading: boolean;
@@ -267,7 +290,7 @@ export interface UseFileUploadParams {
   validateFile?: (file: File) => ValidationResult;
   transformFile?: (file: File) => File | Promise<File>;
   onProgress?: (progress: UploadProgress) => void;
-  onSuccess?: (response: any, file: File) => void;
+  onSuccess?: (response: UploadResponse, file: File) => void;
   onError?: (error: Error, file: File) => void;
   onComplete?: (results: UploadResult[]) => void;
 }
@@ -291,7 +314,7 @@ export interface UseFileUploadReturn {
 }
 
 // Cache Hook Types
-export interface UseCacheParams<T = any> {
+export interface UseCacheParams<T = unknown> {
   key: string;
   defaultValue?: T;
   ttl?: number;
@@ -304,7 +327,7 @@ export interface UseCacheParams<T = any> {
   onDelete?: (key: string) => void;
 }
 
-export interface UseCacheReturn<T = any> {
+export interface UseCacheReturn<T = unknown> {
   value: T | undefined;
   exists: boolean;
   expired: boolean;
@@ -336,7 +359,7 @@ export interface UseApiStateReturn {
   hasData: boolean;
   hasError: boolean;
   setLoading: () => void;
-  setSuccess: (data?: any) => void;
+  setSuccess: (data?: unknown) => void;
   setError: (error: Error) => void;
   setIdle: () => void;
   reset: () => void;
@@ -367,14 +390,14 @@ export interface ApiInterceptors {
 
 export interface RequestInterceptor {
   id?: string;
-  onFulfilled?: (config: any) => any | Promise<any>;
-  onRejected?: (error: any) => any | Promise<any>;
+  onFulfilled?: (config: RequestConfig) => RequestConfig | Promise<RequestConfig>;
+  onRejected?: (error: unknown) => unknown | Promise<unknown>;
 }
 
 export interface ResponseInterceptor {
   id?: string;
-  onFulfilled?: (response: any) => any | Promise<any>;
-  onRejected?: (error: any) => any | Promise<any>;
+  onFulfilled?: (response: ApiResponse) => ApiResponse | Promise<ApiResponse>;
+  onRejected?: (error: unknown) => unknown | Promise<unknown>;
 }
 
 export interface AuthConfig {
@@ -396,7 +419,7 @@ export interface OptimisticUpdateConfig<TData, TVariables> {
 
 export interface QueryUpdateConfig<TData, TVariables> {
   queryKey: string;
-  updater: (previous: any, variables: TVariables, response: TData) => any;
+  updater: (previous: unknown, variables: TVariables, response: TData) => unknown;
 }
 
 export interface RefetchOptions {
@@ -412,16 +435,16 @@ export interface MutateOptions<TData, TError, TVariables, TContext> {
 
 export interface InfiniteData<TData> {
   pages: TData[];
-  pageParams: any[];
+  pageParams: unknown[];
 }
 
 export interface FetchNextPageOptions {
-  pageParam?: any;
+  pageParam?: unknown;
   throwOnError?: boolean;
 }
 
 export interface FetchPreviousPageOptions {
-  pageParam?: any;
+  pageParam?: unknown;
   throwOnError?: boolean;
 }
 
@@ -438,12 +461,12 @@ export interface SubscriptionOptions {
 export interface ApiClient {
   defaults: RequestConfig;
   interceptors: ApiInterceptors;
-  request: <T = any>(config: RequestConfig) => Promise<T>;
-  get: <T = any>(url: string, config?: RequestConfig) => Promise<T>;
-  post: <T = any>(url: string, data?: any, config?: RequestConfig) => Promise<T>;
-  put: <T = any>(url: string, data?: any, config?: RequestConfig) => Promise<T>;
-  patch: <T = any>(url: string, data?: any, config?: RequestConfig) => Promise<T>;
-  delete: <T = any>(url: string, config?: RequestConfig) => Promise<T>;
+  request: <T = unknown>(config: RequestConfig) => Promise<T>;
+  get: <T = unknown>(url: string, config?: RequestConfig) => Promise<T>;
+  post: <T = unknown>(url: string, data?: unknown, config?: RequestConfig) => Promise<T>;
+  put: <T = unknown>(url: string, data?: unknown, config?: RequestConfig) => Promise<T>;
+  patch: <T = unknown>(url: string, data?: unknown, config?: RequestConfig) => Promise<T>;
+  delete: <T = unknown>(url: string, config?: RequestConfig) => Promise<T>;
 }
 
 export interface RequestConfig {
@@ -451,8 +474,8 @@ export interface RequestConfig {
   method?: HttpMethod;
   baseURL?: string;
   headers?: Record<string, string>;
-  params?: any;
-  data?: any;
+  params?: unknown;
+  data?: unknown;
   timeout?: number;
   withCredentials?: boolean;
   auth?: AuthCredentials;
@@ -460,8 +483,8 @@ export interface RequestConfig {
   signal?: AbortSignal;
   onUploadProgress?: (progressEvent: ProgressEvent) => void;
   onDownloadProgress?: (progressEvent: ProgressEvent) => void;
-  transformRequest?: (data: any, headers: Record<string, string>) => any;
-  transformResponse?: (data: any) => any;
+  transformRequest?: (data: unknown, headers: Record<string, string>) => unknown;
+  transformResponse?: (data: unknown) => unknown;
   validateStatus?: (status: number) => boolean;
 }
 
@@ -480,15 +503,15 @@ export interface BatchRequest {
   id?: string;
   url: string;
   method?: HttpMethod;
-  data?: any;
+  data?: unknown;
   headers?: Record<string, string>;
-  params?: any;
+  params?: unknown;
 }
 
 export interface BatchRequestResult {
   id?: string;
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: Error;
   status?: number;
   headers?: Record<string, string>;
@@ -506,7 +529,7 @@ export interface UploadFile {
   status: UploadStatus;
   progress: number;
   error?: Error;
-  result?: any;
+  result?: unknown;
   url?: string;
 }
 
@@ -521,7 +544,7 @@ export interface UploadProgress {
 export interface UploadResult {
   id: string;
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: Error;
   url?: string;
 }
@@ -546,7 +569,7 @@ export interface CacheSerializer<T> {
 }
 
 export interface ApiState {
-  data?: any;
+  data?: unknown;
   error?: Error;
   loading: boolean;
   success: boolean;
@@ -556,8 +579,8 @@ export interface ApiState {
 export interface Interceptor {
   id: string;
   type: 'request' | 'response';
-  handler: (value: any) => any | Promise<any>;
-  errorHandler?: (error: any) => any | Promise<any>;
+  handler: (value: unknown) => unknown | Promise<unknown>;
+  errorHandler?: (error: unknown) => unknown | Promise<unknown>;
 }
 
 export interface AuthCredentials {

@@ -22,7 +22,7 @@ interface LazyLoadingContextType {
   getCacheEffectiveness: () => number;
 }
 
-const LazyLoadingContext = createContext<LazyLoadingContextType | null>(null);
+export const LazyLoadingContext = createContext<LazyLoadingContextType | null>(null);
 
 interface LazyLoadingProviderProps {
   children: React.ReactNode;
@@ -104,10 +104,3 @@ export const LazyLoadingProvider: React.FC<LazyLoadingProviderProps> = ({
   );
 };
 
-export const useLazyLoading = () => {
-  const context = useContext(LazyLoadingContext);
-  if (!context) {
-    throw new Error('useLazyLoading must be used within a LazyLoadingProvider');
-  }
-  return context;
-};

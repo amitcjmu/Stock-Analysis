@@ -53,7 +53,7 @@ async function validateApiCall(page: Page, expectedStatus: number = 200) {
 }
 
 // Helper function to validate database state via API
-async function validateDatabaseState(page: Page, endpoint: string, validator: (data: any) => boolean, token?: string) {
+async function validateDatabaseState(page: Page, endpoint: string, validator: (data: unknown) => boolean, token?: string) {
   const finalToken = token || await page.evaluate(() => localStorage.getItem('token'));
 
   const response = await page.evaluate(async ({ url, authToken }) => {

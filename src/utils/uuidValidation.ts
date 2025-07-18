@@ -39,19 +39,41 @@ export function validateUUID(value: string, context: string = 'UUID'): Validated
 }
 
 /**
+ * Source object interface for flow ID extraction
+ */
+interface FlowIdSource {
+  flow_id?: string;
+  flowId?: string;
+  id?: string;
+}
+
+/**
+ * Type guard for flow ID source objects
+ */
+function isFlowIdSource(source: unknown): source is FlowIdSource {
+  return (
+    typeof source === 'object' &&
+    source !== null &&
+    ('flow_id' in source || 'flowId' in source || 'id' in source)
+  );
+}
+
+/**
  * Safely extracts flow ID from various possible sources with validation
  */
 export function extractFlowId(
-  source: { flow_id?: string; flowId?: string; id?: string } | string,
+  source: FlowIdSource | string,
   context: string = 'Flow ID'
 ): ValidatedUUID {
   let flowId: string;
   
   if (typeof source === 'string') {
     flowId = source;
-  } else {
+  } else if (isFlowIdSource(source)) {
     // Try different possible field names
     flowId = source.flow_id || source.flowId || source.id || '';
+  } else {
+    throw new Error(`${context}: Invalid source type`);
   }
   
   return validateUUID(flowId, context);
@@ -80,14 +102,46 @@ export function createDisplaySafeUUID(uuid: ValidatedUUID, options: {
 }
 
 /**
- * Deep validation for flow objects to ensure ID integrity
+ * Flow object interface for validation
  */
-export function validateFlowObject(flow: any, context: string = 'Flow object'): {
+interface FlowObject extends FlowIdSource {
+  master_flow_id?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Type guard for flow objects
+ */
+function isFlowObject(obj: unknown): obj is FlowObject {
+  return typeof obj === 'object' && obj !== null && isFlowIdSource(obj);
+}
+
+/**
+ * Flow validation result interface
+ */
+interface FlowValidationResult {
   flow_id: ValidatedUUID;
   validated: boolean;
   issues: string[];
-} {
+}
+
+/**
+ * Deep validation for flow objects to ensure ID integrity
+ */
+export function validateFlowObject(
+  flow: unknown,
+  context: string = 'Flow object'
+): FlowValidationResult {
   const issues: string[] = [];
+  
+  if (!isFlowObject(flow)) {
+    issues.push(`${context}: Invalid flow object structure`);
+    return {
+      flow_id: '' as ValidatedUUID,
+      validated: false,
+      issues
+    };
+  }
   
   try {
     const flow_id = extractFlowId(flow, `${context} flow_id`);
@@ -98,7 +152,8 @@ export function validateFlowObject(flow: any, context: string = 'Flow object'): 
       try {
         validateUUID(flow.master_flow_id, `${context} master_flow_id`);
       } catch (error) {
-        issues.push(`Invalid master_flow_id: ${error.message}`);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        issues.push(`Invalid master_flow_id: ${errorMessage}`);
       }
     }
     
@@ -108,7 +163,8 @@ export function validateFlowObject(flow: any, context: string = 'Flow object'): 
       issues
     };
   } catch (error) {
-    issues.push(`Flow ID validation failed: ${error.message}`);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    issues.push(`Flow ID validation failed: ${errorMessage}`);
     
     return {
       flow_id: '' as ValidatedUUID,
@@ -119,26 +175,46 @@ export function validateFlowObject(flow: any, context: string = 'Flow object'): 
 }
 
 /**
+ * Batch validation interfaces
+ */
+interface ValidFlowResult {
+  flow_id: ValidatedUUID;
+  original: FlowObject;
+}
+
+interface InvalidFlowResult {
+  issues: string[];
+  original: unknown;
+}
+
+interface FlowBatchSummary {
+  total: number;
+  valid: number;
+  invalid: number;
+  issues: string[];
+}
+
+interface FlowBatchValidationResult {
+  validFlows: ValidFlowResult[];
+  invalidFlows: InvalidFlowResult[];
+  summary: FlowBatchSummary;
+}
+
+/**
  * Batch validation for multiple flows
  */
-export function validateFlowBatch(flows: any[], context: string = 'Flow batch'): {
-  validFlows: Array<{ flow_id: ValidatedUUID; original: any }>;
-  invalidFlows: Array<{ issues: string[]; original: any }>;
-  summary: {
-    total: number;
-    valid: number;
-    invalid: number;
-    issues: string[];
-  };
-} {
-  const validFlows: Array<{ flow_id: ValidatedUUID; original: any }> = [];
-  const invalidFlows: Array<{ issues: string[]; original: any }> = [];
+export function validateFlowBatch(
+  flows: unknown[],
+  context: string = 'Flow batch'
+): FlowBatchValidationResult {
+  const validFlows: ValidFlowResult[] = [];
+  const invalidFlows: InvalidFlowResult[] = [];
   const allIssues: string[] = [];
   
   flows.forEach((flow, index) => {
     const validation = validateFlowObject(flow, `${context}[${index}]`);
     
-    if (validation.validated) {
+    if (validation.validated && isFlowObject(flow)) {
       validFlows.push({
         flow_id: validation.flow_id,
         original: flow
