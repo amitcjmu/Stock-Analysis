@@ -37,14 +37,21 @@ target_metadata = Base.metadata
 
 def get_url():
     """Get database URL from environment variables or config."""
-    # Try to get from environment variables first
+    # First try to get Railway's DATABASE_URL
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        # Ensure it uses asyncpg driver for migrations
+        if database_url.startswith("postgresql://"):
+            database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return database_url
+    
+    # Fallback to individual environment variables for local development
     db_user = os.getenv("POSTGRES_USER", "postgres")
     db_password = os.getenv("POSTGRES_PASSWORD", "postgres")
     db_host = os.getenv("POSTGRES_HOST", "postgres")
     db_port = os.getenv("POSTGRES_PORT", "5432")
     db_name = os.getenv("POSTGRES_DB", "migration_db")
     
-    # Use asyncpg driver to match the application
     return f"postgresql+asyncpg://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
 
