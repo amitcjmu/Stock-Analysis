@@ -64,12 +64,18 @@ class CrewCoordinator:
         # Prepare agent context
         agent_context = self._prepare_agent_context(phase_name, context_data)
         
-        # Execute with timeout
+        # Execute with optional timeout (None means no timeout for agentic activities)
         try:
-            result = await asyncio.wait_for(
-                self._execute_agent(agent_name, input_data, agent_context),
-                timeout=self.agent_timeout
-            )
+            if self.agent_timeout is not None:
+                result = await asyncio.wait_for(
+                    self._execute_agent(agent_name, input_data, agent_context),
+                    timeout=self.agent_timeout
+                )
+            else:
+                # No timeout for agentic activities
+                logger.info(f"🔄 Agent '{agent_name}' executing without timeout (agentic activity)")
+                result = await self._execute_agent(agent_name, input_data, agent_context)
+            
             logger.info(f"✅ Agent '{agent_name}' completed successfully")
             return result
             

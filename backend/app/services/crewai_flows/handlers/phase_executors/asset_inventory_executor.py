@@ -226,15 +226,79 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 from app.services.discovery_flow_service.managers.asset_manager import AssetManager
                 asset_manager = AssetManager(db, context)
                 
+                # Get existing asset identifiers to prevent duplicates
+                from sqlalchemy import select
+                from app.models.asset import Asset
+                existing_assets_query = select(Asset.name, Asset.hostname, Asset.ip_address).where(
+                    Asset.client_account_id == context.client_account_id,
+                    Asset.engagement_id == context.engagement_id
+                )
+                existing_assets_result = await db.execute(existing_assets_query)
+                existing_assets = existing_assets_result.fetchall()
+                existing_names = {row[0] for row in existing_assets if row[0]}
+                existing_hostnames = {row[1] for row in existing_assets if row[1]}
+                existing_ips = {row[2] for row in existing_assets if row[2]}
+                
+                logger.info(f"📋 Found {len(existing_names)} existing asset names, {len(existing_hostnames)} hostnames, {len(existing_ips)} IPs in database")
+                
                 # Prepare asset data for persistence using field mappings
                 asset_data_list = []
-                for asset in all_assets:
+                seen_names = set(existing_names)  # Start with existing names from database
+                seen_hostnames = set(existing_hostnames)  # Track hostnames
+                seen_ips = set(existing_ips)  # Track IP addresses
+                
+                for idx, asset in enumerate(all_assets):
                     # Transform raw asset data using field mappings
+                    # Generate unique name if asset name is not available
+                    asset_name = self._get_mapped_value(asset, 'asset_name')
+                    if not asset_name or asset_name.strip() == '':
+                        # Create unique name based on asset type, hostname, or IP
+                        asset_type = self._determine_asset_type(asset)
+                        hostname = self._get_mapped_value(asset, 'hostname')
+                        ip_address = self._get_mapped_value(asset, 'ip_address')
+                        
+                        # Try to create a meaningful name using available identifiers
+                        if hostname:
+                            asset_name = f"{hostname}-{asset_type}"
+                        elif ip_address:
+                            asset_name = f"{ip_address}-{asset_type}"
+                        else:
+                            # Last resort: use timestamp to ensure uniqueness
+                            import time
+                            timestamp = int(time.time() * 1000)  # milliseconds
+                            asset_name = f"{asset_type.title()}-{timestamp}-{idx + 1}"
+                    
+                    # Ensure unique names by adding suffix if needed (check against both existing DB names and current batch)
+                    original_name = asset_name
+                    counter = 1
+                    while asset_name in seen_names:
+                        asset_name = f"{original_name}-{counter}"
+                        counter += 1
+                    seen_names.add(asset_name)
+                    
+                    # Also check for hostname conflicts and skip if duplicate
+                    hostname = self._get_mapped_value(asset, 'hostname')
+                    if hostname and hostname in seen_hostnames:
+                        logger.warning(f"⚠️ Skipping asset {idx + 1} - hostname '{hostname}' already exists")
+                        continue
+                    elif hostname:
+                        seen_hostnames.add(hostname)
+                    
+                    # Also check for IP conflicts and skip if duplicate
+                    ip_address = self._get_mapped_value(asset, 'ip_address')
+                    if ip_address and ip_address in seen_ips:
+                        logger.warning(f"⚠️ Skipping asset {idx + 1} - IP address '{ip_address}' already exists")
+                        continue
+                    elif ip_address:
+                        seen_ips.add(ip_address)
+                    
+                    logger.debug(f"🏷️ Asset {idx + 1}: original_name='{original_name}', final_name='{asset_name}', hostname='{hostname}', ip='{ip_address}'")
+                    
                     asset_data = {
-                        'name': self._get_mapped_value(asset, 'asset_name') or 'Unknown Asset',
+                        'name': asset_name,
                         'type': self._determine_asset_type(asset),
-                        'hostname': self._get_mapped_value(asset, 'hostname'),
-                        'ip_address': self._get_mapped_value(asset, 'ip_address'),
+                        'hostname': hostname,
+                        'ip_address': ip_address,
                         'operating_system': self._get_mapped_value(asset, 'operating_system'),
                         'environment': self._get_mapped_value(asset, 'environment') or 'production',
                         'criticality': self._get_mapped_value(asset, 'criticality') or 'medium',
@@ -251,7 +315,8 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                         'raw_data': asset,  # Store original data
                         'field_mappings_used': getattr(self.state, 'field_mappings', {}),
                         'normalized_data': {  # Normalized data using field mappings
-                            'hostname': self._get_mapped_value(asset, 'hostname'),
+                            'hostname': hostname,
+                            'ip_address': ip_address,
                             'operating_system': self._get_mapped_value(asset, 'operating_system'),
                             'environment': self._get_mapped_value(asset, 'environment') or 'production',
                             'criticality': self._get_mapped_value(asset, 'criticality') or 'medium',

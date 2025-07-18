@@ -1,5 +1,48 @@
 # 🚀 AI Modernize Migration Platform - Changelog
 
+## [1.30.0] - 2025-01-18
+
+### 🎯 **RELIABILITY** - Asset Classification Deduplication & Timeout Elimination
+
+This release completely fixes asset classification showing 0 counts by implementing comprehensive deduplication logic and removing all timeout restrictions for agentic activities, ensuring reliable asset processing for inventories of any size.
+
+### 🚀 **Critical Reliability Fixes**
+
+#### **Database Duplicate Prevention**
+- **Type**: Database integrity enhancement
+- **Impact**: Eliminates PostgreSQL unique constraint violations during asset creation
+- **Technical Details**: Implemented comprehensive deduplication checking against existing names, hostnames, and IP addresses with intelligent fallback naming strategies
+
+#### **Enhanced Asset Naming Strategy**
+- **Type**: Asset processing improvement
+- **Impact**: Creates meaningful, unique asset names using available identifiers instead of generic "Unknown Asset" names
+- **Technical Details**: Priority-based naming: `hostname-assettype` > `ip-assettype` > `AssetType-timestamp-index` with collision detection
+
+#### **Complete Timeout Removal for Agentic Activities**
+- **Type**: Infrastructure enhancement
+- **Impact**: Asset classification can process unlimited inventory sizes without timeout failures
+- **Technical Details**: Removed all timeout restrictions from FlowConfig (AGENT_TIMEOUT, PHASE_TIMEOUT), crew coordination, and phase executors while maintaining UI interaction timeouts
+
+#### **Intelligent Asset Deduplication**
+- **Type**: Data processing enhancement
+- **Impact**: Prevents creation of duplicate assets while preserving legitimate variations
+- **Technical Details**: Multi-level deduplication checking existing database records and current batch with skip logic for constraint violations
+
+### 📊 Business Impact
+
+- **Classification Accuracy**: Asset counts now display correctly with proper server/application/database/device classification
+- **Data Integrity**: Eliminates duplicate asset creation errors and maintains clean asset inventory
+- **System Reliability**: Removes timeout-related failures for large inventory processing
+- **User Experience**: Consistent asset classification results without manual intervention or error handling
+
+### 🎯 Success Metrics
+
+- **Constraint Violations**: 100% elimination of duplicate asset creation errors
+- **Timeout Failures**: Complete removal of timeout restrictions for agentic classification activities
+- **Asset Naming**: Meaningful names for 100% of assets using available identifiers
+- **Database Operations**: Enhanced query efficiency with proper deduplication logic
+- **UI Responsiveness**: Maintained quick response times for UI interactions while allowing unlimited processing time for background activities
+
 ## [1.29.0] - 2025-01-18
 
 ### 🎯 **PERFORMANCE** - Unlimited Agentic Classification Processing

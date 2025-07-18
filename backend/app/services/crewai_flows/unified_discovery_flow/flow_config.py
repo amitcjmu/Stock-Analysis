@@ -66,9 +66,9 @@ class FlowConfig:
     DEFAULT_DATA_QUALITY_THRESHOLD = 0.90
     DEFAULT_BATCH_SIZE = 100
     
-    # Timeouts (in seconds)
-    PHASE_TIMEOUT = 3600  # 1 hour per phase
-    AGENT_TIMEOUT = 1800  # 30 minutes per agent
+    # Timeouts (in seconds) - None means no timeout for agentic activities
+    PHASE_TIMEOUT = None  # No timeout per phase for agentic activities
+    AGENT_TIMEOUT = None  # No timeout per agent for agentic activities
     
     # Retry configuration
     MAX_RETRIES = 3
@@ -79,33 +79,33 @@ class FlowConfig:
         """Get configuration for a specific phase"""
         phase_configs = {
             PhaseNames.DATA_IMPORT_VALIDATION: {
-                "timeout": 1800,
+                "timeout": None,  # No timeout for agentic activities
                 "retries": 2,
                 "validation_threshold": 0.95
             },
             PhaseNames.FIELD_MAPPING: {
-                "timeout": 2400,
+                "timeout": None,  # No timeout for agentic activities
                 "retries": 3,
                 "user_approval_required": True,
                 "confidence_threshold": cls.DEFAULT_CONFIDENCE_THRESHOLD
             },
             PhaseNames.DATA_CLEANSING: {
-                "timeout": 3600,
+                "timeout": None,  # No timeout for agentic activities
                 "retries": 2,
                 "quality_threshold": cls.DEFAULT_DATA_QUALITY_THRESHOLD
             },
             PhaseNames.ASSET_INVENTORY: {
-                "timeout": 3600,
+                "timeout": None,  # No timeout for agentic activities
                 "retries": 2,
                 "batch_size": cls.DEFAULT_BATCH_SIZE
             },
             PhaseNames.DEPENDENCY_ANALYSIS: {
-                "timeout": 2400,
+                "timeout": None,  # No timeout for agentic activities
                 "retries": 2,
                 "parallel": True
             },
             PhaseNames.TECH_DEBT_ASSESSMENT: {
-                "timeout": 2400,
+                "timeout": None,  # No timeout for agentic activities
                 "retries": 2,
                 "parallel": True
             }
@@ -119,6 +119,6 @@ class FlowConfig:
             "max_iterations": 10,
             "temperature": 0.7,
             "model": "gpt-4",
-            "timeout": cls.AGENT_TIMEOUT,
+            "timeout": cls.AGENT_TIMEOUT,  # None for agentic activities
             "retry_on_failure": True
         }
