@@ -3,6 +3,7 @@
  * Tests the React components with device classification and 6R readiness.
  */
 
+import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';

@@ -436,7 +436,8 @@ export const apiCall = async (
       const controller = new AbortController();
       const timeoutMs = options.timeout || (
         // Different timeouts for different operations
-        normalizedEndpoint.includes('/assets/list/paginated') ? 120000 : // 2 minutes for asset listing
+        normalizedEndpoint.includes('/assets/list/paginated') ? 360000 : // 6 minutes for asset listing with inventory processing
+        normalizedEndpoint.includes('/discovery/flow/run') ? 360000 : // 6 minutes for discovery flow execution
         normalizedEndpoint.includes('/assets/analyze') ? 300000 : // 5 minutes for AI analysis
         normalizedEndpoint.includes('/bulk') ? 180000 : // 3 minutes for bulk operations
         60000 // Default 1 minute

@@ -8,11 +8,13 @@ import { InventoryProgress } from '../types/inventory.types';
 interface ClassificationProgressProps {
   inventoryProgress: InventoryProgress;
   onRefresh?: () => void;
+  needsClassification?: boolean;
 }
 
 export const ClassificationProgress: React.FC<ClassificationProgressProps> = ({ 
   inventoryProgress, 
-  onRefresh 
+  onRefresh,
+  needsClassification = false
 }) => {
   const completionPercentage = Math.round(
     (inventoryProgress.classified_assets / inventoryProgress.total_assets) * 100
@@ -26,9 +28,14 @@ export const ClassificationProgress: React.FC<ClassificationProgressProps> = ({
           AI-Powered Classification Progress
         </CardTitle>
         {onRefresh && (
-          <Button variant="outline" size="sm" onClick={onRefresh}>
+          <Button 
+            variant={needsClassification ? "default" : "outline"} 
+            size="sm" 
+            onClick={onRefresh}
+            className={needsClassification ? "bg-orange-600 hover:bg-orange-700" : ""}
+          >
             <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
+            {needsClassification ? "Run Classification" : "Refresh"}
           </Button>
         )}
       </CardHeader>

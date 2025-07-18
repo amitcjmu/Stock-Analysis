@@ -21,7 +21,7 @@ class AssetInventoryExecutor(BasePhaseExecutor):
     
     def _get_phase_timeout(self) -> int:
         """Asset inventory needs more time for processing"""
-        return 120  # 2 minutes for asset processing
+        return 360  # 6 minutes for asset processing with no delegations
     
     async def execute_with_crew(self, crew_input: Dict[str, Any]) -> Dict[str, Any]:
         # Get required data for inventory crew
@@ -295,6 +295,13 @@ class AssetInventoryExecutor(BasePhaseExecutor):
     
     def _determine_asset_type(self, asset: Dict[str, Any]) -> str:
         """Determine asset type from asset data using field mappings"""
+        
+        # PRIORITY 0: Check if asset_type is already set by the crew
+        if 'asset_type' in asset and asset['asset_type']:
+            crew_asset_type = str(asset['asset_type']).lower()
+            if crew_asset_type in ['server', 'application', 'database', 'device']:
+                return crew_asset_type
+        
         # Use field mappings from the attribute mapping phase
         field_mappings = getattr(self.state, 'field_mappings', {})
         
@@ -311,10 +318,10 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             elif target_field == 'operating_system':
                 os_field = source_field
         
-        # Extract values using mapped fields
-        asset_type = asset.get(asset_type_field, '') if asset_type_field else ''
-        asset_name = asset.get(asset_name_field, '') if asset_name_field else ''
-        os_info = asset.get(os_field, '') if os_field else ''
+        # Extract values using mapped fields AND direct asset keys
+        asset_type = asset.get(asset_type_field, '') if asset_type_field else asset.get('asset_type', '')
+        asset_name = asset.get(asset_name_field, '') if asset_name_field else asset.get('asset_name', asset.get('name', ''))
+        os_info = asset.get(os_field, '') if os_field else asset.get('operating_system', asset.get('os', ''))
         
         # Convert to lowercase for comparison
         asset_type_lower = str(asset_type).lower()
@@ -357,8 +364,20 @@ class AssetInventoryExecutor(BasePhaseExecutor):
            any(keyword in asset_name_lower for keyword in ['userdb', 'orderdb', 'paymentdb']):
             return 'database'
         
-        # Default classification
-        return 'other'
+        # PRIORITY 6: All asset names as fallback - classify based on common patterns
+        all_asset_text = f"{asset_name_lower} {asset_type_lower} {os_info_lower}"
+        if any(keyword in all_asset_text for keyword in ['server', 'host', 'vm', 'linux', 'windows', 'ubuntu', 'centos']):
+            return 'server'
+        elif any(keyword in all_asset_text for keyword in ['app', 'web', 'api', 'service', 'ui', 'frontend', 'backend']):
+            return 'application'
+        elif any(keyword in all_asset_text for keyword in ['db', 'database', 'mysql', 'postgres', 'oracle', 'mongo']):
+            return 'database'
+        elif any(keyword in all_asset_text for keyword in ['network', 'router', 'switch', 'firewall', 'device']):
+            return 'device'
+        
+        # Default classification - classify as server if we can't determine
+        logger.warning(f"Unable to determine asset type for asset: {asset_name}, defaulting to 'server'")
+        return 'server'
     
     def _get_mapped_value(self, asset: Dict[str, Any], target_field: str) -> Any:
         """Get value from asset using field mappings"""

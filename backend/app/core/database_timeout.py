@@ -17,10 +17,12 @@ logger = logging.getLogger(__name__)
 # Timeout configurations for different operation types
 TIMEOUT_CONFIG = {
     "default": 60,          # Default 60 seconds
-    "asset_list": 120,      # 2 minutes for asset listing
+    "asset_list": 360,      # 6 minutes for asset listing with inventory processing
+    "asset_inventory": 360, # 6 minutes for inventory phase execution
     "asset_analysis": 300,  # 5 minutes for AI analysis
     "bulk_operations": 180, # 3 minutes for bulk operations
-    "report_generation": 240 # 4 minutes for reports
+    "report_generation": 240, # 4 minutes for reports
+    "discovery_flow": 360   # 6 minutes for discovery flow execution
 }
 
 async def get_db_with_timeout(timeout_seconds: Optional[int] = None, operation_type: str = "default") -> AsyncGenerator[AsyncSession, None]:

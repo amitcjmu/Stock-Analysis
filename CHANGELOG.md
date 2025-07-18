@@ -1,5 +1,47 @@
 # 🚀 AI Modernize Migration Platform - Changelog
 
+## [1.27.0] - 2025-01-18
+
+### 🎯 **ASSET CLASSIFICATION** - CrewAI Classification System Restoration
+
+This release fixes the critical asset classification issue where the inventory page was showing 0 counts for all asset types, restoring the full CrewAI-powered classification system and eliminating heuristic fallbacks.
+
+### 🚀 **Major Classification Fixes**
+
+#### **CrewAI Classification System Restoration**
+- **Type**: Critical system restoration
+- **Impact**: Asset classification now properly uses CrewAI inventory building crew instead of bypassing to heuristic fallbacks
+- **Technical Details**: Enhanced refresh button to trigger `executeFlowPhase('asset_inventory')` with full CrewAI processing pipeline
+
+#### **Smart Classification Detection**
+- **Type**: Intelligence enhancement
+- **Impact**: System automatically detects unclassified assets and triggers CrewAI processing
+- **Technical Details**: Added `needs_classification` flag in API response with auto-classification trigger logic
+
+#### **Enhanced Asset Type Classification Logic**
+- **Type**: Classification accuracy improvement
+- **Impact**: Improved classification accuracy from 0% to proper categorization of servers, applications, databases, and devices
+- **Technical Details**: Priority-based classification with crew-assigned types, enhanced pattern matching, and comprehensive fallback logic
+
+#### **Crew Task Instructions Enhancement**
+- **Type**: AI agent instruction optimization
+- **Impact**: Each expert agent now explicitly sets correct asset_type field during classification
+- **Technical Details**: Server Expert sets 'server', Application Expert sets 'application', Device Expert sets 'device' with mandatory field requirements
+
+### 📊 Business Impact
+
+- **Classification Accuracy**: Restored proper asset categorization showing actual counts instead of 0 across all categories
+- **User Experience**: Users can now see properly classified assets and manually trigger re-classification when needed
+- **System Reliability**: Eliminated heuristic bypasses that were masking classification failures
+- **Operational Efficiency**: Auto-detection and processing of unclassified assets reduces manual intervention
+
+### 🎯 Success Metrics
+
+- **Asset Classification**: Fixed 0-count display issue showing proper server/application/database/device counts
+- **CrewAI Integration**: Restored full CrewAI processing pipeline with no heuristic fallbacks
+- **UI Feedback**: Added visual indicators for classification status with smart refresh button
+- **Debug Visibility**: Comprehensive logging shows exact asset types and classification status
+
 ## [1.26.0] - 2025-01-17
 
 ### 🐛 **CRITICAL FIXES** - Railway Migration Timeout & Missing Tables

@@ -229,7 +229,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
                     onViewDetails={handleViewDetails}
                     onDeleteFlow={handleDeleteFlow}
                     onSetFlowStatus={setSelectedFlowForStatus}
-                    isDeleting={isDeleting}
+                    isDeleting={deletionState.isDeleting}
                   />
                 </div>
                 <div className="space-y-6">
@@ -252,7 +252,7 @@ const EnhancedDiscoveryDashboardContainer: React.FC = () => {
                 onViewDetails={handleViewDetails}
                 onDeleteFlow={handleDeleteFlow}
                 onSetFlowStatus={setSelectedFlowForStatus}
-                isDeleting={isDeleting}
+                isDeleting={deletionState.isDeleting}
               />
             </TabsContent>
 

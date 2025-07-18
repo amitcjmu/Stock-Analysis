@@ -146,11 +146,11 @@ class InventoryBuildingCrew:
             memory=self.shared_memory,
             knowledge_base=self.knowledge_base,
             verbose=True,
-            allow_delegation=True,
-            max_delegation=3,  # Set to 3 as requested
+            allow_delegation=False,  # Disabled to prevent back-and-forth delays
+            max_delegation=0,  # No delegations to speed up processing
             max_execution_time=300,  # 5 minute timeout
             max_retry=1,  # Prevent retry loops
-            collaboration=True  # Re-enabled for proper agent coordination
+            collaboration=False  # Disabled for faster processing
         )
         
         # Server Classification Expert - infrastructure domain specialist
@@ -208,9 +208,10 @@ class InventoryBuildingCrew:
             memory=self.shared_memory,
             knowledge_base=self.knowledge_base,
             verbose=True,
+            allow_delegation=False,  # Disabled to prevent back-and-forth
             max_execution_time=180,  # 3 minute timeout
             max_retry=1,  # Prevent retry loops
-            collaboration=True,  # Re-enabled for proper agent coordination
+            collaboration=False,  # Disabled to speed up processing
             tools=[]  # Tools will be added later
         )
         
@@ -225,9 +226,10 @@ class InventoryBuildingCrew:
             memory=self.shared_memory,
             knowledge_base=self.knowledge_base,
             verbose=True,
+            allow_delegation=False,  # Disabled to prevent back-and-forth
             max_execution_time=180,  # ADD: 3 minute timeout
             max_retry=1,  # ADD: Prevent retry loops
-            collaboration=True,  # Re-enabled for proper agent coordination
+            collaboration=False,  # Disabled to speed up processing
             tools=self._create_app_classification_tools()
         )
         
@@ -242,9 +244,10 @@ class InventoryBuildingCrew:
             memory=self.shared_memory,
             knowledge_base=self.knowledge_base,
             verbose=True,
+            allow_delegation=False,  # Disabled to prevent back-and-forth
             max_execution_time=180,  # ADD: 3 minute timeout
             max_retry=1,  # ADD: Prevent retry loops
-            collaboration=True,  # Re-enabled for proper agent coordination
+            collaboration=False,  # Disabled to speed up processing
             tools=self._create_device_classification_tools()
         )
         
@@ -270,24 +273,33 @@ class InventoryBuildingCrew:
         # Step 2: Parallel Classification Tasks
         # These tasks depend on the triage_task and run in parallel.
         server_classification_task = Task(
-            description="Perform a detailed classification of the server assets provided. Identify OS, function, and virtual/physical status.",
-            expected_output="A JSON list of fully classified server assets with detailed attributes.",
+            description="""Perform a detailed classification of the server assets provided. Identify OS, function, and virtual/physical status.
+            
+            CRITICAL: Each asset in your output MUST have an 'asset_type' field set to exactly 'server'. 
+            Add this field to each asset record if it doesn't exist.""",
+            expected_output="A JSON list of fully classified server assets with detailed attributes. Each asset MUST have asset_type: 'server'.",
             agent=server_expert,
             context=[triage_task],  # Depends on the output of the triage task
             async_execution=True
         )
 
         app_classification_task = Task(
-            description="Perform a detailed classification of the application assets provided. Identify version, type, and business context.",
-            expected_output="A JSON list of fully classified application assets with detailed attributes.",
+            description="""Perform a detailed classification of the application assets provided. Identify version, type, and business context.
+            
+            CRITICAL: Each asset in your output MUST have an 'asset_type' field set to exactly 'application'. 
+            Add this field to each asset record if it doesn't exist.""",
+            expected_output="A JSON list of fully classified application assets with detailed attributes. Each asset MUST have asset_type: 'application'.",
             agent=app_expert,
             context=[triage_task],
             async_execution=True
         )
 
         device_classification_task = Task(
-            description="Perform a detailed classification of the device assets provided. Identify device type and network role.",
-            expected_output="A JSON list of fully classified device assets with detailed attributes.",
+            description="""Perform a detailed classification of the device assets provided. Identify device type and network role.
+            
+            CRITICAL: Each asset in your output MUST have an 'asset_type' field set to exactly 'device'. 
+            Add this field to each asset record if it doesn't exist.""",
+            expected_output="A JSON list of fully classified device assets with detailed attributes. Each asset MUST have asset_type: 'device'.",
             agent=device_expert,
             context=[triage_task],
             async_execution=True

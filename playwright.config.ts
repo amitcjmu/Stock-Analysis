@@ -63,5 +63,6 @@ export default defineConfig({
       port: 8000,
       timeout: 120 * 1000,
       reuseExistingServer: true,
-    }
+    },
+  ],
 });

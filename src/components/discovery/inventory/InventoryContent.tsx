@@ -57,6 +57,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   const [selectedColumns, setSelectedColumns] = useState(DEFAULT_COLUMNS);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasTriggeredInventory, setHasTriggeredInventory] = useState(false);
+  const [needsClassification, setNeedsClassification] = useState(false);
 
   // Get assets data - fetch from API endpoint that returns all assets for the client/engagement
   const { data: assetsData, isLoading: assetsLoading, refetch: refetchAssets } = useQuery({
@@ -79,6 +80,32 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
         
         if (response && response.assets && response.assets.length > 0) {
           console.log('📊 Assets from API:', response.assets.length);
+          console.log('📊 Assets need classification:', response.needs_classification);
+          
+          // Update classification state
+          setNeedsClassification(response.needs_classification || false);
+          
+          // Auto-trigger classification if needed
+          if (response.needs_classification && !hasTriggeredInventory) {
+            console.log('🚨 Assets need classification - triggering CrewAI processing');
+            setTimeout(() => {
+              setHasTriggeredInventory(true);
+              executeFlowPhase('asset_inventory', {
+                trigger: 'auto_classification',
+                source: 'api_detected_unclassified_assets'
+              }).then(() => {
+                console.log('✅ Auto-classification triggered');
+                setTimeout(() => {
+                  refetchAssets();
+                  refreshFlow();
+                }, 3000);
+              }).catch(error => {
+                console.error('❌ Auto-classification failed:', error);
+                setHasTriggeredInventory(false);
+              });
+            }, 1000);
+          }
+          
           // Transform API assets to match expected format
           return response.assets.map((asset: any) => ({
             id: asset.id,
@@ -171,48 +198,81 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     exportAssets(filteredAssets, selectedColumns);
   };
 
-  // Auto-execute asset inventory phase if conditions are met
-  useEffect(() => {
-    // Check if we have raw data but no assets
-    const hasRawData = flow && flow.raw_data && flow.raw_data.length > 0;
-    const hasNoAssets = assets.length === 0;
-    const notExecuting = !isExecutingPhase;
-    const notTriggered = !hasTriggeredInventory;
-    
-    // Log the conditions for debugging
-    console.log('🔍 Auto-execute conditions:', {
-      hasRawData,
-      rawDataCount: flow?.raw_data?.length || 0,
-      hasNoAssets,
-      notExecuting,
-      notTriggered,
-      currentPhase: flow?.current_phase,
-      phaseCompletion: flow?.phase_completion
-    });
-
-    const shouldAutoExecute = hasRawData && hasNoAssets && notExecuting && notTriggered;
-
-    if (shouldAutoExecute) {
-      console.log('🚀 Auto-executing asset inventory phase...');
-      setHasTriggeredInventory(true);
-      executeFlowPhase('asset_inventory', {
-        trigger: 'auto',
-        source: 'inventory_page_load'
-      }).then(() => {
-        console.log('✅ Asset inventory phase execution initiated');
-        // Refetch after a delay
-        setTimeout(() => {
-          refetchAssets();
-          refreshFlow();
-        }, 3000);
-      }).catch(error => {
-        console.error('❌ Failed to auto-execute asset inventory phase:', error);
-        
-        // Reset for retry on any error since we fixed the endpoint authentication issue
-        console.warn('🔄 Phase execution failed, will allow retry');
-        setHasTriggeredInventory(false);
+  // Enhanced refresh function that triggers CrewAI classification
+  const handleRefreshClassification = async () => {
+    try {
+      console.log('🔄 Refreshing asset classification with CrewAI...');
+      
+      // Re-execute the asset inventory phase to trigger CrewAI classification
+      await executeFlowPhase('asset_inventory', {
+        trigger: 'manual_refresh',
+        source: 'inventory_classification_refresh'
       });
+      
+      console.log('✅ Asset inventory phase re-executed');
+      
+      // Refetch assets after phase execution
+      setTimeout(() => {
+        refetchAssets();
+        refreshFlow();
+      }, 3000);
+      
+    } catch (error) {
+      console.error('❌ Failed to refresh asset classification:', error);
+      // Fallback to just refetching assets
+      refetchAssets();
     }
+  };
+
+  // Auto-execute asset inventory phase if conditions are met
+  // Delay execution to ensure page has rendered first
+  useEffect(() => {
+    // Use setTimeout to delay execution until after page render
+    const timeoutId = setTimeout(() => {
+      // Check if we have raw data but no assets
+      const hasRawData = flow && flow.raw_data && flow.raw_data.length > 0;
+      const hasNoAssets = assets.length === 0;
+      const notExecuting = !isExecutingPhase;
+      const notTriggered = !hasTriggeredInventory;
+      
+      // Log the conditions for debugging
+      console.log('🔍 Auto-execute conditions (post-render):', {
+        hasRawData,
+        rawDataCount: flow?.raw_data?.length || 0,
+        hasNoAssets,
+        notExecuting,
+        notTriggered,
+        currentPhase: flow?.current_phase,
+        phaseCompletion: flow?.phase_completion
+      });
+
+      const shouldAutoExecute = hasRawData && hasNoAssets && notExecuting && notTriggered;
+
+      if (shouldAutoExecute) {
+        console.log('🚀 Auto-executing asset inventory phase (post-render)...');
+        setHasTriggeredInventory(true);
+        executeFlowPhase('asset_inventory', {
+          trigger: 'auto',
+          source: 'inventory_page_load_post_render'
+        }).then(() => {
+          console.log('✅ Asset inventory phase execution initiated');
+          // Refetch after a delay
+          setTimeout(() => {
+            refetchAssets();
+            refreshFlow();
+          }, 3000);
+        }).catch(error => {
+          console.error('❌ Failed to auto-execute asset inventory phase:', error);
+          
+          // Reset for retry on any error since we fixed the endpoint authentication issue
+          console.warn('🔄 Phase execution failed, will allow retry');
+          setHasTriggeredInventory(false);
+        });
+      }
+    }, 1500); // 1.5 second delay to ensure page is fully rendered
+
+    // Cleanup timeout on unmount
+    return () => clearTimeout(timeoutId);
   }, [flow, isExecutingPhase, hasTriggeredInventory, assets.length, executeFlowPhase, refetchAssets, refreshFlow]);
 
   // No phase-based restrictions - inventory should be accessible at any time
@@ -226,8 +286,15 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
         </div>
         {isExecutingPhase && (
           <div className="text-center text-gray-600 mt-4">
-            <p>Executing asset inventory phase...</p>
-            <p className="text-sm">This may take a few moments.</p>
+            <p className="font-medium">Processing asset inventory...</p>
+            <p className="text-sm mt-2">The AI agents are analyzing and classifying your assets.</p>
+            <p className="text-sm">This process may take up to 6 minutes for large inventories.</p>
+            <div className="mt-4">
+              <div className="inline-flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                <span className="text-sm text-gray-500">Processing in background...</span>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -243,49 +310,70 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
       flow.current_phase !== 'asset_inventory' &&
       !isExecutingPhase;
 
+    // Check if inventory processing might be starting soon
+    const mightStartProcessing = flow && flow.raw_data && flow.raw_data.length > 0 && !hasTriggeredInventory;
+
     return (
       <div className={`space-y-6 ${className}`}>
         <Card>
           <CardContent className="p-8">
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Assets Found</h3>
-              <p className="text-gray-600 mb-4">
-                {flow ? 
-                  "The asset inventory will be populated once the inventory phase is executed." :
-                  "No assets have been discovered yet for this client and engagement."
-                }
-              </p>
-              <p className="text-sm text-gray-500">
-                Assets are created during the discovery flow process or can be imported directly.
-              </p>
-              {shouldExecuteInventoryPhase && (
-                <div className="mt-6">
-                  <p className="text-sm text-gray-600 mb-4">
-                    Data cleansing is complete. Click below to create the asset inventory.
+              {mightStartProcessing ? (
+                <>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Preparing Asset Inventory</h3>
+                  <p className="text-gray-600 mb-4">
+                    The system is preparing to process your asset inventory.
                   </p>
-                  <button
-                    onClick={async () => {
-                      try {
-                        console.log('📦 Executing asset inventory phase...');
-                        await executeFlowPhase('asset_inventory', {
-                          trigger: 'user_initiated',
-                          source: 'inventory_page'
-                        });
-                        // Refetch assets after execution
-                        setTimeout(() => {
-                          refetchAssets();
-                          refreshFlow();
-                        }, 2000);
-                      } catch (error) {
-                        console.error('Failed to execute asset inventory phase:', error);
-                      }
-                    }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled={isExecutingPhase}
-                  >
-                    Create Asset Inventory
-                  </button>
-                </div>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Processing will begin automatically in a moment...
+                  </p>
+                  <div className="inline-flex items-center">
+                    <div className="animate-pulse rounded-full h-3 w-3 bg-blue-600 mr-2"></div>
+                    <span className="text-sm text-gray-500">Initializing...</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Assets Found</h3>
+                  <p className="text-gray-600 mb-4">
+                    {flow ? 
+                      "The asset inventory will be populated once the inventory phase is executed." :
+                      "No assets have been discovered yet for this client and engagement."
+                    }
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Assets are created during the discovery flow process or can be imported directly.
+                  </p>
+                  {shouldExecuteInventoryPhase && (
+                    <div className="mt-6">
+                      <p className="text-sm text-gray-600 mb-4">
+                        Data cleansing is complete. Click below to create the asset inventory.
+                      </p>
+                      <button
+                        onClick={async () => {
+                          try {
+                            console.log('📦 Executing asset inventory phase...');
+                            await executeFlowPhase('asset_inventory', {
+                              trigger: 'user_initiated',
+                              source: 'inventory_page'
+                            });
+                            // Refetch assets after execution
+                            setTimeout(() => {
+                              refetchAssets();
+                              refreshFlow();
+                            }, 2000);
+                          } catch (error) {
+                            console.error('Failed to execute asset inventory phase:', error);
+                          }
+                        }}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        disabled={isExecutingPhase}
+                      >
+                        Create Asset Inventory
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </CardContent>
@@ -307,7 +395,8 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
           <InventoryOverview inventoryProgress={inventoryProgress} />
           <ClassificationProgress 
             inventoryProgress={inventoryProgress} 
-            onRefresh={refetchAssets}
+            onRefresh={handleRefreshClassification}
+            needsClassification={needsClassification}
           />
           <ClassificationCards
             inventoryProgress={inventoryProgress}
