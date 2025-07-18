@@ -57,11 +57,13 @@ async def bootstrap_migration_state():
     
     async with engine.begin() as conn:
         # Drop all existing tables for clean slate
-        await conn.execute(text('DROP SCHEMA public CASCADE'))
+        await conn.execute(text('DROP SCHEMA IF EXISTS public CASCADE'))
         await conn.execute(text('CREATE SCHEMA public'))
         
-        # Create clean alembic_version table
-        await conn.execute(text('CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL, CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))'))
+        # Drop migration schema if it exists
+        await conn.execute(text('DROP SCHEMA IF EXISTS migration CASCADE'))
+        await conn.execute(text('CREATE SCHEMA migration'))
+        
         print('✅ Clean migration state bootstrapped')
         
     await engine.dispose()
@@ -71,10 +73,63 @@ asyncio.run(bootstrap_migration_state())
 
 # Run Alembic migrations from clean state
 echo "🔄 Running Alembic migrations from clean state..."
+
+# Follow Alembic best practices for squashed migrations
+echo "🔄 Running Alembic migrations using best practices..."
+
+# The key insight: Let Alembic handle everything after clean bootstrap
+# Our comprehensive migration has down_revision = None, so it should work cleanly
 if python -m alembic upgrade head; then
     echo "✅ Alembic migrations completed successfully!"
 else
-    echo "❌ Alembic migration failed, but continuing..."
+    echo "❌ Alembic migration failed. Attempting recovery..."
+    
+    # Recovery: Use stamp then upgrade approach
+    echo "🔄 Attempting recovery with stamp approach..."
+    if python -m alembic stamp base; then
+        echo "✅ Stamped to base revision"
+        if python -m alembic upgrade head; then
+            echo "✅ Upgrade successful after stamp!"
+        else
+            echo "❌ Upgrade still failed. Using direct schema creation as fallback..."
+            
+            # Final fallback: Direct schema creation
+            python -c "
+import os
+import asyncio
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import create_async_engine
+
+async def create_schema_directly():
+    database_url = os.getenv('DATABASE_URL', '')
+    if database_url.startswith('postgresql://'):
+        database_url = database_url.replace('postgresql://', 'postgresql+asyncpg://', 1)
+    
+    engine = create_async_engine(database_url)
+    
+    async with engine.begin() as conn:
+        # Create the comprehensive schema using the Base.metadata
+        import sys
+        sys.path.append('.')
+        from app.core.database import Base
+        
+        # Create all tables
+        await conn.run_sync(Base.metadata.create_all)
+        
+        print('✅ Schema created directly from SQLAlchemy metadata!')
+        
+    await engine.dispose()
+
+asyncio.run(create_schema_directly())
+"
+            
+            # Let Alembic manage its own version table
+            echo "🔄 Letting Alembic manage version state..."
+            python -m alembic stamp head
+        fi
+    else
+        echo "❌ Failed to stamp base revision"
+    fi
 fi
 
 # Initialize database with default users and data
