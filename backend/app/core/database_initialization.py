@@ -273,8 +273,7 @@ class DatabaseInitializer:
                     user_id=admin_id,
                     client_account_id=any_client.id,
                     role="platform_admin",
-                    created_at=datetime.now(timezone.utc),
-                    updated_at=datetime.now(timezone.utc)
+                    created_at=datetime.now(timezone.utc)
                 )
                 self.db.add(association)
                 logger.info(f"Created platform admin association with client: {any_client.name}")
@@ -484,8 +483,7 @@ class DatabaseInitializer:
                 user_id=self.requirements.DEMO_USER_ID,
                 client_account_id=client_id,
                 role="analyst",
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc)
+                created_at=datetime.now(timezone.utc)
             )
             self.db.add(association)
             logger.info(f"Created user association for primary demo user")
@@ -680,8 +678,7 @@ class DatabaseInitializer:
                 user_id=user_id,
                 client_account_id=client_id,
                 role=user_data["role"].value.lower(),
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc)
+                created_at=datetime.now(timezone.utc)
             )
             self.db.add(association)
             logger.info(f"Created user association for {user.email} with role {user_data['role'].value}")

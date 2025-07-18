@@ -336,7 +336,7 @@ async def get_flow_data_cleansing(
         from app.api.v1.endpoints.data_cleansing import get_data_cleansing_analysis
         
         # Create a mock current user for compatibility (will be properly handled by auth middleware)
-        from app.models.user import User
+        from app.models.client_account import User
         mock_user = User(id=context.user_id, email="system@example.com")
         
         # Call the data cleansing analysis endpoint

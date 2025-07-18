@@ -35,8 +35,7 @@ DEMO_CLIENT_CONFIG = {
 }
 
 try:
-    from app.models.client_account import ClientAccount, Engagement
-    from app.models.user import User
+    from app.models.client_account import ClientAccount, Engagement, User
     CLIENT_ACCOUNT_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"Client account models not available: {e}")

@@ -11,7 +11,7 @@ from datetime import datetime, timezone, timedelta
 from backend.main import app
 from app.models.data_import_session import DataImportSession, SessionStatus, SessionType
 from app.models.client_account import ClientAccount, Engagement
-from app.models.user import User
+from app.models.client_account import User
 
 # Test client
 client = TestClient(app)
