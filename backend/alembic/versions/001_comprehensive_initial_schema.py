@@ -202,6 +202,34 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('id', name=op.f('pk_client_access'))
     )
     
+    # Create engagement_access table
+    op.create_table('engagement_access',
+        sa.Column('id', sa.UUID(), nullable=False),
+        sa.Column('user_profile_id', sa.UUID(), nullable=False),
+        sa.Column('engagement_id', sa.UUID(), nullable=False),
+        sa.Column('access_level', sa.VARCHAR(length=20), nullable=False),
+        sa.Column('engagement_role', sa.VARCHAR(length=100), nullable=True),
+        sa.Column('permissions', postgresql.JSON(astext_type=sa.Text()), server_default=sa.text('\'{"can_view_data": true, "can_import_data": false, "can_export_data": false, "can_manage_sessions": false, "can_configure_agents": false, "can_approve_migration_decisions": false, "can_access_sensitive_data": false}\'::json'), nullable=True),
+        sa.Column('restricted_sessions', postgresql.JSON(astext_type=sa.Text()), server_default=sa.text("'[]'::json"), nullable=True),
+        sa.Column('allowed_session_types', postgresql.JSON(astext_type=sa.Text()), server_default=sa.text('\'["data_import", "validation_run"]\'::json'), nullable=True),
+        sa.Column('granted_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=True),
+        sa.Column('granted_by', sa.UUID(), nullable=False),
+        sa.Column('expires_at', sa.TIMESTAMP(timezone=True), nullable=True),
+        sa.Column('is_active', sa.BOOLEAN(), server_default=sa.text('true'), nullable=True),
+        sa.Column('last_accessed_at', sa.TIMESTAMP(timezone=True), nullable=True),
+        sa.Column('access_count', sa.INTEGER(), server_default=sa.text('0'), nullable=True),
+        sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=True),
+        sa.Column('updated_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=True),
+        sa.ForeignKeyConstraint(['engagement_id'], ['engagements.id'], name=op.f('fk_engagement_access_engagement_id_engagements'), ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['granted_by'], ['users.id'], name=op.f('fk_engagement_access_granted_by_users')),
+        sa.ForeignKeyConstraint(['user_profile_id'], ['user_profiles.user_id'], name=op.f('fk_engagement_access_user_profile_id_user_profiles'), ondelete='CASCADE'),
+        sa.PrimaryKeyConstraint('id', name=op.f('pk_engagement_access'))
+    )
+    op.create_index(op.f('ix_engagement_access_id'), 'engagement_access', ['id'], unique=False)
+    op.create_index(op.f('ix_engagement_access_user_profile_id'), 'engagement_access', ['user_profile_id'], unique=False)
+    op.create_index(op.f('ix_engagement_access_engagement_id'), 'engagement_access', ['engagement_id'], unique=False)
+    op.create_index(op.f('ix_engagement_access_is_active'), 'engagement_access', ['is_active'], unique=False)
+    
     # Create crewai_flow_state_extensions table
     op.create_table('crewai_flow_state_extensions',
         sa.Column('id', sa.UUID(), nullable=False),
@@ -552,6 +580,13 @@ def downgrade() -> None:
     op.drop_table('data_imports')
     op.drop_table('crewai_flow_state_extensions')
     op.drop_table('client_access')
+    
+    # Drop engagement_access table
+    op.drop_index(op.f('ix_engagement_access_is_active'), table_name='engagement_access')
+    op.drop_index(op.f('ix_engagement_access_engagement_id'), table_name='engagement_access')
+    op.drop_index(op.f('ix_engagement_access_user_profile_id'), table_name='engagement_access')
+    op.drop_index(op.f('ix_engagement_access_id'), table_name='engagement_access')
+    op.drop_table('engagement_access')
     
     # Drop RBAC tables
     op.drop_index(op.f('ix_user_account_associations_client_account_id'), table_name='user_account_associations')
