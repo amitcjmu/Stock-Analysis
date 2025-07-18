@@ -6,6 +6,9 @@ FROM python:3.11-slim-bookworm@sha256:139020233cc412efe4c8135b0efe1c7569dc8b28dd
 # Set working directory
 WORKDIR /app
 
+# Force cache invalidation - Updated 2025-07-18
+ENV CACHE_BUST=2025-07-18-v2
+
 # Install system dependencies with security updates
 RUN apt-get update \
     && apt-get upgrade -y \
