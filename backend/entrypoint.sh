@@ -39,14 +39,22 @@ except:
     attempt=$((attempt + 1))
 done
 
-# Run migrations
-echo "🔄 Running database migrations..."
-if python -m alembic upgrade head; then
-    echo "✅ Migrations completed successfully!"
+# Run migration fix first
+echo "🔄 Running Railway migration fix..."
+if python railway_migration_fix.py; then
+    echo "✅ Migration fix completed successfully!"
 else
-    echo "❌ Migration failed, but continuing..."
+    echo "❌ Migration fix failed, trying standard migrations..."
+    
+    # Fallback to standard migrations
+    echo "🔄 Running standard database migrations..."
+    if python -m alembic upgrade head; then
+        echo "✅ Standard migrations completed successfully!"
+    else
+        echo "❌ Standard migration also failed, but continuing..."
+    fi
 fi
 
-# Run the main start script
+# Start the application directly
 echo "🚀 Starting application..."
-exec ./start.sh
+exec python start.py

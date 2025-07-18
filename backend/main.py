@@ -41,98 +41,7 @@ except ImportError:
 # Load environment variables
 load_dotenv()
 
-# Run database migrations immediately on Railway
-if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID") or os.getenv("RAILWAY_SERVICE_ID"):
-    print("🚂 Railway environment detected - Running database migrations immediately...")
-    try:
-        import subprocess
-        import sys
-        
-        # Force create missing table first using raw SQL
-        print("🔧 Creating crewai_flow_state_extensions table if missing...")
-        try:
-            import asyncio
-            import asyncpg
-            
-            async def create_missing_table():
-                db_url = os.getenv('DATABASE_URL', '')
-                if 'postgresql+asyncpg://' in db_url:
-                    db_url = db_url.replace('postgresql+asyncpg://', 'postgresql://')
-                
-                conn = await asyncpg.connect(db_url)
-                
-                # Check if table exists
-                exists = await conn.fetchval("""
-                    SELECT EXISTS (
-                        SELECT 1 FROM information_schema.tables 
-                        WHERE table_name = 'crewai_flow_state_extensions'
-                    )
-                """)
-                
-                if not exists:
-                    print("🔨 Creating crewai_flow_state_extensions table...")
-                    await conn.execute("""
-                        CREATE TABLE crewai_flow_state_extensions (
-                            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                            flow_id UUID NOT NULL UNIQUE,
-                            client_account_id UUID,
-                            engagement_id UUID,
-                            user_id UUID,
-                            flow_type VARCHAR(100),
-                            flow_name VARCHAR(255),
-                            flow_status VARCHAR(50),
-                            flow_configuration JSONB,
-                            flow_persistence_data JSONB,
-                            agent_collaboration_log JSONB,
-                            memory_usage_metrics JSONB,
-                            knowledge_base_analytics JSONB,
-                            phase_execution_times JSONB,
-                            agent_performance_metrics JSONB,
-                            crew_coordination_analytics JSONB,
-                            learning_patterns JSONB,
-                            user_feedback_history JSONB,
-                            adaptation_metrics JSONB,
-                            phase_transitions JSONB,
-                            error_history JSONB,
-                            retry_count INTEGER DEFAULT 0,
-                            parent_flow_id UUID,
-                            child_flow_ids JSONB,
-                            flow_metadata JSONB,
-                            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-                        )
-                    """)
-                    print("✅ crewai_flow_state_extensions table created!")
-                else:
-                    print("✅ crewai_flow_state_extensions table already exists")
-                
-                await conn.close()
-            
-            asyncio.run(create_missing_table())
-        except Exception as table_error:
-            print(f"⚠️ Could not create table directly: {table_error}")
-        
-        # Try to run migrations synchronously before app starts
-        result = subprocess.run(
-            [sys.executable, "-m", "alembic", "upgrade", "head"],
-            capture_output=True,
-            text=True,
-            timeout=300  # Increase timeout to 5 minutes
-        )
-        
-        if result.returncode == 0:
-            print("✅ Railway migrations completed successfully!")
-            print(f"Output: {result.stdout}")
-        else:
-            print(f"❌ Railway migrations failed with code {result.returncode}")
-            print(f"Error: {result.stderr}")
-            print(f"Output: {result.stdout}")
-            # Don't exit - let the app start anyway
-    except Exception as e:
-        print(f"❌ Exception running Railway migrations: {e}")
-        import traceback
-        traceback.print_exc()
-        # Don't exit - let the app start anyway
+# Database migrations will be handled by entrypoint.sh in Railway deployment
 
 # Import our structured logging module
 try:
@@ -215,23 +124,7 @@ async def lifespan(app: FastAPI):
             if health_check_result:
                 logger.info("✅✅✅ Database connection test successful.")
                 
-                # Run migrations if on Railway and they haven't been run yet
-                if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID"):
-                    logger.info("🚂 Detected Railway environment - ensuring migrations are up to date...")
-                    try:
-                        import subprocess
-                        result = subprocess.run(
-                            ["python", "-m", "alembic", "upgrade", "head"],
-                            capture_output=True,
-                            text=True,
-                            timeout=60
-                        )
-                        if result.returncode == 0:
-                            logger.info("✅ Railway migrations completed successfully")
-                        else:
-                            logger.warning(f"⚠️ Railway migrations may have issues: {result.stderr}")
-                    except Exception as e:
-                        logger.warning(f"⚠️ Could not run Railway migrations: {e}")
+                # Migrations are handled by deployment scripts
                 
                 # Initialize database with required data (platform admin, test users in development)
                 if os.getenv("SKIP_DB_INIT", "false").lower() != "true":

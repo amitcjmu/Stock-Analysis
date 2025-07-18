@@ -40,11 +40,8 @@ def main():
     """Start the FastAPI application with proper environment handling."""
     print("🚀 Starting AI Modernize Migration Platform API...")
     
-    # Run migrations first
-    print("📋 Checking database migrations...")
-    migration_success = run_migrations()
-    if not migration_success:
-        print("⚠️  Warning: Migrations failed, but continuing with startup...")
+    # Migrations are handled by entrypoint.sh/railway_setup.py
+    print("📋 Database migrations handled by deployment scripts")
     
     # Get environment variables
     environment = os.getenv("ENVIRONMENT", "production")
