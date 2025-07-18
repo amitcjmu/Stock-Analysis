@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Railway Entrypoint Script - Ensures migrations run before starting the app
 
 set -e
@@ -6,7 +6,7 @@ set -e
 echo "🚀 Railway Entrypoint Starting..."
 echo "📅 Date: $(date)"
 echo "📁 Working Directory: $(pwd)"
-echo "🗄️ DATABASE_URL: ${DATABASE_URL:0:50}..."
+echo "🗄️ DATABASE_URL configured: $(echo "$DATABASE_URL" | cut -c1-50)..."
 
 # Wait for database to be ready
 echo "⏳ Waiting for database to be ready..."
