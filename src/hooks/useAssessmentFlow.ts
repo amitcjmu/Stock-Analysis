@@ -8,4 +8,4 @@
  */
 
 // Re-export everything from the modularized structure
-export * from './useAssessmentFlow';
+export * from './useAssessmentFlow/';
