@@ -10,5 +10,5 @@
  */
 
 // Re-export everything from the modularized structure
-export * from './AgentClarificationPanel';
-export { default } from './AgentClarificationPanel'; 
+export * from './AgentClarificationPanel/index';
+export { default } from './AgentClarificationPanel/index'; 

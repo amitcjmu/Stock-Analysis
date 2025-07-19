@@ -10,5 +10,5 @@
  */
 
 // Re-export everything from the modularized structure
-export * from './AgentPlanningDashboard';
-export { default } from './AgentPlanningDashboard'; 
+export * from './AgentPlanningDashboard/index';
+export { default } from './AgentPlanningDashboard/index'; 
