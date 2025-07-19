@@ -240,6 +240,7 @@ class User(Base):
     default_engagement = relationship("Engagement", foreign_keys=[default_engagement_id])
     active_flows = relationship("UserActiveFlow", back_populates="user", cascade="all, delete-orphan")
     collection_flows = relationship("CollectionFlow", back_populates="user", cascade="all, delete-orphan", lazy="select")
+    questionnaire_responses = relationship("CollectionQuestionnaireResponse", back_populates="user", cascade="all, delete-orphan", lazy="select")
     client_accounts = association_proxy(
         "user_associations", "client_account",
         creator=lambda client_account: UserAccountAssociation(client_account=client_account)
