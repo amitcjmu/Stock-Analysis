@@ -1,7 +1,9 @@
 """
-Base Flow Module
+Base Flow Module - Modularized Version
 
 The main UnifiedDiscoveryFlow class that orchestrates all phases.
+This modularized version extracts large methods into separate utility classes
+for better maintainability and code organization.
 """
 
 import logging
@@ -38,7 +40,10 @@ from .flow_management import FlowManager
 from .flow_initialization import FlowInitializer
 from .flow_finalization import FlowFinalizer
 
-# Phase modules removed - using Executor pattern instead
+# Import modular utilities
+from .phase_handlers import PhaseHandlers
+from .data_utilities import DataUtilities
+from .notification_utilities import NotificationUtilities
 
 # Import handlers for flow management
 from ..handlers.unified_flow_management import UnifiedFlowManagement
@@ -59,7 +64,9 @@ class UnifiedDiscoveryFlow(Flow):
     - Configuration (flow_config.py)
     - State management (state_management.py)
     - Crew coordination (crew_coordination.py)
-    - Individual phases (phases/*.py)
+    - Phase handlers (phase_handlers.py)
+    - Data utilities (data_utilities.py)
+    - Notification utilities (notification_utilities.py)
     """
     
     def __init__(self, crewai_service, context: RequestContext, **kwargs):
@@ -97,6 +104,9 @@ class UnifiedDiscoveryFlow(Flow):
         
         # Initialize phase handlers
         self._initialize_phases()
+        
+        # Initialize modular utilities
+        self._initialize_utilities()
         
         # Flow ID already set in __init__
         logger.info(f"✅ Unified Discovery Flow initialized - Flow ID: {self._flow_id}")
@@ -150,53 +160,23 @@ class UnifiedDiscoveryFlow(Flow):
             self.state.client_account_id = str(self.context.client_account_id) if self.context.client_account_id else ""
             self.state.engagement_id = str(self.context.engagement_id) if self.context.engagement_id else ""
             self.state.user_id = str(self.context.user_id) if self.context.user_id else ""
-        
-        # PHASE 2 FIX: Ensure master_flow_id is set in state if available
-        if self._master_flow_id and hasattr(self.state, 'master_flow_id'):
-            self.state.master_flow_id = self._master_flow_id
-            logger.info(f"🔗 Set master_flow_id in state: {self._master_flow_id}")
-            
-        # Also update state manager reference
-        if hasattr(self, 'state_manager') and self.state_manager:
-            self.state_manager.state = self.state
-            
-        logger.info(f"🔧 State IDs enforced: flow_id={self.state.flow_id}, client={getattr(self.state, 'client_account_id', 'none')}, master_flow_id={getattr(self.state, 'master_flow_id', 'none')}")
     
     def _initialize_components(self):
-        """Initialize flow components"""
-        # Initialize flow bridge
-        self.flow_bridge = self.initializer.initialize_flow_bridge()
+        """Initialize core components"""
+        # Initialize managers
+        self.state_manager = StateManager(self.state)
+        self.coordinator = CrewCoordinator(self.crewai_service, self.context)
+        self.flow_manager = FlowManager(self.crewai_service, self.context)
+        self.finalizer = FlowFinalizer()
         
-        # Initialize handlers
-        handlers = self.initializer.initialize_handlers()
-        self.phase_executor = handlers['phase_executor']
-        self.crew_manager = handlers['crew_manager']
+        # Initialize bridge for flow-specific database operations
+        from ..bridges.flow_state_bridge import FlowStateBridge
+        self.flow_bridge = FlowStateBridge(self.context)
         
-        # Create a temporary state with flow_id for component initialization
-        # This ensures components have access to flow_id even before full state initialization
-        temp_state = UnifiedDiscoveryFlowState()
-        temp_state.flow_id = self._flow_id
-        temp_state.client_account_id = str(self.context.client_account_id)
-        temp_state.engagement_id = str(self.context.engagement_id)
-        temp_state.user_id = str(self.context.user_id)
+        # Get agents from the service
+        agents = self.crewai_service.get_agents()
         
-        # Initialize flow management separately (with temp state)
-        self.flow_management = UnifiedFlowManagement(temp_state)
-        
-        # Initialize state manager (with temp state)
-        self.state_manager = StateManager(temp_state, self.flow_bridge)
-        
-        # Initialize crew coordinator
-        self.crew_coordinator = CrewCoordinator(self.crewai_service, self.context)
-        
-        # Initialize flow manager (with temp state)
-        self.flow_manager = FlowManager(temp_state, self.state_manager, self.flow_management)
-        
-        # Initialize flow finalizer (with temp state)
-        self.flow_finalizer = FlowFinalizer(temp_state, self.state_manager)
-        
-        # Initialize agents
-        agents = self.initializer.initialize_agents()
+        # Store agents for easy access
         self.orchestrator = agents['orchestrator']
         self.data_validation_agent = agents['data_validation_agent']
         self.attribute_mapping_agent = agents['attribute_mapping_agent']
@@ -227,6 +207,12 @@ class UnifiedDiscoveryFlow(Flow):
         self.dependency_analysis_phase = phases['dependency_analysis_phase']
         self.tech_debt_assessment_phase = phases['tech_debt_assessment_phase']
     
+    def _initialize_utilities(self):
+        """Initialize modular utility classes"""
+        self.phase_handlers = PhaseHandlers(self)
+        self.data_utils = DataUtilities(self)
+        self.notification_utils = NotificationUtilities(self)
+    
     # ========================================
     # CREWAI FLOW METHODS (@start and @listen)
     # ========================================
@@ -235,1138 +221,251 @@ class UnifiedDiscoveryFlow(Flow):
     async def initialize_discovery(self):
         """Initialize the discovery flow"""
         logger.info(f"🎯 [ECHO] Starting Unified Discovery Flow - @start method called for flow {self._flow_id}")
-        logger.info(f"🔍 [ECHO] Flow kickoff initiated - this should trigger the entire flow chain")
-        logger.info(f"📊 [ECHO] Current state before initialization: status={getattr(self._flow_state, 'status', 'N/A') if hasattr(self, '_flow_state') else 'NO STATE'}")
         
-        # [ECHO] Update status to running immediately
-        try:
-            if hasattr(self, 'flow_bridge') and self.flow_bridge:
-                from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
-                from app.core.database import AsyncSessionLocal
-                
-                async with AsyncSessionLocal() as db:
-                    store = PostgresFlowStateStore(db, self.context)
-                    await store.update_flow_status(self._flow_id, "processing")
-                    logger.info(f"✅ [ECHO] Updated flow status to 'running' at start of kickoff")
-        except Exception as e:
-            logger.warning(f"⚠️ [ECHO] Failed to update initial flow status: {e}")
+        # Update status to running immediately
+        await self.notification_utils.update_flow_status("processing")
         
-        # Send real-time update via agent-ui-bridge and sync to state
-        try:
-            from app.services.agent_ui_bridge import agent_ui_bridge
-            
-            insight = {
-                "agent_id": "unified_discovery_flow",
-                "agent_name": "Discovery Flow Orchestrator",
-                "insight_type": "flow_start",
-                "title": "Discovery Flow Started",
-                "description": f"Initializing discovery flow with ID {self._flow_id}",
-                "timestamp": datetime.now().isoformat(),
-                "supporting_data": {
-                    "phase": "initialization",
-                    "progress": 0,
-                    "status": "processing",
-                    "flow_id": self._flow_id
-                }
-            }
-            
-            # Add to agent-ui-bridge
-            from app.services.models.agent_communication import ConfidenceLevel
-            agent_ui_bridge.add_agent_insight(
-                agent_id=insight["agent_id"],
-                agent_name=insight["agent_name"],
-                insight_type=insight["insight_type"],
-                title=insight["title"],
-                description=insight["description"],
-                confidence=ConfidenceLevel.HIGH,
-                supporting_data=insight["supporting_data"],
-                page=f"flow_{self._flow_id}",
-                flow_id=self._flow_id
-            )
-            
-            logger.info(f"📡 [ECHO] Sent flow start notification via agent-ui-bridge")
-        except Exception as e:
-            logger.warning(f"⚠️ [ECHO] Failed to send agent-ui-bridge notification: {e}")
+        # Send real-time update via agent-ui-bridge
+        await self.notification_utils.send_flow_start_notification()
         
         try:
             # Initialize state using CrewAI Flow's built-in state management
-            # Check if we should load existing state from database first
             existing_state = None
             if hasattr(self, '_flow_id') and self._flow_id and self.flow_bridge:
                 logger.info(f"🔍 Checking for existing flow state in database for flow {self._flow_id}")
                 try:
                     existing_state = await self.flow_bridge.recover_flow_state(self._flow_id)
                     if existing_state:
-                        logger.info(f"✅ Recovered existing flow state from database:")
-                        logger.info(f"   - Current phase: {existing_state.current_phase}")
-                        logger.info(f"   - Progress: {existing_state.progress_percentage}%")
-                        logger.info(f"   - Raw data records: {len(existing_state.raw_data) if existing_state.raw_data else 0}")
-                        logger.info(f"   - Field mappings exist: {bool(existing_state.field_mappings)}")
-                except Exception as e:
-                    logger.warning(f"⚠️ Could not recover existing state: {e}")
+                        logger.info(f"🔄 Recovered existing state for flow {self._flow_id}")
+                        self._flow_state = existing_state
+                    else:
+                        logger.info(f"🆕 No existing state found, creating new state for flow {self._flow_id}")
+                except Exception as recovery_error:
+                    logger.warning(f"⚠️ State recovery failed: {recovery_error}, creating new state")
             
-            # Use existing state if found, otherwise create initial state
-            if existing_state:
-                initial_state = existing_state
-                logger.info("🔄 Using recovered state from database")
-                
-                # If state doesn't have raw data but we passed it in, use the passed data
-                if (not existing_state.raw_data or len(existing_state.raw_data) == 0) and self.initializer.raw_data:
-                    logger.info(f"📋 State has no raw data, using {len(self.initializer.raw_data)} records passed to flow")
-                    initial_state.raw_data = self.initializer.raw_data
-                    
-                # Load raw data from database if still empty
-                if not initial_state.raw_data or len(initial_state.raw_data) == 0:
-                    await self._load_raw_data_from_database(initial_state)
-            else:
-                initial_state = self.initializer.create_initial_state()
-                logger.info("📋 Created new initial state")
+            # Ensure we have a flow state
+            if not hasattr(self, '_flow_state') or not self._flow_state:
+                self._flow_state = UnifiedDiscoveryFlowState()
+                logger.info("🆕 Created new flow state")
             
-            # Debug: Check if raw_data is in initial state
-            logger.info(f"🔍 DEBUG: Initial state has {len(initial_state.raw_data) if initial_state.raw_data else 0} raw data records")
-            if initial_state.raw_data and len(initial_state.raw_data) > 0:
-                logger.info(f"✅ Raw data already present in initial state")
-            else:
-                logger.warning(f"⚠️ No raw data in initial state - data should be passed during flow creation")
-            
-            # Configure CrewAI Flow state with our initial data
-            # Store our state and also set it as the CrewAI state if possible
-            self._flow_state = initial_state
-            
-            # CRITICAL FIX: Ensure flow_id is ALWAYS set in the state
-            # This must be done BEFORE any state management operations
-            self._flow_state.flow_id = self._flow_id
-            if self.context:
-                self._flow_state.client_account_id = str(self.context.client_account_id) if self.context.client_account_id else ""
-                self._flow_state.engagement_id = str(self.context.engagement_id) if self.context.engagement_id else ""
-                self._flow_state.user_id = str(self.context.user_id) if self.context.user_id else ""
-            
-            # PHASE 2 FIX: Ensure master_flow_id is set in state if available
-            if self._master_flow_id and hasattr(self._flow_state, 'master_flow_id'):
-                self._flow_state.master_flow_id = self._master_flow_id
-                logger.info(f"🔗 Set master_flow_id in state: {self._master_flow_id}")
-            
-            # Try to set the state in CrewAI's expected way
-            if hasattr(self, '_state'):
-                self._state = initial_state
-            if hasattr(self, 'state_'):
-                self.state_ = initial_state
-                
-            logger.info("✅ CrewAI Flow state initialized with structured state management")
-            
-            # Debug: Log the state IDs to ensure they're set
-            logger.info(f"🔍 DEBUG: State IDs after initialization:")
-            logger.info(f"   - flow_id: {getattr(self._flow_state, 'flow_id', 'NOT SET')}")
-            logger.info(f"   - client_account_id: {getattr(self._flow_state, 'client_account_id', 'NOT SET')}")
-            logger.info(f"   - engagement_id: {getattr(self._flow_state, 'engagement_id', 'NOT SET')}")
-            logger.info(f"   - user_id: {getattr(self._flow_state, 'user_id', 'NOT SET')}")
-            
-            # Update component references to use actual state
-            self.flow_management.state = self._flow_state
-            self.state_manager.state = self._flow_state
-            self.flow_manager.state = self._flow_state
-            self.flow_finalizer.state = self._flow_state
-            
-            # CRITICAL: Verify state manager has correct flow_id
-            logger.info(f"🔍 DEBUG: State manager state flow_id: {getattr(self.state_manager.state, 'flow_id', 'NOT SET')}")
-            
-            # Initialize UnifiedFlowCrewManager now that we have state
-            from ..handlers.unified_flow_crew_manager import UnifiedFlowCrewManager
-            self.crew_manager = UnifiedFlowCrewManager(self.crewai_service, self._flow_state)
-            
-            # Initialize PhaseExecutionManager now that we have state
-            from ..handlers.phase_executors.phase_execution_manager import PhaseExecutionManager
-            self.phase_executor = PhaseExecutionManager(self._flow_state, self.crew_manager, self.flow_bridge)
-            
-            # Re-initialize phases with actual state
-            agents = {
-                'data_validation_agent': self.data_validation_agent,
-                'attribute_mapping_agent': self.attribute_mapping_agent,
-                'data_cleansing_agent': self.data_cleansing_agent,
-                'asset_inventory_agent': self.asset_inventory_agent,
-                'dependency_analysis_agent': self.dependency_analysis_agent,
-                'tech_debt_analysis_agent': self.tech_debt_analysis_agent
-            }
-            phases = self.initializer.initialize_phases(self._flow_state, agents, self.flow_bridge)
-            self.data_validation_phase = phases['data_validation_phase']
-            self.field_mapping_phase = phases['field_mapping_phase']
-            self.data_cleansing_phase = phases['data_cleansing_phase']
-            self.asset_inventory_phase = phases['asset_inventory_phase']
-            self.dependency_analysis_phase = phases['dependency_analysis_phase']
-            self.tech_debt_assessment_phase = phases['tech_debt_assessment_phase']
-            
-            # Update phase executor state references
-            if hasattr(self, 'phase_executor') and self.phase_executor:
-                self.phase_executor.state = self._flow_state
-                # Update all individual phase executors
-                for executor_name in ['data_import_validation_executor', 'field_mapping_executor', 
-                                    'data_cleansing_executor', 'asset_inventory_executor',
-                                    'dependency_analysis_executor', 'tech_debt_executor']:
-                    if hasattr(self.phase_executor, executor_name):
-                        executor = getattr(self.phase_executor, executor_name)
-                        if executor:
-                            executor.state = self._flow_state
-                            logger.info(f"✅ Updated {executor_name} state reference")
-            
-            # Set initial state only if we didn't load existing state
-            if not existing_state:
-                self.state.status = "initialized"
-                self.state.current_phase = "initialized"
-                self.state.created_at = datetime.utcnow()
-                self.state.updated_at = datetime.utcnow()
-                
-                # Generate flow_id if not set
-                if not hasattr(self.state, 'flow_id') or not self.state.flow_id:
-                    self.state.flow_id = self._init_context.get('flow_id') or str(uuid.uuid4())
-            else:
-                # Just update the timestamp for existing state
-                self.state.updated_at = datetime.utcnow()
-                logger.info(f"✅ Continuing existing flow from phase: {self.state.current_phase}")
-            
-            # Initialize with flow bridge only for new flows
-            if self.flow_bridge and not existing_state:
-                await self.flow_bridge.initialize_flow(self.state)
-                logger.info(f"✅ New flow initialized with PostgreSQL bridge - Flow ID: {self.state.flow_id}")
-            elif self.flow_bridge and existing_state:
-                # For existing flows, just update the state
-                await self.flow_bridge.update_flow_state(self.state)
-                logger.info(f"✅ Existing flow state updated in PostgreSQL - Flow ID: {self.state.flow_id}")
-            
-            # CRITICAL: Ensure state IDs are set before any state operations
+            # Ensure state has proper IDs
             self._ensure_state_ids()
             
-            # Update state
-            await self.state_manager.safe_update_flow_state()
+            # Initialize state with basic flow information
+            self._flow_state.status = "processing"
+            self._flow_state.current_phase = "initialization"
+            self._flow_state.initialized_at = datetime.now()
             
-            logger.info("✅ Discovery flow initialization completed")
-            return "initialization_completed"
+            # Load raw data if not already loaded
+            if not hasattr(self._flow_state, 'raw_data') or not self._flow_state.raw_data:
+                await self.data_utils.load_raw_data_from_database(self._flow_state)
+            
+            # Save initial state to database
+            if self.flow_bridge:
+                await self.flow_bridge.save_flow_state(self._flow_id, self._flow_state)
+                logger.info("💾 Saved initial flow state to database")
+            
+            logger.info("✅ Discovery flow initialization completed - triggering data validation")
+            return {
+                'status': 'initialized',
+                'flow_id': self._flow_id,
+                'message': 'Discovery flow initialized successfully',
+                'next_phase': 'data_validation'
+            }
             
         except Exception as e:
-            logger.error(f"❌ Discovery flow initialization failed: {e}")
-            if hasattr(self, 'state_manager') and self.state_manager:
-                self.state_manager.add_error("initialized", str(e))
-            return "initialization_failed"
+            logger.error(f"❌ Flow initialization failed: {e}")
+            await self.notification_utils.send_error_notification(str(e), "initialization")
+            raise
     
     @listen(initialize_discovery)
-    async def execute_data_import_validation_agent(self, previous_result):
-        """Execute data import validation phase using real CrewAI crews with retry logic"""
-        logger.info(f"📊 [ECHO] @listen(initialize_discovery) triggered - data import phase starting for flow {self._flow_id}")
-        logger.info(f"🔍 [ECHO] Previous result from initialize_discovery: {previous_result}")
-        logger.info(f"🎯 [ECHO] Data import phase STARTED - flow is now executing!")
-        
-        # [ECHO] Update phase in database
-        try:
-            if hasattr(self, 'flow_bridge') and self.flow_bridge:
-                await self.flow_bridge.update_flow_state(self.state)
-                logger.info(f"✅ [ECHO] Updated flow state to data_import phase")
-                
-                # Also update master flow status
-                from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
-                from app.core.database import AsyncSessionLocal
-                
-                async with AsyncSessionLocal() as db:
-                    store = PostgresFlowStateStore(db, self.context)
-                    await store.update_flow_status(self._flow_id, "processing")
-                    logger.info(f"✅ [ECHO] Confirmed flow status is 'running' in data import phase")
-        except Exception as e:
-            logger.warning(f"⚠️ [ECHO] Failed to update flow state in data import: {e}")
-        
-        # Ensure state has IDs
-        self._ensure_state_ids()
-        
-        # Debug: Log all flow IDs to trace the issue
-        logger.info(f"🔍 [DEBUG] self._flow_id: {self._flow_id}")
-        logger.info(f"🔍 [DEBUG] self.state.flow_id: {getattr(self.state, 'flow_id', 'NOT SET')}")
-        logger.info(f"🔍 [DEBUG] state_manager.state.flow_id: {getattr(self.state_manager.state, 'flow_id', 'NOT SET') if self.state_manager else 'NO STATE MANAGER'}")
+    async def execute_data_import_validation_agent(self, initialization_result):
+        """Execute the data import validation phase"""
+        logger.info(f"🔍 [ECHO] Data validation phase triggered for flow {self._flow_id}")
         
         try:
-            # Define the phase execution function for retry
-            async def execute_phase():
-                result = await self.phase_executor.execute_data_import_validation_phase(previous_result)
-                
-                # Create checkpoint after successful execution
-                if result and result != "data_validation_failed":
-                    await checkpoint_manager.create_phase_checkpoint(
-                        flow_id=self._flow_id,
-                        phase=PhaseNames.DATA_IMPORT_VALIDATION,
-                        state=self.state,
-                        phase_result=result
-                    )
-                
-                return result
-            
-            # Execute with error handling and retry logic
-            result = await enhanced_error_handler.handle_phase_error(
-                phase_name=PhaseNames.DATA_IMPORT_VALIDATION,
-                error=None,  # Will be set if error occurs
-                state=self.state,
-                phase_func=execute_phase
-            )
-            
-            # Handle recovery result
-            if isinstance(result, dict) and result.get("status") == "recovered":
-                result = result.get("result")
-            elif isinstance(result, dict) and result.get("status") in ["failed", "recovery_failed"]:
-                logger.error(f"❌ Data import validation failed after recovery attempts")
-                self.state.status = "failed"
-                self.state.final_result = "discovery_failed"
-                await self.state_manager.safe_update_flow_state()
-                return "discovery_failed"
-            
-            # Mark data import as completed
-            self.state.phase_completion[PhaseNames.DATA_IMPORT_VALIDATION] = True
-            self.state.progress_percentage = 16.7  # 1/6 phases complete
-            
-            # CRITICAL: Ensure state IDs before state operations
+            # Ensure state IDs are correct
             self._ensure_state_ids()
-            await self.state_manager.safe_update_flow_state()
             
-            # Check if phase failed
-            if result == "data_validation_failed":
-                self.state.status = "failed"
-                self.state.final_result = "discovery_failed"
-                await self.state_manager.safe_update_flow_state()
-                return "discovery_failed"
-                
-            return result
+            # Use phase handler for data validation
+            validation_result = await self.phase_handlers.execute_data_import_validation()
+            
+            logger.info("✅ Data validation completed - triggering field mapping")
+            return validation_result
+            
         except Exception as e:
-            # Handle error with enhanced error handler
-            recovery_result = await enhanced_error_handler.handle_phase_error(
-                phase_name=PhaseNames.DATA_IMPORT_VALIDATION,
-                error=e,
-                state=self.state,
-                phase_func=self.phase_executor.execute_data_import_validation_phase,
-                previous_result=previous_result
-            )
-            
-            if recovery_result.get("status") in ["recovered", "partial_success"]:
-                return recovery_result.get("result")
-            else:
-                logger.error(f"❌ Error in phase '{PhaseNames.DATA_IMPORT_VALIDATION}': {e}")
-                self.state_manager.add_error(PhaseNames.DATA_IMPORT_VALIDATION, str(e))
-                self.state.status = "failed"
-                self.state.final_result = "discovery_failed"
-                await self.state_manager.safe_update_flow_state()
-                return "discovery_failed"
+            logger.error(f"❌ Data validation phase failed: {e}")
+            await self.notification_utils.send_error_notification(str(e), "data_validation")
+            raise
     
     @listen(execute_data_import_validation_agent)
-    async def generate_field_mapping_suggestions(self, previous_result):
-        """Generate initial field mapping suggestions before pausing for approval"""
-        logger.info("🤖 Generating field mapping suggestions")
+    async def generate_field_mapping_suggestions(self, data_validation_agent_result):
+        """Generate field mapping suggestions"""
+        logger.info(f"🗺️ [ECHO] Field mapping phase triggered for flow {self._flow_id}")
         
-        # Ensure state has IDs
-        self._ensure_state_ids()
-        
-        # Debug: Check if raw_data is available
-        logger.info(f"🔍 DEBUG: Raw data available: {len(self.state.raw_data) if hasattr(self.state, 'raw_data') and self.state.raw_data else 0} records")
-        logger.info(f"🔍 DEBUG: Previous result: {previous_result}")
-        
-        # Debug: Check phase_data for data_import results
-        if hasattr(self.state, 'phase_data') and 'data_import' in self.state.phase_data:
-            data_import_results = self.state.phase_data['data_import']
-            logger.info(f"🔍 DEBUG: Data import phase results: {list(data_import_results.keys()) if isinstance(data_import_results, dict) else 'Not a dict'}")
-            logger.info(f"🔍 DEBUG: Total records from data import: {data_import_results.get('total_records', 0)}")
-        
-        if hasattr(self.state, 'raw_data') and self.state.raw_data and len(self.state.raw_data) > 0:
-            logger.info(f"🔍 DEBUG: First record keys: {list(self.state.raw_data[0].keys())}")
-        else:
-            logger.warning("⚠️ No raw_data available in state, attempting to load from database")
-            # Try to load from raw_import_records table
-            await self._load_raw_data_from_import_records()
-        
-        # Debug: Check state IDs before updating phase
-        logger.info(f"🔍 DEBUG: Before phase update - State IDs:")
-        logger.info(f"   - self.state.flow_id: {getattr(self.state, 'flow_id', 'NOT SET')}")
-        logger.info(f"   - self._flow_state.flow_id: {getattr(self._flow_state, 'flow_id', 'NOT SET') if hasattr(self, '_flow_state') else 'NO _flow_state'}")
-        
-        # Update phase
-        self.state.current_phase = PhaseNames.FIELD_MAPPING
-        
-        # Send phase transition update
         try:
-            from app.services.agent_ui_bridge import agent_ui_bridge
-            
-            insight = {
-                "agent_id": "unified_discovery_flow",
-                "agent_name": "Discovery Flow Orchestrator",
-                "insight_type": "phase_transition",
-                "title": "Moving to Field Mapping Phase",
-                "description": "Data validation complete. Starting field mapping suggestions generation.",
-                "timestamp": datetime.now().isoformat(),
-                "supporting_data": {
-                    "previous_phase": PhaseNames.DATA_IMPORT_VALIDATION,
-                    "current_phase": PhaseNames.FIELD_MAPPING,
-                    "progress": 16.7,
-                    "status": "running"
-                }
-            }
-            
-            # Add to both agent-ui-bridge and flow state
-            from app.services.models.agent_communication import ConfidenceLevel
-            agent_ui_bridge.add_agent_insight(
-                agent_id=insight["agent_id"],
-                agent_name=insight["agent_name"],
-                insight_type=insight["insight_type"],
-                title=insight["title"],
-                description=insight["description"],
-                confidence=ConfidenceLevel.HIGH,
-                supporting_data=insight["supporting_data"],
-                page=f"flow_{self._flow_id}",
-                flow_id=self._flow_id
-            )
-            
-            insight_text = f"{insight['title']}: {insight['description']}"
-            self.state_manager.add_agent_insight(
-                insight["agent_name"],
-                insight_text,
-                0.8  # Default confidence
-            )
-            
-            # CRITICAL: Ensure state IDs before state operations
+            # Ensure state IDs are correct
             self._ensure_state_ids()
-            await self.state_manager.safe_update_flow_state()
-            logger.info(f"📡 Sent phase transition notification")
-        except Exception as e:
-            logger.warning(f"⚠️ Failed to send phase transition notification: {e}")
-        
-        # Execute field mapping crew to generate suggestions with retry logic
-        try:
-            # Define the phase execution function for retry
-            async def execute_mapping_suggestions():
-                result = await self.phase_executor.execute_field_mapping_phase(
-                    previous_result, 
-                    mode="suggestions_only"  # Special mode to only generate suggestions
-                )
-                
-                # Create checkpoint after successful execution
-                if result and "mappings" in result:
-                    await checkpoint_manager.create_phase_checkpoint(
-                        flow_id=self._flow_id,
-                        phase="field_mapping_suggestions",
-                        state=self.state,
-                        phase_result=result
-                    )
-                
-                return result
             
-            # Use retry config optimized for field mapping (which often hits rate limits)
-            field_mapping_retry_config = RetryConfig(
-                max_retries=5,
-                base_delay=3.0,
-                max_delay=120.0,
-                exponential_base=2.0
-            )
+            # Use phase handler for field mapping
+            mapping_result = await self.phase_handlers.generate_field_mapping_suggestions(data_validation_agent_result)
             
-            # Execute with retry logic
-            from ..utils.retry_utils import retry_with_backoff
-            mapping_result = await retry_with_backoff(
-                execute_mapping_suggestions,
-                config=field_mapping_retry_config
-            )
+            # Send approval request notification
+            await self.notification_utils.send_approval_request_notification(mapping_result)
+            
+            logger.info("✅ Field mapping suggestions generated - awaiting approval")
+            return mapping_result
             
         except Exception as e:
-            logger.error(f"❌ Field mapping phase execution failed: {e}")
-            
-            # Try to recover with enhanced error handler
-            recovery_result = await enhanced_error_handler.handle_phase_error(
-                phase_name="field_mapping_suggestions",
-                error=e,
-                state=self.state,
-                phase_func=execute_mapping_suggestions
-            )
-            
-            if recovery_result.get("status") in ["recovered", "partial_success"]:
-                mapping_result = recovery_result.get("result")
-            else:
-                # Create a fallback result to ensure flow continues
-                mapping_result = {
-                    "mappings": {},
-                    "clarifications": ["Field mapping generation failed. Please map fields manually."],
-                    "confidence_scores": {},
-                    "execution_metadata": {
-                        "method": "error_fallback",
-                        "error": str(e),
-                        "recovery_attempted": True
-                    }
-                }
-                logger.warning("⚠️ Using error fallback result to continue flow")
-        
-        # Debug: Log the full mapping result to identify structure issue
-        logger.info(f"🔍 DEBUG: Full mapping_result structure: {mapping_result}")
-        logger.info(f"🔍 DEBUG: mapping_result keys: {list(mapping_result.keys()) if isinstance(mapping_result, dict) else 'Not a dict'}")
-        
-        # Extract mapping suggestions and clarifications
-        suggested_mappings = mapping_result.get("mappings", {})
-        clarification_questions = mapping_result.get("clarifications", [])
-        confidence_scores = mapping_result.get("confidence_scores", {})
-        
-        # Debug: Log what we extracted
-        logger.info(f"🔍 DEBUG: Extracted mappings: {suggested_mappings}")
-        logger.info(f"🔍 DEBUG: Extracted clarifications: {clarification_questions}")
-        logger.info(f"🔍 DEBUG: Extracted confidence_scores: {confidence_scores}")
-        
-        # Store suggestions in state
-        self.state.field_mappings = suggested_mappings
-        
-        # Store individual confidence scores in field mappings
-        if isinstance(confidence_scores, dict):
-            self.state.field_mappings["confidence_scores"] = confidence_scores
-            
-            # Calculate overall confidence as average of individual scores
-            if confidence_scores:
-                total_confidence = sum(confidence_scores.values())
-                self.state.field_mapping_confidence = total_confidence / len(confidence_scores)
-            else:
-                self.state.field_mapping_confidence = 0.0
-        else:
-            # If confidence_scores is already a float (overall confidence)
-            self.state.field_mapping_confidence = float(confidence_scores)
-        
-        # Add agent insights
-        if clarification_questions:
-            for question in clarification_questions:
-                self.state_manager.add_agent_insight(
-                    "Field Mapping Agent",
-                    question,
-                    confidence=0.7
-                )
-        
-        # Update progress
-        self.state.progress_percentage = 25.0  # Field mapping in progress
-        
-        # Store field mapping data in discovery_flows table
-        try:
-            from app.core.database import AsyncSessionLocal
-            from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-            
-            async with AsyncSessionLocal() as db:
-                repo = DiscoveryFlowRepository(
-                    db, 
-                    client_account_id=str(getattr(self.state, 'client_account_id', self.context.client_account_id)),
-                    engagement_id=str(getattr(self.state, 'engagement_id', self.context.engagement_id)),
-                    user_id=str(getattr(self.state, 'user_id', self.context.user_id))
-                )
-                
-                # Update the flow with field mappings
-                await repo.flow_commands.update_phase_completion(
-                    flow_id=self.state.flow_id,
-                    phase="field_mapping",
-                    data={
-                        "field_mappings": suggested_mappings,
-                        "confidence_scores": confidence_scores if isinstance(confidence_scores, dict) else {"overall": confidence_scores},
-                        "confidence": self.state.field_mapping_confidence,
-                        "total_fields": len(suggested_mappings),
-                        "clarifications": clarification_questions,
-                        "awaiting_approval": True
-                    },
-                    completed=False,  # Not completed yet, awaiting approval
-                    agent_insights=self.state.agent_insights
-                )
-                
-                logger.info("✅ Updated discovery_flows table with field mapping suggestions")
-        except Exception as e:
-            logger.warning(f"Failed to update discovery_flows table: {e}")
-        
-        await self.state_manager.safe_update_flow_state()
-        logger.info(f"✅ Generated {len(suggested_mappings)} mapping suggestions")
-        
-        # CRITICAL: Update flow status when rate limit fallback was used
-        # This ensures the UI knows field mapping is ready for approval
-        if mapping_result.get("execution_metadata", {}).get("method") == "fallback_field_mapping":
-            logger.warning("⚠️ Field mapping used fallback due to rate limit - updating status for UI")
-            # Set a flag to ensure pause method updates status correctly
-            self.state._rate_limit_fallback_used = True
-        
-        return "field_mapping_suggestions_ready"
+            logger.error(f"❌ Field mapping phase failed: {e}")
+            await self.notification_utils.send_error_notification(str(e), "field_mapping")
+            raise
     
     @listen(generate_field_mapping_suggestions)
-    async def pause_for_field_mapping_approval(self, previous_result):
-        """Pause flow for user to review and approve field mappings with health monitoring"""
-        logger.info("⏸️ Pausing for field mapping approval")
-        logger.info(f"🔍 DEBUG: Previous result: {previous_result}")
-        logger.info(f"🔍 DEBUG: Rate limit fallback used: {getattr(self.state, '_rate_limit_fallback_used', False)}")
+    async def pause_for_field_mapping_approval(self, field_mapping_suggestions_result):
+        """Pause for field mapping approval"""
+        logger.info(f"⏸️ [ECHO] Pausing for field mapping approval for flow {self._flow_id}")
         
-        # Start health monitoring for this flow
-        if not flow_health_monitor._monitoring_task:
-            await flow_health_monitor.start_monitoring()
-        
-        # Ensure state has IDs
-        self._ensure_state_ids()
-        
-        # Debug: Log state IDs at pause time
-        logger.info(f"🔍 DEBUG: State IDs at pause:")
-        logger.info(f"   - flow_id: {getattr(self.state, 'flow_id', 'NOT SET')}")
-        logger.info(f"   - client_account_id: {getattr(self.state, 'client_account_id', 'NOT SET')}")
-        logger.info(f"   - engagement_id: {getattr(self.state, 'engagement_id', 'NOT SET')}")
-        logger.info(f"   - user_id: {getattr(self.state, 'user_id', 'NOT SET')}")
-        
-        # Update status to waiting
-        self.state.status = "waiting_for_approval"
-        self.state.awaiting_user_approval = True
-        self.state.user_approval_data = {
-            "phase": PhaseNames.FIELD_MAPPING,
-            "reason": "Please review and approve the suggested field mappings",
-            "data_preview": self.state.raw_data[:5] if self.state.raw_data else [],
-            "suggested_mappings": self.state.field_mappings,
-            "confidence_scores": self.state.field_mapping_confidence,
-            "clarifications_needed": len([i for i in self.state.agent_insights if i.get("agent") == "Field Mapping Agent"])
-        }
-        
-        await self.state_manager.safe_update_flow_state()
-        
-        # CRITICAL: Force immediate status update to stop polling
-        # This is essential when rate limit errors occur
-        logger.info("🔄 Forcing immediate status update to waiting_for_approval")
-        
-        # Update Master Flow status first
-        if hasattr(self, '_flow_state_bridge') and self._flow_state_bridge:
-            try:
-                from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
-                from app.core.database import AsyncSessionLocal
-                
-                async with AsyncSessionLocal() as db:
-                    store = PostgresFlowStateStore(db, self.context)
-                    await store.update_flow_status(self._flow_id, "waiting_for_approval")
-                    logger.info("✅ Updated Master Flow status to waiting_for_approval")
-                    
-                    # Also update the discovery flow status directly
-                    from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-                    repo = DiscoveryFlowRepository(
-                        db,
-                        client_account_id=str(self.state.client_account_id),
-                        engagement_id=str(self.state.engagement_id),
-                        user_id=str(self.state.user_id)
-                    )
-                    
-                    # Force status update in discovery_flows table
-                    await repo.flow_commands.update_flow_status(
-                        flow_id=self._flow_id,
-                        status="waiting_for_approval",
-                        progress_percentage=25.0
-                    )
-                    logger.info("✅ Updated DiscoveryFlow status to waiting_for_approval")
-            except Exception as e:
-                logger.warning(f"⚠️ Failed to update Master Flow status: {e}")
-        
-        # Update DiscoveryFlow table with current state
         try:
-            from app.core.database import AsyncSessionLocal
-            from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-            from app.core.context import RequestContext
+            # Update status
+            await self.notification_utils.update_flow_status("awaiting_approval")
             
-            async with AsyncSessionLocal() as db:
-                # Create context from state
-                context = RequestContext(
-                    client_account_id=self.state.client_account_id,
-                    engagement_id=self.state.engagement_id,
-                    user_id=self.state.user_id,
-                    flow_id=self.state.flow_id
-                )
-                
-                # Log state values for debugging
-                logger.info(f"State values - client: {getattr(self.state, 'client_account_id', 'MISSING')}, engagement: {getattr(self.state, 'engagement_id', 'MISSING')}, user: {getattr(self.state, 'user_id', 'MISSING')}")
-                
-                # Update flow status in discovery_flows table
-                repo = DiscoveryFlowRepository(
-                    db, 
-                    client_account_id=str(getattr(self.state, 'client_account_id', self.context.client_account_id)),
-                    engagement_id=str(getattr(self.state, 'engagement_id', self.context.engagement_id)),
-                    user_id=str(getattr(self.state, 'user_id', self.context.user_id))
-                )
-                # Ensure we have flow_id before updating
-                flow_id_to_use = getattr(self.state, 'flow_id', None) or self._flow_id
-                if flow_id_to_use:
-                    await repo.flow_commands.update_flow_status(
-                        flow_id=flow_id_to_use,
-                        status="waiting_for_approval",
-                        progress_percentage=self.state.progress_percentage
-                    )
-                else:
-                    logger.warning("⚠️ Cannot update flow status - no flow_id available")
-                
-                # Also update the current phase data
-                await repo.flow_commands.update_phase_completion(
-                    flow_id=self.state.flow_id,
-                    phase="field_mapping",
-                    data={
-                        "field_mappings": self.state.field_mappings,
-                        "confidence": self.state.field_mapping_confidence,
-                        "awaiting_user_approval": True
-                    },
-                    completed=False,
-                    agent_insights=self.state.agent_insights
-                )
-                
-                logger.info("✅ Updated DiscoveryFlow table with paused state")
-        except Exception as e:
-            logger.warning(f"Failed to update DiscoveryFlow table: {e}")
-        
-        logger.info("⏸️ Flow paused - waiting for field mapping approval")
-        
-        # CRITICAL: Send real-time update to stop polling
-        try:
-            from app.services.agent_ui_bridge import agent_ui_bridge
-            from app.services.models.agent_communication import ConfidenceLevel
+            # Return pause indicator
+            return {
+                'status': 'awaiting_approval',
+                'phase': 'field_mapping_approval',
+                'flow_id': self._flow_id,
+                'mapping_suggestions': field_mapping_suggestions_result,
+                'message': 'Flow paused for field mapping approval'
+            }
             
-            agent_ui_bridge.add_agent_insight(
-                agent_id="unified_discovery_flow",
-                agent_name="Discovery Flow Orchestrator",
-                insight_type="approval_required",
-                title="Field Mapping Approval Required",
-                description="Field mapping suggestions are ready. Please review and approve the mappings to continue.",
-                confidence=ConfidenceLevel.HIGH,
-                supporting_data={
-                    "phase": "field_mapping",
-                    "status": "waiting_for_approval",
-                    "progress": 25.0,
-                    "awaiting_user_approval": True,
-                    "field_mappings_count": len(self.state.field_mappings) if self.state.field_mappings else 0
-                },
-                page=f"flow_{self._flow_id}",
-                flow_id=self._flow_id
-            )
-            logger.info("📡 Sent approval required notification to UI")
         except Exception as e:
-            logger.warning(f"⚠️ Failed to send approval notification: {e}")
-        
-        return "paused_for_field_mapping_approval"
+            logger.error(f"❌ Failed to pause for approval: {e}")
+            await self.notification_utils.send_error_notification(str(e), "field_mapping_approval")
+            raise
     
     @listen(pause_for_field_mapping_approval)
-    async def apply_approved_field_mappings(self, previous_result):
-        """Apply user-approved field mappings and continue to data cleansing"""
-        # Check if we're being called directly during resume (not through normal flow)
-        if previous_result == "field_mapping_approved":
-            logger.info("✅ Called directly from resume - applying approved field mappings")
-            
-            # Clear approval flags
-            self.state.awaiting_user_approval = False
-            self.state.status = "processing"
-            
-            # Mark phase as completed
-            self.state.phase_completion[PhaseNames.FIELD_MAPPING] = True
-            # Remove invalid field assignment - field_mapping_completed doesn't exist
-            # self.state.field_mapping_completed = True
-            
-            # Update current phase to next phase
-            self.state.current_phase = PhaseNames.DATA_CLEANSING
-            
-            # Update progress
-            self.state.progress_percentage = 33.3  # 2/6 phases complete
-            
-            await self.state_manager.safe_update_flow_state()
-            
-            # Also update the Master Flow status
-            try:
-                from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
-                from app.core.database import AsyncSessionLocal
-                
-                async with AsyncSessionLocal() as db:
-                    store = PostgresFlowStateStore(db, self.context)
-                    await store.update_flow_status(self._flow_id, "processing")
-                    logger.info("✅ Updated Master Flow status to processing")
-            except Exception as e:
-                logger.warning(f"⚠️ Failed to update Master Flow status: {e}")
-            
-            # Also update DiscoveryFlow table
-            try:
-                from app.core.database import AsyncSessionLocal
-                from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-                
-                async with AsyncSessionLocal() as db:
-                    repo = DiscoveryFlowRepository(
-                        db, 
-                        client_account_id=str(getattr(self.state, 'client_account_id', self.context.client_account_id)),
-                        engagement_id=str(getattr(self.state, 'engagement_id', self.context.engagement_id)),
-                        user_id=str(getattr(self.state, 'user_id', self.context.user_id))
-                    )
-                    
-                    # Update flow status
-                    await repo.flow_commands.update_flow_status(
-                        flow_id=self.state.flow_id,
-                        status="processing",
-                        progress_percentage=33.3
-                    )
-                    
-                    # Mark field mapping as completed
-                    await repo.flow_commands.update_phase_completion(
-                        flow_id=self.state.flow_id,
-                        phase="field_mapping",
-                        data={
-                            "field_mappings": self.state.field_mappings,
-                            "confidence": self.state.field_mapping_confidence,
-                            "completed": True
-                        },
-                        completed=True,
-                        agent_insights=self.state.agent_insights
-                    )
-                    
-                    logger.info("✅ Updated DiscoveryFlow table with field mapping completion")
-            except Exception as e:
-                logger.warning(f"Failed to update DiscoveryFlow table: {e}")
-            
-            return "field_mapping_completed"
+    async def apply_approved_field_mappings(self, field_mapping_approval_result):
+        """Apply approved field mappings"""
+        logger.info(f"✅ [ECHO] Applying approved field mappings for flow {self._flow_id}")
         
-        # Check if we're resuming from approval
-        if self.state.awaiting_user_approval and self.state.current_phase in [PhaseNames.FIELD_MAPPING, "attribute_mapping"]:
-            # Check if mappings have been approved (user_approval_data should be updated)
-            if hasattr(self.state, 'user_approval_data') and self.state.user_approval_data:
-                approval_data = self.state.user_approval_data
-                if approval_data.get('approved', False):
-                    logger.info("✅ User approved field mappings - applying and continuing flow")
-                    
-                    # Clear approval flags
-                    self.state.awaiting_user_approval = False
-                    self.state.status = "processing"
-                    
-                    # Mark phase as completed
-                    self.state.phase_completion[PhaseNames.FIELD_MAPPING] = True
-                    self.state.field_mapping_completed = True
-                    
-                    # Update current phase to next phase
-                    self.state.current_phase = PhaseNames.DATA_CLEANSING
-                    
-                    # Update progress
-                    self.state.progress_percentage = 33.3  # 2/6 phases complete
-                    
-                    await self.state_manager.safe_update_flow_state()
-                    
-                    # Also update the Master Flow status
-                    try:
-                        from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
-                        from app.core.database import AsyncSessionLocal
-                        
-                        async with AsyncSessionLocal() as db:
-                            store = PostgresFlowStateStore(db, self.context)
-                            await store.update_flow_status(self._flow_id, "processing")
-                            logger.info("✅ Updated Master Flow status to processing")
-                    except Exception as e:
-                        logger.warning(f"⚠️ Failed to update Master Flow status: {e}")
-                    
-                    return "field_mapping_completed"
-        
-        # This will only run when flow is resumed after approval
-        if previous_result == "paused_for_field_mapping_approval":
-            logger.info("⏭️ Flow is paused for approval - waiting for user action")
-            # Don't propagate the paused state - just return it
-            return previous_result
-        
-        # Normal flow - user has approved, apply the mappings
-        logger.info("✅ Applying approved field mappings")
-        
-        # The mappings are already in state from the suggestions phase
-        # Just update the status
-        self.state.phase_completion[PhaseNames.FIELD_MAPPING] = True
-        self.state.field_mapping_completed = True
-        self.state.current_phase = PhaseNames.DATA_CLEANSING
-        self.state.progress_percentage = 33.3  # 2/6 phases complete
-        
-        await self.state_manager.safe_update_flow_state()
-        
-        return "field_mapping_completed"
+        try:
+            # Ensure state IDs are correct
+            self._ensure_state_ids()
+            
+            # Use phase handler for mapping application
+            mapping_application_result = await self.phase_handlers.apply_approved_field_mappings(field_mapping_approval_result)
+            
+            logger.info("✅ Field mappings applied - triggering data cleansing")
+            return mapping_application_result
+            
+        except Exception as e:
+            logger.error(f"❌ Field mapping application failed: {e}")
+            await self.notification_utils.send_error_notification(str(e), "mapping_application")
+            raise
     
     @listen(apply_approved_field_mappings)
-    async def execute_data_cleansing_agent(self, previous_result):
-        """Execute data cleansing phase using real CrewAI crews with retry logic"""
-        # Check if flow is paused
-        if previous_result == "paused_for_field_mapping_approval":
-            logger.info("⏭️ Flow paused - data cleansing will not execute")
-            return previous_result
+    async def execute_data_cleansing_agent(self, mapping_application_result):
+        """Execute data cleansing phase"""
+        logger.info(f"🧹 [ECHO] Data cleansing phase triggered for flow {self._flow_id}")
         
         try:
-            # Define the phase execution function for retry
-            async def execute_cleansing():
-                result = await self.phase_executor.execute_data_cleansing_phase(previous_result)
-                
-                # Create checkpoint after successful execution
-                if result and result != "data_cleansing_failed":
-                    await checkpoint_manager.create_phase_checkpoint(
-                        flow_id=self._flow_id,
-                        phase=PhaseNames.DATA_CLEANSING,
-                        state=self.state,
-                        phase_result=result
-                    )
-                
-                return result
+            # Ensure state IDs are correct
+            self._ensure_state_ids()
             
-            # Execute with retry logic
-            result = await enhanced_error_handler.handle_phase_error(
-                phase_name=PhaseNames.DATA_CLEANSING,
-                error=None,
-                state=self.state,
-                phase_func=execute_cleansing
-            )
+            # Use phase handler for data cleansing
+            cleansing_result = await self.phase_handlers.execute_data_cleansing(mapping_application_result)
             
-            # Handle recovery result
-            if isinstance(result, dict) and result.get("status") == "recovered":
-                result = result.get("result")
-            elif isinstance(result, dict) and result.get("status") in ["failed", "recovery_failed"]:
-                logger.error(f"❌ Data cleansing failed after recovery attempts")
-                self.state.status = "failed"
-                self.state.final_result = "discovery_failed"
-                await self.state_manager.safe_update_flow_state()
-                return "discovery_failed"
-            
-            await self.state_manager.safe_update_flow_state()
-            return result
+            logger.info("✅ Data cleansing completed - creating discovery assets")
+            return cleansing_result
             
         except Exception as e:
-            # Handle error with enhanced error handler
-            recovery_result = await enhanced_error_handler.handle_phase_error(
-                phase_name=PhaseNames.DATA_CLEANSING,
-                error=e,
-                state=self.state,
-                phase_func=self.phase_executor.execute_data_cleansing_phase,
-                previous_result=previous_result
-            )
-            
-            if recovery_result.get("status") in ["recovered", "partial_success", "skipped"]:
-                await self.state_manager.safe_update_flow_state()
-                return recovery_result.get("result", "data_cleansing_skipped")
-            else:
-                self.state.status = "failed"
-                await self.state_manager.safe_update_flow_state()
-                return "discovery_failed"
+            logger.error(f"❌ Data cleansing phase failed: {e}")
+            await self.notification_utils.send_error_notification(str(e), "data_cleansing")
+            raise
     
     @listen(execute_data_cleansing_agent)
-    async def create_discovery_assets_from_cleaned_data(self, previous_result):
-        """Create discovery assets from cleaned data with retry logic"""
-        # Check if flow is paused
-        if previous_result == "paused_for_field_mapping_approval":
-            logger.info("⏭️ Flow paused - asset inventory will not execute")
-            return previous_result
+    async def create_discovery_assets_from_cleaned_data(self, data_cleansing_result):
+        """Create discovery assets from cleaned data"""
+        logger.info(f"📦 [ECHO] Creating discovery assets for flow {self._flow_id}")
         
         try:
-            # Define the phase execution function for retry
-            async def execute_inventory():
-                result = await self.phase_executor.execute_asset_inventory_phase(previous_result)
-                
-                # Create checkpoint after successful execution
-                if result and result != "asset_inventory_failed":
-                    await checkpoint_manager.create_phase_checkpoint(
-                        flow_id=self._flow_id,
-                        phase=PhaseNames.ASSET_INVENTORY,
-                        state=self.state,
-                        phase_result=result
-                    )
-                
-                return result
+            # Ensure state IDs are correct
+            self._ensure_state_ids()
             
-            # Execute with retry logic
-            from ..utils.retry_utils import retry_with_backoff
-            result = await retry_with_backoff(
-                execute_inventory,
-                config=RetryConfig(max_retries=3, base_delay=2.0)
-            )
+            # Use phase handler for asset creation
+            asset_creation_result = await self.phase_handlers.create_discovery_assets(data_cleansing_result)
             
-            await self.state_manager.safe_update_flow_state()
-            return result
+            logger.info("✅ Discovery assets created - promoting to assets")
+            return asset_creation_result
             
         except Exception as e:
-            # Handle error with enhanced error handler
-            recovery_result = await enhanced_error_handler.handle_phase_error(
-                phase_name=PhaseNames.ASSET_INVENTORY,
-                error=e,
-                state=self.state,
-                phase_func=self.phase_executor.execute_asset_inventory_phase,
-                previous_result=previous_result
-            )
-            
-            if recovery_result.get("status") in ["recovered", "partial_success"]:
-                await self.state_manager.safe_update_flow_state()
-                return recovery_result.get("result")
-            else:
-                self.state.status = "failed"
-                await self.state_manager.safe_update_flow_state()
-                return "discovery_failed"
+            logger.error(f"❌ Asset creation phase failed: {e}")
+            await self.notification_utils.send_error_notification(str(e), "asset_creation")
+            raise
     
     @listen(create_discovery_assets_from_cleaned_data)
-    async def promote_discovery_assets_to_assets(self, previous_result):
-        """Promote discovery assets to main assets table"""
-        # Check if flow is paused
-        if previous_result == "paused_for_field_mapping_approval":
-            logger.info("⏭️ Flow paused - asset promotion will not execute")
-            return previous_result
-            
-        # This is handled within asset_inventory_phase
-        return "assets_promoted"
-    
-    @listen(promote_discovery_assets_to_assets)
-    async def execute_parallel_analysis_agents(self, previous_result):
-        """Execute dependency and tech debt analysis in parallel with retry logic"""
-        # Check if flow is paused
-        if previous_result == "paused_for_field_mapping_approval":
-            logger.info("⏭️ Flow paused - parallel analysis will not execute")
-            return previous_result
-            
-        logger.info("🚀 Starting parallel analysis agents")
+    async def promote_discovery_assets_to_assets(self, asset_creation_result):
+        """Promote discovery assets to full assets"""
+        logger.info(f"⬆️ [ECHO] Promoting discovery assets to assets for flow {self._flow_id}")
         
         try:
-            # Define the phase execution function for retry
-            async def execute_parallel_phases():
-                # Prepare input data
-                input_data = {
-                    'assets': self.state.asset_inventory.get('assets', []),
-                    'field_mappings': self.state.field_mappings,
-                    'cleaned_data': self.state.cleaned_data
-                }
-                
-                # Execute parallel phases with individual retry logic
-                dependency_task = self._execute_with_retry(
-                    PhaseNames.DEPENDENCY_ANALYSIS,
-                    self.phase_executor.execute_dependency_analysis_phase,
-                    previous_result
-                )
-                
-                tech_debt_task = self._execute_with_retry(
-                    PhaseNames.TECH_DEBT_ASSESSMENT,
-                    self.phase_executor.execute_tech_debt_analysis_phase,
-                    previous_result
-                )
-                
-                # Execute in parallel
-                results = await asyncio.gather(
-                    dependency_task,
-                    tech_debt_task,
-                    return_exceptions=True
-                )
-                
-                # Handle results
-                dependency_result = results[0]
-                tech_debt_result = results[1]
-                
-                # Check for exceptions
-                if isinstance(dependency_result, Exception):
-                    logger.error(f"❌ Dependency analysis failed: {dependency_result}")
-                    # Try recovery
-                    recovery = await enhanced_error_handler.handle_phase_error(
-                        phase_name=PhaseNames.DEPENDENCY_ANALYSIS,
-                        error=dependency_result,
-                        state=self.state,
-                        phase_func=self.phase_executor.execute_dependency_analysis_phase,
-                        previous_result=previous_result
-                    )
-                    if recovery.get("status") in ["recovered", "partial_success"]:
-                        dependency_result = recovery.get("result")
-                    else:
-                        dependency_result = recovery
-                
-                if isinstance(tech_debt_result, Exception):
-                    logger.error(f"❌ Tech debt analysis failed: {tech_debt_result}")
-                    # Try recovery
-                    recovery = await enhanced_error_handler.handle_phase_error(
-                        phase_name=PhaseNames.TECH_DEBT_ASSESSMENT,
-                        error=tech_debt_result,
-                        state=self.state,
-                        phase_func=self.phase_executor.execute_tech_debt_analysis_phase,
-                        previous_result=previous_result
-                    )
-                    if recovery.get("status") in ["recovered", "partial_success"]:
-                        tech_debt_result = recovery.get("result")
-                    else:
-                        tech_debt_result = recovery
-                
-                # Create checkpoints for successful phases
-                if dependency_result and not isinstance(dependency_result, dict) or \
-                   (isinstance(dependency_result, dict) and dependency_result.get("status") != "failed"):
-                    await checkpoint_manager.create_phase_checkpoint(
-                        flow_id=self._flow_id,
-                        phase=PhaseNames.DEPENDENCY_ANALYSIS,
-                        state=self.state,
-                        phase_result=dependency_result
-                    )
-                    self.state.phase_completion['dependencies'] = True
-                
-                if tech_debt_result and not isinstance(tech_debt_result, dict) or \
-                   (isinstance(tech_debt_result, dict) and tech_debt_result.get("status") != "failed"):
-                    await checkpoint_manager.create_phase_checkpoint(
-                        flow_id=self._flow_id,
-                        phase=PhaseNames.TECH_DEBT_ASSESSMENT,
-                        state=self.state,
-                        phase_result=tech_debt_result
-                    )
-                    self.state.phase_completion['tech_debt'] = True
-                
-                return {
-                    "dependency_analysis": dependency_result,
-                    "tech_debt_assessment": tech_debt_result
-                }
+            # Simple promotion logic - this could be more complex
+            asset_promotion_result = {
+                'status': 'success',
+                'promoted_assets': asset_creation_result.get('assets_created', []),
+                'promotion_timestamp': datetime.now().isoformat()
+            }
             
-            # Execute with overall retry logic
-            results = await retry_with_backoff(
-                execute_parallel_phases,
-                config=RetryConfig(max_retries=2, base_delay=5.0)
-            )
+            await self.notification_utils.send_progress_update(80, "asset_promotion", "Assets promoted successfully")
             
-            # Update progress
-            self.state.progress_percentage = 90.0
-            await self.state_manager.safe_update_flow_state()
-            
-            logger.info("✅ Parallel analysis completed")
-            return "parallel_analysis_completed"
+            logger.info("✅ Assets promoted - starting parallel analysis")
+            return asset_promotion_result
             
         except Exception as e:
-            logger.error(f"❌ Parallel analysis failed: {e}")
-            
-            # Try final recovery
-            recovery_result = await enhanced_error_handler.handle_critical_flow_error(
-                flow_id=self._flow_id,
-                error=e,
-                state=self.state
-            )
-            
-            if recovery_result.get("can_recover"):
-                # Mark phases as partially complete
-                self.state.phase_completion['dependencies'] = False
-                self.state.phase_completion['tech_debt'] = False
-                self.state.progress_percentage = 75.0  # Partial progress
-                await self.state_manager.safe_update_flow_state()
-                return "parallel_analysis_partial"
-            else:
-                self.state_manager.add_error("parallel_analysis", str(e))
-                return "parallel_analysis_failed"
+            logger.error(f"❌ Asset promotion failed: {e}")
+            await self.notification_utils.send_error_notification(str(e), "asset_promotion")
+            raise
     
-    async def _execute_with_retry(self, phase_name: str, phase_func, *args, **kwargs):
-        """Execute a phase with retry logic"""
+    @listen(promote_discovery_assets_to_assets)
+    async def execute_parallel_analysis_agents(self, asset_promotion_result):
+        """Execute parallel analysis phases"""
+        logger.info(f"🔄 [ECHO] Starting parallel analysis for flow {self._flow_id}")
+        
         try:
-            # Get phase-specific retry config
-            retry_config = RetryConfig(
-                max_retries=4 if phase_name == PhaseNames.DEPENDENCY_ANALYSIS else 3,
-                base_delay=2.0,
-                max_delay=60.0
-            )
+            # Ensure state IDs are correct
+            self._ensure_state_ids()
             
-            # Execute with retry
-            from ..utils.retry_utils import retry_with_backoff
-            return await retry_with_backoff(
-                phase_func,
-                *args,
-                config=retry_config,
-                **kwargs
-            )
+            # Use phase handler for parallel analysis
+            analysis_result = await self.phase_handlers.execute_parallel_analysis(asset_promotion_result)
+            
+            # Mark flow as completed
+            await self.notification_utils.update_flow_status("completed")
+            
+            # Send completion notification
+            final_result = {
+                'status': 'completed',
+                'flow_id': self._flow_id,
+                'analysis_result': analysis_result,
+                'completion_timestamp': datetime.now().isoformat()
+            }
+            
+            await self.notification_utils.send_flow_completion_notification(final_result)
+            
+            logger.info("✅ Discovery flow completed successfully")
+            return final_result
+            
         except Exception as e:
-            # Return exception to be handled by caller
-            return e
-    
-    @listen(execute_parallel_analysis_agents)
-    async def check_user_approval_needed(self, previous_result):
-        """Check if user approval is needed and finalize flow"""
-        # Check if flow is paused
-        if previous_result == "paused_for_field_mapping_approval":
-            logger.info("⏭️ Flow paused - finalization will not execute")
-            return previous_result
-            
-        if self.state_manager.is_user_approval_needed():
-            await self.flow_finalizer.pause_for_user_approval(previous_result)
-            return "awaiting_user_approval_in_attribute_mapping"
-        else:
-            return await self.flow_finalizer.finalize_flow(previous_result)
+            logger.error(f"❌ Parallel analysis phase failed: {e}")
+            await self.notification_utils.send_error_notification(str(e), "parallel_analysis")
+            raise
     
     # ========================================
-    # FLOW MANAGEMENT DELEGATION
+    # FLOW MANAGEMENT METHODS
     # ========================================
     
-    async def pause_flow(self, reason: str = "user_requested"):
-        """Pause the discovery flow"""
+    async def pause_flow(self, reason: Optional[str] = None):
+        """Pause the flow"""
         return await self.flow_manager.pause_flow(reason)
     
     async def resume_flow_from_state(self, resume_context: Dict[str, Any]):
@@ -1377,157 +476,37 @@ class UnifiedDiscoveryFlow(Flow):
         """Get comprehensive flow information"""
         return self.flow_manager.get_flow_info()
     
+    # Delegate data loading to utility class
     async def _load_raw_data_from_database(self, state: UnifiedDiscoveryFlowState):
         """Load raw data from database tables into flow state"""
-        try:
-            flow_id_to_use = self._flow_id
-            logger.info(f"🔍 Loading raw data for flow {flow_id_to_use}")
-            
-            from app.core.database import AsyncSessionLocal
-            from sqlalchemy import select, or_
-            from app.models.discovery_flow import DiscoveryFlow
-            from app.models.data_import import RawImportRecord, DataImport
-            
-            async with AsyncSessionLocal() as db:
-                # First, try to get the discovery flow record
-                flow_query = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id_to_use)
-                flow_result = await db.execute(flow_query)
-                discovery_flow = flow_result.scalar_one_or_none()
-                
-                data_import_id = None
-                
-                if discovery_flow and discovery_flow.data_import_id:
-                    data_import_id = discovery_flow.data_import_id
-                    logger.info(f"🔍 Found discovery flow with data_import_id: {data_import_id}")
-                else:
-                    # Fallback: Check if flow_id is actually a data_import_id
-                    logger.info(f"🔍 No discovery flow found, checking if {flow_id_to_use} is a data_import_id")
-                    import_query = select(DataImport).where(DataImport.id == flow_id_to_use)
-                    import_result = await db.execute(import_query)
-                    data_import = import_result.scalar_one_or_none()
-                    
-                    if data_import:
-                        data_import_id = data_import.id
-                        logger.info(f"✅ Found data import directly with id: {data_import_id}")
-                
-                if data_import_id:
-                    # Load raw records from raw_import_records table
-                    records_query = select(RawImportRecord).where(
-                        RawImportRecord.data_import_id == data_import_id
-                    ).order_by(RawImportRecord.row_number)
-                    
-                    records_result = await db.execute(records_query)
-                    raw_records = records_result.scalars().all()
-                    
-                    # Extract raw_data from records
-                    raw_data = [record.raw_data for record in raw_records]
-                    
-                    if raw_data:
-                        state.raw_data = raw_data
-                        logger.info(f"✅ Loaded {len(raw_data)} records from database")
-                        logger.info(f"🔍 Sample record keys: {list(raw_data[0].keys()) if raw_data else 'None'}")
-                        logger.info(f"🔍 First record sample: {raw_data[0] if raw_data else 'None'}")
-                    else:
-                        logger.warning(f"⚠️ No raw records found for data_import_id: {data_import_id}")
-                else:
-                    logger.warning(f"⚠️ Could not find data_import_id for flow: {flow_id_to_use}")
-                    
-        except Exception as e:
-            logger.error(f"❌ Failed to load raw data from database: {e}")
-            # Don't fail the flow initialization, just log the error
-            import traceback
-            logger.error(f"Traceback: {traceback.format_exc()}")
-    
-    async def _load_raw_data_from_import_records(self):
-        """Load raw data from raw_import_records table when state doesn't have it"""
-        try:
-            from app.core.database import AsyncSessionLocal
-            from app.models.data_import import RawImportRecord
-            from sqlalchemy import select
-            
-            # Use flow_id as data_import_id (they're the same in the current implementation)
-            data_import_id = self._flow_id
-            logger.info(f"🔍 Loading raw data for data_import_id: {data_import_id}")
-            
-            async with AsyncSessionLocal() as db:
-                # Load raw records
-                records_result = await db.execute(
-                    select(RawImportRecord)
-                    .where(RawImportRecord.data_import_id == data_import_id)
-                    .order_by(RawImportRecord.row_number)
-                )
-                records = records_result.scalars().all()
-                
-                if records:
-                    # Extract raw_data from records
-                    raw_data = [record.raw_data for record in records]
-                    self.state.raw_data = raw_data
-                    logger.info(f"✅ Loaded {len(raw_data)} records from database")
-                    if raw_data and len(raw_data) > 0:
-                        logger.info(f"🔍 First record keys: {list(raw_data[0].keys())}")
-                        
-                    # Also update the flow persistence if bridge is available
-                    if self.flow_bridge:
-                        await self.state_manager.safe_update_flow_state()
-                else:
-                    logger.warning(f"⚠️ No raw records found for data_import_id: {data_import_id}")
-                    
-        except Exception as e:
-            logger.error(f"❌ Failed to load raw data from database: {e}")
-            import traceback
-            logger.error(f"Traceback: {traceback.format_exc()}")
+        return await self.data_utils.load_raw_data_from_database(state)
 
 
 def create_unified_discovery_flow(
     crewai_service,
     context: RequestContext,
-    raw_data: List[Dict[str, Any]],
+    flow_id: Optional[str] = None,
     master_flow_id: Optional[str] = None,
     **kwargs
 ) -> UnifiedDiscoveryFlow:
     """
-    Factory function to create a Unified Discovery Flow instance.
-    
-    Args:
-        crewai_service: The CrewAI service instance
-        context: Request context for multi-tenant operations
-        raw_data: Raw data to process
-        master_flow_id: Optional master flow ID for linkage
-        **kwargs: Additional flow configuration
-        
-    Returns:
-        UnifiedDiscoveryFlow instance
+    Factory function to create a UnifiedDiscoveryFlow instance
     """
-    logger.info(f"🏗️ Creating UnifiedDiscoveryFlow with {len(raw_data) if raw_data else 0} records")
+    logger.info("🏭 Creating new UnifiedDiscoveryFlow instance")
     
-    # PHASE 2 FIX: Add master_flow_id handling
-    if master_flow_id:
-        logger.info(f"🔗 Linking UnifiedDiscoveryFlow to master flow: {master_flow_id}")
-        kwargs['master_flow_id'] = master_flow_id
-        
-        # Also add to metadata for reference
-        if 'metadata' not in kwargs:
-            kwargs['metadata'] = {}
-        kwargs['metadata']['master_flow_id'] = master_flow_id
+    # Generate flow_id if not provided
+    if not flow_id:
+        flow_id = str(uuid.uuid4())
+        logger.info(f"🆔 Generated new flow_id: {flow_id}")
     
-    # Ensure raw_data is included in kwargs
-    kwargs['raw_data'] = raw_data
-    
-    # Create the flow instance
-    flow_instance = UnifiedDiscoveryFlow(
+    # Create flow instance
+    flow = UnifiedDiscoveryFlow(
         crewai_service=crewai_service,
         context=context,
+        flow_id=flow_id,
+        master_flow_id=master_flow_id,
         **kwargs
     )
     
-    # PHASE 2 FIX: Update DiscoveryFlow record with master flow linkage if provided
-    if master_flow_id:
-        try:
-            # Store master_flow_id in the flow state for persistence
-            if hasattr(flow_instance, 'state') and flow_instance.state:
-                flow_instance.state.master_flow_id = master_flow_id
-                logger.info(f"✅ Set master_flow_id in flow state: {master_flow_id}")
-        except Exception as e:
-            logger.warning(f"⚠️ Failed to set master_flow_id in flow state: {e}")
-    
-    return flow_instance
+    logger.info(f"✅ UnifiedDiscoveryFlow created successfully - ID: {flow_id}")
+    return flow

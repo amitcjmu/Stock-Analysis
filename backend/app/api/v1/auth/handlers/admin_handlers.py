@@ -5,7 +5,7 @@ Handles admin dashboard stats, active users, access logs, admin user creation, a
 
 import logging
 from typing import Dict, Any, Optional
-from fastapi import APIRouter, HTTPException, Depends, Request, Query
+from fastapi import APIRouter, HTTPException, Depends, Request, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -71,8 +71,8 @@ async def get_active_users(
 @admin_router.put("/admin/users/{user_id}")
 async def admin_update_user(
     user_id: str,
-    user_updates: Dict[str, Any],
-    request: Request,
+    user_updates: Dict[str, Any] = Body(...),
+    request: Request = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
