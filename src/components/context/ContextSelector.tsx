@@ -63,11 +63,13 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: async () => {
+      console.log('🔍 ContextSelector - Fetching clients...');
       const response = await apiCall('/api/v1/context-establishment/clients', {
         method: 'GET',
         headers: auth.getAuthHeaders()
       }, false); // Don't include context - we're establishing it
-      return response.clients;
+      console.log('🔍 ContextSelector - Clients API response:', response);
+      return response.clients || [];
     }
   });
 
@@ -75,11 +77,13 @@ const ContextSelector: React.FC<ContextSelectorProps> = ({ className = '', compa
     queryKey: ['engagements', stagedClient?.id],
     queryFn: async () => {
       if (!stagedClient?.id) return [];
+      console.log('🔍 ContextSelector - Fetching engagements for client:', stagedClient.id);
       const response = await apiCall(`/api/v1/context-establishment/engagements?client_id=${stagedClient.id}`, {
         method: 'GET',
         headers: auth.getAuthHeaders()
       }, false); // Don't include context - we're establishing it
-      return response.engagements;
+      console.log('🔍 ContextSelector - Engagements API response:', response);
+      return response.engagements || [];
     },
     enabled: !!stagedClient?.id
   });

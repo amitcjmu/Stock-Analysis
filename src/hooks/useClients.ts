@@ -26,7 +26,9 @@ export const useClients = () => {
         }
 
         // For non-admin users or if no clients found, get all available clients
+        console.log('🔍 useClients - Fetching clients from context-establishment endpoint');
         const response = await apiCall("/context-establishment/clients", {}, false);
+        console.log('🔍 useClients - API response:', response);
         return response.clients || [];
       } catch (error) {
         console.error("Error fetching clients:", error);
