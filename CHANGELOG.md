@@ -1,5 +1,47 @@
 # 🚀 AI Modernize Migration Platform - Changelog
 
+## [1.34.0] - 2025-07-19
+
+### 🎯 **DATA TRACEABILITY** - Complete Asset-to-Raw Record Linkage System
+
+This release establishes comprehensive end-to-end data traceability throughout the discovery workflow by implementing proper CrewAI-driven data cleansing and asset-to-raw record linkage without fallback heuristics.
+
+### 🚀 **Agentic Data Pipeline Enhancement**
+
+#### **Data Cleansing Agent Intelligence**
+- **Change Type**: Agentic data transformation implementation
+- **Impact**: Raw import records now undergo proper AI-driven cleansing instead of direct copying
+- **Technical Details**: Modified `data_cleansing_executor.py` to retrieve raw records with IDs and preserve linkage metadata through the agentic pipeline
+
+#### **Asset Inventory Linkage System**
+- **Change Type**: Automatic asset-to-raw record linking
+- **Impact**: Every created asset maintains full traceability back to its original raw import record
+- **Technical Details**: Added `_link_assets_to_raw_records()` method in `asset_inventory_executor.py` to update `RawImportRecord.asset_id` after asset creation
+
+#### **Frontend Data Audit Interface**
+- **Change Type**: Developer debugging capabilities
+- **Impact**: Enables investigation of data transformation issues through API endpoint
+- **Technical Details**: Added `/api/v1/asset_inventory/data-audit/{asset_id}` endpoint to show raw_data → cleansed_data → final asset transformation
+
+#### **Asset Reclassification UI**
+- **Change Type**: User-driven asset management
+- **Impact**: Users can trigger AI reclassification of selected assets directly from inventory page
+- **Technical Details**: Added "Reclassify Selected" button in `AssetTableFilters.tsx` with integration to existing `/auto-classify` endpoint
+
+### 📊 **Business Impact**
+
+- **Complete Data Lineage**: Every asset in the system can now be traced back to its original raw data source
+- **Enhanced Data Quality**: Proper agentic cleansing ensures data transformation follows AI intelligence rather than simple copying
+- **Improved Debugging**: Developers can now identify exactly where data transformation issues occur in the pipeline
+- **Better User Control**: Users can re-trigger AI classification when they identify data quality issues
+
+### 🎯 **Success Metrics**
+
+- **Zero Fallback Dependencies**: All heuristic fallbacks remain disabled, ensuring pure agentic decision-making
+- **100% Linkage Integrity**: `RawImportRecord.asset_id` properly populated for all created assets
+- **Full Pipeline Traceability**: Data flow preserved from CSV upload → Raw Records → Cleansed Data → Final Assets
+- **AI-First Architecture**: CrewAI agents handle all data transformation and linkage decisions without hard-coded logic
+
 ## [1.33.0] - 2025-07-18
 
 ### 🐛 **ADMIN INTERFACE** - Temporal Dead Zone Fix & User Approvals Stability

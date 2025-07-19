@@ -2,7 +2,7 @@ import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Filter, Download } from 'lucide-react';
+import { Search, Filter, Download, RefreshCw } from 'lucide-react';
 
 interface AssetTableFiltersProps {
   searchTerm: string;
@@ -14,6 +14,8 @@ interface AssetTableFiltersProps {
   onToggleAdvancedFilters: () => void;
   onExport: () => void;
   selectedCount: number;
+  onReclassifySelected?: () => void;
+  isReclassifying?: boolean;
 }
 
 export const AssetTableFilters: React.FC<AssetTableFiltersProps> = ({
@@ -25,7 +27,9 @@ export const AssetTableFilters: React.FC<AssetTableFiltersProps> = ({
   showAdvancedFilters,
   onToggleAdvancedFilters,
   onExport,
-  selectedCount
+  selectedCount,
+  onReclassifySelected,
+  isReclassifying = false
 }) => {
   return (
     <div className="space-y-4">
@@ -67,8 +71,22 @@ export const AssetTableFilters: React.FC<AssetTableFiltersProps> = ({
       </div>
       
       {selectedCount > 0 && (
-        <div className="text-sm text-blue-600">
-          {selectedCount} assets selected
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-blue-600">
+            {selectedCount} assets selected
+          </div>
+          {onReclassifySelected && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={onReclassifySelected}
+              disabled={isReclassifying}
+              className="text-blue-600 border-blue-600 hover:bg-blue-50"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isReclassifying ? 'animate-spin' : ''}`} />
+              {isReclassifying ? 'Reclassifying...' : 'Reclassify Selected'}
+            </Button>
+          )}
         </div>
       )}
     </div>

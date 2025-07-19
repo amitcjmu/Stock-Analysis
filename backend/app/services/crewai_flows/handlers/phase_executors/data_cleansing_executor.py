@@ -34,12 +34,12 @@ class DataCleansingExecutor(BasePhaseExecutor):
             # Import agentic intelligence
             from app.services.agentic_intelligence.agentic_asset_enrichment import enrich_assets_with_agentic_intelligence
             
-            # Convert raw data to assets for agentic analysis
-            raw_data = self.state.raw_data or []
-            logger.info(f"🔄 Converting {len(raw_data)} raw records to asset profiles for agentic analysis")
+            # Get raw import records from database with their IDs for proper linkage
+            raw_import_records = await self._get_raw_import_records_with_ids()
+            logger.info(f"🔄 Converting {len(raw_import_records)} raw import records to asset profiles for agentic analysis")
             
-            # Transform raw data into structured assets
-            assets_for_analysis = self._prepare_assets_for_agentic_analysis(raw_data)
+            # Transform raw import records into structured assets with ID preservation
+            assets_for_analysis = self._prepare_assets_for_agentic_analysis(raw_import_records)
             
             if not assets_for_analysis:
                 logger.error("❌ No assets prepared for agentic analysis - this is a critical error")
@@ -163,16 +163,60 @@ class DataCleansingExecutor(BasePhaseExecutor):
             logger.error(f"❌ Crew result: {crew_result}")
             raise RuntimeError(f"Data cleansing crew returned unexpected result type: {type(crew_result)}")
     
-    def _prepare_assets_for_agentic_analysis(self, raw_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Transform raw data into structured assets suitable for agentic intelligence analysis"""
+    async def _get_raw_import_records_with_ids(self) -> List[Dict[str, Any]]:
+        """Get raw import records from database with their IDs preserved"""
+        from app.core.database import AsyncSessionLocal
+        from app.models.data_import.core import RawImportRecord
+        from sqlalchemy import select
+        
+        records = []
+        try:
+            async with AsyncSessionLocal() as session:
+                # Get data_import_id from state
+                data_import_id = getattr(self.state, 'data_import_id', None)
+                if not data_import_id:
+                    logger.error("❌ No data_import_id found in state")
+                    return []
+                
+                # Query raw import records
+                query = select(RawImportRecord).where(
+                    RawImportRecord.data_import_id == data_import_id
+                ).where(
+                    RawImportRecord.is_valid == True
+                )
+                
+                result = await session.execute(query)
+                raw_records = result.scalars().all()
+                
+                for record in raw_records:
+                    # Preserve the raw import record ID for linkage
+                    record_data = {
+                        'raw_import_record_id': str(record.id),
+                        'row_number': record.row_number,
+                        'raw_data': record.raw_data,
+                        'cleansed_data': record.cleansed_data,
+                        **record.raw_data  # Flatten raw data for easy access
+                    }
+                    records.append(record_data)
+                
+                logger.info(f"✅ Retrieved {len(records)} raw import records with IDs")
+                return records
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to get raw import records: {e}")
+            return []
+    
+    def _prepare_assets_for_agentic_analysis(self, raw_import_records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Transform raw import records into structured assets suitable for agentic intelligence analysis"""
         
         assets = []
         
-        for i, record in enumerate(raw_data):
+        for i, record in enumerate(raw_import_records):
             try:
-                # Create structured asset from raw record
+                # Create structured asset from raw import record, preserving linkage
                 asset = {
-                    "id": str(uuid.uuid4()),  # Generate unique ID for asset
+                    "id": str(uuid.uuid4()),  # Generate unique ID for asset processing
+                    "raw_import_record_id": record.get('raw_import_record_id'),  # Preserve linkage
                     "name": record.get("name", record.get("hostname", f"asset_{i+1}")),
                     "asset_type": record.get("asset_type", record.get("type", "unknown")),
                     "technology_stack": record.get("technology_stack", record.get("technology", record.get("software", ""))),
@@ -193,8 +237,8 @@ class DataCleansingExecutor(BasePhaseExecutor):
                     "integration_complexity": record.get("integration_complexity", "medium"),
                     "data_volume": record.get("data_volume", record.get("storage_gb", "unknown")),
                     
-                    # Original raw data for reference
-                    "raw_data_source": record,
+                    # Original raw import record for reference and linkage
+                    "raw_import_record": record,
                     "enrichment_status": "basic",
                     "source": "discovery_flow"
                 }
@@ -205,7 +249,7 @@ class DataCleansingExecutor(BasePhaseExecutor):
                 logger.warning(f"Failed to convert raw record {i} to asset: {e}")
                 continue
         
-        logger.info(f"✅ Prepared {len(assets)} assets for agentic analysis")
+        logger.info(f"✅ Prepared {len(assets)} assets for agentic analysis with preserved raw record linkage")
         return assets
     
     def _safe_float_convert(self, value) -> float:

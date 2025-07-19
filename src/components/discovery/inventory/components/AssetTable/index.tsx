@@ -29,6 +29,8 @@ interface AssetTableProps {
   selectedColumns: string[];
   allColumns: string[];
   onToggleColumn: (column: string) => void;
+  onReclassifySelected?: () => void;
+  isReclassifying?: boolean;
 }
 
 export const AssetTable: React.FC<AssetTableProps> = ({
@@ -50,7 +52,9 @@ export const AssetTable: React.FC<AssetTableProps> = ({
   onPageChange,
   selectedColumns,
   allColumns,
-  onToggleColumn
+  onToggleColumn,
+  onReclassifySelected,
+  isReclassifying
 }) => {
   const totalPages = Math.ceil(filteredAssets.length / recordsPerPage);
   const startIndex = (currentPage - 1) * recordsPerPage;
@@ -125,6 +129,8 @@ export const AssetTable: React.FC<AssetTableProps> = ({
           onToggleAdvancedFilters={onToggleAdvancedFilters}
           onExport={onExport}
           selectedCount={selectedAssets.length}
+          onReclassifySelected={onReclassifySelected}
+          isReclassifying={isReclassifying}
         />
 
         <div className="mt-4 border rounded-lg overflow-hidden">

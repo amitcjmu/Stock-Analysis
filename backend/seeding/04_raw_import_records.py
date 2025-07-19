@@ -247,7 +247,7 @@ async def create_raw_import_records():
                 engagement_id=DEMO_ENGAGEMENT_ID,
                 row_number=i + 1,
                 raw_data=raw_data,
-                cleansed_data=raw_data if is_valid else None,
+                cleansed_data=None,  # Let agentic data cleansing handle this properly
                 is_valid=is_valid,
                 is_processed=is_valid,
                 validation_errors=None if is_valid else ["Missing required fields", "Invalid data types"],
@@ -273,7 +273,7 @@ async def create_raw_import_records():
                 engagement_id=DEMO_ENGAGEMENT_ID,
                 row_number=i + 1,
                 raw_data=raw_data,
-                cleansed_data=raw_data if is_valid else None,
+                cleansed_data=None,  # Let agentic data cleansing handle this properly
                 is_valid=is_valid,
                 is_processed=False,  # This import is still "processing"
                 validation_errors=None if is_valid else ["Invalid JSON structure", "Missing application name"],
@@ -299,7 +299,7 @@ async def create_raw_import_records():
                 engagement_id=DEMO_ENGAGEMENT_ID,
                 row_number=i + 1,
                 raw_data=raw_data,
-                cleansed_data=raw_data if is_valid else None,
+                cleansed_data=None,  # Let agentic data cleansing handle this properly
                 is_valid=is_valid,
                 is_processed=is_valid,
                 validation_errors=None if is_valid else ["Missing dependency information", "Invalid asset type"],

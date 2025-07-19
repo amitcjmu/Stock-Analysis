@@ -58,6 +58,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [hasTriggeredInventory, setHasTriggeredInventory] = useState(false);
   const [needsClassification, setNeedsClassification] = useState(false);
+  const [isReclassifying, setIsReclassifying] = useState(false);
 
   // Get assets data - fetch from API endpoint that returns all assets for the client/engagement
   const { data: assetsData, isLoading: assetsLoading, refetch: refetchAssets } = useQuery({
@@ -211,6 +212,47 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
       console.error('❌ Failed to refresh asset classification:', error);
       // Fallback to just refetching assets
       refetchAssets();
+    }
+  };
+
+  // Reclassify selected assets function
+  const handleReclassifySelected = async () => {
+    if (selectedAssets.length === 0) {
+      console.warn('No assets selected for reclassification');
+      return;
+    }
+
+    setIsReclassifying(true);
+    
+    try {
+      console.log(`🔄 Reclassifying ${selectedAssets.length} selected assets...`);
+      
+      // Import API call function
+      const { apiCall } = await import('../../../config/api');
+      
+      const response = await apiCall('/asset_inventory/auto-classify', {
+        method: 'POST',
+        body: JSON.stringify({
+          asset_ids: selectedAssets,
+          use_learned_patterns: true,
+          confidence_threshold: 0.8,
+          classification_context: "user_initiated_reclassification"
+        })
+      });
+      
+      console.log('✅ Reclassification completed:', response);
+      
+      // Refresh assets after reclassification
+      setTimeout(() => {
+        refetchAssets();
+        refreshFlow();
+        clearSelection(); // Clear selection after successful reclassification
+      }, 1000);
+      
+    } catch (error) {
+      console.error('❌ Failed to reclassify selected assets:', error);
+    } finally {
+      setIsReclassifying(false);
     }
   };
 
@@ -432,6 +474,8 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
                 selectedColumns={selectedColumns}
                 allColumns={allColumns}
                 onToggleColumn={toggleColumn}
+                onReclassifySelected={handleReclassifySelected}
+                isReclassifying={isReclassifying}
               />
             </div>
           )}
@@ -458,6 +502,8 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
             selectedColumns={selectedColumns}
             allColumns={allColumns}
             onToggleColumn={toggleColumn}
+            onReclassifySelected={handleReclassifySelected}
+            isReclassifying={isReclassifying}
           />
         </TabsContent>
 

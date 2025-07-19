@@ -320,6 +320,7 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                     asset_data = {
                         'name': asset_name,
                         'type': self._determine_asset_type(asset),
+                        'raw_import_record_id': asset.get('raw_import_record_id'),  # Preserve linkage from data cleansing
                         'hostname': hostname,
                         'ip_address': ip_address,
                         'operating_system': self._get_mapped_value(asset, 'operating_system'),
@@ -359,6 +360,9 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 )
                 
                 logger.info(f"✅ Successfully persisted {len(created_assets)} assets to database")
+                
+                # Link created assets back to raw import records
+                await self._link_assets_to_raw_records(created_assets, asset_data_list)
                 
                 # Note: Asset enrichment is now handled by agents using enrichment tools
                 # The inventory manager has instructions to enrich assets intelligently
@@ -538,4 +542,41 @@ class AssetInventoryExecutor(BasePhaseExecutor):
             return float(value)
         except (ValueError, TypeError):
             return None
+    
+    async def _link_assets_to_raw_records(self, created_assets: List, asset_data_list: List[Dict[str, Any]]):
+        """Link created assets back to their raw import records for full traceability"""
+        from app.core.database import AsyncSessionLocal
+        from app.models.data_import.core import RawImportRecord
+        from sqlalchemy import update
+        from datetime import datetime
+        
+        try:
+            async with AsyncSessionLocal() as session:
+                linked_count = 0
+                
+                for i, (asset, asset_data) in enumerate(zip(created_assets, asset_data_list)):
+                    raw_record_id = asset_data.get('raw_import_record_id')
+                    
+                    if raw_record_id:
+                        # Update the raw import record with the created asset ID
+                        update_stmt = update(RawImportRecord).where(
+                            RawImportRecord.id == raw_record_id
+                        ).values(
+                            asset_id=asset.id,
+                            is_processed=True,
+                            processed_at=datetime.utcnow(),
+                            processing_notes=f"Linked to asset: {asset.name} (ID: {asset.id})"
+                        )
+                        
+                        await session.execute(update_stmt)
+                        linked_count += 1
+                        logger.debug(f"🔗 Linked asset {asset.name} to raw record {raw_record_id}")
+                    else:
+                        logger.warning(f"⚠️ Asset {asset.name} has no raw_import_record_id for linkage")
+                
+                await session.commit()
+                logger.info(f"✅ Successfully linked {linked_count}/{len(created_assets)} assets to raw import records")
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to link assets to raw import records: {e}", exc_info=True)
     
