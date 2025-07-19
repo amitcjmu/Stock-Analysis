@@ -6,6 +6,7 @@
 
 // Main component
 export { default } from './ThreeColumnFieldMapper';
+export { default as ThreeColumnFieldMapper } from './ThreeColumnFieldMapper';
 
 // Sub-components
 export { default as AutoMappedCard } from './AutoMappedCard';
