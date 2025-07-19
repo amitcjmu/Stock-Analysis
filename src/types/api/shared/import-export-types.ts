@@ -7,6 +7,8 @@
 import { BaseApiRequest, BaseApiResponse } from './base-types';
 import { MultiTenantContext } from './tenant-types';
 import { FilterParameter } from './query-types';
+import { ValidationResult, ValidationError, ValidationWarning } from './validation-types';
+import { CompressionOptions, EncryptionOptions } from './file-processing-types';
 
 // Export/Import
 export interface ExportRequest extends BaseApiRequest {
@@ -33,7 +35,7 @@ export interface ImportRequest extends BaseApiRequest {
   format: ImportFormat;
   options?: ImportOptions;
   mapping?: FieldMapping[];
-  validation?: ValidationOptions;
+  validation?: ImportValidationOptions;
   context: MultiTenantContext;
   dryRun?: boolean;
 }
@@ -117,46 +119,22 @@ export interface FieldMapping {
   transformation?: string;
   defaultValue?: any;
   required?: boolean;
-  validation?: ValidationRule[];
+  validation?: ImportValidationRule[];
 }
 
-export interface ValidationRule {
+export interface ImportValidationRule {
   type: string;
   parameters?: Record<string, any>;
   message?: string;
 }
 
-export interface ValidationOptions {
+export interface ImportValidationOptions {
   strict?: boolean;
   skipInvalidRows?: boolean;
   maxErrors?: number;
-  rules?: ValidationRule[];
+  rules?: ImportValidationRule[];
 }
 
-export interface ValidationResult {
-  valid: boolean;
-  errors: ValidationError[];
-  warnings: ValidationWarning[];
-  summary?: string;
-}
-
-export interface ValidationError {
-  field: string;
-  code: string;
-  message: string;
-  value?: any;
-  constraint?: any;
-  path?: string;
-}
-
-export interface ValidationWarning {
-  field: string;
-  code: string;
-  message: string;
-  value?: any;
-  suggestion?: string;
-  path?: string;
-}
 
 export interface ImportOptions {
   delimiter?: string;
@@ -170,18 +148,6 @@ export interface ImportOptions {
   updateExisting?: boolean;
 }
 
-export interface CompressionOptions {
-  enabled: boolean;
-  algorithm?: 'gzip' | 'brotli' | 'deflate';
-  level?: number;
-}
-
-export interface EncryptionOptions {
-  enabled: boolean;
-  algorithm?: string;
-  keyId?: string;
-  clientEncrypted?: boolean;
-}
 
 export interface ScheduleOptions {
   immediate?: boolean;

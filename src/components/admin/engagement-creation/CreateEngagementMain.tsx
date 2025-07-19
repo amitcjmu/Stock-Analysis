@@ -76,7 +76,7 @@ export const CreateEngagementMain: React.FC = () => {
   // Server state: useMutation for API interaction
   const createEngagementMutation = useMutation({
     mutationFn: async (submissionData: any) => {
-      return await apiCall('/api/v1/admin/engagements/', {
+      return await apiCall('/admin/engagements/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -191,6 +191,11 @@ export const CreateEngagementMain: React.FC = () => {
       discovery_preferences: {},
       assessment_criteria: {}
     };
+
+    // Ensure description is at least 10 characters to meet backend validation
+    if (!submissionData.engagement_description || submissionData.engagement_description.length < 10) {
+      submissionData.engagement_description = `${submissionData.engagement_name} migration engagement project`;
+    }
 
     console.log('Submitting engagement data:', JSON.stringify(submissionData, null, 2));
     createEngagementMutation.mutate(submissionData);

@@ -33,3 +33,9 @@ export * from './realtime-types';
 
 // Monitoring and health types
 export * from './monitoring-types';
+
+// Validation types
+export * from './validation-types';
+
+// File processing types
+export * from './file-processing-types';

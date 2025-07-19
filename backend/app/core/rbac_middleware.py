@@ -162,7 +162,8 @@ class RBACMiddleware:
         
         # For development, allow demo user
         if request.headers.get("X-Demo-Mode") == "true":
-            return "demo_user"
+            from app.core.demo_constants import DEMO_USER_ID
+            return DEMO_USER_ID
         
         return None
     
@@ -307,7 +308,8 @@ def require_access(resource_type: str, action: str = "read"):
 async def require_authentication(request: Request) -> str:
     """FastAPI dependency to require authentication."""
     if not RBAC_SERVICE_AVAILABLE:
-        return "demo_user"  # Fallback for development
+        from app.core.demo_constants import DEMO_USER_ID
+        return DEMO_USER_ID  # Fallback for development
     
     # Extract user ID
     middleware = RBACMiddleware()

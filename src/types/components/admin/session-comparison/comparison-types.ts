@@ -1,0 +1,128 @@
+/**
+ * Session Comparison Types
+ * 
+ * Session comparison and analysis types for comparison functionality.
+ */
+
+import { ReactNode } from 'react';
+import { BaseComponentProps } from '../../shared';
+import { UserSession } from './session-types';
+import { 
+  SignificanceLevel, 
+  DifferenceCategory, 
+  SimilarityCategory, 
+  ImpactLevel, 
+  AssessmentLevel, 
+  RiskLevel, 
+  RecommendationType, 
+  PriorityLevel, 
+  EffortLevel 
+} from './enum-types';
+import { 
+  SessionComparisonColumn, 
+  SessionFilter, 
+  ExportFormat 
+} from './filter-types';
+
+export interface SessionComparisonProps extends BaseComponentProps {
+  sessions: UserSession[];
+  onCompare: (sessionIds: string[]) => void;
+  onRefresh?: () => void;
+  loading?: boolean;
+  error?: string | null;
+  maxComparisons?: number;
+  columns?: SessionComparisonColumn[];
+  filters?: SessionFilter[];
+  onFiltersChange?: (filters: Record<string, any>) => void;
+  showDifferences?: boolean;
+  showSimilarities?: boolean;
+  showMetrics?: boolean;
+  showTimeline?: boolean;
+  showActivities?: boolean;
+  showDeviceInfo?: boolean;
+  showLocationInfo?: boolean;
+  exportEnabled?: boolean;
+  exportFormats?: ExportFormat[];
+  onExport?: (format: ExportFormat, sessions: UserSession[]) => void;
+  renderSession?: (session: UserSession) => ReactNode;
+  renderComparison?: (sessions: UserSession[]) => ReactNode;
+  renderDifference?: (sessions: UserSession[], field: string) => ReactNode;
+  renderMetric?: (sessions: UserSession[], metric: string) => ReactNode;
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  variant?: 'table' | 'side-by-side' | 'overlay' | 'detailed';
+  layout?: 'horizontal' | 'vertical' | 'grid';
+}
+
+export interface SessionComparison {
+  sessions: UserSession[];
+  differences: ComparisonDifference[];
+  similarities: ComparisonSimilarity[];
+  metrics: ComparisonMetrics;
+  summary: ComparisonSummary;
+  recommendations: ComparisonRecommendation[];
+}
+
+export interface ComparisonDifference {
+  field: string;
+  label: string;
+  values: ComparisonValue[];
+  significance: SignificanceLevel;
+  category: DifferenceCategory;
+  impact: ImpactLevel;
+}
+
+export interface ComparisonSimilarity {
+  field: string;
+  label: string;
+  value: any;
+  confidence: number;
+  category: SimilarityCategory;
+}
+
+export interface ComparisonValue {
+  sessionId: string;
+  value: any;
+  normalized?: any;
+  deviation?: number;
+}
+
+export interface ComparisonMetrics {
+  overallSimilarity: number;
+  behavioralSimilarity: number;
+  temporalSimilarity: number;
+  technicalSimilarity: number;
+  securitySimilarity: number;
+  riskDifferential: number;
+  anomalyScore: number;
+}
+
+export interface ComparisonSummary {
+  totalDifferences: number;
+  significantDifferences: number;
+  majorDifferences: number;
+  minorDifferences: number;
+  totalSimilarities: number;
+  strongSimilarities: number;
+  weakSimilarities: number;
+  overallAssessment: AssessmentLevel;
+  riskAssessment: RiskLevel;
+}
+
+export interface ComparisonRecommendation {
+  id: string;
+  type: RecommendationType;
+  priority: PriorityLevel;
+  title: string;
+  description: string;
+  rationale: string;
+  actions: RecommendedAction[];
+  impact: ImpactLevel;
+  effort: EffortLevel;
+}
+
+export interface RecommendedAction {
+  action: string;
+  description: string;
+  automated: boolean;
+  parameters?: Record<string, any>;
+}

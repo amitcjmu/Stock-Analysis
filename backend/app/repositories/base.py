@@ -55,7 +55,7 @@ class ContextAwareRepository:
                 admin_role = self.db.query(UserRole).filter(
                     and_(
                         UserRole.user_id == self.user_id,
-                        UserRole.role_type == RoleType.ADMIN,
+                        UserRole.role_type == RoleType.PLATFORM_ADMIN,
                         UserRole.is_active == True
                     )
                 ).first()
@@ -80,7 +80,7 @@ class ContextAwareRepository:
                 admin_role = self.db.query(UserRole).filter(
                     and_(
                         UserRole.user_id == self.user_id,
-                        UserRole.role_type == RoleType.ADMIN,
+                        UserRole.role_type == RoleType.PLATFORM_ADMIN,
                         UserRole.is_active == True
                     )
                 ).first()

@@ -69,7 +69,9 @@ class ClientCRUDHandler:
                 branding=client_data.branding or {},
                 business_objectives={
                     "primary_goals": client_data.business_objectives,
-                    "compliance_requirements": client_data.compliance_requirements
+                    "compliance_requirements": client_data.compliance_requirements,
+                    "target_cloud_providers": client_data.target_cloud_providers,
+                    "business_priorities": client_data.business_priorities
                 },
                 it_guidelines=client_data.it_guidelines or {},
                 decision_criteria=client_data.decision_criteria or {},

@@ -6,6 +6,7 @@
 
 import { BaseApiRequest, BaseApiResponse } from './base-types';
 import { MultiTenantContext } from './tenant-types';
+import { CompressionOptions, EncryptionOptions } from './file-processing-types';
 
 // File upload/download
 export interface FileUploadRequest extends BaseApiRequest {
@@ -91,12 +92,6 @@ export interface ThreatInfo {
   description?: string;
 }
 
-export interface EncryptionOptions {
-  enabled: boolean;
-  algorithm?: string;
-  keyId?: string;
-  metadata?: Record<string, any>;
-}
 
 export interface TransformationOptions {
   resize?: {
@@ -117,8 +112,3 @@ export interface TransformationOptions {
   compress?: boolean;
 }
 
-export interface CompressionOptions {
-  enabled: boolean;
-  algorithm?: 'gzip' | 'deflate' | 'brotli';
-  level?: number;
-}

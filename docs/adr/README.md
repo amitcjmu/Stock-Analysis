@@ -17,6 +17,9 @@ This directory contains Architecture Decision Records for the AI Modernize Migra
 | [ADR-009](009-multi-tenant-architecture.md) | Multi-Tenant Architecture | Accepted | 2024-2025 |
 | [ADR-010](010-docker-first-development-mandate.md) | Docker-First Development Mandate | Accepted | 2024-2025 |
 | [ADR-011](011-flow-based-architecture-evolution.md) | Flow-Based Architecture Evolution | Accepted | 2025 |
+| [ADR-012](012-flow-status-management-separation.md) | Flow Status Management Separation | Accepted | 2025 |
+| [ADR-013](013-adaptive-data-collection-integration.md) | Adaptive Data Collection System Integration | Accepted | 2025-07-19 |
+| [ADR-014](014-on-premises-deployment-model.md) | On-Premises Deployment Model for Regulated Environments | Proposed | 2025-07-19 |
 
 ## ADR Template
 
@@ -65,9 +68,11 @@ For new team members, we recommend reading ADRs in this order:
 5. **ADR-011** - Flow-Based Architecture Evolution - Core flow patterns (supersedes ADR-001)
 6. **ADR-006** - Master Flow Orchestrator - Central orchestration system
 7. **ADR-008** - Agentic Intelligence System - AI/ML integration patterns
+8. **ADR-013** - Adaptive Data Collection System Integration - Automated data collection capabilities
+9. **ADR-014** - On-Premises Deployment Model - Regulated environment support (pending approval)
 
 ### Legacy Context
-8. **ADR-005** - Database Consolidation Architecture - Historical database decisions
-9. **ADR-002** - API Consolidation Strategy - API versioning and migration
-10. **ADR-004** - Field Mapping UI/UX Stabilization - UI stabilization patterns
-11. **ADR-001** - Session to Flow Migration - Original identifier migration (superseded by ADR-011)
+10. **ADR-005** - Database Consolidation Architecture - Historical database decisions
+11. **ADR-002** - API Consolidation Strategy - API versioning and migration
+12. **ADR-004** - Field Mapping UI/UX Stabilization - UI stabilization patterns
+13. **ADR-001** - Session to Flow Migration - Original identifier migration (superseded by ADR-011)

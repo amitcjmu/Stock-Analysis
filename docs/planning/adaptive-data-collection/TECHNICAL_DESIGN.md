@@ -53,13 +53,35 @@ graph TB
 
 ## System Components
 
-### 1. Collection Orchestrator
+### 1. Collection Orchestrator Service
 **Responsibility**: Coordinates data collection workflow and tier detection
+**Deployment**: Extended `migration_backend` container with new service modules
 **Key Functions**:
 - Environment fingerprinting and capability assessment
 - Automation tier determination and adapter selection
 - Collection workflow orchestration and progress tracking
 - Gap analysis and fallback trigger management
+
+**Containerization Strategy**:
+```dockerfile
+# Extend existing migration_backend container
+FROM migration_backend:latest
+
+# Add Collection Service modules
+COPY collection_services/ /app/services/collection/
+COPY adapters/ /app/adapters/
+
+# Collection-specific dependencies
+RUN pip install -r requirements-collection.txt
+
+# Service discovery configuration
+ENV COLLECTION_SERVICE_ENABLED=true
+ENV DEPLOYMENT_MODE=saas
+
+# Health check for collection services
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+  CMD curl -f http://localhost:8000/api/v1/collection-flows/health || exit 1
+```
 
 ```typescript
 interface CollectionOrchestrator {
@@ -73,11 +95,42 @@ interface CollectionOrchestrator {
 
 ### 2. Universal Adapter Layer
 **Responsibility**: Platform-specific data collection and normalization
+**Deployment**: Modular adapters within `migration_backend` container
 **Key Functions**:
 - Cloud platform API integration and authentication
 - Data extraction and transformation to common schema
 - Error handling and retry logic
 - Rate limiting and throttling management
+
+**Docker Compose Service Definition**:
+```yaml
+# docker-compose.yml extension
+services:
+  migration_backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.collection
+    environment:
+      - COLLECTION_SERVICE_ENABLED=true
+      - AWS_ADAPTER_ENABLED=${AWS_ADAPTER_ENABLED:-false}
+      - AZURE_ADAPTER_ENABLED=${AZURE_ADAPTER_ENABLED:-false}
+      - GCP_ADAPTER_ENABLED=${GCP_ADAPTER_ENABLED:-false}
+      - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-saas}
+    volumes:
+      - adapter_configs:/app/adapters/config
+    depends_on:
+      - postgres
+      - redis
+
+  # Optional: Separate adapter service for high-scale environments
+  adapter_service:
+    image: migration_backend:latest
+    command: ["python", "-m", "app.services.collection.adapter_service"]
+    environment:
+      - SERVICE_MODE=adapter_only
+    profiles:
+      - high_scale
+```
 
 ```typescript
 interface UniversalAdapter {
@@ -92,12 +145,69 @@ interface UniversalAdapter {
 ```
 
 ### 3. AI Analysis Engine
-**Responsibility**: Intelligent gap detection and questionnaire generation
+**Responsibility**: Intelligent gap detection and questionnaire generation  
+**Deployment**: Leverages existing CrewAI infrastructure within `migration_backend`
 **Key Functions**:
 - Asset characterization and pattern recognition
 - Missing data identification and prioritization
 - Dynamic questionnaire generation and adaptation
 - Confidence scoring and recommendation enhancement
+
+**CrewAI Agent Integration Strategy**:
+```python
+# Leverage existing specialist agents for Collection Flow
+class CollectionFlowCrews:
+    def __init__(self):
+        # Reuse existing specialist agents
+        self.asset_intelligence_agent = AssetIntelligenceAgent()  # Existing
+        self.pattern_recognition_agent = PatternRecognitionAgent()  # Existing
+        self.data_validation_expert = DataValidationExpert()  # Existing
+        
+        # New Collection-specific agents
+        self.platform_detection_agent = PlatformDetectionAgent()
+        self.gap_analysis_agent = GapAnalysisAgent()
+        self.questionnaire_generation_agent = QuestionnaireGenerationAgent()
+    
+    def create_platform_detection_crew(self) -> Crew:
+        """Compose crew using existing + new agents"""
+        return Crew(
+            agents=[
+                self.asset_intelligence_agent,  # Reuse for environment analysis
+                self.pattern_recognition_agent, # Reuse for capability pattern detection
+                self.platform_detection_agent   # New for platform-specific detection
+            ],
+            tasks=[
+                DetectCloudPlatformsTask(),
+                AssessAutomationCapabilitiesTask(),
+                RecommendTierStrategyTask()
+            ]
+        )
+    
+    def create_gap_analysis_crew(self) -> Crew:
+        """Leverage existing intelligence for gap detection"""
+        return Crew(
+            agents=[
+                self.asset_intelligence_agent,    # Existing intelligence
+                self.data_validation_expert,      # Existing validation expertise
+                self.gap_analysis_agent           # New for gap-specific analysis
+            ],
+            tasks=[
+                AnalyzeDataCompletenessTask(),
+                IdentifyCriticalGapsTask(),
+                PrioritizeGapsByBusinessImpactTask()
+            ]
+        )
+```
+
+**Agent Specialization Matrix**:
+| Agent | Collection Use | Existing Role | New Capabilities |
+|-------|----------------|---------------|------------------|
+| Asset Intelligence Agent | Environment Analysis | Asset classification | Platform capability assessment |
+| Pattern Recognition Agent | Platform Detection | Dependency patterns | Cloud service patterns |
+| Data Validation Expert | Quality Assessment | Data validation | Collection quality scoring |
+| Platform Detection Agent | NEW | N/A | Cloud platform identification |
+| Gap Analysis Agent | NEW | N/A | Missing data identification |
+| Questionnaire Generation Agent | NEW | N/A | Adaptive question generation |
 
 ```typescript
 interface AIAnalysisEngine {
@@ -500,11 +610,11 @@ POST /api/v3/adapters/{adapter_id}/collect
 
 ### Collection Management Tables
 ```sql
--- Collection Sessions
-CREATE TABLE collection_sessions (
+-- Collection Flows
+CREATE TABLE collection_flows (
     id UUID PRIMARY KEY,
     engagement_id UUID REFERENCES engagements(id),
-    status VARCHAR(20) NOT NULL, -- pending, running, completed, failed
+    status VARCHAR(30) NOT NULL, -- pending, platform_detection, automated_collection, gap_analysis, manual_collection, completed, failed
     tier VARCHAR(10) NOT NULL, -- tier_1, tier_2, tier_3, tier_4
     automation_rate DECIMAL(3,2),
     confidence_score DECIMAL(3,2),
@@ -528,7 +638,7 @@ CREATE TABLE platform_adapters (
 -- Collection Results
 CREATE TABLE collection_results (
     id UUID PRIMARY KEY,
-    collection_session_id UUID REFERENCES collection_sessions(id),
+    collection_flow_id UUID REFERENCES collection_flows(id),
     asset_id UUID REFERENCES assets(id),
     adapter_id UUID REFERENCES platform_adapters(id),
     automation_level VARCHAR(20), -- full, partial, manual, failed
@@ -543,28 +653,46 @@ CREATE TABLE collection_results (
 ### Gap Analysis Tables
 ```sql
 -- Data Gaps
-CREATE TABLE data_gaps (
+CREATE TABLE collection_data_gaps (
     id UUID PRIMARY KEY,
-    collection_session_id UUID REFERENCES collection_sessions(id),
+    collection_flow_id UUID REFERENCES collection_flows(id),
     asset_id UUID REFERENCES assets(id),
     gap_type VARCHAR(50), -- technical_debt, business_logic, operational, stakeholder
-    missing_fields JSONB,
+    missing_attributes JSONB, -- Array of missing critical attributes (1-22)
     impact_score DECIMAL(3,2),
     priority VARCHAR(10), -- high, medium, low
+    questionnaire_id UUID REFERENCES adaptive_questionnaires(id),
     resolution_status VARCHAR(20), -- pending, in_progress, resolved
     created_at TIMESTAMP
 );
 
--- Dynamic Questionnaires
-CREATE TABLE dynamic_questionnaires (
+-- Normalized Questionnaire System
+CREATE TABLE adaptive_questionnaires (
     id UUID PRIMARY KEY,
-    collection_session_id UUID REFERENCES collection_sessions(id),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    version VARCHAR(20) NOT NULL,
+    target_gaps JSONB, -- Array of gap types this questionnaire addresses
+    questions JSONB, -- Canonical question definitions
+    conditional_logic JSONB, -- Adaptive branching rules
+    validation_rules JSONB,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    UNIQUE(name, version)
+);
+
+-- Questionnaire Response Sessions
+CREATE TABLE collection_questionnaire_responses (
+    id UUID PRIMARY KEY,
+    collection_flow_id UUID REFERENCES collection_flows(id),
+    gap_id UUID REFERENCES collection_data_gaps(id),
+    questionnaire_id UUID REFERENCES adaptive_questionnaires(id),
     asset_id UUID REFERENCES assets(id),
-    questions JSONB,
-    sequence_config JSONB,
-    responses JSONB,
-    completion_status VARCHAR(20),
-    generated_at TIMESTAMP
+    responses JSONB, -- User answers mapped to question IDs
+    completion_status VARCHAR(20), -- pending, in_progress, completed, abandoned
+    started_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    metadata JSONB -- Session-specific data like UI state, partial progress
 );
 ```
 
@@ -592,6 +720,125 @@ CREATE TABLE collection_quality_metrics (
 
 ## Security Architecture
 
+### Enhanced Credential Management System
+
+**Critical Security Requirement**: Platform credentials (AWS, Azure, GCP) require enterprise-grade security due to their high-privilege nature and potential impact.
+
+```typescript
+interface CredentialSecurityFramework {
+  storage: {
+    // SaaS Deployment
+    saas: {
+      primary: 'HashiCorp Vault Cloud' | 'AWS Secrets Manager' | 'Azure Key Vault';
+      encryption: 'AES-256-GCM with customer-managed keys';
+      access: 'IAM-based with least-privilege principles';
+    };
+    
+    // On-Premises Deployment  
+    onPremises: {
+      primary: 'Local HashiCorp Vault instance';
+      encryption: 'AES-256-GCM with customer-provided keys';
+      access: 'Local RBAC with audit logging';
+    };
+  };
+  
+  credentialLifecycle: {
+    rotation: {
+      automatic: 'Every 90 days';
+      emergency: 'Within 5 minutes of compromise detection';
+      validation: 'Pre-rotation credential testing';
+    };
+    
+    access: {
+      retrieval: 'Just-in-time credential access';
+      caching: 'Maximum 15 minutes in memory';
+      logging: 'All access logged with correlation IDs';
+    };
+  };
+}
+```
+
+### Credential Storage Architecture
+
+```python
+# Credential Management Service Implementation
+class SecureCredentialManager:
+    def __init__(self, deployment_mode: DeploymentMode):
+        if deployment_mode == DeploymentMode.SAAS:
+            self.vault = CloudSecretsManager()
+        else:
+            self.vault = LocalVaultManager()
+    
+    async def store_credential(
+        self, 
+        platform: Platform, 
+        credential: PlatformCredential,
+        tenant_id: UUID
+    ) -> CredentialReference:
+        """Store credential with tenant isolation and encryption"""
+        
+        # Encrypt credential with tenant-specific key
+        encrypted_credential = await self.encrypt_with_tenant_key(
+            credential, tenant_id
+        )
+        
+        # Store in vault with metadata
+        reference = await self.vault.store(
+            path=f"tenants/{tenant_id}/platforms/{platform}",
+            credential=encrypted_credential,
+            metadata={
+                'platform': platform,
+                'created_at': datetime.utcnow(),
+                'rotation_schedule': '90d',
+                'access_policy': 'collection_service_only'
+            }
+        )
+        
+        # Log credential storage (no sensitive data)
+        await self.audit_log.log_credential_event(
+            event='credential_stored',
+            tenant_id=tenant_id,
+            platform=platform,
+            reference=reference.id
+        )
+        
+        return reference
+
+    async def retrieve_credential(
+        self, 
+        reference: CredentialReference,
+        requesting_service: str,
+        tenant_id: UUID
+    ) -> PlatformCredential:
+        """Retrieve credential with access validation"""
+        
+        # Validate service authorization
+        await self.validate_service_access(requesting_service, reference)
+        
+        # Retrieve encrypted credential
+        encrypted_credential = await self.vault.retrieve(reference.path)
+        
+        # Decrypt with tenant-specific key
+        credential = await self.decrypt_with_tenant_key(
+            encrypted_credential, tenant_id
+        )
+        
+        # Log access (no sensitive data)
+        await self.audit_log.log_credential_event(
+            event='credential_accessed',
+            tenant_id=tenant_id,
+            service=requesting_service,
+            reference=reference.id
+        )
+        
+        # Schedule credential cleanup from memory
+        asyncio.create_task(
+            self.cleanup_credential_from_memory(credential, delay=900)  # 15 min
+        )
+        
+        return credential
+```
+
 ### Authentication and Authorization
 ```typescript
 interface SecurityFramework {
@@ -603,24 +850,69 @@ interface SecurityFramework {
   
   authorization: {
     model: 'Role-Based Access Control (RBAC)';
-    scopes: ['collection:read', 'collection:write', 'adapters:manage'];
+    scopes: ['collection:read', 'collection:write', 'adapters:manage', 'credentials:manage'];
     tenantIsolation: 'Row-level security with tenant context';
+    credentialAccess: 'Service-specific authorization with audit trail';
   };
   
   dataProtection: {
     encryption: {
-      atRest: 'AES-256 with tenant-specific keys';
+      atRest: 'AES-256-GCM with tenant-specific keys';
       inTransit: 'TLS 1.3 with certificate pinning';
-      keyManagement: 'HSM or cloud KMS integration';
+      keyManagement: 'External KMS (cloud) or Local Vault (on-prem)';
+      credentialEncryption: 'Double encryption: application + vault layer';
     };
     
     privacy: {
       dataAnonymization: 'PII detection and masking';
       auditLogging: 'Comprehensive activity tracking';
       retention: 'Configurable per tenant requirements';
+      credentialAudit: 'Immutable audit trail for all credential operations';
     };
   };
 }
+```
+
+### Deployment-Specific Security Configuration
+
+```yaml
+# SaaS Deployment Security (docker-compose.yml)
+services:
+  migration_backend:
+    environment:
+      - VAULT_PROVIDER=aws_secrets_manager
+      - VAULT_ENDPOINT=${AWS_SECRETS_MANAGER_ENDPOINT}
+      - ENCRYPTION_KEY_SOURCE=aws_kms
+      - AUDIT_LOG_DESTINATION=cloudwatch
+    
+  vault_proxy:
+    image: hashicorp/vault:latest
+    command: ["vault", "proxy", "-config=/vault/config"]
+    volumes:
+      - ./vault/saas-config.hcl:/vault/config
+
+---
+# On-Premises Deployment Security (docker-compose.onprem.yml)
+services:
+  migration_backend:
+    environment:
+      - VAULT_PROVIDER=local_vault
+      - VAULT_ENDPOINT=http://vault:8200
+      - ENCRYPTION_KEY_SOURCE=local_vault
+      - AUDIT_LOG_DESTINATION=local_file
+    depends_on:
+      - vault
+  
+  vault:
+    image: hashicorp/vault:latest
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=${VAULT_ROOT_TOKEN}
+      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+    volumes:
+      - vault_data:/vault/data
+      - ./vault/onprem-config.hcl:/vault/config
+    cap_add:
+      - IPC_LOCK
 ```
 
 ### Secure Adapter Architecture
@@ -645,6 +937,144 @@ interface SecureAdapterFramework {
   };
 }
 ```
+
+## Critical Technical Patterns Compliance
+
+### Mandatory Development Standards
+All Collection Flow components must adhere to established critical technical patterns:
+
+#### 1. Async Database Operations
+```python
+# REQUIRED: Use AsyncSessionLocal for all database operations
+from app.database.session import AsyncSessionLocal
+
+class CollectionFlowService:
+    async def create_collection_flow(
+        self, 
+        engagement_id: UUID, 
+        config: CollectionFlowConfig
+    ) -> CollectionFlow:
+        async with AsyncSessionLocal() as session:
+            # All database operations must use async session
+            collection_flow = CollectionFlow(
+                engagement_id=engagement_id,
+                automation_tier=config.tier,
+                status="pending"
+            )
+            session.add(collection_flow)
+            await session.commit()
+            await session.refresh(collection_flow)
+            return collection_flow
+```
+
+#### 2. Safe JSON Serialization
+```python
+# REQUIRED: Handle NaN/Infinity values in API responses
+from app.utils.json_utils import safe_json_serializer
+
+class CollectionFlowAPI:
+    @app.get("/api/v1/collection-flows/{flow_id}/metrics")
+    async def get_collection_metrics(flow_id: UUID) -> CollectionMetrics:
+        metrics = await self.collection_service.get_metrics(flow_id)
+        
+        # CRITICAL: Use safe serializer for metrics that may contain NaN
+        return JSONResponse(
+            content=safe_json_serializer(metrics),
+            media_type="application/json"
+        )
+```
+
+#### 3. CrewAI Integration Patterns
+```python
+# REQUIRED: Follow existing CrewAI execution patterns
+from app.services.crewai_flows.base_flow import BaseCrewAIFlow
+
+class CollectionFlowExecution(BaseCrewAIFlow):
+    async def execute_platform_detection_phase(self) -> PhaseResult:
+        # Use existing CrewAI patterns
+        crew_config = self.get_crew_config("platform_detection_crew")
+        
+        # CRITICAL: Use existing execution patterns
+        result = await self.execute_crew_with_monitoring(
+            crew=self.create_platform_detection_crew(),
+            config=crew_config,
+            phase_name="platform_detection"
+        )
+        
+        return result
+```
+
+#### 4. Error Handling Standards
+```python
+# REQUIRED: Use established error handling patterns
+from app.utils.error_handlers import handle_service_error
+from app.exceptions.collection_exceptions import CollectionFlowError
+
+class CollectionOrchestrator:
+    @handle_service_error
+    async def execute_automated_collection(
+        self, 
+        flow_id: UUID
+    ) -> CollectionResult:
+        try:
+            # Collection logic
+            return await self._perform_collection(flow_id)
+        except Exception as e:
+            # Use established error handling
+            raise CollectionFlowError(
+                message=f"Automated collection failed for flow {flow_id}",
+                flow_id=flow_id,
+                phase="automated_collection",
+                original_error=e
+            )
+```
+
+#### 5. Logging and Monitoring
+```python
+# REQUIRED: Use existing logging patterns
+from app.utils.logging import get_structured_logger
+from app.monitoring.metrics import track_performance
+
+logger = get_structured_logger(__name__)
+
+class PlatformAdapter:
+    @track_performance("adapter.collection.duration")
+    async def collect_platform_data(
+        self, 
+        platform: Platform, 
+        credentials: PlatformCredentials
+    ) -> PlatformData:
+        logger.info(
+            "Starting platform data collection",
+            extra={
+                "platform": platform.name,
+                "tenant_id": credentials.tenant_id,
+                "correlation_id": self.correlation_id
+            }
+        )
+        
+        # Collection implementation
+        
+        logger.info(
+            "Platform data collection completed",
+            extra={
+                "platform": platform.name,
+                "assets_collected": len(result.assets),
+                "collection_duration": duration
+            }
+        )
+```
+
+### Implementation Checklist
+Each development task must include validation of:
+- [ ] AsyncSessionLocal usage for all database operations
+- [ ] Safe JSON serialization for all API endpoints
+- [ ] CrewAI integration follows existing BaseCrewAIFlow patterns
+- [ ] Error handling uses established exception hierarchy
+- [ ] Structured logging with correlation IDs
+- [ ] Performance monitoring integration
+- [ ] Multi-tenant data isolation validation
+- [ ] Security audit compliance
 
 ## Implementation Plan
 

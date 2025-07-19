@@ -7,6 +7,7 @@
 import { BaseApiRequest, BaseApiResponse, PaginationInfo } from './base-types';
 import { MultiTenantContext } from './tenant-types';
 import { SortParameter, FilterParameter, SearchParameter, AppliedFilter, AppliedSort, Aggregation } from './query-types';
+import { ValidationResult, ValidationError, ValidationWarning } from './validation-types';
 
 // Request/Response patterns
 export interface ListRequest extends BaseApiRequest {
@@ -96,25 +97,6 @@ export interface DeleteResponse extends BaseApiResponse<void> {
 }
 
 // Supporting types
-export interface ValidationResult {
-  valid: boolean;
-  errors: ValidationError[];
-  warnings: ValidationWarning[];
-}
-
-export interface ValidationError {
-  field: string;
-  code: string;
-  message: string;
-  value?: any;
-}
-
-export interface ValidationWarning {
-  field: string;
-  code: string;
-  message: string;
-  value?: any;
-}
 
 export interface ConflictInfo {
   field: string;

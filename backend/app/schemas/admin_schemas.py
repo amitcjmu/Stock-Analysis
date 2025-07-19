@@ -193,9 +193,11 @@ class EngagementCreate(BaseModel):
     @field_validator('engagement_description')
     @classmethod
     def validate_description(cls, v: str) -> str:
-        if len(v.strip()) < 10:
+        if v is not None and v.strip() == "":
+            raise ValueError('Engagement description cannot be empty')
+        if v and len(v.strip()) < 10:
             raise ValueError('Engagement description must be at least 10 characters')
-        return v.strip()
+        return v.strip() if v else v
     
     @field_validator('planned_end_date')
     @classmethod
@@ -234,6 +236,14 @@ class EngagementUpdate(BaseModel):
     # Status Updates
     current_phase: Optional[MigrationPhaseEnum] = None
     completion_percentage: Optional[float] = Field(None, ge=0, le=100)
+    
+    @field_validator('engagement_name', 'engagement_description', 'engagement_manager', 'technical_lead')
+    @classmethod
+    def convert_empty_to_none(cls, v: Optional[str]) -> Optional[str]:
+        """Convert empty strings to None for proper validation of optional fields."""
+        if v is not None and v.strip() == "":
+            return None
+        return v
 
 class EngagementResponse(BaseModel):
     """Schema for engagement response."""
