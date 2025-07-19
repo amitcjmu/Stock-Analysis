@@ -3,7 +3,7 @@ import { RefreshCw } from 'lucide-react';
 import { useFieldOptions } from '../../../../contexts/FieldOptionsContext';
 
 // Components
-import ThreeColumnFieldMapper from './components/ThreeColumnFieldMapper';
+import ThreeColumnFieldMapper from './components/ThreeColumnFieldMapper/ThreeColumnFieldMapper';
 
 // Types
 import { FieldMappingsTabProps } from './types';

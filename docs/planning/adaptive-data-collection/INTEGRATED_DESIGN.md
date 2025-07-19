@@ -763,7 +763,7 @@ CREATE TABLE platform_adapters (
 );
 
 -- Collection Sessions
-CREATE TABLE collection_sessions (
+CREATE TABLE collection_flows (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     master_flow_id UUID REFERENCES crewai_flow_state_extensions(id),
     engagement_id UUID REFERENCES engagements(id),
@@ -779,7 +779,7 @@ CREATE TABLE collection_sessions (
 -- Collected Data Inventory
 CREATE TABLE collected_data_inventory (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    collection_session_id UUID REFERENCES collection_sessions(id),
+    collection_flow_id UUID REFERENCES collection_flows(id),
     data_source VARCHAR(100), -- adapter_name or 'manual'
     data_type VARCHAR(50), -- infrastructure, applications, dependencies
     raw_data JSONB,
@@ -792,7 +792,7 @@ CREATE TABLE collected_data_inventory (
 -- Data Gaps and Questionnaires
 CREATE TABLE collection_data_gaps (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    collection_session_id UUID REFERENCES collection_sessions(id),
+    collection_flow_id UUID REFERENCES collection_flows(id),
     gap_category VARCHAR(50), -- technical_debt, business_logic, operational, stakeholder
     missing_fields JSONB,
     impact_on_confidence DECIMAL(3,2),
@@ -806,7 +806,7 @@ CREATE TABLE collection_data_gaps (
 -- Questionnaire Responses
 CREATE TABLE collection_questionnaire_responses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    collection_session_id UUID REFERENCES collection_sessions(id),
+    collection_flow_id UUID REFERENCES collection_flows(id),
     gap_id UUID REFERENCES collection_data_gaps(id),
     questionnaire_id UUID,
     responses JSONB,
@@ -820,23 +820,23 @@ CREATE TABLE collection_questionnaire_responses (
 ```sql
 -- Enhance Master Flow State
 ALTER TABLE crewai_flow_state_extensions 
-ADD COLUMN collection_flow_id UUID REFERENCES collection_sessions(id),
+ADD COLUMN collection_flow_id UUID REFERENCES collection_flows(id),
 ADD COLUMN automation_tier VARCHAR(20),
 ADD COLUMN collection_quality_score DECIMAL(3,2),
 ADD COLUMN data_collection_metadata JSONB;
 
 -- Enhance Discovery Flow State to Track Collection Source
 ALTER TABLE unified_discovery_flow_state
-ADD COLUMN collection_source_flow_id UUID REFERENCES collection_sessions(id),
+ADD COLUMN collection_source_flow_id UUID REFERENCES collection_flows(id),
 ADD COLUMN pre_populated_data JSONB,
 ADD COLUMN automation_enhanced BOOLEAN DEFAULT FALSE;
 
 -- Create indexes for performance
-CREATE INDEX idx_collection_sessions_engagement ON collection_sessions(engagement_id);
-CREATE INDEX idx_collection_sessions_status ON collection_sessions(status);
-CREATE INDEX idx_collected_data_inventory_session ON collected_data_inventory(collection_session_id);
-CREATE INDEX idx_collection_gaps_session ON collection_data_gaps(collection_session_id);
-CREATE INDEX idx_questionnaire_responses_session ON collection_questionnaire_responses(collection_session_id);
+CREATE INDEX idx_collection_flows_engagement ON collection_flows(engagement_id);
+CREATE INDEX idx_collection_flows_status ON collection_flows(status);
+CREATE INDEX idx_collected_data_inventory_flow ON collected_data_inventory(collection_flow_id);
+CREATE INDEX idx_collection_gaps_flow ON collection_data_gaps(collection_flow_id);
+CREATE INDEX idx_questionnaire_responses_flow ON collection_questionnaire_responses(collection_flow_id);
 ```
 
 ## Implementation Roadmap
@@ -848,7 +848,7 @@ CREATE INDEX idx_questionnaire_responses_session ON collection_questionnaire_res
 - [ ] Collection Flow configuration and registration with Master Flow Orchestrator
 - [ ] Database schema creation and migration scripts
 - [ ] Basic platform detection and tier assessment logic
-- [ ] Collection session management service
+- [ ] Collection flow management service
 
 **Week 3-4: Basic Automation**
 - [ ] Platform adapter framework (AWS, Azure, GCP)

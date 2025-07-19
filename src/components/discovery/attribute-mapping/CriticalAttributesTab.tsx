@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Target, AlertTriangle } from 'lucide-react';
-import ThreeColumnFieldMapper from './FieldMappingsTab/components/ThreeColumnFieldMapper';
+import ThreeColumnFieldMapper from './FieldMappingsTab/components/ThreeColumnFieldMapper/ThreeColumnFieldMapper';
 import { TargetField } from './FieldMappingsTab/types';
 import { useAuth } from '../../../contexts/AuthContext';
 import { apiCall, API_CONFIG } from '../../../config/api';
