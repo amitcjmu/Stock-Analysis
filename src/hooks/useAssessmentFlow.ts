@@ -7,5 +7,26 @@
  * Individual modules are located in ./useAssessmentFlow/ directory.
  */
 
-// Re-export everything from the modularized structure
-export * from './useAssessmentFlow/';
+// Import from the modularized structure
+import { useAssessmentFlow as useAssessmentFlowImpl } from './useAssessmentFlow/useAssessmentFlow';
+import { assessmentFlowAPI } from './useAssessmentFlow/api';
+import { eventSourceService } from './useAssessmentFlow/eventSource';
+
+// Re-export the main hook
+export const useAssessmentFlow = useAssessmentFlowImpl;
+
+// Re-export API client and event source
+export { assessmentFlowAPI, eventSourceService };
+
+// Re-export all types
+export type {
+  AssessmentFlowStatus,
+  AssessmentPhase,
+  ArchitectureStandard,
+  ApplicationComponent,
+  TechDebtItem,
+  ComponentTreatment,
+  SixRDecision,
+  AssessmentFlowState,
+  UseAssessmentFlowReturn
+} from './useAssessmentFlow/types';
