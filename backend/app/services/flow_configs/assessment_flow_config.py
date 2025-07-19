@@ -39,12 +39,69 @@ def get_assessment_flow_config() -> FlowTypeConfig:
     readiness_assessment_phase = PhaseConfig(
         name="readiness_assessment",
         display_name="Readiness Assessment",
-        description="Assess migration readiness of discovered assets",
+        description="Assess migration readiness of discovered assets using architecture standards analysis",
         required_inputs=["asset_inventory", "assessment_criteria"],
         optional_inputs=["business_priorities", "technical_constraints", "compliance_requirements"],
         validators=["required_fields", "assessment_validation", "inventory_completeness"],
         pre_handlers=["readiness_preparation"],
         post_handlers=["readiness_scoring"],
+        crew_config={
+            "crew_type": "architecture_standards_crew",
+            "crew_factory": "create_architecture_standards_crew",
+            "input_mapping": {
+                "engagement_context": "state.engagement_context",
+                "selected_applications": "asset_inventory.applications",
+                "application_metadata": "asset_inventory.metadata",
+                "existing_standards": "assessment_criteria.architecture_standards",
+                "business_constraints": "business_priorities",
+                "risk_tolerance": "assessment_criteria.risk_tolerance"
+            },
+            "output_mapping": {
+                "readiness_scores": "crew_results.application_compliance",
+                "technical_readiness": "crew_results.technical_debt_scores",
+                "architecture_standards": "crew_results.engagement_standards",
+                "upgrade_requirements": "crew_results.upgrade_recommendations",
+                "business_readiness": "crew_results.exceptions",
+                "crew_confidence": "crew_results.crew_confidence"
+            },
+            "execution_config": {
+                "timeout_seconds": 180,           # Conservative 3 minutes
+                "temperature": 0.1,               # Very conservative for accuracy
+                "max_iterations": 1,
+                "allow_delegation": True,         # Enable agent collaboration
+                "enable_memory": False,           # Conservative mode
+                "enable_caching": True,           # Performance optimization
+                "enable_parallel": False,         # Sequential for accuracy
+                "conservative_mode": True
+            },
+            "llm_config": {
+                "temperature": 0.1,               # Conservative settings
+                "max_tokens": 4000,
+                "frequency_penalty": 0.1,
+                "presence_penalty": 0.1,
+                "stop_sequences": ["HALLUCINATION", "SPECULATION", "ASSUMPTION"]
+            },
+            "validation_mapping": {
+                "required_fields": [
+                    "engagement_standards", 
+                    "application_compliance", 
+                    "technical_debt_scores",
+                    "crew_confidence"
+                ],
+                "success_criteria": {
+                    "crew_confidence": {"min": 0.6},
+                    "standards_count": {"min": 1},
+                    "compliance_coverage": {"min": 0.8},
+                    "hallucination_risk": {"max": 0.1}
+                }
+            },
+            "performance_config": {
+                "enable_readiness_focus": True,
+                "prioritize_technical_readiness": True,
+                "generate_readiness_scores": True,
+                "confidence_threshold": 0.6
+            }
+        },
         can_pause=True,
         can_skip=False,
         retry_config=default_retry,
@@ -57,7 +114,11 @@ def get_assessment_flow_config() -> FlowTypeConfig:
                 "security_readiness"
             ],
             "scoring_method": "weighted_average",
-            "min_score_threshold": 0.6
+            "min_score_threshold": 0.6,
+            "architecture_standards_enabled": True,
+            "ai_powered_assessment": True,
+            "hallucination_protected": True,
+            "factual_accuracy_enforced": True
         }
     )
     
@@ -65,12 +126,75 @@ def get_assessment_flow_config() -> FlowTypeConfig:
     complexity_analysis_phase = PhaseConfig(
         name="complexity_analysis",
         display_name="Complexity Analysis",
-        description="Analyze migration complexity for each asset",
+        description="Analyze migration complexity for each asset using comprehensive component analysis",
         required_inputs=["readiness_scores", "complexity_rules"],
         optional_inputs=["dependency_map", "integration_points", "customization_level"],
         validators=["complexity_validation", "score_validation"],
         pre_handlers=["complexity_preparation"],
         post_handlers=["complexity_categorization"],
+        crew_config={
+            "crew_type": "component_analysis_crew",
+            "crew_factory": "create_component_analysis_crew",
+            "input_mapping": {
+                "application_metadata": "state.application_metadata",
+                "discovery_data": "readiness_scores.discovery_data",
+                "architecture_standards": "state.architecture_standards",
+                "complexity_rules": "complexity_rules",
+                "dependency_map": "dependency_map",
+                "integration_points": "integration_points",
+                "customization_level": "customization_level",
+                "technology_lifecycle": "state.technology_lifecycle",
+                "security_requirements": "state.security_requirements",
+                "architecture_patterns": "state.architecture_patterns",
+                "network_topology": "state.network_topology"
+            },
+            "output_mapping": {
+                "complexity_scores": "crew_results.component_scores",
+                "technical_debt_analysis": "crew_results.tech_debt_analysis",
+                "component_inventory": "crew_results.components",
+                "dependency_analysis": "crew_results.dependency_map",
+                "migration_groups": "crew_results.migration_groups",
+                "complexity_insights": "crew_results.analysis_insights",
+                "crew_confidence": "crew_results.crew_confidence"
+            },
+            "execution_config": {
+                "timeout_seconds": 180,           # Conservative 3 minutes
+                "temperature": 0.1,               # Very conservative for accuracy
+                "max_iterations": 1,
+                "allow_delegation": True,         # Enable agent collaboration
+                "enable_memory": False,           # Conservative mode
+                "enable_caching": True,           # Performance optimization
+                "enable_parallel": False,         # Sequential for accuracy
+                "conservative_mode": True
+            },
+            "llm_config": {
+                "temperature": 0.1,               # Conservative settings
+                "max_tokens": 4000,
+                "frequency_penalty": 0.1,
+                "presence_penalty": 0.1,
+                "stop_sequences": ["HALLUCINATION", "SPECULATION", "ASSUMPTION"]
+            },
+            "validation_mapping": {
+                "required_fields": [
+                    "component_scores",
+                    "tech_debt_analysis",
+                    "component_inventory",
+                    "crew_confidence"
+                ],
+                "success_criteria": {
+                    "crew_confidence": {"min": 0.6},
+                    "components_count": {"min": 1},
+                    "debt_analysis_coverage": {"min": 0.8},
+                    "hallucination_risk": {"max": 0.1}
+                }
+            },
+            "performance_config": {
+                "enable_complexity_focus": True,
+                "prioritize_technical_debt": True,
+                "generate_complexity_scores": True,
+                "confidence_threshold": 0.6
+            }
+        },
         can_pause=True,
         can_skip=False,
         retry_config=default_retry,
@@ -84,7 +208,11 @@ def get_assessment_flow_config() -> FlowTypeConfig:
                 "customization_level"
             ],
             "complexity_levels": ["low", "medium", "high", "very_high"],
-            "ai_analysis_enabled": True
+            "ai_analysis_enabled": True,
+            "component_analysis_enabled": True,
+            "technical_debt_specialization": True,
+            "hallucination_protected": True,
+            "factual_accuracy_enforced": True
         }
     )
     
@@ -92,12 +220,74 @@ def get_assessment_flow_config() -> FlowTypeConfig:
     risk_assessment_phase = PhaseConfig(
         name="risk_assessment",
         display_name="Risk Assessment",
-        description="Assess migration risks and mitigation strategies",
+        description="Assess migration risks and mitigation strategies using enhanced 6R strategy analysis",
         required_inputs=["complexity_scores", "risk_matrix"],
         optional_inputs=["historical_data", "industry_benchmarks", "compliance_risks"],
         validators=["risk_validation", "mitigation_validation"],
         pre_handlers=["risk_identification"],
         post_handlers=["mitigation_planning"],
+        crew_config={
+            "crew_type": "sixr_strategy_crew",
+            "crew_factory": "create_enhanced_sixr_strategy_crew",
+            "input_mapping": {
+                "components": "state.application_components",
+                "tech_debt_analysis": "complexity_scores.tech_debt_items",
+                "architecture_standards": "state.architecture_standards",
+                "business_context": "state.business_context",
+                "resource_constraints": "state.resource_constraints",
+                "risk_matrix": "risk_matrix",
+                "historical_data": "historical_data",
+                "industry_benchmarks": "industry_benchmarks",
+                "compliance_risks": "compliance_risks"
+            },
+            "output_mapping": {
+                "risk_assessments": "crew_results.risk_assessments",
+                "component_treatments": "crew_results.component_treatments",
+                "overall_risk_score": "crew_results.overall_risk_score",
+                "mitigation_strategies": "crew_results.mitigation_strategies",
+                "sixr_recommendations": "crew_results.component_treatments",
+                "crew_confidence": "crew_results.crew_confidence"
+            },
+            "execution_config": {
+                "timeout_seconds": 180,           # Conservative 3 minutes
+                "temperature": 0.1,               # Very conservative for risk accuracy
+                "max_iterations": 1,
+                "allow_delegation": True,         # Enable agent collaboration
+                "enable_memory": False,           # Conservative mode
+                "enable_caching": True,           # Performance optimization
+                "enable_parallel": False,         # Sequential for accuracy
+                "conservative_mode": True
+            },
+            "llm_config": {
+                "temperature": 0.1,               # Conservative settings
+                "max_tokens": 4000,
+                "frequency_penalty": 0.1,
+                "presence_penalty": 0.1,
+                "stop_sequences": ["HALLUCINATION", "SPECULATION", "ASSUMPTION"]
+            },
+            "validation_mapping": {
+                "required_fields": [
+                    "risk_assessments",
+                    "component_treatments",
+                    "overall_risk_score",
+                    "mitigation_strategies",
+                    "crew_confidence"
+                ],
+                "success_criteria": {
+                    "crew_confidence": {"min": 0.6},
+                    "risk_coverage": {"min": 0.8},
+                    "mitigation_completeness": {"min": 0.7},
+                    "hallucination_risk": {"max": 0.1}
+                }
+            },
+            "performance_config": {
+                "enable_risk_assessment": True,
+                "risk_matrix_scoring": True,
+                "security_compliance_focus": True,
+                "sixr_integration": True,
+                "confidence_threshold": 0.6
+            }
+        },
         can_pause=True,
         can_skip=False,
         retry_config=default_retry,
@@ -111,7 +301,11 @@ def get_assessment_flow_config() -> FlowTypeConfig:
                 "compliance_risk"
             ],
             "risk_scoring": "probability_impact_matrix",
-            "mitigation_required": True
+            "mitigation_required": True,
+            "sixr_integration": True,
+            "enhanced_risk_assessment": True,
+            "hallucination_protected": True,
+            "factual_accuracy_enforced": True
         }
     )
     
