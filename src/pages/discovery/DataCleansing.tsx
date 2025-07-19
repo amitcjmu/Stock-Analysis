@@ -122,15 +122,34 @@ const DataCleansing: React.FC = () => {
     fieldsAnalyzedCalculated: fieldsAnalyzed
   });
 
-  // Handle data cleansing execution - READ-ONLY mode to prevent flow execution errors
+  // Handle data cleansing execution - Now actually triggers analysis
   const handleTriggerDataCleansingCrew = async () => {
+    if (!effectiveFlowId) {
+      console.error('No flow ID available for triggering analysis');
+      return;
+    }
+
     try {
-      console.log('🧹 Refreshing data cleansing data (read-only mode)...');
-      // Just refresh the data without triggering execution to prevent DB errors
+      console.log('🚀 Triggering data cleansing analysis for flow:', effectiveFlowId);
+      
+      // Call the new trigger analysis endpoint
+      const response = await apiCall(`/api/v1/data-cleansing/flows/${effectiveFlowId}/data-cleansing/trigger`, {
+        method: 'POST',
+        body: JSON.stringify({
+          force_refresh: true,
+          include_agent_analysis: true
+        })
+      });
+      
+      console.log('✅ Data cleansing analysis triggered successfully:', response);
+      
+      // Refresh the flow data to get updated results
       await refresh();
-      console.log('✅ Data cleansing data refreshed successfully');
+      
     } catch (error) {
-      console.error('Failed to refresh data cleansing data:', error);
+      console.error('❌ Failed to trigger data cleansing analysis:', error);
+      // Still refresh to get any available data
+      await refresh();
     }
   };
 

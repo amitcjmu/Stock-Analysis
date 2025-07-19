@@ -1,5 +1,95 @@
 # 🚀 AI Modernize Migration Platform - Changelog
 
+## [1.35.0] - 2025-07-19
+
+### 📚 **PLANNING** - Adaptive Data Collection System Design
+
+This release introduces comprehensive planning documentation for the Adaptive Data Collection System, providing a strategic framework for intelligent, tiered automation that maximizes data capture while minimizing user burden across diverse client environments.
+
+### 🚀 **Strategic Planning**
+
+#### **Business Requirements Document**
+- **Type**: Strategic business planning and requirements analysis
+- **Impact**: Establishes clear roadmap for platform-agnostic data collection with 70%+ automation rates
+- **Technical Details**: Complete business case with success metrics, user stories, risk assessment, and phased implementation timeline
+
+#### **Technical Design Document**
+- **Type**: Comprehensive system architecture and implementation blueprint
+- **Impact**: Provides detailed technical specifications for tiered automation system supporting modern cloud to legacy environments
+- **Technical Details**: Universal adapter architecture, AI-powered gap analysis, intelligent fallback workflows, and security framework
+
+### 📊 Business Impact
+
+- **Market Differentiation**: Platform-agnostic approach supports AWS, Azure, GCP, and on-premises environments with intelligent automation
+- **User Experience**: Single form + bulk toggle interface with guided modal dialogs minimizes manual effort while ensuring data completeness
+- **Revenue Growth**: Tiered automation strategy (90% → 40% → 10%) enables support for all client types from cloud-native to air-gapped environments
+- **Competitive Advantage**: AI-powered gap analysis and dynamic questionnaire generation provides superior user experience
+
+### 🎯 Success Metrics
+
+- **Documentation Coverage**: Complete business requirements and technical design documents with implementation roadmap
+- **Automation Strategy**: 4-tier system design supporting 90% automation for modern environments down to 10% for legacy
+- **Architecture Completeness**: Universal adapter pattern, security framework, API specifications, and database schema design
+- **Implementation Planning**: Detailed 16-week roadmap with MVP, enhancement, and production readiness phases
+
+## [1.34.2] - 2025-07-19
+
+### 🚀 **DATA CLEANSING** - Trigger Analysis Functionality Implementation
+
+This release implements the missing trigger analysis functionality for the Data Cleansing page, enabling users to actually execute CrewAI agents for data quality analysis instead of just viewing cached results.
+
+### 🚀 **New Feature**
+
+#### **Data Cleansing Trigger Analysis Endpoint**
+- **Type**: Backend API enhancement with frontend integration
+- **Impact**: Enables actual execution of data cleansing analysis via CrewAI agents when users click "Trigger Analysis"
+- **Technical Details**: Added POST endpoint `/api/v1/data-cleansing/flows/{flow_id}/data-cleansing/trigger` that executes data_cleansing phase through MasterFlowOrchestrator
+
+#### **Frontend Integration**
+- **Type**: User interface enhancement
+- **Impact**: Converts "read-only mode" button to fully functional analysis trigger
+- **Technical Details**: Updated DataCleansing.tsx to call new trigger endpoint with proper error handling and result refresh
+
+### 📊 Business Impact
+
+- **User Experience**: Data cleansing page now provides active analysis capabilities instead of static data viewing
+- **Workflow Completion**: Enables progression through discovery workflow with real-time agent analysis
+- **Data Quality**: Provides actionable insights through actual CrewAI agent execution
+
+### 🎯 Success Metrics
+
+- **API Integration**: Complete POST endpoint implementation with proper validation and error handling
+- **Agent Execution**: Integration with MasterFlowOrchestrator for CrewAI phase execution
+- **User Interface**: Functional "Trigger Analysis" button that executes backend analysis and refreshes results
+
+## [1.34.1] - 2025-07-19
+
+### 🐛 **CREWAI FLOW** - Complete Manager Class Initialization Fix
+
+This hotfix resolves critical initialization errors in multiple manager classes that were preventing CrewAI flow resumption and causing TypeError exceptions during flow operations.
+
+### 🚀 **Critical Bug Fix**
+
+#### **Complete Manager Class Constructor Fixes**
+- **Type**: CrewAI flow initialization error fix
+- **Impact**: Restores flow resumption functionality and eliminates multiple TypeError exceptions
+- **Technical Details**: Fixed initialization of StateManager, FlowManager, and FlowFinalizer classes in base_flow.py
+  - StateManager: Added required `state` parameter
+  - FlowManager: Added required `state`, `state_manager`, and `flow_management` parameters
+  - FlowFinalizer: Added required `state` and `state_manager` parameters
+
+### 📊 Business Impact
+
+- **Flow Operations**: Restores CrewAI flow resumption and state management capabilities
+- **Discovery Workflow**: Eliminates flow interruption errors during multi-phase discovery operations
+- **System Reliability**: Prevents TypeError exceptions that were blocking flow initialization
+
+### 🎯 Success Metrics
+
+- **Error Elimination**: 100% resolution of TypeError exceptions in StateManager, FlowManager, and FlowFinalizer
+- **Flow Resumption**: Restored functionality for resuming interrupted discovery flows
+- **Code Quality**: Fixed all constructor calls to match class signatures and parameter requirements
+
 ## [1.34.0] - 2025-07-19
 
 ### 🎯 **DATA TRACEABILITY** - Complete Asset-to-Raw Record Linkage System

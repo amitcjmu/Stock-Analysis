@@ -18,7 +18,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'app'))
 
 try:
     from app.core.config import settings
-    from app.services.crewai_flow_service import CrewAIService
+    from app.services.crewai_flow_service import CrewAIFlowService
     print("✅ Successfully imported configuration and services")
 except ImportError as e:
     print(f"❌ Import error: {e}")
@@ -41,7 +41,7 @@ async def test_crewai_service():
     print("\n🤖 Testing CrewAI Service:")
     
     try:
-        service = CrewAIService()
+        service = CrewAIFlowService()
         
         if service.llm:
             print("✅ CrewAI service initialized successfully")
@@ -70,7 +70,7 @@ async def test_6r_analysis():
     print("\n📊 Testing 6R Analysis:")
     
     try:
-        service = CrewAIService()
+        service = CrewAIFlowService()
         
         # Sample asset data for testing
         test_asset = {
