@@ -230,7 +230,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
       // Import API call function
       const { apiCall } = await import('../../../config/api');
       
-      const response = await apiCall('/asset_inventory/auto-classify', {
+      const response = await apiCall('/assets/auto-classify', {
         method: 'POST',
         body: JSON.stringify({
           asset_ids: selectedAssets,
