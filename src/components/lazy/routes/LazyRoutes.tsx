@@ -147,6 +147,37 @@ export const LazyDiscoveryDashboard = createLazyRoute(
   'Discovery Dashboard'
 );
 
+// Collection Sub-routes (HIGH priority - frequently accessed workflows)
+export const LazyCollectionIndex = createLazyRoute(
+  () => import('@/pages/collection/Index'),
+  'Collection Overview',
+  LoadingPriority.HIGH
+);
+
+export const LazyAdaptiveForms = createLazyRoute(
+  () => import('@/pages/collection/AdaptiveForms'),
+  'Adaptive Forms',
+  LoadingPriority.HIGH
+);
+
+export const LazyBulkUpload = createLazyRoute(
+  () => import('@/pages/collection/BulkUpload'),
+  'Bulk Upload',
+  LoadingPriority.HIGH
+);
+
+export const LazyDataIntegration = createLazyRoute(
+  () => import('@/pages/collection/DataIntegration'),
+  'Data Integration',
+  LoadingPriority.HIGH
+);
+
+export const LazyCollectionProgress = createLazyRoute(
+  () => import('@/pages/collection/Progress'),
+  'Collection Progress',
+  LoadingPriority.NORMAL
+);
+
 // Assessment Sub-routes
 export const LazyAssessIndex = createLazyRoute(
   () => import('@/pages/assess/Index'),
