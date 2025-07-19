@@ -13,16 +13,26 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional, Set
 from dataclasses import dataclass
 
-from azure.identity import ClientSecretCredential, DefaultAzureCredential
-from azure.mgmt.resource import ResourceManagementClient
-from azure.mgmt.resourcegraph import ResourceGraphClient
-from azure.mgmt.monitor import MonitorManagementClient
-from azure.mgmt.compute import ComputeManagementClient
-from azure.mgmt.sql import SqlManagementClient
-from azure.mgmt.web import WebSiteManagementClient
-from azure.mgmt.storage import StorageManagementClient
-from azure.mgmt.network import NetworkManagementClient
-from azure.core.exceptions import ClientAuthenticationError, HttpResponseError
+try:
+    from azure.identity import ClientSecretCredential, DefaultAzureCredential
+    from azure.mgmt.resource import ResourceManagementClient
+    from azure.mgmt.resourcegraph import ResourceGraphClient
+    from azure.mgmt.monitor import MonitorManagementClient
+    from azure.mgmt.compute import ComputeManagementClient
+    from azure.mgmt.sql import SqlManagementClient
+    from azure.mgmt.web import WebSiteManagementClient
+    from azure.mgmt.storage import StorageManagementClient
+    from azure.mgmt.network import NetworkManagementClient
+    from azure.core.exceptions import ClientAuthenticationError, HttpResponseError
+    AZURE_SDK_AVAILABLE = True
+except ImportError:
+    AZURE_SDK_AVAILABLE = False
+    # Create dummy classes for type hints
+    ClientSecretCredential = DefaultAzureCredential = None
+    ResourceManagementClient = ResourceGraphClient = MonitorManagementClient = None
+    ComputeManagementClient = SqlManagementClient = WebSiteManagementClient = None
+    StorageManagementClient = NetworkManagementClient = None
+    ClientAuthenticationError = HttpResponseError = Exception
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.collection_flow.adapters import (
@@ -73,6 +83,8 @@ class AzureAdapter(BaseAdapter):
     def __init__(self, db: AsyncSession, metadata: AdapterMetadata):
         """Initialize Azure adapter with metadata and session"""
         super().__init__(db, metadata)
+        if not AZURE_SDK_AVAILABLE:
+            logger.warning("Azure SDK is not installed. Azure adapter functionality will be limited.")
         self._credential = None
         self._subscription_id = None
         self._resource_client = None
@@ -129,6 +141,10 @@ class AzureAdapter(BaseAdapter):
         Returns:
             True if credentials are valid, False otherwise
         """
+        if not AZURE_SDK_AVAILABLE:
+            logger.error("Azure SDK is not installed. Cannot validate credentials.")
+            return False
+            
         try:
             # Parse credentials
             azure_creds = AzureCredentials(
@@ -270,6 +286,17 @@ class AzureAdapter(BaseAdapter):
         Returns:
             Collection response with collected data or error information
         """
+        if not AZURE_SDK_AVAILABLE:
+            return CollectionResponse(
+                adapter_id=self.metadata.adapter_id,
+                success=False,
+                error_message="Azure SDK is not installed. Please install azure-mgmt-* packages.",
+                collection_metadata={
+                    "error": "Azure SDK not available",
+                    "suggestion": "Install required packages: pip install azure-mgmt-resource azure-mgmt-compute azure-mgmt-sql"
+                }
+            )
+            
         start_time = time.time()
         
         try:

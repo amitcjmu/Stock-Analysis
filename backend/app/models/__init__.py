@@ -8,6 +8,22 @@ V2 Discovery Flow Architecture:
 - Unified flow state management
 """
 
+# Import base models first to avoid circular dependencies
+from app.models.base import Base, TimestampMixin
+
+# Platform Models (needed by Collection Flow)
+from app.models.platform_adapter import PlatformAdapter, AdapterStatus
+from app.models.platform_credentials import (
+    PlatformCredential, CredentialAccessLog, CredentialRotationHistory, 
+    CredentialPermission, CredentialStatus, CredentialType
+)
+
+# Collection Flow Models (needed by ClientAccount)
+from app.models.collection_flow import CollectionFlow, AutomationTier, CollectionFlowStatus
+from app.models.collected_data_inventory import CollectedDataInventory
+from app.models.collection_data_gap import CollectionDataGap
+from app.models.collection_questionnaire_response import CollectionQuestionnaireResponse
+
 # Core Models
 from app.models.client_account import ClientAccount, Engagement, User, UserAccountAssociation
 
@@ -98,6 +114,10 @@ from app.models.sixr_analysis import SixRAnalysis
 # from app.models.session_management import SessionManagement  # REMOVED - Use DiscoveryFlow
 
 __all__ = [
+    # Base Models
+    "Base",
+    "TimestampMixin",
+    
     # Core Models
     "ClientAccount",
     "Engagement", 
@@ -187,5 +207,23 @@ __all__ = [
     "LLMUsageSummary",
     
     # SixR Analysis Models
-    "SixRAnalysis"
+    "SixRAnalysis",
+    
+    # Collection Flow Models
+    "CollectionFlow",
+    "AutomationTier",
+    "CollectionFlowStatus",
+    "CollectedDataInventory",
+    "CollectionDataGap",
+    "CollectionQuestionnaireResponse",
+    
+    # Platform Models
+    "PlatformAdapter",
+    "AdapterStatus",
+    "PlatformCredential",
+    "CredentialAccessLog",
+    "CredentialRotationHistory",
+    "CredentialPermission",
+    "CredentialStatus",
+    "CredentialType"
 ] 

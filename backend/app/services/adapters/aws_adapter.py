@@ -13,8 +13,15 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional, Set
 from dataclasses import dataclass
 
-import boto3
-from botocore.exceptions import ClientError, NoCredentialsError, PartialCredentialsError
+try:
+    import boto3
+    from botocore.exceptions import ClientError, NoCredentialsError, PartialCredentialsError
+    AWS_SDK_AVAILABLE = True
+except ImportError:
+    AWS_SDK_AVAILABLE = False
+    # Create dummy classes for type hints
+    boto3 = None
+    ClientError = NoCredentialsError = PartialCredentialsError = Exception
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.collection_flow.adapters import (
@@ -67,6 +74,8 @@ class AWSAdapter(BaseAdapter):
     def __init__(self, db: AsyncSession, metadata: AdapterMetadata):
         """Initialize AWS adapter with metadata and session"""
         super().__init__(db, metadata)
+        if not AWS_SDK_AVAILABLE:
+            logger.warning("AWS SDK (boto3) is not installed. AWS adapter functionality will be limited.")
         self._ec2_client = None
         self._rds_client = None
         self._lambda_client = None
@@ -108,6 +117,10 @@ class AWSAdapter(BaseAdapter):
         Returns:
             True if credentials are valid, False otherwise
         """
+        if not AWS_SDK_AVAILABLE:
+            logger.error("AWS SDK (boto3) is not installed. Cannot validate credentials.")
+            return False
+            
         try:
             # Parse credentials
             aws_creds = AWSCredentials(
@@ -247,6 +260,17 @@ class AWSAdapter(BaseAdapter):
         Returns:
             Collection response with collected data or error information
         """
+        if not AWS_SDK_AVAILABLE:
+            return CollectionResponse(
+                adapter_id=self.metadata.adapter_id,
+                success=False,
+                error_message="AWS SDK (boto3) is not installed. Please install boto3 package.",
+                collection_metadata={
+                    "error": "AWS SDK not available",
+                    "suggestion": "Install required package: pip install boto3"
+                }
+            )
+            
         start_time = time.time()
         
         try:

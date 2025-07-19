@@ -94,7 +94,7 @@ class CollectionFlow(Base, TimestampMixin):
     confidence_score = Column(Float, nullable=True)
     
     # Configuration and state
-    metadata = Column(JSONB, nullable=False, default={}, server_default="{}")
+    flow_metadata = Column("metadata", JSONB, nullable=False, default={}, server_default="{}")
     collection_config = Column(JSONB, nullable=False, default={}, server_default="{}")
     phase_state = Column(JSONB, nullable=False, default={}, server_default="{}")
     
@@ -137,7 +137,7 @@ class CollectionFlow(Base, TimestampMixin):
             "progress_percentage": self.progress_percentage,
             "collection_quality_score": self.collection_quality_score,
             "confidence_score": self.confidence_score,
-            "metadata": self.metadata,
+            "metadata": self.flow_metadata,
             "collection_config": self.collection_config,
             "phase_state": self.phase_state,
             "error_message": self.error_message,

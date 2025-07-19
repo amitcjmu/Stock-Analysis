@@ -47,7 +47,7 @@ from app.services.ai_analysis import (
 from app.services.manual_collection import (
     AdaptiveFormService,
     BulkDataService,
-    ValidationService,
+    QuestionnaireValidationService as ValidationService,
     TemplateService,
     ProgressTrackingService,
     DataIntegrationService
@@ -55,13 +55,20 @@ from app.services.manual_collection import (
 
 # Import flow orchestration components
 from app.services.flow_orchestration import FlowExecutionEngine
-from app.services.crewai_flows.crews.collection import (
-    PlatformDetectionCrew,
-    AutomatedCollectionCrew,
-    GapAnalysisCrew,
-    ManualCollectionCrew,
-    DataSynthesisCrew
-)
+try:
+    from app.services.crewai_flows.crews.collection import (
+        PlatformDetectionCrew,
+        AutomatedCollectionCrew,
+        GapAnalysisCrew,
+        ManualCollectionCrew,
+        DataSynthesisCrew
+    )
+    CREWAI_CREWS_AVAILABLE = True
+except ImportError:
+    CREWAI_CREWS_AVAILABLE = False
+    # Create dummy classes for type hints
+    PlatformDetectionCrew = AutomatedCollectionCrew = GapAnalysisCrew = None
+    ManualCollectionCrew = DataSynthesisCrew = None
 
 logger = get_logger(__name__)
 

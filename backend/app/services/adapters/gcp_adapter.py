@@ -13,17 +13,33 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional, Set
 from dataclasses import dataclass
 
-from google.cloud import asset_v1
-from google.cloud import monitoring_v3
-from google.cloud import compute_v1
-from google.cloud import sql_v1
-from google.cloud import storage
-from google.cloud import container_v1
-from google.cloud import functions_v1
-from google.oauth2 import service_account
-from google.auth.exceptions import DefaultCredentialsError
-from googleapiclient import discovery
-from googleapiclient.errors import HttpError
+try:
+    from google.cloud import asset_v1
+    from google.cloud import monitoring_v3
+    from google.cloud import compute_v1
+    from google.cloud import sql_v1
+    from google.cloud import storage
+    from google.cloud import container_v1
+    from google.cloud import functions_v1
+    from google.oauth2 import service_account
+    from google.auth.exceptions import DefaultCredentialsError
+    from googleapiclient import discovery
+    from googleapiclient.errors import HttpError
+    GCP_AVAILABLE = True
+except ImportError:
+    GCP_AVAILABLE = False
+    # Create dummy classes to prevent NameError
+    asset_v1 = None
+    monitoring_v3 = None
+    compute_v1 = None
+    sql_v1 = None
+    storage = None
+    container_v1 = None
+    functions_v1 = None
+    service_account = None
+    DefaultCredentialsError = Exception
+    discovery = None
+    HttpError = Exception
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.collection_flow.adapters import (
@@ -75,6 +91,8 @@ class GCPAdapter(BaseAdapter):
     def __init__(self, db: AsyncSession, metadata: AdapterMetadata):
         """Initialize GCP adapter with metadata and session"""
         super().__init__(db, metadata)
+        if not GCP_AVAILABLE:
+            self.logger.warning("Google Cloud SDK not installed. GCP adapter will not be functional.")
         self._credentials = None
         self._project_id = None
         self._asset_client = None
@@ -102,8 +120,10 @@ class GCPAdapter(BaseAdapter):
             "bigquery.googleapis.com/Table"
         }
         
-    def _get_gcp_credentials(self, credentials: GCPCredentials) -> service_account.Credentials:
+    def _get_gcp_credentials(self, credentials: GCPCredentials):
         """Create GCP credentials from service account key"""
+        if not GCP_AVAILABLE:
+            raise ImportError("Google Cloud SDK not installed")
         return service_account.Credentials.from_service_account_info(
             credentials.service_account_key
         )
@@ -130,6 +150,10 @@ class GCPAdapter(BaseAdapter):
         Returns:
             True if credentials are valid, False otherwise
         """
+        if not GCP_AVAILABLE:
+            self.logger.error("Google Cloud SDK not installed. Cannot validate GCP credentials.")
+            return False
+            
         try:
             # Parse credentials
             gcp_creds = GCPCredentials(

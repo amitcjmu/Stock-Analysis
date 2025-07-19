@@ -153,7 +153,7 @@ class CredentialAccessLog(Base):
     error_message = Column(Text, nullable=True)
     
     # Additional Data
-    metadata = Column(JSONB, nullable=False, default={})
+    access_metadata = Column("metadata", JSONB, nullable=False, default={})
     
     # Timestamp
     accessed_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
@@ -191,7 +191,7 @@ class CredentialRotationHistory(Base):
     error_message = Column(Text, nullable=True)
     
     # Additional Data
-    metadata = Column(JSONB, nullable=False, default={})
+    rotation_metadata = Column("metadata", JSONB, nullable=False, default={})
     
     # Timestamp
     rotated_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
@@ -225,7 +225,7 @@ class CredentialPermission(Base):
     expires_at = Column(DateTime(timezone=True), nullable=True)
     
     # Additional Data
-    metadata = Column(JSONB, nullable=False, default={})
+    permission_metadata = Column("metadata", JSONB, nullable=False, default={})
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

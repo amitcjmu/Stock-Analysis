@@ -7,7 +7,7 @@ for collected data, helping to identify gaps and areas needing improvement.
 
 import logging
 import statistics
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple, Union
 from datetime import datetime, timedelta
 from enum import Enum
 from dataclasses import dataclass, field
