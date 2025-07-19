@@ -23,6 +23,12 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+# Request Models
+class TriggerDataCleansingRequest(BaseModel):
+    """Request to trigger data cleansing analysis"""
+    force_refresh: bool = False
+    include_agent_analysis: bool = True
+
 # Response Models
 class DataQualityIssue(BaseModel):
     """Data quality issue identified during cleansing analysis"""
@@ -280,11 +286,169 @@ async def get_data_cleansing_stats(
             detail=f"Failed to get data cleansing stats: {str(e)}"
         )
 
+@router.post(
+    "/flows/{flow_id}/data-cleansing/trigger",
+    response_model=DataCleansingAnalysis,
+    summary="Trigger data cleansing analysis for a flow"
+)
+async def trigger_data_cleansing_analysis(
+    flow_id: str,
+    request: TriggerDataCleansingRequest,
+    db: AsyncSession = Depends(get_db),
+    context: RequestContext = Depends(get_current_context),
+    current_user: User = Depends(get_current_user)
+) -> DataCleansingAnalysis:
+    """
+    Trigger data cleansing analysis for a discovery flow.
+    
+    This endpoint actually executes the data cleansing phase using CrewAI agents
+    to analyze data quality and provide recommendations.
+    """
+    try:
+        logger.info(f"🚀 TRIGGERING data cleansing analysis for flow {flow_id}")
+        
+        # Get flow repository with proper context
+        flow_repo = DiscoveryFlowRepository(db, context.client_account_id)
+        
+        # Verify flow exists and user has access
+        flow = await flow_repo.get_by_flow_id(flow_id)
+        if not flow:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Flow {flow_id} not found"
+            )
+        
+        logger.info(f"🔍 Flow {flow_id} current status: {flow.status}")
+        
+        # Import the MasterFlowOrchestrator to execute the data cleansing phase
+        try:
+            from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+            flow_orchestrator = MasterFlowOrchestrator(
+                client_account_id=context.client_account_id,
+                engagement_id=context.engagement_id,
+                user_id=current_user.id
+            )
+            
+            # Execute the data cleansing phase using the orchestrator
+            logger.info(f"🤖 Executing data cleansing phase for flow {flow_id}")
+            
+            execution_result = await flow_orchestrator.execute_phase(
+                flow_id=flow_id,
+                phase_name="data_cleansing",
+                phase_input={"force_refresh": request.force_refresh, "include_agent_analysis": request.include_agent_analysis}
+            )
+            
+            logger.info(f"✅ Data cleansing phase execution completed: {execution_result.get('status', 'unknown')}")
+            
+            # If execution was successful, get the updated analysis
+            if execution_result.get('status') == 'success':
+                # Get data import for this flow to perform analysis
+                from sqlalchemy import select
+                from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+                
+                # First try to get data import via discovery flow's data_import_id
+                data_import = None
+                if flow.data_import_id:
+                    data_import_query = select(DataImport).where(
+                        DataImport.id == flow.data_import_id
+                    )
+                    data_import_result = await db.execute(data_import_query)
+                    data_import = data_import_result.scalar_one_or_none()
+                    
+                # If not found, try master flow ID lookup
+                if not data_import:
+                    logger.info(f"Flow {flow_id} has no data_import_id, trying master flow ID lookup")
+                    
+                    # Get the database ID for this flow_id (FK references id, not flow_id)
+                    db_id_query = select(CrewAIFlowStateExtensions.id).where(
+                        CrewAIFlowStateExtensions.flow_id == flow_id
+                    )
+                    db_id_result = await db.execute(db_id_query)
+                    flow_db_id = db_id_result.scalar_one_or_none()
+                    
+                    if flow_db_id:
+                        # Look for data imports with this master_flow_id
+                        import_query = select(DataImport).where(
+                            DataImport.master_flow_id == flow_db_id
+                        ).order_by(DataImport.created_at.desc()).limit(1)
+                        
+                        import_result = await db.execute(import_query)
+                        data_import = import_result.scalar_one_or_none()
+                
+                if not data_import:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"No data import found for flow {flow_id}"
+                    )
+                
+                data_imports = [data_import]
+                
+                # Get field mappings  
+                field_mapping_query = select(ImportFieldMapping).where(
+                    ImportFieldMapping.data_import_id == data_imports[0].id
+                )
+                field_mapping_result = await db.execute(field_mapping_query)
+                field_mappings = field_mapping_result.scalars().all()
+                
+                # Perform data cleansing analysis with agent results
+                analysis_result = await _perform_data_cleansing_analysis(
+                    flow_id=flow_id,
+                    data_imports=data_imports,
+                    field_mappings=field_mappings,
+                    include_details=True,
+                    execution_result=execution_result
+                )
+                
+                logger.info(f"✅ Data cleansing analysis triggered and completed for flow {flow_id}")
+                return analysis_result
+            else:
+                # Execution failed, but still return analysis with error status
+                logger.warning(f"⚠️ Data cleansing execution failed: {execution_result.get('error', 'Unknown error')}")
+                
+                # Return a basic analysis indicating the execution failed
+                from datetime import datetime
+                return DataCleansingAnalysis(
+                    flow_id=flow_id,
+                    analysis_timestamp=datetime.utcnow().isoformat(),
+                    total_records=0,
+                    total_fields=0,
+                    quality_score=0.0,
+                    issues_count=0,
+                    recommendations_count=0,
+                    quality_issues=[],
+                    recommendations=[],
+                    field_quality_scores={},
+                    processing_status=f"failed: {execution_result.get('error', 'Unknown error')}"
+                )
+                
+        except ImportError as e:
+            logger.error(f"❌ CrewAI service not available: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Data cleansing analysis service not available"
+            )
+        except Exception as e:
+            logger.error(f"❌ Failed to execute data cleansing phase: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to execute data cleansing analysis: {str(e)}"
+            )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to trigger data cleansing analysis for flow {flow_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to trigger data cleansing analysis: {str(e)}"
+        )
+
 async def _perform_data_cleansing_analysis(
     flow_id: str,
     data_imports: List[Any],
     field_mappings: List[Any],
-    include_details: bool = True
+    include_details: bool = True,
+    execution_result: Optional[Dict[str, Any]] = None
 ) -> DataCleansingAnalysis:
     """
     Perform data cleansing analysis on the imported data and field mappings.
