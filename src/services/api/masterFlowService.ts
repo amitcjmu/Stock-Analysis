@@ -188,7 +188,7 @@ export const masterFlowService = {
       const params = new URLSearchParams();
       if (flowType) params.append('flowType', flowType);
       
-      const endpoint = `/master-flows/active${params.toString() ? `?${params}` : ''}`;
+      const endpoint = `/discovery/flows/active${params.toString() ? `?${params}` : ''}`;
       const headers = getMultiTenantHeaders(clientAccountId, engagementId);
       
       console.log('🔍 MasterFlowService.getActiveFlows - Making API call:', {
@@ -224,8 +224,8 @@ export const masterFlowService = {
     engagementId?: string
   ): Promise<void> {
     try {
-      // First try to delete via master flow endpoint
-      await apiClient.delete(`/master-flows/${flowId}`, undefined, {
+      // First try to delete via discovery flow endpoint
+      await apiClient.delete(`/discovery/flow/${flowId}`, undefined, {
         headers: getMultiTenantHeaders(clientAccountId, engagementId),
       });
     } catch (error: any) {

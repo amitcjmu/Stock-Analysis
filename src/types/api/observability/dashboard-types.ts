@@ -48,7 +48,7 @@ export interface GetDashboardRequest extends GetRequest {
 export interface GetDashboardResponse extends GetResponse<Dashboard> {
   data: Dashboard;
   widgetData: WidgetData[];
-  metadata: DashboardMetadata;
+  dashboardMetadata: DashboardMetadata;
   lastRefreshed: string;
 }
 
@@ -173,7 +173,7 @@ export interface DashboardMetadata {
   lastRefresh: string;
   refreshStatus: 'success' | 'partial' | 'failed';
   errors: DashboardError[];
-  performance: PerformanceMetrics;
+  performance: DashboardPerformanceMetrics;
 }
 
 export interface DashboardChangeImpact {
@@ -478,7 +478,7 @@ export interface DashboardError {
   resolved: boolean;
 }
 
-export interface PerformanceMetrics {
+export interface DashboardPerformanceMetrics {
   loadTime: number;
   renderTime: number;
   queryTime: number;

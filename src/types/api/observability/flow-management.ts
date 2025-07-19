@@ -17,7 +17,10 @@ import {
   ObservabilityScope,
   MonitoringStrategy,
   ObservabilityStatus,
-  ObservabilityFlowData
+  ObservabilityFlowData,
+  ObservabilityObjective,
+  ObservabilityRequirement,
+  PerformanceMetrics
 } from './core-types';
 
 // Flow Initialization
@@ -88,21 +91,6 @@ export interface ListObservabilityFlowsResponse extends ListResponse<Observabili
 }
 
 // Supporting Types
-export interface ObservabilityObjective {
-  id: string;
-  type: 'availability' | 'performance' | 'reliability' | 'security' | 'cost';
-  target: number;
-  threshold: number;
-  priority: 'low' | 'medium' | 'high' | 'critical';
-}
-
-export interface ObservabilityRequirement {
-  id: string;
-  category: 'monitoring' | 'alerting' | 'reporting' | 'compliance';
-  description: string;
-  mandatory: boolean;
-  dependencies: string[];
-}
 
 export interface ObservabilityFlowConfiguration {
   autoScaling: boolean;
@@ -188,17 +176,7 @@ export interface HealthStatus {
   lastCheck: string;
 }
 
-export interface PerformanceMetrics {
-  responseTime: {
-    avg: number;
-    p50: number;
-    p95: number;
-    p99: number;
-  };
-  throughput: number;
-  errorRate: number;
-  availability: number;
-}
+// PerformanceMetrics imported from core-types
 
 export interface ObservabilityFlowSummary {
   id: string;
@@ -212,6 +190,8 @@ export interface ObservabilityFlowSummary {
 }
 
 export interface ObservabilityAggregation {
+  name: string;
+  type: 'terms' | 'date_histogram' | 'range' | 'stats' | 'cardinality';
   field: string;
   buckets: AggregationBucket[];
 }

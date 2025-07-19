@@ -13,6 +13,7 @@ import {
   GetResponse,
   MultiTenantContext
 } from '../shared';
+import { CostBreakdown, MetricThreshold, RetryPolicy, DeploymentStatus } from './core-types';
 
 // Monitoring Configuration
 export interface CreateMonitoringConfigurationRequest extends CreateRequest<MonitoringConfigurationData> {
@@ -222,7 +223,7 @@ export interface MonitoringDeployment {
   estimatedCompletion: string;
 }
 
-export type DeploymentStatus = 'pending' | 'deploying' | 'validating' | 'active' | 'failed' | 'rolled_back';
+// DeploymentStatus imported from core-types
 
 export interface DeploymentPlan {
   phases: DeploymentPhase[];
@@ -247,12 +248,7 @@ export interface TargetCredentials {
   privateKey?: string;
 }
 
-export interface MetricThreshold {
-  operator: 'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'neq';
-  value: number;
-  severity: 'info' | 'warning' | 'minor' | 'major' | 'critical' | 'blocker';
-  duration: string;
-}
+// MetricThreshold imported from core-types
 
 export interface RetentionCompression {
   enabled: boolean;
@@ -305,12 +301,7 @@ export interface RollbackPlan {
   steps: RollbackStep[];
 }
 
-export interface CostBreakdown {
-  category: string;
-  amount: number;
-  unit: string;
-  description: string;
-}
+// CostBreakdown imported from core-types
 
 export interface SamplingConfig {
   rate: number;
@@ -377,9 +368,4 @@ export interface RollbackStep {
   parameters: Record<string, any>;
 }
 
-export interface RetryPolicy {
-  maxAttempts: number;
-  backoffStrategy: 'linear' | 'exponential' | 'fixed';
-  baseDelay: string;
-  maxDelay: string;
-}
+// RetryPolicy imported from core-types

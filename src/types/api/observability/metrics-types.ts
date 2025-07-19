@@ -21,7 +21,7 @@ export interface CreateMetricDefinitionRequest extends CreateRequest<MetricDefin
   source: MetricSource;
   aggregation: AggregationConfig;
   dimensions: MetricDimension[];
-  thresholds: MetricThreshold[];
+  thresholds: DetailedMetricThreshold[];
   alerting: MetricAlerting;
 }
 
@@ -113,7 +113,7 @@ export interface MetricDimension {
   validation?: DimensionValidation;
 }
 
-export interface MetricThreshold {
+export interface DetailedMetricThreshold {
   id: string;
   name: string;
   operator: 'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'neq' | 'between' | 'outside';
@@ -143,7 +143,7 @@ export interface MetricDefinition {
   source: MetricSource;
   aggregation: AggregationConfig;
   dimensions: MetricDimension[];
-  thresholds: MetricThreshold[];
+  thresholds: DetailedMetricThreshold[];
   alerting: MetricAlerting;
   status: 'active' | 'inactive' | 'deprecated';
   createdAt: string;
