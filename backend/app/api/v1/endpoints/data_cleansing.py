@@ -97,7 +97,7 @@ async def get_data_cleansing_analysis(
         logger.info(f"📊 READ-ONLY: Getting data cleansing analysis for flow {flow_id} (should not modify flow status)")
         
         # Get flow repository with proper context
-        flow_repo = DiscoveryFlowRepository(db, context.client_account_id)
+        flow_repo = DiscoveryFlowRepository(db, context.client_account_id, context.engagement_id)
         
         # Verify flow exists and user has access (READ-ONLY check)
         flow = await flow_repo.get_by_flow_id(flow_id)
@@ -200,7 +200,7 @@ async def get_data_cleansing_stats(
         logger.info(f"Getting data cleansing stats for flow {flow_id}")
         
         # Get flow repository with proper context
-        flow_repo = DiscoveryFlowRepository(db, context.client_account_id)
+        flow_repo = DiscoveryFlowRepository(db, context.client_account_id, context.engagement_id)
         
         # Verify flow exists
         flow = await flow_repo.get_by_flow_id(flow_id)
@@ -308,7 +308,7 @@ async def trigger_data_cleansing_analysis(
         logger.info(f"🚀 TRIGGERING data cleansing analysis for flow {flow_id}")
         
         # Get flow repository with proper context
-        flow_repo = DiscoveryFlowRepository(db, context.client_account_id)
+        flow_repo = DiscoveryFlowRepository(db, context.client_account_id, context.engagement_id)
         
         # Verify flow exists and user has access
         flow = await flow_repo.get_by_flow_id(flow_id)
