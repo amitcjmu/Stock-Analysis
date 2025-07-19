@@ -165,9 +165,14 @@ class UnifiedDiscoveryFlow(Flow):
         """Initialize core components"""
         # Initialize managers
         self.state_manager = StateManager(self.state)
+        
+        # Initialize unified flow management for lifecycle operations
+        from ..handlers.unified_flow_management import UnifiedFlowManagement
+        self.unified_flow_management = UnifiedFlowManagement(self.state)
+        
         self.coordinator = CrewCoordinator(self.crewai_service, self.context)
-        self.flow_manager = FlowManager(self.crewai_service, self.context)
-        self.finalizer = FlowFinalizer()
+        self.flow_manager = FlowManager(self.state, self.state_manager, self.unified_flow_management)
+        self.finalizer = FlowFinalizer(self.state, self.state_manager)
         
         # Initialize bridge for flow-specific database operations
         from ..bridges.flow_state_bridge import FlowStateBridge
