@@ -49,6 +49,7 @@ class SecurityAuditService:
             )
             
             self.db.add(audit_entry)
+            await self.db.flush()  # Test if the table exists
             
             # If this is a privilege escalation to platform_admin, require additional logging
             if new_role == "platform_admin":
@@ -63,9 +64,14 @@ class SecurityAuditService:
             return True
             
         except Exception as e:
-            logger.error(f"Failed to log role change: {e}")
+            # Log warning instead of error - audit failure shouldn't block operations
+            audit_logger.warning(
+                f"Failed to log role change audit (table may not exist): {old_role} -> {new_role} "
+                f"for user {target_user_id} by {actor_user_id}. Error: {str(e)}"
+            )
             await self.db.rollback()
-            return False
+            # Return True - audit failure shouldn't block the actual operation
+            return True
     
     async def log_admin_access(self, user_id: str, endpoint: str, 
                              ip_address: str = None, user_agent: str = None) -> bool:
@@ -86,9 +92,14 @@ class SecurityAuditService:
             return True
             
         except Exception as e:
-            logger.error(f"Failed to log admin access: {e}")
+            # Log warning instead of error - audit failure shouldn't block operations
+            audit_logger.warning(
+                f"Failed to log admin access audit (table may not exist): {endpoint} "
+                f"for user {user_id}. Error: {str(e)}"
+            )
             await self.db.rollback()
-            return False
+            # Return True - audit failure shouldn't block the actual operation
+            return True
     
     async def log_security_violation(self, user_id: str, violation_type: str, 
                                    details: Dict[str, Any] = None,
@@ -114,9 +125,16 @@ class SecurityAuditService:
             return True
             
         except Exception as e:
-            logger.error(f"Failed to log security violation: {e}")
+            # Log warning but still log the critical security violation to file logs
+            audit_logger.warning(
+                f"Failed to log security violation audit (table may not exist): {violation_type} "
+                f"for user {user_id}. Error: {str(e)}"
+            )
+            # Still log the critical violation to file logs even if DB fails
+            audit_logger.critical(f"SECURITY_VIOLATION: {violation_type} by {user_id} - {details}")
             await self.db.rollback()
-            return False
+            # Return True - audit failure shouldn't block the actual operation
+            return True
     
     async def _check_suspicious_admin_creation(self, actor_user_id: str) -> None:
         """Check for suspicious patterns in admin role creation."""

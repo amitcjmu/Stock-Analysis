@@ -212,6 +212,8 @@ class BaseRBACHandler:
             await self.db.commit()
             
         except Exception as e:
-            logger.error(f"Error logging access event: {e}")
+            # Log warning instead of error - audit failure shouldn't block operations
+            logger.warning(f"Failed to log access audit (table may not exist): {str(e)}")
+            await self.db.rollback()
             # Don't fail the main operation if logging fails
             pass 
