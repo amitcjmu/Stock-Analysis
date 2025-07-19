@@ -323,11 +323,7 @@ async def trigger_data_cleansing_analysis(
         # Import the MasterFlowOrchestrator to execute the data cleansing phase
         try:
             from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-            flow_orchestrator = MasterFlowOrchestrator(
-                client_account_id=context.client_account_id,
-                engagement_id=context.engagement_id,
-                user_id=current_user.id
-            )
+            flow_orchestrator = MasterFlowOrchestrator(db, context)
             
             # Execute the data cleansing phase using the orchestrator
             logger.info(f"🤖 Executing data cleansing phase for flow {flow_id}")
