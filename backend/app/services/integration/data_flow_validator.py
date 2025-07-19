@@ -26,7 +26,7 @@ from app.models.asset import Asset
 from app.models.discovery_flow import DiscoveryFlow
 from app.models.assessment_flow import AssessmentFlow
 from app.models.collection_flow import CollectionFlow
-from app.models.dependency import Dependency
+from app.models.asset import AssetDependency as Dependency
 
 logger = get_logger(__name__)
 

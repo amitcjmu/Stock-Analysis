@@ -548,6 +548,52 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
             return 50.0
         else:
             return 25.0
+    
+    async def analyze_data_gaps(
+        self,
+        collected_data: List[Dict[str, Any]],
+        existing_gaps: List[Dict[str, Any]],
+        sixr_requirements: Dict[str, Any],
+        automation_tier: str
+    ) -> Dict[str, Any]:
+        """
+        Analyze data gaps for given collected data.
+        
+        Args:
+            collected_data: List of collected asset data
+            existing_gaps: List of existing gaps identified
+            sixr_requirements: 6R strategy requirements
+            automation_tier: Current automation tier
+            
+        Returns:
+            Gap analysis results
+        """
+        try:
+            # Prepare analysis inputs
+            analysis_inputs = {
+                "collected_data": collected_data,
+                "existing_gaps": existing_gaps,
+                "sixr_requirements": sixr_requirements,
+                "automation_tier": automation_tier
+            }
+            
+            # Execute gap analysis
+            logger.info(f"Starting gap analysis for {len(collected_data)} assets")
+            results = await self.kickoff_async(analysis_inputs)
+            
+            logger.info("Gap analysis completed")
+            return self.process_results(results)
+            
+        except Exception as e:
+            logger.error(f"Failed to perform gap analysis: {e}")
+            return {
+                "status": "error",
+                "error": str(e),
+                "gap_analysis": {"summary": {"error": True}},
+                "metadata": {
+                    "analysis_timestamp": datetime.now(timezone.utc).isoformat()
+                }
+            }
 
 
 async def analyze_collection_gaps(

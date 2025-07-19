@@ -12,21 +12,53 @@ from typing import Any, Callable, Optional
 logger = logging.getLogger(__name__)
 
 
-def track_performance(metric_name: str, value: Optional[float] = None):
+def track_performance(metric_name: str):
     """
-    Track a performance metric.
+    Decorator to track performance metrics.
     
     Args:
         metric_name: Name of the metric to track
-        value: Optional value for the metric
+        
+    Returns:
+        Decorator function
     """
-    if value is not None:
-        logger.info(f"Performance metric: {metric_name} = {value}")
-    else:
-        logger.info(f"Performance metric: {metric_name}")
-    
-    # In a production environment, this would send metrics to a monitoring service
-    # For now, we just log them
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        async def async_wrapper(*args, **kwargs):
+            start_time = time.time()
+            try:
+                logger.info(f"Performance metric: {metric_name}")
+                result = await func(*args, **kwargs)
+                execution_time = time.time() - start_time
+                logger.info(f"Performance metric: {metric_name} completed in {execution_time:.3f}s")
+                return result
+            except Exception as e:
+                execution_time = time.time() - start_time
+                logger.error(f"Performance metric: {metric_name} failed after {execution_time:.3f}s - {str(e)}")
+                raise
+                
+        @wraps(func)
+        def sync_wrapper(*args, **kwargs):
+            start_time = time.time()
+            try:
+                logger.info(f"Performance metric: {metric_name}")
+                result = func(*args, **kwargs)
+                execution_time = time.time() - start_time
+                logger.info(f"Performance metric: {metric_name} completed in {execution_time:.3f}s")
+                return result
+            except Exception as e:
+                execution_time = time.time() - start_time
+                logger.error(f"Performance metric: {metric_name} failed after {execution_time:.3f}s - {str(e)}")
+                raise
+                
+        # Return the appropriate wrapper based on whether the function is async
+        import asyncio
+        if asyncio.iscoroutinefunction(func):
+            return async_wrapper
+        else:
+            return sync_wrapper
+            
+    return decorator
     
     
 def track_execution_time(func: Callable) -> Callable:

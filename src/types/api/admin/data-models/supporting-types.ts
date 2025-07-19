@@ -277,7 +277,8 @@ export interface AssessmentRecommendation {
   status: RecommendationStatus;
 }
 
-// Additional missing interfaces that are referenced but not defined in other modules
+// Supporting interfaces that need to be centralized to avoid duplicates
+// Note: These interfaces were moved here from other modules to prevent duplicate exports
 export interface ResourceRequirement {
   type: ResourceType;
   description: string;

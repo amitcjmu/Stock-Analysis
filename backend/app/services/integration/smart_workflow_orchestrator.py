@@ -28,7 +28,7 @@ from app.models.asset import Asset
 from app.services.ai_analysis.confidence_scoring import ConfidenceScorer
 from app.services.ai_analysis.gap_analysis_agent import GapAnalysisAgent
 from app.services.discovery_flow_service import DiscoveryFlowService
-from app.services.assessment_flow_service import AssessmentFlowService
+from app.services.assessment_flow_service import AssessmentManager
 
 logger = get_logger(__name__)
 
@@ -100,7 +100,7 @@ class SmartWorkflowOrchestrator:
         self.confidence_scorer = ConfidenceScorer()
         self.gap_analyzer = GapAnalysisAgent()
         self.discovery_service = DiscoveryFlowService()
-        self.assessment_service = AssessmentFlowService()
+        self.assessment_service = AssessmentManager
         
         # Quality thresholds for phase transitions
         self.quality_thresholds = {

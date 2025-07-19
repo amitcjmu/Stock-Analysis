@@ -26,7 +26,7 @@ from app.models.collection_flow import CollectionFlow
 from app.models.discovery_flow import DiscoveryFlow
 from app.models.assessment_flow import AssessmentFlow
 from app.models.asset import Asset
-from app.models.user_active_flows import UserActiveFlows
+from app.models.user_active_flows import UserActiveFlow
 
 logger = get_logger(__name__)
 
@@ -269,11 +269,11 @@ class UserExperienceOptimizer:
         
         # Get user active flows
         active_flows_result = await session.execute(
-            select(UserActiveFlows)
+            select(UserActiveFlow)
             .where(
                 and_(
-                    UserActiveFlows.user_id == user_id,
-                    UserActiveFlows.engagement_id == engagement_id
+                    UserActiveFlow.user_id == user_id,
+                    UserActiveFlow.engagement_id == engagement_id
                 )
             )
         )

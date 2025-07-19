@@ -24,7 +24,7 @@ from app.core.exceptions import FlowError, InvalidFlowStateError
 
 # Import Phase 1 & 2 components
 from app.services.collection_flow import TierDetectionService, adapter_registry
-from app.services.ai_analysis import BusinessContextAnalyzer, ConfidenceScoring
+from app.services.ai_analysis import BusinessContextAnalyzer, ConfidenceScorer
 
 logger = get_logger(__name__)
 
@@ -106,7 +106,7 @@ class TierRoutingService:
         
         # Initialize AI analysis services
         self.business_analyzer = BusinessContextAnalyzer()
-        self.confidence_scoring = ConfidenceScoring()
+        self.confidence_scoring = ConfidenceScorer()
         
         # Routing configuration
         self.default_strategy = RoutingStrategy.BALANCED

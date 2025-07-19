@@ -21,12 +21,12 @@ from app.core.context import RequestContext
 
 # V2 Discovery Flow imports (target architecture)
 from app.models.discovery_flow import DiscoveryFlow
-from app.models.discovery_asset import DiscoveryAsset
+from app.models.asset import Asset as DiscoveryAsset
 from app.services.discovery_flow_service import DiscoveryFlowService
 
 # Legacy imports for backward compatibility
 from app.models.asset import Asset
-from app.models.data_import_session import DataImportSession
+from app.models.data_import.core import DataImport as DataImportSession
 
 # Optional dependency model import
 try:

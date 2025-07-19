@@ -33,7 +33,7 @@ from .workflow_orchestrator import WorkflowOrchestrator, WorkflowStatus, Workflo
 
 # Import Phase 1 & 2 components for analysis
 from app.services.collection_flow import TierDetectionService, adapter_registry
-from app.services.ai_analysis import BusinessContextAnalyzer, ConfidenceScoring, LearningOptimizer
+from app.services.ai_analysis import BusinessContextAnalyzer, ConfidenceScorer, LearningOptimizer
 
 logger = get_logger(__name__)
 
@@ -151,7 +151,7 @@ class SmartWorkflowRecommendationEngine:
         self.tier_routing = TierRoutingService(db, context)
         self.tier_detection = TierDetectionService()
         self.business_analyzer = BusinessContextAnalyzer()
-        self.confidence_scoring = ConfidenceScoring()
+        self.confidence_scoring = ConfidenceScorer()
         self.learning_optimizer = LearningOptimizer()
         
         # Recommendation engine state

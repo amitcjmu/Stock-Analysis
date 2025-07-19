@@ -40,9 +40,9 @@ from app.services.collection_flow import (
 from app.services.ai_analysis import (
     AIValidationService,
     BusinessContextAnalyzer,
-    ConfidenceScoring,
+    ConfidenceScorer,
     GapAnalysisAgent,
-    QuestionnaireGenerator
+    AdaptiveQuestionnaireGenerator
 )
 from app.services.manual_collection import (
     AdaptiveFormService,
@@ -141,9 +141,9 @@ class CollectionPhaseExecutionEngine:
         # Initialize AI analysis services
         self.ai_validation = AIValidationService()
         self.business_analyzer = BusinessContextAnalyzer()
-        self.confidence_scoring = ConfidenceScoring()
+        self.confidence_scoring = ConfidenceScorer()
         self.gap_analysis_agent = GapAnalysisAgent()
-        self.questionnaire_generator = QuestionnaireGenerator()
+        self.questionnaire_generator = AdaptiveQuestionnaireGenerator()
         
         # Initialize manual collection services
         self.adaptive_form_service = AdaptiveFormService(db, context)

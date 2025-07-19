@@ -11,7 +11,7 @@ from sqlalchemy import select, and_
 
 from app.core.context import RequestContext
 from app.models.discovery_flow import DiscoveryFlow
-from app.models.discovery_asset import DiscoveryAsset
+from app.models.asset import Asset as DiscoveryAsset
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.repositories.asset_repository import AssetRepository
 from ..assessors.readiness_assessor import ReadinessAssessor

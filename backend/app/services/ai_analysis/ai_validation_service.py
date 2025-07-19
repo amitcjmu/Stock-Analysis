@@ -27,6 +27,7 @@ except ImportError:
     Agent = Task = Crew = Process = object
 
 from app.core.database import AsyncSessionLocal
+from app.models.asset import Asset
 
 logger = logging.getLogger(__name__)
 
@@ -473,12 +474,12 @@ class AIValidationService:
         issues = []
         
         async with AsyncSessionLocal() as session:
-            # Cross-reference with existing applications
+            # Cross-reference with existing assets
             if context.application_id:
-                app = await session.get(Application, context.application_id)
-                if app:
-                    # Validate against known application data
-                    if not self._validate_against_application(content, app):
+                asset = await session.get(Asset, context.application_id)
+                if asset:
+                    # Validate against known asset data
+                    if not self._validate_against_asset(content, asset):
                         issues.append({
                             "type": "cross_reference_mismatch",
                             "severity": ValidationSeverity.HIGH.value,
@@ -523,15 +524,15 @@ class AIValidationService:
         
         return False
     
-    def _validate_against_application(
+    def _validate_against_asset(
         self,
         content: Dict[str, Any],
-        application: Application
+        asset: Asset
     ) -> bool:
-        """Validate content against known application data"""
-        # Basic validation against application properties
+        """Validate content against known asset data"""
+        # Basic validation against asset properties
         if "application_name" in content:
-            return content["application_name"] == application.name
+            return content["application_name"] == asset.name
         
         return True  # Default to valid if no specific validation rules
     

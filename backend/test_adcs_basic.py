@@ -43,7 +43,7 @@ def test_imports():
     
     try:
         from app.services.ai_analysis.gap_analysis_agent import GapAnalysisAgent
-        from app.services.ai_analysis.questionnaire_generator import QuestionnaireGenerator
+        from app.services.ai_analysis.questionnaire_generator import AdaptiveQuestionnaireGenerator
         print("✅ AI analysis services imported")
     except Exception as e:
         errors.append(f"❌ AI analysis services: {e}")
@@ -63,6 +63,7 @@ def test_imports():
     try:
         from app.services.workflow_orchestration.collection_phase_engine import CollectionPhaseExecutionEngine
         from app.services.workflow_orchestration.workflow_orchestrator import WorkflowOrchestrator
+        from app.services.ai_analysis.confidence_scoring import ConfidenceScorer
         print("✅ Workflow orchestration services imported")
     except Exception as e:
         errors.append(f"❌ Workflow orchestration services: {e}")

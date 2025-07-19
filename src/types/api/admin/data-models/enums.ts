@@ -123,6 +123,4 @@ export type ChannelType = 'email' | 'slack' | 'webhook' | 'sms' | 'pagerduty' | 
 export type LogDestinationType = 'file' | 'console' | 'syslog' | 'elasticsearch' | 'cloudwatch' | 'custom';
 export type TracingExporterType = 'jaeger' | 'zipkin' | 'otlp' | 'console' | 'custom';
 
-// Additional enums that may be missing
-export type BudgetCategory = 'personnel' | 'infrastructure' | 'software' | 'training' | 'travel' | 'other';
-export type ResourceType = 'human' | 'equipment' | 'software' | 'facility' | 'service' | 'material';
+// Additional enums moved from other modules to prevent duplicates

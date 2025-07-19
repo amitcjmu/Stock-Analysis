@@ -187,77 +187,7 @@ export interface EscalationPath {
 }
 
 // Supporting interfaces
-export interface ResourceRequirement {
-  type: ResourceType;
-  description: string;
-  quantity: number;
-  duration: string;
-  skills_required: string[];
-  cost_estimate?: number;
-}
-
-export interface MilestoneCriteria {
-  criterion: string;
-  measurable: boolean;
-  target_value?: any;
-  verification_method: string;
-}
-
-export interface WorkingHours {
-  startTime: string;
-  endTime: string;
-  breaks: WorkBreak[];
-}
-
-export interface Holiday {
-  date: string;
-  name: string;
-  type: HolidayType;
-  recurring: boolean;
-}
-
-export interface CalendarException {
-  date: string;
-  type: ExceptionType;
-  description: string;
-  working_hours?: WorkingHours;
-}
-
-export interface WorkBreak {
-  startTime: string;
-  endTime: string;
-  paid: boolean;
-}
-
-export interface ExpenseReceipt {
-  id: string;
-  filename: string;
-  url: string;
-  mime_type: string;
-  size: number;
-  uploaded_at: string;
-}
-
-export interface BudgetCategoryForecast {
-  category: BudgetCategory;
-  estimated_amount: number;
-  confidence: ConfidenceLevel;
-  assumptions: string[];
-}
-
-export interface ForecastRisk {
-  description: string;
-  impact_amount: number;
-  probability: RiskProbability;
-  mitigation: string;
-}
-
-export interface ReportingSchedule {
-  frequency: CommunicationFrequency;
-  recipients: string[];
-  format: ReportFormat;
-  delivery_method: ContactMethod;
-}
+// Supporting interfaces moved to supporting-types.ts to avoid duplicates
 
 // Engagement and project enums
 export type StakeholderRole = 'sponsor' | 'champion' | 'user' | 'decision_maker' | 'influencer' | 'sme';

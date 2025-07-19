@@ -7,7 +7,7 @@ from typing import Dict, List, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
-from app.models.discovery_asset import DiscoveryAsset
+from app.models.asset import Asset as DiscoveryAsset
 
 logger = logging.getLogger(__name__)
 
