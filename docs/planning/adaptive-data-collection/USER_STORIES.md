@@ -9,14 +9,15 @@ This document provides detailed user stories for each task in the ADCS implement
 2. [Group A2: Core Services Infrastructure](#group-a2-core-services-infrastructure)
 3. [Group A3: Flow Configuration & Registration](#group-a3-flow-configuration--registration)
 4. [Group A4: Security & Credentials Framework](#group-a4-security--credentials-framework)
-5. [Group B1: Platform Adapters](#group-b1-platform-adapters)
-6. [Group B2: AI Analysis & Intelligence](#group-b2-ai-analysis--intelligence)
-7. [Group B3: Manual Collection Framework](#group-b3-manual-collection-framework)
-8. [Group C1: Workflow Orchestration](#group-c1-workflow-orchestration)
-9. [Group C2: User Interface Development](#group-c2-user-interface-development)
-10. [Group D1: End-to-End Integration](#group-d1-end-to-end-integration)
-11. [Group D2: Performance & Scale Testing](#group-d2-performance--scale-testing)
-12. [Group D3: Documentation & Training](#group-d3-documentation--training)
+5. [Group A5: Deployment Flexibility Abstractions](#group-a5-deployment-flexibility-abstractions)
+6. [Group B1: Platform Adapters](#group-b1-platform-adapters)
+7. [Group B2: AI Analysis & Intelligence](#group-b2-ai-analysis--intelligence)
+8. [Group B3: Manual Collection Framework](#group-b3-manual-collection-framework)
+9. [Group C1: Workflow Orchestration](#group-c1-workflow-orchestration)
+10. [Group C2: User Interface Development](#group-c2-user-interface-development)
+11. [Group D1: End-to-End Integration](#group-d1-end-to-end-integration)
+12. [Group D2: Performance & Scale Testing](#group-d2-performance--scale-testing)
+13. [Group D3: Documentation & Training](#group-d3-documentation--training)
 
 ---
 
@@ -762,6 +763,240 @@ This document provides detailed user stories for each task in the ADCS implement
 - Expiration alerts provide adequate advance notice
 - Emergency revocation procedures execute within 5 minutes
 - Credential usage optimization reduces unnecessary rotations
+
+---
+
+## Group A5: Deployment Flexibility Abstractions
+
+### A5.1: Create CredentialManager interface with CloudKMSCredentialManager and placeholder LocalCredentialManager
+
+**As a** Backend Developer
+**I want** to abstract credential management across deployment modes
+**So that** the system can support cloud, on-premises, and development deployments without code changes
+
+#### Acceptance Criteria:
+- [ ] CredentialManager interface defines all credential operations
+- [ ] CloudKMSCredentialManager implements production cloud credential storage
+- [ ] LocalCredentialManager placeholder raises NotImplementedError with clear future implementation guidance
+- [ ] All existing credential code uses the abstraction interface
+- [ ] Deployment mode determines which implementation is loaded
+- [ ] Development mode uses simplified credential storage for testing
+
+#### Technical Requirements:
+- Interface includes store_credential, retrieve_credential, validate_credential, rotate_credential methods
+- CloudKMSCredentialManager integrates with existing cloud KMS services
+- Placeholder implementation includes documentation for future on-premises implementation
+- Service registry pattern loads appropriate implementation based on DEPLOYMENT_MODE
+- Error handling provides clear guidance when features are not available
+
+#### Success Metrics:
+- All credential operations work through abstraction interface
+- Cloud implementation passes all existing security tests
+- Development mode enables local testing without cloud dependencies
+- Code coverage includes interface boundary testing
+
+---
+
+### A5.2: Implement graceful telemetry system (disabled|local|external modes) with NoOpTelemetryService
+
+**As a** Developer/Operations Engineer
+**I want** telemetry to work gracefully across all deployment modes
+**So that** the application runs without errors regardless of monitoring infrastructure availability
+
+#### Acceptance Criteria:
+- [ ] TelemetryManager supports disabled, local, and external modes
+- [ ] NoOpTelemetryService provides silent no-operation implementation
+- [ ] LocalTelemetryService integrates with containerized Prometheus/Grafana
+- [ ] ExternalTelemetryService connects to managed monitoring services
+- [ ] Automatic service detection and fallback when dependencies unavailable
+- [ ] All telemetry calls work regardless of backend availability
+
+#### Technical Requirements:
+- TelemetryManager interface covers metrics, traces, and logs
+- NoOpTelemetryService returns immediately without side effects
+- Service availability detection with timeout-based checks
+- Graceful degradation when monitoring stack is unavailable
+- Configuration through TELEMETRY_MODE environment variable
+
+#### Success Metrics:
+- Application starts successfully with telemetry disabled
+- Local monitoring integration works when Prometheus container available
+- No runtime errors when monitoring dependencies missing
+- Performance impact of NoOp implementation is negligible
+
+---
+
+### A5.3: Create AuthenticationManager with DatabaseAuthBackend and placeholder ActiveDirectoryAuthBackend
+
+**As a** Developer/Enterprise Administrator
+**I want** authentication to adapt to deployment environment
+**So that** the system works in development, SaaS, and enterprise environments without modification
+
+#### Acceptance Criteria:
+- [ ] AuthenticationManager interface supports multiple auth backends
+- [ ] DatabaseAuthBackend implements standard user/password authentication
+- [ ] ActiveDirectoryAuthBackend placeholder with NotImplementedError and implementation guidance
+- [ ] Automatic fallback from AD to database when AD unavailable
+- [ ] Development mode always uses database authentication
+- [ ] Clear error messages when required authentication dependencies missing
+
+#### Technical Requirements:
+- Authentication interface includes authenticate_user, validate_session, authorize_action methods
+- DatabaseAuthBackend integrates with existing user management system
+- AD placeholder includes LDAP/SAML integration documentation
+- Fallback logic with proper error logging and user notification
+- Environment variable configuration for authentication mode
+
+#### Success Metrics:
+- Development environment authentication works without external dependencies
+- Database authentication maintains existing functionality
+- AD configuration validation prevents runtime failures
+- Fallback mechanism provides clear user feedback
+
+---
+
+### A5.4: Implement deployment mode configuration with development defaults (development|saas|on_premises)
+
+**As a** Platform Developer
+**I want** a unified configuration system for deployment modes
+**So that** the same codebase adapts automatically to different deployment environments
+
+#### Acceptance Criteria:
+- [ ] DeploymentConfiguration interface defines all mode-specific settings
+- [ ] Development mode provides zero-dependency defaults
+- [ ] SaaS mode configures managed service integrations
+- [ ] On-premises mode enables local service alternatives
+- [ ] Environment variable overrides for all configuration options
+- [ ] Validation prevents invalid configuration combinations
+
+#### Technical Requirements:
+- Configuration loaded from environment variables with sensible defaults
+- Type-safe configuration objects with validation
+- Mode-specific feature flags control service availability
+- Clear documentation for each deployment mode's requirements
+- Configuration validation at application startup
+
+#### Success Metrics:
+- Development mode enables immediate local development
+- Configuration validation catches errors at startup
+- All modes support their intended deployment scenarios
+- Configuration documentation enables proper deployment
+
+---
+
+### A5.5: Create service availability detection and automatic fallbacks for optional dependencies
+
+**As a** Developer/Operations Engineer
+**I want** services to automatically detect availability of optional dependencies
+**So that** the application gracefully handles missing services without manual configuration
+
+#### Acceptance Criteria:
+- [ ] ServiceRegistry performs availability checks for optional services
+- [ ] Automatic fallback to NoOp implementations when services unavailable
+- [ ] Health check endpoints report service availability status
+- [ ] Clear logging when fallbacks are triggered
+- [ ] Timeout-based detection prevents application startup delays
+- [ ] Retry logic for transient service unavailability
+
+#### Technical Requirements:
+- Non-blocking availability checks with configurable timeouts
+- Circuit breaker pattern for unstable service dependencies
+- Comprehensive logging of service availability decisions
+- Health check integration for monitoring service status
+- Graceful startup even when optional services are down
+
+#### Success Metrics:
+- Application starts within acceptable time regardless of service availability
+- Service availability status is visible in health checks
+- Fallback behavior maintains application functionality
+- No cascading failures from optional service unavailability
+
+---
+
+### A5.6: Implement Docker Compose profiles for optional development features (monitoring, AD)
+
+**As a** Developer
+**I want** to optionally enable advanced features during development
+**So that** I can test enterprise features without requiring them for basic development
+
+#### Acceptance Criteria:
+- [ ] docker-compose.dev.yml provides minimal development setup
+- [ ] Optional monitoring profile adds Prometheus/Grafana containers
+- [ ] Optional AD integration profile for enterprise testing
+- [ ] Clear documentation for enabling each profile
+- [ ] Profiles work independently and in combination
+- [ ] Zero barriers for basic development workflow
+
+#### Technical Requirements:
+- Docker Compose profiles syntax for optional service groups
+- Separate configuration files for different development scenarios
+- Environment variable configuration for profile-specific settings
+- Network configuration allows optional services to integrate properly
+- Volume management for persistent development data
+
+#### Success Metrics:
+- Basic development requires only docker-compose up
+- Optional profiles enable additional features without conflicts
+- All profile combinations work correctly
+- Developer onboarding documentation is clear and complete
+
+---
+
+### A5.7: Create NoOp service implementations for all disabled features to prevent runtime errors
+
+**As a** Developer
+**I want** disabled features to fail gracefully without runtime errors
+**So that** the application remains stable regardless of feature availability
+
+#### Acceptance Criteria:
+- [ ] NoOp implementations for all optional service interfaces
+- [ ] Silent operation with no side effects for disabled features
+- [ ] Consistent interface compatibility with real implementations
+- [ ] Optional logging of NoOp operations for debugging
+- [ ] Performance optimizations for high-frequency NoOp calls
+- [ ] Clear indication in logs when NoOp services are active
+
+#### Technical Requirements:
+- NoOp classes implement same interfaces as real services
+- Minimal resource consumption for NoOp operations
+- Optional debug logging controlled by configuration
+- Type safety maintained across NoOp and real implementations
+- Thread safety for concurrent NoOp operations
+
+#### Success Metrics:
+- No runtime errors when features are disabled
+- Negligible performance impact from NoOp operations
+- Clear debugging visibility when needed
+- Interface compatibility enables easy feature enablement
+
+---
+
+### A5.8: Update all external service calls to use conditional abstractions
+
+**As a** Backend Developer
+**I want** all external service calls to use the new abstraction layer
+**So that** no code directly depends on specific service implementations
+
+#### Acceptance Criteria:
+- [ ] All credential storage calls use CredentialManager interface
+- [ ] All telemetry calls use TelemetryManager interface
+- [ ] All authentication calls use AuthenticationManager interface
+- [ ] No direct imports of implementation classes in business logic
+- [ ] Service injection through dependency injection container
+- [ ] Complete test coverage for abstraction boundaries
+
+#### Technical Requirements:
+- Dependency injection pattern for service abstractions
+- Interface segregation for focused service contracts
+- Comprehensive unit testing of abstraction boundaries
+- Integration testing with multiple implementations
+- Code analysis tools enforce abstraction usage
+
+#### Success Metrics:
+- Zero direct dependencies on implementation classes in business logic
+- All external service calls route through abstractions
+- Test coverage demonstrates implementation substitutability
+- Code quality tools validate abstraction compliance
 
 ---
 

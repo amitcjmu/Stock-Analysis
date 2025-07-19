@@ -16,6 +16,7 @@ from app.services.handler_registry import HandlerRegistry
 # Import flow configurations
 from .discovery_flow_config import get_discovery_flow_config
 from .assessment_flow_config import get_assessment_flow_config
+from .collection_flow_config import get_collection_flow_config
 from .additional_flow_configs import (
     get_planning_flow_config,
     get_execution_flow_config,
@@ -45,6 +46,19 @@ from .assessment_validators import (
     score_validation,
     mitigation_validation,
     roadmap_validation
+)
+
+from .collection_validators import (
+    platform_validation,
+    credential_validation,
+    collection_validation,
+    data_quality_validation,
+    gap_validation,
+    sixr_impact_validation,
+    response_validation,
+    completeness_validation,
+    final_validation,
+    sixr_readiness_validation
 )
 
 from .additional_validators import (
@@ -105,6 +119,22 @@ from .assessment_handlers import (
     mitigation_planning,
     recommendation_analysis,
     roadmap_generation
+)
+
+from .collection_handlers import (
+    collection_initialization,
+    collection_finalization,
+    collection_error_handler,
+    collection_rollback_handler,
+    collection_checkpoint_handler,
+    platform_inventory_creation,
+    adapter_preparation,
+    collection_data_normalization,
+    gap_analysis_preparation,
+    gap_prioritization,
+    questionnaire_generation,
+    response_processing,
+    synthesis_preparation
 )
 
 from .additional_handlers import (
@@ -229,6 +259,18 @@ class FlowConfigurationManager:
             "mitigation_validation": mitigation_validation,
             "roadmap_validation": roadmap_validation,
             
+            # Collection validators
+            "platform_validation": platform_validation,
+            "credential_validation": credential_validation,
+            "collection_validation": collection_validation,
+            "data_quality_validation": data_quality_validation,
+            "gap_validation": gap_validation,
+            "sixr_impact_validation": sixr_impact_validation,
+            "response_validation": response_validation,
+            "completeness_validation": completeness_validation,
+            "final_validation": final_validation,
+            "sixr_readiness_validation": sixr_readiness_validation,
+            
             # Planning validators
             "wave_validation": wave_validation,
             "resource_validation": resource_validation,
@@ -296,6 +338,21 @@ class FlowConfigurationManager:
             "recommendation_analysis": recommendation_analysis,
             "roadmap_generation": roadmap_generation,
             
+            # Collection handlers
+            "collection_initialization": collection_initialization,
+            "collection_finalization": collection_finalization,
+            "collection_error_handler": collection_error_handler,
+            "collection_rollback_handler": collection_rollback_handler,
+            "collection_checkpoint_handler": collection_checkpoint_handler,
+            "platform_inventory_creation": platform_inventory_creation,
+            "adapter_preparation": adapter_preparation,
+            "collection_data_normalization": collection_data_normalization,
+            "gap_analysis_preparation": gap_analysis_preparation,
+            "gap_prioritization": gap_prioritization,
+            "questionnaire_generation": questionnaire_generation,
+            "response_processing": response_processing,
+            "synthesis_preparation": synthesis_preparation,
+            
             # Planning handlers
             "planning_initialization": planning_initialization,
             "planning_finalization": planning_finalization,
@@ -353,6 +410,7 @@ class FlowConfigurationManager:
         flow_configs = [
             ("discovery", get_discovery_flow_config),
             ("assessment", get_assessment_flow_config),
+            ("collection", get_collection_flow_config),
             ("planning", get_planning_flow_config),
             ("execution", get_execution_flow_config),
             ("modernize", get_modernize_flow_config),
@@ -384,7 +442,7 @@ class FlowConfigurationManager:
         }
         
         expected_flows = [
-            "discovery", "assessment", "planning", "execution",
+            "discovery", "assessment", "collection", "planning", "execution",
             "modernize", "finops", "observability", "decommission"
         ]
         
@@ -474,6 +532,7 @@ __all__ = [
     'get_flow_summary',
     'get_discovery_flow_config',
     'get_assessment_flow_config',
+    'get_collection_flow_config',
     'get_planning_flow_config',
     'get_execution_flow_config',
     'get_modernize_flow_config',
