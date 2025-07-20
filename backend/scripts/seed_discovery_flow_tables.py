@@ -27,7 +27,7 @@ try:
     from app.core.database import AsyncSessionLocal
     from app.models.client_account import ClientAccount, Engagement, User
     from app.models.discovery_flow import DiscoveryFlow
-    from app.models.discovery_asset import DiscoveryAsset
+    from app.models.asset import Asset as DiscoveryAsset
     from app.models.data_import_session import DataImportSession
     from app.models.data_import.core import DataImport
     from sqlalchemy import select, text

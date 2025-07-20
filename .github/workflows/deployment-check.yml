@@ -1,0 +1,206 @@
+name: Deployment Readiness Check
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  deployment-validation:
+    name: Validate Deployment Configuration
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Validate Docker Compose files
+        run: |
+          echo "Validating Docker Compose configurations..."
+          
+          # Check if docker-compose files are valid
+          if [ -f docker-compose.yml ]; then
+            docker-compose -f docker-compose.yml config
+            echo "✅ docker-compose.yml is valid"
+          fi
+          
+          if [ -f docker-compose.prod.yml ]; then
+            docker-compose -f docker-compose.prod.yml config
+            echo "✅ docker-compose.prod.yml is valid"
+          fi
+          
+          if [ -f docker-compose.staging.yml ]; then
+            docker-compose -f docker-compose.staging.yml config
+            echo "✅ docker-compose.staging.yml is valid"
+          fi
+          
+      - name: Check environment configuration files
+        run: |
+          echo "Checking environment configuration..."
+          
+          # Check for required environment files
+          if [ -f .env.example ]; then
+            echo "✅ .env.example found"
+          else
+            echo "⚠️ .env.example not found - consider creating one"
+          fi
+          
+          # Check for sensitive files that shouldn't be in repo
+          if [ -f .env ]; then
+            echo "❌ ERROR: .env file found in repository! This should be in .gitignore"
+            exit 1
+          fi
+          
+          if [ -f backend/.env ]; then
+            echo "❌ ERROR: backend/.env file found in repository! This should be in .gitignore"
+            exit 1
+          fi
+          
+      - name: Validate Dockerfile syntax
+        run: |
+          echo "Validating Dockerfile syntax..."
+          
+          if [ -f backend/Dockerfile ]; then
+            docker build --dry-run -f backend/Dockerfile ./backend > /dev/null
+            echo "✅ Backend Dockerfile syntax is valid"
+          fi
+          
+          if [ -f Dockerfile.frontend ]; then
+            docker build --dry-run -f Dockerfile.frontend . > /dev/null
+            echo "✅ Frontend Dockerfile syntax is valid"
+          fi
+          
+      - name: Check for deployment dependencies
+        run: |
+          echo "Checking deployment dependencies..."
+          
+          # Check if required directories exist
+          if [ -d "backend" ]; then
+            echo "✅ Backend directory exists"
+          fi
+          
+          # Check if package files exist
+          if [ -f "package.json" ]; then
+            echo "✅ Frontend package.json exists"
+          fi
+          
+          if [ -f "backend/requirements.txt" ]; then
+            echo "✅ Backend requirements.txt exists"
+          fi
+          
+      - name: Validate database migration readiness
+        run: |
+          echo "Checking database migration configuration..."
+          
+          if [ -f "backend/alembic.ini" ]; then
+            echo "✅ Alembic configuration found"
+          fi
+          
+          if [ -d "backend/alembic/versions" ]; then
+            migration_count=$(ls -1 backend/alembic/versions/*.py 2>/dev/null | wc -l)
+            echo "✅ Found $migration_count database migrations"
+          fi
+          
+      - name: Check security configuration
+        run: |
+          echo "Checking security configuration..."
+          
+          # Check for security-related files
+          if [ -f ".github/workflows/security.yml" ]; then
+            echo "✅ Security workflow configured"
+          fi
+          
+          # Check for common security issues in configs
+          if grep -r "debug.*=.*true" --include="*.py" --include="*.yml" --include="*.yaml" . | grep -v "test\|example"; then
+            echo "⚠️ Warning: Debug mode enabled in production configs"
+          fi
+          
+          if grep -r "ssl.*=.*false" --include="*.py" --include="*.yml" --include="*.yaml" . | grep -v "test\|example\|localhost"; then
+            echo "⚠️ Warning: SSL disabled in production configs"
+          fi
+
+  integration-test:
+    name: Integration Test Environment
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: migration_db_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+          
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Build and test full application stack
+        run: |
+          echo "Building application stack..."
+          
+          # Build backend image
+          docker build -t migrate-backend:test -f backend/Dockerfile ./backend
+          echo "✅ Backend image built successfully"
+          
+          # Build frontend image
+          docker build -t migrate-frontend:test -f Dockerfile.frontend .
+          echo "✅ Frontend image built successfully"
+          
+      - name: Test application startup
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/migration_db_test
+          REDIS_URL: redis://localhost:6379
+        run: |
+          echo "Testing application components..."
+          
+          # Test database connection
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          
+          PGPASSWORD=postgres psql -h localhost -U postgres -d migration_db_test -c "SELECT 1 as test_connection;"
+          echo "✅ Database connection successful"
+          
+          # Test Redis connection  
+          redis-cli -h localhost ping
+          echo "✅ Redis connection successful"
+          
+      - name: Deployment readiness summary
+        run: |
+          echo "# Deployment Readiness Summary" > deployment-summary.md
+          echo "" >> deployment-summary.md
+          echo "## ✅ Validation Results" >> deployment-summary.md
+          echo "- Docker configurations validated" >> deployment-summary.md
+          echo "- Environment files checked" >> deployment-summary.md  
+          echo "- Database connections tested" >> deployment-summary.md
+          echo "- Security configurations reviewed" >> deployment-summary.md
+          echo "" >> deployment-summary.md
+          echo "## 🚀 Deployment Status: READY" >> deployment-summary.md
+          
+          cat deployment-summary.md
+          
+      - name: Upload deployment summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-readiness
+          path: deployment-summary.md

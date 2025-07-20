@@ -14,7 +14,8 @@ import { NotificationSettings } from './notification-types';
 import { ApiSettings, StorageSettings } from './api-storage-types';
 import { PerformanceSettings, FeatureSettings } from './performance-feature-types';
 import { BrandingSettings, MaintenanceSettings, BackupSettings } from './branding-maintenance-types';
-import { SettingsSection, SettingsValidationConfig, SettingsAuditLog, SecurityPolicy, SecurityAuditLog } from './validation-audit-types';
+import { SettingsSection, SettingsValidationConfig, SettingsAuditLog } from './validation-audit-types';
+import { SecurityPolicy, SecurityAuditLog } from './security-types';
 
 // System Settings component types
 export interface SystemSettingsProps extends BaseComponentProps {

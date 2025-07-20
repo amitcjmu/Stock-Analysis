@@ -56,6 +56,7 @@ export interface SidebarProps {
 
 export interface ExpandedStates {
   discovery: boolean;
+  collection: boolean;
   assess: boolean;
   plan: boolean;
   execute: boolean;

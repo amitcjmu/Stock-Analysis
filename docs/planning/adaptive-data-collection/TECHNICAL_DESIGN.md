@@ -938,6 +938,269 @@ interface SecureAdapterFramework {
 }
 ```
 
+## Deployment Flexibility Architecture
+
+### Multi-Mode Service Architecture
+
+The ADCS supports multiple deployment modes through a unified codebase with conditional service initialization. This architecture ensures zero barriers for development while enabling enterprise and on-premises deployments.
+
+```typescript
+interface DeploymentConfiguration {
+  mode: 'development' | 'saas' | 'on_premises';
+  authentication: {
+    mode: 'database' | 'active_directory';
+    ad_domain?: string;
+    ad_connection_string?: string;
+    fallback_enabled: boolean;
+  };
+  telemetry: {
+    mode: 'disabled' | 'local' | 'external';
+    endpoint?: string;
+    local_stack_enabled?: boolean;
+  };
+  credentials: {
+    storage_type: 'cloud_kms' | 'local_vault' | 'development';
+    vault_endpoint?: string;
+  };
+  features: {
+    multi_tenant: boolean;
+    cloud_integrations: boolean;
+    monitoring_required: boolean;
+  };
+}
+```
+
+### Authentication Abstraction Layer
+
+```python
+class AuthenticationManager:
+    """Handles authentication across deployment modes with graceful fallbacks"""
+    
+    def __init__(self, auth_mode: str = "database", deployment_mode: str = "development"):
+        self.deployment_mode = deployment_mode
+        self.auth_mode = self._resolve_auth_mode(auth_mode, deployment_mode)
+        self.backend = self._initialize_auth_backend()
+    
+    def _resolve_auth_mode(self, auth_mode: str, deployment_mode: str) -> str:
+        """Resolve authentication mode with development-friendly defaults"""
+        if deployment_mode == "development":
+            return "database"  # Always use database for development
+        
+        if auth_mode == "active_directory":
+            if self._ad_configuration_available():
+                return "active_directory"
+            else:
+                logger.warning("AD configuration not available, falling back to database auth")
+                return "database"
+        
+        return auth_mode
+    
+    def _initialize_auth_backend(self):
+        """Initialize authentication backend with automatic fallbacks"""
+        if self.auth_mode == "active_directory":
+            return ActiveDirectoryAuthBackend()
+        else:
+            return DatabaseAuthBackend()
+    
+    def _ad_configuration_available(self) -> bool:
+        """Check if AD configuration is properly set up"""
+        required_env = ['AD_DOMAIN', 'AD_CONNECTION_STRING']
+        return all(os.getenv(var) for var in required_env)
+
+class DatabaseAuthBackend:
+    """Standard database-based authentication for development and SaaS"""
+    async def authenticate_user(self, credentials: UserCredentials) -> AuthResult:
+        # Standard database user authentication
+        pass
+
+class ActiveDirectoryAuthBackend:
+    """Enterprise AD integration for on-premises deployment"""
+    async def authenticate_user(self, credentials: UserCredentials) -> AuthResult:
+        # AD/LDAP integration for enterprise environments
+        pass
+```
+
+### Telemetry Abstraction Layer
+
+```python
+class TelemetryManager:
+    """Handles telemetry across deployment modes with graceful degradation"""
+    
+    def __init__(self, telemetry_mode: str = "disabled"):
+        self.mode = telemetry_mode
+        self.backend = self._initialize_telemetry_backend()
+    
+    def _initialize_telemetry_backend(self):
+        """Initialize telemetry with automatic service detection"""
+        if self.mode == "disabled":
+            return NoOpTelemetryService()
+        elif self.mode == "local":
+            if self._local_monitoring_available():
+                return LocalTelemetryService()
+            else:
+                logger.info("Local monitoring stack not available, disabling telemetry")
+                return NoOpTelemetryService()
+        elif self.mode == "external":
+            return ExternalTelemetryService()
+        else:
+            return NoOpTelemetryService()
+    
+    def _local_monitoring_available(self) -> bool:
+        """Check if local Prometheus/Grafana stack is running"""
+        try:
+            response = requests.get("http://prometheus:9090/api/v1/query", timeout=2)
+            return response.status_code == 200
+        except:
+            return False
+
+class NoOpTelemetryService:
+    """No-operation telemetry service for development and disabled modes"""
+    def record_metric(self, metric_name: str, value: float, tags: dict = None):
+        pass  # Silent no-op
+    
+    def start_trace(self, operation: str) -> str:
+        return "noop-trace-id"
+    
+    def end_trace(self, trace_id: str, success: bool = True):
+        pass
+
+class LocalTelemetryService:
+    """Local Prometheus/Grafana integration for on-premises monitoring"""
+    def record_metric(self, metric_name: str, value: float, tags: dict = None):
+        # Send metrics to local Prometheus instance
+        pass
+
+class ExternalTelemetryService:
+    """External monitoring service integration for SaaS deployment"""
+    def record_metric(self, metric_name: str, value: float, tags: dict = None):
+        # Send metrics to managed monitoring service
+        pass
+```
+
+### Docker Compose Profiles for Flexible Development
+
+```yaml
+# docker-compose.dev.yml (minimal development setup)
+version: '3.8'
+services:
+  migration_backend:
+    build: .
+    environment:
+      - DEPLOYMENT_MODE=development
+      - AUTHENTICATION_MODE=database
+      - TELEMETRY_MODE=disabled
+      - CREDENTIAL_STORAGE=development
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: migration_dev
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev123
+
+  redis:
+    image: redis:7
+
+  # Optional monitoring stack (disabled by default)
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+    profiles: [monitoring]
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    profiles: [monitoring]
+
+volumes:
+  grafana_data:
+```
+
+### Service Registry with Environment Detection
+
+```python
+class ServiceRegistry:
+    """Central service registry with deployment-aware initialization"""
+    
+    def __init__(self, deployment_mode: str = "development"):
+        self.deployment_mode = deployment_mode
+        self.config = self._load_deployment_config()
+        self.services = {}
+        
+    def initialize_all_services(self):
+        """Initialize all services with graceful fallbacks"""
+        self.services['auth'] = self._initialize_authentication()
+        self.services['telemetry'] = self._initialize_telemetry()
+        self.services['credentials'] = self._initialize_credential_manager()
+        
+        # Log service initialization status
+        logger.info(f"Services initialized for {self.deployment_mode} mode:", extra={
+            "auth_mode": self.services['auth'].__class__.__name__,
+            "telemetry_mode": self.services['telemetry'].__class__.__name__,
+            "credential_storage": self.services['credentials'].__class__.__name__
+        })
+    
+    def _load_deployment_config(self) -> DeploymentConfiguration:
+        """Load configuration with development-friendly defaults"""
+        defaults = {
+            "development": {
+                "authentication": {"mode": "database", "fallback_enabled": True},
+                "telemetry": {"mode": "disabled"},
+                "credentials": {"storage_type": "development"}
+            },
+            "saas": {
+                "authentication": {"mode": "database", "fallback_enabled": False},
+                "telemetry": {"mode": "external"},
+                "credentials": {"storage_type": "cloud_kms"}
+            },
+            "on_premises": {
+                "authentication": {"mode": "active_directory", "fallback_enabled": True},
+                "telemetry": {"mode": "local"},
+                "credentials": {"storage_type": "local_vault"}
+            }
+        }
+        
+        base_config = defaults.get(self.deployment_mode, defaults["development"])
+        # Override with environment variables if present
+        return self._apply_env_overrides(base_config)
+```
+
+### Developer Experience Commands
+
+```bash
+# Standard development (minimal containers, zero barriers)
+docker-compose -f docker-compose.dev.yml up
+
+# Enable optional monitoring for telemetry debugging
+docker-compose -f docker-compose.dev.yml --profile monitoring up
+
+# Enable AD integration testing (requires corporate network)
+AUTHENTICATION_MODE=active_directory \
+AD_DOMAIN=company.local \
+docker-compose -f docker-compose.dev.yml up
+
+# Full feature development (all optional services)
+docker-compose -f docker-compose.dev.yml --profile monitoring --profile ad-integration up
+```
+
+### Benefits of This Architecture
+
+- **Zero Barrier Development**: Developers can start with `docker-compose up` immediately
+- **Optional Complexity**: Advanced features available via profiles when needed
+- **Production Parity**: Same code paths across all deployment modes
+- **Graceful Fallbacks**: No hard failures when optional dependencies unavailable
+- **Enterprise Ready**: Full AD and monitoring support for production deployments
+- **Future Proof**: Easy to add new deployment modes without breaking existing functionality
+
 ## Critical Technical Patterns Compliance
 
 ### Mandatory Development Standards

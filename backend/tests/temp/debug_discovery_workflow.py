@@ -26,13 +26,9 @@ from app.models.asset import Asset
 from app.models.data_import import DataImport, RawImportRecord
 from app.models.client_account import ClientAccount, Engagement
 
-# Try to import optional models
-try:
-    from app.models.application import Application
-    APPLICATION_AVAILABLE = True
-except ImportError:
-    APPLICATION_AVAILABLE = False
-    Application = None
+# Application model is not used - Asset model handles all assets
+APPLICATION_AVAILABLE = False
+Application = None
 
 class DiscoveryWorkflowDebugger:
     """Debug the complete discovery workflow from CSV to dashboard."""

@@ -43,6 +43,13 @@ import {
   LazyTechDebtAnalysis,
   LazyDiscoveryDashboard,
   
+  // Collection sub-routes
+  LazyCollectionIndex,
+  LazyAdaptiveForms,
+  LazyBulkUpload,
+  LazyDataIntegration,
+  LazyCollectionProgress,
+  
   // Assessment sub-routes
   LazyAssessIndex,
   LazyTreatment,
@@ -155,6 +162,19 @@ const AuthenticatedApp = () => {
         priority: LoadingPriority.HIGH
       });
 
+      // Register collection routes for preloading
+      routePreloader.registerRoute({
+        path: '/collection',
+        importFn: () => import('./pages/collection/Index'),
+        priority: LoadingPriority.HIGH
+      });
+
+      routePreloader.registerRoute({
+        path: '/collection/adaptive-forms',
+        importFn: () => import('./pages/collection/AdaptiveForms'),
+        priority: LoadingPriority.HIGH
+      });
+
       // Start intelligent preloading
       routePreloader.setupHoverPreloading();
       routePreloader.setupViewportPreloading();
@@ -212,6 +232,16 @@ const AuthenticatedApp = () => {
               <Route path="/discovery/attribute-mapping/:flowId" element={<LazyAttributeMapping />} />
               <Route path="/discovery/tech-debt" element={<LazyTechDebtAnalysis />} />
               <Route path="/discovery/tech-debt/:flowId" element={<LazyTechDebtAnalysis />} />
+              
+              {/* Collection workflow routes */}
+              <Route path="/collection" element={<LazyCollectionIndex />} />
+              <Route path="/collection/overview" element={<LazyCollectionIndex />} />
+              <Route path="/collection/adaptive-forms" element={<LazyAdaptiveForms />} />
+              <Route path="/collection/adaptive-forms/:applicationId" element={<LazyAdaptiveForms />} />
+              <Route path="/collection/bulk-upload" element={<LazyBulkUpload />} />
+              <Route path="/collection/data-integration" element={<LazyDataIntegration />} />
+              <Route path="/collection/progress" element={<LazyCollectionProgress />} />
+              <Route path="/collection/progress/:flowId" element={<LazyCollectionProgress />} />
               
               {/* Assessment sub-routes */}
               <Route path="/assess/overview" element={<LazyAssessmentFlowOverview />} />

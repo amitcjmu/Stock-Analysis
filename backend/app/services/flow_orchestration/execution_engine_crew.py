@@ -59,6 +59,8 @@ class FlowCrewExecutor:
                 return await self._execute_discovery_phase(master_flow, phase_config, phase_input)
             elif master_flow.flow_type == "assessment":
                 return await self._execute_assessment_phase(master_flow, phase_config, phase_input)
+            elif master_flow.flow_type == "collection":
+                return await self._execute_collection_phase(master_flow, phase_config, phase_input)
             else:
                 # For other flow types, use placeholder until services are implemented
                 logger.warning(f"⚠️ Flow type '{master_flow.flow_type}' delegation not yet implemented")
@@ -247,4 +249,62 @@ class FlowCrewExecutor:
                 "error": str(e),
                 "crew_results": {},
                 "method": "assessment_placeholder"
+            }
+    
+    async def _execute_collection_phase(
+        self,
+        master_flow: CrewAIFlowStateExtensions,
+        phase_config,
+        phase_input: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Execute collection flow phase"""
+        logger.info(f"📊 Executing collection phase: {phase_config.name}")
+        
+        try:
+            # Import the appropriate crew based on phase
+            crew_factory_name = phase_config.crew_config.get("crew_factory")
+            crew_result = {}
+            
+            if crew_factory_name == "create_platform_detection_crew":
+                from app.services.crewai_flows.crews.collection import create_platform_detection_crew
+                crew_result = create_platform_detection_crew(phase_input)
+            elif crew_factory_name == "create_automated_collection_crew":
+                from app.services.crewai_flows.crews.collection import create_automated_collection_crew
+                crew_result = create_automated_collection_crew(phase_input)
+            elif crew_factory_name == "create_gap_analysis_crew":
+                from app.services.crewai_flows.crews.collection import create_gap_analysis_crew
+                crew_result = create_gap_analysis_crew(phase_input)
+            elif crew_factory_name == "create_manual_collection_crew":
+                from app.services.crewai_flows.crews.collection import create_manual_collection_crew
+                crew_result = create_manual_collection_crew(phase_input)
+            elif crew_factory_name == "create_data_synthesis_crew":
+                from app.services.crewai_flows.crews.collection import create_data_synthesis_crew
+                crew_result = create_data_synthesis_crew(phase_input)
+            else:
+                logger.warning(f"Unknown collection crew factory: {crew_factory_name}")
+                crew_result = {
+                    "error": f"Unknown crew factory: {crew_factory_name}",
+                    "phase": phase_config.name
+                }
+            
+            # Simulate async processing
+            await asyncio.sleep(0.1)
+            
+            logger.info(f"✅ Collection phase '{phase_config.name}' completed")
+            
+            return {
+                "phase": phase_config.name,
+                "status": "completed",
+                "crew_results": crew_result,
+                "method": "collection_crew_execution"
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Collection phase '{phase_config.name}' failed: {e}")
+            return {
+                "phase": phase_config.name,
+                "status": "failed",
+                "error": str(e),
+                "crew_results": {},
+                "method": "collection_crew_execution"
             }

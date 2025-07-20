@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, RefreshCw } from 'lucide-react';
+import { BarChart3, RefreshCw, FileUpload, FormInput, Settings, ArrowRight } from 'lucide-react';
 
 // Components
 import Sidebar from '../../components/Sidebar';
@@ -295,6 +295,92 @@ const DiscoveryDashboard: React.FC = () => {
               description={`${metrics.dataQuality}% data quality score`}
             />
           </div>
+
+          {/* Collection Workflow Options */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Data Collection Workflows</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Enhance discovery with additional data collection methods
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <FormInput className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Adaptive Collection</p>
+                      <p className="text-xs text-muted-foreground">Dynamic forms for detailed data</p>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => navigate('/collection/adaptive-forms')}
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <FileUpload className="h-4 w-4 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Bulk Upload</p>
+                      <p className="text-xs text-muted-foreground">Process multiple applications</p>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => navigate('/collection/bulk-upload')}
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-orange-100 rounded-lg">
+                      <Settings className="h-4 w-4 text-orange-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Data Integration</p>
+                      <p className="text-xs text-muted-foreground">Resolve data conflicts</p>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => navigate('/collection/data-integration')}
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="mt-4 pt-4 border-t">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Collection Progress</p>
+                    <p className="text-xs text-muted-foreground">Monitor active collection workflows</p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/collection/progress')}
+                  >
+                    View Progress
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Agent Learning Insights */}
           <div className="mb-6">

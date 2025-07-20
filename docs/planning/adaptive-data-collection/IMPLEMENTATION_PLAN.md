@@ -162,18 +162,22 @@ graph TB
 **Dependencies**: Required by all subsequent phases
 
 #### Tasks:
-- **A5.1**: Create CredentialManager interface and CloudKMSCredentialManager implementation
-- **A5.2**: Implement placeholder LocalCredentialManager with NotImplementedError
-- **A5.3**: Make telemetry conditional with TELEMETRY_ENABLED environment variable
-- **A5.4**: Implement deployment mode configuration system (DEPLOYMENT_MODE env var)
-- **A5.5**: Abstract service initialization based on deployment mode
-- **A5.6**: Update all external monitoring/telemetry calls to be conditional
+- **A5.1**: Create CredentialManager interface with CloudKMSCredentialManager and placeholder LocalCredentialManager
+- **A5.2**: Implement graceful telemetry system (disabled|local|external modes) with NoOpTelemetryService
+- **A5.3**: Create AuthenticationManager with DatabaseAuthBackend and placeholder ActiveDirectoryAuthBackend
+- **A5.4**: Implement deployment mode configuration with development defaults (development|saas|on_premises)
+- **A5.5**: Create service availability detection and automatic fallbacks for optional dependencies
+- **A5.6**: Implement Docker Compose profiles for optional development features (monitoring, AD)
+- **A5.7**: Create NoOp service implementations for all disabled features to prevent runtime errors
+- **A5.8**: Update all external service calls to use conditional abstractions
 
 #### Deliverables:
-- CredentialManager abstraction with cloud implementation
-- Configurable telemetry system that gracefully handles disabled state
-- Deployment mode configuration framework
-- Future-proof architecture for on-premises deployment
+- CredentialManager abstraction supporting cloud, local, and development modes
+- Graceful telemetry system with automatic fallbacks and optional monitoring stack
+- Authentication abstraction supporting database and AD modes with fallbacks
+- Deployment mode configuration framework with developer-friendly defaults
+- Docker Compose profiles enabling optional complexity without barriers
+- Future-proof architecture for enterprise and on-premises deployment
 
 ---
 

@@ -90,6 +90,9 @@ class DiscoveryFlow(Base):
     master_flow = relationship("CrewAIFlowStateExtensions", foreign_keys=[master_flow_id],
                               primaryjoin="DiscoveryFlow.master_flow_id == CrewAIFlowStateExtensions.flow_id",
                               back_populates="discovery_flows")
+    
+    # Collection flow relationships (string reference to avoid circular imports)
+    collection_flows = relationship("CollectionFlow", back_populates="discovery_flow", cascade="all, delete-orphan", lazy="select")
 
     def __repr__(self):
         return f"<DiscoveryFlow(flow_id={self.flow_id}, name='{self.flow_name}', status='{self.status}')>"

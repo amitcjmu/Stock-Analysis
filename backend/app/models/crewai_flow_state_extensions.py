@@ -83,6 +83,11 @@ class CrewAIFlowStateExtensions(Base):
                                     primaryjoin="CrewAIFlowStateExtensions.flow_id == RawImportRecord.master_flow_id",
                                     back_populates="master_flow", cascade="all, delete-orphan")
     
+    # Collection flow relationship (one-to-one with collection_flows)
+    collection_flow = relationship("CollectionFlow", foreign_keys="CollectionFlow.master_flow_id",
+                                 primaryjoin="CrewAIFlowStateExtensions.flow_id == CollectionFlow.master_flow_id",
+                                 back_populates="master_flow", uselist=False, cascade="all, delete-orphan")
+    
     # Parent-child flow relationships (hierarchical flows)
     parent_flow = relationship("CrewAIFlowStateExtensions", remote_side=[flow_id], 
                               foreign_keys=[parent_flow_id], back_populates="child_flows")

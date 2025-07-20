@@ -1,0 +1,200 @@
+# Docker Compose configuration with deployment profiles
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.deployment.yml --profile <profile> up
+
+services:
+  # Development-only services
+  postgres:
+    profiles:
+      - development
+      - on-premises
+      - hybrid
+
+  redis:
+    profiles:
+      - development
+      - on-premises
+      - hybrid
+      - saas
+
+  # Mock external services for development
+  mock-kms:
+    image: mockserver/mockserver:5.15.0
+    container_name: mock_kms_service
+    profiles:
+      - development
+    environment:
+      MOCKSERVER_SERVER_PORT: 8080
+      MOCKSERVER_LOG_LEVEL: INFO
+    ports:
+      - "8090:8080"
+    volumes:
+      - ./infrastructure/mocks/kms-expectations.json:/config/expectations.json
+    command: -serverPort 8080 -logLevel INFO
+
+  mock-telemetry:
+    image: mockserver/mockserver:5.15.0
+    container_name: mock_telemetry_service
+    profiles:
+      - development
+    environment:
+      MOCKSERVER_SERVER_PORT: 8080
+      MOCKSERVER_LOG_LEVEL: INFO
+    ports:
+      - "8091:8080"
+    volumes:
+      - ./infrastructure/mocks/telemetry-expectations.json:/config/expectations.json
+
+  # SaaS-only services
+  cloud-proxy:
+    image: nginx:alpine
+    container_name: cloud_proxy
+    profiles:
+      - saas
+    volumes:
+      - ./infrastructure/nginx/cloud-proxy.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8085:80"
+    depends_on:
+      - backend
+
+  # Telemetry collector for SaaS/Hybrid
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.91.0
+    container_name: otel_collector
+    profiles:
+      - saas
+      - hybrid
+    volumes:
+      - ./infrastructure/otel/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
+    ports:
+      - "4317:4317"  # OTLP gRPC
+      - "4318:4318"  # OTLP HTTP
+      - "8888:8888"  # Prometheus metrics
+      - "8889:8889"  # Prometheus exporter
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+
+  # Local credential storage for on-premises
+  vault:
+    image: vault:1.15
+    container_name: local_vault
+    profiles:
+      - on-premises
+      - hybrid
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: "dev-token"
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+    ports:
+      - "8200:8200"
+    volumes:
+      - vault_data:/vault/data
+
+  # Backend service with deployment-specific configs
+  backend:
+    environment:
+      # Deployment mode
+      - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-development}
+      
+      # Development profile
+      - MOCK_KMS_ENDPOINT=${MOCK_KMS_ENDPOINT:-http://mock-kms:8080}
+      - MOCK_TELEMETRY_ENDPOINT=${MOCK_TELEMETRY_ENDPOINT:-http://mock-telemetry:8080}
+      
+      # SaaS profile
+      - KMS_ENDPOINT=${KMS_ENDPOINT:-}
+      - KMS_API_KEY=${KMS_API_KEY:-}
+      - TELEMETRY_ENDPOINT=${TELEMETRY_ENDPOINT:-}
+      - TELEMETRY_API_KEY=${TELEMETRY_API_KEY:-}
+      - SSO_ENABLED=${SSO_ENABLED:-false}
+      - SSO_CLIENT_ID=${SSO_CLIENT_ID:-}
+      - SSO_CLIENT_SECRET=${SSO_CLIENT_SECRET:-}
+      - SSO_AUTHORIZE_URL=${SSO_AUTHORIZE_URL:-}
+      - SSO_TOKEN_URL=${SSO_TOKEN_URL:-}
+      
+      # On-premises profile
+      - VAULT_ADDR=${VAULT_ADDR:-http://vault:8200}
+      - VAULT_TOKEN=${VAULT_TOKEN:-dev-token}
+      
+      # Feature flags
+      - ENABLE_CLOUD_KMS=${ENABLE_CLOUD_KMS:-false}
+      - ENABLE_SSO=${ENABLE_SSO:-false}
+      - ENABLE_TELEMETRY=${ENABLE_TELEMETRY:-false}
+      - ENABLE_EXTERNAL_API=${ENABLE_EXTERNAL_API:-false}
+
+  # Frontend with deployment-specific configs
+  frontend:
+    environment:
+      - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-development}
+      - VITE_ENABLE_SSO=${ENABLE_SSO:-false}
+      - VITE_ENABLE_TELEMETRY=${ENABLE_TELEMETRY:-false}
+
+  # Monitoring stack for production deployments
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: prometheus
+    profiles:
+      - saas
+      - on-premises
+      - hybrid
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: grafana
+    profiles:
+      - saas
+      - on-premises
+      - hybrid
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+
+  # Log aggregation for production
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: loki
+    profiles:
+      - saas
+      - on-premises
+      - hybrid
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./infrastructure/loki/loki-config.yaml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: promtail
+    profiles:
+      - saas
+      - on-premises
+      - hybrid
+    volumes:
+      - ./infrastructure/promtail/promtail-config.yaml:/etc/promtail/config.yml
+      - /var/log:/var/log
+      - ./backend/logs:/app/logs
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+
+volumes:
+  vault_data:
+  prometheus_data:
+  grafana_data:
+  loki_data:
