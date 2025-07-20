@@ -3,4 +3,4 @@
  * Generated with CC for UI modularization
  */
 
-export { default } from './ClientDetails'; 
+export { default } from './ClientDetails/index'; 
