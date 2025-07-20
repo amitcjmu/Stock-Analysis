@@ -58,7 +58,7 @@ class ToolRegistry:
         tools_dir = os.path.dirname(__file__)
         
         for filename in os.listdir(tools_dir):
-            if filename.endswith('_tool.py') and not filename.startswith('_'):
+            if (filename.endswith('_tool.py') or filename.endswith('_tools.py')) and not filename.startswith('_'):
                 module_name = filename[:-3]
                 try:
                     module = importlib.import_module(

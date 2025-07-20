@@ -7,24 +7,23 @@ import os
 import importlib
 import inspect
 from typing import Dict, List, Type, Optional, Any
-from dataclasses import dataclass
-from crewai import Agent
 import logging
 
-logger = logging.getLogger(__name__)
+from app.services.agents.metadata import AgentMetadata
 
-@dataclass
-class AgentMetadata:
-    """Metadata for registered agents"""
-    name: str
-    description: str
-    agent_class: Type[Agent]
-    required_tools: List[str]
-    capabilities: List[str]
-    max_iter: int = 15
-    memory: bool = True
-    verbose: bool = True
-    allow_delegation: bool = False
+# Optional CrewAI import
+try:
+    from crewai import Agent
+    CREWAI_AVAILABLE = True
+except ImportError:
+    # Create a dummy Agent class for type hints when CrewAI is not available
+    class Agent:
+        pass
+    CREWAI_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
+if not CREWAI_AVAILABLE:
+    logger.warning("CrewAI not available - agent functionality limited")
 
 class AgentRegistry:
     """

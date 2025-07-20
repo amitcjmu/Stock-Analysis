@@ -5,10 +5,19 @@ All discovery agents must inherit from this class
 
 from abc import abstractmethod
 from typing import List, Dict, Any, Optional
-from crewai import Agent
 from app.core.context import get_current_context
-from app.services.agents.registry import AgentMetadata
+from app.services.agents.metadata import AgentMetadata
 import logging
+
+# Optional CrewAI import
+try:
+    from crewai import Agent
+except ImportError:
+    # Create a dummy Agent class when CrewAI is not available
+    class Agent:
+        def __init__(self, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
 
 logger = logging.getLogger(__name__)
 

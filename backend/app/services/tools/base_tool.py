@@ -3,11 +3,20 @@ Base tool classes for CrewAI integration
 """
 
 from typing import Dict, Any, List, Optional, Type
-from crewai.tools import BaseTool
 from pydantic import Field
 from app.core.context_aware import ContextAwareTool
 from app.services.tools.registry import ToolMetadata
 import logging
+
+# Optional CrewAI import
+try:
+    from crewai.tools import BaseTool
+except ImportError:
+    # Create a dummy BaseTool class when CrewAI is not available
+    class BaseTool:
+        def __init__(self, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
 
 logger = logging.getLogger(__name__)
 

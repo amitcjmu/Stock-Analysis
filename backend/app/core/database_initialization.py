@@ -95,9 +95,9 @@ class PlatformRequirements:
     @staticmethod
     def get_password_hash(password: str) -> str:
         """Password hashing using bcrypt to match authentication service"""
-        from passlib.context import CryptContext
-        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        return pwd_context.hash(password)
+        import bcrypt
+        salt = bcrypt.gensalt()
+        return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
 
 
 class DatabaseInitializer:

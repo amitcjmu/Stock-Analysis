@@ -23,7 +23,14 @@ try:
     # Import the MasterFlowOrchestrator for unified flow management
     from ..master_flow_orchestrator import MasterFlowOrchestrator
     
-
+    # Import Gap Analysis agents
+    from .critical_attribute_assessor_crewai import CriticalAttributeAssessorAgent
+    from .gap_prioritization_agent_crewai import GapPrioritizationAgent
+    
+    # Import Manual Collection agents
+    from .questionnaire_dynamics_agent_crewai import QuestionnaireDynamicsAgent
+    from .validation_workflow_agent_crewai import ValidationWorkflowAgent
+    from .progress_tracking_agent_crewai import ProgressTrackingAgent
     
     __all__ = [
         # Modular service layer
@@ -40,7 +47,16 @@ try:
         'AgentIntegrationLayer',
         
         # Master Flow Orchestrator for unified flow management
-        'MasterFlowOrchestrator'
+        'MasterFlowOrchestrator',
+        
+        # Gap Analysis agents
+        'CriticalAttributeAssessorAgent',
+        'GapPrioritizationAgent',
+        
+        # Manual Collection agents
+        'QuestionnaireDynamicsAgent',
+        'ValidationWorkflowAgent',
+        'ProgressTrackingAgent'
     ]
     
 except ImportError as e:
