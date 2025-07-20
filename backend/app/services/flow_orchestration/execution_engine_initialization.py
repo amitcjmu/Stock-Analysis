@@ -97,6 +97,8 @@ class FlowInitializer:
                 return await self._initialize_discovery_flow(flow_id, initial_state)
             elif flow_type == "assessment":
                 return await self._initialize_assessment_flow(flow_id, initial_state)
+            elif flow_type == "collection":
+                return await self._initialize_collection_flow(flow_id, initial_state)
             else:
                 logger.warning(f"⚠️ No specific initialization for flow type: {flow_type}")
                 return {"status": "initialized", "message": f"Generic initialization for {flow_type} flow"}
@@ -186,6 +188,60 @@ class FlowInitializer:
         except Exception as e:
             logger.error(f"❌ Failed to initialize assessment flow {flow_id}: {e}")
             raise RuntimeError(f"Assessment flow initialization failed: {str(e)}")
+    
+    async def _initialize_collection_flow(
+        self,
+        flow_id: str,
+        initial_state: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Initialize collection flow execution with CrewAI"""
+        try:
+            logger.info(f"🎯 Initializing collection flow: {flow_id}")
+            
+            # Import required modules
+            from app.services.crewai_flows.unified_collection_flow import create_unified_collection_flow
+            from app.services.crewai_flow_service import CrewAIFlowService
+            
+            # Create CrewAI service
+            crewai_service = CrewAIFlowService(self.db)
+            
+            # Prepare initial state data
+            automation_tier = initial_state.get("automation_tier", "tier_2") if initial_state else "tier_2"
+            collection_config = initial_state.get("collection_config", {}) if initial_state else {}
+            
+            # Create collection flow record with proper master flow linkage
+            await self._create_collection_flow_record(flow_id, initial_state)
+            
+            # Create the UnifiedCollectionFlow instance
+            flow_metadata = initial_state or {}
+            flow_metadata['master_flow_id'] = flow_id
+            
+            collection_flow = create_unified_collection_flow(
+                flow_id=flow_id,
+                client_account_id=self.context.client_account_id,
+                engagement_id=self.context.engagement_id,
+                user_id=self.context.user_id or "system",
+                automation_tier=automation_tier,
+                collection_config=collection_config,
+                metadata=flow_metadata,
+                crewai_service=crewai_service,
+                context=self.context
+            )
+            
+            # Start the collection flow in background
+            await self._start_collection_flow_background(collection_flow, flow_id, crewai_service)
+            
+            return {
+                "status": "initialized",
+                "flow_type": "collection",
+                "flow_id": flow_id,
+                "message": "Collection flow initialized and started",
+                "automation_tier": automation_tier
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize collection flow {flow_id}: {e}")
+            raise RuntimeError(f"Collection flow initialization failed: {str(e)}")
     
     async def _create_discovery_flow_record(
         self,
@@ -340,3 +396,99 @@ class FlowInitializer:
         else:
             # Convert unknown types to string
             return str(obj)
+    
+    async def _create_collection_flow_record(
+        self,
+        flow_id: str,
+        initial_state: Optional[Dict[str, Any]] = None
+    ):
+        """Create collection flow record in database"""
+        try:
+            # Collection flow record is already created in the API endpoint
+            # This is a placeholder for consistency with discovery flow pattern
+            logger.info(f"✅ Collection flow record already created for: {flow_id}")
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to create collection flow record: {e}")
+            # Don't raise here - initialization can continue without this record
+            logger.warning("⚠️ Continuing initialization without collection flow record")
+    
+    async def _start_collection_flow_background(
+        self,
+        collection_flow,
+        flow_id: str,
+        crewai_service
+    ):
+        """Start collection flow execution in background"""
+        
+        async def run_collection_flow():
+            try:
+                logger.info(f"🚀 Starting collection flow execution: {flow_id}")
+                
+                # Execute the flow (this will run the CrewAI flow)
+                flow_result = await collection_flow.kickoff()
+                
+                # Update master flow status based on result
+                await self._update_collection_flow_status_from_result(flow_id, flow_result)
+                
+                logger.info(f"✅ Collection flow completed: {flow_id}")
+                
+            except Exception as e:
+                logger.error(f"❌ Collection flow execution failed for {flow_id}: {e}")
+                await self._update_collection_flow_status_failed(flow_id, str(e))
+        
+        # Start in background - don't await
+        asyncio.create_task(run_collection_flow())
+        logger.info(f"🔄 Collection flow {flow_id} started in background")
+    
+    async def _update_collection_flow_status_from_result(
+        self,
+        flow_id: str,
+        flow_result: Dict[str, Any]
+    ):
+        """Update collection flow status based on CrewAI flow result"""
+        try:
+            # Determine status from result
+            if flow_result.get("status") == "completed":
+                status = "completed"
+            elif flow_result.get("status") == "failed":
+                status = "failed"
+            elif flow_result.get("status") == "paused":
+                status = "paused"
+            else:
+                status = "in_progress"
+            
+            # Update master flow status
+            await self.master_repo.update_flow_status(
+                flow_id=flow_id,
+                status=status,
+                phase_data=self._ensure_json_serializable(flow_result)
+            )
+            
+            logger.info(f"✅ Updated collection flow {flow_id} status to: {status}")
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to update collection flow status for {flow_id}: {e}")
+    
+    async def _update_collection_flow_status_failed(
+        self,
+        flow_id: str,
+        error: str
+    ):
+        """Update collection flow status to failed"""
+        try:
+            phase_data = {
+                "error": error,
+                "failed_at": datetime.utcnow().isoformat()
+            }
+            
+            await self.master_repo.update_flow_status(
+                flow_id=flow_id,
+                status="failed",
+                phase_data=phase_data
+            )
+            
+            logger.info(f"❌ Updated collection flow {flow_id} status to failed")
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to update failed status for collection flow {flow_id}: {e}")

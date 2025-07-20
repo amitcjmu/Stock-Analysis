@@ -8,6 +8,7 @@ and phase-specific operations in the Collection flow.
 
 import logging
 import uuid
+import json
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
@@ -19,98 +20,74 @@ logger = logging.getLogger(__name__)
 
 # Flow Lifecycle Handlers
 async def collection_initialization(
-    db: AsyncSession,
     flow_id: str,
     flow_type: str,
-    initial_state: Dict[str, Any],
-    context: Dict[str, Any]
+    configuration: Optional[Dict[str, Any]] = None,
+    initial_state: Optional[Dict[str, Any]] = None,
+    context: Optional[Dict[str, Any]] = None,
+    **kwargs
 ) -> Dict[str, Any]:
-    """Initialize Collection flow and create necessary records"""
+    """Initialize Collection flow configuration - following async flow state pattern"""
     try:
         logger.info(f"🚀 Initializing Collection flow {flow_id}")
         
-        # Import models
-        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+        # Extract configuration
+        config = configuration or {}
+        state = initial_state or {}
         
-        # Get master flow record
-        master_flow_query = select(CrewAIFlowStateExtensions).where(
-            CrewAIFlowStateExtensions.flow_id == flow_id
-        )
-        result = await db.execute(master_flow_query)
-        master_flow = result.scalar_one_or_none()
-        
-        if not master_flow:
-            raise ValueError(f"Master flow {flow_id} not found")
-        
-        # Create collection flow record
-        collection_flow_data = {
-            "id": uuid.uuid4(),
-            "flow_id": uuid.uuid4(),
-            "master_flow_id": flow_id,
-            "discovery_flow_id": initial_state.get("discovery_flow_id"),
-            "client_account_id": context["client_account_id"],
-            "engagement_id": context["engagement_id"],
-            "user_id": context["user_id"],
-            "flow_name": initial_state.get("flow_name", f"Collection Flow - {datetime.utcnow().strftime('%Y%m%d')}"),
-            "automation_tier": initial_state.get("automation_tier", "tier_2"),
-            "status": "initialized",
-            "current_phase": "platform_detection",
-            "progress_percentage": 0.0,
-            "metadata": {
-                "initialized_at": datetime.utcnow().isoformat(),
-                "environment": initial_state.get("environment", "production"),
-                "collection_scope": initial_state.get("collection_scope", "full")
+        # Set up collection-specific initialization (no DB operations)
+        initialization_result = {
+            "initialized": True,
+            "flow_id": flow_id,
+            "initialization_time": datetime.utcnow().isoformat(),
+            "collection_config": {
+                "automation_tier": state.get("automation_tier", "tier_2"),
+                "parallel_collection": config.get("parallel_collection", True),
+                "quality_threshold": config.get("quality_threshold", 0.8),
+                "gap_analysis_enabled": config.get("gap_analysis_enabled", True),
+                "adaptive_questionnaires": config.get("adaptive_questionnaires", True),
+                "max_collection_attempts": config.get("max_collection_attempts", 3)
             },
-            "collection_config": initial_state.get("collection_config", {}),
-            "phase_state": {},
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "platform_detection": {
+                "auto_discovery": config.get("auto_discovery", True),
+                "credential_validation": config.get("credential_validation", True),
+                "tier_assessment": config.get("tier_assessment", True)
+            },
+            "adapter_settings": {
+                "timeout_seconds": config.get("adapter_timeout", 300),
+                "retry_attempts": config.get("retry_attempts", 3),
+                "batch_size": config.get("batch_size", 100)
+            },
+            "monitoring": {
+                "metrics_enabled": True,
+                "log_level": config.get("log_level", "INFO"),
+                "alerts_enabled": config.get("alerts_enabled", True)
+            }
         }
         
-        # Execute raw SQL to create collection flow
-        insert_query = """
-            INSERT INTO collection_flows 
-            (id, flow_id, master_flow_id, discovery_flow_id, client_account_id, 
-             engagement_id, user_id, flow_name, automation_tier, status, 
-             current_phase, progress_percentage, metadata, collection_config, 
-             phase_state, created_at, updated_at)
-            VALUES 
-            (:id, :flow_id, :master_flow_id, :discovery_flow_id, :client_account_id,
-             :engagement_id, :user_id, :flow_name, :automation_tier, :status,
-             :current_phase, :progress_percentage, :metadata::jsonb, :collection_config::jsonb,
-             :phase_state::jsonb, :created_at, :updated_at)
-        """
+        # Add initial state data if provided
+        if state:
+            initialization_result["initial_state"] = state
         
-        await db.execute(insert_query, collection_flow_data)
-        
-        # Update master flow with collection flow reference
-        master_flow.collection_flow_id = collection_flow_data["id"]
-        master_flow.automation_tier = collection_flow_data["automation_tier"]
-        master_flow.data_collection_metadata = {
-            "collection_flow_id": str(collection_flow_data["id"]),
-            "automation_tier": collection_flow_data["automation_tier"],
-            "initialized_at": datetime.utcnow().isoformat()
+        # Initialize statistics tracking (in-memory only)
+        initialization_result["statistics"] = {
+            "platforms_detected": 0,
+            "data_collected": 0,
+            "gaps_identified": 0,
+            "questionnaires_generated": 0,
+            "start_time": datetime.utcnow().isoformat()
         }
         
-        await db.commit()
-        
-        # Initialize platform adapter registry
-        adapter_registry = await _initialize_adapter_registry(db)
-        
-        return {
-            "success": True,
-            "collection_flow_id": str(collection_flow_data["id"]),
-            "automation_tier": collection_flow_data["automation_tier"],
-            "adapter_registry": adapter_registry,
-            "message": f"Collection flow initialized with {len(adapter_registry)} available adapters"
-        }
+        logger.info(f"Collection flow {flow_id} initialized successfully")
+        return initialization_result
         
     except Exception as e:
         logger.error(f"❌ Collection initialization failed: {e}")
-        await db.rollback()
         return {
-            "success": False,
-            "error": str(e)
+            "initialized": False,
+            "flow_id": flow_id,
+            "error": str(e),
+            "initialization_time": datetime.utcnow().isoformat()
         }
 
 

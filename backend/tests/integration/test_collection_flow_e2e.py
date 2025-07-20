@@ -28,12 +28,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
-from app.core.database import AsyncSessionLocal, get_async_engine
+from app.core.database import AsyncSessionLocal, engine
 from app.core.context import RequestContext
 from app.models.base import Base
-from app.models.user import User
-from app.models.client_account import ClientAccount
-from app.models.engagement import Engagement
+from app.models import User, ClientAccount, Engagement
 from app.models.collection_flow import (
     CollectionFlow, CollectionPhase, CollectionStatus, 
     AutomationTier, PlatformType, DataDomain

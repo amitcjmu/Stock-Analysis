@@ -1,0 +1,243 @@
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { collectionFlowApi } from '@/services/api/collection-flow';
+import { useToast } from '@/hooks/use-toast';
+
+export interface CollectionFlow {
+  id: string;
+  flow_id?: string;
+  flow_name?: string;
+  status: string;
+  current_phase: string;
+  progress: number;
+  automation_tier: string;
+  created_at: string;
+  updated_at: string;
+  completed_at?: string;
+  collection_config?: any;
+  gaps_identified?: number;
+  can_resume?: boolean;
+}
+
+export interface CleanupOptions {
+  expirationHours: number;
+  dryRun: boolean;
+  includeFailedFlows?: boolean;
+  includeCancelledFlows?: boolean;
+}
+
+export interface CleanupResult {
+  flows_cleaned: number;
+  space_recovered: string;
+  dry_run: boolean;
+  flows_details: any[];
+  cleanup_criteria: any;
+}
+
+export interface FlowContinueResult {
+  status: string;
+  message: string;
+  flow_id: string;
+  resume_result?: any;
+}
+
+export const useCollectionFlowManagement = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [isOperationPending, setIsOperationPending] = useState(false);
+
+  // Query for incomplete flows
+  const useIncompleteFlows = (enabled: boolean = true) => {
+    return useQuery({
+      queryKey: ['collection-flows', 'incomplete'],
+      queryFn: collectionFlowApi.getIncompleteFlows,
+      enabled,
+      refetchInterval: 30000, // Refetch every 30 seconds
+      staleTime: 10000 // Consider data stale after 10 seconds
+    });
+  };
+
+  // Continue/resume flow mutation
+  const continueFlowMutation = useMutation({
+    mutationFn: ({ flowId, resumeContext }: { flowId: string; resumeContext?: any }) =>
+      collectionFlowApi.continueFlow(flowId, resumeContext),
+    onMutate: () => setIsOperationPending(true),
+    onSuccess: (data: FlowContinueResult) => {
+      toast({
+        title: "Flow Resumed",
+        description: `Collection flow ${data.flow_id} has been resumed successfully`,
+        variant: "default"
+      });
+      // Invalidate and refetch flow queries
+      queryClient.invalidateQueries({ queryKey: ['collection-flows'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Resume Failed",
+        description: error.response?.data?.detail || "Failed to resume collection flow",
+        variant: "destructive"
+      });
+    },
+    onSettled: () => setIsOperationPending(false)
+  });
+
+  // Delete single flow mutation
+  const deleteFlowMutation = useMutation({
+    mutationFn: ({ flowId, force = false }: { flowId: string; force?: boolean }) =>
+      collectionFlowApi.deleteFlow(flowId, force),
+    onMutate: () => setIsOperationPending(true),
+    onSuccess: (data) => {
+      toast({
+        title: "Flow Deleted",
+        description: `Collection flow ${data.flow_id} has been deleted successfully`,
+        variant: "default"
+      });
+      queryClient.invalidateQueries({ queryKey: ['collection-flows'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Delete Failed",
+        description: error.response?.data?.detail || "Failed to delete collection flow",
+        variant: "destructive"
+      });
+    },
+    onSettled: () => setIsOperationPending(false)
+  });
+
+  // Batch delete flows mutation
+  const batchDeleteMutation = useMutation({
+    mutationFn: ({ flowIds, force = false }: { flowIds: string[]; force?: boolean }) =>
+      collectionFlowApi.batchDeleteFlows(flowIds, force),
+    onMutate: () => setIsOperationPending(true),
+    onSuccess: (data) => {
+      toast({
+        title: "Batch Delete Completed",
+        description: `Successfully deleted ${data.deleted_count} flows${data.failed_count > 0 ? `, ${data.failed_count} failed` : ''}`,
+        variant: data.failed_count > 0 ? "destructive" : "default"
+      });
+      queryClient.invalidateQueries({ queryKey: ['collection-flows'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Batch Delete Failed",
+        description: error.response?.data?.detail || "Failed to delete collection flows",
+        variant: "destructive"
+      });
+    },
+    onSettled: () => setIsOperationPending(false)
+  });
+
+  // Cleanup flows mutation
+  const cleanupFlowsMutation = useMutation({
+    mutationFn: (options: CleanupOptions) =>
+      collectionFlowApi.cleanupFlows(
+        options.expirationHours,
+        options.dryRun,
+        options.includeFailedFlows,
+        options.includeCancelledFlows
+      ),
+    onMutate: () => setIsOperationPending(true),
+    onSuccess: (data: CleanupResult) => {
+      const title = data.dry_run ? "Cleanup Preview" : "Cleanup Completed";
+      const description = data.dry_run 
+        ? `Would clean ${data.flows_cleaned} flows, recovering ${data.space_recovered}`
+        : `Cleaned ${data.flows_cleaned} flows, recovered ${data.space_recovered}`;
+      
+      toast({
+        title,
+        description,
+        variant: "default"
+      });
+      
+      if (!data.dry_run) {
+        queryClient.invalidateQueries({ queryKey: ['collection-flows'] });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Cleanup Failed",
+        description: error.response?.data?.detail || "Failed to cleanup collection flows",
+        variant: "destructive"
+      });
+    },
+    onSettled: () => setIsOperationPending(false)
+  });
+
+  // Helper functions
+  const continueFlow = async (flowId: string, resumeContext?: any) => {
+    return continueFlowMutation.mutateAsync({ flowId, resumeContext });
+  };
+
+  const deleteFlow = async (flowId: string, force: boolean = false) => {
+    return deleteFlowMutation.mutateAsync({ flowId, force });
+  };
+
+  const batchDeleteFlows = async (flowIds: string[], force: boolean = false) => {
+    return batchDeleteMutation.mutateAsync({ flowIds, force });
+  };
+
+  const cleanupFlows = async (options: CleanupOptions) => {
+    return cleanupFlowsMutation.mutateAsync(options);
+  };
+
+  return {
+    // Queries
+    useIncompleteFlows,
+    
+    // Mutations
+    continueFlow,
+    deleteFlow,
+    batchDeleteFlows,
+    cleanupFlows,
+    
+    // Loading states
+    isContinuing: continueFlowMutation.isPending,
+    isDeleting: deleteFlowMutation.isPending,
+    isBatchDeleting: batchDeleteMutation.isPending,
+    isCleaning: cleanupFlowsMutation.isPending,
+    isOperationPending,
+    
+    // Mutation objects for advanced usage
+    continueFlowMutation,
+    deleteFlowMutation,
+    batchDeleteMutation,
+    cleanupFlowsMutation
+  };
+};
+
+export const useCollectionFlowStatus = (flowId?: string, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['collection-flows', 'status', flowId],
+    queryFn: () => collectionFlowApi.getFlowStatus(),
+    enabled: enabled && !!flowId,
+    refetchInterval: 5000, // Refetch every 5 seconds for active monitoring
+    staleTime: 2000
+  });
+};
+
+export const useCollectionFlowDetails = (flowId: string, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['collection-flows', 'details', flowId],
+    queryFn: () => collectionFlowApi.getFlowDetails(flowId),
+    enabled: enabled && !!flowId,
+    staleTime: 30000
+  });
+};
+
+export const useCollectionFlowGaps = (flowId: string, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['collection-flows', 'gaps', flowId],
+    queryFn: () => collectionFlowApi.getFlowGaps(flowId),
+    enabled: enabled && !!flowId,
+    staleTime: 60000
+  });
+};
+
+export const useCollectionFlowQuestionnaires = (flowId: string, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['collection-flows', 'questionnaires', flowId],
+    queryFn: () => collectionFlowApi.getFlowQuestionnaires(flowId),
+    enabled: enabled && !!flowId,
+    staleTime: 60000
+  });
+};

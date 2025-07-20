@@ -70,6 +70,7 @@ class CollectionFlow(Base, TimestampMixin):
     client_account_id = Column(UUID(as_uuid=True), ForeignKey("client_accounts.id"), nullable=False, index=True)
     engagement_id = Column(UUID(as_uuid=True), ForeignKey("engagements.id"), nullable=False, index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    created_by = Column(UUID(as_uuid=True), nullable=True)  # User who created the flow
     
     # Flow relationships
     master_flow_id = Column(
@@ -125,7 +126,7 @@ class CollectionFlow(Base, TimestampMixin):
     
     # Assessment readiness
     assessment_ready = Column(Boolean, default=False, nullable=False)  # Ready for assessment handoff
-    apps_ready_for_assessment = Column(JSONB, default=list, nullable=False)  # Apps ready for assessment
+    apps_ready_for_assessment = Column(Integer, default=0, nullable=False)  # Number of apps ready for assessment
     
     # Error tracking
     error_message = Column(Text, nullable=True)

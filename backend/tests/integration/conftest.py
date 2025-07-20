@@ -15,11 +15,9 @@ from typing import Dict, Any, AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.core.database import AsyncSessionLocal, get_async_engine
+from app.core.database import AsyncSessionLocal, engine
 from app.models.base import Base
-from app.models.user import User
-from app.models.client_account import ClientAccount
-from app.models.engagement import Engagement
+from app.models import User, ClientAccount, Engagement
 
 
 @pytest.fixture(scope="session")

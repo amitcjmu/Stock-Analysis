@@ -28,9 +28,7 @@ from app.models.collection_flow import CollectionFlow
 from app.models.discovery_flow import DiscoveryFlow
 from app.models.assessment_flow import AssessmentFlow
 from app.models.asset import Asset
-from app.models.client_account import ClientAccount
-from app.models.engagement import Engagement
-from app.models.user import User
+from app.models import ClientAccount, Engagement, User
 
 
 class SmartWorkflowIntegrationTests:

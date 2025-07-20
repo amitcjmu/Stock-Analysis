@@ -81,6 +81,14 @@ from app.core.database import get_db
 from app.api.v1.auth.auth_utils import get_current_user
 from app.schemas.context import UserContext
 
+# Collection Flow endpoints
+try:
+    from app.api.v1.endpoints.collection import router as collection_router
+    COLLECTION_AVAILABLE = True
+except ImportError as e:
+    COLLECTION_AVAILABLE = False
+    # logger not available yet - will log later
+
 # Missing endpoint files - functionality may be available through other routers:
 # - assessment (functionality may be in sixr_analysis)
 # - migration (functionality may be in migrations.py)
@@ -226,6 +234,13 @@ api_router.include_router(sixr_router, prefix="/6r", tags=["6R Analysis"])
 # Discovery API - Implemented via Unified Discovery Flow + Master Flow Orchestrator
 # Real CrewAI implementation available at /unified-discovery endpoint
 logger.info("✅ Discovery API implemented via Unified Discovery Flow (real CrewAI)")
+
+# Collection Flow API - ADCS with CrewAI agents
+if COLLECTION_AVAILABLE:
+    api_router.include_router(collection_router, prefix="/collection", tags=["Collection Flow"])
+    logger.info("✅ Collection Flow API router included at /collection")
+else:
+    logger.warning("⚠️ Collection Flow API router not available")
 
 # Unified Discovery Flow API - Master Flow Orchestrator Integration  
 if UNIFIED_DISCOVERY_AVAILABLE:

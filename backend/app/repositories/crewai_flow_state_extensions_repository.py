@@ -95,7 +95,7 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
             raise ValueError(f"Invalid CrewAI Flow ID: {flow_id}. Must be a valid UUID.")
         
         # Validate flow type
-        valid_flow_types = ['discovery', 'assessment', 'planning', 'execution']
+        valid_flow_types = ['discovery', 'assessment', 'collection', 'planning', 'execution', 'modernize', 'finops', 'observability', 'decommission']
         if flow_type not in valid_flow_types:
             raise ValueError(f"Invalid flow_type: {flow_type}. Must be one of: {valid_flow_types}")
         

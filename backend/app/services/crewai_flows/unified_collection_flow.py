@@ -30,36 +30,19 @@ import uuid
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 
-# CrewAI Flow imports with graceful fallback
+# CrewAI Flow imports - REQUIRED for real agent execution
 CREWAI_FLOW_AVAILABLE = False
 try:
     from crewai import Flow
-    from crewai.flow.flow import listen, start
+    from crewai.flow.flow import listen, start, or_
     CREWAI_FLOW_AVAILABLE = True
     logger = logging.getLogger(__name__)
-    logger.info("✅ CrewAI Flow imports successful for CollectionFlow")
+    logger.info("✅ CrewAI Flow imports successful for CollectionFlow - REAL AGENTS ENABLED")
 except ImportError as e:
     logger = logging.getLogger(__name__)
-    logger.warning(f"CrewAI Flow not available for CollectionFlow: {e}")
-    
-    # Fallback implementations
-    class Flow:
-        def __init__(self): 
-            self.state = None
-        def __class_getitem__(cls, item):
-            return cls
-        def kickoff(self):
-            return {}
-    
-    def listen(condition):
-        def decorator(func):
-            return func
-        return decorator
-    
-    def start():
-        def decorator(func):
-            return func
-        return decorator
+    logger.error(f"❌ CrewAI Flow not available for CollectionFlow: {e}")
+    logger.error("❌ CRITICAL: Cannot proceed without real CrewAI agents")
+    raise ImportError(f"CrewAI is required for real agent execution in CollectionFlow: {e}")
 
 # Import models and dependencies
 from app.models.collection_flow import (
@@ -672,7 +655,7 @@ class UnifiedCollectionFlow(Flow[CollectionFlowState]):
             await enhanced_error_handler.handle_error(e, self.flow_context)
             raise CollectionFlowError(f"Manual collection failed: {e}")
     
-    @listen(["manual_collection", "gap_analysis"])
+    @listen(or_("manual_collection", "gap_analysis"))
     async def validate_data(self, previous_result):
         """Phase 6: Data validation and synthesis"""
         try:
