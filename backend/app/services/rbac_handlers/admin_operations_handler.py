@@ -108,8 +108,9 @@ class AdminOperationsHandler(BaseRBACHandler):
                 is_active=user_data.get("is_active", True),
                 is_verified=True,
                 is_mock=False,
-                default_client_id=user_data.get("default_client_id"),
-                default_engagement_id=user_data.get("default_engagement_id")
+                # Use provided values or default to demo IDs
+                default_client_id=user_data.get("default_client_id", "11111111-1111-1111-1111-111111111111"),
+                default_engagement_id=user_data.get("default_engagement_id", "22222222-2222-2222-2222-222222222222")
             )
             
             self.db.add(user)
