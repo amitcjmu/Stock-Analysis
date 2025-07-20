@@ -17,7 +17,7 @@ interface UploadContext {
 }
 
 interface DataImportRequest {
-  file_data: Record<string, any>[];
+  file_data: Record<string, unknown>[];
   metadata: FileMetadata;
   upload_context: UploadContext;
   client_id?: string;
@@ -65,7 +65,7 @@ class DataImportClient {
    * Import CSV data directly
    */
   async importData(
-    data: Record<string, any>[],
+    data: Record<string, unknown>[],
     filename: string,
     importType: string
   ): Promise<DataImportResponse> {
@@ -151,7 +151,7 @@ class DataImportClient {
   /**
    * Get latest import for current context
    */
-  async getLatestImport(): Promise<any> {
+  async getLatestImport(): Promise<DataImportResponse> {
     const response = await fetch(
       `${this.baseUrl}/api/v1/data-import/latest-import`,
       { headers: this.headers }
@@ -207,7 +207,7 @@ class DataImportClient {
   /**
    * Retry a failed import
    */
-  async retryImport(importId: string): Promise<any> {
+  async retryImport(importId: string): Promise<DataImportResponse> {
     const response = await fetch(
       `${this.baseUrl}/api/v1/data-import/import/${importId}/retry`,
       {
@@ -226,16 +226,16 @@ class DataImportClient {
   /**
    * Parse CSV text to array of objects
    */
-  private parseCSV(text: string): Record<string, any>[] {
+  private parseCSV(text: string): Record<string, unknown>[] {
     const lines = text.split('\n').filter(line => line.trim());
     if (lines.length === 0) return [];
 
     const headers = lines[0].split(',').map(h => h.trim());
-    const data: Record<string, any>[] = [];
+    const data: Record<string, unknown>[] = [];
 
     for (let i = 1; i < lines.length; i++) {
       const values = lines[i].split(',').map(v => v.trim());
-      const row: Record<string, any> = {};
+      const row: Record<string, unknown> = {};
       
       headers.forEach((header, index) => {
         row[header] = values[index] || '';
@@ -307,7 +307,7 @@ async function demonstrateDataImportAPI() {
     const finalStatus = await client.waitForCompletion(result.data_import_id);
     console.log(`Import completed with status: ${finalStatus.status}`);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Import failed:', error.message);
   }
 
@@ -329,7 +329,7 @@ AnalyticsEngine,3.0.1,prod-analytics-01,Apache Spark,High`;
     const result = await client.importFile(file, 'applications');
     console.log('Applications import successful!');
     console.log(`Import ID: ${result.data_import_id}`);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('File import failed:', error.message);
   }
 
@@ -427,7 +427,7 @@ function DataImportComponent() {
       'invalid.csv',
       'servers'
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error.message.includes('incomplete_discovery_flow_exists')) {
       console.log('Handling existing flow conflict:');
       console.log('1. Show user the existing flow');
@@ -493,7 +493,7 @@ function DataImportComponent() {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Batch import failed:', error.message);
   }
 }

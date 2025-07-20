@@ -2,7 +2,7 @@
 import React from 'react';
 
 export const DebugCheckbox = () => {
-  const handleChange = (checked: any) => {
+  const handleChange = (checked: boolean | unknown) => {
     console.log('Checkbox changed:', checked);
     console.log('Type of checked:', typeof checked);
     console.log('Is boolean?', typeof checked === 'boolean');
