@@ -20,7 +20,6 @@ import { cn } from '@/lib/utils';
 import { FormField } from './components/FormField';
 import { SectionCard } from './components/SectionCard';
 import { BulkDataGrid } from './BulkDataGrid';
-import { ProgressTracker } from './ProgressTracker';
 import { ValidationDisplay } from './ValidationDisplay';
 
 import type {
@@ -350,20 +349,6 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
           </CardContent>
         </Card>
       </form>
-
-      {/* Progress Tracker Sidebar (could be implemented as a side panel) */}
-      <div className="fixed right-4 top-1/2 transform -translate-y-1/2 w-80 z-10 hidden xl:block">
-        <ProgressTracker
-          formId={formData.formId}
-          totalSections={formData.sections.length}
-          completedSections={formMetrics.sectionProgress.filter(sp => sp.completion === 100).length}
-          overallCompletion={formMetrics.completionPercentage}
-          confidenceScore={validation?.overallConfidenceScore || 0}
-          milestones={[]} // Would be populated from backend
-          timeSpent={0}
-          estimatedTimeRemaining={formData.estimatedCompletionTime}
-        />
-      </div>
     </div>
   );
 };

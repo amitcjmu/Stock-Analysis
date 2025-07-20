@@ -54,6 +54,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   const { isAuthenticated, isAdmin, user, logout, isLoading } = useAuth();
   
   const [expandedStates, setExpandedStates] = useState<ExpandedStates>({
+    collection: location.pathname.startsWith('/collection'),
     discovery: location.pathname.startsWith('/discovery'),
     assess: location.pathname.startsWith('/assess'),
     plan: location.pathname.startsWith('/plan'),
@@ -67,6 +68,19 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
 
   const navigationItems: NavigationItem[] = [
     { name: 'Dashboard', path: '/', icon: Home },
+    { 
+      name: 'Collection', 
+      path: '/collection', 
+      icon: Database,
+      hasSubmenu: true,
+      submenu: [
+        { name: 'Overview', path: '/collection/overview', icon: LayoutDashboard },
+        { name: 'Adaptive Forms', path: '/collection/adaptive-forms', icon: FileText },
+        { name: 'Bulk Upload', path: '/collection/bulk-upload', icon: Upload },
+        { name: 'Data Integration', path: '/collection/data-integration', icon: Network },
+        { name: 'Progress', path: '/collection/progress', icon: Activity }
+      ]
+    },
     { 
       name: 'Discovery', 
       path: '/discovery', 

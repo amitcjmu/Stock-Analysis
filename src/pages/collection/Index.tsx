@@ -1,10 +1,15 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+
+// Import layout components
+import Sidebar from '@/components/Sidebar';
+import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
+
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
-  FileUpload, 
+  Upload, 
   FormInput, 
   Settings, 
   BarChart3,
@@ -35,7 +40,7 @@ const CollectionIndex: React.FC = () => {
       id: 'bulk-upload',
       title: 'Bulk Data Upload',
       description: 'Upload and process multiple applications data via CSV/Excel templates',
-      icon: <FileUpload className="h-6 w-6" />,
+      icon: <Upload className="h-6 w-6" />,
       path: '/collection/bulk-upload',
       status: 'available',
       completionRate: 0,
@@ -80,7 +85,16 @@ const CollectionIndex: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="flex min-h-screen bg-gray-50">
+      <div className="hidden lg:block w-64 border-r bg-white">
+        <Sidebar />
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl">
+          <div className="mb-6">
+            <ContextBreadcrumbs />
+          </div>
+          <div className="space-y-6">
       {/* Header */}
       <div className="space-y-2">
         <h1 className="text-3xl font-bold">Data Collection Workflows</h1>
@@ -109,7 +123,7 @@ const CollectionIndex: React.FC = () => {
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <div className="p-2 bg-green-100 rounded-lg">
-                <FileUpload className="h-4 w-4 text-green-600" />
+                <Upload className="h-4 w-4 text-green-600" />
               </div>
               <div>
                 <p className="text-sm font-medium">Bulk Uploads</p>
@@ -223,6 +237,9 @@ const CollectionIndex: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

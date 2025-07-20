@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, RefreshCw, Play, Pause, Square, Download } from 'lucide-react';
 
+// Import layout components
+import Sidebar from '@/components/Sidebar';
+import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
+
 // Import existing collection components
 import { ProgressTracker } from '@/components/collection/ProgressTracker';
 
@@ -361,11 +365,21 @@ const CollectionProgress: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center min-h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading collection progress...</p>
+      <div className="flex min-h-screen bg-gray-50">
+        <div className="hidden lg:block w-64 border-r bg-white">
+          <Sidebar />
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl">
+            <div className="mb-6">
+              <ContextBreadcrumbs />
+            </div>
+            <div className="flex items-center justify-center min-h-64">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Loading collection progress...</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -375,7 +389,16 @@ const CollectionProgress: React.FC = () => {
   const selectedFlowData = flows.find(f => f.id === selectedFlow);
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="flex min-h-screen bg-gray-50">
+      <div className="hidden lg:block w-64 border-r bg-white">
+        <Sidebar />
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl">
+          <div className="mb-6">
+            <ContextBreadcrumbs />
+          </div>
+          <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
@@ -585,6 +608,9 @@ const CollectionProgress: React.FC = () => {
               />
             </>
           )}
+        </div>
+      </div>
+          </div>
         </div>
       </div>
     </div>

@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, Upload, FileSpreadsheet, AlertCircle, CheckCircle } from 'lucide-react';
 
+// Import layout components
+import Sidebar from '@/components/Sidebar';
+import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
+
 // Import existing collection components
 import { BulkDataGrid } from '@/components/collection/BulkDataGrid';
 import { ValidationDisplay } from '@/components/collection/ValidationDisplay';
@@ -239,7 +243,16 @@ const BulkUpload: React.FC = () => {
   const overallProgress = (completedMilestones / progressMilestones.length) * 100;
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="flex min-h-screen bg-gray-50">
+      <div className="hidden lg:block w-64 border-r bg-white">
+        <Sidebar />
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl">
+          <div className="mb-6">
+            <ContextBreadcrumbs />
+          </div>
+          <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
@@ -408,6 +421,9 @@ const BulkUpload: React.FC = () => {
             >
               Proceed to Data Integration
             </Button>
+          </div>
+        </div>
+      </div>
           </div>
         </div>
       </div>

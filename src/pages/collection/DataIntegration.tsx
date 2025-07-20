@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, RefreshCw, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 
+// Import layout components
+import Sidebar from '@/components/Sidebar';
+import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
+
 // Import existing collection components
 import { DataIntegrationView } from '@/components/collection/DataIntegrationView';
 import { ConflictResolver } from '@/components/collection/components/ConflictResolver';
@@ -270,7 +274,16 @@ const DataIntegration: React.FC = () => {
   const overallProgress = statusCounts.total > 0 ? (statusCounts.resolved / statusCounts.total) * 100 : 0;
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="flex min-h-screen bg-gray-50">
+      <div className="hidden lg:block w-64 border-r bg-white">
+        <Sidebar />
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-7xl">
+          <div className="mb-6">
+            <ContextBreadcrumbs />
+          </div>
+          <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
@@ -445,6 +458,9 @@ const DataIntegration: React.FC = () => {
             >
               {isProcessing ? 'Processing...' : 'Proceed to Discovery Phase'}
             </Button>
+          </div>
+        </div>
+      </div>
           </div>
         </div>
       </div>
