@@ -46,7 +46,7 @@ export const UserApprovalsMain: React.FC = () => {
   const fetchPendingUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await apiCall('/auth/pending-approvals');
+      const response = await apiCall('/auth/pending-approvals', {}, false);
 
       if (response.status === 'success') {
         setPendingUsers(response.pending_approvals || []);
@@ -100,7 +100,7 @@ export const UserApprovalsMain: React.FC = () => {
         title: "Error",
         description: "Failed to fetch pending user approvals",
         variant: "destructive"
-      });
+      }, false);
     } finally {
       setLoading(false);
     }
@@ -108,7 +108,7 @@ export const UserApprovalsMain: React.FC = () => {
 
   const fetchActiveUsers = useCallback(async () => {
     try {
-      const response = await apiCall('/auth/active-users');
+      const response = await apiCall('/auth/active-users', {}, false);
 
       if (response.status === 'success') {
         setActiveUsers(response.active_users || []);
@@ -149,7 +149,7 @@ export const UserApprovalsMain: React.FC = () => {
         title: "Error",
         description: "Failed to fetch active users",
         variant: "destructive"
-      });
+      }, false);
     }
   }, [toast]);
 
@@ -171,7 +171,7 @@ export const UserApprovalsMain: React.FC = () => {
         title: "User Created",
         description: "New user has been created successfully",
         variant: "default"
-      });
+      }, false);
     };
 
     // Add event listener
@@ -198,14 +198,14 @@ export const UserApprovalsMain: React.FC = () => {
           client_access: approvalData.client_access,
           notes: approvalData.notes
         })
-      });
+      }, false);
 
       if (response.status === 'success') {
         toast({
           title: "User Approved",
           description: `${selectedUser.full_name} has been approved and granted access`,
           variant: "default"
-        });
+        }, false);
 
         // Remove from pending users
         setPendingUsers(prev => prev.filter(u => u.user_id !== selectedUser.user_id));
@@ -233,7 +233,7 @@ export const UserApprovalsMain: React.FC = () => {
           role_name: 'Analyst',
           client_access: [],
           notes: ''
-        });
+        }, false);
       } else {
         throw new Error(response.message || 'Failed to approve user');
       }
@@ -243,7 +243,7 @@ export const UserApprovalsMain: React.FC = () => {
         title: "Error",
         description: "Failed to approve user. Please try again.",
         variant: "destructive"
-      });
+      }, false);
     } finally {
       setActionLoading(null);
     }
@@ -263,14 +263,14 @@ export const UserApprovalsMain: React.FC = () => {
           user_id: selectedUser.user_id,
           rejection_reason: rejectionData.rejection_reason
         })
-      });
+      }, false);
 
       if (response.status === 'success') {
         toast({
           title: "User Rejected",
           description: `${selectedUser.full_name}'s request has been rejected`,
           variant: "default"
-        });
+        }, false);
 
         // Remove from pending users
         setPendingUsers(prev => prev.filter(u => u.user_id !== selectedUser.user_id));
@@ -287,7 +287,7 @@ export const UserApprovalsMain: React.FC = () => {
         title: "Error",
         description: "Failed to reject user. Please try again.",
         variant: "destructive"
-      });
+      }, false);
     } finally {
       setActionLoading(null);
     }
@@ -303,14 +303,14 @@ export const UserApprovalsMain: React.FC = () => {
           user_id: user.user_id,
           reason: "Deactivated by admin"
         })
-      });
+      }, false);
 
       if (response.status === 'success') {
         toast({
           title: "User Deactivated",
           description: `${user.full_name} has been deactivated`,
           variant: "default"
-        });
+        }, false);
 
         // Update user status
         setActiveUsers(prev => prev.map(u => 
@@ -325,7 +325,7 @@ export const UserApprovalsMain: React.FC = () => {
         title: "Error",
         description: "Failed to deactivate user. Please try again.",
         variant: "destructive"
-      });
+      }, false);
     } finally {
       setActionLoading(null);
     }
@@ -340,14 +340,14 @@ export const UserApprovalsMain: React.FC = () => {
         body: JSON.stringify({
           user_id: user.user_id
         })
-      });
+      }, false);
 
       if (response.status === 'success') {
         toast({
           title: "User Activated",
           description: `${user.full_name} has been activated`,
           variant: "default"
-        });
+        }, false);
 
         // Update user status
         setActiveUsers(prev => prev.map(u => 
@@ -362,7 +362,7 @@ export const UserApprovalsMain: React.FC = () => {
         title: "Error",
         description: "Failed to activate user. Please try again.",
         variant: "destructive"
-      });
+      }, false);
     } finally {
       setActionLoading(null);
     }
