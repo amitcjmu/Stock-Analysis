@@ -34,7 +34,7 @@ interface CollectionFlowManagementPageProps {
   autoRefresh?: boolean;
 }
 
-export const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> = ({
+const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> = ({
   showHealthMonitor = true,
   showCleanupTools = true,
   autoRefresh = true
@@ -449,3 +449,5 @@ export const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPage
     </div>
   );
 };
+
+export default CollectionFlowManagementPage;

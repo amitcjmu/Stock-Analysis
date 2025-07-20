@@ -1,5 +1,54 @@
 # 🚀 AI Modernize Migration Platform - Changelog
 
+## [1.41.0] - 2025-01-20
+
+### 🎯 **COLLECTION FLOW ORCHESTRATION** - CrewAI Agent Initialization Fix
+
+This release fixes the critical issue where clicking "Start Workflow" wasn't properly initializing CrewAI collection flows, ensuring proper agent orchestration and master/child flow creation.
+
+### 🚀 **Workflow Orchestration Fixes**
+
+#### **Frontend Workflow Initiation**
+- **Type**: Collection flow creation before navigation
+- **Impact**: Properly initializes CrewAI agents when starting workflows
+- **Technical Details**:
+  - Added `startCollectionWorkflow` function in Collection Index page
+  - Creates collection flow via API before navigation
+  - Passes flowId as query parameter to subsequent pages
+  - Determines automation tier based on workflow type
+
+#### **CrewAI Crew Execution Engine**
+- **Type**: Fixed crew execution implementation
+- **Impact**: CrewAI agents now properly execute with `kickoff()` method
+- **Technical Details**:
+  - Fixed `_execute_collection_phase` to execute crews instead of just creating them
+  - Added proper input mapping based on phase configuration
+  - Implemented timeout handling and error management
+  - Added helper methods for building crew inputs and processing outputs
+
+#### **Adaptive Forms Integration**
+- **Type**: Flow lifecycle management
+- **Impact**: Prevents duplicate flow creation and enables proper questionnaire submission
+- **Technical Details**:
+  - Modified to accept flowId from URL parameters
+  - Checks for existing flow instead of creating duplicates
+  - Properly submits responses to CrewAI-generated questionnaires
+  - Navigate to progress monitoring after submission
+
+### 📊 Business Impact
+
+- **Workflow Reliability**: Resolves "collection flow not being kicked off" issue
+- **Agent Orchestration**: Ensures CrewAI agents properly initialize and execute
+- **User Experience**: Seamless workflow initiation with proper flow tracking
+- **System Integration**: Master Flow Orchestrator properly manages collection flows
+
+### 🎯 Success Metrics
+
+- **Critical Fix**: Collection flows now properly initialize when "Start Workflow" is clicked
+- **Agent Execution**: All 5 collection phase crews now execute with proper `kickoff()` calls
+- **Flow Lifecycle**: Complete flow creation → navigation → execution pattern established
+- **Code Quality**: Added comprehensive error handling and timeout management
+
 ## [1.40.0] - 2025-01-20
 
 ### 🎯 **COLLECTION FLOW MANAGEMENT** - Complete Flow Lifecycle Control System

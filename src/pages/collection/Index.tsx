@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // Import layout components
 import Sidebar from '@/components/Sidebar';
 import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
+
+// Import collection flow API
+import { collectionFlowApi } from '@/services/api/collection-flow';
+import { useToast } from '@/components/ui/use-toast';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +19,8 @@ import {
   BarChart3,
   Clock,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 
 /**
@@ -24,6 +29,8 @@ import {
  */
 const CollectionIndex: React.FC = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isCreatingFlow, setIsCreatingFlow] = useState<string | null>(null);
 
   const workflowOptions = [
     {
@@ -81,6 +88,99 @@ const CollectionIndex: React.FC = () => {
         return <Badge variant="destructive"><AlertCircle className="h-3 w-3 mr-1" />Needs Attention</Badge>;
       default:
         return <Badge variant="outline">Available</Badge>;
+    }
+  };
+
+  /**
+   * Start a collection workflow by creating a flow through CrewAI
+   */
+  const startCollectionWorkflow = async (workflowId: string, workflowPath: string) => {
+    setIsCreatingFlow(workflowId);
+    
+    try {
+      console.log(`🚀 Starting collection workflow: ${workflowId}`);
+      
+      // Determine automation tier and collection config based on workflow type
+      let automationTier = 'tier_2'; // Default to mixed environment
+      let collectionConfig: any = {
+        workflow_type: workflowId,
+        initiated_from: 'collection_overview'
+      };
+      
+      switch (workflowId) {
+        case 'adaptive-forms':
+          automationTier = 'tier_2'; // Mixed: manual forms with some automation
+          collectionConfig.collection_method = 'adaptive_forms';
+          collectionConfig.form_type = 'dynamic';
+          break;
+          
+        case 'bulk-upload':
+          automationTier = 'tier_3'; // Restricted: mostly manual with file processing
+          collectionConfig.collection_method = 'bulk_upload';
+          collectionConfig.upload_type = 'spreadsheet';
+          break;
+          
+        case 'data-integration':
+          automationTier = 'tier_1'; // Modern: mostly automated integration
+          collectionConfig.collection_method = 'integration';
+          collectionConfig.integration_type = 'multi_source';
+          break;
+          
+        case 'progress-monitoring':
+          // For monitoring, just navigate without creating a flow
+          navigate(workflowPath);
+          return;
+      }
+      
+      // Create the collection flow - this triggers CrewAI agents
+      console.log('🤖 Creating collection flow with CrewAI orchestration...');
+      const flowResponse = await collectionFlowApi.createFlow({
+        automation_tier: automationTier,
+        collection_config: collectionConfig
+      });
+      
+      console.log(`✅ Collection flow created: ${flowResponse.id}`);
+      console.log(`📊 Master flow started, CrewAI agents are initializing...`);
+      
+      toast({
+        title: 'Collection Workflow Started',
+        description: `CrewAI agents are initializing the ${workflowId} workflow. You will be redirected shortly.`
+      });
+      
+      // Give the flow a moment to initialize before navigating
+      setTimeout(() => {
+        // Navigate to the workflow page with the flow ID
+        navigate(`${workflowPath}?flowId=${flowResponse.id}`);
+      }, 1500);
+      
+    } catch (error: any) {
+      console.error(`❌ Failed to start collection workflow ${workflowId}:`, error);
+      
+      const errorMessage = error?.response?.data?.detail || 
+                          error?.message || 
+                          'Failed to start collection workflow';
+      
+      toast({
+        title: 'Workflow Start Failed',
+        description: errorMessage,
+        variant: 'destructive'
+      });
+      
+      // Check if there's an active flow that's blocking
+      if (errorMessage.includes('active collection flow already exists')) {
+        toast({
+          title: 'Active Flow Detected',
+          description: 'Please complete or cancel the existing flow before starting a new one.',
+          variant: 'destructive'
+        });
+        
+        // Navigate to progress monitoring to see active flows
+        setTimeout(() => {
+          navigate('/collection/progress');
+        }, 2000);
+      }
+    } finally {
+      setIsCreatingFlow(null);
     }
   };
 
@@ -189,11 +289,19 @@ const CollectionIndex: React.FC = () => {
                   <span>{workflow.estimatedTime}</span>
                 </div>
                 <Button 
-                  onClick={() => navigate(workflow.path)}
+                  onClick={() => startCollectionWorkflow(workflow.id, workflow.path)}
                   variant="outline"
                   size="sm"
+                  disabled={isCreatingFlow === workflow.id}
                 >
-                  Start Workflow
+                  {isCreatingFlow === workflow.id ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Starting...
+                    </>
+                  ) : (
+                    'Start Workflow'
+                  )}
                 </Button>
               </div>
             </CardContent>
@@ -216,9 +324,17 @@ const CollectionIndex: React.FC = () => {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => navigate('/collection/adaptive-forms')}
+                onClick={() => startCollectionWorkflow('adaptive-forms', '/collection/adaptive-forms')}
+                disabled={isCreatingFlow === 'adaptive-forms'}
               >
-                Start Adaptive Collection
+                {isCreatingFlow === 'adaptive-forms' ? (
+                  <>
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    Starting...
+                  </>
+                ) : (
+                  'Start Adaptive Collection'
+                )}
               </Button>
             </div>
             <div>
@@ -229,9 +345,17 @@ const CollectionIndex: React.FC = () => {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => navigate('/collection/bulk-upload')}
+                onClick={() => startCollectionWorkflow('bulk-upload', '/collection/bulk-upload')}
+                disabled={isCreatingFlow === 'bulk-upload'}
               >
-                Start Bulk Upload
+                {isCreatingFlow === 'bulk-upload' ? (
+                  <>
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    Starting...
+                  </>
+                ) : (
+                  'Start Bulk Upload'
+                )}
               </Button>
             </div>
           </div>

@@ -49,6 +49,7 @@ import {
   LazyBulkUpload,
   LazyDataIntegration,
   LazyCollectionProgress,
+  LazyCollectionFlowManagement,
   
   // Assessment sub-routes
   LazyAssessIndex,
@@ -242,6 +243,7 @@ const AuthenticatedApp = () => {
               <Route path="/collection/data-integration" element={<LazyDataIntegration />} />
               <Route path="/collection/progress" element={<LazyCollectionProgress />} />
               <Route path="/collection/progress/:flowId" element={<LazyCollectionProgress />} />
+              <Route path="/collection/flow-management" element={<LazyCollectionFlowManagement />} />
               
               {/* Assessment sub-routes */}
               <Route path="/assess/overview" element={<LazyAssessmentFlowOverview />} />

@@ -178,6 +178,12 @@ export const LazyCollectionProgress = createLazyRoute(
   LoadingPriority.NORMAL
 );
 
+export const LazyCollectionFlowManagement = createLazyRoute(
+  () => import('@/pages/CollectionFlowManagementPage'),
+  'Collection Flow Management',
+  LoadingPriority.HIGH
+);
+
 // Assessment Sub-routes
 export const LazyAssessIndex = createLazyRoute(
   () => import('@/pages/assess/Index'),

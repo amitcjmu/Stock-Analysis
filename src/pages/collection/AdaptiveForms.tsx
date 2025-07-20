@@ -20,6 +20,9 @@ import type {
   ProgressMilestone 
 } from '@/components/collection/types';
 
+// Import collection flow API
+import { collectionFlowApi } from '@/services/api/collection-flow';
+
 // UI Components
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -42,20 +45,237 @@ const AdaptiveForms: React.FC = () => {
   const [bulkMode, setBulkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [flowId, setFlowId] = useState<string | null>(null);
+  const [questionnaires, setQuestionnaires] = useState<any[]>([]);
 
-  // Get application ID from URL params if provided
+  // Get application ID and flow ID from URL params if provided
   const applicationId = searchParams.get('applicationId');
+  const flowIdFromUrl = searchParams.get('flowId');
 
-  // Mock data for demonstration - in real implementation this would come from API
+  // Initialize collection flow and get adaptive questionnaires from CrewAI agents
   useEffect(() => {
-    const mockFormData: AdaptiveFormData = {
-      formId: 'adaptive-form-001',
+    const initializeAdaptiveCollection = async () => {
+      setIsLoading(true);
+      try {
+        let flowResponse;
+        
+        // Check if we have a flow ID from the URL (created from overview page)
+        if (flowIdFromUrl) {
+          console.log(`📋 Using existing collection flow: ${flowIdFromUrl}`);
+          flowResponse = await collectionFlowApi.getFlowDetails(flowIdFromUrl);
+          setFlowId(flowResponse.id);
+        } else {
+          // Step 1: Create a new collection flow - this triggers CrewAI agents
+          const flowData = {
+            automation_tier: 'adaptive_forms',
+            collection_config: {
+              form_type: 'adaptive_data_collection',
+              application_id: applicationId,
+              collection_method: 'manual_adaptive_form'
+            }
+          };
+
+          console.log('🤖 Creating CrewAI collection flow for adaptive forms...');
+          flowResponse = await collectionFlowApi.createFlow(flowData);
+          setFlowId(flowResponse.id);
+        }
+
+        console.log(`🎯 Collection flow ${flowResponse.id} ready, waiting for CrewAI agents...`);
+        
+        // Step 2: Wait for CrewAI agents to complete gap analysis and generate questionnaires
+        // Poll for questionnaires until they're ready
+        let attempts = 0;
+        const maxAttempts = 30; // 30 seconds timeout
+        let agentQuestionnaires = [];
+
+        while (attempts < maxAttempts && agentQuestionnaires.length === 0) {
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+          
+          try {
+            agentQuestionnaires = await collectionFlowApi.getFlowQuestionnaires(flowResponse.id);
+            console.log(`🔍 Attempt ${attempts + 1}: Found ${agentQuestionnaires.length} agent-generated questionnaires`);
+          } catch (error) {
+            console.log(`⏳ Waiting for CrewAI agents to generate questionnaires... (${attempts + 1}/${maxAttempts})`);
+          }
+          
+          attempts++;
+        }
+
+        if (agentQuestionnaires.length === 0) {
+          throw new Error('CrewAI agents did not generate questionnaires in time. Please try again.');
+        }
+
+        // Step 3: Convert CrewAI-generated questionnaires to AdaptiveFormData format
+        const adaptiveFormData = convertQuestionnairesToFormData(agentQuestionnaires[0], applicationId);
+        setFormData(adaptiveFormData);
+        setQuestionnaires(agentQuestionnaires);
+
+        console.log('✅ Successfully loaded agent-generated adaptive form');
+        
+        toast({
+          title: 'Adaptive Form Ready',
+          description: `CrewAI agents generated ${agentQuestionnaires.length} questionnaire(s) based on gap analysis.`
+        });
+
+      } catch (error: any) {
+        console.error('❌ Failed to initialize adaptive collection:', error);
+        
+        toast({
+          title: 'Adaptive Form Generation Failed',
+          description: error.message || 'Failed to generate adaptive questionnaire. Using fallback form.',
+          variant: 'destructive'
+        });
+        
+        // Fallback to basic form if CrewAI agents fail
+        setFormData(createFallbackFormData(applicationId));
+        
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeAdaptiveCollection();
+  }, [applicationId, flowIdFromUrl]);
+
+  // Helper function to convert CrewAI questionnaires to AdaptiveFormData format
+  const convertQuestionnairesToFormData = (questionnaire: any, applicationId: string | null): AdaptiveFormData => {
+    try {
+      const questions = questionnaire.questions || [];
+      const sections = [];
+      
+      // Group questions into logical sections
+      const basicQuestions = questions.filter((q: any) => 
+        q.category === 'basic' || q.field_type === 'application_name' || q.field_type === 'application_type'
+      );
+      
+      const technicalQuestions = questions.filter((q: any) => 
+        q.category === 'technical' || q.field_type === 'technology_stack' || q.field_type === 'database'
+      );
+      
+      if (basicQuestions.length > 0) {
+        sections.push({
+          id: 'agent-basic-info',
+          title: 'Basic Information',
+          description: 'Core application details identified by CrewAI gap analysis',
+          fields: basicQuestions.map((q: any, index: number) => ({
+            id: q.field_id || `basic-${index}`,
+            label: q.question_text || q.label || 'Field',
+            fieldType: mapQuestionTypeToFieldType(q.field_type || q.question_type),
+            criticalAttribute: q.critical_attribute || 'unknown',
+            validation: { 
+              required: q.required !== false,
+              ...(q.validation || {})
+            },
+            section: 'agent-basic-info',
+            order: index + 1,
+            businessImpactScore: q.business_impact_score || 0.8,
+            options: q.options || (q.field_type === 'select' ? getDefaultOptions(q.field_type) : undefined),
+            helpText: q.help_text || q.description
+          })),
+          order: 1,
+          requiredFieldsCount: basicQuestions.filter((q: any) => q.required !== false).length,
+          completionWeight: 0.4
+        });
+      }
+      
+      if (technicalQuestions.length > 0) {
+        sections.push({
+          id: 'agent-technical-details',
+          title: 'Technical Details',
+          description: 'Technical architecture and dependencies from CrewAI analysis',
+          fields: technicalQuestions.map((q: any, index: number) => ({
+            id: q.field_id || `tech-${index}`,
+            label: q.question_text || q.label || 'Field',
+            fieldType: mapQuestionTypeToFieldType(q.field_type || q.question_type),
+            criticalAttribute: q.critical_attribute || 'unknown',
+            validation: { 
+              required: q.required !== false,
+              ...(q.validation || {})
+            },
+            section: 'agent-technical-details',
+            order: index + 1,
+            businessImpactScore: q.business_impact_score || 0.7,
+            options: q.options || (q.field_type === 'select' ? getDefaultOptions(q.field_type) : undefined),
+            helpText: q.help_text || q.description
+          })),
+          order: 2,
+          requiredFieldsCount: technicalQuestions.filter((q: any) => q.required !== false).length,
+          completionWeight: 0.6
+        });
+      }
+      
+      const totalFields = questions.length;
+      const requiredFields = questions.filter((q: any) => q.required !== false).length;
+      
+      return {
+        formId: questionnaire.id || 'agent-form-001',
+        applicationId: applicationId || 'app-new',
+        sections,
+        totalFields,
+        requiredFields,
+        estimatedCompletionTime: questionnaire.estimated_completion_time || Math.max(20, totalFields * 2),
+        confidenceImpactScore: questionnaire.confidence_impact_score || 0.85
+      };
+      
+    } catch (error) {
+      console.error('Error converting questionnaire to form data:', error);
+      return createFallbackFormData(applicationId);
+    }
+  };
+
+  // Helper function to map CrewAI question types to form field types
+  const mapQuestionTypeToFieldType = (questionType: string): string => {
+    const mappings: Record<string, string> = {
+      'text': 'text',
+      'textarea': 'textarea',
+      'select': 'select',
+      'multiselect': 'multiselect',
+      'checkbox': 'checkbox',
+      'radio': 'radio',
+      'number': 'number',
+      'email': 'email',
+      'url': 'url',
+      'date': 'date',
+      'file': 'file',
+      'application_name': 'text',
+      'application_type': 'select',
+      'technology_stack': 'multiselect',
+      'database': 'select'
+    };
+    return mappings[questionType] || 'text';
+  };
+
+  // Helper function to get default options for certain field types
+  const getDefaultOptions = (fieldType: string) => {
+    const defaultOptions: Record<string, any[]> = {
+      'application_type': [
+        { value: 'web', label: 'Web Application' },
+        { value: 'desktop', label: 'Desktop Application' },
+        { value: 'mobile', label: 'Mobile Application' },
+        { value: 'service', label: 'Web Service/API' },
+        { value: 'batch', label: 'Batch Processing' }
+      ],
+      'database': [
+        { value: 'mysql', label: 'MySQL' },
+        { value: 'postgresql', label: 'PostgreSQL' },
+        { value: 'oracle', label: 'Oracle' },
+        { value: 'sqlserver', label: 'SQL Server' },
+        { value: 'mongodb', label: 'MongoDB' }
+      ]
+    };
+    return defaultOptions[fieldType] || [];
+  };
+
+  // Fallback form data if CrewAI agents are not available
+  const createFallbackFormData = (applicationId: string | null): AdaptiveFormData => {
+    return {
+      formId: 'fallback-form-001',
       applicationId: applicationId || 'app-new',
       sections: [
         {
           id: 'basic-info',
           title: 'Basic Information',
-          description: 'Core application details',
+          description: 'Core application details (fallback form)',
           fields: [
             {
               id: 'app-name',
@@ -72,13 +292,7 @@ const AdaptiveForms: React.FC = () => {
               label: 'Application Type',
               fieldType: 'select',
               criticalAttribute: 'type',
-              options: [
-                { value: 'web', label: 'Web Application' },
-                { value: 'desktop', label: 'Desktop Application' },
-                { value: 'mobile', label: 'Mobile Application' },
-                { value: 'service', label: 'Web Service/API' },
-                { value: 'batch', label: 'Batch Processing' }
-              ],
+              options: getDefaultOptions('application_type'),
               validation: { required: true },
               section: 'basic-info',
               order: 2,
@@ -87,60 +301,15 @@ const AdaptiveForms: React.FC = () => {
           ],
           order: 1,
           requiredFieldsCount: 2,
-          completionWeight: 0.3
-        },
-        {
-          id: 'technical-details',
-          title: 'Technical Details',
-          description: 'Technical architecture and dependencies',
-          fields: [
-            {
-              id: 'tech-stack',
-              label: 'Technology Stack',
-              fieldType: 'multiselect',
-              criticalAttribute: 'technologies',
-              options: [
-                { value: 'java', label: 'Java' },
-                { value: 'dotnet', label: '.NET' },
-                { value: 'python', label: 'Python' },
-                { value: 'nodejs', label: 'Node.js' },
-                { value: 'php', label: 'PHP' }
-              ],
-              validation: { required: true },
-              section: 'technical-details',
-              order: 1,
-              businessImpactScore: 0.85
-            },
-            {
-              id: 'database-type',
-              label: 'Primary Database',
-              fieldType: 'select',
-              criticalAttribute: 'database',
-              options: [
-                { value: 'mysql', label: 'MySQL' },
-                { value: 'postgresql', label: 'PostgreSQL' },
-                { value: 'oracle', label: 'Oracle' },
-                { value: 'sqlserver', label: 'SQL Server' },
-                { value: 'mongodb', label: 'MongoDB' }
-              ],
-              section: 'technical-details',
-              order: 2,
-              businessImpactScore: 0.7
-            }
-          ],
-          order: 2,
-          requiredFieldsCount: 1,
-          completionWeight: 0.4
+          completionWeight: 0.5
         }
       ],
-      totalFields: 4,
-      requiredFields: 3,
-      estimatedCompletionTime: 20,
-      confidenceImpactScore: 0.85
+      totalFields: 2,
+      requiredFields: 2,
+      estimatedCompletionTime: 10,
+      confidenceImpactScore: 0.6
     };
-
-    setFormData(mockFormData);
-  }, [applicationId]);
+  };
 
   // Mock progress milestones
   const progressMilestones: ProgressMilestone[] = [
@@ -223,24 +392,65 @@ const AdaptiveForms: React.FC = () => {
       return;
     }
 
-    setIsLoading(true);
-    try {
-      // Simulate API submission
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+    if (!flowId || questionnaires.length === 0) {
       toast({
-        title: 'Data Submitted Successfully',
-        description: 'Your application data has been collected and processed.'
-      });
-
-      // Navigate to the next step or back to collection index
-      navigate('/collection?success=adaptive-form');
-    } catch (error) {
-      toast({
-        title: 'Submission Failed',
-        description: 'Failed to submit data. Please try again.',
+        title: 'Collection Flow Not Ready',
+        description: 'CrewAI collection flow is not properly initialized. Please refresh and try again.',
         variant: 'destructive'
       });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Submit responses to the CrewAI-generated questionnaire
+      const questionnaireId = questionnaires[0].id;
+      const submissionData = {
+        responses: data,
+        form_metadata: {
+          form_id: formData?.formId,
+          application_id: applicationId,
+          completion_percentage: validation?.completionPercentage,
+          confidence_score: validation?.overallConfidenceScore,
+          submitted_at: new Date().toISOString()
+        },
+        validation_results: validation
+      };
+
+      console.log(`🚀 Submitting adaptive form responses to CrewAI questionnaire ${questionnaireId}`);
+      
+      // Submit to CrewAI questionnaire endpoint
+      const submissionResponse = await collectionFlowApi.submitQuestionnaireResponse(
+        flowId,
+        questionnaireId,
+        submissionData
+      );
+      
+      toast({
+        title: 'Adaptive Form Submitted Successfully',
+        description: `CrewAI agents are processing your responses and will continue the collection flow.`
+      });
+
+      console.log('✅ Form submitted successfully, CrewAI agents will continue processing');
+
+      // Navigate to the collection flow management page to monitor progress
+      navigate(`/collection/progress/${flowId}`);
+      
+    } catch (error: any) {
+      console.error('❌ Adaptive form submission failed:', error);
+      
+      // More detailed error information
+      const errorMessage = error?.response?.data?.detail || 
+                          error?.response?.data?.message || 
+                          error?.message || 
+                          'Failed to submit adaptive form responses.';
+      
+      toast({
+        title: 'Adaptive Form Submission Failed',
+        description: `Error: ${errorMessage}`,
+        variant: 'destructive'
+      });
+      
     } finally {
       setIsLoading(false);
     }
@@ -260,7 +470,8 @@ const AdaptiveForms: React.FC = () => {
             <div className="flex items-center justify-center min-h-64">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-muted-foreground">Loading adaptive form...</p>
+                <p className="text-muted-foreground">CrewAI agents are generating adaptive questionnaire...</p>
+                <p className="text-xs text-muted-foreground mt-2">Analyzing gaps and creating personalized form fields</p>
               </div>
             </div>
           </div>

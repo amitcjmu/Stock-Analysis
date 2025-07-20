@@ -261,46 +261,118 @@ class FlowCrewExecutor:
         logger.info(f"📊 Executing collection phase: {phase_config.name}")
         
         try:
+            # Get CrewAI service
+            from app.services.crewai_service import CrewAIService
+            crewai_service = CrewAIService()
+            
             # Import the appropriate crew based on phase
             crew_factory_name = phase_config.crew_config.get("crew_factory")
+            crew = None
             crew_result = {}
+            
+            # Extract input mappings based on phase config
+            input_mapping = phase_config.crew_config.get("input_mapping", {})
+            crew_inputs = self._build_crew_inputs(phase_input, input_mapping)
+            
+            logger.info(f"🤖 Creating crew using factory: {crew_factory_name}")
             
             if crew_factory_name == "create_platform_detection_crew":
                 from app.services.crewai_flows.crews.collection import create_platform_detection_crew
-                crew_result = create_platform_detection_crew(phase_input)
+                crew = create_platform_detection_crew(
+                    crewai_service=crewai_service,
+                    environment_config=crew_inputs.get("infrastructure_data", {}),
+                    tier_assessment=crew_inputs.get("context", {}).get("automation_tier", "tier_2"),
+                    discovery_scope=crew_inputs.get("context", {}).get("discovery_scope", "full"),
+                    platform_hints=crew_inputs.get("context", {}).get("platform_hints", [])
+                )
             elif crew_factory_name == "create_automated_collection_crew":
                 from app.services.crewai_flows.crews.collection import create_automated_collection_crew
-                crew_result = create_automated_collection_crew(phase_input)
+                crew = create_automated_collection_crew(
+                    crewai_service=crewai_service,
+                    platforms=crew_inputs.get("platforms", []),
+                    tier_assessments=crew_inputs.get("context", {}).get("tier_assignments", {}),
+                    adapter_recommendations=crew_inputs.get("adapter_configs", []),
+                    available_adapters=["aws", "azure", "gcp", "vmware", "kubernetes"]
+                )
             elif crew_factory_name == "create_gap_analysis_crew":
                 from app.services.crewai_flows.crews.collection import create_gap_analysis_crew
-                crew_result = create_gap_analysis_crew(phase_input)
+                crew = create_gap_analysis_crew(
+                    crewai_service=crewai_service,
+                    collected_data=crew_inputs.get("collected_data", {}),
+                    quality_assessment=crew_inputs.get("context", {}).get("quality_scores", {}),
+                    sixr_requirements=crew_inputs.get("requirements", {}).get("sixr_requirements", {}),
+                    custom_requirements=crew_inputs.get("requirements", {}).get("custom_requirements", [])
+                )
             elif crew_factory_name == "create_manual_collection_crew":
                 from app.services.crewai_flows.crews.collection import create_manual_collection_crew
-                crew_result = create_manual_collection_crew(phase_input)
+                crew = create_manual_collection_crew(
+                    crewai_service=crewai_service,
+                    data_gaps=crew_inputs.get("gaps", {}).get("data_gaps", []),
+                    gap_categories=crew_inputs.get("gaps", {}).get("gap_categories", {}),
+                    existing_data=crew_inputs.get("context", {}).get("existing_data", {}),
+                    questionnaire_templates=crew_inputs.get("templates", {})
+                )
             elif crew_factory_name == "create_data_synthesis_crew":
                 from app.services.crewai_flows.crews.collection import create_data_synthesis_crew
-                crew_result = create_data_synthesis_crew(phase_input)
+                crew = create_data_synthesis_crew(
+                    crewai_service=crewai_service,
+                    all_collected_data=crew_inputs.get("data_sources", {}),
+                    validation_rules=crew_inputs.get("validation_rules", {}),
+                    quality_assessments=crew_inputs.get("context", {}).get("quality_scores", {}),
+                    synthesis_config=crew_inputs.get("context", {})
+                )
             else:
-                logger.warning(f"Unknown collection crew factory: {crew_factory_name}")
-                crew_result = {
+                logger.error(f"Unknown collection crew factory: {crew_factory_name}")
+                return {
+                    "phase": phase_config.name,
+                    "status": "failed",
                     "error": f"Unknown crew factory: {crew_factory_name}",
-                    "phase": phase_config.name
+                    "crew_results": {},
+                    "method": "collection_crew_execution"
                 }
             
-            # Simulate async processing
-            await asyncio.sleep(0.1)
-            
-            logger.info(f"✅ Collection phase '{phase_config.name}' completed")
+            # Execute the crew
+            if crew:
+                logger.info(f"🚀 Executing {phase_config.name} crew with kickoff()")
+                
+                # Get execution config
+                exec_config = phase_config.crew_config.get("execution_config", {})
+                timeout = exec_config.get("timeout_seconds", 300)
+                
+                # Execute crew with timeout
+                try:
+                    crew_task = asyncio.create_task(
+                        asyncio.to_thread(crew.kickoff, inputs=crew_inputs)
+                    )
+                    crew_result = await asyncio.wait_for(crew_task, timeout=timeout)
+                    
+                    logger.info(f"✅ Collection crew execution completed for phase '{phase_config.name}'")
+                    
+                    # Process crew results based on output mapping
+                    output_mapping = phase_config.crew_config.get("output_mapping", {})
+                    processed_results = self._process_crew_output(crew_result, output_mapping)
+                    
+                except asyncio.TimeoutError:
+                    logger.error(f"⏱️ Collection crew execution timed out after {timeout} seconds")
+                    return {
+                        "phase": phase_config.name,
+                        "status": "failed",
+                        "error": f"Crew execution timed out after {timeout} seconds",
+                        "crew_results": {},
+                        "method": "collection_crew_execution"
+                    }
             
             return {
                 "phase": phase_config.name,
                 "status": "completed",
-                "crew_results": crew_result,
+                "crew_results": processed_results if crew else {},
                 "method": "collection_crew_execution"
             }
             
         except Exception as e:
             logger.error(f"❌ Collection phase '{phase_config.name}' failed: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "phase": phase_config.name,
                 "status": "failed",
@@ -308,3 +380,57 @@ class FlowCrewExecutor:
                 "crew_results": {},
                 "method": "collection_crew_execution"
             }
+    
+    def _build_crew_inputs(self, phase_input: Dict[str, Any], input_mapping: Dict[str, Any]) -> Dict[str, Any]:
+        """Build crew inputs based on input mapping configuration"""
+        crew_inputs = {}
+        
+        for key, value in input_mapping.items():
+            if isinstance(value, str):
+                # Simple mapping from phase_input
+                if value.startswith("state."):
+                    field = value.replace("state.", "")
+                    crew_inputs[key] = phase_input.get(field, {})
+                else:
+                    crew_inputs[key] = phase_input.get(value, {})
+            elif isinstance(value, dict):
+                # Nested mapping
+                crew_inputs[key] = {}
+                for sub_key, sub_value in value.items():
+                    if isinstance(sub_value, str):
+                        if sub_value.startswith("state."):
+                            field = sub_value.replace("state.", "")
+                            crew_inputs[key][sub_key] = phase_input.get(field, {})
+                        else:
+                            crew_inputs[key][sub_key] = phase_input.get(sub_value, {})
+                    else:
+                        crew_inputs[key][sub_key] = sub_value
+            else:
+                crew_inputs[key] = value
+        
+        return crew_inputs
+    
+    def _process_crew_output(self, crew_result: Any, output_mapping: Dict[str, str]) -> Dict[str, Any]:
+        """Process crew output based on output mapping configuration"""
+        processed = {}
+        
+        # If crew_result is a string or simple type, wrap it
+        if not isinstance(crew_result, dict):
+            crew_result = {"result": crew_result}
+        
+        for key, value in output_mapping.items():
+            if value.startswith("crew_results."):
+                field = value.replace("crew_results.", "")
+                if hasattr(crew_result, field):
+                    processed[key] = getattr(crew_result, field)
+                elif isinstance(crew_result, dict) and field in crew_result:
+                    processed[key] = crew_result[field]
+                else:
+                    processed[key] = None
+            else:
+                processed[key] = crew_result.get(value, None)
+        
+        # Include raw result as well
+        processed["raw_result"] = crew_result
+        
+        return processed

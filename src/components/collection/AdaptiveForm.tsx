@@ -28,7 +28,8 @@ import type {
   CollectionFormData,
   FormValidationResult,
   FormSection,
-  FieldValidationResult
+  FieldValidationResult,
+  ValidationError
 } from './types';
 
 export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
@@ -169,12 +170,146 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
     });
   }, [formValues]);
 
-  // Trigger validation change callback
+  // Validate form whenever values change
   useEffect(() => {
-    if (validation && onValidationChange) {
-      onValidationChange(validation);
+    const validateForm = () => {
+      const fieldResults: Record<string, FieldValidationResult> = {};
+      let totalValid = 0;
+      let totalFields = 0;
+      let totalConfidence = 0;
+
+      formData.sections.forEach(section => {
+        const visibleFields = getVisibleFields(section);
+        
+        visibleFields.forEach(field => {
+          totalFields++;
+          const value = formValues[field.id];
+          const isRequired = field.validation?.required || false;
+          const hasValue = value !== undefined && value !== null && value !== '';
+          
+          let isValid = true;
+          const errors: ValidationError[] = [];
+          const warnings: ValidationError[] = [];
+
+          // Required field validation
+          if (isRequired && !hasValue) {
+            isValid = false;
+            errors.push({
+              fieldId: field.id,
+              fieldLabel: field.label,
+              errorCode: 'required',
+              errorMessage: `${field.label} is required`,
+              severity: 'error'
+            });
+          }
+
+          // Length validation
+          if (hasValue && field.validation?.minLength && String(value).length < field.validation.minLength) {
+            isValid = false;
+            errors.push({
+              fieldId: field.id,
+              fieldLabel: field.label,
+              errorCode: 'minLength',
+              errorMessage: `${field.label} must be at least ${field.validation.minLength} characters`,
+              severity: 'error'
+            });
+          }
+
+          if (hasValue && field.validation?.maxLength && String(value).length > field.validation.maxLength) {
+            isValid = false;
+            errors.push({
+              fieldId: field.id,
+              fieldLabel: field.label,
+              errorCode: 'maxLength',
+              errorMessage: `${field.label} must not exceed ${field.validation.maxLength} characters`,
+              severity: 'error'
+            });
+          }
+
+          // Pattern validation
+          if (hasValue && field.validation?.pattern) {
+            const regex = new RegExp(field.validation.pattern);
+            if (!regex.test(String(value))) {
+              isValid = false;
+              errors.push({
+                fieldId: field.id,
+                fieldLabel: field.label,
+                errorCode: 'pattern',
+                errorMessage: `${field.label} format is invalid`,
+                severity: 'error'
+              });
+            }
+          }
+
+          // Email validation
+          if (hasValue && field.fieldType === 'email') {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(String(value))) {
+              isValid = false;
+              errors.push({
+                fieldId: field.id,
+                fieldLabel: field.label,
+                errorCode: 'invalidEmail',
+                errorMessage: 'Please enter a valid email address',
+                severity: 'error'
+              });
+            }
+          }
+
+          // URL validation
+          if (hasValue && field.fieldType === 'url') {
+            try {
+              new URL(String(value));
+            } catch {
+              isValid = false;
+              errors.push({
+                fieldId: field.id,
+                fieldLabel: field.label,
+                errorCode: 'invalidUrl',
+                errorMessage: 'Please enter a valid URL',
+                severity: 'error'
+              });
+            }
+          }
+
+          if (isValid) totalValid++;
+
+          const confidenceScore = isValid ? 1.0 : hasValue ? 0.5 : 0.0;
+          totalConfidence += confidenceScore;
+
+          fieldResults[field.id] = {
+            fieldId: field.id,
+            isValid,
+            resultType: isValid ? 'valid' : 'invalid',
+            errors,
+            warnings,
+            normalizedValue: value,
+            confidenceScore
+          };
+        });
+      });
+
+      const newValidation: FormValidationResult = {
+        formId: formData.formId,
+        isValid: totalValid === totalFields && totalFields > 0,
+        overallConfidenceScore: totalFields > 0 ? totalConfidence / totalFields : 0,
+        completionPercentage: formMetrics.completionPercentage,
+        fieldResults,
+        crossFieldErrors: [],
+        businessRuleViolations: []
+      };
+
+      setValidation(newValidation);
+      return newValidation;
+    };
+
+    const newValidation = validateForm();
+    
+    // Trigger validation change callback
+    if (onValidationChange) {
+      onValidationChange(newValidation);
     }
-  }, [validation, onValidationChange]);
+  }, [formValues, formData, getVisibleFields, formMetrics.completionPercentage, onValidationChange]);
 
   if (bulkMode) {
     return (

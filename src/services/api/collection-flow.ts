@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { apiCall } from '@/config/api';
 import type { CollectionFlow, CleanupResult, FlowContinueResult } from '@/hooks/collection/useCollectionFlowManagement';
 
 export interface CollectionFlowCreateRequest {
@@ -62,33 +62,33 @@ class CollectionFlowApi {
   private readonly baseUrl = '/api/v1/collection';
 
   async getFlowStatus(): Promise<CollectionFlowStatusResponse> {
-    const response = await apiClient.get(`${this.baseUrl}/status`);
-    return response.data;
+    return await apiCall(`${this.baseUrl}/status`, { method: 'GET' });
   }
 
   async createFlow(data: CollectionFlowCreateRequest): Promise<CollectionFlowResponse> {
-    const response = await apiClient.post(`${this.baseUrl}/flows`, data);
-    return response.data;
+    return await apiCall(`${this.baseUrl}/flows`, { 
+      method: 'POST', 
+      body: JSON.stringify(data)
+    });
   }
 
   async getFlowDetails(flowId: string): Promise<CollectionFlowResponse> {
-    const response = await apiClient.get(`${this.baseUrl}/flows/${flowId}`);
-    return response.data;
+    return await apiCall(`${this.baseUrl}/flows/${flowId}`, { method: 'GET' });
   }
 
   async updateFlow(flowId: string, data: any): Promise<CollectionFlowResponse> {
-    const response = await apiClient.put(`${this.baseUrl}/flows/${flowId}`, data);
-    return response.data;
+    return await apiCall(`${this.baseUrl}/flows/${flowId}`, { 
+      method: 'PUT', 
+      body: JSON.stringify(data)
+    });
   }
 
   async getFlowGaps(flowId: string): Promise<CollectionGapAnalysisResponse[]> {
-    const response = await apiClient.get(`${this.baseUrl}/flows/${flowId}/gaps`);
-    return response.data;
+    return await apiCall(`${this.baseUrl}/flows/${flowId}/gaps`, { method: 'GET' });
   }
 
   async getFlowQuestionnaires(flowId: string): Promise<AdaptiveQuestionnaireResponse[]> {
-    const response = await apiClient.get(`${this.baseUrl}/flows/${flowId}/questionnaires`);
-    return response.data;
+    return await apiCall(`${this.baseUrl}/flows/${flowId}/questionnaires`, { method: 'GET' });
   }
 
   async submitQuestionnaireResponse(
@@ -96,31 +96,29 @@ class CollectionFlowApi {
     questionnaireId: string, 
     responses: any
   ): Promise<{ status: string; message: string; questionnaire_id: string }> {
-    const response = await apiClient.post(
+    return await apiCall(
       `${this.baseUrl}/flows/${flowId}/questionnaires/${questionnaireId}/submit`,
-      responses
+      { 
+        method: 'POST', 
+        body: JSON.stringify(responses)
+      }
     );
-    return response.data;
   }
 
   // Flow Management Endpoints
   async getIncompleteFlows(): Promise<CollectionFlowResponse[]> {
-    const response = await apiClient.get(`${this.baseUrl}/incomplete`);
-    return response.data;
+    return await apiCall(`${this.baseUrl}/incomplete`, { method: 'GET' });
   }
 
   async continueFlow(flowId: string, resumeContext?: any): Promise<FlowContinueResult> {
-    const response = await apiClient.post(`${this.baseUrl}/flows/${flowId}/continue`, {
-      resume_context: resumeContext
+    return await apiCall(`${this.baseUrl}/flows/${flowId}/continue`, {
+      method: 'POST',
+      body: JSON.stringify({ resume_context: resumeContext })
     });
-    return response.data;
   }
 
   async deleteFlow(flowId: string, force: boolean = false): Promise<{ status: string; message: string; flow_id: string }> {
-    const response = await apiClient.delete(`${this.baseUrl}/flows/${flowId}`, {
-      params: { force }
-    });
-    return response.data;
+    return await apiCall(`${this.baseUrl}/flows/${flowId}?force=${force}`, { method: 'DELETE' });
   }
 
   async batchDeleteFlows(flowIds: string[], force: boolean = false): Promise<{
@@ -130,10 +128,10 @@ class CollectionFlowApi {
     deleted_flows: string[];
     failed_deletions: Array<{ flow_id: string; error: string }>;
   }> {
-    const response = await apiClient.post(`${this.baseUrl}/flows/batch-delete`, flowIds, {
-      params: { force }
+    return await apiCall(`${this.baseUrl}/flows/batch-delete?force=${force}`, {
+      method: 'POST',
+      body: JSON.stringify(flowIds)
     });
-    return response.data;
   }
 
   async cleanupFlows(
@@ -142,15 +140,13 @@ class CollectionFlowApi {
     includeFailedFlows: boolean = true,
     includeCancelledFlows: boolean = true
   ): Promise<CleanupResult> {
-    const response = await apiClient.post(`${this.baseUrl}/cleanup`, null, {
-      params: {
-        expiration_hours: expirationHours,
-        dry_run: dryRun,
-        include_failed: includeFailedFlows,
-        include_cancelled: includeCancelledFlows
-      }
+    const params = new URLSearchParams({
+      expiration_hours: expirationHours.toString(),
+      dry_run: dryRun.toString(),
+      include_failed: includeFailedFlows.toString(),
+      include_cancelled: includeCancelledFlows.toString()
     });
-    return response.data;
+    return await apiCall(`${this.baseUrl}/cleanup?${params}`, { method: 'POST' });
   }
 
   // Utility methods for flow management
