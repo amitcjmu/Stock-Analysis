@@ -20,6 +20,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import AsyncSessionLocal
 from app.core.logging import get_logger
+from app.core.context import RequestContext
 from app.monitoring.metrics import track_performance
 from app.models.collection_flow import CollectionFlow
 from app.models.discovery_flow import DiscoveryFlow
@@ -96,11 +97,13 @@ class SmartWorkflowOrchestrator:
     with intelligent transitions and quality gates
     """
     
-    def __init__(self):
+    def __init__(self, db: AsyncSession, context: RequestContext):
+        self.db = db
+        self.context = context
         self.confidence_scorer = ConfidenceScorer()
         self.gap_analyzer = GapAnalysisAgent()
-        self.discovery_service = DiscoveryFlowService()
-        self.assessment_service = AssessmentManager
+        self.discovery_service = DiscoveryFlowService(db, context)
+        self.assessment_service = AssessmentManager(db, context)
         
         # Quality thresholds for phase transitions
         self.quality_thresholds = {
