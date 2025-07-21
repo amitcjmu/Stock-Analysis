@@ -58,9 +58,9 @@ class UserManagementHandler(BaseRBACHandler):
                 is_active=False,  # Not active until approved
                 is_verified=False,
                 is_mock=False,
-                # Set default client and engagement IDs for demo context
-                default_client_id="11111111-1111-1111-1111-111111111111",  # DEMO_CLIENT_ID
-                default_engagement_id="22222222-2222-2222-2222-222222222222"  # DEMO_ENGAGEMENT_ID
+                # Use provided default client/engagement IDs, fallback to demo IDs for sandbox access
+                default_client_id=user_data.get("default_client_id", "11111111-1111-1111-1111-111111111111"),  # DEMO_CLIENT_ID as fallback
+                default_engagement_id=user_data.get("default_engagement_id", "22222222-2222-2222-2222-222222222222")  # DEMO_ENGAGEMENT_ID as fallback
             )
             
             self.db.add(user)

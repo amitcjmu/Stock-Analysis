@@ -39,8 +39,10 @@ async def get_agent_performance(
     - Performance trends over time
     """
     try:
-        # Convert async session to sync for service compatibility
-        service = AgentTaskHistoryService(db.sync_session)
+        # Get sync session for service compatibility
+        from app.core.database import get_db as get_sync_db
+        sync_db = next(get_sync_db())
+        service = AgentTaskHistoryService(sync_db)
         
         # Get comprehensive performance summary
         performance_summary = service.get_agent_performance_summary(
@@ -80,6 +82,9 @@ async def get_agent_performance(
                 "engagement_id": context.engagement_id
             }
         )
+        
+        # Close sync db session
+        sync_db.close()
         
         return {
             "success": True,
@@ -124,7 +129,10 @@ async def get_agent_task_history(
     - Error messages for failed tasks
     """
     try:
-        service = AgentTaskHistoryService(db.sync_session)
+        # Get sync session for service compatibility
+        from app.core.database import get_db as get_sync_db
+        sync_db = next(get_sync_db())
+        service = AgentTaskHistoryService(sync_db)
         
         # Get paginated task history
         task_history = service.get_agent_task_history(
@@ -152,6 +160,9 @@ async def get_agent_task_history(
                 "total_tasks": task_history.get("total_tasks", 0)
             }
         )
+        
+        # Close sync db session
+        sync_db.close()
         
         return {
             "success": True,
@@ -188,7 +199,10 @@ async def get_agent_analytics(
     - Task complexity analysis
     """
     try:
-        service = AgentTaskHistoryService(db.sync_session)
+        # Get sync session for service compatibility
+        from app.core.database import get_db as get_sync_db
+        sync_db = next(get_sync_db())
+        service = AgentTaskHistoryService(sync_db)
         
         # Get comprehensive analytics
         analytics = service.get_agent_analytics(
@@ -222,6 +236,9 @@ async def get_agent_analytics(
                 "period_days": period_days
             }
         )
+        
+        # Close sync db session
+        sync_db.close()
         
         return {
             "success": True,
@@ -284,7 +301,10 @@ async def get_agents_activity_feed(
         
         # Add completed tasks if requested
         if include_completed:
-            service = AgentTaskHistoryService(db.sync_session)
+            # Get sync session for service compatibility
+            from app.core.database import get_db as get_sync_db
+            sync_db = next(get_sync_db())
+            service = AgentTaskHistoryService(sync_db)
             
             # Get recent completed tasks
             recent_tasks = service.get_agent_task_history(
@@ -322,6 +342,10 @@ async def get_agents_activity_feed(
         
         # Limit results
         activities = activities[:limit]
+        
+        # Close sync db session if it was opened
+        if include_completed and 'sync_db' in locals():
+            sync_db.close()
         
         logger.info(
             f"Retrieved activity feed",
@@ -377,7 +401,10 @@ async def get_discovered_patterns(
     - Agent attribution
     """
     try:
-        service = AgentTaskHistoryService(db.sync_session)
+        # Get sync session for service compatibility
+        from app.core.database import get_db as get_sync_db
+        sync_db = next(get_sync_db())
+        service = AgentTaskHistoryService(sync_db)
         
         # Get discovered patterns
         patterns = service.get_discovered_patterns(
@@ -400,6 +427,9 @@ async def get_discovered_patterns(
                 "patterns_count": len(patterns)
             }
         )
+        
+        # Close sync db session
+        sync_db.close()
         
         return {
             "success": True,

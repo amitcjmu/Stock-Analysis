@@ -396,6 +396,9 @@ if ENABLE_MIDDLEWARE:
         # Add context middleware with app-specific additional exempt paths
         # Core paths (health, auth, docs) are handled by middleware defaults
         app_specific_exempt_paths = [
+            # User registration - creates inactive users pending approval (security testing)
+            "/auth/register",
+            "/api/v1/auth/register",  # Full API path for registration
             # Context establishment endpoints - these are needed to establish context
             "/api/v1/context/me",  # User context endpoint - needed before client context
             "/api/v1/clients/default",  # Allow default client endpoint

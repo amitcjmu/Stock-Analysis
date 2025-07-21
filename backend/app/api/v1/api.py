@@ -339,7 +339,6 @@ logger.info("✅ Pseudo-agents archived and replaced with real CrewAI implementa
 #     logger.warning(f"⚠️ Performance Monitoring router not available: {e}")
 logger.info("⚠️ Performance Monitoring router disabled (psutil dependency conflicts)")
 api_router.include_router(context_establishment_router, prefix="/context-establishment", tags=["Context Establishment"])
-api_router.include_router(context_establishment_router, prefix="/context", tags=["Context Establishment"])
 
 # Assessment Management
 if ASSESS_AVAILABLE:

@@ -28,6 +28,12 @@ logger = enhanced_get_logger(__name__)
 router = APIRouter()
 
 
+# Create a simple context dependency for monitoring (no auth required)
+async def get_monitoring_context(request: Request) -> RequestContext:
+    """Get context for monitoring endpoints without authentication."""
+    return extract_context_from_request(request)
+
+
 @router.get("/status")
 async def get_agent_status(
     include_individual_agents: bool = Query(default=False, description="Include individual agent performance data"),
@@ -762,12 +768,6 @@ async def get_flow_agent_tasks(
     except Exception as e:
         logger.error(f"Error getting agent tasks for flow {flow_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get agent tasks: {str(e)}")
-
-
-# Create a simple context dependency for monitoring (no auth required)
-async def get_monitoring_context(request: Request) -> RequestContext:
-    """Get context for monitoring endpoints without authentication."""
-    return extract_context_from_request(request)
 
 
 # === PHASE 2 CREW MONITORING ENDPOINTS ===
