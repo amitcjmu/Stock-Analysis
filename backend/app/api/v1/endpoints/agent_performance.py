@@ -10,8 +10,8 @@ from datetime import datetime, timedelta, date
 import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.dependencies import get_db, get_request_context
-from app.core.context import RequestContext
+from app.api.v1.dependencies import get_db
+from app.core.context import RequestContext, get_request_context
 from app.services.agent_task_history_service import AgentTaskHistoryService
 from app.services.agent_performance_aggregation_service import agent_performance_aggregation_service
 from app.services.agent_monitor import agent_monitor

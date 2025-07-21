@@ -393,6 +393,19 @@ export const LazyAgentMonitoring = createLazyRoute(
   LoadingPriority.LOW
 );
 
+// Observability Sub-routes (Phase 4B Advanced Features)
+export const LazyEnhancedObservabilityDashboard = createLazyRoute(
+  () => import('@/pages/observability/EnhancedObservabilityDashboard'),
+  'Enhanced Observability Dashboard',
+  LoadingPriority.NORMAL
+);
+
+export const LazyAgentDetailPage = createLazyRoute(
+  () => import('@/pages/observability/IntegratedAgentDetailPage'),
+  'Agent Detail Page',
+  LoadingPriority.NORMAL
+);
+
 export const LazyFeedbackView = createLazyRoute(
   () => import('@/pages/FeedbackView'),
   'Feedback View',

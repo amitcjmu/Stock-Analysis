@@ -107,6 +107,8 @@ import {
   
   // LOW PRIORITY - Admin and utility pages
   LazyAgentMonitoring,
+  LazyEnhancedObservabilityDashboard,
+  LazyAgentDetailPage,
   LazyFeedbackView,
   LazyNotFound,
   LazyAdminDashboard,
@@ -304,7 +306,9 @@ const AuthenticatedApp = () => {
               <Route path="/finops/budget-alerts" element={<LazyBudgetAlerts />} />
               
               <Route path="/observability" element={<LazyObservability />} />
-              <Route path="/observability/agent-monitoring" element={<LazyAgentMonitoring />} />
+              <Route path="/observability/enhanced" element={<LazyEnhancedObservabilityDashboard />} />
+              <Route path="/observability/agent/:agentName" element={<LazyAgentDetailPage />} />
+              <Route path="/observability/agent-monitoring" element={<LazyEnhancedObservabilityDashboard />} />
               <Route path="/feedback-view" element={<LazyFeedbackView />} />
               <Route path="/profile" element={<LazyUserProfile />} />
               <Route path="/debug-context" element={<LazyDebugContext />} />

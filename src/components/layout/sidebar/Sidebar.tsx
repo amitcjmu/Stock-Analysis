@@ -182,8 +182,10 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       icon: Eye,
       hasSubmenu: true,
       submenu: [
-        { name: 'Overview', path: '/observability', icon: Eye },
-        { name: 'Agent Monitoring', path: '/observability/agent-monitoring', icon: Activity }
+        { name: 'System Overview', path: '/observability', icon: Eye },
+        { name: 'Agent Dashboard', path: '/observability/agent-monitoring', icon: Brain },
+        { name: 'Agent Analytics', path: '/observability/enhanced?tab=analytics', icon: BarChart3 },
+        { name: 'Agent Comparison', path: '/observability/enhanced?tab=comparison', icon: TrendingUp }
       ]
     },
     { 

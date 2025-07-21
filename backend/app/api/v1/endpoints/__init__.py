@@ -5,7 +5,8 @@ API endpoints package.
 from . import sixr_analysis
 from . import discovery
 from . import asset_inventory
-from . import monitoring
+# Import monitoring_main.py to avoid conflict with monitoring directory
+from .monitoring_main import router as monitoring_router
 from . import chat
 # WebSocket module removed - using HTTP polling for Vercel+Railway compatibility
 from . import agent_learning_endpoints
@@ -21,7 +22,7 @@ from .agents import router as agents_router
 sixr_router = sixr_analysis.router
 discovery_router = discovery.router
 asset_inventory_router = asset_inventory.router
-monitoring_router = monitoring.router
+# monitoring_router is already imported above
 chat_router = chat.router
 # websocket_router removed - using HTTP polling for Vercel+Railway compatibility
 agent_learning_router = agent_learning_endpoints.router

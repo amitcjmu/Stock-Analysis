@@ -1,10 +1,86 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
-import { Activity, Clock, AlertCircle, CheckCircle } from 'lucide-react';
+import { Activity, Clock, AlertCircle, CheckCircle, Brain, BarChart3, ExternalLink, RefreshCw } from 'lucide-react';
+import { apiCall } from '../config/api';
 
 const Observability = () => {
-  const metrics = [
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [monitoringData, setMonitoringData] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchMonitoringData();
+  }, []);
+
+  const fetchMonitoringData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await apiCall('/monitoring/status', { method: 'GET' });
+      if (response.success) {
+        setMonitoringData(response);
+      }
+    } catch (err) {
+      console.error('Failed to fetch monitoring data:', err);
+      setError('Failed to load monitoring data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getMetrics = () => {
+    if (!monitoringData) {
+      return [
+        { name: 'API Latency', value: '---', trend: 'none', change: '---', status: 'normal' },
+        { name: 'Task Duration', value: '---', trend: 'none', change: '---', status: 'normal' },
+        { name: 'Error Rate', value: '---', trend: 'none', change: '---', status: 'normal' },
+        { name: 'Throughput', value: '---', trend: 'none', change: '---', status: 'normal' }
+      ];
+    }
+
+    const activeTasks = monitoringData.monitoring?.active_tasks || 0;
+    const completedTasks = monitoringData.monitoring?.completed_tasks || 0;
+    const totalTasks = activeTasks + completedTasks;
+    const errorRate = totalTasks > 0 ? ((monitoringData.monitoring?.hanging_tasks || 0) / totalTasks * 100).toFixed(2) : '0.00';
+
+    return [
+      {
+        name: 'Active Agents',
+        value: monitoringData.agents?.active_agents || 0,
+        trend: 'up',
+        change: `${monitoringData.agents?.total_registered || 0} total`,
+        status: 'normal'
+      },
+      {
+        name: 'Active Tasks',
+        value: activeTasks,
+        trend: 'up',
+        change: `${completedTasks} completed`,
+        status: 'good'
+      },
+      {
+        name: 'Error Rate',
+        value: `${errorRate}%`,
+        trend: errorRate === '0.00' ? 'down' : 'up',
+        change: `${monitoringData.monitoring?.hanging_tasks || 0} hanging`,
+        status: errorRate === '0.00' ? 'good' : 'warning'
+      },
+      {
+        name: 'Learning Enabled',
+        value: monitoringData.agents?.learning_enabled || 0,
+        trend: 'up',
+        change: 'agents',
+        status: 'normal'
+      }
+    ];
+  };
+
+  const metrics = getMetrics();
+
+  const hardcodedSystemHealth = [
     {
       name: 'API Latency',
       value: '200ms',
@@ -35,61 +111,121 @@ const Observability = () => {
     }
   ];
 
-  const systemHealth = [
-    {
-      component: 'Migration Service',
-      status: 'healthy',
-      uptime: '99.9%',
-      lastCheck: '2 mins ago'
-    },
-    {
-      component: 'Assessment Engine',
-      status: 'healthy', 
-      uptime: '99.8%',
-      lastCheck: '1 min ago'
-    },
-    {
-      component: 'Wave Scheduler',
-      status: 'warning',
-      uptime: '97.2%',
-      lastCheck: '30 secs ago'
-    },
-    {
-      component: 'Cost Tracker',
-      status: 'healthy',
-      uptime: '99.9%',
-      lastCheck: '1 min ago'
+  const getSystemHealth = () => {
+    if (!monitoringData) {
+      return [
+        { component: 'Agent Registry', status: 'unknown', uptime: '---', lastCheck: '---' },
+        { component: 'Task Monitor', status: 'unknown', uptime: '---', lastCheck: '---' },
+        { component: 'CrewAI Service', status: 'unknown', uptime: '---', lastCheck: '---' },
+        { component: 'Performance Tracker', status: 'unknown', uptime: '---', lastCheck: '---' }
+      ];
     }
-  ];
 
-  const recentEvents = [
+    const monitoringActive = monitoringData.monitoring?.active || false;
+    const agentsHealthy = (monitoringData.agents?.active_agents || 0) > 0;
+    const noHangingTasks = (monitoringData.monitoring?.hanging_tasks || 0) === 0;
+
+    return [
+      {
+        component: 'Agent Registry',
+        status: agentsHealthy ? 'healthy' : 'warning',
+        uptime: `${monitoringData.agents?.total_registered || 0} agents`,
+        lastCheck: 'Real-time'
+      },
+      {
+        component: 'Task Monitor',
+        status: monitoringActive ? 'healthy' : 'error',
+        uptime: monitoringActive ? 'Active' : 'Inactive',
+        lastCheck: 'Real-time'
+      },
+      {
+        component: 'Task Health',
+        status: noHangingTasks ? 'healthy' : 'warning',
+        uptime: `${monitoringData.monitoring?.hanging_tasks || 0} hanging`,
+        lastCheck: 'Real-time'
+      },
+      {
+        component: 'Learning System',
+        status: (monitoringData.agents?.learning_enabled || 0) > 0 ? 'healthy' : 'warning',
+        uptime: `${monitoringData.agents?.learning_enabled || 0} agents`,
+        lastCheck: 'Real-time'
+      }
+    ];
+  };
+
+  const systemHealth = getSystemHealth();
+
+  const hardcodedEvents = [
     {
       time: '14:32',
-      event: 'W1 migration batch completed successfully',
+      event: 'System initialized',
       type: 'success',
-      details: '12 applications migrated'
+      details: 'All agents registered successfully'
     },
     {
       time: '14:28',
-      event: 'High memory usage detected in Wave Scheduler',
-      type: 'warning', 
-      details: 'Memory usage: 85%'
+      event: 'Monitoring service started',
+      type: 'info', 
+      details: 'Real-time tracking enabled'
     },
     {
       time: '14:15',
-      event: 'Assessment scan completed for G3 applications',
+      event: 'Agent registry updated',
       type: 'info',
-      details: '15 applications assessed'
+      details: 'New agents available'
     },
     {
       time: '14:02',
-      event: 'Cost optimization alert triggered',
-      type: 'info',
-      details: 'Potential savings detected in W2'
+      event: 'System health check completed',
+      type: 'success',
+      details: 'All systems operational'
     }
   ];
 
-  const getStatusColor = (status) => {
+  const getRecentEvents = () => {
+    if (!monitoringData || !monitoringData.tasks?.active) {
+      return hardcodedEvents;
+    }
+
+    const events = [];
+    const now = new Date();
+
+    // Add active tasks as events
+    monitoringData.tasks.active.forEach((task: any, index: number) => {
+      const startTime = new Date(task.start_time);
+      const timeStr = `${startTime.getHours().toString().padStart(2, '0')}:${startTime.getMinutes().toString().padStart(2, '0')}`;
+      
+      events.push({
+        time: timeStr,
+        event: `${task.agent} started ${task.task}`,
+        type: 'info',
+        details: `Duration: ${task.duration}s`
+      });
+    });
+
+    // Add hanging tasks as warnings
+    if (monitoringData.tasks?.hanging) {
+      monitoringData.tasks.hanging.forEach((task: any) => {
+        events.push({
+          time: 'Alert',
+          event: `${task.agent} task hanging`,
+          type: 'warning',
+          details: `Task: ${task.task}, Duration: ${task.duration}s`
+        });
+      });
+    }
+
+    // If no real events, return hardcoded ones
+    if (events.length === 0) {
+      return hardcodedEvents;
+    }
+
+    return events.slice(0, 4); // Return only first 4 events
+  };
+
+  const recentEvents = getRecentEvents();
+
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'healthy':
         return 'bg-green-100 text-green-800';
@@ -102,7 +238,7 @@ const Observability = () => {
     }
   };
 
-  const getEventIcon = (type) => {
+  const getEventIcon = (type: string) => {
     switch (type) {
       case 'success':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
@@ -122,9 +258,51 @@ const Observability = () => {
         <main className="p-8">
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Observability Dashboard</h1>
-              <p className="text-gray-600">Monitor metrics and application performance across your migration infrastructure</p>
+              <div className="flex justify-between items-start">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Observability Dashboard</h1>
+                  <p className="text-gray-600">Monitor metrics and application performance across your migration infrastructure</p>
+                </div>
+                <button
+                  onClick={fetchMonitoringData}
+                  disabled={loading}
+                  className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+              </div>
+              
+              {/* Quick Navigation to Enhanced Features */}
+              <div className="mt-6 flex gap-4">
+                <button
+                  onClick={() => navigate('/observability/agent-monitoring')}
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Brain className="w-4 h-4 mr-2" />
+                  Agent Dashboard
+                  <ExternalLink className="w-3 h-3 ml-2" />
+                </button>
+                <button
+                  onClick={() => navigate('/observability/enhanced?tab=analytics')}
+                  className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Enhanced Analytics
+                  <ExternalLink className="w-3 h-3 ml-2" />
+                </button>
+              </div>
             </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                <p className="flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-2" />
+                  {error}
+                </p>
+              </div>
+            )}
 
             {/* Key Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

@@ -193,31 +193,37 @@ async def test_collection_flow_with_mocked_crewai():
 @pytest.mark.asyncio
 async def test_gap_analysis_functionality():
     """Test gap analysis identifies missing critical attributes"""
-    from app.services.tools.gap_analysis_tools import CriticalAttributeAnalyzer
+    from app.services.tools.gap_analysis_tools import GapIdentifierTool, AttributeMapperTool
     
-    # Create analyzer
-    analyzer = CriticalAttributeAnalyzer()
+    # Create tools
+    mapper = AttributeMapperTool()
+    gap_identifier = GapIdentifierTool()
     
-    # Mock collected data with some missing attributes
-    collected_data = {
-        "applications": [
-            {
-                "name": "App1",
-                "attributes": {
-                    "business_criticality": "high",
-                    "data_sensitivity": "confidential",
-                    # Missing: technical_debt, migration_complexity
-                }
-            }
-        ]
+    # Mock data fields and mapping
+    data_fields = ["hostname", "os_type", "cpu_cores", "memory_gb"]
+    
+    # Map fields to attributes
+    mapping_result = await mapper.arun(data_fields=data_fields)
+    
+    # Create completeness analysis mock
+    completeness_analysis = {
+        "attribute_completeness": {
+            "hostname": {"completeness_percentage": 100},
+            "os_type": {"completeness_percentage": 80},
+            "cpu_cores": {"completeness_percentage": 90},
+            "memory_gb": {"completeness_percentage": 95}
+        }
     }
     
-    # Analyze gaps
-    gaps = analyzer.identify_gaps(collected_data)
+    # Identify gaps
+    gaps = await gap_identifier.arun(
+        attribute_mapping=mapping_result["mapped_attributes"],
+        completeness_analysis=completeness_analysis
+    )
     
     # Should identify missing attributes
-    assert len(gaps) > 0
-    print(f"✅ Gap analysis identified {len(gaps)} missing attributes")
+    assert gaps["total_gaps"] > 0
+    print(f"✅ Gap analysis identified {gaps['total_gaps']} missing attributes")
 
 
 if __name__ == "__main__":

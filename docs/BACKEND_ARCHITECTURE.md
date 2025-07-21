@@ -71,7 +71,7 @@ backend/app/
 │           ├── discovery.py    # CMDB analysis endpoints
 │           ├── migrations.py   # Migration management
 │           ├── feedback.py     # User feedback processing
-│           └── monitoring.py   # Agent monitoring
+│           └── monitoring_main.py   # Agent monitoring (main router)
 ├── core/                  # Core configuration
 │   ├── config.py         # Settings and configuration
 │   ├── database.py       # Database connection
