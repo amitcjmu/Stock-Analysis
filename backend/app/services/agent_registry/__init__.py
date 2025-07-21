@@ -28,6 +28,9 @@ from .phase_agents import (
 # Main registry class
 from .registry import AgentRegistry
 
+# Global registry instance - maintaining backward compatibility
+agent_registry = AgentRegistry()
+
 __all__ = [
     'AgentPhase',
     'AgentStatus', 
@@ -43,5 +46,6 @@ __all__ = [
     'FinOpsAgentManager',
     'LearningContextAgentManager',
     'ObservabilityAgentManager',
-    'AgentRegistry'
+    'AgentRegistry',
+    'agent_registry'  # Include the instance in exports
 ]
