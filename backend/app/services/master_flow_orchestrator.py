@@ -235,6 +235,7 @@ class MasterFlowOrchestrator:
         _retry_count: int = 0
     ) -> Tuple[str, Dict[str, Any]]:
         """Create a new flow of any type"""
+        logger.info(f"🔄 MFO: Creating flow of type '{flow_type}' with initial state: {initial_state}")
         flow_id = None
         
         try:

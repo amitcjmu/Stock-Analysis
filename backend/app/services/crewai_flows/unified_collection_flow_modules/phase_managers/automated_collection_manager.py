@@ -49,7 +49,7 @@ class AutomatedCollectionManager:
         self.audit_service = audit_service
         
         # Initialize services
-        self.data_transformation = DataTransformationService()
+        self.data_transformation = DataTransformationService(flow_context.db_session, flow_context.context)
         self.quality_assessment = QualityAssessmentService()
         
         # Collection configuration

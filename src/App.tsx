@@ -10,6 +10,7 @@ import { FieldOptionsProvider } from "./contexts/FieldOptionsContext";
 import { DialogProvider } from "./contexts/DialogContext";
 import GlobalChatFeedback from "./components/GlobalChatFeedback";
 import { AppInitializer } from "./services/appInitializer";
+import { useGlobalErrorHandler } from "./hooks/useGlobalErrorHandler";
 
 // Lazy Loading Infrastructure
 import { LazyLoadingProvider, LoadingPriority } from "./components/lazy";
@@ -131,6 +132,9 @@ import AdminRoute from "./components/admin/AdminRoute";
 const AuthenticatedApp = () => {
   const { isLoading, isAuthenticated } = useAuth();
   const [appInitialized, setAppInitialized] = useState(false);
+  
+  // Enable global error handling for 401 errors
+  useGlobalErrorHandler();
 
   // Initialize app only when authenticated
   useEffect(() => {

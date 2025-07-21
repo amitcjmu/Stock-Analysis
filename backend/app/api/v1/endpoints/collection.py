@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from app.core.database import get_db
 from app.core.context import get_request_context
@@ -83,6 +83,7 @@ async def create_collection_flow(
     context = Depends(get_request_context)
 ) -> CollectionFlowResponse:
     """Create and start a new collection flow"""
+    logger.info(f"🚀 Creating collection flow - automation_tier: {flow_data.automation_tier}, config: {flow_data.collection_config}")
     try:
         # Check for existing active flow
         existing = await db.execute(
@@ -95,18 +96,45 @@ async def create_collection_flow(
                     CollectionFlowStatus.CANCELLED.value
                 ])
             )
+            .order_by(CollectionFlow.created_at.desc())
         )
-        if existing.scalar_one_or_none():
-            raise HTTPException(
-                status_code=400,
-                detail="An active collection flow already exists for this engagement"
-            )
+        existing_flow = existing.scalar_one_or_none()
+        
+        if existing_flow:
+            # Check if the existing flow is stuck in INITIALIZED state
+            if existing_flow.status == CollectionFlowStatus.INITIALIZED.value:
+                # Calculate time since creation
+                # Ensure we're comparing timezone-aware datetimes
+                now = datetime.now(timezone.utc)
+                created_at = existing_flow.created_at
+                if created_at.tzinfo is None:
+                    # If created_at is timezone-naive, assume UTC
+                    created_at = created_at.replace(tzinfo=timezone.utc)
+                time_since_creation = now - created_at
+                
+                # If flow is stuck in INITIALIZED for more than 5 minutes, cancel it
+                if time_since_creation > timedelta(minutes=5):
+                    logger.warning(f"Found stale INITIALIZED flow {existing_flow.id}, cancelling it")
+                    existing_flow.status = CollectionFlowStatus.CANCELLED.value
+                    existing_flow.completed_at = datetime.now(timezone.utc)
+                    existing_flow.error_message = "Flow cancelled due to initialization timeout"
+                    await db.commit()
+                else:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"An active collection flow is being initialized. Please wait or use the flow management UI to cancel it."
+                    )
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"An active collection flow already exists with status: {existing_flow.status}"
+                )
         
         # Create collection flow record
         flow_id = uuid.uuid4()
         collection_flow = CollectionFlow(
             flow_id=flow_id,
-            flow_name=f"Collection Flow - {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}",
+            flow_name=f"Collection Flow - {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}",
             client_account_id=context.client_account_id,
             engagement_id=context.engagement_id,
             user_id=current_user.id,  # This is the required field, not created_by
@@ -132,12 +160,17 @@ async def create_collection_flow(
         }
         
         # Create the flow - it will be automatically started by the execution engine
-        result = await mfo.create_flow(
+        master_flow_id, master_flow_data = await mfo.create_flow(
             flow_type="collection",
             initial_state=flow_input
         )
         
-        logger.info(f"Created collection flow {collection_flow.id} for engagement {context.engagement_id} - automatic execution started")
+        # Update collection flow with master flow ID
+        collection_flow.master_flow_id = master_flow_id
+        await db.commit()
+        await db.refresh(collection_flow)
+        
+        logger.info(f"Created collection flow {collection_flow.id} linked to master flow {master_flow_id} for engagement {context.engagement_id} - automatic execution started")
         
         return CollectionFlowResponse(
             id=str(collection_flow.id),
@@ -251,12 +284,12 @@ async def update_collection_flow(
         
         elif update_data.action == "pause":
             # Note: There's no PAUSED status in the enum, keep current status
-            collection_flow.updated_at = datetime.utcnow()
+            collection_flow.updated_at = datetime.now(timezone.utc)
             
         elif update_data.action == "cancel":
             collection_flow.status = CollectionFlowStatus.CANCELLED.value
-            collection_flow.updated_at = datetime.utcnow()
-            collection_flow.completed_at = datetime.utcnow()
+            collection_flow.updated_at = datetime.now(timezone.utc)
+            collection_flow.completed_at = datetime.now(timezone.utc)
         
         # Update any provided data
         if update_data.collection_config:
@@ -418,8 +451,8 @@ async def submit_questionnaire_response(
         # Update questionnaire with responses
         questionnaire.responses_collected = responses
         questionnaire.completion_status = "completed"
-        questionnaire.completed_at = datetime.utcnow()
-        questionnaire.updated_at = datetime.utcnow()
+        questionnaire.completed_at = datetime.now(timezone.utc)
+        questionnaire.updated_at = datetime.now(timezone.utc)
         
         # Continue flow with questionnaire responses
         mfo = MasterFlowOrchestrator(db, context)
@@ -621,9 +654,7 @@ async def cleanup_flows(
 ) -> Dict[str, Any]:
     """Clean up expired collection flows"""
     try:
-        from datetime import datetime, timedelta
-        
-        cutoff_time = datetime.utcnow() - timedelta(hours=expiration_hours)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=expiration_hours)
         
         # Build query for expired flows
         query = select(CollectionFlow).where(
@@ -648,7 +679,7 @@ async def cleanup_flows(
             flow_data = {
                 "flow_id": str(flow.id),
                 "status": flow.status,
-                "age_hours": (datetime.utcnow() - flow.updated_at).total_seconds() / 3600,
+                "age_hours": (datetime.now(timezone.utc) - flow.updated_at).total_seconds() / 3600,
                 "estimated_size": len(str(flow.collection_config)) + len(str(flow.phase_state)) + len(str(flow.collection_results))
             }
             flows_to_clean.append(flow_data)

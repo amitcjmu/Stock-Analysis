@@ -106,6 +106,11 @@ from app.models.llm_usage import LLMUsageLog, LLMUsageSummary
 # SixR Analysis Models
 from app.models.sixr_analysis import SixRAnalysis
 
+# Agent Observability Models
+from app.models.agent_task_history import AgentTaskHistory
+from app.models.agent_performance_daily import AgentPerformanceDaily
+from app.models.agent_discovered_patterns import AgentDiscoveredPatterns
+
 
 # V3 Models REMOVED - Using consolidated schema
 
@@ -225,5 +230,10 @@ __all__ = [
     "CredentialRotationHistory",
     "CredentialPermission",
     "CredentialStatus",
-    "CredentialType"
+    "CredentialType",
+    
+    # Agent Observability Models
+    "AgentTaskHistory",
+    "AgentPerformanceDaily",
+    "AgentDiscoveredPatterns"
 ] 

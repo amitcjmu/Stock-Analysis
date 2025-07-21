@@ -1,5 +1,51 @@
 # 🚀 AI Modernize Migration Platform - Changelog
 
+## [1.42.0] - 2025-01-21
+
+### 🔧 **AGENT OBSERVABILITY** - Foreign Key Constraints Fix
+
+This release fixes critical database relationship errors in the agent observability models that were preventing the backend from starting properly.
+
+### 🚀 **Database Schema Fixes**
+
+#### **Agent Task History Foreign Keys**
+- **Type**: Database constraint addition
+- **Impact**: Resolves SQLAlchemy relationship mapping errors
+- **Technical Details**:
+  - Added ForeignKey constraints to `flow_id`, `client_account_id`, and `engagement_id` columns
+  - Updated relationship definitions with explicit primaryjoin clauses
+  - Created migration 013 to apply constraints to existing tables
+
+#### **Agent Performance Daily Foreign Keys**
+- **Type**: Model relationship fix
+- **Impact**: Enables proper multi-tenant data isolation
+- **Technical Details**:
+  - Added ForeignKey constraints to multi-tenant fields
+  - Fixed ClientAccount and Engagement relationships
+  - Included in migration 014 for database schema update
+
+#### **Agent Discovered Patterns Foreign Keys**
+- **Type**: Schema consistency improvement
+- **Impact**: Ensures referential integrity for pattern tracking
+- **Technical Details**:
+  - Updated column definitions with proper foreign key references
+  - Added explicit relationship mappings
+  - Applied constraints via migration 014
+
+### 📊 Business Impact
+
+- **System Stability**: Backend now starts without initialization errors
+- **Data Integrity**: Proper foreign key constraints ensure referential integrity
+- **Monitoring Ready**: Agent observability tables properly configured for tracking
+- **Multi-tenant Safety**: Correct relationships ensure data isolation between clients
+
+### 🎯 Success Metrics
+
+- **Zero Errors**: Backend initialization completes without foreign key errors
+- **Database Health**: All agent tables have proper constraints applied
+- **Migration Success**: Alembic migrations 013 and 014 applied successfully
+- **Service Availability**: Flow health monitor and all services running correctly
+
 ## [1.41.0] - 2025-01-20
 
 ### 🎯 **COLLECTION FLOW ORCHESTRATION** - CrewAI Agent Initialization Fix

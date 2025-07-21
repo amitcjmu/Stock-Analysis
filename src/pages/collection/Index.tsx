@@ -9,6 +9,9 @@ import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 import { collectionFlowApi } from '@/services/api/collection-flow';
 import { useToast } from '@/components/ui/use-toast';
 
+// Import auth context for flow management
+import { useAuth } from '@/contexts/AuthContext';
+
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +33,7 @@ import {
 const CollectionIndex: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { setCurrentFlow } = useAuth();
   const [isCreatingFlow, setIsCreatingFlow] = useState<string | null>(null);
 
   const workflowOptions = [
@@ -95,6 +99,7 @@ const CollectionIndex: React.FC = () => {
    * Start a collection workflow by creating a flow through CrewAI
    */
   const startCollectionWorkflow = async (workflowId: string, workflowPath: string) => {
+    console.log(`🚀 Frontend: Starting collection workflow: ${workflowId}`);
     setIsCreatingFlow(workflowId);
     
     try {
@@ -134,13 +139,26 @@ const CollectionIndex: React.FC = () => {
       
       // Create the collection flow - this triggers CrewAI agents
       console.log('🤖 Creating collection flow with CrewAI orchestration...');
+      console.log('📋 Flow data:', { automation_tier: automationTier, collection_config: collectionConfig });
+      
       const flowResponse = await collectionFlowApi.createFlow({
         automation_tier: automationTier,
         collection_config: collectionConfig
       });
       
+      console.log('✅ Flow response:', flowResponse);
+      
       console.log(`✅ Collection flow created: ${flowResponse.id}`);
       console.log(`📊 Master flow started, CrewAI agents are initializing...`);
+      
+      // Update the auth context with the new collection flow
+      setCurrentFlow({
+        id: flowResponse.id,
+        name: 'Collection Flow',
+        type: 'collection',
+        status: flowResponse.status || 'active',
+        engagement_id: flowResponse.engagement_id
+      });
       
       toast({
         title: 'Collection Workflow Started',

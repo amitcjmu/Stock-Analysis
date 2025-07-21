@@ -128,7 +128,7 @@ class WorkflowOrchestrator:
         
         # Initialize core services
         self.state_service = CollectionFlowStateService(db, context)
-        self.tier_detection = TierDetectionService()
+        self.tier_detection = TierDetectionService(db, context)
         self.business_analyzer = BusinessContextAnalyzer()
         self.gap_analysis_agent = GapAnalysisAgent()
         self.learning_optimizer = LearningOptimizer()

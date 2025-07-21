@@ -102,7 +102,7 @@ class TierRoutingService:
         self.context = context
         
         # Initialize base tier detection service
-        self.tier_detection = TierDetectionService()
+        self.tier_detection = TierDetectionService(db, context)
         
         # Initialize AI analysis services
         self.business_analyzer = BusinessContextAnalyzer()

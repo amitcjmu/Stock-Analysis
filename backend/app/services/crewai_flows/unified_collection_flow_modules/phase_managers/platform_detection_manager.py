@@ -46,7 +46,7 @@ class PlatformDetectionManager:
         self.audit_service = audit_service
         
         # Initialize services
-        self.tier_detection = TierDetectionService()
+        self.tier_detection = TierDetectionService(flow_context.db_session, flow_context.context)
         self.quality_assessment = QualityAssessmentService()
     
     async def execute(self, flow_state, crewai_service, environment_config, 

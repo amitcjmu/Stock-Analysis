@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { collectionFlowApi } from '@/services/api/collection-flow';
 import { useToast } from '@/hooks/use-toast';
+import { tokenStorage } from '@/contexts/AuthContext/storage';
 
 export interface CollectionFlow {
   id: string;
@@ -41,21 +43,58 @@ export interface FlowContinueResult {
   resume_result?: any;
 }
 
+// Hook for detecting incomplete collection flows
+export const useIncompleteCollectionFlows = (enabled: boolean = true) => {
+  console.log('🔍 useIncompleteCollectionFlows hook called with enabled:', enabled);
+  
+  const queryResult = useQuery({
+    queryKey: ['collection-flows', 'incomplete'],
+    queryFn: async () => {
+      console.log('🚀 Fetching incomplete collection flows...');
+      try {
+        const result = await collectionFlowApi.getIncompleteFlows();
+        console.log('✅ Incomplete flows fetched:', result);
+        return result;
+      } catch (error: any) {
+        console.error('❌ Failed to fetch incomplete flows:', error);
+        
+        // If it's an auth error, don't throw it back to React Query
+        // This prevents retries and lets the auth context handle the redirect
+        if (error?.status === 401 || error?.isAuthError) {
+          console.warn('🔐 Authentication error in collection flows query - stopping retries');
+          // Return empty array to prevent UI errors
+          return [];
+        }
+        
+        throw error;
+      }
+    },
+    enabled,
+    refetchInterval: (data, query) => {
+      // Don't refetch if there was an auth error
+      if (query?.state?.error?.status === 401 || query?.state?.error?.isAuthError) {
+        return false;
+      }
+      return 30000; // Refetch every 30 seconds
+    },
+    staleTime: 10000 // Consider data stale after 10 seconds
+  });
+  
+  console.log('🔍 Query result:', {
+    isLoading: queryResult.isLoading,
+    isFetching: queryResult.isFetching,
+    isError: queryResult.isError,
+    data: queryResult.data,
+    error: queryResult.error
+  });
+  
+  return queryResult;
+};
+
 export const useCollectionFlowManagement = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isOperationPending, setIsOperationPending] = useState(false);
-
-  // Query for incomplete flows
-  const useIncompleteFlows = (enabled: boolean = true) => {
-    return useQuery({
-      queryKey: ['collection-flows', 'incomplete'],
-      queryFn: collectionFlowApi.getIncompleteFlows,
-      enabled,
-      refetchInterval: 30000, // Refetch every 30 seconds
-      staleTime: 10000 // Consider data stale after 10 seconds
-    });
-  };
 
   // Continue/resume flow mutation
   const continueFlowMutation = useMutation({
@@ -181,9 +220,6 @@ export const useCollectionFlowManagement = () => {
   };
 
   return {
-    // Queries
-    useIncompleteFlows,
-    
     // Mutations
     continueFlow,
     deleteFlow,

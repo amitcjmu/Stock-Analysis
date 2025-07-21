@@ -354,7 +354,12 @@ class AdaptiveQuestionnaire(Base):
     client_account_id = Column(UUID(as_uuid=True), ForeignKey('client_accounts.id', ondelete='CASCADE'), nullable=False, index=True)
     engagement_id = Column(UUID(as_uuid=True), ForeignKey('engagements.id', ondelete='CASCADE'), nullable=False, index=True)
     
-    # Template identification
+    # Flow relationship
+    collection_flow_id = Column(UUID(as_uuid=True), ForeignKey('collection_flows.id', ondelete='CASCADE'), nullable=True, index=True)
+    
+    # Questionnaire identification
+    title = Column(String(255), nullable=True)
+    description = Column(Text, nullable=True)
     template_name = Column(String(255), nullable=False)
     template_type = Column(String(100), nullable=False, index=True)  # technical, business, operational
     version = Column(String(20), nullable=False, default='1.0')
@@ -364,10 +369,12 @@ class AdaptiveQuestionnaire(Base):
     
     # Question configuration
     question_set = Column(JSONB, nullable=False)  # Structured question data
+    questions = Column(JSONB, default=list, nullable=False)  # List of questions for this instance
     question_count = Column(Integer, nullable=False, default=0)
     estimated_completion_time = Column(Integer, nullable=True)  # In minutes
     
     # Targeting
+    target_gaps = Column(JSONB, default=list, nullable=False)  # Specific gaps this questionnaire addresses
     gap_categories = Column(JSONB, default=list, nullable=False)  # Gap categories this addresses
     platform_types = Column(JSONB, default=list, nullable=False)  # Applicable platform types
     data_domains = Column(JSONB, default=list, nullable=False)  # Data domains covered
@@ -380,13 +387,16 @@ class AdaptiveQuestionnaire(Base):
     usage_count = Column(Integer, nullable=False, default=0)
     success_rate = Column(Float, nullable=True)  # Success rate of gap filling
     
-    # Status
+    # Status and responses
+    completion_status = Column(String(50), nullable=False, default='pending')  # pending, in_progress, completed
+    responses_collected = Column(JSONB, nullable=True)  # Collected responses
     is_active = Column(Boolean, nullable=False, default=True)
     is_template = Column(Boolean, nullable=False, default=True)  # Template vs instance
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
     
     def __repr__(self):
         return f"<AdaptiveQuestionnaire(name='{self.template_name}', type='{self.template_type}')>"
@@ -405,13 +415,18 @@ class AdaptiveQuestionnaire(Base):
             "id": str(self.id),
             "client_account_id": str(self.client_account_id),
             "engagement_id": str(self.engagement_id),
+            "collection_flow_id": str(self.collection_flow_id) if self.collection_flow_id else None,
+            "title": self.title,
+            "description": self.description,
             "template_name": self.template_name,
             "template_type": self.template_type,
             "version": self.version,
             "applicable_tiers": self.applicable_tiers,
             "question_set": self.question_set,
+            "questions": self.questions,
             "question_count": self.question_count,
             "estimated_completion_time": self.estimated_completion_time,
+            "target_gaps": self.target_gaps,
             "gap_categories": self.gap_categories,
             "platform_types": self.platform_types,
             "data_domains": self.data_domains,
@@ -419,10 +434,13 @@ class AdaptiveQuestionnaire(Base):
             "validation_rules": self.validation_rules,
             "usage_count": self.usage_count,
             "success_rate": self.success_rate,
+            "completion_status": self.completion_status,
+            "responses_collected": self.responses_collected,
             "is_active": self.is_active,
             "is_template": self.is_template,
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None
         }
 
 

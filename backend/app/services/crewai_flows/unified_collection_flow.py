@@ -47,7 +47,7 @@ except ImportError as e:
 # Import models and dependencies
 from app.models.collection_flow import (
     CollectionFlowState, CollectionPhase, CollectionStatus, AutomationTier,
-    PlatformType, DataDomain, CollectionFlowError
+    PlatformType, DataDomain, CollectionFlowError, AdaptiveQuestionnaire
 )
 from app.core.context import RequestContext
 from app.services.crewai_flows.flow_state_manager import FlowStateManager
@@ -114,17 +114,19 @@ class UnifiedCollectionFlow(Flow[CollectionFlowState]):
     
     def __init__(self, crewai_service, context: RequestContext, automation_tier: str = "tier_2", **kwargs):
         """Initialize unified collection flow"""
-        super().__init__()
-        
         logger.info("🚀 Initializing Unified Collection Flow with CrewAI Agents")
         
-        # Store core attributes
+        # Store core attributes BEFORE calling super().__init__() 
+        # because CrewAI Flow.__init__ may access properties
         self.crewai_service = crewai_service
         self.context = context
         self.automation_tier = AutomationTier(automation_tier)
         self._flow_id = kwargs.get('flow_id') or str(uuid.uuid4())
         self._master_flow_id = kwargs.get('master_flow_id')
         self._discovery_flow_id = kwargs.get('discovery_flow_id')
+        
+        # Initialize base CrewAI Flow after setting attributes
+        super().__init__()
         
         # Initialize flow context
         self.flow_context = FlowContext(
@@ -135,8 +137,9 @@ class UnifiedCollectionFlow(Flow[CollectionFlowState]):
             db_session=kwargs.get('db_session')
         )
         
-        # Initialize state
-        self.state = CollectionFlowState(
+        # Initialize flow state - CrewAI Flow manages state internally
+        # We'll use _flow_state for our internal state management
+        self._flow_state = CollectionFlowState(
             flow_id=self._flow_id,
             client_account_id=str(context.client_account_id),
             engagement_id=str(context.engagement_id),
@@ -159,8 +162,8 @@ class UnifiedCollectionFlow(Flow[CollectionFlowState]):
             db_session=self.flow_context.db_session
         )
         
-        # Initialize unified flow management
-        self.unified_flow_management = UnifiedFlowManagement(self.state)
+        # Initialize unified flow management  
+        self.unified_flow_management = UnifiedFlowManagement(self._flow_state)
         
         # Store configuration
         self.config = kwargs.get('config', {})
@@ -169,14 +172,52 @@ class UnifiedCollectionFlow(Flow[CollectionFlowState]):
         
         logger.info(f"✅ Collection Flow initialized - Flow ID: {self._flow_id}")
     
+    @property
+    def flow_id(self):
+        """Get the flow ID"""
+        return self._flow_id
+    
+    @property
+    def state(self):
+        """Get the flow state - always return our managed state"""
+        # Always return the internal flow state if available
+        if hasattr(self, '_flow_state') and self._flow_state:
+            return self._flow_state
+        
+        # If we don't have _flow_state yet, create a default with proper IDs
+        # This should only happen during initialization
+        flow_id = getattr(self, '_flow_id', str(uuid.uuid4()))
+        client_account_id = ""
+        engagement_id = ""
+        user_id = ""
+        
+        if hasattr(self, 'context') and self.context:
+            client_account_id = str(self.context.client_account_id) if self.context.client_account_id else ""
+            engagement_id = str(self.context.engagement_id) if self.context.engagement_id else ""
+            user_id = str(self.context.user_id) if self.context.user_id else ""
+        
+        default_state = CollectionFlowState(
+            flow_id=flow_id,
+            client_account_id=client_account_id,
+            engagement_id=engagement_id,
+            user_id=user_id,
+            automation_tier=getattr(self, 'automation_tier', AutomationTier.TIER_2),
+            current_phase=CollectionPhase.INITIALIZATION,
+            status=CollectionStatus.INITIALIZING
+        )
+        
+        # Store it as _flow_state for consistency
+        self._flow_state = default_state
+        return self._flow_state
+    
     def _initialize_services(self):
         """Initialize all required services"""
         db_session = self.flow_context.db_session
         
         # Initialize Phase 1 & 2 services
         self.state_service = CollectionFlowStateService(db_session, self.context)
-        self.tier_detection = TierDetectionService()
-        self.data_transformation = DataTransformationService()
+        self.tier_detection = TierDetectionService(db_session, self.context)
+        self.data_transformation = DataTransformationService(db_session, self.context)
         self.quality_assessment = QualityAssessmentService()
         self.audit_logging = AuditLoggingService(db_session, self.context)
         
@@ -235,6 +276,27 @@ class UnifiedCollectionFlow(Flow[CollectionFlowState]):
             self.state.current_phase = CollectionPhase.PLATFORM_DETECTION
             self.state.next_phase = CollectionPhase.AUTOMATED_COLLECTION
             self.state.progress = 5.0
+            
+            # Update database status to prevent blocking
+            if self.flow_context.db_session:
+                try:
+                    from sqlalchemy import update
+                    from app.models.collection_flow import CollectionFlow, CollectionFlowStatus
+                    
+                    stmt = update(CollectionFlow).where(
+                        CollectionFlow.id == uuid.UUID(self._flow_id)
+                    ).values(
+                        status=CollectionFlowStatus.PLATFORM_DETECTION.value,
+                        current_phase=CollectionPhase.PLATFORM_DETECTION.value,
+                        progress_percentage=5.0,
+                        updated_at=datetime.utcnow()
+                    )
+                    await self.flow_context.db_session.execute(stmt)
+                    await self.flow_context.db_session.commit()
+                    logger.info(f"✅ Updated flow {self._flow_id} status from INITIALIZED to PLATFORM_DETECTION")
+                except Exception as e:
+                    logger.error(f"Failed to update flow status in database: {e}")
+                    # Continue even if database update fails
             
             return {
                 "phase": "initialization",
@@ -543,10 +605,13 @@ class UnifiedCollectionFlow(Flow[CollectionFlowState]):
                 )
                 form_configs.append(form_config)
             
+            # Save questionnaires to database
+            saved_questionnaires = await self._save_questionnaires_to_db(questionnaires)
+            
             # Store in state
-            self.state.questionnaires = questionnaires
+            self.state.questionnaires = saved_questionnaires
             self.state.phase_results["questionnaire_generation"] = {
-                "questionnaires": questionnaires,
+                "questionnaires": saved_questionnaires,
                 "form_configs": form_configs
             }
             
@@ -891,6 +956,83 @@ class UnifiedCollectionFlow(Flow[CollectionFlowState]):
             pass
         
         return None
+    
+    async def _save_questionnaires_to_db(self, questionnaires: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Save generated questionnaires to database"""
+        try:
+            if not self.flow_context.db_session:
+                logger.warning("No database session available for saving questionnaires")
+                return questionnaires
+            
+            saved_questionnaires = []
+            
+            for questionnaire_data in questionnaires:
+                # Extract questionnaire metadata from the generated data
+                metadata = questionnaire_data.get("questionnaire", {}).get("metadata", {})
+                sections = questionnaire_data.get("questionnaire", {}).get("sections", [])
+                
+                # Create questionnaire instance
+                questionnaire = AdaptiveQuestionnaire(
+                    client_account_id=uuid.UUID(self.flow_context.client_account_id),
+                    engagement_id=uuid.UUID(self.flow_context.engagement_id),
+                    collection_flow_id=uuid.UUID(self.flow_id),
+                    title=metadata.get("title", "Adaptive Data Collection Questionnaire"),
+                    description=metadata.get("description", "AI-generated questionnaire for gap resolution"),
+                    template_name=metadata.get("id", f"questionnaire-{self.flow_id}"),
+                    template_type="adaptive_collection",
+                    version=metadata.get("version", "1.0"),
+                    applicable_tiers=[self.automation_tier.value],
+                    question_set=questionnaire_data.get("questionnaire", {}),
+                    questions=self._extract_questions_from_sections(sections),
+                    question_count=metadata.get("total_questions", 0),
+                    estimated_completion_time=metadata.get("estimated_duration_minutes", 20),
+                    target_gaps=questionnaire_data.get("questionnaire", {}).get("target_gaps", []),
+                    gap_categories=self._extract_gap_categories(sections),
+                    platform_types=self.state.detected_platforms,
+                    data_domains=["collection", "migration_readiness"],
+                    scoring_rules=questionnaire_data.get("questionnaire", {}).get("completion_criteria", {}),
+                    validation_rules=questionnaire_data.get("questionnaire", {}).get("adaptive_logic", {}),
+                    completion_status="pending",
+                    is_template=False  # This is an instance, not a template
+                )
+                
+                # Save to database
+                self.flow_context.db_session.add(questionnaire)
+                
+                # Add ID to questionnaire data for reference
+                questionnaire_data["db_id"] = str(questionnaire.id)
+                saved_questionnaires.append(questionnaire_data)
+            
+            # Commit all questionnaires
+            await self.flow_context.db_session.commit()
+            
+            logger.info(f"✅ Saved {len(saved_questionnaires)} questionnaires to database for flow {self.flow_id}")
+            
+            return saved_questionnaires
+            
+        except Exception as e:
+            logger.error(f"Failed to save questionnaires to database: {e}")
+            if self.flow_context.db_session:
+                await self.flow_context.db_session.rollback()
+            # Return original questionnaires even if save fails
+            return questionnaires
+    
+    def _extract_questions_from_sections(self, sections: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Extract all questions from questionnaire sections"""
+        questions = []
+        for section in sections:
+            questions.extend(section.get("questions", []))
+        return questions
+    
+    def _extract_gap_categories(self, sections: List[Dict[str, Any]]) -> List[str]:
+        """Extract gap categories from questionnaire sections"""
+        categories = set()
+        for section in sections:
+            for question in section.get("questions", []):
+                gap_resolution = question.get("gap_resolution", {})
+                if gap_resolution.get("addresses_gap"):
+                    categories.add(gap_resolution["addresses_gap"])
+        return list(categories)
 
 
 def create_unified_collection_flow(

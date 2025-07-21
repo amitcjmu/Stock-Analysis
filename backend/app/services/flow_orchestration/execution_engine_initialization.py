@@ -66,6 +66,8 @@ class FlowInitializer:
         """
         try:
             logger.info(f"🚀 Initializing flow execution for {flow_type} flow: {flow_id}")
+            logger.info(f"📋 Initial state: {initial_state}")
+            logger.info(f"⚙️ Configuration: {configuration}")
             
             # Get flow configuration
             flow_config = self.flow_registry.get_flow_config(flow_type)
@@ -197,6 +199,7 @@ class FlowInitializer:
         """Initialize collection flow execution with CrewAI"""
         try:
             logger.info(f"🎯 Initializing collection flow: {flow_id}")
+            logger.info(f"📋 Collection flow initial state: {initial_state}")
             
             # Import required modules
             from app.services.crewai_flows.unified_collection_flow import create_unified_collection_flow

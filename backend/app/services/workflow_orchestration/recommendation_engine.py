@@ -149,7 +149,7 @@ class SmartWorkflowRecommendationEngine:
         
         # Initialize dependent services
         self.tier_routing = TierRoutingService(db, context)
-        self.tier_detection = TierDetectionService()
+        self.tier_detection = TierDetectionService(db, context)
         self.business_analyzer = BusinessContextAnalyzer()
         self.confidence_scoring = ConfidenceScorer()
         self.learning_optimizer = LearningOptimizer()

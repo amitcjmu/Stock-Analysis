@@ -1,11 +1,13 @@
 """
 Callback Handler for Discovery Flow
 Handles comprehensive callback system for monitoring crew and agent activities
+Enhanced for Agent Observability Enhancement Phase 2.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -17,10 +19,24 @@ except ImportError:
     AGENT_REGISTRY_AVAILABLE = False
     logger.warning("Agent registry not available for performance tracking")
 
+# Import agent monitor for task persistence
+try:
+    from app.services.agent_monitor import agent_monitor
+    AGENT_MONITOR_AVAILABLE = True
+except ImportError:
+    AGENT_MONITOR_AVAILABLE = False
+    logger.warning("Agent monitor not available for task persistence")
+
 class CallbackHandler:
-    """Handles comprehensive callback system for monitoring"""
+    """Handles comprehensive callback system for monitoring with database persistence"""
     
-    def __init__(self):
+    def __init__(self, flow_id: Optional[str] = None, client_account_id: Optional[str] = None, 
+                 engagement_id: Optional[str] = None):
+        self.flow_id = flow_id
+        self.client_account_id = client_account_id
+        self.engagement_id = engagement_id
+        self.active_tasks = {}  # Map agent+task to task_id for tracking
+        
         self.callback_state = {
             "total_steps": 0,
             "completed_steps": 0,
@@ -45,16 +61,18 @@ class CallbackHandler:
         logger.info("Callback system initialized with 5 callback types")
     
     def _step_callback(self, step_info: Dict[str, Any]):
-        """Callback for individual agent steps"""
+        """Callback for individual agent steps with task tracking"""
         try:
             timestamp = datetime.now().isoformat()
+            agent_name = step_info.get("agent", "unknown")
+            task_name = step_info.get("task", "unknown")
             
             step_entry = {
                 "timestamp": timestamp,
                 "step_type": step_info.get("type", "unknown"),
-                "agent": step_info.get("agent", "unknown"),
+                "agent": agent_name,
                 "crew": self.callback_state.get("current_crew", "unknown"),
-                "task": step_info.get("task", "unknown"),
+                "task": task_name,
                 "content": step_info.get("content", ""),
                 "status": step_info.get("status", "in_progress")
             }
@@ -66,6 +84,41 @@ class CallbackHandler:
             self.callback_state["total_steps"] += 1
             if step_info.get("status") == "completed":
                 self.callback_state["completed_steps"] += 1
+            
+            # Track task in agent monitor
+            if AGENT_MONITOR_AVAILABLE and agent_name != "unknown":
+                task_key = f"{agent_name}:{task_name}"
+                
+                if step_info.get("status") == "starting" and task_key not in self.active_tasks:
+                    # Start tracking new task
+                    task_id = f"task_{uuid.uuid4().hex[:8]}_{agent_name}"
+                    self.active_tasks[task_key] = task_id
+                    
+                    agent_monitor.start_task_with_context(
+                        task_id=task_id,
+                        agent_name=agent_name,
+                        description=step_info.get("content", task_name),
+                        flow_id=self.flow_id,
+                        client_account_id=self.client_account_id,
+                        engagement_id=self.engagement_id,
+                        agent_type="individual"
+                    )
+                
+                elif task_key in self.active_tasks:
+                    # Update existing task
+                    task_id = self.active_tasks[task_key]
+                    
+                    if step_info.get("type") == "thinking":
+                        agent_monitor.record_thinking_phase(
+                            task_id=task_id,
+                            phase_description=step_info.get("content", "")[:100]
+                        )
+                    elif step_info.get("type") == "llm_call":
+                        agent_monitor.start_llm_call(
+                            task_id=task_id,
+                            action=step_info.get("action", "unknown"),
+                            prompt_length=len(str(step_info.get("prompt", "")))
+                        )
             
             # Log step activity
             logger.info(f"Step Callback - {step_entry['agent']}: {step_entry['content'][:100]}...")
@@ -100,15 +153,17 @@ class CallbackHandler:
             logger.error(f"Error in crew step callback: {e}")
     
     def _task_completion_callback(self, task_info: Dict[str, Any]):
-        """Callback for task completion events"""
+        """Callback for task completion events with persistence"""
         try:
             timestamp = datetime.now().isoformat()
+            agent_name = task_info.get("agent", "unknown")
+            task_name = task_info.get("task_name", "unknown")
             
             completion_entry = {
                 "timestamp": timestamp,
                 "task_id": task_info.get("task_id", "unknown"),
-                "task_name": task_info.get("task_name", "unknown"),
-                "agent": task_info.get("agent", "unknown"),
+                "task_name": task_name,
+                "agent": agent_name,
                 "crew": task_info.get("crew", "unknown"),
                 "status": task_info.get("status", "completed"),
                 "duration": task_info.get("duration", 0),
@@ -140,6 +195,50 @@ class CallbackHandler:
                 new_score = completion_entry["quality_score"]
                 task_count = metrics["completed_tasks"]
                 metrics["average_quality"] = ((current_avg * (task_count - 1)) + new_score) / task_count
+            
+            # Complete task in agent monitor
+            if AGENT_MONITOR_AVAILABLE and agent_name != "unknown":
+                task_key = f"{agent_name}:{task_name}"
+                
+                if task_key in self.active_tasks:
+                    task_id = self.active_tasks[task_key]
+                    
+                    # Extract token usage if available
+                    token_usage = None
+                    if "token_usage" in task_info:
+                        token_usage = task_info["token_usage"]
+                    elif "llm_usage" in task_info:
+                        llm_usage = task_info["llm_usage"]
+                        token_usage = {
+                            "input_tokens": llm_usage.get("prompt_tokens", 0),
+                            "output_tokens": llm_usage.get("completion_tokens", 0),
+                            "total_tokens": llm_usage.get("total_tokens", 0)
+                        }
+                    
+                    # Complete with metrics
+                    agent_monitor.complete_task_with_metrics(
+                        task_id=task_id,
+                        result=str(task_info.get("output", ""))[:500],
+                        confidence_score=completion_entry["quality_score"],
+                        token_usage=token_usage,
+                        memory_usage_mb=task_info.get("memory_usage_mb")
+                    )
+                    
+                    # Clean up tracking
+                    del self.active_tasks[task_key]
+                    
+                    # Check for discovered patterns
+                    if "patterns" in task_info:
+                        for pattern in task_info["patterns"]:
+                            agent_monitor.discover_pattern(
+                                agent_name=agent_name,
+                                pattern_id=pattern.get("id", str(uuid.uuid4())),
+                                pattern_data=pattern,
+                                task_id=task_id,
+                                confidence_score=pattern.get("confidence", 0.5),
+                                client_account_id=self.client_account_id,
+                                engagement_id=self.engagement_id
+                            )
             
             # Log task completion
             logger.info(f"Task Completion - {completion_entry['task_name']}: {completion_entry['status']} in {completion_entry['duration']}s")
