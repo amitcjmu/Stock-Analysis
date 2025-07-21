@@ -3,6 +3,35 @@
 ## Overview
 This document provides standardized task templates for AI agents working on ESLint compliance. Each template includes specific instructions, validation requirements, and success criteria.
 
+## ⚠️ **Critical Global Guidelines**
+
+### **Type-Only Import Requirement**
+**🚨 MANDATORY**: Always use type-only imports (`import type { ... } from '...'`) when importing interfaces, types, or type aliases that are NOT used as runtime values. This prevents:
+- **Circular dependencies** at runtime
+- **Bundle size bloat** from unnecessary imports  
+- **Performance degradation** in large codebases
+
+```typescript
+// ✅ CORRECT - Type-only imports
+import type { BaseMetadata, AnalysisResult } from '../shared/metadata-types';
+import type { ApiResponse } from '../shared/api-types';
+import type { ComponentProps } from 'react';
+
+// ❌ WRONG - Value imports for types
+import { BaseMetadata, AnalysisResult } from '../shared/metadata-types';
+import { ApiResponse } from '../shared/api-types';
+
+// ✅ CORRECT - Mixed imports when some are values
+import React, { type FC, type ReactNode } from 'react';
+import { someUtilFunction, type SomeType } from './utils';
+```
+
+### **Import Validation Protocol**
+Every agent MUST verify all imports follow this pattern:
+1. **Type-only**: `import type` for interfaces, type aliases, generic types
+2. **Value imports**: Regular `import` only for functions, classes, constants, enums used at runtime
+3. **Mixed imports**: Use `type` modifier within braces for type-only items in mixed imports
+
 ## Template A: Forward Declaration Agent
 
 ### Agent Profile
@@ -22,6 +51,12 @@ TARGET FILES:
 - src/types/api/planning/timeline/core-types.ts (42 errors)
 - src/types/api/planning/strategy/core-types.ts (37 errors)
 - src/types/api/finops/flow-management.ts (32 errors)
+
+DEPENDENCY PROTOCOL:
+- PREREQUISITE: Shared type definitions deployed in /src/types/shared/
+- PROVIDES: Core type definitions for Agents D, E, F dependency resolution
+- COMMUNICATION: Use `// TODO:AWAIT_AGENT_A for type XYZ` for complex cross-cutting types
+- COORDINATION: Agent A is designated Core Types Lead for conflict resolution
 
 REPLACEMENT STRATEGY:
 1. Identify forward declaration pattern: `{ [key: string]: any; }`
@@ -75,6 +110,12 @@ Standardize metadata containers across API type definitions using shared metadat
 OBJECTIVE: Replace `metadata: Record<string, any>` with typed metadata interfaces
 
 TARGET PATTERN: metadata: Record<string, any>
+
+DEPENDENCY PROTOCOL:
+- PREREQUISITE: BaseMetadata interfaces from shared types available
+- PROVIDES: Standardized metadata patterns for all other agents
+- COMMUNICATION: Broadcast completion to enable Wave 2 agents
+- COORDINATION: Report metadata conflicts to Agent A for resolution
 
 REPLACEMENT STRATEGY:
 1. Identify all metadata property definitions
@@ -133,6 +174,12 @@ Replace generic configuration values with proper union types in constraint and c
 OBJECTIVE: Replace `value: any` with typed configuration values
 
 TARGET PATTERN: value: any (in constraint/criteria contexts)
+
+DEPENDENCY PROTOCOL:
+- PREREQUISITE: ConfigurationValue types from shared definitions available
+- PROVIDES: Configuration typing patterns for application layer agents
+- COMMUNICATION: Notify Wave 2 agents when configuration patterns established
+- COORDINATION: Resolve configuration type conflicts with Agent A
 
 REPLACEMENT STRATEGY:
 1. Identify configuration value patterns
@@ -201,6 +248,12 @@ TARGET FILES:
 - src/types/hooks/shared/form-hooks.ts (37 errors)
 - src/hooks/useUnifiedDiscoveryFlow.ts (25 errors)
 
+DEPENDENCY PROTOCOL:
+- PREREQUISITE: FormState interfaces from Agent A + shared types
+- PROVIDES: Form handling patterns for component integration
+- COMMUNICATION: Coordinate with Agent F on component prop interfaces
+- COORDINATION: Use `// TODO:AWAIT_AGENT_A for FormState<X>` for missing types
+
 REPLACEMENT STRATEGY:
 1. Replace TFieldValues = any with specific form data types
 2. Type event handlers properly
@@ -257,6 +310,12 @@ OBJECTIVE: Replace any types in API response handling with proper interfaces
 TARGET FILES:
 - src/utils/api/apiTypes.ts (30 errors)
 - Related API utility files
+
+DEPENDENCY PROTOCOL:
+- PREREQUISITE: ApiResponse interfaces from Agent A + shared types
+- PROVIDES: API response patterns for all other agents consuming APIs
+- COMMUNICATION: Coordinate with Agent D on form submission APIs
+- COORDINATION: Request missing API types from Agent A via tagging
 
 REPLACEMENT STRATEGY:
 1. Identify API response patterns

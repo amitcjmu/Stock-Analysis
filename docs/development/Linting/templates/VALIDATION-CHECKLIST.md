@@ -8,15 +8,18 @@ This checklist ensures all AI agents maintain quality standards and avoid breaki
 ### Environment Setup
 - [ ] **Git branch created**: Agent has dedicated branch (`lint/agent-[A-H]-[task-description]`)
 - [ ] **Dependencies current**: `npm install` completed successfully
-- [ ] **Baseline established**: Initial ESLint error count documented
+- [ ] **Baseline established**: Run `node docs/development/Linting/artifacts/progress-tracker.js`
 - [ ] **Shared types available**: Access to `/docs/development/Linting/artifacts/SHARED-TYPE-DEFINITIONS.ts`
 - [ ] **Target files identified**: All files in scope are accessible and readable
+- [ ] **Agent validation complete**: Successfully processed 2-3 sample files from domain
 
 ### Task Understanding
 - [ ] **Template reviewed**: Agent-specific template from AGENT-TASK-TEMPLATES.md understood
 - [ ] **Success criteria clear**: Specific error count reduction target identified
 - [ ] **Scope defined**: Exact files and patterns to address documented
-- [ ] **Dependencies mapped**: Understanding of which other agents' work may be needed
+- [ ] **Dependencies mapped**: Understanding of prerequisite agents and provided outputs
+- [ ] **Communication protocol**: Know how to use `// TODO:AWAIT_AGENT_X` dependency tagging
+- [ ] **Coordination role**: Understand if designated as Core Types Lead (Agent A) or dependent
 - [ ] **Escalation path**: Know when and how to escalate issues
 
 ## During-Task Validation (Per File)
@@ -39,6 +42,8 @@ This checklist ensures all AI agents maintain quality standards and avoid breaki
 - [ ] **Union types**: Use union types for known value sets instead of string
 - [ ] **Optional vs required**: Carefully consider which properties should be optional
 - [ ] **Backwards compatibility**: Existing code using these types still compiles
+- [ ] **Type-only imports**: `import type` is used for all imports that are only for type annotations
+- [ ] **Import optimization**: No unnecessary value imports that could be type-only
 
 ## Compilation Validation
 

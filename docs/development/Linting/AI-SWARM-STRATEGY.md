@@ -65,61 +65,188 @@ This document outlines the comprehensive strategy for deploying AI agents to eli
 - **Files**: Guard utilities
 - **Impact**: Low - appropriate usage for type guards
 
-## Three-Phase Execution Plan
+## Four-Phase Event-Driven Execution Plan
 
-### Phase 1: Foundation Setup (Day 1)
-**Sequential Tasks - Single Agent**
+### Phase 0.5: Scope Refinement
+**Sequential Tasks - Preparation Agent**
 
-#### Task 1.1: Create Shared Type Definitions
-- Create `/src/types/shared/` directory structure
-- Implement base interfaces (see artifacts/shared-types.ts)
-- Duration: 2-3 hours
+#### Task 0.1: Identify Non-Actionable Files
+- Scan for third-party library files
+- Identify auto-generated code directories
+- Update `.eslintignore` to exclude non-actionable files
+- **Trigger Next**: Accurate error count established
+
+#### Task 0.2: Set Up Automated Tracking
+- Deploy automated progress tracking script
+- Initialize baseline error metrics
+- Set up real-time monitoring dashboard
+- **Trigger Next**: Tracking system operational
+
+#### Task 0.3: Pre-deployment Validation
+- Each agent validates understanding with 2-3 sample files
+- Verify shared type definitions access
+- Confirm agent-specific tooling setup
+- **Trigger Next**: All agents validated and ready
+
+### Phase 1: Foundation Setup
+**Sequential Tasks - Foundation Agent**
+
+#### Task 1.1: Create Shared Type Infrastructure
+- Deploy `/src/types/shared/` directory structure
+- Implement base interfaces (from artifacts/shared-types.ts)
+- **Trigger Next**: Shared types available for import
 
 #### Task 1.2: Auto-Fix Simple Errors
-- Run automated ESLint fixes for `prefer-const`, `@ts-ignore` → `@ts-expect-error`
-- Estimated reduction: 150+ errors
-- Duration: 1 hour
+- Execute automated ESLint fixes (`prefer-const`, `@ts-ignore` → `@ts-expect-error`)
+- **Estimated Reduction**: 150+ errors
+- **Trigger Next**: Mechanical fixes complete, accurate remaining count
 
-#### Task 1.3: Set Up Validation Framework  
-- Create build validation scripts
-- Set up TypeScript compilation checks
-- Duration: 1-2 hours
+#### Task 1.3: Deploy Validation Framework  
+- Activate build validation scripts
+- Enable continuous TypeScript compilation checks
+- **Trigger Next**: Quality gates operational
 
-### Phase 2: Parallel Agent Deployment (Days 2-4)
-**Parallel Execution - 8 Agents**
+### Phase 2: Parallel Agent Swarm Deployment
+**Event-Driven Parallel Execution - 8 Agents**
 
-#### Wave 1: High-Impact Agents (3 Agents - 6 hours)
+#### Wave 1: Core Infrastructure Agents (Deploy When Foundation Complete)
 - **Agent A**: Forward declarations in core-types files (111+ errors)
+  - **Dependency**: Shared type definitions available
+  - **Trigger Next**: Core types established for other agents
 - **Agent B**: Metadata standardization across API types (80+ errors)  
+  - **Dependency**: BaseMetadata interfaces from shared types
+  - **Trigger Next**: Metadata patterns standardized
 - **Agent C**: Configuration value typing in constraints (60+ errors)
+  - **Dependency**: ConfigurationValue types from shared types
+  - **Trigger Next**: Configuration patterns established
 
-#### Wave 2: Medium-Impact Agents (3 Agents - 6 hours)
+#### Wave 2: Application Layer Agents (Deploy When Core Types Available)
 - **Agent D**: Form hook typing system (50+ errors)
+  - **Dependency**: FormState interfaces from Agent A + shared types
+  - **Trigger Next**: Form patterns typed
 - **Agent E**: API response typing in utilities (40+ errors)
+  - **Dependency**: ApiResponse interfaces from Agent A + shared types
+  - **Trigger Next**: API patterns standardized
 - **Agent F**: Component prop type definitions (35+ errors)
+  - **Dependency**: ComponentProps interfaces from Agent A + shared types
+  - **Trigger Next**: Component patterns typed
 
-#### Wave 3: Cleanup Agents (2 Agents - 4 hours)
+#### Wave 3: Integration Agents (Deploy When Application Layer 80% Complete)
 - **Agent G**: Hook and state management typing (30+ errors)
+  - **Dependency**: HookState interfaces from Agents D,E,F
+  - **Trigger Next**: Hook patterns standardized  
 - **Agent H**: Edge cases and remaining files (25+ errors)
+  - **Dependency**: All prior agent work for context
+  - **Trigger Next**: All errors addressed
 
-### Phase 3: Integration & Validation (Day 5)
-**Quality Assurance - 2 Agents**
+### Phase 3: Continuous Integration & Validation
+**Concurrent Quality Assurance Throughout Phase 2**
 
-#### Task 3.1: Cross-Agent Validation
-- Type consistency verification
-- Interface compatibility checks
-- Duration: 2-3 hours
+#### Continuous Validation (Runs After Each Agent Completion)
+- **Type Consistency Check**: Verify no interface conflicts
+- **Build Validation**: Ensure TypeScript compilation passes
+- **Functional Testing**: Spot-check critical functionality
+- **Progress Update**: Automated tracker refresh
+- **Trigger Next**: Agent marked complete, next wave can proceed
 
-#### Task 3.2: Build & Test Validation
-- Full TypeScript compilation
-- ESLint compliance verification  
-- Test suite execution
-- Duration: 2-3 hours
+#### Final Integration (Triggers When All Agents Complete)
+- **Cross-Agent Compatibility Audit**: Final type consistency verification
+- **Full Test Suite Execution**: Complete regression testing
+- **Performance Validation**: Build time and bundle size checks
+- **Security Scan Preparation**: Type safety compliance audit
+- **Trigger Next**: Production readiness achieved
 
-#### Task 3.3: Security Scan Preparation
-- Type safety compliance audit
-- Security scan configuration updates
-- Duration: 1-2 hours
+### Phase 4: Prevention & Governance
+**Deployment When Phase 3 Complete**
+
+#### Task 4.1: Enforce Stricter Rules
+- Change `@typescript-eslint/no-explicit-any` from warning to error
+- Update ESLint configuration for zero tolerance
+- **Trigger Next**: New any-types will fail builds
+
+#### Task 4.2: CI/CD Gate Implementation  
+- Add mandatory ESLint check to PR pipeline
+- Block merges with any-type violations
+- **Trigger Next**: Prevention system active
+
+#### Task 4.3: Governance Structure
+- Assign ownership of SHARED-TYPE-DEFINITIONS.ts
+- Establish type review process for new shared types
+- Document type governance procedures
+- **Trigger Next**: Long-term sustainability ensured
+
+## Enhanced Coordination & Dependency Management
+
+### Agent Leadership Protocol
+- **Core Types Lead**: Agent A designated as authority for complex, cross-cutting types
+- **Dependency Tagging**: Agents use standardized `// TODO:AWAIT_AGENT_A for type XYZ` comments
+- **Type Request System**: Agents can request shared type additions via progress tracker
+- **Conflict Resolution**: Agent A mediates type conflicts between agents
+
+### Inter-Agent Communication
+- **Status Broadcasting**: Each agent broadcasts completion of major milestones
+- **Dependency Notifications**: Agents notify dependents when their types are ready
+- **Blocker Escalation**: Immediate escalation for blocking dependencies
+- **Shared Context**: All agents maintain awareness of overall progress state
+
+### Automated Coordination
+- **Dependency Tracking**: Automated detection of agent interdependencies
+- **Wave Deployment**: Automatic wave deployment when prerequisites met
+- **Conflict Detection**: Real-time detection of conflicting type definitions
+- **Integration Validation**: Continuous validation of cross-agent compatibility
+
+## Recommended Tooling Strategy
+
+### Analysis & Planning Tools
+- **ts-prune**: Identify and remove unused types during cleanup
+- **depcruise**: Visualize type dependencies and circular references  
+- **typescript-dependency-graph**: Map type relationships across domains
+- **eslint-stats**: Track error reduction patterns by file and rule
+
+### Development Acceleration Tools
+- **jscodeshift**: Create codemods for repetitive mechanical transformations
+- **ts-morph**: Programmatic TypeScript AST manipulation for complex patterns
+- **ast-grep**: Pattern-based search and replace for type definitions
+- **TypeScript Language Service**: Enhanced IDE support for large-scale refactoring
+
+### Agent-Specific Tooling
+- **Agent A (Forward Declarations)**: Use ts-morph for interface scaffolding
+- **Agent B (Metadata)**: Use jscodeshift for Record<string,any> → BaseMetadata
+- **Agent C (Configuration)**: Use ast-grep for value: any pattern matching
+- **Agent D-F (Application Layer)**: Use TypeScript Language Service for React typing
+- **Agent G-H (Integration)**: Use depcruise for dependency validation
+
+### Quality Assurance Tools
+- **typescript-eslint-parser**: Deep AST analysis for type consistency
+- **jest-runner-eslint**: Parallel ESLint execution for performance testing
+- **size-limit**: Bundle size monitoring during type additions
+- **tsc-files**: Incremental TypeScript compilation for faster feedback
+
+### Automation Infrastructure
+- **GitHub Actions**: Automated progress tracking and validation
+- **Husky**: Git hooks for pre-commit type validation
+- **lint-staged**: Incremental linting for changed files only  
+- **conventional-commits**: Standardized commit messages for progress tracking
+
+## Rollback & Risk Management Strategy
+
+### Automated Checkpoint System
+- **Wave Checkpoints**: Git tags after each successful wave completion
+- **Agent Checkpoints**: Automated commits after each agent's milestone
+- **Rollback Scripts**: One-command rollback to any checkpoint
+- **State Preservation**: Preserve agent work during rollbacks when possible
+
+### Risk Mitigation Protocols
+- **Agent Isolation**: Each agent works in isolated branch until validation
+- **Progressive Integration**: Merge agent work incrementally with validation
+- **Canary Deployments**: Test agent changes in isolated environment first
+- **Failure Recovery**: Automated recovery procedures for common failure modes
+
+### Performance Safeguards
+- **Build Time Monitoring**: Alert if TypeScript compilation time degrades >20%
+- **Bundle Size Limits**: Prevent type definitions from bloating bundle size
+- **Memory Usage Tracking**: Monitor IDE and compilation memory consumption
+- **Performance Regression Tests**: Automated detection of type-related slowdowns
 
 ## Success Metrics
 

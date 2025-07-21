@@ -1,0 +1,61 @@
+import { useState } from 'react';
+import { SixRDecision } from '@/hooks/useAssessmentFlow';
+
+interface UseSixRSubmissionProps {
+  sixrDecisions: Record<string, SixRDecision>;
+  updateSixRDecision: (appId: string, decision: Partial<SixRDecision>) => void;
+  resumeFlow: (data: any) => Promise<void>;
+  selectedApp: string;
+  currentAppDecision: SixRDecision | null;
+}
+
+export const useSixRSubmission = ({
+  sixrDecisions,
+  updateSixRDecision,
+  resumeFlow,
+  selectedApp,
+  currentAppDecision
+}: UseSixRSubmissionProps) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDraft, setIsDraft] = useState(false);
+
+  const handleSaveDraft = async () => {
+    if (!selectedApp || !currentAppDecision) return;
+    
+    setIsDraft(true);
+    try {
+      await updateSixRDecision(selectedApp, currentAppDecision);
+    } catch (error) {
+      console.error('Failed to save draft:', error);
+      throw error;
+    } finally {
+      setIsDraft(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      // Save all application decisions
+      for (const [appId, decision] of Object.entries(sixrDecisions)) {
+        await updateSixRDecision(appId, decision);
+      }
+      
+      await resumeFlow({
+        sixrDecisions: sixrDecisions
+      });
+    } catch (error) {
+      console.error('Failed to submit 6R strategy review:', error);
+      throw error;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return {
+    isSubmitting,
+    isDraft,
+    handleSaveDraft,
+    handleSubmit
+  };
+};

@@ -88,6 +88,13 @@ Standardized TypeScript interfaces:
 - Component props (BaseComponentProps, ComponentConfig)
 - React hooks (HookState, HookActions)
 
+### ⚠️ **Critical: Type-Only Import Requirement**
+All agents MUST use `import type { ... }` for type-only imports to prevent:
+- Runtime circular dependencies
+- Bundle size bloat  
+- Performance degradation
+- See [ESLint Rule Recommendations](./artifacts/eslint-rule-recommendations.md)
+
 ## Execution Phases
 
 ### Phase 1: Foundation Setup (Day 1)
