@@ -64,12 +64,51 @@ export { default as RecommendationEngine } from './RecommendationEngine';
 // Advanced Analytics
 export { default as AdvancedAnalytics } from './AdvancedAnalytics';
 
-// Hooks
+// Hooks - Original
 export { 
   useResponsiveLayout, 
   useGridLayout, 
   useComponentVisibility 
 } from './hooks/useResponsiveLayout';
+
+// Hooks - New Modular
+export { 
+  useAgentData,
+  useAgentPerformance,
+  useAgentAnalytics
+} from './hooks/useAgentData';
+export { useAgentComparison } from './hooks/useAgentComparison';
+export { useRecommendations } from './hooks/useRecommendations';
+export { useAgentFilters } from './hooks/useAgentFilters';
+
+// Context
+export { 
+  ObservabilityProvider,
+  useObservability,
+  useAgentSelection,
+  useViewPreferences
+} from './context/ObservabilityContext';
+
+// Utilities
+export * from './utils/constants';
+export * from './utils/formatters';
+
+// Sub-components - Agent Comparison
+export { MetricCard } from './comparison/MetricCard';
+export { AgentSelector } from './comparison/AgentSelector';
+export { RankingsOverview } from './comparison/RankingsOverview';
+export { SuccessRateTrendChart, PerformanceRadarChart } from './comparison/ComparisonCharts';
+
+// Sub-components - Recommendations
+export { RecommendationCard } from './recommendations/RecommendationCard';
+
+// Sub-components - Overview
+export { FilterControls } from './overview/FilterControls';
+export { AgentSummaryFooter } from './overview/AgentSummaryFooter';
+
+// Reusable UI Components
+export { MetricCard as MetricDisplayCard, MetricBadge, MetricComparison } from './ui/MetricDisplay';
+export { StatusBadge, StatusGroup } from './ui/StatusDisplay';
 
 // Re-export types for convenience
 export type {
@@ -88,5 +127,13 @@ export type {
 // Phase 4B Advanced Component Types
 export type { ActivityEvent, ActivityFeedProps, ActivityFilters } from './ActivityFeed';
 export type { AgentComparisonProps, AgentComparisonData } from './AgentComparison';
-export type { RecommendationEngineProps, Recommendation } from './RecommendationEngine';
+export type { RecommendationEngineProps } from './RecommendationEngine';
 export type { AdvancedAnalyticsProps, AnalyticsData } from './AdvancedAnalytics';
+
+// New Types
+export type { Recommendation } from './recommendations/RecommendationCard';
+export type { UseAgentDataOptions, UseAgentDataReturn } from './hooks/useAgentData';
+export type { UseRecommendationsOptions } from './hooks/useRecommendations';
+export type { AgentFilters } from './hooks/useAgentFilters';
+export type { MetricCardProps, MetricBadgeProps, MetricComparisonProps } from './ui/MetricDisplay';
+export type { StatusBadgeProps, StatusGroupProps, StatusType } from './ui/StatusDisplay';

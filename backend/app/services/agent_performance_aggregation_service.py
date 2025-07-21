@@ -5,7 +5,7 @@ Part of the Agent Observability Enhancement Phase 2
 """
 
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime, timedelta, date
 from decimal import Decimal
 from sqlalchemy.orm import Session

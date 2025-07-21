@@ -7,6 +7,12 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { 
+  AdminLoadingState,
+  useAdminToasts,
+  formatDate,
+  getAccessLevelColor 
+} from '@/components/admin/shared';
 
 import { UserStats } from './UserStats';
 import { UserFilters } from './UserFilters';
@@ -19,6 +25,14 @@ import { PendingUser, ActiveUser, ApprovalData, RejectionData } from './types';
 export const UserApprovalsMain: React.FC = () => {
   const { getAuthHeaders } = useAuth();
   const { toast } = useToast();
+  const { 
+    showUserApprovedToast, 
+    showUserRejectedToast, 
+    showUserDeactivatedToast, 
+    showUserActivatedToast, 
+    showGenericErrorToast, 
+    showDataFetchErrorToast 
+  } = useAdminToasts();
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,11 +110,7 @@ export const UserApprovalsMain: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching pending users:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch pending user approvals",
-        variant: "destructive"
-      }, false);
+      showDataFetchErrorToast();
     } finally {
       setLoading(false);
     }
@@ -145,11 +155,7 @@ export const UserApprovalsMain: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching active users:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch active users",
-        variant: "destructive"
-      }, false);
+      showDataFetchErrorToast();
     }
   }, [toast]);
 
@@ -201,11 +207,7 @@ export const UserApprovalsMain: React.FC = () => {
       }, false);
 
       if (response.status === 'success') {
-        toast({
-          title: "User Approved",
-          description: `${selectedUser.full_name} has been approved and granted access`,
-          variant: "default"
-        }, false);
+        showUserApprovedToast(selectedUser.full_name);
 
         // Remove from pending users
         setPendingUsers(prev => prev.filter(u => u.user_id !== selectedUser.user_id));
@@ -233,17 +235,13 @@ export const UserApprovalsMain: React.FC = () => {
           role_name: 'Analyst',
           client_access: [],
           notes: ''
-        }, false);
+        });
       } else {
         throw new Error(response.message || 'Failed to approve user');
       }
     } catch (error) {
       console.error('Error approving user:', error);
-      toast({
-        title: "Error",
-        description: "Failed to approve user. Please try again.",
-        variant: "destructive"
-      }, false);
+      showGenericErrorToast('approve user');
     } finally {
       setActionLoading(null);
     }
@@ -266,11 +264,7 @@ export const UserApprovalsMain: React.FC = () => {
       }, false);
 
       if (response.status === 'success') {
-        toast({
-          title: "User Rejected",
-          description: `${selectedUser.full_name}'s request has been rejected`,
-          variant: "default"
-        }, false);
+        showUserRejectedToast(selectedUser.full_name);
 
         // Remove from pending users
         setPendingUsers(prev => prev.filter(u => u.user_id !== selectedUser.user_id));
@@ -283,11 +277,7 @@ export const UserApprovalsMain: React.FC = () => {
       }
     } catch (error) {
       console.error('Error rejecting user:', error);
-      toast({
-        title: "Error",
-        description: "Failed to reject user. Please try again.",
-        variant: "destructive"
-      }, false);
+      showGenericErrorToast('reject user');
     } finally {
       setActionLoading(null);
     }
@@ -306,11 +296,7 @@ export const UserApprovalsMain: React.FC = () => {
       }, false);
 
       if (response.status === 'success') {
-        toast({
-          title: "User Deactivated",
-          description: `${user.full_name} has been deactivated`,
-          variant: "default"
-        }, false);
+        showUserDeactivatedToast(user.full_name);
 
         // Update user status
         setActiveUsers(prev => prev.map(u => 
@@ -321,11 +307,7 @@ export const UserApprovalsMain: React.FC = () => {
       }
     } catch (error) {
       console.error('Error deactivating user:', error);
-      toast({
-        title: "Error",
-        description: "Failed to deactivate user. Please try again.",
-        variant: "destructive"
-      }, false);
+      showGenericErrorToast('deactivate user');
     } finally {
       setActionLoading(null);
     }
@@ -343,11 +325,7 @@ export const UserApprovalsMain: React.FC = () => {
       }, false);
 
       if (response.status === 'success') {
-        toast({
-          title: "User Activated",
-          description: `${user.full_name} has been activated`,
-          variant: "default"
-        }, false);
+        showUserActivatedToast(user.full_name);
 
         // Update user status
         setActiveUsers(prev => prev.map(u => 
@@ -358,38 +336,13 @@ export const UserApprovalsMain: React.FC = () => {
       }
     } catch (error) {
       console.error('Error activating user:', error);
-      toast({
-        title: "Error",
-        description: "Failed to activate user. Please try again.",
-        variant: "destructive"
-      }, false);
+      showGenericErrorToast('activate user');
     } finally {
       setActionLoading(null);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const getAccessLevelColor = (level: string) => {
-    switch (level) {
-      case 'admin':
-        return 'bg-red-100 text-red-800 hover:bg-red-200';
-      case 'read_write':
-        return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
-      case 'read_only':
-        return 'bg-green-100 text-green-800 hover:bg-green-200';
-      default:
-        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
-    }
-  };
+  // formatDate and getAccessLevelColor functions moved to shared utilities
 
   const handleViewDetails = (user: PendingUser) => {
     setSelectedUser(user);
@@ -423,11 +376,7 @@ export const UserApprovalsMain: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <AdminLoadingState message="Loading User Management..." fullScreen />;
   }
 
   return (
