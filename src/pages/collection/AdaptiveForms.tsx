@@ -28,6 +28,9 @@ import { CollectionUploadBlocker } from '@/components/collection/CollectionUploa
 // Import auth context for flow management
 import { useAuth } from '@/contexts/AuthContext';
 
+// Import RBAC utilities
+import { canCreateCollectionFlow } from '@/utils/rbac';
+
 // UI Components
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -42,7 +45,7 @@ const AdaptiveForms: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const { setCurrentFlow } = useAuth();
+  const { setCurrentFlow, user } = useAuth();
 
   // Collection flow management
   const { 
@@ -147,6 +150,11 @@ const AdaptiveForms: React.FC = () => {
             engagement_id: flowResponse.engagement_id
           });
         } else {
+          // Check if user has permission to create collection flows
+          if (!canCreateCollectionFlow(user)) {
+            throw new Error('You do not have permission to create collection flows. Only analysts and above can create flows.');
+          }
+          
           // Step 1: Create a new collection flow - this triggers CrewAI agents
           const flowData = {
             automation_tier: 'tier_2',

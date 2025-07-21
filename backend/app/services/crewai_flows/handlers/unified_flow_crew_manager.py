@@ -24,13 +24,30 @@ class UnifiedFlowCrewManager:
     """
     Manages CrewAI crew creation and execution for the Unified Discovery Flow.
     Handles on-demand crew creation with proper error handling and fallbacks.
+    Enhanced with callback handlers for task monitoring.
     """
     
-    def __init__(self, crewai_service, state):
+    def __init__(self, crewai_service, state, callback_handler=None, context=None):
         """Initialize crew manager with service and state references"""
         self.crewai_service = crewai_service
         self.state = state
         self.crew_factories = {}
+        self.callback_handler = callback_handler
+        self.context = context
+        
+        # Initialize callback handler if not provided
+        if not self.callback_handler and hasattr(state, 'flow_id'):
+            from .callback_handler_integration import CallbackHandlerIntegration
+            
+            # Extract metadata from state if available
+            metadata = getattr(state, 'metadata', {})
+            
+            self.callback_handler = CallbackHandlerIntegration.create_callback_handler(
+                flow_id=getattr(state, 'flow_id', 'unknown'),
+                context=self.context,
+                metadata=metadata
+            )
+            logger.info("✅ Auto-created callback handler for monitoring")
         
         # Initialize crew factories for on-demand creation
         self._initialize_crew_factories()
@@ -85,7 +102,8 @@ class UnifiedFlowCrewManager:
                     self.crewai_service,
                     kwargs.get('raw_data', []),
                     kwargs.get('metadata', {}),
-                    kwargs.get('shared_memory')
+                    kwargs.get('shared_memory'),
+                    callback_handler=self.callback_handler
                 )
             elif crew_type == "attribute_mapping":
                 # 🚀 OPTIMIZED: Use state-based crew creation

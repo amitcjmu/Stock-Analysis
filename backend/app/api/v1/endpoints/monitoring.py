@@ -29,12 +29,16 @@ router = APIRouter()
 
 
 @router.get("/status")
-async def get_agent_status():
+async def get_agent_status(
+    include_individual_agents: bool = Query(default=False, description="Include individual agent performance data"),
+    context = Depends(get_monitoring_context)
+):
     """
     Get current agent monitoring status with comprehensive registry data.
     
     Returns real-time information about active agents, running tasks,
     and system health organized by phases for display in the frontend.
+    Enhanced with individual agent performance data when requested.
     """
     try:
         # Get monitoring status
@@ -49,9 +53,9 @@ async def get_agent_status():
         # Get system status from CrewAI service (fallback)
         system_status = {}
         
-        return {
+        response = {
             "success": True,
-            "timestamp": "2025-01-28T12:00:00Z",
+            "timestamp": datetime.utcnow().isoformat(),
             "monitoring": {
                 "active": status_report["monitoring_active"],
                 "active_tasks": status_report["active_tasks"],
@@ -75,19 +79,52 @@ async def get_agent_status():
             "registry_status": registry_status
         }
         
+        # Add individual agent performance if requested
+        if include_individual_agents and context:
+            try:
+                from app.services.agent_performance_aggregation_service import agent_performance_aggregation_service
+                
+                # Get performance summary for all agents
+                agent_summaries = agent_performance_aggregation_service.get_all_agents_summary(
+                    client_account_id=context.client_account_id,
+                    engagement_id=context.engagement_id,
+                    days=7
+                )
+                
+                # Add to response
+                response["individual_agent_performance"] = {
+                    "period_days": 7,
+                    "agents": agent_summaries,
+                    "data_source": "agent_performance_daily"
+                }
+            except Exception as perf_error:
+                logger.warning(f"Could not fetch individual agent performance: {perf_error}")
+                response["individual_agent_performance"] = {
+                    "error": "Performance data temporarily unavailable",
+                    "agents": []
+                }
+        
+        return response
+        
     except Exception as e:
         logger.error(f"Error getting agent status: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get agent status: {str(e)}")
 
 
 @router.get("/tasks")
-async def get_task_history(agent_id: Optional[str] = None, limit: int = 10):
+async def get_task_history(
+    agent_id: Optional[str] = None, 
+    limit: int = Query(default=10, ge=1, le=500),
+    include_performance_data: bool = Query(default=False, description="Include detailed performance metrics"),
+    context = Depends(get_monitoring_context)
+):
     """
-    Get task execution history.
+    Get task execution history with optional performance data.
     
     Args:
         agent_id: Optional agent ID to filter tasks
         limit: Maximum number of tasks to return
+        include_performance_data: Include detailed performance metrics from database
     
     Returns:
         List of recent task executions with details
@@ -96,7 +133,7 @@ async def get_task_history(agent_id: Optional[str] = None, limit: int = 10):
         status_report = agent_monitor.get_status_report()
         
         # Filter by agent if specified
-        tasks = status_report["completed_task_details"] if "completed_task_details" in status_report else []
+        tasks = status_report.get("completed_task_details", [])
         
         if agent_id:
             tasks = [task for task in tasks if task.get("agent") == agent_id]
@@ -104,12 +141,47 @@ async def get_task_history(agent_id: Optional[str] = None, limit: int = 10):
         # Sort by completion time and limit
         tasks = sorted(tasks, key=lambda x: x.get("end_time", ""), reverse=True)[:limit]
         
-        return {
+        response = {
             "success": True,
             "tasks": tasks,
             "total_returned": len(tasks),
-            "filtered_by_agent": agent_id is not None
+            "filtered_by_agent": agent_id is not None,
+            "timestamp": datetime.utcnow().isoformat()
         }
+        
+        # Add performance data if requested and context available
+        if include_performance_data and context:
+            try:
+                from app.services.agent_task_history_service import AgentTaskHistoryService
+                from app.core.database import get_db
+                
+                db = next(get_db())
+                service = AgentTaskHistoryService(db)
+                
+                # Get task history from database for more detailed metrics
+                if agent_id:
+                    db_history = service.get_agent_task_history(
+                        agent_name=agent_id,
+                        client_account_id=context.client_account_id,
+                        engagement_id=context.engagement_id,
+                        limit=limit
+                    )
+                    
+                    if "tasks" in db_history:
+                        response["detailed_tasks"] = db_history["tasks"]
+                        response["performance_metrics"] = {
+                            "total_in_database": db_history.get("total_tasks", 0),
+                            "data_source": "agent_task_history"
+                        }
+                
+                db.close()
+            except Exception as perf_error:
+                logger.warning(f"Could not fetch detailed performance data: {perf_error}")
+                response["performance_metrics"] = {
+                    "error": "Detailed data temporarily unavailable"
+                }
+        
+        return response
         
     except Exception as e:
         logger.error(f"Error getting task history: {e}")

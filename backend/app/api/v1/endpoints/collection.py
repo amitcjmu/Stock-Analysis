@@ -29,6 +29,12 @@ from app.schemas.collection_flow import (
     CollectionGapAnalysisResponse,
     AdaptiveQuestionnaireResponse
 )
+from app.core.rbac_utils import (
+    require_role, 
+    COLLECTION_CREATE_ROLES, 
+    COLLECTION_DELETE_ROLES,
+    COLLECTION_VIEW_ROLES
+)
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +89,9 @@ async def create_collection_flow(
     context = Depends(get_request_context)
 ) -> CollectionFlowResponse:
     """Create and start a new collection flow"""
+    # Check RBAC - only analysts and above can create collection flows
+    require_role(current_user, COLLECTION_CREATE_ROLES, "create collection flows")
+    
     logger.info(f"🚀 Creating collection flow - automation_tier: {flow_data.automation_tier}, config: {flow_data.collection_config}")
     try:
         # Check for existing active flow
@@ -590,6 +599,9 @@ async def delete_flow(
     context = Depends(get_request_context)
 ) -> Dict[str, Any]:
     """Delete a collection flow and all related data"""
+    # Check RBAC - only managers and above can delete collection flows
+    require_role(current_user, COLLECTION_DELETE_ROLES, "delete collection flows")
+    
     try:
         # Get the flow
         result = await db.execute(

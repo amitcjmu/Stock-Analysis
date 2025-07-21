@@ -1,0 +1,145 @@
+# Page snapshot
+
+```yaml
+- region "Notifications (F8)":
+  - list
+- region "Notifications alt+T"
+- img
+- heading "AI Modernize" [level=1]
+- paragraph: Migration Platform
+- navigation:
+  - list:
+    - listitem:
+      - link "Dashboard":
+        - /url: /
+        - img
+        - text: Dashboard
+    - listitem:
+      - img
+      - text: Collection
+      - img
+      - list:
+        - listitem:
+          - link "Overview":
+            - /url: /collection/overview
+            - img
+            - text: Overview
+        - listitem:
+          - link "Adaptive Forms":
+            - /url: /collection/adaptive-forms
+            - img
+            - text: Adaptive Forms
+        - listitem:
+          - link "Bulk Upload":
+            - /url: /collection/bulk-upload
+            - img
+            - text: Bulk Upload
+        - listitem:
+          - link "Data Integration":
+            - /url: /collection/data-integration
+            - img
+            - text: Data Integration
+        - listitem:
+          - link "Progress":
+            - /url: /collection/progress
+            - img
+            - text: Progress
+    - listitem:
+      - img
+      - text: Discovery
+      - img
+    - listitem:
+      - img
+      - text: Assess
+      - img
+    - listitem:
+      - img
+      - text: Plan
+      - img
+    - listitem:
+      - img
+      - text: Execute
+      - img
+    - listitem:
+      - img
+      - text: Modernize
+      - img
+    - listitem:
+      - img
+      - text: Decommission
+      - img
+    - listitem:
+      - img
+      - text: FinOps
+      - img
+    - listitem:
+      - img
+      - text: Observability
+      - img
+    - listitem:
+      - img
+      - text: Admin
+      - img
+- link "User Profile":
+  - /url: /profile
+  - img
+  - text: User Profile
+- text: AI Modernize v0.4.9 Click for feedback
+- button:
+  - img
+- img
+- img
+- text: Demo Corporation
+- img
+- img
+- text: Demo Cloud Migration Project
+- button "Switch Context":
+  - img
+  - text: Switch Context
+  - img
+- button "Back to Collection":
+  - img
+  - text: Back to Collection
+- heading "Adaptive Data Collection" [level=1]
+- paragraph: Collection workflow blocked - manage existing flows
+- alert:
+  - img
+  - strong: "Collection Blocked:"
+  - text: 1 incomplete collection flow found. Complete or delete existing flows before starting new collection processes.
+  - button "Manage Flows":
+    - img
+    - text: Manage Flows
+- 'heading "Primary Flow: Initialization" [level=3]':
+  - img
+  - text: "Primary Flow: Initialization"
+- text: INITIALIZED Overall Progress 0%
+- progressbar
+- text: "Flow ID:"
+- paragraph: aa5c5e6c-234...
+- text: "Last Activity:"
+- paragraph: 9m ago
+- heading "Flow Information" [level=4]
+- paragraph: "Name: Collection Flow"
+- paragraph: "Automation Tier: tier_2"
+- paragraph: "Type: adaptive_data_collection"
+- button "View Details":
+  - img
+  - text: View Details
+- button "Delete":
+  - img
+  - text: Delete
+- img
+- heading "Collection Form Disabled" [level=3]
+- paragraph: Complete or delete existing collection flows to enable new adaptive form collection. This ensures proper data integrity and prevents workflow conflicts.
+- img
+- text: Data integrity protection active
+- 'heading "Debug: Collection Flow Status Information" [level=4]'
+- text: "Flow aa5c5e6c...: initialized | initialization | 0%"
+- strong: "Collection Flow Management:"
+- text: Flows with status other than "completed", "failed", or "cancelled" are considered active and will block new collection processes.
+- button "Refresh Flow Status":
+  - img
+  - text: Refresh Flow Status
+- button "Open AI Assistant and Feedback":
+  - img
+```

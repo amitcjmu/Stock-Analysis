@@ -15,7 +15,8 @@ def create_data_import_validation_crew(
     crewai_service,
     raw_data: List[Dict[str, Any]],
     metadata: Dict[str, Any],
-    shared_memory: Optional[Any] = None
+    shared_memory: Optional[Any] = None,
+    callback_handler: Optional[Any] = None
 ):
     """
     Create a focused data import validation crew.
@@ -25,6 +26,7 @@ def create_data_import_validation_crew(
         raw_data: Raw data to validate
         metadata: File metadata
         shared_memory: Shared memory for agent learning
+        callback_handler: Optional callback handler for task monitoring
     
     Returns:
         CrewAI Crew for data import validation
@@ -92,6 +94,11 @@ def create_data_import_validation_crew(
         
         # Create focused crew with NO iterations, single pass only
         crew_config = get_optimized_crew_config()
+        
+        # Add callback handler if provided
+        if callback_handler:
+            crew_config["callbacks"] = [callback_handler]
+            
         crew = Crew(
             agents=[data_validation_agent],
             tasks=[validation_task],

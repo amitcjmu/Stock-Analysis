@@ -376,6 +376,14 @@ except ImportError as e:
 # System Management
 api_router.include_router(monitoring_router, prefix="/monitoring", tags=["Monitoring"])
 
+# Agent Performance API (Phase 3 - Agent Observability Enhancement)
+try:
+    from app.api.v1.endpoints.agent_performance import router as agent_performance_router
+    api_router.include_router(agent_performance_router, prefix="/monitoring", tags=["Agent Performance"])
+    logger.info("✅ Agent Performance API router included at /monitoring")
+except ImportError as e:
+    logger.warning(f"⚠️ Agent Performance API router not available: {e}")
+
 # Agent and AI Services
 api_router.include_router(agents_router, prefix="/agents", tags=["Agents"])
 api_router.include_router(agent_learning_router, prefix="/agent-learning", tags=["Agent Learning"])

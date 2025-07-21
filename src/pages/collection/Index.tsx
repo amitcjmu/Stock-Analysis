@@ -12,6 +12,9 @@ import { useToast } from '@/components/ui/use-toast';
 // Import auth context for flow management
 import { useAuth } from '@/contexts/AuthContext';
 
+// Import RBAC utilities
+import { canCreateCollectionFlow, getRoleName } from '@/utils/rbac';
+
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +26,8 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  Shield
 } from 'lucide-react';
 
 /**
@@ -33,7 +37,7 @@ import {
 const CollectionIndex: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { setCurrentFlow } = useAuth();
+  const { setCurrentFlow, user } = useAuth();
   const [isCreatingFlow, setIsCreatingFlow] = useState<string | null>(null);
 
   const workflowOptions = [
@@ -100,6 +104,17 @@ const CollectionIndex: React.FC = () => {
    */
   const startCollectionWorkflow = async (workflowId: string, workflowPath: string) => {
     console.log(`🚀 Frontend: Starting collection workflow: ${workflowId}`);
+    
+    // Check if user has permission to create collection flows
+    if (!canCreateCollectionFlow(user)) {
+      toast({
+        title: 'Permission Denied',
+        description: `You do not have permission to create collection flows. Only analysts and above can create flows. Your role: ${getRoleName(user?.role)}`,
+        variant: 'destructive'
+      });
+      return;
+    }
+    
     setIsCreatingFlow(workflowId);
     
     try {
@@ -215,10 +230,25 @@ const CollectionIndex: React.FC = () => {
           <div className="space-y-6">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold">Data Collection Workflows</h1>
-        <p className="text-muted-foreground">
-          Choose the best data collection approach for your applications and infrastructure
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Data Collection Workflows</h1>
+            <p className="text-muted-foreground">
+              Choose the best data collection approach for your applications and infrastructure
+            </p>
+          </div>
+          {/* Role indicator */}
+          <div className="flex items-center space-x-2 text-sm">
+            <Shield className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">Your role:</span>
+            <Badge variant={canCreateCollectionFlow(user) ? "default" : "secondary"}>
+              {getRoleName(user?.role)}
+            </Badge>
+            {!canCreateCollectionFlow(user) && (
+              <span className="text-xs text-muted-foreground">(View only)</span>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Quick Stats */}
@@ -310,7 +340,8 @@ const CollectionIndex: React.FC = () => {
                   onClick={() => startCollectionWorkflow(workflow.id, workflow.path)}
                   variant="outline"
                   size="sm"
-                  disabled={isCreatingFlow === workflow.id}
+                  disabled={isCreatingFlow === workflow.id || !canCreateCollectionFlow(user)}
+                  title={!canCreateCollectionFlow(user) ? `Only analysts and above can create collection flows. Your role: ${getRoleName(user?.role)}` : ''}
                 >
                   {isCreatingFlow === workflow.id ? (
                     <>
@@ -343,7 +374,8 @@ const CollectionIndex: React.FC = () => {
                 variant="outline" 
                 size="sm"
                 onClick={() => startCollectionWorkflow('adaptive-forms', '/collection/adaptive-forms')}
-                disabled={isCreatingFlow === 'adaptive-forms'}
+                disabled={isCreatingFlow === 'adaptive-forms' || !canCreateCollectionFlow(user)}
+                title={!canCreateCollectionFlow(user) ? `Only analysts and above can create collection flows. Your role: ${getRoleName(user?.role)}` : ''}
               >
                 {isCreatingFlow === 'adaptive-forms' ? (
                   <>
@@ -364,7 +396,8 @@ const CollectionIndex: React.FC = () => {
                 variant="outline" 
                 size="sm"
                 onClick={() => startCollectionWorkflow('bulk-upload', '/collection/bulk-upload')}
-                disabled={isCreatingFlow === 'bulk-upload'}
+                disabled={isCreatingFlow === 'bulk-upload' || !canCreateCollectionFlow(user)}
+                title={!canCreateCollectionFlow(user) ? `Only analysts and above can create collection flows. Your role: ${getRoleName(user?.role)}` : ''}
               >
                 {isCreatingFlow === 'bulk-upload' ? (
                   <>

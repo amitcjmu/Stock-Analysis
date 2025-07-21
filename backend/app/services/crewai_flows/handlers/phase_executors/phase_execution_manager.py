@@ -26,11 +26,12 @@ class PhaseExecutionManager:
     Now integrated with Flow State Bridge for PostgreSQL persistence.
     """
     
-    def __init__(self, state, crew_manager, flow_bridge: Optional[Any] = None):
-        """Initialize phase execution manager with state, crew manager, and flow bridge"""
+    def __init__(self, state, crew_manager, flow_bridge: Optional[Any] = None, context: Optional[Any] = None):
+        """Initialize phase execution manager with state, crew manager, flow bridge, and context"""
         self.state = state
         self.crew_manager = crew_manager
         self.flow_bridge = flow_bridge  # FlowStateBridge for PostgreSQL persistence
+        self.context = context  # Request context for monitoring
         
         # Initialize phase executors with flow bridge
         from .data_import_validation_executor import DataImportValidationExecutor

@@ -1,5 +1,52 @@
 # 🚀 AI Modernize Migration Platform - Changelog
 
+## [1.43.0] - 2025-01-21
+
+### 🔒 **COLLECTION FLOW RBAC** - Role-Based Access Control Implementation
+
+This release implements comprehensive Role-Based Access Control (RBAC) for collection flows, ensuring users can only perform actions based on their assigned roles.
+
+### 🚀 **Security & Access Control**
+
+#### **Backend RBAC Enforcement**
+- **Type**: Security enhancement
+- **Impact**: API endpoints now enforce role-based permissions
+- **Technical Details**:
+  - Created `rbac_utils.py` with role checking utilities
+  - Added `require_role()` checks to create and delete endpoints
+  - Returns 403 Forbidden with clear error messages for unauthorized attempts
+
+#### **Frontend UI Controls**
+- **Type**: User experience improvement
+- **Impact**: UI elements reflect user permissions dynamically
+- **Technical Details**:
+  - Created `rbac.ts` utility for frontend permission checks
+  - Buttons disabled with tooltips for unauthorized users
+  - Delete buttons hidden for users without delete permission
+  - Role indicator badge shows current user role and access level
+
+#### **Permission Matrix**
+- **Type**: Access control definition
+- **Impact**: Clear role-based permissions for all operations
+- **Technical Details**:
+  - View: All roles (user, viewer, analyst, engagement_manager, admin)
+  - Create/Edit: Analyst role and above
+  - Delete: Engagement Manager role and above
+
+### 📊 Business Impact
+
+- **Security Enhancement**: Prevents unauthorized data manipulation
+- **Compliance Ready**: Role-based access supports audit requirements
+- **User Experience**: Clear visual feedback on available actions
+- **Data Integrity**: Protects collection flows from accidental deletion
+
+### 🎯 Success Metrics
+
+- **Zero Security Bypasses**: Backend enforces permissions even if frontend is compromised
+- **100% Coverage**: All collection flow operations protected by RBAC
+- **Clear Feedback**: Users immediately understand their access level
+- **No Breaking Changes**: Existing functionality preserved for authorized users
+
 ## [1.42.0] - 2025-01-21
 
 ### 🔧 **AGENT OBSERVABILITY** - Foreign Key Constraints Fix

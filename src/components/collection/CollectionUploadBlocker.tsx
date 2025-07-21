@@ -18,6 +18,8 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { CollectionFlow } from '@/hooks/collection/useCollectionFlowManagement';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { canDeleteCollectionFlow } from '@/utils/rbac';
 
 interface CollectionUploadBlockerProps {
   incompleteFlows: CollectionFlow[];
@@ -39,6 +41,7 @@ export const CollectionUploadBlocker: React.FC<CollectionUploadBlockerProps> = (
   isLoading = false
 }) => {
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const getPhaseDisplayName = (phase: string) => {
     if (!phase) return 'Unknown';
@@ -271,7 +274,7 @@ export const CollectionUploadBlocker: React.FC<CollectionUploadBlockerProps> = (
                   )}
                 </div>
                 
-                {(primaryFlow.flow_id || primaryFlow.id) && (
+                {(primaryFlow.flow_id || primaryFlow.id) && canDeleteCollectionFlow(user) && (
                   <Button
                     variant="destructive"
                     size="sm"
