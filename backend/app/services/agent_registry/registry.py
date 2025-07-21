@@ -46,64 +46,85 @@ class AgentRegistry:
         self.learning_context_manager = LearningContextAgentManager(self.core)
         self.observability_manager = ObservabilityAgentManager(self.core)
         
-        # Initialize all agents
-        self._initialize_all_agents()
+        # Defer agent initialization to avoid circular imports
+        self._agents_initialized = False
         
-        logger.info(f"Agent Registry initialized with {self.core.get_agents_count()} agents")
+        logger.info("Agent Registry initialized (agents will be registered on first use)")
+    
+    def _ensure_agents_initialized(self):
+        """Ensure agents are initialized (lazy initialization)"""
+        if not self._agents_initialized:
+            self._initialize_all_agents()
+            self._agents_initialized = True
     
     def _initialize_all_agents(self):
         """Initialize all agents across all phases"""
-        
-        # Register agents by phase
-        self.discovery_manager.register_phase_agents()
-        self.assessment_manager.register_phase_agents()
-        self.planning_manager.register_phase_agents()
-        self.migration_manager.register_phase_agents()
-        self.modernization_manager.register_phase_agents()
-        self.decommission_manager.register_phase_agents()
-        self.finops_manager.register_phase_agents()
-        self.learning_context_manager.register_phase_agents()
-        self.observability_manager.register_phase_agents()
+        try:
+            # Register agents by phase
+            self.discovery_manager.register_phase_agents()
+            self.assessment_manager.register_phase_agents()
+            self.planning_manager.register_phase_agents()
+            self.migration_manager.register_phase_agents()
+            self.modernization_manager.register_phase_agents()
+            self.decommission_manager.register_phase_agents()
+            self.finops_manager.register_phase_agents()
+            self.learning_context_manager.register_phase_agents()
+            self.observability_manager.register_phase_agents()
+            
+            logger.info(f"All agents initialized successfully - {self.core.get_agents_count()} agents registered")
+        except Exception as e:
+            logger.error(f"Failed to initialize agents: {e}")
+            # Don't re-raise to allow the registry to function partially
     
     # Delegate core registry methods
     def register_agent(self, agent):
         """Register a new agent"""
+        self._ensure_agents_initialized()
         return self.core.register_agent(agent)
     
     def get_agent(self, agent_id: str):
         """Get agent by ID"""
+        self._ensure_agents_initialized()
         return self.core.get_agent(agent_id)
     
     def get_agents_by_phase(self, phase):
         """Get all agents for a specific phase"""
+        self._ensure_agents_initialized()
         return self.core.get_agents_by_phase(phase)
     
     def get_active_agents(self):
         """Get all active agents"""
+        self._ensure_agents_initialized()
         return self.core.get_active_agents()
     
     def get_agents_by_status(self, status):
         """Get all agents with specific status"""
+        self._ensure_agents_initialized()
         return self.core.get_agents_by_status(status)
     
     def update_agent_status(self, agent_id: str, status, **kwargs):
         """Update agent status and metrics"""
+        self._ensure_agents_initialized()
         return self.core.update_agent_status(agent_id, status, **kwargs)
     
     def get_phase_summary(self):
         """Get summary of agents by phase and status"""
+        self._ensure_agents_initialized()
         return self.core.get_phase_summary()
     
     def get_registry_status(self):
         """Get comprehensive registry status"""
+        self._ensure_agents_initialized()
         return self.core.get_registry_status()
     
     def get_agent_capabilities_formatted(self):
         """Get agent capabilities in monitoring endpoint format"""
+        self._ensure_agents_initialized()
         return self.core.get_agent_capabilities_formatted()
     
     def to_dict(self):
         """Convert registry to dictionary format"""
+        self._ensure_agents_initialized()
         return self.core.to_dict()
     
     # Delegate lifecycle management methods

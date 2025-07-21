@@ -29,7 +29,33 @@ from .phase_agents import (
 from .registry import AgentRegistry
 
 # Global registry instance - maintaining backward compatibility
-agent_registry = AgentRegistry()
+try:
+    agent_registry = AgentRegistry()
+except Exception as e:
+    # Log the error but don't fail the import
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.error(f"Failed to initialize agent_registry: {e}")
+    # Create a placeholder that will be initialized later
+    agent_registry = None
+
+
+def get_agent_registry():
+    """
+    Get or create the agent registry instance.
+    This helps avoid circular import issues during initialization.
+    """
+    global agent_registry
+    if agent_registry is None:
+        try:
+            agent_registry = AgentRegistry()
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to create agent_registry: {e}")
+            raise
+    return agent_registry
+
 
 __all__ = [
     'AgentPhase',
@@ -47,5 +73,6 @@ __all__ = [
     'LearningContextAgentManager',
     'ObservabilityAgentManager',
     'AgentRegistry',
-    'agent_registry'  # Include the instance in exports
+    'agent_registry',  # Include the instance in exports
+    'get_agent_registry'  # Include the getter function
 ]
