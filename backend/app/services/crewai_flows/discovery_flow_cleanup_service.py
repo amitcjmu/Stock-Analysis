@@ -185,8 +185,8 @@ class DiscoveryFlowCleanupService:
                 and_(
                     Asset.client_account_id == self.client_account_id,
                     Asset.engagement_id == self.engagement_id,
-                    # Match by discovery_flow_id
-                    Asset.discovery_flow_id == flow.id
+                    # Match by discovery_flow_id using flow_id parameter
+                    Asset.discovery_flow_id == flow_id
                 )
             )
             result = await db_session.execute(legacy_assets_stmt)

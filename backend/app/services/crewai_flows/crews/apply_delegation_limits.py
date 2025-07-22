@@ -6,6 +6,9 @@ Script to apply delegation limits to all crew files
 import os
 import re
 
+# Define constants locally since this is a utility script
+MAX_DELEGATIONS = 3
+
 
 def apply_delegation_limits(file_path):
     """Apply delegation limits to a crew file"""

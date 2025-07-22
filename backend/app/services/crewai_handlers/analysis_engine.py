@@ -23,7 +23,7 @@ class AnalysisEngine:
             from app.services.memory import AgentMemory
             
             self.memory = AgentMemory()
-            self.analyzer = IntelligentAnalyzer(self.memory)
+            self.analyzer = IntelligentAnalysisService()
             self.service_available = True
             logger.info("Analysis engine initialized successfully")
         except (ImportError, AttributeError, Exception) as e:

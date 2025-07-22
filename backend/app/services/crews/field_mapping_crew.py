@@ -4,6 +4,7 @@ Field Mapping Crew - Proper CrewAI implementation
 
 import json
 import logging
+import re
 from typing import Any, Dict, List
 
 from crewai import Process, Task
