@@ -21,6 +21,8 @@ import {
   DeleteResponse,
   ValidationResult
 } from './shared';
+import { ExecutionMetadata, FlowMetadata } from './shared/metadata-types';
+import { ParameterValue, PrimitiveValue } from './shared/value-types';
 
 // Execution Flow Management APIs
 export interface InitializeExecutionFlowRequest extends BaseApiRequest {
@@ -32,7 +34,7 @@ export interface InitializeExecutionFlowRequest extends BaseApiRequest {
   approvals: ExecutionApproval[];
   parentFlowId?: string;
   configuration?: ExecutionFlowConfiguration;
-  metadata?: Record<string, any>;
+  metadata?: ExecutionMetadata;
 }
 
 export interface InitializeExecutionFlowResponse extends BaseApiResponse<ExecutionFlowData> {
@@ -249,7 +251,7 @@ export interface UpdateTaskResponse extends UpdateResponse<TaskResult> {
 export interface ExecuteTaskRequest extends BaseApiRequest {
   taskId: string;
   executionMode?: 'sync' | 'async' | 'batch';
-  parameters?: Record<string, any>;
+  parameters?: Record<string, ParameterValue>;
   overrides?: TaskOverride[];
   context: MultiTenantContext;
 }
@@ -258,7 +260,7 @@ export interface ExecuteTaskResponse extends BaseApiResponse<TaskExecutionResult
   data: TaskExecutionResult;
   executionId: string;
   status: TaskExecutionStatus;
-  output?: unknown;
+  output?: PrimitiveValue | Record<string, PrimitiveValue> | Array<PrimitiveValue>;
   logs: TaskExecutionLog[];
 }
 
@@ -507,7 +509,7 @@ export interface ExecutionFlowData {
   stoppedAt?: string;
   createdAt: string;
   updatedAt: string;
-  metadata: Record<string, any>;
+  metadata: FlowMetadata;
 }
 
 export interface ExecutionEnvironment {

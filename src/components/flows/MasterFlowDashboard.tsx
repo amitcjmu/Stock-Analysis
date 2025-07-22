@@ -159,17 +159,17 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
 
   // Status badge component
   const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
-    const variants: Record<string, string> = {
+    const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline' | undefined> = {
       pending: 'secondary',
       running: 'default',
-      paused: 'warning',
-      completed: 'success',
+      paused: 'outline',
+      completed: 'default',
       failed: 'destructive',
       cancelled: 'secondary'
     };
 
     return (
-      <Badge variant={variants[status] as unknown || 'secondary'}>
+      <Badge variant={variants[status] || 'secondary'}>
         {status}
       </Badge>
     );

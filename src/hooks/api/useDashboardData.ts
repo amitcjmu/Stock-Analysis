@@ -2,6 +2,29 @@ import { useQuery } from '@tanstack/react-query';
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAuthHeaders } from '@/utils/contextUtils';
+import { ApiError } from '../../types/shared/api-types';
+
+export interface CrewPerformanceMetric {
+  crew_id: string;
+  crew_name: string;
+  total_tasks: number;
+  completed_tasks: number;
+  success_rate: number;
+  average_execution_time: number;
+  last_activity: string;
+  performance_score: number;
+}
+
+export interface PlatformAlert {
+  alert_id: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  title: string;
+  message: string;
+  category: 'system' | 'flow' | 'performance' | 'security';
+  created_at: string;
+  acknowledged: boolean;
+  source_component: string;
+}
 
 export interface FlowSummary {
   flow_id: string;
@@ -22,8 +45,8 @@ export interface DashboardData {
     completed_flows: number;
     error_flows: number;
   };
-  crewPerformance: unknown[];
-  platformAlerts: unknown[];
+  crewPerformance: CrewPerformanceMetric[];
+  platformAlerts: PlatformAlert[];
 }
 
 /**
@@ -56,7 +79,7 @@ export const useDashboardData = () => {
       if (discoveryFlowsResponse.status === 'fulfilled') {
         const flowsData = discoveryFlowsResponse.value;
         if (Array.isArray(flowsData)) {
-          allFlows = flowsData.map((flow: unknown) => ({
+          allFlows = flowsData.map((flow: FlowSummary & Record<string, unknown>) => ({
             flow_id: flow.flow_id,
             status: flow.status,
             type: flow.type || 'discovery',
@@ -87,9 +110,10 @@ export const useDashboardData = () => {
     enabled: !!(user?.id && client?.id && engagement?.id),
     staleTime: 30 * 1000, // Consider fresh for 30 seconds
     cacheTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
-    retry: (failureCount, error: unknown) => {
+    retry: (failureCount, error: Error | unknown) => {
       // Don't retry on 429 or auth errors
-      if (error?.status === 429 || error?.status === 401 || error?.status === 403) {
+      if (error && typeof error === 'object' && 'status' in error &&
+          (error.status === 429 || error.status === 401 || error.status === 403)) {
         return false;
       }
       return failureCount < 2;

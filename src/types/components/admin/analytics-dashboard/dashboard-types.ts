@@ -27,7 +27,7 @@ export interface AnalyticsDashboardProps extends BaseComponentProps {
   refreshInterval?: number;
   onRefresh?: () => void;
   filters?: DashboardFilter[];
-  onFiltersChange?: (filters: Record<string, any>) => void;
+  onFiltersChange?: (filters: Record<string, string | number | boolean | string[] | undefined>) => void;
   timeRange?: TimeRange;
   onTimeRangeChange?: (timeRange: TimeRange) => void;
   templates?: DashboardTemplate[];

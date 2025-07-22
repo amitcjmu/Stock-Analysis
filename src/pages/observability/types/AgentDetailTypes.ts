@@ -10,7 +10,7 @@ export interface AgentDetailData {
     specialization: string;
     capabilities: string[];
     endpoints: string[];
-    configuration: Record<string, any>;
+    configuration: Record<string, string | number | boolean | Record<string, unknown>>;
   };
   performance: {
     successRate: number;

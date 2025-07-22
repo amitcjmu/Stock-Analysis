@@ -98,7 +98,7 @@ export interface AllocationConstraint {
 // Allocation Logic and Distribution
 export interface AllocationLogic {
   method: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, string | number | boolean | null>;
   distribution: DistributionLogic;
   rounding: RoundingLogic;
   residual: ResidualHandling;

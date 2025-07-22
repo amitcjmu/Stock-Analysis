@@ -3,9 +3,9 @@
  * Provides optimized build configuration for code splitting
  */
 
-import { defineConfig } from 'vite';
+import { defineConfig, UserConfig } from 'vite';
 
-export const createLazyLoadingConfig = (baseConfig: unknown = {}) => {
+export const createLazyLoadingConfig = (baseConfig: UserConfig = {}) => {
   return defineConfig({
     ...baseConfig,
     build: {

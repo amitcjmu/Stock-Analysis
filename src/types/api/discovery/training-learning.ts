@@ -154,7 +154,7 @@ export interface TrainingLog {
   message: string;
   epoch?: number;
   metrics?: Record<string, number>;
-  context?: Record<string, any>;
+  context?: Record<string, string | number | boolean | null>;
 }
 
 export interface TrainingHistory {
@@ -247,7 +247,7 @@ export interface FeatureEngineeringConfig {
 
 export interface LayerConfiguration {
   type: LayerType;
-  parameters: Record<string, any>;
+  parameters: Record<string, string | number | boolean | null>;
   activation?: ActivationType;
   regularization?: RegularizationConfig;
 }
@@ -290,7 +290,7 @@ export interface CheckpointConfig {
 
 export interface SchedulerConfig {
   type: SchedulerType;
-  parameters: Record<string, any>;
+  parameters: Record<string, string | number | boolean | null>;
 }
 
 export interface AugmentationConfig {
@@ -423,7 +423,7 @@ export interface InteractionConfig {
 
 export interface TransformationConfig {
   type: TransformationType;
-  parameters: Record<string, any>;
+  parameters: Record<string, string | number | boolean | null>;
   applyTo: string[];
 }
 

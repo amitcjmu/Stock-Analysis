@@ -7,6 +7,24 @@
  * Generated with CC for modular admin type organization.
  */
 
+// Policy and Rule Configuration Types
+export interface RetentionPolicy {
+  period: number;
+  unit: 'days' | 'months' | 'years';
+  autoDelete: boolean;
+  archiveBeforeDelete: boolean;
+  exemptions?: string[];
+}
+
+export interface PolicyRule {
+  id: string;
+  type: 'mandatory' | 'optional' | 'conditional';
+  condition?: string;
+  action: 'allow' | 'deny' | 'require_approval';
+  parameters?: Record<string, string | number | boolean>;
+  severity: 'info' | 'warning' | 'error' | 'critical';
+}
+
 // Compliance Settings Configuration
 export interface ComplianceSettings {
   dataProtection: DataProtectionConfig;
@@ -28,7 +46,7 @@ export interface DataProtectionConfig {
 export interface DataRetentionConfig {
   enabled: boolean;
   defaultPeriod: number;
-  policies: Record<string, any>;
+  policies: Record<string, RetentionPolicy>;
 }
 
 export interface ComplianceAuditConfig {
@@ -64,5 +82,5 @@ export interface CertificationConfig {
 export interface PolicyConfig {
   id: string;
   name: string;
-  rules: Record<string, any>;
+  rules: Record<string, PolicyRule>;
 }

@@ -6,6 +6,13 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+
+// CC: Global window extensions for polling control
+declare global {
+  interface Window {
+    stopAllPolling?: () => void;
+  }
+}
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -55,7 +62,7 @@ export function PollingControls({
       
       let totalQueries = 0;
       let errorQueries = 0;
-      let consecutiveErrors = 0;
+      const consecutiveErrors = 0;
       const problematicEndpoints: string[] = [];
       
       queries.forEach(query => {
@@ -101,8 +108,8 @@ export function PollingControls({
       setIsEmergencyActive(true);
       
       // Stop all frontend polling
-      if (typeof window !== 'undefined' && (window as unknown).stopAllPolling) {
-        (window as unknown).stopAllPolling();
+      if (typeof window !== 'undefined' && window.stopAllPolling) {
+        window.stopAllPolling();
       }
 
       // Clear all query cache to stop React Query polling
@@ -185,8 +192,8 @@ export function PollingControls({
       });
       
       // Stop all frontend polling for this flow
-      if (typeof window !== 'undefined' && (window as unknown).stopAllPolling) {
-        (window as unknown).stopAllPolling();
+      if (typeof window !== 'undefined' && window.stopAllPolling) {
+        window.stopAllPolling();
       }
 
       // Stop backend polling for this flow
@@ -358,8 +365,8 @@ export function PollingStatusIndicator({ flowId }: { flowId?: string }) {
   const handleQuickStop = async () => {
     try {
       // Stop all frontend polling
-      if (typeof window !== 'undefined' && (window as unknown).stopAllPolling) {
-        (window as unknown).stopAllPolling();
+      if (typeof window !== 'undefined' && window.stopAllPolling) {
+        window.stopAllPolling();
       }
 
       // Stop backend polling

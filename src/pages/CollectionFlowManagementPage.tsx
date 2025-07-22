@@ -47,9 +47,24 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
     includeCancelledFlows: true
   });
   
-  const [healthStatus, setHealthStatus] = useState<any>(null);
-  const [cleanupRecommendations, setCleanupRecommendations] = useState<any>(null);
-  const [cleanupResult, setCleanupResult] = useState<any>(null);
+  const [healthStatus, setHealthStatus] = useState<{
+    healthy_flows: number;
+    problematic_flows: number;
+    total_flows: number;
+    health_score: number;
+  } | null>(null);
+  const [cleanupRecommendations, setCleanupRecommendations] = useState<{
+    total_flows: number;
+    cleanup_candidates: number;
+    estimated_space_recovery: string;
+    recommendations: string[];
+  } | null>(null);
+  const [cleanupResult, setCleanupResult] = useState<{
+    flows_cleaned: number;
+    space_recovered?: string;
+    dry_run: boolean;
+    error?: string;
+  } | null>(null);
 
   const {
     useIncompleteFlows,

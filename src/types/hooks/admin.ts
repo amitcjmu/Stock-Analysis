@@ -7,6 +7,11 @@
 
 import { BaseAsyncHookParams, BaseAsyncHookReturn } from './shared';
 
+// Common types for admin data
+export type AdminValue = string | number | boolean | Date | null | undefined;
+export type AdminData = Record<string, AdminValue | AdminValue[] | AdminData>;
+export type AdminMetadata = Record<string, string | number | boolean>;
+
 // User Management Hook Types
 export interface UseUserManagementParams extends BaseAsyncHookParams {
   includeInactive?: boolean;
@@ -127,7 +132,7 @@ export interface UseSystemSettingsParams extends BaseAsyncHookParams {
   category?: SettingCategory;
   includeDefaults?: boolean;
   includeValidation?: boolean;
-  onSettingChange?: (key: string, newValue: any, oldValue: unknown) => void;
+  onSettingChange?: (key: string, newValue: unknown, oldValue: unknown) => void;
   onValidationError?: (key: string, error: ValidationError) => void;
 }
 
@@ -136,14 +141,14 @@ export interface UseSystemSettingsReturn extends BaseAsyncHookReturn<SystemSetti
   categories: SettingCategory[];
   
   // Setting operations
-  getSetting: (key: string) => any;
+  getSetting: (key: string) => AdminValue | AdminData;
   setSetting: (key: string, value: unknown) => Promise<void>;
   resetSetting: (key: string) => Promise<void>;
-  updateSettings: (settings: Record<string, any>) => Promise<void>;
+  updateSettings: (settings: AdminData) => Promise<void>;
   
   // Setting categories
-  getCategorySettings: (category: SettingCategory) => Record<string, any>;
-  updateCategorySettings: (category: SettingCategory, settings: Record<string, any>) => Promise<void>;
+  getCategorySettings: (category: SettingCategory) => AdminData;
+  updateCategorySettings: (category: SettingCategory, settings: AdminData) => Promise<void>;
   resetCategorySettings: (category: SettingCategory) => Promise<void>;
   
   // Validation
@@ -155,7 +160,7 @@ export interface UseSystemSettingsReturn extends BaseAsyncHookReturn<SystemSetti
   importSettings: (settingsData: SettingsImport, merge?: boolean) => Promise<SettingsImportResult>;
   
   // Default values
-  getDefaultValue: (key: string) => any;
+  getDefaultValue: (key: string) => AdminValue | AdminData;
   resetToDefaults: (keys?: string[]) => Promise<void>;
   
   // Setting history
@@ -385,7 +390,7 @@ export interface User {
   lastLoginAt?: string;
   createdAt: string;
   updatedAt: string;
-  metadata: Record<string, any>;
+  metadata: AdminMetadata;
 }
 
 export interface Role {
@@ -416,7 +421,7 @@ export interface AuditLogEntry {
   action: string;
   resource: string;
   resourceId?: string;
-  details: Record<string, any>;
+  details: AdminData;
   ipAddress: string;
   userAgent: string;
   severity: AuditSeverity;

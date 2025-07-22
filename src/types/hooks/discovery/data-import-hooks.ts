@@ -113,5 +113,5 @@ export interface ExportFormat {
   extension: string;
   mimeType: string;
   description?: string;
-  options?: Record<string, any>;
+  options?: Record<string, unknown>;
 }

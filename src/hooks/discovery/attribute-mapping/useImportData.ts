@@ -7,7 +7,7 @@ export interface ImportDataResult {
   importData: unknown;
   isImportDataLoading: boolean;
   importDataError: unknown;
-  refetchImportData: () => Promise<any>;
+  refetchImportData: () => Promise<unknown>;
 }
 
 /**
@@ -58,9 +58,10 @@ export const useImportData = (finalFlowId: string | null): ImportDataResult => {
     enabled: !!(finalFlowId && user?.id),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     cacheTime: 15 * 60 * 1000, // Keep in cache for 15 minutes
-    retry: (failureCount, error: unknown) => {
+    retry: (failureCount, error) => {
       // Don't retry on 429 or auth errors
-      if (error?.status === 429 || error?.status === 401 || error?.status === 403) {
+      const err = error as { status?: number };
+      if (err?.status === 429 || err?.status === 401 || err?.status === 403) {
         return false;
       }
       return failureCount < 2;

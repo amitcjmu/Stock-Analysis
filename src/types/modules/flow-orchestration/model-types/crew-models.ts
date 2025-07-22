@@ -44,9 +44,9 @@ export interface CrewInstance {
 export interface CrewExecutionContext {
   flowId: string;
   executionId: string;
-  inputs: Record<string, any>;
-  parameters: Record<string, any>;
-  context: Record<string, any>;
+  inputs: Record<string, string | number | boolean | null>;
+  parameters: Record<string, string | number | boolean | null>;
+  context: Record<string, string | number | boolean | null>;
   constraints: ExecutionConstraints;
   callbacks: CrewCallback[];
 }
@@ -88,7 +88,7 @@ export interface CrewResults {
   qualityScore: number;
   confidence: number;
   recommendations: string[];
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface CrewMetrics {
@@ -109,7 +109,7 @@ export interface CrewState {
   completedTasks: number;
   totalTasks: number;
   agents: string[];
-  sharedMemory: Record<string, any>;
+  sharedMemory: Record<string, string | number | boolean | null>;
   lastUpdate: string;
 }
 
@@ -119,8 +119,8 @@ export interface CrewTask {
   description: string;
   agentId: string;
   dependencies: string[];
-  inputs: Record<string, any>;
-  outputs: Record<string, any>;
+  inputs: Record<string, string | number | boolean | null>;
+  outputs: Record<string, string | number | boolean | null>;
   timeout: number;
   retryPolicy: RetryPolicy;
   priority: number;
@@ -142,7 +142,7 @@ export interface CrewTaskInstance {
 export interface CrewCallback {
   event: string;
   handler: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, string | number | boolean | null>;
 }
 
 export interface CrewTaskResult {
@@ -211,5 +211,5 @@ export interface AgentContribution {
   confidence: number;
   quality: number;
   relevance: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }

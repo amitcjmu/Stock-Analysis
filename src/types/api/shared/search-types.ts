@@ -58,7 +58,7 @@ export interface SearchResult<T> {
   score: number;
   highlights?: SearchHighlight[];
   explanation?: SearchExplanation;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface SearchHighlight {
@@ -124,7 +124,7 @@ export interface SearchClause {
   value?: unknown;
   operator?: string;
   boost?: number;
-  options?: Record<string, any>;
+  options?: Record<string, string | number | boolean | null>;
 }
 
 export interface HighlightOptions {
@@ -140,5 +140,5 @@ export interface HighlightOptions {
 export interface BoostParameter {
   field: string;
   boost: number;
-  condition?: Record<string, any>;
+  condition?: Record<string, string | number | boolean | null>;
 }

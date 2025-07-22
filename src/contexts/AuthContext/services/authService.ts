@@ -3,6 +3,29 @@ import { authApi } from '@/lib/api/auth';
 import { apiCall, updateApiContext } from '@/config/api';
 import { updateUserDefaults } from '@/lib/api/context';
 import { User, Client, Engagement, Flow } from '../types';
+
+// CC: Registration and API response interfaces
+interface UserRegistrationData {
+  email: string;
+  password: string;
+  full_name: string;
+  role?: string;
+  [key: string]: unknown;
+}
+
+interface ClientSwitchData extends Client {
+  [key: string]: unknown;
+}
+
+interface EngagementSwitchData extends Engagement {
+  [key: string]: unknown;
+}
+
+// CC: Function guard for preventing concurrent execution
+interface GuardedFunction {
+  (...args: unknown[]): Promise<unknown>;
+  isRunning?: boolean;
+}
 import { tokenStorage, contextStorage, persistClientData, persistEngagementData } from '../storage';
 
 export const useAuthService = (
@@ -135,7 +158,7 @@ export const useAuthService = (
     }
   };
 
-  const register = async (userData: unknown) => {
+  const register = async (userData: UserRegistrationData) => {
     try {
       setIsLoading(true);
       setError(null);
@@ -155,7 +178,7 @@ export const useAuthService = (
     }
   };
 
-  const switchClient = async (clientId: string, clientData?: unknown) => {
+  const switchClient = async (clientId: string, clientData?: ClientSwitchData) => {
     try {
       console.log('🔍 switchClient - Starting with:', { clientId, hasClientData: !!clientData });
       
@@ -168,7 +191,7 @@ export const useAuthService = (
           headers: getAuthHeaders()
         }, false); // Don't include context - we're establishing it
         console.log('🔍 switchClient - Got clients response:', response);
-        fullClientData = response.clients?.find((c: unknown) => c.id === clientId);
+        fullClientData = response.clients?.find((c: Client) => c.id === clientId);
       }
       
       if (!fullClientData) {
@@ -223,7 +246,7 @@ export const useAuthService = (
     }
   };
 
-  const switchEngagement = async (engagementId: string, engagementData?: unknown) => {
+  const switchEngagement = async (engagementId: string, engagementData?: EngagementSwitchData) => {
     try {
       console.log('🔍 switchEngagement - Starting with:', { engagementId, hasEngagementData: !!engagementData });
       
@@ -364,12 +387,12 @@ export const useAuthService = (
       });
       
       // Add a guard to prevent concurrent executions
-      if ((fetchDefaultContext as unknown).isRunning) {
+      if ((fetchDefaultContext as GuardedFunction).isRunning) {
         console.log('🔄 fetchDefaultContext already running, skipping');
         return;
       }
       
-      (fetchDefaultContext as unknown).isRunning = true;
+      (fetchDefaultContext as GuardedFunction).isRunning = true;
       console.log('🔄 Fetching default context...');
       
       console.log('🔍 Making API call to /api/v1/context-establishment/clients');
@@ -432,7 +455,7 @@ export const useAuthService = (
         // The user is still authenticated, just missing context
       }
     } finally {
-      (fetchDefaultContext as unknown).isRunning = false;
+      (fetchDefaultContext as GuardedFunction).isRunning = false;
     }
   };
 

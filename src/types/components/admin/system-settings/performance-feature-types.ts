@@ -54,7 +54,7 @@ export interface Feature {
   description?: string;
   enabled: boolean;
   dependencies?: string[];
-  configuration?: Record<string, any>;
+  configuration?: Record<string, unknown>;
 }
 
 export interface Experiment {
@@ -72,7 +72,7 @@ export interface ExperimentVariant {
   id: string;
   name: string;
   allocation: number;
-  configuration?: Record<string, any>;
+  configuration?: Record<string, unknown>;
 }
 
 export interface FeatureToggle {
@@ -84,7 +84,7 @@ export interface FeatureToggle {
 
 export interface ToggleCondition {
   type: 'user' | 'role' | 'percentage' | 'custom';
-  value: unknown;
+  value: string | number | string[] | Record<string, unknown>;
   operator?: 'equals' | 'in' | 'greater_than' | 'less_than';
 }
 

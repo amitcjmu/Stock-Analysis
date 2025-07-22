@@ -6,7 +6,7 @@ export interface SixRRecommendation {
   id: string;
   recommendation: string;
   confidence: number;
-  parameters: Record<string, any>;
+  parameters: Record<string, string | number | boolean | null>;
 }
 
 export interface QuestionResponse {

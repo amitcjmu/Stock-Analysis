@@ -14,10 +14,10 @@ import { Client, Team, User, EngagementStatus, EngagementType } from './core-typ
 // Main Engagement Filters Component
 export interface EngagementFiltersProps extends BaseComponentProps {
   filters: EngagementFilter[];
-  values: Record<string, any>;
-  onFiltersChange: (filters: Record<string, any>) => void;
+  values: Record<string, string | number | boolean | null>;
+  onFiltersChange: (filters: Record<string, string | number | boolean | null>) => void;
   onReset?: () => void;
-  onSave?: (name: string, filters: Record<string, any>) => void;
+  onSave?: (name: string, filters: Record<string, string | number | boolean | null>) => void;
   savedFilters?: SavedFilter[];
   onLoadSavedFilter?: (filter: SavedFilter) => void;
   onDeleteSavedFilter?: (filter: SavedFilter) => void;
@@ -64,7 +64,7 @@ export interface EngagementFilter {
   icon?: string;
   tooltip?: string;
   formatValue?: (value: unknown) => string;
-  parseValue?: (value: string) => any;
+  parseValue?: (value: string) => unknown;
 }
 
 export type FilterType = 
@@ -81,7 +81,7 @@ export interface FilterOption {
   disabled?: boolean;
   group?: string;
   count?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface FilterValidation {
@@ -104,9 +104,9 @@ export interface FilterDependency {
 
 export type FilterRenderer = (
   filter: EngagementFilter, 
-  value: any, 
+  value: unknown, 
   onChange: (value: unknown) => void,
-  props?: any
+  props?: unknown
 ) => ReactNode;
 
 // Filter Groups
@@ -128,7 +128,7 @@ export interface SavedFilter {
   id: string;
   name: string;
   description?: string;
-  filters: Record<string, any>;
+  filters: Record<string, string | number | boolean | null>;
   sorting?: SortConfig[];
   columns?: string[];
   isDefault?: boolean;
@@ -142,7 +142,7 @@ export interface SavedFilter {
   category?: string;
   icon?: string;
   color?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface SortConfig {
@@ -244,7 +244,7 @@ export interface QuickFilter {
   description?: string;
   icon?: string;
   color?: string;
-  filters: Record<string, any>;
+  filters: Record<string, string | number | boolean | null>;
   count?: number;
   shortcut?: string;
   category?: string;
@@ -254,7 +254,7 @@ export interface QuickFilter {
 
 // Filter State Management
 export interface FilterState {
-  filters: Record<string, any>;
+  filters: Record<string, string | number | boolean | null>;
   activeQuickFilters: string[];
   searchQuery: string;
   advancedSearch?: AdvancedSearchQuery;
@@ -336,7 +336,7 @@ export interface FilterSuggestion {
   id: string;
   label: string;
   description: string;
-  filters: Record<string, any>;
+  filters: Record<string, string | number | boolean | null>;
   reason: 'popular' | 'similar_user' | 'historical' | 'trending';
   confidence: number;
   estimatedResults: number;
@@ -412,7 +412,7 @@ export interface FilterPermission {
 export interface ValidationRule {
   type: 'required' | 'format' | 'range' | 'custom';
   message: string;
-  parameters?: Record<string, any>;
+  parameters?: Record<string, unknown>;
 }
 
 // Filter UI Components
@@ -441,9 +441,9 @@ export interface FilterBarProps extends BaseComponentProps {
 export interface FilterMenuProps extends BaseComponentProps {
   trigger: ReactNode;
   filters: EngagementFilter[];
-  values: Record<string, any>;
-  onFiltersChange: (filters: Record<string, any>) => void;
-  onSave?: (name: string, filters: Record<string, any>) => void;
+  values: Record<string, string | number | boolean | null>;
+  onFiltersChange: (filters: Record<string, string | number | boolean | null>) => void;
+  onSave?: (name: string, filters: Record<string, string | number | boolean | null>) => void;
   savedFilters?: SavedFilter[];
   showSavedFilters?: boolean;
   position?: 'bottom' | 'top' | 'left' | 'right';

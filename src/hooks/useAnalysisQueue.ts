@@ -17,9 +17,10 @@ export function useAnalysisQueue() {
     queryFn: async () => {
       try {
         return await apiCall('/api/v1/analysis/queues');
-      } catch (error: unknown) {
+      } catch (error) {
         // Handle 404 and 403 errors gracefully - endpoint may not exist yet
-        if (error.status === 404 || error.response?.status === 404 || error.status === 403) {
+        const errorObj = error as Error & { status?: number; response?: { status?: number } };
+        if (errorObj.status === 404 || errorObj.response?.status === 404 || errorObj.status === 403) {
           console.log('Analysis queues endpoint not available yet');
           return [];
         }
@@ -29,7 +30,8 @@ export function useAnalysisQueue() {
     enabled: isAuthenticated && !!client && !!engagement,
     retry: (failureCount, error) => {
       // Don't retry 404 or 403 errors
-      if (error && ('status' in error && (error.status === 404 || error.status === 403))) {
+      if (error && typeof error === 'object' && 'status' in error && 
+          (error.status === 404 || error.status === 403)) {
         return false;
       }
       return failureCount < 2;

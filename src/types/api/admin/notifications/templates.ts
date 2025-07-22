@@ -75,7 +75,7 @@ export interface PushTemplateContent {
   badge?: string;
   sound?: string;
   actions?: PushAction[];
-  data?: Record<string, any>;
+  data?: Record<string, string | number | boolean | null>;
 }
 
 // In-app notification template content

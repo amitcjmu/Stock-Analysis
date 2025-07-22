@@ -6,6 +6,40 @@
 
 import { masterFlowService } from './api/masterFlowService';
 
+/**
+ * External flow data structure from backend API
+ */
+export interface ExternalFlowData {
+  master_flow_id?: string;
+  flowId?: string;
+  flow_id?: string;
+  flow_name?: string;
+  flowType?: string;
+  status: string;
+  currentPhase?: string;
+  current_phase?: string;
+  progress?: number;
+  progress_percentage?: number;
+  created_at?: string;
+  createdAt?: string;
+  updated_at?: string;
+  updatedAt?: string;
+  deletion_impact?: {
+    data_to_delete: {
+      workflow_state: number;
+      import_sessions: number;
+      field_mappings: number;
+      assets: number;
+      dependencies: number;
+      shared_memory_refs: number;
+    };
+    estimated_cleanup_time: string;
+  };
+  // Allow additional properties from external APIs with specific types
+  metadata?: Record<string, string | number | boolean>;
+  additionalInfo?: Record<string, string | number | boolean>;
+}
+
 export interface FlowDeletionCandidate {
   flowId: string;
   flow_name?: string;
@@ -89,7 +123,7 @@ class FlowDeletionService {
   /**
    * Analyze individual flow for deletion eligibility
    */
-  private analyzeFlowForDeletion(flow: unknown): FlowDeletionCandidate | null {
+  private analyzeFlowForDeletion(flow: ExternalFlowData): FlowDeletionCandidate | null {
     const now = new Date();
     const updatedAt = new Date(flow.updated_at || flow.updatedAt);
     const daysSinceUpdate = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24);
@@ -236,7 +270,7 @@ class FlowDeletionService {
       }, {} as Record<string, number>);
 
       Object.entries(reasonGroups).forEach(([reason, count]) => {
-        message += `• ${this.getReasonDescription(reason as unknown)}: ${count} flows\n`;
+        message += `• ${this.getReasonDescription(reason as FlowDeletionCandidate['reason_for_deletion'])}: ${count} flows\n`;
       });
       
       message += `\nOldest flows:\n`;

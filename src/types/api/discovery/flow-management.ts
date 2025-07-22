@@ -12,6 +12,11 @@ import {
   ValidationResult
 } from '../shared';
 
+// Common types for flow data
+export type FlowValue = string | number | boolean | Date | null | undefined;
+export type FlowDataRecord = Record<string, FlowValue | FlowValue[] | FlowDataRecord | FlowDataRecord[]>;
+export type FlowMetadata = Record<string, string | number | boolean>;
+
 // Flow Management APIs
 export interface InitializeDiscoveryFlowRequest extends BaseApiRequest {
   flowName: string;
@@ -20,7 +25,7 @@ export interface InitializeDiscoveryFlowRequest extends BaseApiRequest {
   configuration?: DiscoveryFlowConfiguration;
   template?: string;
   parentFlowId?: string;
-  metadata?: Record<string, any>;
+  metadata?: FlowMetadata;
 }
 
 export interface InitializeDiscoveryFlowResponse extends BaseApiResponse<DiscoveryFlowData> {
@@ -35,7 +40,7 @@ export interface UpdateDiscoveryFlowRequest extends BaseApiRequest {
   flowId: string;
   configuration?: Partial<DiscoveryFlowConfiguration>;
   status?: FlowStatus;
-  metadata?: Record<string, any>;
+  metadata?: FlowMetadata;
   phase?: string;
   progress?: number;
 }
@@ -64,7 +69,7 @@ export interface GetDiscoveryFlowStatusResponse extends BaseApiResponse<FlowStat
 export interface ControlDiscoveryFlowRequest extends BaseApiRequest {
   flowId: string;
   action: FlowAction;
-  parameters?: Record<string, any>;
+  parameters?: FlowDataRecord;
   reason?: string;
 }
 
@@ -89,7 +94,7 @@ export interface DiscoveryFlowData {
   createdAt: string;
   updatedAt: string;
   createdBy: string;
-  metadata: Record<string, any>;
+  metadata: FlowMetadata;
   phases: FlowPhase[];
   state: FlowState;
 }
@@ -108,8 +113,8 @@ export interface DiscoveryFlowConfiguration {
 
 export interface FlowState {
   currentPhase: string;
-  phaseData: Record<string, any>;
-  globalData: Record<string, any>;
+  phaseData: FlowDataRecord;
+  globalData: FlowDataRecord;
   flags: Record<string, boolean>;
   timestamps: Record<string, string>;
   metrics: Record<string, number>;
@@ -125,8 +130,8 @@ export interface FlowPhase {
   endTime?: string;
   estimatedDuration?: number;
   dependencies: string[];
-  outputs: Record<string, any>;
-  metadata: Record<string, any>;
+  outputs: FlowDataRecord;
+  metadata: FlowMetadata;
 }
 
 export interface FlowStatusData {
@@ -159,7 +164,7 @@ export interface FlowActionResult {
   action: FlowAction;
   success: boolean;
   message: string;
-  details?: Record<string, any>;
+  details?: FlowDataRecord;
   sideEffects?: string[];
 }
 

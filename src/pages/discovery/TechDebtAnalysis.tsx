@@ -95,7 +95,7 @@ const TechDebtAnalysis = () => {
 
   // Extract tech debt data from flow results
   const techDebtItems = techDebtResults?.items || techDebtResults?.debt_items || techDebtResults?.debt_scores ? 
-    Object.entries(techDebtResults.debt_scores || {}).map(([key, value]: [string, any], index) => ({
+    Object.entries(techDebtResults.debt_scores || {}).map(([key, value]: [string, { score: number; severity: string; recommendations?: string[] }], index) => ({
       id: `debt_${index}`,
       assetId: key,
       assetName: value?.asset_name || key,

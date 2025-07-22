@@ -53,12 +53,12 @@ export interface UseSortingReturn<T> {
 }
 
 export interface UseFilteringParams<T> {
-  initialFilters?: Record<string, any>;
-  onFilter?: (filters: Record<string, any>, data: T[]) => void;
+  initialFilters?: Record<string, string | number | boolean | null>;
+  onFilter?: (filters: Record<string, string | number | boolean | null>, data: T[]) => void;
 }
 
 export interface UseFilteringReturn<T> {
-  filters: Record<string, any>;
+  filters: Record<string, string | number | boolean | null>;
   setFilter: (key: string, value: unknown) => void;
   removeFilter: (key: string) => void;
   clearFilters: () => void;

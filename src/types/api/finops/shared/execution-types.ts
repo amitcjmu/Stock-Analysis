@@ -17,6 +17,7 @@ import {
   ValidationStatus,
   RiskLevel 
 } from './base-types';
+import type { ConfigurationValue, TypedConstraint } from '../../../shared/config-types';
 
 // Execution Plan Types
 export interface ExecutionPlan {
@@ -118,7 +119,7 @@ export interface ValidationCheck {
 export interface ValidationCriteria {
   metric: string;
   operator: string;
-  value: unknown;
+  value: ConfigurationValue;
   tolerance?: number;
   unit?: string;
   critical: boolean;
@@ -272,14 +273,14 @@ export interface DashboardPanel {
 
 export interface PanelQuery {
   metric: string;
-  filters: Record<string, any>;
+  filters: Record<string, string | number | boolean | null>;
   aggregation: string;
   timeRange?: string;
 }
 
 export interface PanelVisualization {
   type: string;
-  options: Record<string, any>;
+  options: Record<string, string | number | boolean | null>;
   thresholds?: VisualizationThreshold[];
 }
 
@@ -316,7 +317,7 @@ export interface LoggingConfiguration {
 
 export interface LoggingDestination {
   type: 'file' | 'console' | 'syslog' | 'elasticsearch' | 'cloudwatch';
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
   filters: LoggingFilter[];
 }
 
@@ -343,7 +344,7 @@ export interface MonitoringReporting {
 
 export interface ReportContent {
   type: 'summary' | 'metrics' | 'alerts' | 'trends';
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
 }
 
 export interface ReportCondition {
@@ -372,10 +373,8 @@ export interface ResourceAvailability {
   exclusions?: string[];
 }
 
-export interface ResourceConstraint {
+export interface ResourceConstraint extends Omit<TypedConstraint, 'type' | 'impact'> {
   type: 'capacity' | 'performance' | 'location' | 'compliance' | 'cost';
-  description: string;
-  value: unknown;
   mandatory: boolean;
 }
 
@@ -533,7 +532,7 @@ export interface QuietHours {
 
 export interface CommunicationChannel {
   type: 'email' | 'slack' | 'webhook' | 'sms' | 'phone';
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
   rateLimiting: RateLimiting;
   failover: ChannelFailover[];
 }

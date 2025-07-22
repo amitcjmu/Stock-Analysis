@@ -205,7 +205,7 @@ export interface ResourceConfiguration {
   storage?: StorageConfiguration[];
   network?: NetworkConfiguration;
   tags: Record<string, string>;
-  customProperties: Record<string, any>;
+  customProperties: Record<string, unknown>;
 }
 
 export interface StorageConfiguration {

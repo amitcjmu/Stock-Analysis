@@ -29,10 +29,16 @@ export interface AttributeMappingActionsResult {
   handleApproveMapping: (mappingId: string) => Promise<void>;
   handleRejectMapping: (mappingId: string, rejectionReason?: string) => Promise<void>;
   handleMappingChange: (mappingId: string, newTarget: string) => Promise<void>;
-  handleAttributeUpdate: (attributeId: string, updates: unknown) => Promise<void>;
+  handleAttributeUpdate: (attributeId: string, updates: Record<string, unknown>) => Promise<void>;
   handleDataImportSelection: (importId: string) => Promise<void>;
   canContinueToDataCleansing: () => boolean;
-  checkMappingApprovalStatus: (dataImportId: string) => Promise<any>;
+  checkMappingApprovalStatus: (dataImportId: string) => Promise<{
+    approved: boolean;
+    total_mappings: number;
+    approved_mappings: number;
+    approval_percentage: number;
+    critical_fields_mapped: boolean;
+  } | null>;
   agentDecision: AgentDecision | null;
   agentReasoning: string | null;
 }
@@ -43,10 +49,14 @@ export interface AttributeMappingActionsResult {
  * NOW REACTIVE TO AGENT DECISIONS VIA SSE
  */
 export const useAttributeMappingActions = (
-  flow: any,
+  flow: {
+    id?: string;
+    status?: string;
+    phases?: Record<string, boolean>;
+  } | null,
   fieldMappings: FieldMapping[],
   refresh: () => Promise<void>,
-  refetchFieldMappings: () => Promise<any>
+  refetchFieldMappings: () => Promise<FieldMapping[]>
 ): AttributeMappingActionsResult => {
   const navigate = useNavigate();
   const { user, getAuthHeaders } = useAuth();
@@ -134,7 +144,7 @@ export const useAttributeMappingActions = (
       console.log(`✅ Approving mapping: ${mappingId}`);
       
       // Find the mapping
-      const mapping = fieldMappings.find((m: unknown) => m.id === mappingId);
+      const mapping = fieldMappings.find((m) => m.id === mappingId);
       if (!mapping) {
         console.error('❌ Mapping not found:', mappingId);
         return;
@@ -156,8 +166,8 @@ export const useAttributeMappingActions = (
       console.log('✅ Mapping approved successfully:', approvalResult);
       
       // Show success feedback
-      if (typeof window !== 'undefined' && (window as unknown).showSuccessToast) {
-        (window as unknown).showSuccessToast(`Mapping approved: ${mapping.sourceField} → ${mapping.targetAttribute}`);
+      if (typeof window !== 'undefined' && (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast) {
+        (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast(`Mapping approved: ${mapping.sourceField} → ${mapping.targetAttribute}`);
       }
       
       // Add delay before refetching to prevent rate limiting
@@ -175,9 +185,9 @@ export const useAttributeMappingActions = (
       console.error('❌ Failed to approve mapping:', error);
       
       // Show error toast if available
-      if (typeof window !== 'undefined' && (window as unknown).showErrorToast) {
+      if (typeof window !== 'undefined' && (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to approve mapping';
-        (window as unknown).showErrorToast(errorMessage);
+        (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast(errorMessage);
       }
     }
   }, [fieldMappings, getAuthHeaders, user?.id, refetchFieldMappings]);
@@ -191,8 +201,8 @@ export const useAttributeMappingActions = (
       console.log('ℹ️ To change a field mapping, please edit it directly');
       
       // Show info message
-      if (typeof window !== 'undefined' && (window as unknown).showInfoToast) {
-        (window as unknown).showInfoToast('To change a field mapping, please edit it directly in the dropdown.');
+      if (typeof window !== 'undefined' && (window as Window & { showInfoToast?: (message: string) => void }).showInfoToast) {
+        (window as Window & { showInfoToast?: (message: string) => void }).showInfoToast('To change a field mapping, please edit it directly in the dropdown.');
       }
       
     } catch (error) {
@@ -205,7 +215,7 @@ export const useAttributeMappingActions = (
       console.log(`🔄 Changing mapping: ${mappingId} -> ${newTarget}`);
       
       // Find the mapping in the current data
-      const mapping = fieldMappings.find((m: unknown) => m.id === mappingId);
+      const mapping = fieldMappings.find((m) => m.id === mappingId);
       if (!mapping) {
         console.error('❌ Mapping not found:', mappingId);
         return;
@@ -218,17 +228,17 @@ export const useAttributeMappingActions = (
       // Update local state to reflect the change
       // The parent component should handle this state update
       // For now, just show feedback
-      if (typeof window !== 'undefined' && (window as unknown).showInfoToast) {
-        (window as unknown).showInfoToast(`Field mapping updated: ${mapping.sourceField} → ${newTarget}`);
+      if (typeof window !== 'undefined' && (window as Window & { showInfoToast?: (message: string) => void }).showInfoToast) {
+        (window as Window & { showInfoToast?: (message: string) => void }).showInfoToast(`Field mapping updated: ${mapping.sourceField} → ${newTarget}`);
       }
       
     } catch (error) {
       console.error('❌ Failed to update mapping:', error);
       
       // Show error toast if available
-      if (typeof window !== 'undefined' && (window as unknown).showErrorToast) {
+      if (typeof window !== 'undefined' && (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to update mapping';
-        (window as unknown).showErrorToast(errorMessage);
+        (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast(errorMessage);
       }
       
       // Re-throw for component error handling
@@ -236,7 +246,7 @@ export const useAttributeMappingActions = (
     }
   }, [fieldMappings]);
 
-  const handleAttributeUpdate = useCallback(async (attributeId: string, updates: unknown) => {
+  const handleAttributeUpdate = useCallback(async (attributeId: string, updates: Record<string, unknown>) => {
     try {
       console.log(`🔄 Updating attribute: ${attributeId}`, updates);
       // TODO: Implement attribute update logic

@@ -175,7 +175,7 @@ export interface ObservabilityForecast {
 export interface AnomalyContext {
   related: string[];
   contributing: string[];
-  environmental: Record<string, any>;
+  environmental: Record<string, string | number | boolean | undefined>;
   temporal: string;
 }
 

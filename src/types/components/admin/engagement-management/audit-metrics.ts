@@ -21,7 +21,7 @@ export interface EngagementAuditLog {
   changes: FieldChange[];
   user: User;
   timestamp: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface FieldChange {

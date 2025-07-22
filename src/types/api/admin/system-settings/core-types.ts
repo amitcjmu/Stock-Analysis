@@ -15,6 +15,7 @@ import {
   UpdateRequest,
   UpdateResponse
 } from '../../shared';
+import type { ConfigurationValue } from '../../../shared/config-types';
 
 // System Settings APIs
 export interface GetSystemSettingsRequest extends GetRequest {
@@ -87,14 +88,14 @@ export interface Setting {
   name: string;
   description: string;
   type: SettingType;
-  value: unknown;
-  defaultValue: unknown;
+  value: ConfigurationValue;
+  defaultValue: ConfigurationValue;
   required: boolean;
   validation: SettingValidationRule[];
   dependencies: string[];
   sensitive: boolean;
   restartRequired: boolean;
-  metadata: Record<string, any>;
+  metadata: Record<string, ConfigurationValue>;
 }
 
 export interface SettingValidation {
@@ -107,7 +108,7 @@ export interface SettingValidation {
 
 export interface SettingValidationRule {
   type: ValidationType;
-  value?: unknown;
+  value?: ConfigurationValue;
   message: string;
   severity: ValidationSeverity;
 }
@@ -129,8 +130,8 @@ export interface SettingValidationResult {
 
 export interface SettingChange {
   setting: string;
-  oldValue: unknown;
-  newValue: unknown;
+  oldValue: ConfigurationValue;
+  newValue: ConfigurationValue;
   appliedAt: string;
   appliedBy: string;
   impact: ChangeImpact;

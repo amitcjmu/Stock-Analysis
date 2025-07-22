@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import type { ProgressMilestone } from '@/components/collection/types';
+import { collectionFlowApi } from '@/services/api/collection-flow';
 
 export interface CollectionFlow {
   id: string;
@@ -292,22 +293,99 @@ export const useProgressMonitoring = (
   /**
    * Load initial data
    */
-  const loadData = (): void => {
+  const loadData = async (): Promise<void> => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const mockFlows = generateMockFlows(flowId || undefined);
-      const mockMetrics = generateMockMetrics(mockFlows);
-      
-      setState(prev => ({
-        ...prev,
-        flows: mockFlows,
-        metrics: mockMetrics,
-        selectedFlow: flowId || mockFlows[0]?.id || null,
-        isLoading: false
-      }));
+      // If a specific flow ID is provided, fetch that flow's details
+      if (flowId) {
+        const flowDetails = await collectionFlowApi.getFlowDetails(flowId);
+        
+        // Transform API response to match our CollectionFlow interface
+        const flow: CollectionFlow = {
+          id: flowDetails.id,
+          name: `Collection Flow - ${flowDetails.automation_tier}`,
+          type: flowDetails.automation_tier === 'tier_1' ? 'adaptive' : 
+                flowDetails.automation_tier === 'tier_2' ? 'bulk' : 'integration',
+          status: flowDetails.status === 'initialized' || flowDetails.status === 'running' ? 'running' :
+                  flowDetails.status === 'completed' ? 'completed' :
+                  flowDetails.status === 'paused' ? 'paused' : 'failed',
+          progress: flowDetails.progress || 0,
+          startedAt: flowDetails.created_at,
+          completedAt: flowDetails.completed_at,
+          applicationCount: flowDetails.collection_metrics?.platforms_detected || 0,
+          completedApplications: flowDetails.collection_metrics?.data_collected || 0
+        };
+        
+        // Create metrics from single flow
+        const metrics: CollectionMetrics = {
+          totalFlows: 1,
+          activeFlows: flow.status === 'running' ? 1 : 0,
+          completedFlows: flow.status === 'completed' ? 1 : 0,
+          failedFlows: flow.status === 'failed' ? 1 : 0,
+          totalApplications: flow.applicationCount,
+          completedApplications: flow.completedApplications,
+          averageCompletionTime: 0,
+          dataQualityScore: flowDetails.collection_metrics?.data_collected || 0
+        };
+        
+        setState(prev => ({
+          ...prev,
+          flows: [flow],
+          metrics,
+          selectedFlow: flow.id,
+          isLoading: false
+        }));
+      } else {
+        // Load all incomplete flows if no specific flow ID
+        const incompleteFlows = await collectionFlowApi.getIncompleteFlows();
+        
+        // Transform flows
+        const flows: CollectionFlow[] = incompleteFlows.map(flowDetails => ({
+          id: flowDetails.id,
+          name: `Collection Flow - ${flowDetails.automation_tier}`,
+          type: flowDetails.automation_tier === 'tier_1' ? 'adaptive' : 
+                flowDetails.automation_tier === 'tier_2' ? 'bulk' : 'integration',
+          status: flowDetails.status === 'initialized' || flowDetails.status === 'running' ? 'running' :
+                  flowDetails.status === 'completed' ? 'completed' :
+                  flowDetails.status === 'paused' ? 'paused' : 'failed',
+          progress: flowDetails.progress || 0,
+          startedAt: flowDetails.created_at,
+          completedAt: flowDetails.completed_at,
+          applicationCount: flowDetails.collection_metrics?.platforms_detected || 10,
+          completedApplications: flowDetails.collection_metrics?.data_collected || 0
+        }));
+        
+        // Calculate metrics
+        const metrics: CollectionMetrics = {
+          totalFlows: flows.length,
+          activeFlows: flows.filter(f => f.status === 'running').length,
+          completedFlows: flows.filter(f => f.status === 'completed').length,
+          failedFlows: flows.filter(f => f.status === 'failed').length,
+          totalApplications: flows.reduce((sum, f) => sum + f.applicationCount, 0),
+          completedApplications: flows.reduce((sum, f) => sum + f.completedApplications, 0),
+          averageCompletionTime: 0,
+          dataQualityScore: 0
+        };
+        
+        setState(prev => ({
+          ...prev,
+          flows,
+          metrics,
+          selectedFlow: flows[0]?.id || null,
+          isLoading: false
+        }));
+      }
     } catch (error: unknown) {
+      console.error('Failed to load collection flow data:', error);
       setState(prev => ({ ...prev, error, isLoading: false }));
+      
+      // Show error toast
+      toast({
+        title: 'Failed to load data',
+        description: 'Unable to load collection flow data. Please try again.',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -330,33 +408,26 @@ export const useProgressMonitoring = (
    */
   const handleFlowAction = async (flowId: string, action: 'pause' | 'resume' | 'stop'): Promise<void> => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      if (action === 'resume') {
+        // Use continue endpoint for resume
+        await collectionFlowApi.continueFlow(flowId);
+      } else if (action === 'stop') {
+        // Use update endpoint to cancel the flow
+        await collectionFlowApi.updateFlow(flowId, { action: 'cancel' });
+      } else if (action === 'pause') {
+        // Use update endpoint to pause
+        await collectionFlowApi.updateFlow(flowId, { action: 'pause' });
+      }
       
-      setState(prev => ({
-        ...prev,
-        flows: prev.flows.map(flow => {
-          if (flow.id === flowId) {
-            switch (action) {
-              case 'pause':
-                return { ...flow, status: 'paused' as const };
-              case 'resume':
-                return { ...flow, status: 'running' as const };
-              case 'stop':
-                return { ...flow, status: 'failed' as const };
-              default:
-                return flow;
-            }
-          }
-          return flow;
-        })
-      }));
+      // Reload data to get updated status
+      await loadData();
 
       toast({
         title: `Flow ${action}${action.endsWith('e') ? 'd' : 'ped'}`,
         description: `Collection flow has been ${action}${action.endsWith('e') ? 'd' : 'ped'} successfully.`
       });
     } catch (error) {
+      console.error(`Failed to ${action} flow:`, error);
       toast({
         title: 'Action Failed',
         description: `Failed to ${action} the collection flow.`,
@@ -406,31 +477,12 @@ export const useProgressMonitoring = (
     if (!autoRefresh) return;
 
     const interval = setInterval(() => {
-      // Simulate progress updates for running flows
-      setState(prev => ({
-        ...prev,
-        flows: prev.flows.map(flow => {
-          if (flow.status === 'running' && flow.progress < 100) {
-            const newProgress = Math.min(flow.progress + Math.random() * 5, 100);
-            const newCompleted = Math.floor((newProgress / 100) * flow.applicationCount);
-            
-            return {
-              ...flow,
-              progress: newProgress,
-              completedApplications: newCompleted,
-              ...(newProgress >= 100 && {
-                status: 'completed' as const,
-                completedAt: new Date().toISOString()
-              })
-            };
-          }
-          return flow;
-        })
-      }));
+      // Reload actual data from API
+      loadData();
     }, refreshInterval);
 
     return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval]);
+  }, [autoRefresh, refreshInterval, flowId]);
 
   // Initial data load
   useEffect(() => {

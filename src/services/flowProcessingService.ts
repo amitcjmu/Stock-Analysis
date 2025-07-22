@@ -6,6 +6,7 @@
  */
 
 import { apiCall } from '@/lib/api';
+import { BaseMetadata } from '../types/shared/metadata-types';
 
 export interface TaskResult {
   task_id: string;
@@ -64,18 +65,47 @@ export interface FlowChecklistResponse {
   blocking_issues: string[];
 }
 
+export interface FlowState extends BaseMetadata {
+  current_phase: string;
+  phase_progress: Record<string, number>;
+  completed_tasks: string[];
+  pending_tasks: string[];
+  blocked_tasks: string[];
+  error_states: string[];
+  flow_metadata: Record<string, unknown>;
+}
+
+export interface ChecklistAnalysisResult {
+  phase_id: string;
+  phase_name: string;
+  completed_tasks: number;
+  total_tasks: number;
+  completion_percentage: number;
+  blocking_issues: string[];
+  next_actions: string[];
+}
+
+export interface UserGuidanceData {
+  primary_message: string;
+  action_items: string[];
+  user_actions: string[];
+  system_actions: string[];
+  estimated_completion_time?: number;
+  priority_level: 'low' | 'medium' | 'high' | 'critical';
+}
+
 export interface FlowAnalysisResponse {
   flow_id: string;
   timestamp: string;
   analysis: {
-    flow_state: unknown;
-    checklist_results: unknown[];
+    flow_state: FlowState;
+    checklist_results: ChecklistAnalysisResult[];
     routing_decision: {
       target_page: string;
       phase: string;
       specific_task?: string;
     };
-    user_guidance: unknown;
+    user_guidance: UserGuidanceData;
   };
 }
 
@@ -88,7 +118,7 @@ class FlowProcessingService {
    */
   async processContinuation(
     flowId: string,
-    userContext: Record<string, any> = {}
+    userContext: Record<string, unknown> = {}
   ): Promise<FlowContinuationResponse> {
     try {
       console.log(`🤖 FLOW PROCESSING SERVICE: Requesting continuation for flow ${flowId}`);

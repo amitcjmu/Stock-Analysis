@@ -1,9 +1,10 @@
 import { QueryCache, MutationCache } from '@tanstack/react-query';
 import { toast } from '@/components/ui/use-toast';
 import { tokenStorage } from '@/contexts/AuthContext/storage';
+import type { ApiError } from '@/types/shared/api-types';
 
 // Create a function to handle API errors globally
-export const handleApiError = (error: any, navigate: (path: string) => void) => {
+export const handleApiError = (error: ApiError & { status?: number; isAuthError?: boolean }, navigate: (path: string) => void) => {
   // Check if it's an authentication error
   if (error?.status === 401 || error?.isAuthError) {
     console.warn('🔐 Authentication error detected, redirecting to login');
@@ -39,7 +40,7 @@ export const handleApiError = (error: any, navigate: (path: string) => void) => 
 export const createQueryClient = (navigate: (path: string) => void) => {
   return {
     queryCache: new QueryCache({
-      onError: (error: unknown) => {
+      onError: (error: ApiError & { status?: number }) => {
         console.error('Query error:', error);
         
         // Handle authentication errors
@@ -58,7 +59,7 @@ export const createQueryClient = (navigate: (path: string) => void) => {
       }
     }),
     mutationCache: new MutationCache({
-      onError: (error: unknown) => {
+      onError: (error: ApiError & { status?: number }) => {
         console.error('Mutation error:', error);
         
         // Handle authentication errors
@@ -71,7 +72,7 @@ export const createQueryClient = (navigate: (path: string) => void) => {
     }),
     defaultOptions: {
       queries: {
-        retry: (failureCount: number, error: unknown) => {
+        retry: (failureCount: number, error: ApiError & { status?: number; isAuthError?: boolean }) => {
           // Don't retry on authentication errors
           if (error?.status === 401 || error?.isAuthError) {
             return false;

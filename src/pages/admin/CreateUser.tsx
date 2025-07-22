@@ -118,7 +118,7 @@ const CreateUser: React.FC = () => {
       });
       navigate('/admin/users/approvals');
     },
-    onError: (error: unknown) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error?.message || "Failed to create user. Please try again.",
@@ -146,7 +146,7 @@ const CreateUser: React.FC = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleFormChange = (field: keyof CreateUserData, value: unknown) => {
+  const handleFormChange = (field: keyof CreateUserData, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
       [field]: value

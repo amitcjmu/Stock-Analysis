@@ -7,7 +7,7 @@ import { ClientFormData } from '../../types';
 
 interface BusinessContextTabProps {
   formData: ClientFormData;
-  onFormChange: (field: keyof ClientFormData, value: unknown) => void;
+  onFormChange: (field: keyof ClientFormData, value: string | string[]) => void;
 }
 
 export const BusinessContextTab: React.FC<BusinessContextTabProps> = ({ formData, onFormChange }) => {

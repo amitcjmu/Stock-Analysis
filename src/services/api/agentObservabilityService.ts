@@ -101,7 +101,7 @@ export class AgentObservabilityService {
   /**
    * Transform API response to UI-friendly agent card data
    */
-  transformToAgentCardData(response: unknown): AgentCardData[] {
+  transformToAgentCardData(response: { success?: boolean; agents_by_phase?: Record<string, unknown> }): AgentCardData[] {
     if (!response.success || !response.agents_by_phase) {
       return [];
     }
@@ -111,9 +111,29 @@ export class AgentObservabilityService {
     // Iterate through all phases and extract agent data
     for (const [phaseName, phaseData] of Object.entries(response.agents_by_phase)) {
       if (phaseData && typeof phaseData === 'object' && 'agents' in phaseData) {
-        const phaseAgents = (phaseData as unknown).agents;
+        const phaseAgents = (phaseData as { agents?: Array<{
+          agent_id?: string;
+          name: string;
+          status?: { current_status?: string };
+          last_heartbeat?: string;
+          performance?: {
+            success_rate?: string | number;
+            tasks_completed?: string | number;
+            avg_execution_time?: string | number;
+          };
+        }> }).agents || [];
         
-        phaseAgents.forEach((agent: unknown) => {
+        phaseAgents.forEach((agent: {
+          agent_id?: string;
+          name: string;
+          status?: { current_status?: string };
+          last_heartbeat?: string;
+          performance?: {
+            success_rate?: string | number;
+            tasks_completed?: string | number;
+            avg_execution_time?: string | number;
+          };
+        }) => {
           agents.push({
             id: agent.agent_id || agent.name,
             name: agent.name,
@@ -134,7 +154,7 @@ export class AgentObservabilityService {
   /**
    * Parse success rate from different formats
    */
-  private parseSuccessRate(successRate: unknown): number {
+  private parseSuccessRate(successRate: string | number | undefined): number {
     if (typeof successRate === 'number') {
       return successRate;
     }
@@ -153,7 +173,7 @@ export class AgentObservabilityService {
   /**
    * Parse task count from different formats
    */
-  private parseTaskCount(taskCount: unknown): number {
+  private parseTaskCount(taskCount: string | number | undefined): number {
     if (typeof taskCount === 'number') {
       return taskCount;
     }
@@ -169,7 +189,7 @@ export class AgentObservabilityService {
   /**
    * Parse average duration from different formats
    */
-  private parseAvgDuration(avgDuration: unknown): number {
+  private parseAvgDuration(avgDuration: string | number | undefined): number {
     if (typeof avgDuration === 'number') {
       return avgDuration;
     }

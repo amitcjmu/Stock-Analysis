@@ -4,15 +4,41 @@
  */
 
 import { ApiClient } from '../ApiClient';
+import { ApiResponse, ApiError } from '../../types/shared/api-types';
+import type { EnhancedApiError } from '../../config/api';
+import { BaseMetadata, AuditableMetadata } from '../../types/shared/metadata-types';
 
 const apiClient = ApiClient.getInstance();
 import { AuthService } from '../../contexts/AuthContext/services/authService';
+
+export interface FlowConfiguration extends BaseMetadata {
+  flow_name?: string;
+  auto_retry?: boolean;
+  max_retries?: number;
+  timeout_minutes?: number;
+  notification_channels?: string[];
+  agent_collaboration?: boolean;
+}
+
+export interface FlowMetrics {
+  total_flows: number;
+  active_flows: number;
+  completed_flows: number;
+  failed_flows: number;
+  average_duration_minutes: number;
+  success_rate: number;
+  phase_metrics: Record<string, {
+    total_executions: number;
+    average_duration: number;
+    success_rate: number;
+  }>;
+}
 
 export interface MasterFlowRequest {
   clientAccountId: string;
   engagementId: string;
   flowType: 'discovery' | 'assessment' | 'planning' | 'execution' | 'modernize' | 'finops' | 'observability' | 'decommission';
-  config?: Record<string, any>;
+  config?: FlowConfiguration;
   userId?: string;
 }
 
@@ -22,7 +48,7 @@ export interface MasterFlowResponse {
   flowType: string;
   progress: number;
   currentPhase: string;
-  metadata: Record<string, any>;
+  metadata: AuditableMetadata;
   createdAt: string;
   updatedAt: string;
 }
@@ -36,10 +62,10 @@ export interface FlowStatusResponse {
   currentPhase?: string;
   current_phase?: string; // Some endpoints use snake_case
   phase?: string; // Another variant
-  phaseDetails?: Record<string, any>;
+  phaseDetails?: Record<string, unknown>;
   phase_completion?: Record<string, boolean>; // For phase completion tracking
   errors?: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   awaitingUserApproval?: boolean;
   awaiting_user_approval?: boolean; // Snake case variant
   lastUpdated?: string;
@@ -53,7 +79,7 @@ export interface FlowStatusResponse {
     suggested_by?: string;
     approved_by?: string;
     approved_at?: string;
-    transformation_rules?: Record<string, any>;
+    transformation_rules?: Record<string, unknown>;
     created_at?: string;
     updated_at?: string;
   }>;
@@ -65,7 +91,7 @@ export interface FlowStatusResponse {
     title: string;
     description: string;
     confidence: string | number;
-    supporting_data: Record<string, any>;
+    supporting_data: Record<string, unknown>;
     actionable: boolean;
     page: string;
     created_at: string;
@@ -75,8 +101,8 @@ export interface FlowStatusResponse {
     recommendation?: string;
     severity?: string;
   }>;
-  raw_data?: Array<Record<string, any>>;
-  import_metadata?: Record<string, any>;
+  raw_data?: Array<Record<string, unknown>>;
+  import_metadata?: AuditableMetadata;
 }
 
 /**
@@ -100,7 +126,7 @@ const getMultiTenantHeaders = (
 /**
  * Handle API errors consistently
  */
-const handleApiError = (error: any, operation: string) => {
+const handleApiError = (error: Error | { message?: string; code?: string }, operation: string) => {
   console.error(`MasterFlowService.${operation} failed:`, error);
   if (error instanceof Error) {
     throw new Error(`${operation} failed: ${error.message}`);
@@ -125,7 +151,16 @@ export const masterFlowService = {
         initial_state: {}
       };
       
-      const response = await apiClient.post<any>(
+      const response = await apiClient.post<{
+        flow_id: string;
+        status: string;
+        flow_type: string;
+        progress_percentage: number;
+        phase: string;
+        metadata: AuditableMetadata;
+        created_at: string;
+        updated_at: string;
+      }>(
         '/flows/',
         backendRequest,
         {
@@ -140,11 +175,11 @@ export const masterFlowService = {
       // Transform backend response to match frontend expectations
       return {
         flowId: response.flow_id,
-        status: response.status,
+        status: response.status as 'initializing' | 'running' | 'completed' | 'failed' | 'paused',
         flowType: response.flow_type,
         progress: response.progress_percentage || 0,
         currentPhase: response.phase || 'initialization',
-        metadata: response.metadata || {},
+        metadata: response.metadata || { tags: {}, labels: {}, annotations: {}, customFields: {} },
         createdAt: response.created_at,
         updatedAt: response.updated_at
       };
@@ -228,9 +263,10 @@ export const masterFlowService = {
       await apiClient.delete(`/discovery/flow/${flowId}`, undefined, {
         headers: getMultiTenantHeaders(clientAccountId, engagementId),
       });
-    } catch (error: unknown) {
+    } catch (error) {
       // If master flow delete fails with 404, try discovery flow endpoint
-      if (error?.response?.status === 404 || error?.status === 404) {
+      const apiError = error as EnhancedApiError;
+      if (apiError?.response?.status === 404 || apiError?.status === 404) {
         console.log('Master flow not found, trying discovery flow delete endpoint...');
         try {
           await apiClient.delete(`/discovery/flow/${flowId}`, undefined, {
@@ -252,7 +288,7 @@ export const masterFlowService = {
    */
   async updateFlowConfig(
     flowId: string,
-    config: Record<string, any>,
+    config: FlowConfiguration,
     clientAccountId: string,
     engagementId?: string
   ): Promise<void> {
@@ -299,9 +335,9 @@ export const masterFlowService = {
     flowId: string,
     clientAccountId: string,
     engagementId?: string
-  ): Promise<any> {
+  ): Promise<ApiResponse<{ success: boolean; message?: string }>> {
     try {
-      const response = await apiClient.post(
+      const response = await apiClient.post<ApiResponse<{ success: boolean; message?: string }>>(
         `/flows/${flowId}/resume`,
         {},
         {
@@ -322,12 +358,12 @@ export const masterFlowService = {
     clientAccountId: string,
     engagementId?: string,
     flowType?: string
-  ): Promise<any> {
+  ): Promise<FlowMetrics> {
     try {
       const params = new URLSearchParams();
       if (flowType) params.append('flowType', flowType);
       
-      const response = await apiClient.get<any>(
+      const response = await apiClient.get<FlowMetrics>(
         `/flows/metrics${params.toString() ? `?${params}` : ''}`,
         {
           headers: getMultiTenantHeaders(clientAccountId, engagementId),
@@ -348,7 +384,7 @@ export const masterFlowService = {
   async initializeDiscoveryFlow(
     clientAccountId: string,
     engagementId: string,
-    config?: Record<string, any>
+    config?: FlowConfiguration
   ): Promise<MasterFlowResponse> {
     return this.initializeFlow({
       clientAccountId,

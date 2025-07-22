@@ -103,10 +103,10 @@ export interface ViolationImpact {
 }
 
 export interface ViolationEvidence {
-  metrics: Record<string, any>;
+  metrics: Record<string, unknown>;
   logs: string[];
   screenshots?: string[];
-  configurations: Record<string, any>;
+  configurations: Record<string, unknown>;
 }
 
 export interface ViolationContext {

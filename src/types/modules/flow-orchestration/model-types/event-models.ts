@@ -11,14 +11,14 @@ export interface FlowEvent {
   id: string;
   flowId: string;
   eventType: string;
-  eventData: Record<string, any>;
+  eventData: Record<string, string | number | boolean | null>;
   timestamp: string;
   source: 'system' | 'agent' | 'user' | 'external';
   sourceId?: string;
   severity: 'info' | 'warning' | 'error' | 'critical';
   category: string;
   description: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface EventSubscription {

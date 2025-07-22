@@ -51,6 +51,9 @@ export interface EngagementCreationProps extends BaseComponentProps {
   allowBackNavigation?: boolean;
 }
 
+// Custom field types
+export type CustomFieldValue = string | number | boolean | Date | string[] | number[];
+
 // Creation Request Data
 export interface CreateEngagementRequest {
   name: string;
@@ -67,9 +70,9 @@ export interface CreateEngagementRequest {
   phases: CreateEngagementPhase[];
   deliverables: CreateDeliverable[];
   milestones: CreateMilestone[];
-  customFields?: Record<string, any>;
+  customFields?: Record<string, CustomFieldValue>;
   tags?: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean>;
 }
 
 // Phase Creation Data
@@ -86,8 +89,8 @@ export interface CreateEngagementPhase {
   dependencies?: string[];
   prerequisites?: string[];
   templateId?: string;
-  customFields?: Record<string, any>;
-  metadata?: Record<string, any>;
+  customFields?: Record<string, CustomFieldValue>;
+  metadata?: Record<string, string | number | boolean>;
 }
 
 // Deliverable Creation Data
@@ -102,8 +105,8 @@ export interface CreateDeliverable {
   approverIds?: string[];
   dependencies?: string[];
   templateId?: string;
-  customFields?: Record<string, any>;
-  metadata?: Record<string, any>;
+  customFields?: Record<string, CustomFieldValue>;
+  metadata?: Record<string, string | number | boolean>;
 }
 
 // Milestone Creation Data
@@ -122,8 +125,8 @@ export interface CreateMilestone {
   isCritical?: boolean;
   weight?: number;
   templateId?: string;
-  customFields?: Record<string, any>;
-  metadata?: Record<string, any>;
+  customFields?: Record<string, CustomFieldValue>;
+  metadata?: Record<string, string | number | boolean>;
 }
 
 export interface CreateMilestoneCriteria {
@@ -183,7 +186,7 @@ export interface FieldMapping {
 
 export interface FieldTransform {
   type: 'uppercase' | 'lowercase' | 'capitalize' | 'format_date' | 'calculate' | 'lookup' | 'custom';
-  parameters?: Record<string, any>;
+  parameters?: Record<string, string | number | boolean>;
   customFunction?: string;
 }
 
@@ -223,7 +226,7 @@ export interface StepValidationRule {
   field?: string;
   type: 'required' | 'format' | 'range' | 'dependency' | 'business_rule' | 'custom';
   message: string;
-  parameters?: Record<string, any>;
+  parameters?: Record<string, string | number | boolean | RegExp>;
   severity?: 'error' | 'warning' | 'info';
   validator?: string;
   async?: boolean;
@@ -231,7 +234,7 @@ export interface StepValidationRule {
 
 export interface CustomValidator {
   name: string;
-  validator: (value: any, field: EngagementCreationField, data: Partial<CreateEngagementRequest>) => boolean | string | Promise<boolean | string>;
+  validator: (value: unknown, field: EngagementCreationField, data: Partial<CreateEngagementRequest>) => boolean | string | Promise<boolean | string>;
   async?: boolean;
   debounce?: number;
 }
@@ -378,7 +381,7 @@ export interface EngagementFormState {
 
 export interface EngagementFormActions {
   updateField: (field: string, value: unknown) => void;
-  updateFields: (updates: Record<string, any>) => void;
+  updateFields: (updates: Record<string, CustomFieldValue>) => void;
   validateField: (field: string) => Promise<boolean>;
   validateStep: (step: number) => Promise<boolean>;
   validateAll: () => Promise<boolean>;
@@ -407,13 +410,13 @@ export interface EngagementWizardNavigation {
 
 // Form Helpers and Utilities
 export interface EngagementFormHelpers {
-  getFieldValue: (field: string) => any;
+  getFieldValue: (field: string) => unknown;
   setFieldValue: (field: string, value: unknown) => void;
   getFieldError: (field: string) => string | undefined;
   hasFieldError: (field: string) => boolean;
   isFieldTouched: (field: string) => boolean;
   isFieldValid: (field: string) => boolean;
-  getStepData: (step: number) => Record<string, any>;
+  getStepData: (step: number) => Record<string, CustomFieldValue>;
   getStepProgress: (step: number) => number;
   calculateTotalProgress: () => number;
   getFormSummary: () => EngagementFormSummary;

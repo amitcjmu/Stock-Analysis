@@ -12,6 +12,8 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.models.client_account import User
 from app.services.auth_services.jwt_service import JWTService
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +53,14 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db = D
         try:
             user_id = UUID(user_id_str)
             
-            # Find user by ID
-            user = await db.get(User, user_id)
+            # Find user by ID with eager loading of associations
+            result = await db.execute(
+                select(User)
+                .where(User.id == user_id)
+                .options(selectinload(User.user_associations))
+            )
+            user = result.scalar_one_or_none()
+            
             if user is None:
                 raise credentials_exception
                 

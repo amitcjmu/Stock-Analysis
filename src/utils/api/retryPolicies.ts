@@ -3,7 +3,7 @@
  * Provides configurable retry strategies with exponential backoff.
  */
 
-import { ApiErrorType } from './apiTypes';
+import type { ApiErrorType } from './apiTypes';
 import { isRetryableError } from './errorHandling';
 
 export interface RetryOptions {

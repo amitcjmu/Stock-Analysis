@@ -107,7 +107,7 @@ export interface SoftDeletedItem {
   item_type: DeletedItemType;
   item_id: string;
   item_name?: string;
-  item_data?: Record<string, any>;
+  item_data?: Record<string, unknown>;
   client_account_id?: string;
   engagement_id?: string;
   client_account_name?: string;
@@ -140,7 +140,8 @@ export interface AccessAuditLog {
   reason?: string;
   ip_address?: string;
   user_agent?: string;
-  details?: Record<string, any>;
+  details?: Record<string, string | number | boolean>;
+
   user_role_level?: RoleLevel;
   user_data_scope?: DataScope;
   created_at: string;

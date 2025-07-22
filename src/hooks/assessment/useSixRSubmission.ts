@@ -1,10 +1,15 @@
 import { useState } from 'react';
-import { SixRDecision } from '@/hooks/useAssessmentFlow';
+import type { SixRDecision } from '@/hooks/useAssessmentFlow';
+import type { FieldValues } from 'react-hook-form';
+
+interface SixRSubmissionData extends FieldValues {
+  sixrDecisions: Record<string, SixRDecision>;
+}
 
 interface UseSixRSubmissionProps {
   sixrDecisions: Record<string, SixRDecision>;
   updateSixRDecision: (appId: string, decision: Partial<SixRDecision>) => void;
-  resumeFlow: (data: unknown) => Promise<void>;
+  resumeFlow: (data: SixRSubmissionData) => Promise<void>;
   selectedApp: string;
   currentAppDecision: SixRDecision | null;
 }
@@ -43,7 +48,7 @@ export const useSixRSubmission = ({
       
       await resumeFlow({
         sixrDecisions: sixrDecisions
-      });
+      } as SixRSubmissionData);
     } catch (error) {
       console.error('Failed to submit 6R strategy review:', error);
       throw error;

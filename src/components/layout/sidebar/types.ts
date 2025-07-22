@@ -1,5 +1,16 @@
 import { LucideIcon } from 'lucide-react';
 
+// User interface
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  avatar?: string;
+  permissions: string[];
+  metadata?: Record<string, unknown>;
+}
+
 export interface NavigationItem {
   name: string;
   path: string;
@@ -12,7 +23,7 @@ export interface SidebarHeaderProps {
   onAuthClick: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
-  user: unknown;
+  user: User | null;
   isAdmin: boolean;
 }
 
@@ -39,7 +50,7 @@ export interface NavigationItemProps {
 
 export interface AuthenticationIndicatorProps {
   isAuthenticated: boolean;
-  user: unknown;
+  user: User | null;
 }
 
 export interface VersionDisplayProps {

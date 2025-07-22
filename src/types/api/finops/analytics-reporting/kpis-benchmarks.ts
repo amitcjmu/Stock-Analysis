@@ -257,7 +257,7 @@ export interface ParticipantProfile {
   size: string;
   geography: string;
   maturity: 'beginner' | 'intermediate' | 'advanced' | 'expert';
-  characteristics: Record<string, any>;
+  characteristics: Record<string, string | number | boolean | null>;
 }
 
 export interface BenchmarkMethodology {

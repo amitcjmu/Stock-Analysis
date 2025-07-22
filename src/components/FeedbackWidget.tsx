@@ -10,12 +10,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
-type FeedbackType = 'Feature' | 'Bug' | 'Improvement' | 'Other';
-
 const FeedbackWidget = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFeedback, setNewFeedback] = useState({
-    type: 'Feature' as FeedbackType,
+    type: 'Feature' as const,
     title: '',
     description: ''
   });
@@ -166,7 +164,7 @@ const FeedbackWidget = () => {
               <div>
                 <Select
                   value={newFeedback.type}
-                  onValueChange={(value) => setNewFeedback({ ...newFeedback, type: value as FeedbackType })}
+                  onValueChange={(value) => setNewFeedback({ ...newFeedback, type: value as 'Feature' | 'Bug' | 'Improvement' | 'Other' })}
                 >
                   <option value="Feature">Feature Request</option>
                   <option value="Bug">Bug Report</option>

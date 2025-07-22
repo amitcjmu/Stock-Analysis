@@ -6,6 +6,7 @@
  * Generated with CC for modular admin type organization.
  */
 
+import type { BaseMetadata, AuditableMetadata } from '../../../shared/metadata-types';
 import { ChannelType, DeliveryStatus, ErrorCategory } from './enums';
 
 // Notification delivery information
@@ -26,7 +27,7 @@ export interface DeliveryAttempt {
   attempted_at: string;
   completed_at?: string;
   error?: DeliveryError;
-  metadata: Record<string, any>;
+  metadata: AuditableMetadata;
 }
 
 // Delivery result per recipient/channel
@@ -36,7 +37,7 @@ export interface DeliveryResult {
   status: DeliveryStatus;
   delivered_at?: string;
   message_id?: string;
-  provider_response?: Record<string, any>;
+  provider_response?: BaseMetadata;
   tracking_id?: string;
 }
 
@@ -61,7 +62,7 @@ export interface DeliveryError {
   category: ErrorCategory;
   retry_after?: number;
   permanent: boolean;
-  provider_error?: Record<string, any>;
+  provider_error?: BaseMetadata;
 }
 
 // Delivery tracking configuration

@@ -17,7 +17,7 @@ export interface BaseMetadata {
   created_by?: string;
   updated_by?: string;
   tags?: string[];
-  custom?: Record<string, any>;
+  custom?: Record<string, string | number | boolean | null | undefined>;
 }
 
 /**

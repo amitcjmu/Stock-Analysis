@@ -49,7 +49,7 @@ export interface RevokeApiTokenRequest extends BaseApiRequest {
   context: MultiTenantContext;
 }
 
-export interface RevokeApiTokenResponse extends BaseApiResponse<any> {
+export interface RevokeApiTokenResponse extends BaseApiResponse<unknown> {
   data: unknown;
   revoked: boolean;
   revokedAt: string;

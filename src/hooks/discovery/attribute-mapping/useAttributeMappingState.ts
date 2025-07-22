@@ -1,6 +1,57 @@
 import { useEffect, useMemo } from 'react';
 import { FieldMapping } from './useFieldMappings';
 
+// CC: Data structure interfaces for attribute mapping state
+interface AttributeData {
+  id?: string;
+  name: string;
+  type: string;
+  required: boolean;
+  description: string;
+  targetField?: string;
+  confidence?: number;
+  [key: string]: unknown;
+}
+
+interface CrewAnalysisItem {
+  id?: string;
+  analysis_type?: string;
+  findings?: unknown;
+  recommendations?: unknown;
+  [key: string]: unknown;
+}
+
+interface DataImportItem {
+  id: string;
+  name?: string;
+  status?: string;
+  created_at?: string;
+  [key: string]: unknown;
+}
+
+interface FlowItem {
+  id: string;
+  flow_name?: string;
+  status?: string;
+  current_phase?: string;
+  progress?: number;
+  [key: string]: unknown;
+}
+
+interface AgentClarification {
+  id?: string;
+  message?: string;
+  status?: string;
+  agent_type?: string;
+  [key: string]: unknown;
+}
+
+interface FieldMappingData {
+  mappings?: unknown[];
+  metadata?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 export interface MappingProgress {
   total: number;
   mapped: number;
@@ -11,21 +62,21 @@ export interface MappingProgress {
 
 export interface AttributeMappingStateResult {
   mappingProgress: MappingProgress;
-  agenticData: { attributes: unknown[] };
-  crewAnalysis: unknown[];
+  agenticData: { attributes: AttributeData[] };
+  crewAnalysis: CrewAnalysisItem[];
   isAgenticLoading: boolean;
   isFlowStateLoading: boolean;
   isAnalyzing: boolean;
-  agenticError: unknown;
-  flowStateError: unknown;
-  availableDataImports: unknown[];
+  agenticError: Error | null;
+  flowStateError: Error | null;
+  availableDataImports: DataImportItem[];
   selectedDataImportId: string | null;
   hasActiveFlow: boolean;
   currentPhase: string;
   flowProgress: number;
-  agentClarifications: unknown[];
+  agentClarifications: AgentClarification[];
   isClarificationsLoading: boolean;
-  clarificationsError: unknown;
+  clarificationsError: Error | null;
 }
 
 /**
@@ -34,19 +85,19 @@ export interface AttributeMappingStateResult {
  */
 export const useAttributeMappingState = (
   fieldMappings: FieldMapping[],
-  realFieldMappings: unknown[],
-  fieldMappingData: any,
-  flow: any,
-  flowList: unknown[],
+  realFieldMappings: FieldMapping[],
+  fieldMappingData: FieldMappingData | null,
+  flow: FlowItem | null,
+  flowList: FlowItem[],
   effectiveFlowId: string | null,
   isFlowLoading: boolean,
   isFlowListLoading: boolean,
   isImportDataLoading: boolean,
   isFieldMappingsLoading: boolean,
-  flowError: any,
-  flowListError: any,
-  importDataError: any,
-  fieldMappingsError: any
+  flowError: Error | null,
+  flowListError: Error | null,
+  importDataError: Error | null,
+  fieldMappingsError: Error | null
 ): AttributeMappingStateResult => {
 
   // Extract data with proper type checking and safe access
@@ -125,9 +176,9 @@ export const useAttributeMappingState = (
       
       // Otherwise calculate from field mappings
       const total = fieldMappings?.length || 0;
-      const approved = fieldMappings?.filter((m: unknown) => m.status === 'approved').length || 0;
-      const pending = fieldMappings?.filter((m: unknown) => m.status === 'pending').length || 0;
-      const unmapped = fieldMappings?.filter((m: unknown) => m.status === 'unmapped').length || 0;
+      const approved = fieldMappings?.filter(m => m.status === 'approved').length || 0;
+      const pending = fieldMappings?.filter(m => m.status === 'pending').length || 0;
+      const unmapped = fieldMappings?.filter(m => (m.status as string) === 'unmapped').length || 0;
       
       // Only count explicitly approved mappings as "mapped"
       // Pending mappings are suggestions that need user approval
@@ -144,7 +195,7 @@ export const useAttributeMappingState = (
       
       // Count how many critical fields are mapped (only count approved mappings for critical)
       // Critical mappings must be user-approved for accuracy
-      const criticalMapped = fieldMappings?.filter((m: unknown) => 
+      const criticalMapped = fieldMappings?.filter(m => 
         criticalFields.includes(m.targetAttribute?.toLowerCase()) && m.status === 'approved'
       ).length || 0;
       

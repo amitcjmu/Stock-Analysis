@@ -55,7 +55,7 @@ const UserProfile: React.FC = () => {
         confirm_password: ''
       });
     },
-    onError: (error: unknown) => {
+    onError: (error: Error & { message?: string }) => {
       toast({
         title: "Password Change Failed",
         description: error?.message || 'Password change failed',

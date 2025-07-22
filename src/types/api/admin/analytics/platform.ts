@@ -144,7 +144,7 @@ export interface ForecastModel {
   version: string;
   training_period: AnalyticsPeriod;
   features_used: string[];
-  hyperparameters: Record<string, any>;
+  hyperparameters: Record<string, string | number | boolean | string[] | number[]>;
   performance_metrics: ModelPerformanceMetric[];
 }
 

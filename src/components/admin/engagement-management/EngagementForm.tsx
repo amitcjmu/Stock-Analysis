@@ -12,9 +12,11 @@ import {
   Currencies 
 } from './types';
 
+type EngagementFormValue = string | number | null | undefined;
+
 interface EngagementFormProps {
   formData: EngagementFormData;
-  onFormChange: (field: keyof EngagementFormData, value: unknown) => void;
+  onFormChange: (field: keyof EngagementFormData, value: EngagementFormValue) => void;
   clients: Client[];
 }
 

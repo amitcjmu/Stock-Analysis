@@ -15,8 +15,8 @@ export interface StrategyFlowState {
   currentPhase: string;
   nextPhase?: string;
   phaseCompletion: Record<string, boolean>;
-  phaseResults: Record<string, any>;
-  strategyResults: Record<string, any>;
+  phaseResults: Record<string, unknown>;
+  strategyResults: Record<string, unknown>;
   riskProfile: RiskAssessment;
   approvalStatus: ApprovalStatus;
   blockers: StrategyBlocker[];

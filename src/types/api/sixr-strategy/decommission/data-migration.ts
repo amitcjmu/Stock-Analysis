@@ -38,7 +38,7 @@ export interface DataTransformation {
 export interface TransformationRule {
   field: string;
   action: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   condition?: string;
 }
 
@@ -48,7 +48,7 @@ export interface MigrationTool {
   type: 'etl' | 'replication' | 'custom' | 'manual';
   capabilities: string[];
   limitations: string[];
-  configuration: Record<string, any>;
+  configuration: Record<string, unknown>;
   performance: ToolPerformance;
 }
 

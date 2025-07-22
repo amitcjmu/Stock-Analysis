@@ -17,7 +17,10 @@ interface MigrationReadinessProps {
     needs_more_data: number;
     has_dependencies: number;
     needs_modernization: number;
-    readiness_by_type: Record<string, any>;
+    readiness_by_type: Record<string, {
+      ready: number;
+      total: number;
+    }>;
   };
   totalAssets: number;
   className?: string;
@@ -139,7 +142,7 @@ const MigrationReadiness: React.FC<MigrationReadinessProps> = ({
             <div className="space-y-2">
               <h4 className="text-sm font-medium">Readiness by Asset Type</h4>
               <div className="space-y-2">
-                {Object.entries(readiness.readiness_by_type).map(([type, stats]: [string, any]) => (
+                {Object.entries(readiness.readiness_by_type).map(([type, stats]) => (
                   <div key={type} className="text-sm">
                     <div className="flex justify-between mb-1">
                       <span className="text-gray-700 capitalize">{type}</span>

@@ -7,7 +7,7 @@ import { AgentRecommendation } from '../components/discovery/data-cleansing/Reco
 export const getFieldHighlight = (
   fieldName: string, 
   assetId: string, 
-  rawData: unknown[], 
+  rawData: Record<string, unknown>[], 
   qualityIssues: QualityIssue[], 
   agentRecommendations: AgentRecommendation[],
   selectedIssue: string | null,
@@ -160,7 +160,7 @@ const normalizeFieldName = (fieldName: string): string => {
 /**
  * Find asset by various identifier formats - MUST match table's getAssetIdentifier logic exactly
  */
-const findAssetByIdentifier = (rawData: unknown[], identifier: string): any | null => {
+const findAssetByIdentifier = (rawData: Record<string, unknown>[], identifier: string): Record<string, unknown> | null => {
   if (!identifier || !rawData || rawData.length === 0) return null;
   
   return rawData.find(asset => {
@@ -173,7 +173,7 @@ const findAssetByIdentifier = (rawData: unknown[], identifier: string): any | nu
 /**
  * Get the asset identifier that the table is using for row identification - MUST match RawDataTable exactly
  */
-const getAssetTableIdentifier = (asset: unknown): string => {
+const getAssetTableIdentifier = (asset: Record<string, unknown>): string => {
   // EXACT same logic as RawDataTable's getAssetIdentifier: row.id || row.ID || row.asset_name || row.hostname || row.name || row.NAME || 'unknown'
   return asset.id || asset.ID || asset.asset_name || asset.hostname || asset.name || asset.NAME || 'unknown';
 };
@@ -181,7 +181,7 @@ const getAssetTableIdentifier = (asset: unknown): string => {
 /**
  * Enhanced asset matching for table highlighting
  */
-export const doesAssetMatch = (asset: any, targetIdentifier: string): boolean => {
+export const doesAssetMatch = (asset: Record<string, unknown>, targetIdentifier: string): boolean => {
   if (!asset || !targetIdentifier) return false;
   
   const identifiers = [

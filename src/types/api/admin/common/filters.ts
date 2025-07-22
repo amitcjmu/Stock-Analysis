@@ -26,7 +26,7 @@ export interface Condition {
   type: ConditionType;
   operator: ConditionOperator;
   value: unknown;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 /**

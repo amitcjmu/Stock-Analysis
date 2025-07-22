@@ -10,7 +10,7 @@ export interface DataSource {
   type: DataSourceType;
   endpoint?: string;
   query?: string;
-  parameters?: Record<string, any>;
+  parameters?: Record<string, string | number | boolean | null>;
   headers?: Record<string, string>;
   authentication?: DataSourceAuth;
   transformation?: DataTransformation;

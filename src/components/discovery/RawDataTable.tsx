@@ -50,7 +50,7 @@ const RawDataTable: React.FC<RawDataTableProps> = ({
       .trim();
   };
 
-  const getCellValue = (row: any, column: string) => {
+  const getCellValue = (row: unknown, column: string) => {
     const value = row[column];
     if (value === null || value === undefined || value === '') {
       return '<empty>';
@@ -70,7 +70,7 @@ const RawDataTable: React.FC<RawDataTableProps> = ({
   };
 
   // Get unique row key that combines asset identifier with row index to prevent duplicates
-  const getRowKey = (row: any, index: number) => {
+  const getRowKey = (row: unknown, index: number) => {
     const assetId = getAssetIdentifier(row);
     // Ensure uniqueness even if multiple rows have 'unknown' identifier
     return assetId === 'unknown' ? `unknown-${index}` : assetId;

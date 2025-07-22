@@ -90,7 +90,7 @@ export interface NotificationProps extends BaseComponentProps {
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   category?: string;
   tags?: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
   sound?: boolean;
   soundUrl?: string;
   vibrate?: boolean;

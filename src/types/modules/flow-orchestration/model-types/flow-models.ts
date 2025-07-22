@@ -68,12 +68,12 @@ export interface FlowHistoryEntry {
   flowId: string;
   timestamp: string;
   eventType: string;
-  eventData: Record<string, any>;
+  eventData: Record<string, string | number | boolean | null>;
   userId?: string;
   agentId?: string;
   phaseId?: string;
   description: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface ActiveFlowSummary {
@@ -101,10 +101,10 @@ export interface FlowStateData {
   nextPhase?: string;
   previousPhase?: string;
   phaseCompletion: Record<string, boolean>;
-  phaseData: Record<string, any>;
+  phaseData: Record<string, string | number | boolean | null>;
   agentStates: Record<string, AgentState>;
   crewStates: Record<string, CrewState>;
-  sharedData: Record<string, any>;
+  sharedData: Record<string, string | number | boolean | null>;
   checkpoints: StateCheckpoint[];
   version: number;
   createdAt: string;
@@ -147,7 +147,7 @@ export interface PhaseStatus {
   agents: string[];
   crews: string[];
   dependencies: string[];
-  outputs: Record<string, any>;
+  outputs: Record<string, string | number | boolean | null>;
 }
 
 export interface ChildFlowStatus {
@@ -173,8 +173,8 @@ export interface AgentState {
   agentId: string;
   status: string;
   currentTask?: string;
-  memory: Record<string, any>;
-  context: Record<string, any>;
+  memory: Record<string, string | number | boolean | null>;
+  context: Record<string, string | number | boolean | null>;
   performance: AgentPerformance;
   lastUpdate: string;
 }
@@ -186,7 +186,7 @@ export interface CrewState {
   completedTasks: number;
   totalTasks: number;
   agents: string[];
-  sharedMemory: Record<string, any>;
+  sharedMemory: Record<string, string | number | boolean | null>;
   lastUpdate: string;
 }
 
@@ -194,7 +194,7 @@ export interface StateCheckpoint {
   id: string;
   timestamp: string;
   phase: string;
-  data: Record<string, any>;
+  data: Record<string, string | number | boolean | null>;
   hash: string;
   size: number;
   createdBy: string;

@@ -114,7 +114,7 @@ export interface DataTypeOption {
   description?: string;
   validator?: (value: unknown) => boolean;
   formatter?: (value: unknown) => string;
-  parser?: (value: string) => any;
+  parser?: (value: string) => unknown;
 }
 
 export interface CustomField {
@@ -127,7 +127,7 @@ export interface CustomField {
   options?: { value: unknown; label: string }[];
   validation?: ValidationRule[];
   value?: unknown;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface AttributeEditorTab {

@@ -124,7 +124,7 @@ export interface FieldMapping {
 
 export interface ImportValidationRule {
   type: string;
-  parameters?: Record<string, any>;
+  parameters?: Record<string, string | number | boolean | null>;
   message?: string;
 }
 

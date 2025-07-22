@@ -7,7 +7,7 @@
 // Performance hooks
 export interface UseMemoizedParams<T> {
   factory: () => T;
-  deps: unknown[];
+  deps: readonly unknown[];
   compare?: (prev: T, next: T) => boolean;
 }
 

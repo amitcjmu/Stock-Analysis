@@ -14,6 +14,8 @@ import {
   UpdateRequest,
   UpdateResponse
 } from '../shared';
+import { FilterValue, PrimitiveValue, DynamicValue } from '../shared/value-types';
+import { GenericMetadata } from '../shared/metadata-types';
 
 // Dashboard Management
 export interface CreateDashboardRequest extends CreateRequest<DashboardData> {
@@ -76,7 +78,7 @@ export interface DashboardData {
   refreshInterval: string;
   timezone: string;
   theme: 'light' | 'dark' | 'auto';
-  metadata: Record<string, any>;
+  metadata: Record<string, PrimitiveValue | GenericMetadata>;
 }
 
 export interface WidgetConfiguration {
@@ -144,7 +146,7 @@ export interface Dashboard {
   createdBy: string;
   lastModifiedBy: string;
   viewCount: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, PrimitiveValue | GenericMetadata>;
 }
 
 export interface DashboardValidation {
@@ -158,7 +160,7 @@ export interface DashboardValidation {
 
 export interface WidgetData {
   widgetId: string;
-  data: unknown;
+  data: DynamicValue | Array<DynamicValue>;
   metadata: WidgetMetadata;
   status: 'loading' | 'success' | 'error' | 'empty';
   error?: string;
@@ -254,7 +256,7 @@ export interface WidgetOptions {
   showDataLabels: boolean;
   allowFullscreen: boolean;
   allowExport: boolean;
-  customOptions: Record<string, any>;
+  customOptions: Record<string, PrimitiveValue | boolean | string[]>;
 }
 
 export interface Widget {
@@ -290,7 +292,7 @@ export interface WidgetMetadata {
 export interface DashboardVariable {
   name: string;
   type: 'text' | 'select' | 'multiselect' | 'date' | 'timerange' | 'number';
-  value: unknown;
+  value: PrimitiveValue | PrimitiveValue[];
   options?: VariableOption[];
   query?: string;
   refresh: 'never' | 'onload' | 'onchange';
@@ -339,7 +341,7 @@ export interface ConnectionConfig {
 
 export interface QueryConfig {
   query: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, PrimitiveValue>;
   timeout: number;
   retries: number;
   interval: string;
@@ -488,7 +490,7 @@ export interface DashboardPerformanceMetrics {
 
 export interface VariableOption {
   text: string;
-  value: unknown;
+  value: PrimitiveValue | PrimitiveValue[];
   selected: boolean;
 }
 
@@ -511,19 +513,19 @@ export interface ProxyConfig {
 
 export interface TransformationOperation {
   type: 'filter' | 'map' | 'reduce' | 'groupby' | 'join' | 'pivot' | 'sort';
-  parameters: Record<string, any>;
+  parameters: Record<string, PrimitiveValue>;
 }
 
 export interface AggregationOperation {
   function: 'sum' | 'avg' | 'min' | 'max' | 'count' | 'first' | 'last';
   groupBy: string[];
-  having?: Record<string, any>;
+  having?: Record<string, PrimitiveValue | PrimitiveValue[]>;
 }
 
 export interface FilterOperation {
   field: string;
   operator: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'nin' | 'contains' | 'regex';
-  value: unknown;
+  value: PrimitiveValue | PrimitiveValue[];
 }
 
 export interface SortOperation {

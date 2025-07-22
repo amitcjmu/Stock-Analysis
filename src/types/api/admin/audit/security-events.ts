@@ -128,7 +128,7 @@ export interface SecurityTimeline {
   timestamp: string;
   event: string;
   source: string;
-  details: Record<string, any>;
+  details: Record<string, string | number | boolean | null>;
 }
 
 // Evidence

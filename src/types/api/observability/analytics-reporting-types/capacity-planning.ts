@@ -5,6 +5,7 @@
  * and generating capacity recommendations and risk assessments.
  */
 
+import type { BaseMetadata, AuditableMetadata } from '../../../shared/metadata-types';
 import {
   CreateRequest,
   CreateResponse,
@@ -46,7 +47,7 @@ export interface CapacityPlanData {
   resources: ResourceType[];
   objectives: CapacityObjective[];
   assumptions: PlanningAssumption[];
-  metadata: Record<string, any>;
+  metadata: AuditableMetadata;
 }
 
 export interface GrowthProjection {
@@ -186,7 +187,7 @@ export interface ScenarioAssumption {
 }
 
 export interface ScenarioImpact {
-  resources: Record<string, number>;
+  resources: BaseMetadata;
   timeline: string;
   cost: number;
   risk: 'low' | 'medium' | 'high';

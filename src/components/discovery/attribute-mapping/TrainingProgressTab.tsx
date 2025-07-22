@@ -3,9 +3,23 @@ import { Brain, TrendingUp, AlertCircle, CheckCircle, Clock, Target, Users, Bot 
 import { useAuth } from '../../../contexts/AuthContext';
 import { apiCall, API_CONFIG } from '../../../config/api';
 
+interface FieldMapping {
+  confidence: number;
+  status?: string;
+  source_field?: string;
+  target_field?: string;
+  mapping_type?: string;
+  ai_generated?: boolean;
+  human_validated?: boolean;
+  validation_notes?: string;
+  last_updated?: string;
+  created_by?: string;
+  [key: string]: string | number | boolean | undefined;
+}
+
 interface TrainingProgressTabProps {
   className?: string;
-  fieldMappings?: unknown[]; // Field mappings data to calculate real metrics
+  fieldMappings?: FieldMapping[]; // Field mappings data to calculate real metrics
 }
 
 interface TrainingMetrics {

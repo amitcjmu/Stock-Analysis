@@ -7,6 +7,7 @@
  * Generated with CC for modular admin type organization.
  */
 
+import type { ConfigurationValue } from '../../shared/config-types';
 import {
   BaseApiRequest,
   BaseApiResponse,
@@ -144,7 +145,7 @@ export interface User {
   lastActivityAt?: string;
   createdAt: string;
   updatedAt: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, ConfigurationValue>;
 }
 
 export interface UserProfile {
@@ -183,7 +184,7 @@ export interface UserActivity {
   action: string;
   resource: string;
   timestamp: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, ConfigurationValue>;
 }
 
 export interface UserEngagement {
@@ -236,8 +237,8 @@ export interface ActivitySummary {
 
 export interface UserChange {
   field: string;
-  oldValue: unknown;
-  newValue: unknown;
+  oldValue: ConfigurationValue;
+  newValue: ConfigurationValue;
   changedAt: string;
   changedBy: string;
 }

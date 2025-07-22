@@ -7,14 +7,14 @@ import { LoadingPriority, LazyComponentOptions, LoadingState } from '@/types/laz
 import { loadingManager } from '@/utils/lazy/loadingManager';
 
 interface LazyLoadingContextType {
-  loadComponent: (
+  loadComponent: <P extends {} = {}>(
     componentId: string,
-    importFn: () => Promise<{ default: React.ComponentType<any> }>,
+    importFn: () => Promise<{ default: React.ComponentType<P> }>,
     options?: LazyComponentOptions
-  ) => Promise<React.ComponentType>;
-  preloadComponent: (
+  ) => Promise<React.ComponentType<P>>;
+  preloadComponent: <P extends {} = {}>(
     componentId: string,
-    importFn: () => Promise<{ default: React.ComponentType<any> }>,
+    importFn: () => Promise<{ default: React.ComponentType<P> }>,
     options?: LazyComponentOptions
   ) => void;
   getLoadingState: (componentId: string) => LoadingState | null;
@@ -57,9 +57,9 @@ export const LazyLoadingProvider: React.FC<LazyLoadingProviderProps> = ({
     }
   }, []);
 
-  const loadComponent = useCallback(async (
+  const loadComponent = useCallback(async <P extends {} = {}>(
     componentId: string,
-    importFn: () => Promise<{ default: React.ComponentType<any> }>,
+    importFn: () => Promise<{ default: React.ComponentType<P> }>,
     options: LazyComponentOptions = {}
   ) => {
     const mergedOptions = { ...globalOptions, ...options };
@@ -67,9 +67,9 @@ export const LazyLoadingProvider: React.FC<LazyLoadingProviderProps> = ({
     return loadingManager.loadComponent(componentId, importFn, mergedOptions);
   }, [globalOptions, triggerUpdate]);
 
-  const preloadComponent = useCallback((
+  const preloadComponent = useCallback(<P extends {} = {}>(
     componentId: string,
-    importFn: () => Promise<{ default: React.ComponentType<any> }>,
+    importFn: () => Promise<{ default: React.ComponentType<P> }>,
     options: LazyComponentOptions = {}
   ) => {
     const mergedOptions = { ...globalOptions, ...options };

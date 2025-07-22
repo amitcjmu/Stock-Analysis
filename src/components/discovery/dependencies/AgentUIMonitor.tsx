@@ -380,7 +380,7 @@ const AgentUIMonitor: React.FC<AgentUIMonitorProps> = ({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {insights.map((insight: any, index: number) => (
+                  {insights.map((insight: unknown, index: number) => (
                     <div key={index} className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                       <div className="flex items-start space-x-2">
                         <Lightbulb className="w-4 h-4 text-yellow-600 mt-0.5" />

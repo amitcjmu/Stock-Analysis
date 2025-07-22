@@ -1,14 +1,41 @@
 import React from 'react';
 import { Network } from 'lucide-react';
 
+// Dependency data interfaces
+interface CrossAppDependency {
+  id: string;
+  sourceApp: string;
+  targetApp: string;
+  dependencyType: string;
+  strength: 'weak' | 'medium' | 'strong';
+  verified: boolean;
+  metadata?: Record<string, unknown>;
+}
+
+interface ApplicationCluster {
+  id: string;
+  name: string;
+  applications: string[];
+  clusterType: string;
+  relationships: string[];
+}
+
+interface HostingRelationship {
+  id: string;
+  applicationId: string;
+  serverId: string;
+  hostingType: string;
+  resources: Record<string, unknown>;
+}
+
 interface DependencyStatsProps {
   dependencyData: {
     cross_application_mapping: {
-      cross_app_dependencies: unknown[];
-      application_clusters: unknown[];
+      cross_app_dependencies: CrossAppDependency[];
+      application_clusters: ApplicationCluster[];
     };
     app_server_mapping: {
-      hosting_relationships: unknown[];
+      hosting_relationships: HostingRelationship[];
     };
   } | null;
 }

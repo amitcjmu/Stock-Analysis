@@ -7,7 +7,7 @@ import { ClientFormData } from '../../types';
 
 interface BasicInfoTabProps {
   formData: ClientFormData;
-  onFormChange: (field: keyof ClientFormData, value: unknown) => void;
+  onFormChange: (field: keyof ClientFormData, value: string | string[]) => void;
 }
 
 export const BasicInfoTab: React.FC<BasicInfoTabProps> = ({ formData, onFormChange }) => {

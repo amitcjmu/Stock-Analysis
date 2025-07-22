@@ -95,7 +95,7 @@ export interface CriticalAttribute {
   qualityScore: number;
   createdAt: string;
   updatedAt: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface CriticalAttributeInput {
@@ -109,7 +109,7 @@ export interface CriticalAttributeInput {
   priority: AttributePriority;
   category: string;
   tags?: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface BusinessRule {
@@ -121,7 +121,7 @@ export interface BusinessRule {
   enabled: boolean;
   conditions: RuleCondition[];
   actions: RuleAction[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface RuleCondition {
@@ -133,7 +133,7 @@ export interface RuleCondition {
 
 export interface RuleAction {
   type: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, string | number | boolean | null>;
   description?: string;
 }
 
@@ -171,7 +171,7 @@ export interface AttributeRecommendation {
   type: 'definition' | 'mapping' | 'validation' | 'business_rule';
   priority: RecommendationPriority;
   description: string;
-  suggestedChanges: Record<string, any>;
+  suggestedChanges: Record<string, string | number | boolean | null>;
   reasoning: string;
   impact: string;
   effort: ImplementationDifficulty;
@@ -181,7 +181,7 @@ export interface AutoFixSuggestion {
   id: string;
   type: 'auto_fix' | 'semi_auto' | 'manual';
   description: string;
-  changes: Record<string, any>;
+  changes: Record<string, string | number | boolean | null>;
   confidence: number;
   reversible: boolean;
   testable: boolean;
@@ -222,7 +222,7 @@ export interface FieldMapping {
 export interface ValidationRule {
   id: string;
   type: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, string | number | boolean | null>;
   errorMessage: string;
   severity: 'info' | 'warning' | 'error' | 'critical';
 }

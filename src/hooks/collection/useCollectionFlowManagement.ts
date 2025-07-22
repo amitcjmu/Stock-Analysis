@@ -5,6 +5,36 @@ import { collectionFlowApi } from '@/services/api/collection-flow';
 import { useToast } from '@/hooks/use-toast';
 import { tokenStorage } from '@/contexts/AuthContext/storage';
 
+// CC: Collection flow configuration interfaces
+interface CollectionConfig {
+  automation_level?: string;
+  collection_strategy?: string;
+  validation_rules?: string[];
+  [key: string]: unknown;
+}
+
+interface FlowDetails {
+  id: string;
+  name?: string;
+  status: string;
+  created_at: string;
+  [key: string]: unknown;
+}
+
+interface CleanupCriteria {
+  expiration_hours: number;
+  include_failed?: boolean;
+  include_cancelled?: boolean;
+  [key: string]: unknown;
+}
+
+interface ResumeContext {
+  phase?: string;
+  progress?: number;
+  metadata?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 export interface CollectionFlow {
   id: string;
   flow_id?: string;
@@ -16,7 +46,7 @@ export interface CollectionFlow {
   created_at: string;
   updated_at: string;
   completed_at?: string;
-  collection_config?: unknown;
+  collection_config?: CollectionConfig;
   gaps_identified?: number;
   can_resume?: boolean;
 }
@@ -32,15 +62,15 @@ export interface CleanupResult {
   flows_cleaned: number;
   space_recovered: string;
   dry_run: boolean;
-  flows_details: unknown[];
-  cleanup_criteria: unknown;
+  flows_details: FlowDetails[];
+  cleanup_criteria: CleanupCriteria;
 }
 
 export interface FlowContinueResult {
   status: string;
   message: string;
   flow_id: string;
-  resume_result?: unknown;
+  resume_result?: Record<string, unknown>;
 }
 
 // Hook for detecting incomplete collection flows
@@ -77,7 +107,15 @@ export const useIncompleteCollectionFlows = (enabled: boolean = true) => {
       }
       return 30000; // Refetch every 30 seconds
     },
-    staleTime: 10000 // Consider data stale after 10 seconds
+    staleTime: 10000, // Consider data stale after 10 seconds
+    retry: (failureCount, error: unknown) => {
+      // Don't retry on authentication errors
+      if (error?.status === 401 || error?.isAuthError) {
+        return false;
+      }
+      // Otherwise, use default retry logic (3 attempts)
+      return failureCount < 3;
+    }
   });
   
   console.log('🔍 Query result:', {
@@ -98,7 +136,7 @@ export const useCollectionFlowManagement = () => {
 
   // Continue/resume flow mutation
   const continueFlowMutation = useMutation({
-    mutationFn: ({ flowId, resumeContext }: { flowId: string; resumeContext?: any }) =>
+    mutationFn: ({ flowId, resumeContext }: { flowId: string; resumeContext?: ResumeContext }) =>
       collectionFlowApi.continueFlow(flowId, resumeContext),
     onMutate: () => setIsOperationPending(true),
     onSuccess: (data: FlowContinueResult) => {
@@ -203,7 +241,7 @@ export const useCollectionFlowManagement = () => {
   });
 
   // Helper functions
-  const continueFlow = async (flowId: string, resumeContext?: unknown) => {
+  const continueFlow = async (flowId: string, resumeContext?: ResumeContext) => {
     return continueFlowMutation.mutateAsync({ flowId, resumeContext });
   };
 

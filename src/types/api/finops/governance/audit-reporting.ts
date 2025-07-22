@@ -19,7 +19,7 @@ export interface AuditEntry {
   user: string;
   action: string;
   resource: string;
-  details: Record<string, any>;
+  details: Record<string, string | number | boolean | null>;
   outcome: 'success' | 'failure' | 'partial';
   impact: string;
 }

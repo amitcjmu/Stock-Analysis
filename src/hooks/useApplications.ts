@@ -3,14 +3,44 @@ import { apiCall, API_CONFIG } from '@/config/api';
 import { SixRApiClient } from '@/lib/api/sixr';
 import { Application } from '@/components/sixr';
 
+/**
+ * Interface for raw application data from backend API
+ */
+interface BackendApplicationData {
+  name: string;
+  description?: string;
+  department?: string;
+  business_unit?: string;
+  criticality?: string;
+  complexity_score?: number;
+  techStack?: string;
+  technology_stack?: string;
+  application_type?: string;
+  environment?: string;
+  sixr_ready?: boolean;
+  migration_complexity?: string;
+  original_asset_type?: string;
+  asset_id?: string;
+  id?: string;
+  compliance_requirements?: string[];
+  dependencies?: string[];
+}
+
+/**
+ * Interface for backend applications response
+ */
+interface BackendApplicationsResponse {
+  applications: BackendApplicationData[];
+}
+
 const loadApplicationsFromBackend = async (contextHeaders: Record<string, string> = {}): Promise<Application[]> => {
   try {
-    const data = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATIONS, {
+    const data = await apiCall<BackendApplicationsResponse>(API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATIONS, {
       headers: contextHeaders
     });
     
     // Also fetch current 6R analyses to determine status for each application
-    let analysisStatusMap: Record<number, { 
+    const analysisStatusMap: Record<number, { 
       status: 'not_analyzed' | 'in_progress' | 'completed' | 'failed',
       recommended_strategy?: string,
       confidence_score?: number 
@@ -36,7 +66,7 @@ const loadApplicationsFromBackend = async (contextHeaders: Record<string, string
     }
     
     // Transform the response to match our Application interface
-    return data.applications.map((app: any, index: number) => {
+    return data.applications.map((app: BackendApplicationData, index: number) => {
       const appId = index + 1;
       const analysisInfo = analysisStatusMap[appId] || { status: 'not_analyzed' };
       

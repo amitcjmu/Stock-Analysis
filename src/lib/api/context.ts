@@ -3,6 +3,7 @@
  */
 
 import { apiCall } from '@/config/api';
+import type { ApiError } from '@/types/shared/api-types';
 
 export interface UpdateUserDefaultsRequest {
   client_id?: string;
@@ -40,7 +41,7 @@ export const updateUserDefaults = async (
     console.log('🔍 updateUserDefaults - API response:', response);
     console.log('✅ User defaults updated successfully');
     return response;
-  } catch (error: unknown) {
+  } catch (error: ApiError & { status?: number; message?: string }) {
     console.error('❌ Failed to update user defaults:', {
       error: error.message || error,
       status: error.status,

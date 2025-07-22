@@ -120,7 +120,7 @@ export const UserSearchAndEdit: React.FC = () => {
     try {
       const response = await apiCall('/admin/clients/?page_size=100');
       if (response.items) {
-        setClients(response.items.map((client: unknown) => ({
+        setClients(response.items.map((client: Record<string, unknown>) => ({
           id: client.id,
           account_name: client.account_name,
           industry: client.industry,
@@ -136,7 +136,7 @@ export const UserSearchAndEdit: React.FC = () => {
     try {
       const response = await apiCall('/admin/engagements/?page_size=100');
       if (response.items) {
-        setEngagements(response.items.map((engagement: unknown) => ({
+        setEngagements(response.items.map((engagement: Record<string, unknown>) => ({
           id: engagement.id,
           engagement_name: engagement.engagement_name,
           client_account_id: engagement.client_account_id,

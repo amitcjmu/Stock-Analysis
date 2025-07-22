@@ -133,7 +133,7 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
     }
     
     // Priority 4: Most recent flow (even if completed)
-    const sortedFlows = [...flowList].sort((a: any, b: unknown) => 
+    const sortedFlows = [...flowList].sort((a: unknown, b: unknown) => 
       new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime()
     );
     

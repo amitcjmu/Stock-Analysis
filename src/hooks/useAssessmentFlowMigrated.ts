@@ -11,29 +11,76 @@ import { useAssessmentFlow as useNewAssessmentFlow } from './useFlow';
 import { flowToast } from '../utils/toast';
 import { FlowStatus } from '../types/flow';
 
+// Assessment-specific types
+interface Application {
+  id: string;
+  name: string;
+  techStack?: string;
+  complexity?: number;
+  businessCriticality?: 'low' | 'medium' | 'high';
+}
+
+interface BusinessImpact {
+  revenue_impact?: number;
+  user_impact?: number;
+  operational_impact?: number;
+}
+
+interface ComplexityScore {
+  overall: number;
+  technical: number;
+  business: number;
+  dependencies: number;
+}
+
+interface SixRDecision {
+  strategy: 'rehost' | 'replatform' | 'repurchase' | 'refactor' | 'retire' | 'retain';
+  confidence: number;
+  rationale: string;
+}
+
+interface Dependencies {
+  upstream: string[];
+  downstream: string[];
+  external: string[];
+}
+
 interface AssessmentFlowState {
   flow_id: string;
   status: string;
   current_phase: string;
-  applications: unknown[];
-  business_impact: unknown;
-  complexity_scores: unknown;
-  six_r_decisions: unknown;
-  dependencies: unknown;
+  applications: Application[];
+  business_impact: Record<string, BusinessImpact>;
+  complexity_scores: Record<string, ComplexityScore>;
+  six_r_decisions: Record<string, SixRDecision>;
+  dependencies: Record<string, Dependencies>;
   created_at: string;
   updated_at: string;
+}
+
+interface AssessmentResults {
+  applications: Application[];
+  business_impact: Record<string, BusinessImpact>;
+  complexity_scores: Record<string, ComplexityScore>;
+  six_r_decisions: Record<string, SixRDecision>;
+  dependencies: Record<string, Dependencies>;
+  summary: {
+    total_applications: number;
+    by_six_r: Record<string, number>;
+    average_complexity: number;
+  };
 }
 
 interface UseAssessmentFlowReturn {
   flowState: AssessmentFlowState | null;
   isLoading: boolean;
   error: Error | null;
-  initializeAssessment: (applications: unknown[]) => Promise<any>;
-  performBusinessImpactAnalysis: () => Promise<any>;
-  calculateComplexityScores: () => Promise<any>;
-  determineSixRStrategy: () => Promise<any>;
-  mapDependencies: () => Promise<any>;
-  getAssessmentResults: () => any;
+  initializeAssessment: (applications: Application[]) => Promise<{ flow_id: string; status: string; message: string }>;
+  performBusinessImpactAnalysis: () => Promise<unknown>;
+  calculateComplexityScores: () => Promise<unknown>;
+  determineSixRStrategy: () => Promise<unknown>;
+  mapDependencies: () => Promise<unknown>;
+  getAssessmentResults: () => AssessmentResults | null;
   refreshAssessment: () => Promise<void>;
   isProcessing: boolean;
   flowId: string | null;
@@ -73,7 +120,7 @@ export function useAssessmentFlow(): UseAssessmentFlowReturn {
   }, [state.flow]);
 
   // Initialize assessment flow
-  const initializeAssessment = useCallback(async (applications: unknown[]) => {
+  const initializeAssessment = useCallback(async (applications: Application[]) => {
     const flow = await actions.createAssessmentFlow({
       flow_name: `Assessment - ${new Date().toISOString()}`,
       configuration: {
@@ -187,11 +234,11 @@ export function useAssessmentFlow(): UseAssessmentFlowReturn {
       dependencies: flowState.dependencies,
       summary: {
         total_applications: flowState.applications.length,
-        by_six_r: Object.values(flowState.six_r_decisions || {}).reduce((acc: any, decision: unknown) => {
-          acc[decision] = (acc[decision] || 0) + 1;
+        by_six_r: Object.values(flowState.six_r_decisions || {}).reduce((acc: Record<string, number>, decision: SixRDecision) => {
+          acc[decision.strategy] = (acc[decision.strategy] || 0) + 1;
           return acc;
         }, {}),
-        average_complexity: Object.values(flowState.complexity_scores || {}).reduce((sum: number, score: unknown) => 
+        average_complexity: Object.values(flowState.complexity_scores || {}).reduce((sum: number, score: ComplexityScore) => 
           sum + (score.overall || 0), 0) / Object.keys(flowState.complexity_scores || {}).length || 0
       }
     };

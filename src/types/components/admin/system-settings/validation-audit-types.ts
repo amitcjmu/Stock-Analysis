@@ -58,7 +58,7 @@ export interface SettingsAuditLog {
   timestamp: string;
   ipAddress?: string;
   userAgent?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface FieldOption {

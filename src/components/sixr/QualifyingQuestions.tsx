@@ -30,6 +30,13 @@ export interface QuestionOption {
   description?: string;
 }
 
+export interface ValidationRule {
+  type: 'min' | 'max' | 'pattern' | 'minLength' | 'maxLength' | 'custom';
+  value?: string | number;
+  message?: string;
+  validator?: (value: string | number | boolean | string[] | File[]) => boolean | string;
+}
+
 export interface QualifyingQuestion {
   id: string;
   question: string;
@@ -38,7 +45,7 @@ export interface QualifyingQuestion {
   priority: number;
   required: boolean;
   options?: QuestionOption[];
-  validation_rules?: Record<string, any>;
+  validation_rules?: Record<string, ValidationRule>;
   help_text?: string;
   depends_on?: string;
 }
@@ -54,7 +61,7 @@ export interface QuestionResponse {
 interface QualifyingQuestionsProps {
   questions: QualifyingQuestion[];
   responses: QuestionResponse[];
-  onResponseChange: (questionId: string, response: unknown) => void;
+  onResponseChange: (questionId: string, response: string | number | boolean | string[] | File[]) => void;
   onSubmit: (responses: QuestionResponse[], isPartial?: boolean) => void;
   disabled?: boolean;
   showProgress?: boolean;
@@ -192,7 +199,7 @@ export const QualifyingQuestions: React.FC<QualifyingQuestionsProps> = ({
     return response?.response;
   };
 
-  const handleResponseChange = (questionId: string, value: unknown) => {
+  const handleResponseChange = (questionId: string, value: string | number | boolean | string[] | File[]) => {
     onResponseChange(questionId, value);
   };
 

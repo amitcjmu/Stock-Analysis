@@ -5,23 +5,25 @@
 
 import { useState, useMemo, useCallback } from 'react';
 
-export interface FilterConfig<T = any> {
+type FilterValue = string | number | boolean | string[] | number[] | null | undefined;
+
+export interface FilterConfig<T = Record<string, FilterValue>> {
   [key: string]: {
     type: 'string' | 'select' | 'multi-select' | 'date-range';
-    defaultValue: unknown;
+    defaultValue: FilterValue;
     options?: Array<{ value: string; label: string }>;
   };
 }
 
 export interface UseFiltersResult<T> {
   filters: T;
-  setFilter: (key: keyof T, value: unknown) => void;
+  setFilter: (key: keyof T, value: FilterValue) => void;
   setFilters: (filters: Partial<T>) => void;
   clearFilters: () => void;
   hasActiveFilters: boolean;
 }
 
-export function useFilters<T extends Record<string, any>>(
+export function useFilters<T extends Record<string, FilterValue>>(
   config: FilterConfig<T>
 ): UseFiltersResult<T> {
   // Initialize filters with default values
@@ -35,7 +37,7 @@ export function useFilters<T extends Record<string, any>>(
 
   const [filters, setFiltersState] = useState<T>(defaultFilters);
 
-  const setFilter = useCallback((key: keyof T, value: unknown) => {
+  const setFilter = useCallback((key: keyof T, value: FilterValue) => {
     setFiltersState(prev => ({ ...prev, [key]: value }));
   }, []);
 

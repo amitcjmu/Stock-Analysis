@@ -106,7 +106,7 @@ export interface SecurityRule {
   id: string;
   condition: SecurityCondition;
   action: SecurityAction;
-  parameters?: Record<string, any>;
+  parameters?: Record<string, unknown>;
   enabled: boolean;
 }
 
@@ -121,14 +121,14 @@ export interface SecurityAuditLog {
   timestamp: string;
   ipAddress?: string;
   userAgent?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 // MFA Method interface
 export interface MfaMethod {
   type: string;
   enabled: boolean;
-  configuration?: Record<string, any>;
+  configuration?: Record<string, string | number | boolean | null>;
 }
 
 // Enum and union types for security

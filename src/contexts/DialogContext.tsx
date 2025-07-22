@@ -58,8 +58,8 @@ interface DialogState {
   id: string;
   type: DialogType;
   options: BaseDialogOptions;
-  resolve?: (value: unknown) => void;
-  reject?: (reason?: unknown) => void;
+  resolve?: (value: boolean | string | undefined) => void;
+  reject?: (reason?: Error | string) => void;
 }
 
 interface DialogContextValue {

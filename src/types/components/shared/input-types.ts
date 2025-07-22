@@ -47,7 +47,7 @@ export interface InputProps extends InteractiveComponentProps {
   mask?: string | ((value: string) => string);
   maskChar?: string;
   formatChars?: Record<string, string>;
-  beforeMaskedValueChange?: (newState: any, oldState: any, userInput: string) => any;
+  beforeMaskedValueChange?: (newState: unknown, oldState: unknown, userInput: string) => { value: string; selection?: { start: number; end: number } } | null;
   inputRef?: RefObject<HTMLInputElement>;
   containerRef?: RefObject<HTMLDivElement>;
   wrapperClassName?: string;

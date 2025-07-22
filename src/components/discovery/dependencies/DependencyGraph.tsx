@@ -12,10 +12,21 @@ import 'reactflow/dist/style.css';
 import { Card } from '../../ui/card';
 import { DependencyData } from '../../../types/dependency';
 
+// Dependency update interface
+interface DependencyUpdate {
+  id: string;
+  sourceId: string;
+  targetId: string;
+  type: 'hosting' | 'communication' | 'data_flow';
+  strength: 'weak' | 'medium' | 'strong';
+  verified: boolean;
+  metadata?: Record<string, unknown>;
+}
+
 interface DependencyGraphProps {
   data: DependencyData | null;
   activeView: 'app-server' | 'app-app';
-  onUpdateDependency: (dependency: unknown) => void;
+  onUpdateDependency: (dependency: DependencyUpdate) => void;
 }
 
 export const DependencyGraph: React.FC<DependencyGraphProps> = ({

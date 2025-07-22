@@ -7,8 +7,8 @@ import { LoadingFallback, ErrorFallback, SkeletonFallback } from '../LoadingFall
 import { LoadingPriority } from '@/types/lazy';
 import { ErrorBoundary } from 'react-error-boundary';
 
-const createLazyComponent = (
-  importFn: () => Promise<{ default: React.ComponentType<any> }>,
+const createLazyComponent = <P extends {} = {}>(
+  importFn: () => Promise<{ default: React.ComponentType<P> }>,
   componentName: string,
   fallbackType: 'loading' | 'skeleton' | 'minimal' = 'loading',
   priority: LoadingPriority = LoadingPriority.NORMAL
@@ -32,7 +32,7 @@ const createLazyComponent = (
     }
   };
   
-  return React.forwardRef<any, any>((props, ref) => (
+  return React.forwardRef<HTMLElement, P>((props, ref) => (
     <ErrorBoundary
       FallbackComponent={({ error, resetErrorBoundary }) => (
         <ErrorFallback
@@ -281,20 +281,20 @@ export const ViewportLazyComponent: React.FC<ViewportLazyComponentProps> = ({
 };
 
 // Progressive enhancement wrapper
-interface ProgressiveLazyComponentProps {
-  baseComponent: React.ComponentType<any>;
-  enhancedImport: () => Promise<{ default: React.ComponentType<any> }>;
+interface ProgressiveLazyComponentProps<P = {}> {
+  baseComponent: React.ComponentType<P>;
+  enhancedImport: () => Promise<{ default: React.ComponentType<P> }>;
   enhancementCondition: boolean;
-  props: unknown;
+  props: P;
 }
 
-export const ProgressiveLazyComponent: React.FC<ProgressiveLazyComponentProps> = ({
+export const ProgressiveLazyComponent = <P extends {} = {}>({
   baseComponent: BaseComponent,
   enhancedImport,
   enhancementCondition,
   props
-}) => {
-  const [EnhancedComponent, setEnhancedComponent] = React.useState<React.ComponentType | null>(null);
+}: ProgressiveLazyComponentProps<P>) => {
+  const [EnhancedComponent, setEnhancedComponent] = React.useState<React.ComponentType<P> | null>(null);
 
   React.useEffect(() => {
     if (enhancementCondition && !EnhancedComponent) {

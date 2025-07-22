@@ -29,10 +29,17 @@ export const useInventoryLogic = (flowId?: string) => {
   // Get asset inventory data from V2 flow (now from assets table)
   const flowAssets = assets || [];
   const summary = { total: flowAssets.length };
+  interface Asset {
+    asset_type?: string;
+    [key: string]: unknown;
+  }
+  
+  const typedFlowAssets = flowAssets as Asset[];
+  
   const inventoryProgress = {
-    total_assets: flowAssets.length,
-    classified_assets: flowAssets.filter((asset: unknown) => asset.asset_type).length,
-    classification_accuracy: flowAssets.length > 0 ? (flowAssets.filter((asset: unknown) => asset.asset_type).length / flowAssets.length) * 100 : 0
+    total_assets: typedFlowAssets.length,
+    classified_assets: typedFlowAssets.filter((asset: Asset) => asset.asset_type).length,
+    classification_accuracy: typedFlowAssets.length > 0 ? (typedFlowAssets.filter((asset: Asset) => asset.asset_type).length / typedFlowAssets.length) * 100 : 0
   };
 
   // Get real classification summary from backend

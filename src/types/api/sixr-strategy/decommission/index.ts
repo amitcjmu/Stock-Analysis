@@ -15,6 +15,8 @@ import {
   CreateResponse,
   ValidationResult
 } from '../../shared';
+import { ThresholdValue, ParameterValue } from '../../shared/value-types';
+import { GenericConfiguration } from '../../shared/configuration-types';
 
 import {
   InitializeStrategyFlowRequest,
@@ -392,7 +394,7 @@ export interface DataTransformation {
 export interface TransformationRule {
   field: string;
   action: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, ParameterValue>;
   condition?: string;
 }
 
@@ -401,7 +403,7 @@ export interface MigrationTool {
   type: 'etl' | 'replication' | 'custom' | 'manual';
   capabilities: string[];
   limitations: string[];
-  configuration: Record<string, any>;
+  configuration: GenericConfiguration;
   performance: ToolPerformance;
 }
 
@@ -521,7 +523,7 @@ export interface CutoverRollback {
 
 export interface RollbackTrigger {
   condition: string;
-  threshold: unknown;
+  threshold: ThresholdValue;
   automatic: boolean;
   approver?: string;
   timeframe: string;
@@ -876,7 +878,7 @@ export interface RollbackScope {
 export interface DecommissionRollbackTrigger {
   type: 'automatic' | 'manual';
   condition: string;
-  threshold: unknown;
+  threshold: ThresholdValue;
   approver?: string;
   timeline: string;
   actions: string[];

@@ -5,8 +5,83 @@ import masterFlowServiceExtended from '../services/api/masterFlowService.extensi
 import type { FlowStatusResponse } from '../services/api/masterFlowService';
 import { discoveryFlowService } from '../services/api/discoveryFlowService';
 import type { DiscoveryFlowStatusResponse } from '../services/api/discoveryFlowService';
+import type { 
+  FlowInitializationData, 
+  PhaseExecutionData, 
+  PhaseExecutionResult, 
+  DataRecord, 
+  AssetProperties 
+} from '../types/hooks/flow-types';
 
 // Types for UnifiedDiscoveryFlow
+interface CrewStatus {
+  crew_id: string;
+  status: 'idle' | 'running' | 'completed' | 'error';
+  progress: number;
+  last_activity?: string;
+  error_message?: string;
+}
+
+interface RawDataItem {
+  id: string;
+  source: string;
+  data: DataRecord;
+  timestamp: string;
+  validation_status?: 'pending' | 'valid' | 'invalid';
+}
+
+interface FieldMapping {
+  source_field: string;
+  target_field: string;
+  mapping_type: 'direct' | 'transform' | 'calculated';
+  transformation_rule?: string;
+  confidence: number;
+}
+
+interface CleanedDataItem {
+  id: string;
+  original_id: string;
+  cleaned_data: DataRecord;
+  cleaning_rules_applied: string[];
+  quality_score: number;
+}
+
+interface AssetInventoryItem {
+  asset_id: string;
+  asset_name: string;
+  asset_type: string;
+  properties: AssetProperties;
+  status: string;
+  discovered_at: string;
+}
+
+interface DependencyRelation {
+  source_asset: string;
+  target_asset: string;
+  dependency_type: 'network' | 'data' | 'service' | 'infrastructure';
+  strength: 'weak' | 'medium' | 'strong';
+  bidirectional: boolean;
+}
+
+interface TechnicalDebtItem {
+  debt_id: string;
+  category: 'security' | 'performance' | 'maintainability' | 'reliability';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  description: string;
+  affected_assets: string[];
+  remediation_effort: number;
+}
+
+interface AgentInsight {
+  insight_id: string;
+  agent_name: string;
+  insight_type: 'recommendation' | 'warning' | 'observation';
+  content: string;
+  confidence: number;
+  relevant_assets: string[];
+  timestamp: string;
+}
+
 interface UnifiedDiscoveryFlowState {
   flow_id: string;
   client_account_id: string;
@@ -14,20 +89,65 @@ interface UnifiedDiscoveryFlowState {
   user_id: string;
   current_phase: string;
   phase_completion: Record<string, boolean>;
-  crew_status: Record<string, any>;
-  raw_data: unknown[];
-  field_mappings: Record<string, any>;
-  cleaned_data: unknown[];
-  asset_inventory: Record<string, any>;
-  dependencies: Record<string, any>;
-  technical_debt: Record<string, any>;
-  agent_insights: unknown[];
+  crew_status: Record<string, CrewStatus>;
+  raw_data: RawDataItem[];
+  field_mappings: Record<string, FieldMapping>;
+  cleaned_data: CleanedDataItem[];
+  asset_inventory: Record<string, AssetInventoryItem>;
+  dependencies: Record<string, DependencyRelation>;
+  technical_debt: Record<string, TechnicalDebtItem>;
+  agent_insights: AgentInsight[];
   status: string;
   progress_percentage: number;
   errors: string[];
   warnings: string[];
   created_at: string;
   updated_at: string;
+  // Additional properties that might be present
+  data_cleansing_results?: {
+    quality_issues: Array<unknown>;
+    recommendations: Array<unknown>;
+    metadata?: {
+      original_records: number;
+    };
+  };
+  data_cleansing?: {
+    quality_issues: Array<unknown>;
+    recommendations: Array<unknown>;
+    metadata?: {
+      original_records: number;
+    };
+  };
+  results?: {
+    data_cleansing: {
+      quality_issues: Array<unknown>;
+      recommendations: Array<unknown>;
+      metadata?: {
+        original_records: number;
+      };
+    };
+  };
+  import_metadata?: {
+    record_count: number;
+  };
+}
+
+interface FlowInitializationData {
+  data_sources?: string[];
+  initial_configuration?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+}
+
+interface PhaseExecutionData {
+  phase_specific_data?: Record<string, unknown>;
+  options?: Record<string, unknown>;
+}
+
+interface PhaseData {
+  phase_name: string;
+  data: DataRecord;
+  completion_status: boolean;
+  metadata?: Record<string, unknown>;
 }
 
 interface UseUnifiedDiscoveryFlowReturn {
@@ -35,9 +155,9 @@ interface UseUnifiedDiscoveryFlowReturn {
   isLoading: boolean;
   error: Error | null;
   isHealthy: boolean;
-  initializeFlow: (data: unknown) => Promise<any>;
-  executeFlowPhase: (phase: string, data?: unknown) => Promise<any>;
-  getPhaseData: (phase: string) => any;
+  initializeFlow: (data: FlowInitializationData) => Promise<{ flow_id: string; status: string }>;
+  executeFlowPhase: (phase: string, data?: PhaseExecutionData) => Promise<PhaseExecutionResult>;
+  getPhaseData: (phase: string) => PhaseData | null;
   isPhaseComplete: (phase: string) => boolean;
   canProceedToPhase: (phase: string) => boolean;
   refreshFlow: () => Promise<void>;
@@ -105,16 +225,32 @@ const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string
     return mappedResponse;
   },
 
-  async initializeFlow(data: unknown): Promise<any> {
+  async initializeFlow(data: FlowInitializationData): Promise<{
+    flow_id: string;
+    status: string;
+    message?: string;
+  }> {
     return masterFlowServiceExtended.initializeDiscoveryFlow(clientAccountId, engagementId, data);
   },
 
-  async executePhase(flowId: string, phase: string, data: unknown = {}): Promise<any> {
+  async executePhase(flowId: string, phase: string, data: PhaseExecutionData = {}): Promise<{
+    success: boolean;
+    phase: string;
+    status: 'started' | 'completed' | 'failed';
+    message?: string;
+    data?: Record<string, unknown>;
+    estimated_duration?: number;
+    errors?: string[];
+  }> {
     // ADR-012: Use discovery flow service for operational phase execution
     return discoveryFlowService.executePhase(flowId, phase, data, clientAccountId, engagementId);
   },
 
-  async getHealthStatus(): Promise<any> {
+  async getHealthStatus(): Promise<{
+    status: 'healthy' | 'unhealthy' | 'degraded';
+    message?: string;
+    checks?: Record<string, boolean>;
+  }> {
     return { status: 'healthy' }; // Mock for now
   },
 });
@@ -206,7 +342,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
         return false;
       }
 
-      const state = query.state.data as unknown;
+      const state = query.state.data as UnifiedDiscoveryFlowState | null;
       
       // Poll when flow is active AND not waiting for approval
       if ((state?.status === 'running' || state?.status === 'in_progress' || 
@@ -232,7 +368,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
     refetchOnWindowFocus: false, // Don't refetch on window focus to reduce API calls
     staleTime: 2 * 60 * 1000, // Consider data stale after 2 minutes (increased from 30s)
     cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
-    retry: (failureCount, error: unknown) => {
+    retry: (failureCount, error: Error | unknown) => {
       // Max 2 retries with exponential backoff
       if (failureCount >= 2) {
         return false;
@@ -246,7 +382,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
       return false;
     },
     retryDelay: (attemptIndex) => Math.min(2000 * Math.pow(2, attemptIndex), 8000), // 2s, 4s, 8s max
-    onError: (error: unknown) => {
+    onError: (error: Error | unknown) => {
       // Stop polling on error
       setPollingEnabled(false);
       
@@ -279,7 +415,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
 
   // Initialize flow mutation
   const initializeFlowMutation = useMutation({
-    mutationFn: (data: unknown) => {
+    mutationFn: (data: FlowInitializationData) => {
       if (!unifiedDiscoveryAPI) throw new Error('No API instance available');
       return unifiedDiscoveryAPI.initializeFlow(data);
     },
@@ -295,7 +431,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
 
   // Execute phase mutation
   const executePhhaseMutation = useMutation({
-    mutationFn: ({ phase, data }: { phase: string; data?: any }) => {
+    mutationFn: ({ phase, data }: { phase: string; data?: PhaseExecutionData }) => {
       if (!flowId) throw new Error('No flow ID available');
       if (!unifiedDiscoveryAPI) throw new Error('No API instance available');
       return unifiedDiscoveryAPI.executePhase(flowId, phase, data);
@@ -359,11 +495,11 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
     return isPhaseComplete(previousPhase);
   }, [flowState, isPhaseComplete]);
 
-  const executeFlowPhase = useCallback(async (phase: string, data?: unknown) => {
+  const executeFlowPhase = useCallback(async (phase: string, data?: PhaseExecutionData) => {
     return executePhhaseMutation.mutateAsync({ phase, data });
   }, [executePhhaseMutation]);
 
-  const initializeFlow = useCallback(async (data: unknown) => {
+  const initializeFlow = useCallback(async (data: FlowInitializationData) => {
     return initializeFlowMutation.mutateAsync(data);
   }, [initializeFlowMutation]);
 

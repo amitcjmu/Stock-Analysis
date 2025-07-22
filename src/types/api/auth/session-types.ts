@@ -47,7 +47,7 @@ export interface RevokeSessionRequest extends BaseApiRequest {
   context: MultiTenantContext;
 }
 
-export interface RevokeSessionResponse extends BaseApiResponse<any> {
+export interface RevokeSessionResponse extends BaseApiResponse<unknown> {
   data: unknown;
   revoked: boolean;
   revokedAt: string;
@@ -60,7 +60,7 @@ export interface RevokeAllSessionsRequest extends BaseApiRequest {
   context: MultiTenantContext;
 }
 
-export interface RevokeAllSessionsResponse extends BaseApiResponse<any> {
+export interface RevokeAllSessionsResponse extends BaseApiResponse<unknown> {
   data: unknown;
   sessionsRevoked: number;
   tokensRevoked: number;

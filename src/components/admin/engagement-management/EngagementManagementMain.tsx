@@ -160,7 +160,7 @@ const EngagementManagementMain: React.FC = () => {
   });
 
   // Handle form changes
-  const handleFormChange = useCallback((field: keyof EngagementFormData, value: unknown) => {
+  const handleFormChange = useCallback((field: keyof EngagementFormData, value: EngagementFormData[keyof EngagementFormData]) => {
     setFormData(prev => ({
       ...prev,
       [field]: value

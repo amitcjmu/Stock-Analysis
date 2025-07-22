@@ -50,14 +50,17 @@ export interface UserApprovalsProps {
 export interface UserListProps {
   pendingUsers: PendingUser[];
   activeUsers: ActiveUser[];
-  activeTab: 'pending' | 'active';
+  activeTab: 'pending' | 'active' | 'access';
   actionLoading: string | null;
-  onUserSelect: (user: PendingUser) => void;
+  onUserSelect?: (user: PendingUser) => void;
   onApprove: (user: PendingUser) => void;
   onReject: (user: PendingUser) => void;
   onViewDetails: (user: PendingUser) => void;
   onDeactivateUser: (user: ActiveUser) => void;
   onActivateUser: (user: ActiveUser) => void;
+  onEditAccess?: (user: ActiveUser) => void;
+  formatDate: (dateString: string) => string;
+  getAccessLevelColor: (level: string) => string;
 }
 
 export interface UserStatsProps {
@@ -81,7 +84,25 @@ export interface UserDetailsModalProps {
   getAccessLevelColor: (level: string) => string;
 }
 
+// User Filter Interface
+export interface UserFilter {
+  search?: string;
+  status?: 'all' | 'pending' | 'active' | 'inactive';
+  role?: string;
+  organization?: string;
+  access_level?: string;
+  date_range?: {
+    start: string;
+    end: string;
+  };
+  sort_by?: 'name' | 'date' | 'organization' | 'role';
+  sort_order?: 'asc' | 'desc';
+}
+
 export interface UserFiltersProps {
-  // Future filtering props
-  onFilterChange?: (filters: unknown) => void;
+  activeTab?: 'pending' | 'active' | 'access';
+  pendingUsersCount?: number;
+  activeUsersCount?: number;
+  onTabChange?: (tab: 'pending' | 'active' | 'access') => void;
+  onFilterChange?: (filters: UserFilter) => void;
 } 

@@ -53,7 +53,7 @@ export const useIncompleteFlowDetectionV2 = () => {
           flow.status !== 'completed' && 
           flow.status !== 'failed' &&
           flow.status !== 'error'
-        ).map((flow: any, index: number) => {
+        ).map((flow: unknown, index: number) => {
           // Generate a demo-pattern UUID as fallback if no flow ID exists
           // Uses the demo pattern: XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX
           const generateDemoFallbackUuid = (index: number) => {

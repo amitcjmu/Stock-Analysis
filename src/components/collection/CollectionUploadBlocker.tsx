@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   AlertTriangle, 
   Upload, 
@@ -42,6 +42,7 @@ export const CollectionUploadBlocker: React.FC<CollectionUploadBlockerProps> = (
 }) => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [deletingFlowId, setDeletingFlowId] = useState<string | null>(null);
 
   const getPhaseDisplayName = (phase: string) => {
     if (!phase) return 'Unknown';
@@ -278,10 +279,19 @@ export const CollectionUploadBlocker: React.FC<CollectionUploadBlockerProps> = (
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => onDeleteFlow(primaryFlow.flow_id || primaryFlow.id)}
+                    onClick={async () => {
+                      const flowId = primaryFlow.flow_id || primaryFlow.id;
+                      setDeletingFlowId(flowId);
+                      try {
+                        await onDeleteFlow(flowId);
+                      } finally {
+                        setDeletingFlowId(null);
+                      }
+                    }}
+                    disabled={isLoading || deletingFlowId === (primaryFlow.flow_id || primaryFlow.id)}
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
+                    {deletingFlowId === (primaryFlow.flow_id || primaryFlow.id) ? 'Deleting...' : 'Delete'}
                   </Button>
                 )}
               </div>

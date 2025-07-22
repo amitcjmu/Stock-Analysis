@@ -4,8 +4,8 @@
  * Types for field mapping components, filters, and related functionality.
  */
 
-import { ReactNode } from 'react';
-import { BaseDiscoveryProps, FieldMapping, ValidationError } from './base-types';
+import type { ReactNode, MouseEvent, ChangeEvent, FC } from 'react';
+import type { BaseDiscoveryProps, FieldMapping, ValidationError } from './base-types';
 
 // Field Mappings component types
 export interface FieldMappingsTabProps extends BaseDiscoveryProps {
@@ -77,10 +77,10 @@ export interface AttributeMappingTableProps extends BaseDiscoveryProps {
   reorderableColumns?: boolean;
   onColumnReorder?: (columns: ColumnDefinition[]) => void;
   onColumnResize?: (columnId: string, width: number) => void;
-  customRenderers?: Record<string, (value: any, mapping: FieldMapping) => ReactNode>;
+  customRenderers?: Record<string, (value: unknown, mapping: FieldMapping) => ReactNode>;
   onRowClick?: (mapping: FieldMapping) => void;
   onRowDoubleClick?: (mapping: FieldMapping) => void;
-  onRowContextMenu?: (mapping: FieldMapping, event: React.MouseEvent) => void;
+  onRowContextMenu?: (mapping: FieldMapping, event: MouseEvent<HTMLTableRowElement>) => void;
   striped?: boolean;
   bordered?: boolean;
   hover?: boolean;
@@ -160,30 +160,48 @@ export interface MappingFilter {
   enabled?: boolean;
 }
 
-export interface ColumnDefinition {
-  id: string;
+export interface ColumnDefinition<TData = Record<string, unknown>> {
+  id: keyof TData | string;
   header: string;
-  accessor: string;
-  type: 'text' | 'number' | 'boolean' | 'date' | 'custom';
+  accessor: keyof TData | string;
+  type: 'text' | 'number' | 'boolean' | 'date' | 'datetime' | 'email' | 'url' | 'phone' | 'currency' | 'percentage' | 'custom';
   sortable?: boolean;
   filterable?: boolean;
   searchable?: boolean;
   editable?: boolean;
+  required?: boolean;
   width?: number | string;
   minWidth?: number;
   maxWidth?: number;
   align?: 'left' | 'center' | 'right';
-  render?: (value: any, row: unknown) => ReactNode;
-  renderFilter?: (value: any, onChange: (value: unknown) => void) => ReactNode;
-  renderEdit?: (value: any, onChange: (value: unknown) => void) => ReactNode;
-  formatValue?: (value: unknown) => string;
-  parseValue?: (value: string) => any;
-  validateValue?: (value: unknown) => boolean | string;
-  tooltip?: string;
+  render?: (value: unknown, row: TData, index: number) => ReactNode;
+  renderFilter?: (value: unknown, onChange: (value: unknown) => void, column: ColumnDefinition<TData>) => ReactNode;
+  renderEdit?: (value: unknown, onChange: (value: unknown) => void, row: TData, column: ColumnDefinition<TData>) => ReactNode;
+  formatValue?: (value: unknown, row: TData) => string;
+  parseValue?: (value: string, row: TData) => unknown;
+  validateValue?: (value: unknown, row: TData) => boolean | string | ValidationError[];
+  tooltip?: string | ((row: TData, value: unknown) => string);
   icon?: string | ReactNode;
   sticky?: boolean;
   hidden?: boolean;
   resizable?: boolean;
   reorderable?: boolean;
-  metadata?: Record<string, any>;
+  sortDirection?: 'asc' | 'desc' | null;
+  defaultSort?: 'asc' | 'desc';
+  cssClass?: string | ((value: unknown, row: TData) => string);
+  metadata?: Record<string, unknown>;
+  group?: string;
+  description?: string;
+  placeholder?: string;
+  defaultValue?: unknown;
+  options?: { label: string; value: unknown }[];
+  validation?: {
+    required?: boolean;
+    min?: number;
+    max?: number;
+    minLength?: number;
+    maxLength?: number;
+    pattern?: RegExp;
+    custom?: (value: unknown, row: TData) => boolean | string;
+  };
 }

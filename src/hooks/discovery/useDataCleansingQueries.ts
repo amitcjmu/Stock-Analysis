@@ -56,7 +56,7 @@ export const useApplyFix = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ issueId, fixData }: { issueId: string; fixData: any }) =>
+    mutationFn: ({ issueId, fixData }: { issueId: string; fixData: unknown }) =>
       dataCleansingService.applyFix(issueId, fixData),
     onSuccess: () => {
       // Invalidate relevant queries

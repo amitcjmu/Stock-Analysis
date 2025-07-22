@@ -197,7 +197,7 @@ export interface ValidationSchema {
   };
 }
 
-export const validateSchema = (obj: any, schema: ValidationSchema): { isValid: boolean; errors: string[] } => {
+export const validateSchema = (obj: unknown, schema: ValidationSchema): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
   
   for (const [key, config] of Object.entries(schema)) {

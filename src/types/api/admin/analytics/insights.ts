@@ -6,6 +6,8 @@
  * Generated with CC for modular admin type organization.
  */
 
+import type { BaseMetadata } from '../../../shared/metadata-types';
+import type { ConfigurationValue } from '../../../shared/config-types';
 import { 
   ConfidenceLevel, 
   ImpactLevel, 
@@ -60,8 +62,8 @@ export interface InsightRecommendation {
 // Supporting data for insights
 export interface InsightData {
   type: DataVisualizationType;
-  data: unknown;
-  metadata: Record<string, any>;
+  data: Record<string, ConfigurationValue>;
+  metadata: BaseMetadata;
 }
 
 // Alert action

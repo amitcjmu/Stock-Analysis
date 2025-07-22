@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { ApiError } from '../../types/shared/api-types';
 
 /**
  * Unified hook for fetching latest import data
@@ -24,9 +25,10 @@ export const useLatestImport = (enabled = true) => {
     enabled: enabled && !!user?.id,
     staleTime: 2 * 60 * 1000, // Consider data fresh for 2 minutes
     cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
-    retry: (failureCount, error: unknown) => {
+    retry: (failureCount, error) => {
       // Don't retry on 429 (Too Many Requests) or authentication errors
-      if (error?.status === 429 || error?.status === 401 || error?.status === 403) {
+      const err = error as ApiError | { status?: number };
+      if (err?.status === 429 || err?.status === 401 || err?.status === 403) {
         return false;
       }
       return failureCount < 2; // Only retry twice

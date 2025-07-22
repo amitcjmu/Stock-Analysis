@@ -147,7 +147,7 @@ export namespace API {
     flowId: string;
     context: MultiTenantContext;
     analysisType: 'mapping' | 'validation' | 'optimization';
-    parameters?: Record<string, any>;
+    parameters?: Record<string, string | number | boolean | null>;
   }
 
   /**

@@ -1,9 +1,19 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { useSixRAnalysis } from '../useSixRAnalysis';
+import { vi, describe, it, expect, beforeEach, afterEach, Mock, MockedFunction } from 'vitest';
+import { useSixRAnalysis, type AnalysisState } from '../useSixRAnalysis';
 import { sixrApi } from '../../lib/api/sixr';
-import { useSixRWebSocket } from '../useSixRWebSocket';
+import { useSixRWebSocket, type WebSocketMessage } from '../useSixRWebSocket';
+import type { 
+  SixRParameters, 
+  QualifyingQuestion, 
+  QuestionResponse, 
+  SixRRecommendation,
+  AnalysisProgressType,
+  AnalysisHistoryItem,
+  BulkAnalysisJob,
+  BulkAnalysisResult,
+  BulkAnalysisSummary
+} from '../../components/sixr';
 
 // Mock the API client
 vi.mock('../../lib/api/sixr', () => ({
@@ -28,14 +38,35 @@ vi.mock('../../lib/api/sixr', () => ({
   }
 }));
 
+// Type for WebSocket hook return value
+type WebSocketHookReturn = {
+  isConnected: boolean;
+  isConnecting: boolean;
+  error: string | null;
+  reconnectAttempts: number;
+  lastMessage: WebSocketMessage | null;
+  connect: () => void;
+  disconnect: () => void;
+  sendMessage: (message: unknown) => boolean;
+  subscribe: (targetAnalysisId?: number, targetJobId?: string) => boolean;
+  unsubscribe: (targetAnalysisId?: number, targetJobId?: string) => boolean;
+  canReconnect: boolean;
+};
+
 // Mock the WebSocket hook
 vi.mock('../useSixRWebSocket', () => ({
-  useSixRWebSocket: vi.fn(() => ({
+  useSixRWebSocket: vi.fn<[unknown], WebSocketHookReturn>(() => ({
     isConnected: true,
+    isConnecting: false,
+    error: null,
+    reconnectAttempts: 0,
     lastMessage: null,
-    sendMessage: vi.fn(),
-    subscribe: vi.fn(),
-    unsubscribe: vi.fn()
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    sendMessage: vi.fn(() => true),
+    subscribe: vi.fn(() => true),
+    unsubscribe: vi.fn(() => true),
+    canReconnect: true
   }))
 }));
 
@@ -49,17 +80,23 @@ vi.mock('sonner', () => ({
 }));
 
 describe('useSixRAnalysis', () => {
-  const mockWebSocketHook = {
+  const mockWebSocketHook: WebSocketHookReturn = {
     isConnected: true,
+    isConnecting: false,
+    error: null,
+    reconnectAttempts: 0,
     lastMessage: null,
-    sendMessage: vi.fn(),
-    subscribe: vi.fn(),
-    unsubscribe: vi.fn()
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    sendMessage: vi.fn(() => true),
+    subscribe: vi.fn(() => true),
+    unsubscribe: vi.fn(() => true),
+    canReconnect: true
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useSixRWebSocket as unknown).mockReturnValue(mockWebSocketHook);
+    (useSixRWebSocket as MockedFunction<typeof useSixRWebSocket>).mockReturnValue(mockWebSocketHook);
   });
 
   afterEach(() => {
@@ -90,7 +127,7 @@ describe('useSixRAnalysis', () => {
       estimated_duration: 300
     };
 
-    (sixrApi.createAnalysis as unknown).mockResolvedValue(mockResponse);
+    (sixrApi.createAnalysis as MockedFunction<typeof sixrApi.createAnalysis>).mockResolvedValue(mockResponse);
 
     const { result } = renderHook(() => useSixRAnalysis());
     const [, actions] = result.current;
@@ -121,7 +158,7 @@ describe('useSixRAnalysis', () => {
 
   it('handles API errors gracefully', async () => {
     const mockError = new Error('API Error');
-    (sixrApi.createAnalysis as unknown).mockRejectedValue(mockError);
+    (sixrApi.createAnalysis as MockedFunction<typeof sixrApi.createAnalysis>).mockRejectedValue(mockError);
 
     const { result } = renderHook(() => useSixRAnalysis());
     const [, actions] = result.current;
@@ -143,7 +180,7 @@ describe('useSixRAnalysis', () => {
   });
 
   it('updates parameters with optimistic updates', async () => {
-    (sixrApi.updateParameters as unknown).mockResolvedValue({
+    (sixrApi.updateParameters as MockedFunction<typeof sixrApi.updateParameters>).mockResolvedValue({
       success: true,
       message: 'Parameters updated'
     });
@@ -154,7 +191,7 @@ describe('useSixRAnalysis', () => {
     act(() => {
       const [state, actions] = result.current;
       // Simulate having an active analysis
-      (state as unknown).currentAnalysisId = 123;
+      Object.assign(state, { currentAnalysisId: 123 });
     });
 
     const [, actions] = result.current;
@@ -173,14 +210,14 @@ describe('useSixRAnalysis', () => {
 
   it('handles parameter update failures with rollback', async () => {
     const mockError = new Error('Update failed');
-    (sixrApi.updateParameters as unknown).mockRejectedValue(mockError);
+    (sixrApi.updateParameters as MockedFunction<typeof sixrApi.updateParameters>).mockRejectedValue(mockError);
 
     const { result } = renderHook(() => useSixRAnalysis());
     
     // Set up initial state with analysis ID
     act(() => {
       const [state] = result.current;
-      (state as unknown).currentAnalysisId = 123;
+      Object.assign(state, { currentAnalysisId: 123 });
     });
 
     const [, actions] = result.current;
@@ -198,7 +235,7 @@ describe('useSixRAnalysis', () => {
   });
 
   it('submits question responses correctly', async () => {
-    (sixrApi.submitQuestions as unknown).mockResolvedValue({
+    (sixrApi.submitQuestions as MockedFunction<typeof sixrApi.submitQuestions>).mockResolvedValue({
       success: true,
       message: 'Questions submitted'
     });
@@ -208,7 +245,7 @@ describe('useSixRAnalysis', () => {
     // Set up initial state
     act(() => {
       const [state] = result.current;
-      (state as unknown).currentAnalysisId = 123;
+      Object.assign(state, { currentAnalysisId: 123 });
     });
 
     const [, actions] = result.current;
@@ -245,20 +282,23 @@ describe('useSixRAnalysis', () => {
     // Set up initial state
     act(() => {
       const [state] = result.current;
-      (state as unknown).currentAnalysisId = 123;
-      (state as unknown).analysisProgress = {
-        analysisId: 123,
-        status: 'in_progress',
-        overallProgress: 0,
-        steps: [
-          { id: 'processing', status: 'pending', progress: 0 }
-        ]
-      };
+      Object.assign(state, { currentAnalysisId: 123 });
+      Object.assign(state, {
+        analysisProgress: {
+          analysisId: 123,
+          status: 'in_progress',
+          overallProgress: 0,
+          steps: [
+            { id: 'processing', status: 'pending', progress: 0 }
+          ]
+        }
+      });
     });
 
     // Simulate WebSocket message
     act(() => {
-      const mockOnMessage = (useSixRWebSocket as unknown).mock.calls[0][0].onMessage;
+      const mockUseSixRWebSocket = useSixRWebSocket as MockedFunction<typeof useSixRWebSocket>;
+      const mockOnMessage = mockUseSixRWebSocket.mock.calls[0][0].onMessage;
       mockOnMessage(mockMessage);
     });
 
@@ -293,23 +333,26 @@ describe('useSixRAnalysis', () => {
     // Set up initial state
     act(() => {
       const [state] = result.current;
-      (state as unknown).currentAnalysisId = 123;
-      (state as unknown).iterationNumber = 1;
-      (state as unknown).parameters = {
-        business_value: 7,
-        technical_complexity: 5,
-        migration_urgency: 6,
-        compliance_requirements: 4,
-        cost_sensitivity: 5,
-        risk_tolerance: 6,
-        innovation_priority: 8,
-        application_type: 'custom'
-      };
+      Object.assign(state, { currentAnalysisId: 123 });
+      Object.assign(state, {
+        iterationNumber: 1,
+        parameters: {
+          business_value: 7,
+          technical_complexity: 5,
+          migration_urgency: 6,
+          compliance_requirements: 4,
+          cost_sensitivity: 5,
+          risk_tolerance: 6,
+          innovation_priority: 8,
+          application_type: 'custom'
+        }
+      });
     });
 
     // Simulate WebSocket message
     act(() => {
-      const mockOnMessage = (useSixRWebSocket as unknown).mock.calls[0][0].onMessage;
+      const mockUseSixRWebSocket = useSixRWebSocket as MockedFunction<typeof useSixRWebSocket>;
+      const mockOnMessage = mockUseSixRWebSocket.mock.calls[0][0].onMessage;
       mockOnMessage(mockMessage);
     });
 
@@ -342,9 +385,9 @@ describe('useSixRAnalysis', () => {
       }
     ];
 
-    (sixrApi.getAnalysisHistory as unknown).mockResolvedValue(mockHistory);
-    (sixrApi.getBulkJobs as unknown).mockResolvedValue([]);
-    (sixrApi.getBulkSummary as unknown).mockResolvedValue({
+    (sixrApi.getAnalysisHistory as MockedFunction<typeof sixrApi.getAnalysisHistory>).mockResolvedValue(mockHistory);
+    (sixrApi.getBulkJobs as MockedFunction<typeof sixrApi.getBulkJobs>).mockResolvedValue([]);
+    (sixrApi.getBulkSummary as MockedFunction<typeof sixrApi.getBulkSummary>).mockResolvedValue({
       total_jobs: 0,
       active_jobs: 0,
       completed_jobs: 0,
@@ -369,9 +412,9 @@ describe('useSixRAnalysis', () => {
       message: 'Bulk analysis job created'
     };
 
-    (sixrApi.createBulkAnalysis as unknown).mockResolvedValue(mockJobResponse);
-    (sixrApi.getBulkJobs as unknown).mockResolvedValue([]);
-    (sixrApi.getBulkSummary as unknown).mockResolvedValue({
+    (sixrApi.createBulkAnalysis as MockedFunction<typeof sixrApi.createBulkAnalysis>).mockResolvedValue(mockJobResponse);
+    (sixrApi.getBulkJobs as MockedFunction<typeof sixrApi.getBulkJobs>).mockResolvedValue([]);
+    (sixrApi.getBulkSummary as MockedFunction<typeof sixrApi.getBulkSummary>).mockResolvedValue({
       total_jobs: 1,
       active_jobs: 1,
       completed_jobs: 0,
@@ -404,7 +447,7 @@ describe('useSixRAnalysis', () => {
   });
 
   it('controls bulk analysis jobs', async () => {
-    (sixrApi.controlBulkJob as unknown).mockResolvedValue({
+    (sixrApi.controlBulkJob as MockedFunction<typeof sixrApi.controlBulkJob>).mockResolvedValue({
       success: true,
       message: 'Job started'
     });
@@ -414,22 +457,24 @@ describe('useSixRAnalysis', () => {
     // Set up initial bulk jobs state
     act(() => {
       const [state] = result.current;
-      (state as unknown).bulkJobs = [
-        {
-          id: 'job-123',
-          name: 'Test Job',
-          status: 'paused',
-          priority: 'medium',
-          application_ids: [1, 2, 3],
-          created_at: new Date(),
-          progress: {
-            total: 3,
-            completed: 1,
-            failed: 0,
-            in_progress: 1
+      Object.assign(state, {
+        bulkJobs: [
+          {
+            id: 'job-123',
+            name: 'Test Job',
+            status: 'paused',
+            priority: 'medium',
+            application_ids: [1, 2, 3],
+            created_at: new Date(),
+            progress: {
+              total: 3,
+              completed: 1,
+              failed: 0,
+              in_progress: 1
+            }
           }
-        }
-      ];
+        ]
+      });
     });
 
     const [, actions] = result.current;
@@ -444,7 +489,7 @@ describe('useSixRAnalysis', () => {
 
   it('exports analysis results', async () => {
     const mockBlob = new Blob(['test data'], { type: 'text/csv' });
-    (sixrApi.exportAnalysis as unknown).mockResolvedValue(mockBlob);
+    (sixrApi.exportAnalysis as MockedFunction<typeof sixrApi.exportAnalysis>).mockResolvedValue(mockBlob);
 
     // Mock URL.createObjectURL and related functions
     const mockCreateObjectURL = vi.fn(() => 'blob:mock-url');
@@ -489,9 +534,11 @@ describe('useSixRAnalysis', () => {
     // Set up some state
     act(() => {
       const [state] = result.current;
-      (state as unknown).currentAnalysisId = 123;
-      (state as unknown).analysisStatus = 'completed';
-      (state as unknown).currentRecommendation = { recommended_strategy: 'refactor' };
+      Object.assign(state, { currentAnalysisId: 123 });
+      Object.assign(state, {
+        analysisStatus: 'completed',
+        currentRecommendation: { recommended_strategy: 'refactor' }
+      });
     });
 
     const [, actions] = result.current;
@@ -508,7 +555,7 @@ describe('useSixRAnalysis', () => {
   });
 
   it('handles iteration tracking correctly', async () => {
-    (sixrApi.iterateAnalysis as unknown).mockResolvedValue({
+    (sixrApi.iterateAnalysis as MockedFunction<typeof sixrApi.iterateAnalysis>).mockResolvedValue({
       success: true,
       iteration_number: 2,
       message: 'Iteration started'
@@ -519,8 +566,8 @@ describe('useSixRAnalysis', () => {
     // Set up initial state
     act(() => {
       const [state] = result.current;
-      (state as unknown).currentAnalysisId = 123;
-      (state as unknown).iterationNumber = 1;
+      Object.assign(state, { currentAnalysisId: 123 });
+      Object.assign(state, { iterationNumber: 1 });
     });
 
     const [, actions] = result.current;
@@ -541,7 +588,7 @@ describe('useSixRAnalysis', () => {
     // Set up some state
     act(() => {
       const [state] = result.current;
-      (state as unknown).currentAnalysisId = 123;
+      Object.assign(state, { currentAnalysisId: 123 });
     });
 
     unmount();
@@ -551,7 +598,7 @@ describe('useSixRAnalysis', () => {
   });
 
   it('handles concurrent operations correctly', async () => {
-    (sixrApi.updateParameters as unknown).mockImplementation(() => 
+    (sixrApi.updateParameters as MockedFunction<typeof sixrApi.updateParameters>).mockImplementation(() => 
       new Promise(resolve => setTimeout(() => resolve({ success: true }), 100))
     );
 
@@ -560,7 +607,7 @@ describe('useSixRAnalysis', () => {
     // Set up initial state
     act(() => {
       const [state] = result.current;
-      (state as unknown).currentAnalysisId = 123;
+      Object.assign(state, { currentAnalysisId: 123 });
     });
 
     const [, actions] = result.current;
@@ -597,14 +644,14 @@ describe('useSixRAnalysis', () => {
 
   it('handles optimistic updates with proper rollback', async () => {
     const mockError = new Error('Network error');
-    (sixrApi.updateParameters as unknown).mockRejectedValue(mockError);
+    (sixrApi.updateParameters as MockedFunction<typeof sixrApi.updateParameters>).mockRejectedValue(mockError);
 
     const { result } = renderHook(() => useSixRAnalysis({ enableOptimisticUpdates: true }));
     
     // Set up initial state
     act(() => {
       const [state] = result.current;
-      (state as unknown).currentAnalysisId = 123;
+      Object.assign(state, { currentAnalysisId: 123 });
     });
 
     const [, actions] = result.current;

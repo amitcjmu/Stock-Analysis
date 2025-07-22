@@ -31,6 +31,12 @@ def check_user_role(user: User, allowed_roles: list[str]) -> bool:
         if hasattr(user.profile, 'role_level'):
             user_roles.append(user.profile.role_level)
     
+    # Check user_associations for roles
+    if hasattr(user, 'user_associations') and user.user_associations:
+        for assoc in user.user_associations:
+            if assoc.role:
+                user_roles.append(assoc.role)
+    
     # Also check legacy role field if exists
     if hasattr(user, 'role') and user.role:
         user_roles.append(user.role)
@@ -65,6 +71,7 @@ COLLECTION_CREATE_ROLES = [
     RoleType.ENGAGEMENT_MANAGER.value,
     RoleType.ANALYST.value,
     "admin",  # Legacy role
+    "platform_admin",  # Support both formats
     "engagement_manager",  # Legacy role
     "analyst"  # Legacy role
 ]

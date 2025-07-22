@@ -26,7 +26,7 @@ export interface Client {
   createdAt: string;
   updatedAt: string;
   tags?: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface ClientContact {

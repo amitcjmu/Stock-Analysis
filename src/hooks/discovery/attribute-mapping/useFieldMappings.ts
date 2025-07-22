@@ -2,6 +2,46 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
 import { apiCall } from '../../../config/api';
+import type { FormFieldValue } from '@/types/shared/form-types';
+
+interface RawFieldMapping {
+  id: string;
+  source_field: string;
+  target_field: string | null;
+  confidence: number;
+  is_approved: boolean;
+  status: string;
+  match_type?: string;
+  transformation_rule?: string;
+  validation_rule?: string;
+  is_required?: boolean;
+  is_placeholder?: boolean;
+}
+
+interface ImportData {
+  import_metadata: {
+    import_id: string;
+  };
+  raw_data?: Record<string, FormFieldValue>;
+  sample_record?: Record<string, FormFieldValue>;
+  record_count?: number;
+  field_count?: number;
+}
+
+interface FieldMappingData {
+  mappings?: Record<string, FieldMappingRecord>;
+  attributes?: Record<string, string>;
+  data?: Record<string, FormFieldValue>;
+  confidence_scores?: Record<string, number>;
+}
+
+interface FieldMappingRecord {
+  source_column?: string;
+  asset_field?: string;
+  confidence?: number;
+  match_type?: string;
+  pattern_matched?: string;
+}
 
 export interface FieldMapping {
   id: string;
@@ -9,24 +49,26 @@ export interface FieldMapping {
   targetAttribute: string | null;
   confidence: number;
   mapping_type: string;
-  sample_values: unknown[];
+  sample_values: FormFieldValue[];
   status: 'approved' | 'pending' | 'unmapped' | 'suggested';
   ai_reasoning: string;
   is_user_defined: boolean;
-  user_feedback: unknown;
+  user_feedback: string | null;
   validation_method: string;
   is_validated: boolean;
   transformation_rule?: string;
   validation_rule?: string;
   is_required?: boolean;
+  is_placeholder?: boolean;
+  is_fallback?: boolean;
 }
 
 export interface FieldMappingsResult {
   fieldMappings: FieldMapping[];
-  realFieldMappings: unknown[];
+  realFieldMappings: RawFieldMapping[];
   isFieldMappingsLoading: boolean;
-  fieldMappingsError: unknown;
-  refetchFieldMappings: () => Promise<any>;
+  fieldMappingsError: Error | null;
+  refetchFieldMappings: () => Promise<RawFieldMapping[]>;
 }
 
 /**
@@ -34,8 +76,8 @@ export interface FieldMappingsResult {
  * Handles both API field mappings and flow state fallbacks
  */
 export const useFieldMappings = (
-  importData: any,
-  fieldMappingData: any
+  importData: ImportData | null,
+  fieldMappingData: FieldMappingData | null
 ): FieldMappingsResult => {
   const { getAuthHeaders } = useAuth();
 
@@ -124,7 +166,7 @@ export const useFieldMappings = (
               });
               
               // Transform enhanced mappings to frontend format before returning
-              const transformedEnhancedMappings = enhancedMappings.map((mapping: unknown) => ({
+              const transformedEnhancedMappings = enhancedMappings.map((mapping: RawFieldMapping) => ({
                 id: mapping.id,
                 sourceField: mapping.source_field,
                 targetAttribute: mapping.target_field === 'UNMAPPED' ? null : mapping.target_field,
@@ -178,7 +220,7 @@ export const useFieldMappings = (
     retry: (failureCount, error) => {
       // Allow retries on 429 (Too Many Requests) with longer delays
       if (error && typeof error === 'object' && 'status' in error) {
-        const status = (error as unknown).status;
+        const status = (error as { status?: number }).status;
         if (status === 429) {
           // Retry rate-limited requests up to 3 times with longer delays
           console.log(`🔄 Rate limit retry attempt ${failureCount + 1}/3`);
@@ -193,7 +235,7 @@ export const useFieldMappings = (
     },
     retryDelay: (attemptIndex, error) => {
       // Longer delays for rate-limited requests
-      if (error && typeof error === 'object' && 'status' in error && (error as unknown).status === 429) {
+      if (error && typeof error === 'object' && 'status' in error && (error as { status?: number }).status === 429) {
         // For rate limits: 10s, 30s, 60s
         const delays = [10000, 30000, 60000];
         return delays[attemptIndex] || 60000;
@@ -288,7 +330,7 @@ export const useFieldMappings = (
             console.log('🔍 [DEBUG] Processing entry:', { key, key_type: typeof key, value, value_type: typeof value });
             return key !== 'confidence_scores' && key !== 'data';
           })
-          .map(([sourceField, targetField]: [string, any]) => {
+          .map(([sourceField, targetField]: [string, string]) => {
             console.log('🔍 [DEBUG] Mapping entry:', { 
               sourceField, 
               sourceField_type: typeof sourceField,
@@ -330,7 +372,7 @@ export const useFieldMappings = (
       // Handle structured mappings format
       if (fieldMappingData && fieldMappingData.mappings) {
         const mappingsObj = fieldMappingData.mappings;
-        const flowStateMappings = Object.entries(mappingsObj).map(([sourceField, mapping]: [string, any]) => ({
+        const flowStateMappings = Object.entries(mappingsObj).map(([sourceField, mapping]: [string, FieldMappingRecord]) => ({
           id: crypto.randomUUID(), // Generate proper UUID
           sourceField: mapping.source_column || sourceField,
           targetAttribute: mapping.asset_field || sourceField,

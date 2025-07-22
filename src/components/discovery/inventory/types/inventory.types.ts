@@ -47,6 +47,6 @@ export interface ClassificationCard {
   type: string;
   label: string;
   count: number;
-  icon: unknown;
+  icon: React.ComponentType<{ className?: string }>;
   color: string;
 }

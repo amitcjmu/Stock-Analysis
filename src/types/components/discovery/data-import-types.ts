@@ -4,56 +4,71 @@
  * Types for data import selectors, file upload areas, and raw data tables.
  */
 
-import { ReactNode } from 'react';
-import { BaseDiscoveryProps, DataImport } from './base-types';
-import { ColumnDefinition, PaginationConfig } from './field-mapping-types';
+import type { ReactNode, ChangeEvent, DragEvent, MouseEvent, FC, ComponentProps, HTMLAttributes } from 'react';
+import type { BaseDiscoveryProps, DataImport, ValidationError } from './base-types';
+import type { ColumnDefinition, PaginationConfig } from './field-mapping-types';
 
 // Data Import component types
 export interface DataImportSelectorProps extends BaseDiscoveryProps {
   availableImports: DataImport[];
   selectedImportId: string | null;
-  onImportSelect: (importId: string) => void;
+  onImportSelect: (importId: string, event?: MouseEvent<HTMLElement>) => Promise<void> | void;
   loading?: boolean;
   error?: string | null;
+  disabled?: boolean;
   enableUpload?: boolean;
-  onFileUpload?: (files: File[]) => void;
+  onFileUpload?: (files: File[], event?: ChangeEvent<HTMLInputElement> | DragEvent<HTMLDivElement>) => Promise<void> | void;
   uploadConfig?: UploadConfig;
   enablePreview?: boolean;
-  onPreview?: (importId: string) => void;
+  onPreview?: (importId: string, event?: MouseEvent<HTMLButtonElement>) => Promise<void> | void;
   enableDelete?: boolean;
-  onDelete?: (importId: string) => void;
+  onDelete?: (importId: string, event?: MouseEvent<HTMLButtonElement>) => Promise<boolean> | boolean;
   enableDuplicate?: boolean;
-  onDuplicate?: (importId: string) => void;
+  onDuplicate?: (importId: string, event?: MouseEvent<HTMLButtonElement>) => Promise<void> | void;
   filters?: ImportFilter[];
-  onFilterChange?: (filters: ImportFilter[]) => void;
+  onFilterChange?: (filters: ImportFilter[], event?: ChangeEvent<HTMLSelectElement | HTMLInputElement>) => void;
   sorting?: SortConfig;
-  onSortChange?: (sort: SortConfig) => void;
+  onSortChange?: (sort: SortConfig, event?: MouseEvent<HTMLButtonElement>) => void;
   layout?: 'list' | 'grid' | 'table';
   gridColumns?: number;
   showMetadata?: boolean;
   showProgress?: boolean;
   showStats?: boolean;
   refreshInterval?: number;
-  onRefresh?: () => void;
+  onRefresh?: (event?: MouseEvent<HTMLButtonElement>) => Promise<void> | void;
   customActions?: ImportAction[];
-  onCustomAction?: (action: ImportAction, imports: DataImport[]) => void;
+  onCustomAction?: (action: ImportAction, imports: DataImport[], event?: MouseEvent<HTMLButtonElement>) => Promise<void> | void;
+  multiSelect?: boolean;
+  selectedImportIds?: string[];
+  onSelectionChange?: (importIds: string[]) => void;
+  searchable?: boolean;
+  searchQuery?: string;
+  onSearchChange?: (query: string, event?: ChangeEvent<HTMLInputElement>) => void;
+  theme?: 'light' | 'dark' | 'auto';
+  size?: 'sm' | 'md' | 'lg';
+  variant?: 'default' | 'bordered' | 'filled';
+  emptyState?: ReactNode;
+  loadingState?: ReactNode;
+  errorState?: ReactNode;
+  onError?: (error: Error) => void;
 }
 
 export interface FileUploadAreaProps extends BaseDiscoveryProps {
-  onFileUpload: (files: File[]) => void;
+  onFileUpload: (files: File[], event?: ChangeEvent<HTMLInputElement> | DragEvent<HTMLDivElement>) => Promise<void> | void;
   acceptedTypes?: string[];
-  maxFileSize?: number;
+  maxFileSize?: number; // in bytes
+  maxFiles?: number;
   multiple?: boolean;
   disabled?: boolean;
   loading?: boolean;
-  progress?: number;
+  progress?: number; // 0-100
   error?: string | null;
   dragAndDrop?: boolean;
   showProgress?: boolean;
   showPreview?: boolean;
   enablePaste?: boolean;
   enableUrlUpload?: boolean;
-  onUrlUpload?: (url: string) => void;
+  onUrlUpload?: (url: string, event?: ChangeEvent<HTMLInputElement>) => Promise<void> | void;
   uploadConfig?: UploadConfig;
   validationRules?: FileValidationRule[];
   onValidationError?: (errors: FileValidationError[]) => void;
@@ -67,71 +82,81 @@ export interface FileUploadAreaProps extends BaseDiscoveryProps {
   compressImages?: boolean;
   maxImageDimensions?: { width: number; height: number };
   autoUpload?: boolean;
-  chunkSize?: number;
+  chunkSize?: number; // in bytes
   resumableUpload?: boolean;
   encryptionEnabled?: boolean;
   virusScanEnabled?: boolean;
   onUploadComplete?: (result: UploadResult) => void;
   onUploadProgress?: (progress: UploadProgress) => void;
   onUploadError?: (error: UploadError) => void;
+  onDragOver?: (event: DragEvent<HTMLDivElement>) => void;
+  onDragLeave?: (event: DragEvent<HTMLDivElement>) => void;
+  onDrop?: (event: DragEvent<HTMLDivElement>) => void;
+  onFileRemove?: (file: File, index: number) => void;
+  previewComponent?: FC<{ file: File; onRemove: () => void }>;
+  theme?: 'light' | 'dark' | 'auto';
+  size?: 'sm' | 'md' | 'lg';
+  variant?: 'dashed' | 'solid' | 'filled';
+  borderRadius?: 'none' | 'sm' | 'md' | 'lg' | 'full';
+  allowedFileCategories?: ('document' | 'image' | 'video' | 'audio' | 'archive' | 'code')[];
 }
 
-export interface RawDataTableProps extends BaseDiscoveryProps {
-  data: unknown[];
-  columns: ColumnDefinition[];
+export interface RawDataTableProps<TData = Record<string, unknown>> extends BaseDiscoveryProps {
+  data: TData[];
+  columns: ColumnDefinition<TData>[];
   loading?: boolean;
   error?: string | null;
-  onRowSelect?: (row: unknown) => void;
+  onRowSelect?: (row: TData, event?: MouseEvent<HTMLTableRowElement>) => void;
   selectable?: boolean;
-  selectedRows?: unknown[];
-  onSelectionChange?: (selectedRows: unknown[]) => void;
+  selectedRows?: TData[];
+  onSelectionChange?: (selectedRows: TData[], event?: ChangeEvent<HTMLInputElement>) => void;
   searchable?: boolean;
   searchQuery?: string;
-  onSearchChange?: (query: string) => void;
+  onSearchChange?: (query: string, event?: ChangeEvent<HTMLInputElement>) => void;
   filterable?: boolean;
   filters?: TableFilter[];
-  onFilterChange?: (filters: TableFilter[]) => void;
+  onFilterChange?: (filters: TableFilter[], event?: ChangeEvent<HTMLSelectElement | HTMLInputElement>) => void;
   sortable?: boolean;
   sorting?: TableSort[];
-  onSortChange?: (sorting: TableSort[]) => void;
+  onSortChange?: (sorting: TableSort[], event?: MouseEvent<HTMLButtonElement>) => void;
   pagination?: PaginationConfig;
-  onPageChange?: (page: number, pageSize: number) => void;
+  onPageChange?: (page: number, pageSize: number, event?: MouseEvent<HTMLButtonElement>) => Promise<void> | void;
   totalCount?: number;
   serverSide?: boolean;
-  onServerSideChange?: (params: ServerSideParams) => void;
+  onServerSideChange?: (params: ServerSideParams) => Promise<void> | void;
   expandable?: boolean;
   expandedRows?: string[];
-  onRowExpand?: (rowId: string) => void;
-  renderExpandedContent?: (row: unknown) => ReactNode;
+  onRowExpand?: (rowId: string, row: TData, event?: MouseEvent<HTMLButtonElement>) => void;
+  renderExpandedContent?: (row: TData, index: number) => ReactNode;
   groupable?: boolean;
-  groupBy?: string;
-  onGroupByChange?: (groupBy: string) => void;
-  renderGroupHeader?: (group: string, count: number) => ReactNode;
+  groupBy?: keyof TData;
+  onGroupByChange?: (groupBy: keyof TData, event?: ChangeEvent<HTMLSelectElement>) => void;
+  renderGroupHeader?: (group: string, count: number, rows: TData[]) => ReactNode;
   virtualScrolling?: boolean;
   rowHeight?: number;
   estimatedRowHeight?: number;
   stickyHeader?: boolean;
-  stickyColumns?: string[];
+  stickyColumns?: (keyof TData)[];
   resizableColumns?: boolean;
   reorderableColumns?: boolean;
-  onColumnReorder?: (columns: ColumnDefinition[]) => void;
-  onColumnResize?: (columnId: string, width: number) => void;
-  columnVisibility?: Record<string, boolean>;
-  onColumnVisibilityChange?: (visibility: Record<string, boolean>) => void;
+  onColumnReorder?: (columns: ColumnDefinition<TData>[], event?: DragEvent<HTMLTableHeaderCellElement>) => void;
+  onColumnResize?: (columnId: keyof TData, width: number, event?: MouseEvent<HTMLDivElement>) => void;
+  columnVisibility?: Record<keyof TData, boolean>;
+  onColumnVisibilityChange?: (visibility: Record<keyof TData, boolean>) => void;
   exportEnabled?: boolean;
   exportFormats?: ExportFormat[];
-  onExport?: (format: ExportFormat, data: unknown[]) => void;
-  customActions?: TableAction[];
-  onCustomAction?: (action: TableAction, rows: unknown[]) => void;
-  onRowClick?: (row: unknown) => void;
-  onRowDoubleClick?: (row: unknown) => void;
-  onRowContextMenu?: (row: any, event: React.MouseEvent) => void;
-  onCellClick?: (row: any, column: ColumnDefinition, value: unknown) => void;
-  onCellDoubleClick?: (row: any, column: ColumnDefinition, value: unknown) => void;
-  onCellEdit?: (row: any, column: ColumnDefinition, newValue: unknown) => void;
-  editableColumns?: string[];
+  onExport?: (format: ExportFormat, data: TData[], event?: MouseEvent<HTMLButtonElement>) => Promise<void> | void;
+  customActions?: TableAction<TData>[];
+  onCustomAction?: (action: TableAction<TData>, rows: TData[], event?: MouseEvent<HTMLButtonElement>) => Promise<void> | void;
+  onRowClick?: (row: TData, index: number, event: MouseEvent<HTMLTableRowElement>) => void;
+  onRowDoubleClick?: (row: TData, index: number, event: MouseEvent<HTMLTableRowElement>) => void;
+  onRowContextMenu?: (row: TData, index: number, event: MouseEvent<HTMLTableRowElement>) => void;
+  onCellClick?: (row: TData, column: ColumnDefinition<TData>, value: unknown, event: MouseEvent<HTMLTableCellElement>) => void;
+  onCellDoubleClick?: (row: TData, column: ColumnDefinition<TData>, value: unknown, event: MouseEvent<HTMLTableCellElement>) => void;
+  onCellEdit?: (row: TData, column: ColumnDefinition<TData>, newValue: unknown, oldValue: unknown) => Promise<boolean> | boolean;
+  editableColumns?: (keyof TData)[];
   editMode?: 'inline' | 'modal' | 'drawer';
-  renderEditCell?: (row: any, column: ColumnDefinition, value: any, onChange: (value: unknown) => void) => ReactNode;
+  renderEditCell?: (row: TData, column: ColumnDefinition<TData>, value: unknown, onChange: (value: unknown) => void, onCancel: () => void, onSave: () => void) => ReactNode;
   striped?: boolean;
   bordered?: boolean;
   hover?: boolean;
@@ -143,20 +168,34 @@ export interface RawDataTableProps extends BaseDiscoveryProps {
   errorState?: ReactNode;
   theme?: 'light' | 'dark' | 'auto';
   density?: 'compact' | 'normal' | 'comfortable';
+  maxHeight?: number | string;
+  minHeight?: number | string;
+  fixedLayout?: boolean;
+  showRowNumbers?: boolean;
+  onValidationError?: (errors: ValidationError[], row: TData) => void;
+  validationEnabled?: boolean;
+  autoSave?: boolean;
+  autoSaveDelay?: number;
+  onAutoSave?: (row: TData, changes: Partial<TData>) => Promise<boolean> | boolean;
 }
 
 // Supporting types
 export interface UploadConfig {
   endpoint: string;
-  method: 'POST' | 'PUT';
+  method: 'POST' | 'PUT' | 'PATCH';
   headers?: Record<string, string>;
-  chunkSize?: number;
-  maxRetries?: number;
-  timeout?: number;
+  chunkSize?: number; // in bytes, default 1MB
+  maxRetries?: number; // default 3
+  timeout?: number; // in milliseconds, default 30000
   resumable?: boolean;
   encryption?: boolean;
   compression?: boolean;
   virusScan?: boolean;
+  parallelUploads?: number; // max concurrent uploads
+  onBeforeUpload?: (file: File) => Promise<boolean> | boolean;
+  onAfterUpload?: (result: UploadResult) => Promise<void> | void;
+  transformRequest?: (formData: FormData) => FormData;
+  transformResponse?: (response: Response) => Promise<UploadResult>;
 }
 
 export interface ImportFilter {
@@ -177,16 +216,24 @@ export interface ImportAction {
   id: string;
   label: string;
   icon?: string | ReactNode;
-  handler: (imports: DataImport[]) => void;
-  disabled?: boolean;
+  handler: (imports: DataImport[], event?: MouseEvent<HTMLButtonElement>) => Promise<void> | void;
+  disabled?: boolean | ((imports: DataImport[]) => boolean);
   tooltip?: string;
+  confirmationRequired?: boolean;
+  confirmationMessage?: string | ((imports: DataImport[]) => string);
+  variant?: 'primary' | 'secondary' | 'danger' | 'warning' | 'success';
+  size?: 'sm' | 'md' | 'lg';
+  loading?: boolean;
+  shortcut?: string;
 }
 
 export interface FileValidationRule {
-  type: 'size' | 'type' | 'name' | 'custom';
-  parameters: Record<string, any>;
+  type: 'size' | 'type' | 'name' | 'extension' | 'mime' | 'dimension' | 'custom';
+  parameters: Record<string, unknown>;
   message: string;
-  validator?: (file: File) => boolean;
+  severity?: 'error' | 'warning' | 'info';
+  validator?: (file: File) => Promise<boolean> | boolean;
+  asyncValidator?: (file: File) => Promise<{ isValid: boolean; message?: string }>;
 }
 
 export interface FileValidationError {
@@ -199,23 +246,45 @@ export interface UploadResult {
   success: boolean;
   fileId?: string;
   url?: string;
-  metadata?: Record<string, any>;
+  publicUrl?: string;
+  thumbnailUrl?: string;
+  metadata?: Record<string, unknown>;
+  size?: number;
+  mimeType?: string;
+  originalName?: string;
+  processedName?: string;
+  checksum?: string;
   error?: string;
+  warnings?: string[];
+  uploadedAt?: string;
+  processingTime?: number;
 }
 
 export interface UploadProgress {
-  loaded: number;
-  total: number;
-  percentage: number;
-  speed?: number;
-  remainingTime?: number;
+  loaded: number; // bytes loaded
+  total: number; // total bytes
+  percentage: number; // 0-100
+  speed?: number; // bytes per second
+  remainingTime?: number; // seconds remaining
+  fileName?: string;
+  fileIndex?: number; // for multiple file uploads
+  totalFiles?: number;
+  stage?: 'uploading' | 'processing' | 'validating' | 'complete';
+  eta?: Date; // estimated completion time
 }
 
 export interface UploadError {
   code: string;
   message: string;
   file?: File;
+  fileName?: string;
   retryable?: boolean;
+  severity?: 'error' | 'warning' | 'fatal';
+  details?: Record<string, unknown>;
+  timestamp?: string;
+  retryCount?: number;
+  maxRetries?: number;
+  suggestion?: string;
 }
 
 export interface TableFilter {
@@ -238,6 +307,11 @@ export interface ServerSideParams {
   filters?: TableFilter[];
   sorting?: TableSort[];
   groupBy?: string;
+  include?: string[]; // related data to include
+  fields?: string[]; // specific fields to return
+  expand?: string[]; // expand nested objects
+  cursor?: string; // for cursor-based pagination
+  totalCount?: boolean; // whether to include total count
 }
 
 export interface ExportFormat {
@@ -246,13 +320,30 @@ export interface ExportFormat {
   extension: string;
   mimeType: string;
   description?: string;
+  icon?: string | ReactNode;
+  maxRows?: number; // max rows for this format
+  supportsFiltering?: boolean;
+  supportsSorting?: boolean;
+  supportsGrouping?: boolean;
+  customOptions?: Record<string, unknown>;
+  preview?: boolean; // whether format supports preview
 }
 
-export interface TableAction {
+export interface TableAction<TData = Record<string, unknown>> {
   id: string;
   label: string;
   icon?: string | ReactNode;
-  handler: (rows: unknown[]) => void;
-  disabled?: boolean;
-  tooltip?: string;
+  handler: (rows: TData[], event?: MouseEvent<HTMLButtonElement>) => Promise<void> | void;
+  disabled?: boolean | ((rows: TData[]) => boolean);
+  tooltip?: string | ((rows: TData[]) => string);
+  confirmationRequired?: boolean;
+  confirmationMessage?: string | ((rows: TData[]) => string);
+  variant?: 'primary' | 'secondary' | 'danger' | 'warning' | 'success';
+  size?: 'sm' | 'md' | 'lg';
+  loading?: boolean;
+  shortcut?: string;
+  position?: 'toolbar' | 'context' | 'both';
+  requiresSelection?: boolean;
+  maxSelectionCount?: number;
+  minSelectionCount?: number;
 }

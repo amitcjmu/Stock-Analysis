@@ -311,7 +311,7 @@ export interface UseWorkflowStateReturn extends BaseAsyncHookReturn<WorkflowStat
   // Variables and context
   variables: WorkflowVariables;
   setVariable: (name: string, value: unknown) => void;
-  getVariable: (name: string) => any;
+  getVariable: (name: string) => unknown;
   deleteVariable: (name: string) => void;
   clearVariables: () => void;
   
@@ -400,7 +400,7 @@ export interface FlowSummary {
   completedAt?: string;
   clientAccountId: string;
   engagementId: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface FlowState {
@@ -412,8 +412,8 @@ export interface FlowState {
   phaseStates: Record<string, PhaseState>;
   agentStates: Record<string, AgentState>;
   taskStates: Record<string, TaskState>;
-  variables: Record<string, any>;
-  metadata: Record<string, any>;
+  variables: Record<string, unknown>;
+  metadata: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 }
@@ -426,7 +426,7 @@ export interface PhaseState {
   progress: number;
   prerequisites: string[];
   dependencies: string[];
-  outputs: Record<string, any>;
+  outputs: Record<string, unknown>;
   errors: PhaseError[];
 }
 

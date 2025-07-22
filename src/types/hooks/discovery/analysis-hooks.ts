@@ -37,7 +37,7 @@ export interface AnalysisFinding {
   recommendation: string;
   impact: string;
   confidence: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface AnalysisFilter {
@@ -65,7 +65,7 @@ export interface AnalysisSimilarity {
 
 export interface AnalysisDifference {
   field: string;
-  values: Record<string, any>;
+  values: Record<string, string | number | boolean | null>;
   significance: 'high' | 'medium' | 'low';
   description: string;
 }
@@ -111,7 +111,7 @@ export interface TrainingLog {
   level: 'debug' | 'info' | 'warn' | 'error' | 'fatal';
   message: string;
   source?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface TrainingStatus {
@@ -145,7 +145,7 @@ export interface ModelInfo {
   accuracy?: number;
   size: number;
   createdAt: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface Dataset {
@@ -158,7 +158,7 @@ export interface Dataset {
   labels?: string[];
   splitRatio?: { train: number; validation: number; test: number };
   createdAt: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface Hyperparameters {
@@ -173,7 +173,7 @@ export interface Hyperparameters {
   hiddenUnits?: number;
   activationFunction?: string;
   lossFunction?: string;
-  customParameters?: Record<string, any>;
+  customParameters?: Record<string, string | number | boolean | null>;
 }
 
 export interface ValidationConfig {

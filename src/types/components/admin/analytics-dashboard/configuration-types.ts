@@ -73,7 +73,7 @@ export interface FormattingStyle {
 export interface InteractionAction {
   type: 'navigate' | 'filter' | 'drill_down' | 'modal' | 'custom';
   target?: string;
-  parameters?: Record<string, any>;
+  parameters?: Record<string, string | number | boolean | null>;
 }
 
 export interface DrillDownConfig {

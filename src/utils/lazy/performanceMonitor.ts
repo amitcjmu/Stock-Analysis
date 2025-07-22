@@ -26,7 +26,14 @@ interface PerformanceInsight {
   message: string;
   impact: 'high' | 'medium' | 'low';
   suggestion: string;
-  metrics?: unknown;
+  metrics?: {
+    averageLoadTime?: number;
+    cacheHitRate?: number;
+    errorRate?: number;
+    bundleSize?: number;
+    componentName?: string;
+    frequency?: number;
+  };
 }
 
 class PerformanceMonitor {
@@ -329,7 +336,8 @@ class PerformanceMonitor {
       this.resourceObserver = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
           if (entry.name.includes('.js') || entry.name.includes('chunk')) {
-            const size = (entry as unknown).transferSize || (entry as unknown).encodedBodySize || 0;
+            const resourceEntry = entry as PerformanceResourceTiming;
+            const size = resourceEntry.transferSize || resourceEntry.encodedBodySize || 0;
             const chunkName = this.extractChunkName(entry.name);
             this.bundleMetrics.set(chunkName, size);
           }
@@ -348,7 +356,7 @@ class PerformanceMonitor {
   private setupMemoryMonitoring(): void {
     if ('memory' in performance) {
       setInterval(() => {
-        const memory = (performance as unknown).memory;
+        const memory = (performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
         
         // Calculate percentages
         const usedPercentOfTotal = (memory.usedJSHeapSize / memory.totalJSHeapSize) * 100;
@@ -388,7 +396,7 @@ class PerformanceMonitor {
 
     // Memory pressure detection
     if ('memory' in performance) {
-      const memory = (performance as unknown).memory;
+      const memory = (performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
       const memoryUsagePercent = (memory.usedJSHeapSize / memory.totalJSHeapSize) * 100;
       
       if (memoryUsagePercent > 85) {
@@ -435,10 +443,10 @@ class PerformanceMonitor {
       metrics: this.metrics,
       analysis: this.getPerformanceAnalysis(),
       userAgent: navigator.userAgent,
-      connection: (navigator as unknown).connection ? {
-        effectiveType: (navigator as unknown).connection.effectiveType,
-        downlink: (navigator as unknown).connection.downlink,
-        rtt: (navigator as unknown).connection.rtt
+      connection: (navigator as Navigator & { connection?: { effectiveType: string; downlink: number; rtt: number } }).connection ? {
+        effectiveType: (navigator as Navigator & { connection: { effectiveType: string; downlink: number; rtt: number } }).connection.effectiveType,
+        downlink: (navigator as Navigator & { connection: { effectiveType: string; downlink: number; rtt: number } }).connection.downlink,
+        rtt: (navigator as Navigator & { connection: { effectiveType: string; downlink: number; rtt: number } }).connection.rtt
       } : null
     };
 

@@ -70,7 +70,7 @@ export interface LogSearchResult {
   took: number;
   timedOut: boolean;
   maxScore: number;
-  searchAfter?: unknown[];
+  searchAfter?: (string | number)[];
 }
 
 export interface LogEntry {
@@ -79,7 +79,7 @@ export interface LogEntry {
   level: LogLevel;
   message: string;
   source: string;
-  fields: Record<string, any>;
+  fields: Record<string, string | number | boolean | null>;
   tags: Record<string, string>;
   score?: number;
   highlight?: Record<string, string[]>;
@@ -287,7 +287,7 @@ export interface LogInsight {
 export interface InsightEvidence {
   type: 'metric' | 'pattern' | 'correlation' | 'threshold';
   description: string;
-  value: unknown;
+  value: string | number | boolean | Record<string, unknown>;
   confidence: number;
 }
 
@@ -327,7 +327,7 @@ export interface SequenceEvent {
   timestamp: string;
   event: string;
   source: string;
-  properties: Record<string, any>;
+  properties: Record<string, string | number | boolean | null>;
 }
 
 export interface SequencePattern {
@@ -359,7 +359,7 @@ export interface LogMLModel {
   recall: number;
   f1Score: number;
   trainingData: MLTrainingData;
-  hyperparameters: Record<string, any>;
+  hyperparameters: Record<string, string | number | boolean | null>;
   lastTrained: string;
   version: string;
 }
@@ -406,8 +406,8 @@ export interface MLLabel {
 export interface LogMLPrediction {
   id: string;
   modelId: string;
-  input: Record<string, any>;
-  prediction: unknown;
+  input: Record<string, unknown>;
+  prediction: string | number | boolean | Record<string, unknown>;
   confidence: number;
   probability?: number;
   timestamp: string;
@@ -416,7 +416,7 @@ export interface LogMLPrediction {
 
 export interface PredictionFeature {
   name: string;
-  value: unknown;
+  value: string | number | boolean;
   importance: number;
   contribution: number;
 }

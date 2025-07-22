@@ -85,7 +85,7 @@ export interface MetricDefinitionData {
   namespace: string;
   help: string;
   labels: Record<string, string>;
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface MetricSource {
@@ -253,7 +253,7 @@ export interface HealthCheckConfig {
 
 export interface AggregationFunction {
   name: 'sum' | 'avg' | 'min' | 'max' | 'count' | 'stddev' | 'percentile' | 'rate' | 'increase';
-  parameters?: Record<string, any>;
+  parameters?: Record<string, string | number | boolean | null>;
   alias?: string;
 }
 

@@ -81,14 +81,14 @@ export interface DashboardPanel {
 
 export interface PanelQuery {
   metric: string;
-  filters: Record<string, any>;
+  filters: Record<string, string | number | boolean | null>;
   aggregation: string;
   timeRange?: string;
 }
 
 export interface PanelVisualization {
   type: string;
-  options: Record<string, any>;
+  options: Record<string, string | number | boolean | null>;
   thresholds?: VisualizationThreshold[];
 }
 
@@ -136,7 +136,7 @@ export interface LoggingConfiguration {
 
 export interface LoggingDestination {
   type: 'file' | 'console' | 'syslog' | 'elasticsearch' | 'cloudwatch';
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
   filters: LoggingFilter[];
 }
 
@@ -164,7 +164,7 @@ export interface MonitoringReporting {
 
 export interface ReportContent {
   type: 'summary' | 'metrics' | 'alerts' | 'trends';
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
 }
 
 export interface ReportCondition {

@@ -1,10 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 
+// Enhanced field interface
+interface EnhancedField {
+  id: string;
+  name: string;
+  type: string;
+  category?: string;
+  description?: string;
+  isRequired?: boolean;
+  metadata?: Record<string, unknown>;
+}
+
 interface EnhancedFieldDropdownProps {
   value: string;
   onChange: (field: string) => void;
-  availableFields: unknown[];
+  availableFields: EnhancedField[];
   placeholder?: string;
 }
 

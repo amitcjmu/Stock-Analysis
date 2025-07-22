@@ -9,6 +9,64 @@ export interface DashboardData {
   platformAlerts: PlatformAlert[];
 }
 
+// API Response types
+interface DiscoveryFlowResponse {
+  flow_id: string;
+  engagement_id: string;
+  engagement_name?: string;
+  client_id?: string;
+  client_account_id?: string;
+  client_name?: string;
+  status: string;
+  progress?: number;
+  progress_percentage?: number;
+  current_phase?: string;
+  created_at?: string;
+  start_time?: string;
+  updated_at?: string;
+  last_updated?: string;
+  estimated_completion?: string;
+  active_agents?: number;
+  data_sources?: number;
+  success_criteria_met?: number;
+  type?: string;
+  metadata?: {
+    engagement_name?: string;
+    client_name?: string;
+    progress_percentage?: number;
+    current_phase?: string;
+    active_agents?: number;
+    data_sources?: number;
+    success_criteria_met?: number;
+    phases?: Record<string, boolean>;
+  };
+  phases?: Record<string, boolean>;
+}
+
+interface DiscoveryFlowsApiResponse {
+  flows?: DiscoveryFlowResponse[];
+  flow_details?: DiscoveryFlowResponse[];
+}
+
+interface DataImportResponse {
+  success: boolean;
+  data_import?: {
+    id: string;
+    created_at: string;
+  };
+}
+
+interface FlowStatusResponse {
+  flow_state?: {
+    status: string;
+    progress_percentage?: number;
+    current_phase?: string;
+    started_at?: string;
+    updated_at?: string;
+    phases?: Record<string, boolean>;
+  };
+}
+
 // Debouncing and caching for rate limiting
 let lastFetchTime = 0;
 let cachedResponse: DashboardData | null = null;
@@ -19,12 +77,23 @@ const DEBOUNCE_DELAY = 500; // 500ms debounce
 // Exponential backoff for 429 errors
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const makeApiCallWithRetry = async (url: string, options: any, maxRetries = 3): Promise<any> => {
+interface ApiCallOptions extends RequestInit {
+  headers?: Record<string, string>;
+}
+
+interface ApiError {
+  status?: number;
+  message?: string;
+  code?: string;
+}
+
+const makeApiCallWithRetry = async <T = unknown>(url: string, options: ApiCallOptions, maxRetries = 3): Promise<T> => {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      return await apiCall(url, options);
-    } catch (error: unknown) {
-      if (error.status === 429 && attempt < maxRetries) {
+      return await apiCall(url, options) as T;
+    } catch (error) {
+      const apiError = error as ApiError;
+      if (apiError.status === 429 && attempt < maxRetries) {
         const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
         console.log(`🕐 Rate limited (429), retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`);
         await sleep(delay);
@@ -37,7 +106,7 @@ const makeApiCallWithRetry = async (url: string, options: any, maxRetries = 3): 
 
 export class DashboardService {
   
-  async fetchDashboardData(user: any, client: any, engagement: unknown): Promise<DashboardData> {
+  async fetchDashboardData(user: { id: string } | null, client: { id: string; name?: string } | null, engagement: { id: string } | null): Promise<DashboardData> {
     const now = Date.now();
     
     // Return cached response if still valid
@@ -79,16 +148,16 @@ export class DashboardService {
     }
   }
   
-  private async _performDashboardFetch(user: any, client: any, engagement: unknown): Promise<DashboardData> {
+  private async _performDashboardFetch(user: { id: string } | null, client: { id: string; name?: string } | null, engagement: { id: string } | null): Promise<DashboardData> {
     // Fetch real-time active flows from multiple sources with retry logic
     const [discoveryFlowsResponse, dataImportsResponse] = await Promise.allSettled([
       // Get active Discovery flows - try the discovery flows endpoint first
-      makeApiCallWithRetry('/api/v1/discovery/flows/active', {
+      makeApiCallWithRetry<DiscoveryFlowResponse[] | DiscoveryFlowsApiResponse>('/api/v1/discovery/flows/active', {
         method: 'GET',
         headers: getAuthHeaders({ user, client, engagement })
       }),
       // Get data import sessions (for discovering flows)
-      makeApiCallWithRetry('/api/v1/data-import/latest-import', {
+      makeApiCallWithRetry<DataImportResponse>('/api/v1/data-import/latest-import', {
         method: 'GET',
         headers: getAuthHeaders({ user, client, engagement })
       })
@@ -190,7 +259,7 @@ export class DashboardService {
         if (dataImport.id && !allFlows.find(f => f.flow_id === dataImport.id)) {
           try {
             // Get flow status for this import session with retry logic
-            const flowStatusResponse = await makeApiCallWithRetry(`/api/v1/discovery/flows/${dataImport.id}/status`, {
+            const flowStatusResponse = await makeApiCallWithRetry<FlowStatusResponse>(`/api/v1/discovery/flows/${dataImport.id}/status`, {
               method: 'GET',
               headers: getAuthHeaders({ user, client, engagement })
             });

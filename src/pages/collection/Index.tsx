@@ -122,7 +122,7 @@ const CollectionIndex: React.FC = () => {
       
       // Determine automation tier and collection config based on workflow type
       let automationTier = 'tier_2'; // Default to mixed environment
-      let collectionConfig: unknown = {
+      const collectionConfig: unknown = {
         workflow_type: workflowId,
         initiated_from: 'collection_overview'
       };

@@ -48,7 +48,7 @@ export interface CriticalAttribute {
   priority: 'critical' | 'high' | 'medium' | 'low';
   category: string;
   tags: string[];
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 /**
@@ -63,7 +63,7 @@ export interface CrewAnalysis {
   executedAt: string;
   executedBy: string;
   status: 'completed' | 'in_progress' | 'failed';
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 /**
@@ -99,7 +99,7 @@ export interface FlowState {
   nextPhase?: string;
   previousPhase?: string;
   phaseCompletion: Record<string, boolean>;
-  phaseData: Record<string, any>;
+  phaseData: Record<string, string | number | boolean | null>;
   agentInsights: Record<string, AgentInsight[]>;
   agentProgress: Record<string, number>;
   agentStatus: Record<string, string>;

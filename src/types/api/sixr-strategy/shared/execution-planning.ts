@@ -81,42 +81,236 @@ export interface TimelineDependency {
   lag: string;
 }
 
-// Forward declarations for complex types
+// Resource Planning Types
 export interface ResourcePlan {
-  human: unknown[];
-  technical: unknown[];
-  financial: unknown[];
-  external: unknown[];
+  human: HumanResource[];
+  technical: TechnicalResource[];
+  financial: FinancialResource[];
+  external: ExternalResource[];
+}
+
+export interface HumanResource {
+  id: string;
+  name: string;
+  role: string;
+  skillSet: string[];
+  availability: string;
+  cost: string;
+  allocation: number;
+}
+
+export interface TechnicalResource {
+  id: string;
+  name: string;
+  type: 'hardware' | 'software' | 'infrastructure' | 'tool';
+  specifications: Record<string, string>;
+  availability: string;
+  cost: string;
+}
+
+export interface FinancialResource {
+  id: string;
+  category: string;
+  amount: number;
+  currency: string;
+  allocation: string;
+  approval: string;
+}
+
+export interface ExternalResource {
+  id: string;
+  provider: string;
+  service: string;
+  contract: string;
+  sla: Record<string, unknown>;
+  cost: string;
 }
 
 export interface QualityPlan {
-  standards: unknown[];
-  gates: unknown[];
-  metrics: unknown[];
-  testing: unknown;
-  reviews: unknown[];
+  standards: QualityStandard[];
+  gates: QualityGate[];
+  metrics: QualityMetric[];
+  testing: TestingPlan;
+  reviews: QualityReview[];
 }
 
-export interface CommunicationPlan {
-  stakeholders: unknown[];
-  channels: unknown[];
-  schedules: unknown[];
-  templates: unknown[];
-  escalation: unknown[];
+export interface QualityStandard {
+  id: string;
+  name: string;
+  description: string;
+  requirements: string[];
+  validation: string[];
 }
 
-export interface MonitoringPlan {
-  metrics: unknown[];
-  dashboards: unknown[];
-  alerts: unknown[];
-  reports: unknown[];
+export interface QualityGate {
+  id: string;
+  phase: string;
+  criteria: string[];
+  approval: string;
+  fallback: string;
+}
+
+export interface QualityMetric {
+  id: string;
+  name: string;
+  target: number;
+  measurement: string;
   frequency: string;
 }
 
+export interface TestingPlan {
+  strategy: string;
+  phases: string[];
+  coverage: number;
+  automation: number;
+  tools: string[];
+}
+
+export interface QualityReview {
+  id: string;
+  type: string;
+  schedule: string;
+  participants: string[];
+  criteria: string[];
+}
+
+export interface CommunicationPlan {
+  stakeholders: Stakeholder[];
+  channels: CommunicationChannel[];
+  schedules: CommunicationSchedule[];
+  templates: CommunicationTemplate[];
+  escalation: EscalationPath[];
+}
+
+export interface Stakeholder {
+  id: string;
+  name: string;
+  role: string;
+  interest: string;
+  influence: string;
+  communication: string[];
+}
+
+export interface CommunicationChannel {
+  id: string;
+  type: 'email' | 'meeting' | 'report' | 'dashboard' | 'notification';
+  frequency: string;
+  audience: string[];
+  format: string;
+}
+
+export interface CommunicationSchedule {
+  id: string;
+  event: string;
+  frequency: string;
+  stakeholders: string[];
+  channels: string[];
+}
+
+export interface CommunicationTemplate {
+  id: string;
+  type: string;
+  format: string;
+  content: Record<string, unknown>;
+  approval: string;
+}
+
+export interface EscalationPath {
+  id: string;
+  trigger: string;
+  level: number;
+  stakeholder: string;
+  timeframe: string;
+  action: string;
+}
+
+export interface MonitoringPlan {
+  metrics: MonitoringMetric[];
+  dashboards: Dashboard[];
+  alerts: Alert[];
+  reports: MonitoringReport[];
+  frequency: string;
+}
+
+export interface MonitoringMetric {
+  id: string;
+  name: string;
+  type: 'performance' | 'quality' | 'cost' | 'timeline' | 'risk';
+  target: number;
+  threshold: number;
+  unit: string;
+}
+
+export interface Dashboard {
+  id: string;
+  name: string;
+  audience: string[];
+  metrics: string[];
+  refreshRate: string;
+  access: string[];
+}
+
+export interface Alert {
+  id: string;
+  metric: string;
+  condition: string;
+  threshold: number;
+  recipients: string[];
+  action: string;
+}
+
+export interface MonitoringReport {
+  id: string;
+  type: string;
+  frequency: string;
+  content: string[];
+  recipients: string[];
+  format: string;
+}
+
 export interface RollbackPlan {
-  triggers: unknown[];
-  procedures: unknown[];
-  decision: unknown;
-  communication: unknown;
-  validation: unknown;
+  triggers: RollbackTrigger[];
+  procedures: RollbackProcedure[];
+  decision: RollbackDecision;
+  communication: RollbackCommunication;
+  validation: RollbackValidation;
+}
+
+export interface RollbackTrigger {
+  id: string;
+  condition: string;
+  threshold: number;
+  automatic: boolean;
+  approval: string;
+}
+
+export interface RollbackProcedure {
+  id: string;
+  step: number;
+  action: string;
+  responsibility: string;
+  duration: string;
+  validation: string;
+}
+
+export interface RollbackDecision {
+  criteria: string[];
+  authority: string;
+  timeframe: string;
+  process: string;
+  documentation: string;
+}
+
+export interface RollbackCommunication {
+  stakeholders: string[];
+  channels: string[];
+  timeline: string;
+  content: Record<string, unknown>;
+}
+
+export interface RollbackValidation {
+  checks: string[];
+  criteria: string[];
+  approval: string;
+  documentation: string;
 }

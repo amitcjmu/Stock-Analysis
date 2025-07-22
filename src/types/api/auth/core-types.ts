@@ -4,6 +4,9 @@
  * Shared interfaces and types used across authentication modules.
  */
 
+import { ActivityMetadata, PermissionMetadata } from '../shared/metadata-types';
+import { ConditionValue, PrimitiveValue } from '../shared/value-types';
+
 // Core Authentication Types
 export interface AuthenticationResult {
   authenticated: boolean;
@@ -97,7 +100,7 @@ export interface SessionActivity {
   userAgent: string;
   success: boolean;
   riskScore: number;
-  metadata: Record<string, any>;
+  metadata: ActivityMetadata;
 }
 
 export interface DeviceInfo {
@@ -150,13 +153,13 @@ export interface PermissionScope {
   clientAccountId?: string;
   engagementId?: string;
   resourceId?: string;
-  attributes?: Record<string, any>;
+  attributes?: PermissionMetadata;
 }
 
 export interface PermissionCondition {
   type: string;
   operator: string;
-  value: unknown;
+  value: ConditionValue;
   description?: string;
 }
 
@@ -494,8 +497,8 @@ export interface SecuritySettingsData {
 
 export interface SecurityChange {
   setting: string;
-  oldValue: unknown;
-  newValue: unknown;
+  oldValue: PrimitiveValue | Record<string, PrimitiveValue>;
+  newValue: PrimitiveValue | Record<string, PrimitiveValue>;
   changedAt: string;
 }
 

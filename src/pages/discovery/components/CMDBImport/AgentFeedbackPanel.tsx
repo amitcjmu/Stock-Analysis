@@ -20,9 +20,40 @@ import {
   Clock
 } from 'lucide-react';
 
+interface ProcessingSummary {
+  records_found?: number;
+  data_source?: string;
+  workflow_phase?: string;
+  agent_status?: string;
+}
+
+interface StatusData {
+  flow_status?: {
+    current_phase?: string;
+    status?: string;
+    cmdb_data?: {
+      file_data?: unknown[];
+    };
+    metadata?: Record<string, unknown>;
+  };
+  current_phase?: string;
+  status?: string;
+  metadata?: {
+    filename?: string;
+    [key: string]: unknown;
+  };
+  message?: string;
+  processing_summary?: ProcessingSummary;
+  agent_insights?: (string | Record<string, unknown>)[];
+  clarification_questions?: (string | Record<string, unknown>)[];
+  data_quality_assessment?: Record<string, unknown>;
+  field_mappings?: Record<string, string | number | boolean>;
+  agent_results?: Record<string, unknown>;
+}
+
 interface AgentFeedbackPanelProps {
   flowId: string;
-  statusData: unknown;
+  statusData: StatusData | null;
 }
 
 const AgentFeedbackPanel: React.FC<AgentFeedbackPanelProps> = ({
@@ -222,7 +253,7 @@ const AgentFeedbackPanel: React.FC<AgentFeedbackPanelProps> = ({
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {statusData.agent_insights.map((insight: any, index: number) => (
+              {statusData.agent_insights.map((insight, index) => (
                 <Alert key={index}>
                   <Bot className="h-4 w-4" />
                   <AlertDescription>
@@ -244,7 +275,7 @@ const AgentFeedbackPanel: React.FC<AgentFeedbackPanelProps> = ({
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {statusData.clarification_questions.map((question: any, index: number) => (
+              {statusData.clarification_questions.map((question, index) => (
                 <Alert key={index}>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>

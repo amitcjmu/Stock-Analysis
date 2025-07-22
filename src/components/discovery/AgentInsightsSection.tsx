@@ -27,7 +27,7 @@ interface AgentInsight {
   title: string;
   description: string;
   confidence: 'high' | 'medium' | 'low' | 'uncertain';
-  supporting_data: unknown;
+  supporting_data: Record<string, string | number | boolean | null> | unknown[];
   actionable: boolean;
   page: string;
   created_at: string;
@@ -85,7 +85,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
         setInsights(result.insights);
       }
       setError(null);
-    } catch (err: unknown) {
+    } catch (err) {
       // Handle 404 errors gracefully - these endpoints may not exist yet
       if (err.status === 404 || err.response?.status === 404) {
         console.log('Agent insights endpoint not available yet');
@@ -238,13 +238,13 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
     }
   };
 
-  const analyzeAccuracyIssues = async (insight: unknown): Promise<string[]> => {
+  const analyzeAccuracyIssues = async (insight: AgentInsight | undefined): Promise<string[]> => {
     const issues: string[] = [];
     
     if (!insight) return issues;
     
-    const description = insight.description || '';
-    const supportingData = insight.supporting_data || {};
+    const description = insight?.description || '';
+    const supportingData = insight?.supporting_data || {};
     
     // Check for number mismatches
     const applicationMatch = description.match(/(\d+)\s+applications/i);
@@ -336,7 +336,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
           ].map((filter) => (
             <button
               key={filter.key}
-              onClick={() => setSelectedFilter(filter.key as unknown)}
+              onClick={() => setSelectedFilter(filter.key as 'all' | 'actionable' | 'high_confidence')}
               className={`flex items-center space-x-2 px-3 py-2 rounded-md border text-sm transition-colors ${
                 selectedFilter === filter.key
                   ? 'bg-yellow-50 border-yellow-200 text-yellow-700'

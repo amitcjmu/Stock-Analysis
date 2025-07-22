@@ -139,7 +139,7 @@ export interface TargetService {
   type: 'compute' | 'storage' | 'database' | 'networking' | 'security' | 'monitoring';
   provider: string;
   tier: string;
-  configuration: Record<string, any>;
+  configuration: Record<string, unknown>;
   scalingPolicy: ScalingPolicy;
   backupPolicy: BackupPolicy;
   securityPolicy: string[];

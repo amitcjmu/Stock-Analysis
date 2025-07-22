@@ -11,6 +11,12 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { CheckCircle, AlertCircle, Clock, Search, RefreshCw, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../../../../../contexts/AuthContext';
 
+declare global {
+  interface Window {
+    showWarningToast?: (message: string) => void;
+  }
+}
+
 // Modularized components and utilities
 import AutoMappedCard from './AutoMappedCard';
 import NeedsReviewCard from './NeedsReviewCard';
@@ -55,7 +61,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
 
   // Create bulk operation handlers
   const handleBulkApprove = useCallback(
-    createBulkApproveHandler(
+    createBulkApproveHandler({
       fieldMappings,
       client,
       engagement,
@@ -63,19 +69,19 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
       setLastBulkOperationTime,
       setProcessingMappings,
       onRefresh
-    ),
+    }),
     [fieldMappings, client, engagement, lastBulkOperationTime, onRefresh]
   );
 
   const handleBulkReject = useCallback(
-    createBulkRejectHandler(
+    createBulkRejectHandler({
       client,
       engagement,
       lastBulkOperationTime,
       setLastBulkOperationTime,
       setProcessingMappings,
       onRefresh
-    ),
+    }),
     [client, engagement, lastBulkOperationTime, onRefresh]
   );
 
@@ -86,10 +92,10 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
     
     // Check if this is a placeholder or fallback mapping that shouldn't be approved via API
     const mapping = fieldMappings.find(m => m.id === mappingId);
-    if (mapping && ((mapping as unknown).is_placeholder || (mapping as unknown).is_fallback)) {
+    if (mapping && (mapping.is_placeholder || mapping.is_fallback)) {
       console.warn('Cannot approve placeholder or fallback mapping via API:', mappingId);
-      if (typeof window !== 'undefined' && (window as unknown).showWarningToast) {
-        (window as unknown).showWarningToast('This field mapping needs to be configured before approval.');
+      if (typeof window !== 'undefined' && window.showWarningToast) {
+        window.showWarningToast('This field mapping needs to be configured before approval.');
       }
       return;
     }

@@ -6,7 +6,7 @@
  * need it, preventing hardcoded ID issues.
  */
 
-import { demoContextService } from './demoContextService';
+import { demoContextService, DemoContext } from './demoContextService';
 
 export class AppInitializer {
   private static initialized = false;
@@ -101,11 +101,11 @@ export function getDemoEngagementId(): string | null {
   return sessionStorage.getItem('demo_engagement_id') || demoContextService.getEngagementId();
 }
 
-export function getDemoContext(): any {
+export function getDemoContext(): DemoContext | null {
   const stored = sessionStorage.getItem('demo_context');
   if (stored) {
     try {
-      return JSON.parse(stored);
+      return JSON.parse(stored) as DemoContext;
     } catch {
       // Ignore parse errors
     }

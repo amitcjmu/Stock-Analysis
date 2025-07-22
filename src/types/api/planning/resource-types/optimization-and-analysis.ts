@@ -8,6 +8,7 @@
  */
 
 import type { FlexibilityLevel } from './supporting-types';
+import { ConfigurationValue } from '@/types/shared/config-types';
 
 // Analysis and Optimization Types
 export interface ResourceOptimization {
@@ -45,14 +46,14 @@ export interface OptimizationCriteria {
   criterion: string;
   weight: number;
   target: 'minimize' | 'maximize';
-  constraint?: unknown;
+  constraint?: ConfigurationValue;
   priority: string;
 }
 
 export interface OptimizationConstraint {
   type: string;
   description: string;
-  value: unknown;
+  value: ConfigurationValue;
   flexibility: FlexibilityLevel;
   violation: string;
 }

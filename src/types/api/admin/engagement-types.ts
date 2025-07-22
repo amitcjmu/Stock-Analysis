@@ -124,7 +124,7 @@ export interface Engagement {
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface TeamMember {

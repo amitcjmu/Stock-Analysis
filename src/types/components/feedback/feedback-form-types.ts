@@ -39,7 +39,7 @@ export interface FeedbackData {
   screenshot?: Blob;
   contact?: Record<string, string>;
   anonymous: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
   timestamp: string;
   userAgent?: string;
   url?: string;
@@ -69,7 +69,7 @@ export interface FeedbackFormProps extends BaseComponentProps {
   defaultAnonymous?: boolean;
   screenshotEnabled?: boolean;
   screenshotAutoCapture?: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
   onSubmit?: (feedback: FeedbackData) => void | Promise<void>;
   onCancel?: () => void;
   onRatingChange?: (rating: number) => void;
@@ -130,7 +130,7 @@ export interface FeedbackConfig {
   contactEnabled?: boolean;
   screenshotEnabled?: boolean;
   anonymousEnabled?: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
   apiEndpoint?: string;
   apiHeaders?: Record<string, string>;
   theme?: 'light' | 'dark' | 'auto';

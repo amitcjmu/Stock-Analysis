@@ -82,7 +82,7 @@ export const useCrewAIInsights = (): UseCrewAIInsightsResult => {
       };
 
       // Process insights into structured format
-      let infrastructure_patterns = {
+      const infrastructure_patterns = {
         os_distribution: {} as Record<string, number>,
         virtualization_level: 0,
         cloud_readiness_score: 0,

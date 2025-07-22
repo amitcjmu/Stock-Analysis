@@ -50,7 +50,7 @@ export interface AnalysisState {
   // UI state
   isLoading: boolean;
   error: string | null;
-  optimisticUpdates: Map<string, any>;
+  optimisticUpdates: Map<string, unknown>;
 }
 
 export interface IterationHistoryItem {

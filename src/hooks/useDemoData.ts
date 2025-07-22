@@ -77,8 +77,8 @@ export interface DemoSixRAnalysis {
   total_current_cost: number;
   total_estimated_cost: number;
   potential_savings: number;
-  analysis_results?: unknown;
-  recommendations?: unknown;
+  analysis_results?: Record<string, unknown>;
+  recommendations?: Record<string, unknown>;
   created_at?: string;
 }
 

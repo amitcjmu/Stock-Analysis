@@ -21,5 +21,5 @@ export interface DividerProps extends BaseComponentProps {
   inset?: boolean;
   flexItem?: boolean;
   light?: boolean;
-  component?: keyof JSX.IntrinsicElements | React.ComponentType<any>;
+  component?: keyof JSX.IntrinsicElements | React.ComponentType<DividerProps>;
 }

@@ -242,19 +242,19 @@ export const SUCCESS_STATUSES = [
 
 // Helper functions for flow state checks
 export const isActiveStatus = (status: FlowStatus): boolean => {
-  return ACTIVE_STATUSES.includes(status as unknown);
+  return (ACTIVE_STATUSES as readonly FlowStatus[]).includes(status);
 };
 
 export const isTerminalStatus = (status: FlowStatus): boolean => {
-  return TERMINAL_STATUSES.includes(status as unknown);
+  return (TERMINAL_STATUSES as readonly FlowStatus[]).includes(status);
 };
 
 export const isErrorStatus = (status: FlowStatus): boolean => {
-  return ERROR_STATUSES.includes(status as unknown);
+  return (ERROR_STATUSES as readonly FlowStatus[]).includes(status);
 };
 
 export const isSuccessStatus = (status: FlowStatus): boolean => {
-  return SUCCESS_STATUSES.includes(status as unknown);
+  return (SUCCESS_STATUSES as readonly FlowStatus[]).includes(status);
 };
 
 // Flow progress calculation

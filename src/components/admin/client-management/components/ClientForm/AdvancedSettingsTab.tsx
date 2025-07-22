@@ -6,7 +6,7 @@ import { ClientFormData } from '../../types';
 
 interface AdvancedSettingsTabProps {
   formData: ClientFormData;
-  onFormChange: (field: keyof ClientFormData, value: unknown) => void;
+  onFormChange: (field: keyof ClientFormData, value: string | string[]) => void;
 }
 
 export const AdvancedSettingsTab: React.FC<AdvancedSettingsTabProps> = ({ formData, onFormChange }) => {

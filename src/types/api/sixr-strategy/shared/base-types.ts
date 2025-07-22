@@ -18,6 +18,9 @@ import {
   MultiTenantContext,
   ValidationResult
 } from '../../shared';
+import { GenericMetadata, ConfigurationMetadata, FlowMetadata } from '../../shared/metadata-types';
+import { GenericConfiguration, ProcessingConfiguration } from '../../shared/configuration-types';
+import { ThresholdValue, ParameterValue } from '../../shared/value-types';
 
 // Base Flow Management Types
 export interface StrategyFlowData {
@@ -38,7 +41,7 @@ export interface StrategyFlowData {
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
-  metadata: Record<string, any>;
+  metadata: FlowMetadata;
 }
 
 export type StrategyType = 'assessment' | 'modernization' | 'decommission';
@@ -466,7 +469,7 @@ export interface HumanResource {
 export interface TechnicalResource {
   type: 'hardware' | 'software' | 'infrastructure' | 'tools';
   name: string;
-  specifications: Record<string, any>;
+  specifications: Record<string, ParameterValue>;
   quantity: number;
   duration: string;
   cost: number;
@@ -569,7 +572,7 @@ export interface TestingPhase {
 export interface TestingEnvironment {
   name: string;
   type: 'development' | 'testing' | 'staging' | 'production_like';
-  configuration: Record<string, any>;
+  configuration: GenericConfiguration;
   access: string[];
 }
 
@@ -695,7 +698,7 @@ export interface DashboardWidget {
   type: 'chart' | 'metric' | 'table' | 'status' | 'progress';
   title: string;
   dataSource: string;
-  configuration: Record<string, any>;
+  configuration: GenericConfiguration;
 }
 
 export interface AlertRule {
@@ -734,7 +737,7 @@ export interface RollbackPlan {
 
 export interface RollbackTrigger {
   condition: string;
-  threshold: unknown;
+  threshold: ThresholdValue;
   automatic: boolean;
   approver?: string;
   timeframe: string;

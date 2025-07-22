@@ -5,7 +5,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { AttributeMappingState } from '../types';
 
 interface AttributeMappingHeaderProps {
-  mappingProgress: unknown;
+  mappingProgress: {
+    total: number;
+    mapped: number;
+    critical_mapped: number;
+  };
   isAgenticLoading: boolean;
   canContinueToDataCleansing: boolean;
   onRefetch: () => void;

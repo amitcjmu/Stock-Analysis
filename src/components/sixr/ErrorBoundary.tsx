@@ -24,7 +24,7 @@ export interface ErrorInfo {
   message: string;
   code?: string;
   status?: number;
-  details?: unknown;
+  details?: Record<string, unknown>;
   timestamp: Date;
   component?: string;
   action?: string;

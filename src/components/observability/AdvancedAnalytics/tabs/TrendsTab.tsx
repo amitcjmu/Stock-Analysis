@@ -10,7 +10,7 @@ import { Button } from '../../../ui/button';
 import { METRIC_CONFIGS } from '../constants';
 
 interface TrendsTabProps {
-  chartData: unknown[];
+  chartData: Array<Record<string, string | number>>;
   agentNames: string[];
   selectedMetrics: string[];
   onMetricToggle: (metric: string) => void;

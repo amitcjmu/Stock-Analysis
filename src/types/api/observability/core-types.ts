@@ -5,6 +5,8 @@
  * all observability modules including enums, base interfaces, and shared types.
  */
 
+import type { BaseMetadata, AuditableMetadata } from '../../shared/metadata-types';
+
 // Core Observability Data Types
 export interface ObservabilityFlowData {
   id: string;
@@ -27,7 +29,7 @@ export interface ObservabilityFlowData {
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
-  metadata: Record<string, any>;
+  metadata: AuditableMetadata;
 }
 
 export interface ObservabilityScope {
@@ -110,7 +112,7 @@ export interface TaggedResource {
   name: string;
   type: string;
   tags: Record<string, string>;
-  metadata: Record<string, any>;
+  metadata: AuditableMetadata;
 }
 
 export interface HealthCheck {
@@ -301,7 +303,7 @@ export interface AnomalyDetection {
 export interface AnomalyAlgorithm {
   name: string;
   type: 'statistical' | 'machine_learning' | 'rule_based' | 'hybrid';
-  parameters: Record<string, any>;
+  parameters: BaseMetadata;
   enabled: boolean;
   weight: number;
 }
@@ -427,7 +429,7 @@ export interface ActionConfiguration {
   body?: string;
   script?: string;
   command?: string;
-  parameters: Record<string, any>;
+  parameters: BaseMetadata;
   timeout: string;
   authentication?: ActionAuthentication;
 }
@@ -461,14 +463,14 @@ export interface EvidenceRequirement {
 
 export interface KeyManagementConfig {
   provider: 'internal' | 'aws_kms' | 'azure_kv' | 'hashicorp_vault' | 'gcp_kms';
-  configuration: Record<string, any>;
+  configuration: BaseMetadata;
   backup: boolean;
   hsm: boolean;
 }
 
 export interface AuthMethod {
   type: 'password' | 'token' | 'certificate' | 'oauth' | 'saml' | 'ldap';
-  configuration: Record<string, any>;
+  configuration: BaseMetadata;
   priority: number;
   enabled: boolean;
 }
@@ -500,7 +502,7 @@ export interface AuditEvent {
 
 export interface AuditIntegration {
   type: 'siem' | 'log_aggregator' | 'compliance_tool' | 'dashboard';
-  configuration: Record<string, any>;
+  configuration: BaseMetadata;
   realtime: boolean;
   encryption: boolean;
 }

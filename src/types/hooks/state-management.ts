@@ -30,9 +30,9 @@ export interface UseGlobalStateReturn<T> {
 }
 
 // Store Hook Types
-export interface UseStoreParams<T = any> {
+export interface UseStoreParams<T = unknown, R = T> {
   store: Store<T>;
-  selector?: StateSelector<T, any>;
+  selector?: StateSelector<T, R>;
   equalityFn?: EqualityFn;
   suspense?: boolean;
 }
@@ -70,9 +70,9 @@ export interface UseReducerWithMiddlewareReturn<TState, TAction> {
 }
 
 // Context Hook Types
-export interface UseContextStateParams<T> {
+export interface UseContextStateParams<T, R = T> {
   context: React.Context<ContextValue<T>>;
-  selector?: StateSelector<T, any>;
+  selector?: StateSelector<T, R>;
   equalityFn?: EqualityFn;
 }
 
@@ -103,7 +103,7 @@ export interface CreateContextStateReturn<T> {
 // Async State Hook Types
 export interface UseAsyncStateParams<T> {
   asyncFunction: () => Promise<T>;
-  dependencies?: unknown[];
+  dependencies?: readonly unknown[];
   immediate?: boolean;
   onSuccess?: (data: T) => void;
   onError?: (error: Error) => void;
@@ -128,7 +128,7 @@ export interface UseAsyncStateReturn<T> {
 // Computed State Hook Types
 export interface UseComputedStateParams<T, R> {
   computeFn: (state: T) => R;
-  dependencies: unknown[];
+  dependencies: readonly unknown[];
   equalityFn?: EqualityFn<R>;
   lazy?: boolean;
   memoize?: boolean;
@@ -264,7 +264,7 @@ export interface UseSynchronizedStateReturn<T> {
 }
 
 // Form State Hook Types
-export interface UseFormStateParams<T extends Record<string, any>> {
+export interface UseFormStateParams<T extends Record<string, unknown>> {
   initialValues: T;
   validate?: FormValidator<T>;
   onSubmit?: (values: T) => void | Promise<void>;
@@ -275,7 +275,7 @@ export interface UseFormStateParams<T extends Record<string, any>> {
   submitOnEnter?: boolean;
 }
 
-export interface UseFormStateReturn<T extends Record<string, any>> {
+export interface UseFormStateReturn<T extends Record<string, unknown>> {
   values: T;
   errors: FormErrors<T>;
   touched: FormTouched<T>;
@@ -335,8 +335,8 @@ export interface StateMachineStates {
 export interface StateMachineState {
   entry?: string | string[];
   exit?: string | string[];
-  on?: StateMachineTransitions<any>;
-  meta?: unknown;
+  on?: StateMachineTransitions<unknown>;
+  meta?: Record<string, unknown>;
   tags?: string[];
 }
 
@@ -348,7 +348,7 @@ export interface StateMachineTransition {
   target: string;
   guard?: string;
   actions?: string | string[];
-  cond?: (context: any, event: unknown) => boolean;
+  cond?: (context: unknown, event: unknown) => boolean;
 }
 
 export interface StateMachineActions<TContext, TEvent> {
@@ -387,7 +387,7 @@ export interface StateSerializer<T> {
 
 export interface StateValidator<T> {
   validate: (state: T) => boolean;
-  schema?: unknown;
+  schema?: Record<string, unknown>;
 }
 
 export interface StateHistory<TState, TAction> {
@@ -400,7 +400,7 @@ export interface StateHistory<TState, TAction> {
 export interface StateHistoryEntry<T> {
   state: T;
   timestamp: number;
-  action?: unknown;
+  action?: Record<string, unknown>;
 }
 
 export interface OptimisticConflict<T> {
@@ -465,14 +465,14 @@ export interface ContextConsumerComponent<T> {
 // Type Aliases
 export type StateListener<T> = (newState: T, previousState: T) => void;
 export type StateSelector<T, R> = (state: T) => R;
-export type EqualityFn<T = any> = (a: T, b: T) => boolean;
+export type EqualityFn<T = unknown> = (a: T, b: T) => boolean;
 export type Reducer<TState, TAction> = (state: TState, action: TAction) => TState;
 export type Dispatch<TAction> = (action: TAction) => void;
 export type Middleware<TState, TAction> = (store: MiddlewareStore<TState, TAction>) => (next: Dispatch<TAction>) => Dispatch<TAction>;
-export type StoreDispatch<T> = (action: unknown) => void;
-export type ContextDispatch<T> = (action: unknown) => void;
-export type ContextActionCreators<T> = Record<string, (...args: unknown[]) => any>;
-export type ContextMiddleware<T> = (store: unknown) => (next: unknown) => (action: unknown) => any;
+export type StoreDispatch<T> = (action: Record<string, unknown>) => void;
+export type ContextDispatch<T> = (action: Record<string, unknown>) => void;
+export type ContextActionCreators<T> = Record<string, (...args: unknown[]) => unknown>;
+export type ContextMiddleware<T> = (store: Record<string, unknown>) => (next: unknown) => (action: Record<string, unknown>) => unknown;
 export type FormValidator<T> = (values: T) => FormErrors<T> | Promise<FormErrors<T>>;
 export type ConflictResolutionStrategy<T> = 'local' | 'remote' | 'merge' | ((local: T, remote: T) => T);
 

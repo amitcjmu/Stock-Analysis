@@ -4,6 +4,8 @@
  * Types for filtering, sorting, searching, and data querying operations.
  */
 
+import { FilterValue, PrimitiveValue } from './value-types';
+
 // Query parameters
 export interface SortParameter {
   field: string;
@@ -15,8 +17,8 @@ export interface SortParameter {
 export interface FilterParameter {
   field: string;
   operator: FilterOperator;
-  value: unknown;
-  values?: unknown[];
+  value: FilterValue;
+  values?: FilterValue[];
   caseSensitive?: boolean;
   negate?: boolean;
 }
@@ -34,7 +36,7 @@ export interface SearchParameter {
 export interface AppliedFilter {
   field: string;
   operator: FilterOperator;
-  value: unknown;
+  value: FilterValue;
   label?: string;
   count?: number;
 }
@@ -55,7 +57,7 @@ export interface Aggregation {
 }
 
 export interface AggregationBucket {
-  key: unknown;
+  key: PrimitiveValue | Record<string, PrimitiveValue>;
   label?: string;
   count: number;
   selected?: boolean;

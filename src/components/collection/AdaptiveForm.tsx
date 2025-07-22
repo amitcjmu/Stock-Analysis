@@ -29,7 +29,8 @@ import type {
   FormValidationResult,
   FormSection,
   FieldValidationResult,
-  ValidationError
+  ValidationError,
+  FieldValue
 } from './types';
 
 export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
@@ -47,6 +48,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
   const [validation, setValidation] = useState<FormValidationResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [hasInteracted, setHasInteracted] = useState(false); // Track if user has interacted with form
 
   // Calculate form progress and metrics
   const formMetrics = useMemo(() => {
@@ -97,13 +99,18 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
   }, [formData.sections, formMetrics.sectionProgress, expandedSections.size]);
 
   // Handle field value changes
-  const handleFieldChange = useCallback((fieldId: string, value: unknown) => {
+  const handleFieldChange = useCallback((fieldId: string, value: FieldValue) => {
+    // Mark form as interacted on first field change
+    if (!hasInteracted) {
+      setHasInteracted(true);
+    }
+    
     setFormValues(prev => ({
       ...prev,
       [fieldId]: value
     }));
     onFieldChange(fieldId, value);
-  }, [onFieldChange]);
+  }, [onFieldChange, hasInteracted]);
 
   // Handle section toggle
   const handleSectionToggle = useCallback((sectionId: string) => {
@@ -172,6 +179,24 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
 
   // Validate form whenever values change
   useEffect(() => {
+    // Don't validate until user has interacted with form
+    if (!hasInteracted) {
+      // Still call validation change with neutral state for initial load
+      if (onValidationChange) {
+        const neutralValidation: FormValidationResult = {
+          formId: formData.formId,
+          isValid: false, // Not valid but not showing errors
+          overallConfidenceScore: 0,
+          completionPercentage: 0,
+          fieldResults: {},
+          crossFieldErrors: [],
+          businessRuleViolations: []
+        };
+        onValidationChange(neutralValidation);
+      }
+      return;
+    }
+    
     const validateForm = () => {
       const fieldResults: Record<string, FieldValidationResult> = {};
       let totalValid = 0;
@@ -309,7 +334,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
     if (onValidationChange) {
       onValidationChange(newValidation);
     }
-  }, [formValues, formData, getVisibleFields, formMetrics.completionPercentage, onValidationChange]);
+  }, [formValues, formData, getVisibleFields, formMetrics.completionPercentage, onValidationChange, hasInteracted]);
 
   if (bulkMode) {
     return (
@@ -397,8 +422,8 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
         </CardHeader>
       </Card>
 
-      {/* Validation Display */}
-      {validation && (
+      {/* Validation Display - Only show after interaction */}
+      {validation && hasInteracted && Object.keys(validation.fieldResults).length > 0 && (
         <ValidationDisplay
           validation={validation}
           onErrorClick={(fieldId) => {

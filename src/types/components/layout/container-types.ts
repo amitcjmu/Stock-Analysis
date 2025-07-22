@@ -18,7 +18,7 @@ export interface ContainerProps extends ContainerComponentProps {
   disableGutters?: boolean;
   fixed?: boolean;
   breakpoint?: string;
-  as?: keyof JSX.IntrinsicElements | React.ComponentType<any>;
+  as?: keyof JSX.IntrinsicElements | React.ComponentType<ContainerProps>;
 }
 
 export interface SectionProps extends ContainerComponentProps {

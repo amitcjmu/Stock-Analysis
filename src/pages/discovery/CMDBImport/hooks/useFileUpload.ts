@@ -11,7 +11,12 @@ export const useFileUpload = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  const parseCsvData = useCallback(async (file: File): Promise<any[]> => {
+  interface CsvRecord {
+    row_index: number;
+    [key: string]: string | number;
+  }
+
+  const parseCsvData = useCallback(async (file: File): Promise<CsvRecord[]> => {
     const text = await file.text();
     const lines = text.split('\n').filter(line => line.trim());
     console.log(`🔍 DEBUG: Parsed ${lines.length} lines from CSV file`);
@@ -23,7 +28,7 @@ export const useFileUpload = () => {
     const headers = lines[0].split(',').map(h => h.trim().replace(/\"/g, ''));
     const records = lines.slice(1).map((line, index) => {
       const values = line.split(',').map(v => v.trim().replace(/\"/g, ''));
-      const record: unknown = { row_index: index + 1 };
+      const record: CsvRecord = { row_index: index + 1 };
       headers.forEach((header, headerIndex) => {
         record[header] = values[headerIndex] || '';
       });
@@ -40,7 +45,7 @@ export const useFileUpload = () => {
   }, []);
 
   const storeImportData = useCallback(async (
-    csvData: unknown[], 
+    csvData: CsvRecord[], 
     file: File, 
     uploadId: string, 
     categoryId: string
@@ -116,7 +121,7 @@ export const useFileUpload = () => {
         console.error('❌ Failed to store data:', response.error);
         return { import_flow_id: null, flow_id: null };
       }
-    } catch (error: unknown) {
+    } catch (error) {
       console.error('❌ Error storing data:', error);
       return { import_flow_id: null, flow_id: null };
     }

@@ -7,7 +7,7 @@ import { loadingManager } from './loadingManager';
 
 interface RouteConfig {
   path: string;
-  importFn: () => Promise<{ default: React.ComponentType<any> }>;
+  importFn: () => Promise<{ default: React.ComponentType<unknown> }>;
   priority: LoadingPriority;
   preloadOn?: ('hover' | 'visible' | 'idle' | 'prefetch')[];
   dependencies?: string[];

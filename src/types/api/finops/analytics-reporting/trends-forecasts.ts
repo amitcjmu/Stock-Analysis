@@ -122,7 +122,7 @@ export interface TrendAnalysisModel {
 
 export interface ModelParameters {
   algorithm: string;
-  hyperparameters: Record<string, any>;
+  hyperparameters: Record<string, string | number | boolean | null>;
   features: string[];
   targetMetric: string;
   trainingPeriod: string;

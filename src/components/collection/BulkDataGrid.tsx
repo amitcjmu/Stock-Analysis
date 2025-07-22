@@ -29,7 +29,7 @@ import {
 import { cn } from '@/lib/utils';
 
 import { BulkUpload } from './components/BulkUpload';
-import type { BulkDataGridProps, ApplicationSummary, FormField, CollectionFormData } from './types';
+import type { BulkDataGridProps, ApplicationSummary, FormField, CollectionFormData, FieldValue } from './types';
 
 interface GridRow {
   applicationId: string;
@@ -90,7 +90,7 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
   }, [gridData, filterText]);
 
   // Handle cell value change
-  const handleCellChange = useCallback((applicationId: string, fieldId: string, value: unknown) => {
+  const handleCellChange = useCallback((applicationId: string, fieldId: string, value: FieldValue) => {
     setGridData(prev => {
       const newData = new Map(prev);
       const row = newData.get(applicationId);

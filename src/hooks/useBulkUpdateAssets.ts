@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface BulkUpdatePayload {
   assetIds: string[];
-  updates: Record<string, any>;
+  updates: Record<string, unknown>;
 }
 
 export function useBulkUpdateAssets() {

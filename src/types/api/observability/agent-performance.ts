@@ -4,6 +4,8 @@
  * Part of the Agent Observability Enhancement Phase 4A
  */
 
+import { PrimitiveValue } from '../shared/value-types';
+
 // Re-export existing agent performance types
 export * from '../../agent-performance';
 
@@ -118,7 +120,14 @@ export interface RealTimeUpdate {
   type: 'agent_status' | 'task_completed' | 'task_started' | 'agent_error';
   agentName: string;
   timestamp: string;
-  data: unknown;
+  data: {
+    taskId?: string;
+    taskName?: string;
+    status?: string;
+    duration?: number;
+    error?: string;
+    result?: PrimitiveValue | Record<string, PrimitiveValue>;
+  };
 }
 
 export interface RealTimeConfig {

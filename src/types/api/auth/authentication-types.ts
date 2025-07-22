@@ -69,7 +69,7 @@ export interface ForgotPasswordRequest extends BaseApiRequest {
   context: MultiTenantContext;
 }
 
-export interface ForgotPasswordResponse extends BaseApiResponse<any> {
+export interface ForgotPasswordResponse extends BaseApiResponse<unknown> {
   data: unknown;
   emailSent: boolean;
   resetTokenGenerated: boolean;

@@ -307,8 +307,8 @@ async function demonstrateDataImportAPI() {
     const finalStatus = await client.waitForCompletion(result.data_import_id);
     console.log(`Import completed with status: ${finalStatus.status}`);
 
-  } catch (error: unknown) {
-    console.error('Import failed:', error.message);
+  } catch (error) {
+    console.error('Import failed:', error instanceof Error ? error.message : String(error));
   }
 
   console.log();
@@ -329,8 +329,8 @@ AnalyticsEngine,3.0.1,prod-analytics-01,Apache Spark,High`;
     const result = await client.importFile(file, 'applications');
     console.log('Applications import successful!');
     console.log(`Import ID: ${result.data_import_id}`);
-  } catch (error: unknown) {
-    console.error('File import failed:', error.message);
+  } catch (error) {
+    console.error('File import failed:', error instanceof Error ? error.message : String(error));
   }
 
   console.log();
@@ -386,9 +386,9 @@ function DataImportComponent() {
         }
       }, 2000);
 
-    } catch (err: any) {
+    } catch (err) {
       setImporting(false);
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'Import failed');
     }
   };
 
@@ -427,19 +427,20 @@ function DataImportComponent() {
       'invalid.csv',
       'servers'
     );
-  } catch (error: unknown) {
-    if (error.message.includes('incomplete_discovery_flow_exists')) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('incomplete_discovery_flow_exists')) {
       console.log('Handling existing flow conflict:');
       console.log('1. Show user the existing flow');
       console.log('2. Offer to cancel or complete it');
       console.log('3. Retry after resolution');
-    } else if (error.message.includes('validation_error')) {
+    } else if (errorMessage.includes('validation_error')) {
       console.log('Handling validation error:');
       console.log('1. Parse error details');
       console.log('2. Highlight problematic fields');
       console.log('3. Guide user to fix issues');
     } else {
-      console.log('Generic error handling:', error.message);
+      console.log('Generic error handling:', errorMessage);
     }
   }
 
@@ -493,8 +494,8 @@ function DataImportComponent() {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-  } catch (error: unknown) {
-    console.error('Batch import failed:', error.message);
+  } catch (error) {
+    console.error('Batch import failed:', error instanceof Error ? error.message : String(error));
   }
 }
 

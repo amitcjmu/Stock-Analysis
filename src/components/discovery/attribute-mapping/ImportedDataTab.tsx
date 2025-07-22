@@ -21,8 +21,8 @@ interface ImportRecord {
   id: string;
   row_number: number;
   record_id: string;
-  raw_data: Record<string, any>;
-  processed_data?: Record<string, any>;
+  raw_data: Record<string, unknown>;
+  processed_data?: Record<string, unknown>;
   is_processed: boolean;
   is_valid: boolean;
   created_at?: string;
@@ -157,7 +157,7 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
     }
 
     // Transform the raw data array into ImportRecord format
-    const transformedData = (importResponse.data || []).map((rawRecord: any, index: number) => ({
+    const transformedData = (importResponse.data || []).map((rawRecord: unknown, index: number) => ({
       id: `row_${index + 1}`,
       row_number: index + 1,
       record_id: rawRecord.Asset_ID || rawRecord.hostname || rawRecord.asset_name || `row_${index + 1}`,

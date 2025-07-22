@@ -25,10 +25,24 @@ interface ApplicationOverride {
   approved_by?: string;
 }
 
+interface ApplicationOverrideData {
+  application_name: string;
+  exception_type: string;
+  rationale: string;
+  alternative_approach?: string;
+  risk_level: 'low' | 'medium' | 'high' | 'critical';
+  approval_status: 'pending' | 'approved' | 'rejected';
+  business_justification: string;
+  technical_justification?: string;
+  compensating_controls?: string[];
+  review_date?: string;
+  approved_by?: string;
+}
+
 interface ApplicationOverridesProps {
   applications: string[];
-  overrides: Record<string, any>;
-  onChange: (overrides: Record<string, any>) => void;
+  overrides: Record<string, ApplicationOverrideData>;
+  onChange: (overrides: Record<string, ApplicationOverrideData>) => void;
 }
 
 const EXCEPTION_TYPES = [
@@ -327,7 +341,7 @@ export const ApplicationOverrides: React.FC<ApplicationOverridesProps> = ({
                   <Label htmlFor="risk-level">Risk Level</Label>
                   <Select
                     value={newOverride.risk_level}
-                    onValueChange={(value) => setNewOverride({ ...newOverride, risk_level: value as unknown })}
+                    onValueChange={(value) => setNewOverride({ ...newOverride, risk_level: value as ApplicationOverride['risk_level'] })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -346,7 +360,7 @@ export const ApplicationOverrides: React.FC<ApplicationOverridesProps> = ({
                   <Label htmlFor="approval-status">Approval Status</Label>
                   <Select
                     value={newOverride.approval_status}
-                    onValueChange={(value) => setNewOverride({ ...newOverride, approval_status: value as unknown })}
+                    onValueChange={(value) => setNewOverride({ ...newOverride, approval_status: value as ApplicationOverride['approval_status'] })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -440,7 +454,7 @@ const OverrideCard: React.FC<OverrideCardProps> = ({
               <Label>Risk Level</Label>
               <Select
                 value={editData.risk_level}
-                onValueChange={(value) => setEditData({ ...editData, risk_level: value as unknown })}
+                onValueChange={(value) => setEditData({ ...editData, risk_level: value as ApplicationOverride['risk_level'] })}
               >
                 <SelectTrigger>
                   <SelectValue />

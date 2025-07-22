@@ -27,7 +27,7 @@ export interface BulkOperation<T> {
   id?: string;
   data?: T;
   version?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface BulkResult<T> {

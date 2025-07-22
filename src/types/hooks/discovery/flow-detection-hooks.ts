@@ -33,7 +33,7 @@ export interface UseFlowDetectionReturn {
   isError: boolean;
   error: Error | null;
   isSuccess: boolean;
-  refetch: () => Promise<any>;
+  refetch: () => Promise<unknown>;
   detectFlows: (dataImportId: string) => Promise<DetectedFlow[]>;
   selectFlow: (flowId: string) => Promise<void>;
   createFlowFromTemplate: (templateId: string, data: unknown) => Promise<DetectedFlow>;
@@ -145,7 +145,7 @@ export interface DetectedFlow {
   notifications: FlowNotification[];
   permissions: FlowPermission[];
   audit: FlowAudit[];
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
   createdAt: string;
   updatedAt: string;
   createdBy: string;
@@ -379,7 +379,7 @@ export interface FlowCustomization {
   id: string;
   type: CustomizationType;
   target: string;
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
   isActive: boolean;
   priority: number;
 }
@@ -503,7 +503,7 @@ export interface AnalyticsRecommendation {
 export interface RecommendationAction {
   type: string;
   description: string;
-  parameters?: Record<string, any>;
+  parameters?: Record<string, string | number | boolean | null>;
 }
 
 export interface PerformanceMetrics {

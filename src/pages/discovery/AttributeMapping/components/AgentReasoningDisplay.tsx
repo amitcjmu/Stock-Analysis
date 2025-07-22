@@ -242,7 +242,7 @@ export const AgentReasoningDisplay: React.FC<AgentReasoningDisplayProps> = ({
           ].map(filter => (
             <button
               key={filter.key}
-              onClick={() => setSelectedAgentType(filter.key as unknown)}
+              onClick={() => setSelectedAgentType(filter.key as 'all' | 'semantic' | 'pattern' | 'validation' | 'ensemble')}
               className={`flex items-center space-x-2 px-3 py-2 rounded-md border text-sm transition-colors ${
                 selectedAgentType === filter.key
                   ? 'bg-blue-50 border-blue-200 text-blue-700'

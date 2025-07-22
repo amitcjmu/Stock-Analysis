@@ -73,8 +73,11 @@ export type FieldType =
   | 'url' 
   | 'file';
 
+// CC: Form value type based on field types
+type FieldValue = string | number | boolean | Date | File | string[];
+
 export interface CollectionFormData {
-  [fieldId: string]: unknown;
+  [fieldId: string]: FieldValue;
 }
 
 export interface ValidationError {
@@ -92,7 +95,7 @@ export interface FieldValidationResult {
   resultType: 'valid' | 'invalid' | 'warning' | 'conditional';
   errors: ValidationError[];
   warnings: ValidationError[];
-  normalizedValue: unknown;
+  normalizedValue: FieldValue;
   confidenceScore: number;
 }
 
@@ -110,7 +113,7 @@ export interface FormValidationResult {
 export interface AdaptiveFormProps {
   formData: AdaptiveFormData;
   initialValues?: CollectionFormData;
-  onFieldChange: (fieldId: string, value: unknown) => void;
+  onFieldChange: (fieldId: string, value: FieldValue) => void;
   onSubmit: (data: CollectionFormData) => Promise<void>;
   onValidationChange?: (validation: FormValidationResult) => void;
   bulkMode?: boolean;
@@ -121,7 +124,7 @@ export interface AdaptiveFormProps {
 export interface BulkDataGridProps {
   applications: ApplicationSummary[];
   fields: FormField[];
-  onDataChange: (applicationId: string, fieldId: string, value: unknown) => void;
+  onDataChange: (applicationId: string, fieldId: string, value: FieldValue) => void;
   onBulkUpload?: (file: File) => Promise<void>;
   templateOptions?: TemplateOption[];
   className?: string;
@@ -188,8 +191,8 @@ export interface BulkUploadResult {
 // Form field component props
 export interface FormFieldProps {
   field: FormField;
-  value: unknown;
-  onChange: (value: unknown) => void;
+  value: FieldValue;
+  onChange: (value: FieldValue) => void;
   validation?: FieldValidationResult;
   disabled?: boolean;
   className?: string;
@@ -221,7 +224,7 @@ export interface DataConflict {
 }
 
 export interface ConflictingValue {
-  value: unknown;
+  value: FieldValue;
   source: 'automated' | 'manual' | 'bulk' | 'template';
   sourceId: string;
   confidenceScore: number;
@@ -229,7 +232,7 @@ export interface ConflictingValue {
 }
 
 export interface ConflictResolution {
-  selectedValue: unknown;
+  selectedValue: FieldValue;
   selectedSource: string;
   userJustification?: string;
 }

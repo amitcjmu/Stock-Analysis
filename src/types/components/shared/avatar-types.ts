@@ -42,7 +42,7 @@ export interface AvatarProps extends BaseComponentProps {
   groupMax?: number;
   groupSpacing?: number;
   imgProps?: React.ImgHTMLAttributes<HTMLImageElement>;
-  component?: keyof JSX.IntrinsicElements | React.ComponentType<any>;
+  component?: keyof JSX.IntrinsicElements | React.ComponentType<AvatarProps>;
   onError?: (event: React.SyntheticEvent<HTMLImageElement>) => void;
   onLoad?: (event: React.SyntheticEvent<HTMLImageElement>) => void;
   onImageLoad?: () => void;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 // Import modular components
 import CollectionPageLayout from '@/components/collection/layout/CollectionPageLayout';
@@ -15,10 +15,11 @@ import { useProgressMonitoring, getFlowMilestones } from '@/hooks/collection/use
  */
 const CollectionProgress: React.FC = () => {
   const navigate = useNavigate();
+  const { flowId: flowIdParam } = useParams<{ flowId: string }>();
   const [searchParams] = useSearchParams();
 
-  // Get specific flow ID from URL params if provided
-  const flowId = searchParams.get('flowId');
+  // Get specific flow ID from URL params or search params
+  const flowId = flowIdParam || searchParams.get('flowId');
 
   // Use the progress monitoring hook for all state management
   const {

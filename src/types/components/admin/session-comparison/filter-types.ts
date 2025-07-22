@@ -15,7 +15,7 @@ export interface SessionComparisonColumn {
   width?: number | string;
   sortable?: boolean;
   filterable?: boolean;
-  render?: (value: any, sessions: UserSession[], index: number) => ReactNode;
+  render?: (value: unknown, sessions: UserSession[], index: number) => ReactNode;
   compareRender?: (values: unknown[], sessions: UserSession[]) => ReactNode;
   showDifferences?: boolean;
   type: ColumnType;

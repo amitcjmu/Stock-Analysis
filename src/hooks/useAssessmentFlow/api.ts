@@ -8,7 +8,8 @@ import type {
   AssessmentPhase,
   ArchitectureStandard,
   ApplicationComponent,
-  SixRDecision
+  SixRDecision,
+  UserInput
 } from './types';
 
 // API base URL
@@ -43,7 +44,7 @@ export const assessmentFlowAPI = {
     return response.json();
   },
 
-  async resume(flowId: string, data: { user_input: unknown; save_progress: boolean }) {
+  async resume(flowId: string, data: { user_input: UserInput; save_progress: boolean }) {
     const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/resume`, {
       method: 'POST',
       headers: {
@@ -77,7 +78,7 @@ export const assessmentFlowAPI = {
 
   async updateArchitectureStandards(flowId: string, data: { 
     engagement_standards: ArchitectureStandard[]; 
-    application_overrides: Record<string, any> 
+    application_overrides: Record<string, ArchitectureStandard> 
   }) {
     const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/architecture-standards`, {
       method: 'PUT',

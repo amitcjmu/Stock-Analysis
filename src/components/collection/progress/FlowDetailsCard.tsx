@@ -6,10 +6,11 @@
  */
 
 import React from 'react';
-import { Play, Pause, Square } from 'lucide-react';
+import { Play, Pause, Square, ArrowRight, AlertCircle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { useNavigate } from 'react-router-dom';
 
 export interface CollectionFlow {
   id: string;
@@ -35,9 +36,19 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
   onFlowAction,
   className = ''
 }) => {
+  const navigate = useNavigate();
+  
   const handleAction = async (action: 'pause' | 'resume' | 'stop') => {
     await onFlowAction(flow.id, action);
   };
+
+  const handleContinue = () => {
+    // Navigate to adaptive forms page with the flow ID
+    navigate(`/collection/adaptive-forms?flowId=${flow.id}`);
+  };
+
+  // Check if flow is stuck (running but with 0% progress)
+  const isFlowStuck = flow.status === 'running' && flow.progress === 0;
 
   return (
     <Card className={className}>
@@ -50,7 +61,20 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
             </p>
           </div>
           <div className="flex items-center space-x-2">
-            {flow.status === 'running' && (
+            {/* Continue button for stuck flows */}
+            {isFlowStuck && (
+              <Button 
+                variant="default" 
+                size="sm"
+                onClick={handleContinue}
+                title="Continue Flow"
+              >
+                <ArrowRight className="h-4 w-4 mr-1" />
+                Continue
+              </Button>
+            )}
+            
+            {flow.status === 'running' && !isFlowStuck && (
               <Button 
                 variant="outline" 
                 size="sm"
@@ -150,6 +174,22 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
           </div>
           
           {/* Additional Status Information */}
+          {isFlowStuck && (
+            <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start space-x-2">
+                <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm text-amber-800 font-medium">
+                    Flow appears to be stuck
+                  </p>
+                  <p className="text-sm text-amber-700 mt-1">
+                    The flow is not making progress. Click "Continue" to proceed with the data collection process.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {flow.status === 'failed' && (
             <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-800">

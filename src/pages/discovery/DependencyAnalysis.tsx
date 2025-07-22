@@ -200,7 +200,7 @@ const DependencyAnalysisPage = () => {
                 <CardContent>
                   {appServerDependencies.length > 0 ? (
                     <div className="space-y-3">
-                      {appServerDependencies.slice(0, 5).map((relationship: any, index: number) => (
+                      {appServerDependencies.slice(0, 5).map((relationship: unknown, index: number) => (
                         <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                           <div>
                             <p className="font-medium">{relationship.application || `App ${index + 1}`}</p>
@@ -235,7 +235,7 @@ const DependencyAnalysisPage = () => {
                 <CardContent>
                   {appAppDependencies.length > 0 ? (
                     <div className="space-y-3">
-                      {appAppDependencies.slice(0, 5).map((pattern: any, index: number) => (
+                      {appAppDependencies.slice(0, 5).map((pattern: unknown, index: number) => (
                         <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                           <div>
                             <p className="font-medium">{pattern.source || `Source ${index + 1}`}</p>

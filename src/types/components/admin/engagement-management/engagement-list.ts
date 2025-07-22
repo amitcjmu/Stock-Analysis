@@ -30,7 +30,7 @@ export interface EngagementListProps extends BaseComponentProps {
   onEngagementSelect?: (selectedEngagements: Engagement[]) => void;
   onEngagementAction?: (action: string, engagement: Engagement) => void;
   onBulkAction?: (action: string, engagements: Engagement[]) => void;
-  onFiltersChange?: (filters: Record<string, any>) => void;
+  onFiltersChange?: (filters: Record<string, unknown>) => void;
   onSortChange?: (sort: EngagementSortConfig) => void;
   onPageChange?: (page: number, pageSize: number) => void;
   onRefresh?: () => void;
@@ -128,12 +128,12 @@ export interface EngagementTableColumn {
   formatter?: ColumnFormatter;
   renderer?: ColumnRenderer;
   headerRenderer?: ColumnHeaderRenderer;
-  cellProps?: Record<string, any>;
-  headerProps?: Record<string, any>;
+  cellProps?: Record<string, unknown>;
+  headerProps?: Record<string, unknown>;
 }
 
-export type ColumnFormatter = (value: any, engagement: Engagement) => string | number | ReactNode;
-export type ColumnRenderer = (value: any, engagement: Engagement, column: EngagementTableColumn) => ReactNode;
+export type ColumnFormatter = (value: unknown, engagement: Engagement) => string | number | ReactNode;
+export type ColumnRenderer = (value: unknown, engagement: Engagement, column: EngagementTableColumn) => ReactNode;
 export type ColumnHeaderRenderer = (column: EngagementTableColumn) => ReactNode;
 
 // Filter Configuration
@@ -182,7 +182,7 @@ export interface FilterDependency {
 
 export type FilterRenderer = (
   filter: EngagementFilter, 
-  value: any, 
+  value: unknown, 
   onChange: (value: unknown) => void
 ) => ReactNode;
 
@@ -221,7 +221,7 @@ export interface SavedFilter {
   id: string;
   name: string;
   description?: string;
-  filters: Record<string, any>;
+  filters: Record<string, unknown>;
   sorting?: EngagementSortConfig[];
   columns?: string[];
   isDefault?: boolean;
@@ -256,7 +256,7 @@ export interface SearchOperator {
 // View State Management
 export interface EngagementListViewState {
   selectedEngagements: string[];
-  filters: Record<string, any>;
+  filters: Record<string, unknown>;
   sorting: EngagementSortConfig[];
   pagination: PaginationState;
   columns: ColumnState[];

@@ -10,7 +10,7 @@ import { useFlow, UseFlowOptions } from './useFlow';
 import { FlowStatus, FlowStatusType, PhaseInfo, CreateFlowRequest, ExecutePhaseRequest } from '../types/flow';
 import { flowToast } from '../utils/toast';
 
-export interface OptimisticUpdate<T = any> {
+export interface OptimisticUpdate<T = unknown> {
   id: string;
   type: 'create' | 'update' | 'delete';
   timestamp: Date;
@@ -98,7 +98,7 @@ export function useOptimisticFlow(options: UseOptimisticFlowOptions = {}) {
   const executePhaseOptimistic = useCallback(async (
     flowId: string, 
     request: ExecutePhaseRequest
-  ): Promise<any> => {
+  ): Promise<{ success: boolean; message?: string; data?: Record<string, unknown> }> => {
     if (!enableOptimistic || !state.flow || state.flow.flow_id !== flowId) {
       return actions.executePhase(flowId, request);
     }

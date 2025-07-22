@@ -8,6 +8,19 @@ import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '@/config/api';
 
 import { CreateEngagementData, ClientAccount } from './types';
+
+// CC: API response interfaces for type safety
+interface ClientApiResponse {
+  id: string;
+  account_name: string;
+  industry: string;
+  [key: string]: unknown;
+}
+
+interface EngagementSubmissionData extends CreateEngagementData {
+  user_id?: string;
+  [key: string]: unknown;
+}
 import { EngagementBasicInfo } from './EngagementBasicInfo';
 import { EngagementTimeline } from './EngagementTimeline';
 import { EngagementScope } from './EngagementScope';
@@ -31,28 +44,28 @@ export const CreateEngagementMain: React.FC = () => {
       // Handle different response formats
       if (result && Array.isArray(result)) {
         console.log('✅ Using direct array format for clients');
-        return result.map((client: unknown) => ({
+        return result.map((client: ClientApiResponse) => ({
           id: client.id,
           account_name: client.account_name,
           industry: client.industry
         }));
       } else if (result && result.items && Array.isArray(result.items)) {
         console.log('✅ Using items array format for clients');
-        return result.items.map((client: unknown) => ({
+        return result.items.map((client: ClientApiResponse) => ({
           id: client.id,
           account_name: client.account_name,
           industry: client.industry
         }));
       } else if (result && result.clients && Array.isArray(result.clients)) {
         console.log('✅ Using clients array format for clients');
-        return result.clients.map((client: unknown) => ({
+        return result.clients.map((client: ClientApiResponse) => ({
           id: client.id,
           account_name: client.account_name,
           industry: client.industry
         }));
       } else if (result && result.data && Array.isArray(result.data)) {
         console.log('✅ Using data array format for clients');
-        return result.data.map((client: unknown) => ({
+        return result.data.map((client: ClientApiResponse) => ({
           id: client.id,
           account_name: client.account_name,
           industry: client.industry
@@ -75,7 +88,7 @@ export const CreateEngagementMain: React.FC = () => {
 
   // Server state: useMutation for API interaction
   const createEngagementMutation = useMutation({
-    mutationFn: async (submissionData: unknown) => {
+    mutationFn: async (submissionData: EngagementSubmissionData) => {
       return await apiCall('/admin/engagements/', {
         method: 'POST',
         headers: {
@@ -125,7 +138,7 @@ export const CreateEngagementMain: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Simple form handler - no useCallback to prevent re-renders
-  const handleFormChange = (field: keyof CreateEngagementData, value: unknown) => {
+  const handleFormChange = (field: keyof CreateEngagementData, value: string | number | boolean | string[]) => {
     setFormData(prev => ({
       ...prev,
       [field]: value

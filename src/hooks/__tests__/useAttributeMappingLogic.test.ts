@@ -1,5 +1,5 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
+import { vi, describe, it, expect, beforeEach, Mock, MockedFunction } from 'vitest';
 import { useAttributeMappingLogic } from '../discovery/useAttributeMappingLogic';
 import { useDiscoveryFlowV2 } from '../discovery/useDiscoveryFlowV2';
 import { useAttributeMappingFlowDetection } from '../discovery/useDiscoveryFlowAutoDetection';
@@ -118,21 +118,21 @@ const mockFlowList = [
 ];
 
 describe('useAttributeMappingLogic', () => {
-  let mockUseDiscoveryFlowV2: Mock;
-  let mockUseAttributeMappingFlowDetection: Mock;
-  let mockUseAuth: Mock;
-  let mockApiCall: Mock;
-  let mockNavigate: Mock;
+  let mockUseDiscoveryFlowV2: MockedFunction<typeof useDiscoveryFlowV2>;
+  let mockUseAttributeMappingFlowDetection: MockedFunction<typeof useAttributeMappingFlowDetection>;
+  let mockUseAuth: MockedFunction<typeof useAuth>;
+  let mockApiCall: MockedFunction<typeof apiCall>;
+  let mockNavigate: MockedFunction<typeof useNavigate>;
 
   beforeEach(() => {
     vi.clearAllMocks();
 
     // Use imported mocked modules
-    mockUseDiscoveryFlowV2 = useDiscoveryFlowV2 as Mock;
-    mockUseAttributeMappingFlowDetection = useAttributeMappingFlowDetection as Mock;
-    mockUseAuth = useAuth as Mock;
-    mockApiCall = apiCall as Mock;
-    mockNavigate = useNavigate as Mock;
+    mockUseDiscoveryFlowV2 = useDiscoveryFlowV2 as MockedFunction<typeof useDiscoveryFlowV2>;
+    mockUseAttributeMappingFlowDetection = useAttributeMappingFlowDetection as MockedFunction<typeof useAttributeMappingFlowDetection>;
+    mockUseAuth = useAuth as MockedFunction<typeof useAuth>;
+    mockApiCall = apiCall as MockedFunction<typeof apiCall>;
+    mockNavigate = useNavigate as MockedFunction<typeof useNavigate>;
 
     // Setup default mocks
     mockUseAttributeMappingFlowDetection.mockReturnValue({

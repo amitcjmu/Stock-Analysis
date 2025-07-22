@@ -201,7 +201,7 @@ export interface AgentInsight {
   confidence: number;
   description: string;
   recommendations?: string[];
-  evidence?: Record<string, any>;
+  evidence?: Record<string, unknown>;
   createdAt: string;
 }
 
@@ -212,7 +212,7 @@ export interface FlowEvent {
   description: string;
   severity: 'info' | 'warning' | 'error' | 'critical';
   source: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface FlowBlocker {
@@ -294,7 +294,7 @@ export interface RetentionInfo {
 export interface ValidationRule {
   id: string;
   type: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   errorMessage: string;
   severity: 'info' | 'warning' | 'error' | 'critical';
 }

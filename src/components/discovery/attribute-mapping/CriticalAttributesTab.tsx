@@ -4,9 +4,10 @@ import ThreeColumnFieldMapper from './FieldMappingsTab/components/ThreeColumnFie
 import { TargetField } from './FieldMappingsTab/types';
 import { useAuth } from '../../../contexts/AuthContext';
 import { apiCall, API_CONFIG } from '../../../config/api';
+import type { FieldMapping } from '../../../types/hooks/discovery/attribute-mapping-hooks';
 
 interface CriticalAttributesTabProps {
-  fieldMappings?: unknown[];
+  fieldMappings?: FieldMapping[];
   availableFields?: TargetField[];
   onMappingAction?: (mappingId: string, action: 'approve' | 'reject', rejectionReason?: string) => void;
   onMappingChange?: (mappingId: string, newTarget: string) => void;

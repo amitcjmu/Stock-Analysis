@@ -14,7 +14,7 @@ export interface FileUploadRequest extends BaseApiRequest {
   fileName?: string;
   contentType?: string;
   context: MultiTenantContext;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
   tags?: string[];
   encryption?: EncryptionOptions;
   virusScan?: boolean;
@@ -73,7 +73,7 @@ export interface FileMetadata {
   encoding?: string;
   colorSpace?: string;
   compression?: string;
-  custom?: Record<string, any>;
+  custom?: Record<string, string | number | boolean | null>;
 }
 
 export interface VirusScanResult {

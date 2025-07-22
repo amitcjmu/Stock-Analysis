@@ -2,7 +2,13 @@
  * State Management Hook Types
  * 
  * Hook interfaces for state management including storage, toggle, counter, and list hooks.
+ * 
+ * These types provide comprehensive React hook patterns for state management
+ * with proper generic constraints and type safety.
  */
+
+import type { Dispatch, SetStateAction } from 'react';
+import type { BaseMetadata } from '../../shared/metadata-types';
 
 // State management hooks
 export interface UseLocalStorageParams<T> {
@@ -104,4 +110,109 @@ export interface UseListReturn<T> {
   includes: (item: T) => boolean;
   some: (predicate: (item: T) => boolean) => boolean;
   every: (predicate: (item: T) => boolean) => boolean;
+}
+
+// Advanced state management patterns
+
+/**
+ * Reducer action with type safety
+ */
+export interface ReducerAction<TType extends string = string, TPayload = unknown> {
+  type: TType;
+  payload?: TPayload;
+  meta?: BaseMetadata;
+}
+
+/**
+ * Generic state reducer function
+ */
+export type StateReducer<TState, TAction extends ReducerAction> = (state: TState, action: TAction) => TState;
+
+/**
+ * Use reducer hook parameters
+ */
+export interface UseReducerParams<TState, TAction extends ReducerAction> {
+  reducer: StateReducer<TState, TAction>;
+  initialState: TState;
+  init?: (initial: TState) => TState;
+}
+
+/**
+ * Use reducer hook return type
+ */
+export interface UseReducerReturn<TState, TAction extends ReducerAction> {
+  state: TState;
+  dispatch: Dispatch<TAction>;
+}
+
+/**
+ * State with optimistic updates
+ */
+export interface OptimisticState<TData> {
+  data: TData;
+  optimisticData?: TData;
+  isOptimistic: boolean;
+  rollback: () => void;
+}
+
+/**
+ * Use optimistic state parameters
+ */
+export interface UseOptimisticParams<TData> {
+  initialData: TData;
+  updateFn?: (currentData: TData, optimisticData: TData) => TData;
+}
+
+/**
+ * Use optimistic state return
+ */
+export interface UseOptimisticReturn<TData> extends OptimisticState<TData> {
+  setOptimisticData: (data: TData) => void;
+  commitOptimisticData: () => void;
+}
+
+/**
+ * Async state hook parameters
+ */
+export interface UseAsyncStateParams<TData, TError = Error> {
+  initialData?: TData;
+  onSuccess?: (data: TData) => void;
+  onError?: (error: TError) => void;
+}
+
+/**
+ * Async state hook return
+ */
+export interface UseAsyncStateReturn<TData, TError = Error> {
+  data: TData | undefined;
+  error: TError | null;
+  isLoading: boolean;
+  isError: boolean;
+  isSuccess: boolean;
+  execute: (asyncFn: () => Promise<TData>) => Promise<TData>;
+  reset: () => void;
+}
+
+/**
+ * State synchronization parameters
+ */
+export interface UseStateSyncParams<TState> {
+  key: string;
+  initialState: TState;
+  storage?: 'localStorage' | 'sessionStorage' | 'memory';
+  syncAcrossTabs?: boolean;
+  serializer?: {
+    serialize: (value: TState) => string;
+    deserialize: (value: string) => TState;
+  };
+}
+
+/**
+ * State synchronization return
+ */
+export interface UseStateSyncReturn<TState> {
+  state: TState;
+  setState: Dispatch<SetStateAction<TState>>;
+  clearState: () => void;
+  isSynced: boolean;
 }

@@ -57,7 +57,7 @@ export interface AuditLogData {
   engagementId?: string;
   outcome: AuditOutcome;
   details: AuditDetails;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
   context?: AuditContext;
 }
 

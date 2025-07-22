@@ -9,10 +9,10 @@ export interface BaseApiRequest {
   requestId?: string;
   timestamp?: string;
   version?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
-export interface BaseApiResponse<T = any> {
+export interface BaseApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
@@ -28,7 +28,7 @@ export interface ApiError {
   code: string;
   message: string;
   field?: string;
-  details?: Record<string, any>;
+  details?: Record<string, string | number | boolean | null>;
   stack?: string;
   timestamp: string;
   requestId?: string;
@@ -39,7 +39,7 @@ export interface ApiWarning {
   code: string;
   message: string;
   field?: string;
-  details?: Record<string, any>;
+  details?: Record<string, string | number | boolean | null>;
   severity: 'low' | 'medium' | 'high';
 }
 

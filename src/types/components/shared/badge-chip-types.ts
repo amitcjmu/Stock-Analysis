@@ -25,7 +25,7 @@ export interface BadgeProps extends BaseComponentProps {
     vertical: 'top' | 'bottom';
     horizontal: 'left' | 'right';
   };
-  component?: keyof JSX.IntrinsicElements | React.ComponentType<any>;
+  component?: keyof JSX.IntrinsicElements | React.ComponentType<BadgeProps>;
   slotProps?: {
     root?: unknown;
     badge?: unknown;
@@ -47,7 +47,7 @@ export interface ChipProps extends InteractiveComponentProps {
   onDelete?: (event: React.MouseEvent) => void;
   onIconClick?: (event: React.MouseEvent) => void;
   onAvatarClick?: (event: React.MouseEvent) => void;
-  component?: keyof JSX.IntrinsicElements | React.ComponentType<any>;
+  component?: keyof JSX.IntrinsicElements | React.ComponentType<ChipProps>;
   href?: string;
   target?: string;
   rel?: string;

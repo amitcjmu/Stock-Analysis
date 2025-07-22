@@ -2,7 +2,12 @@
  * UI State Hook Types
  * 
  * Hook interfaces for UI components including disclosure, modal, tooltip, and dropdown hooks.
+ * 
+ * These types provide proper typing for React hook patterns, replacing 'any' types with
+ * specific interfaces and generic constraints.
  */
+
+import type { HTMLAttributes, ButtonHTMLAttributes, KeyboardEvent } from 'react';
 
 // UI state hooks
 export interface UseDisclosureParams {
@@ -17,8 +22,8 @@ export interface UseDisclosureReturn {
   onOpen: () => void;
   onClose: () => void;
   onToggle: () => void;
-  getButtonProps: (props?: unknown) => any;
-  getDisclosureProps: (props?: unknown) => any;
+  getButtonProps: (props?: ButtonHTMLAttributes<HTMLButtonElement>) => ButtonHTMLAttributes<HTMLButtonElement>;
+  getDisclosureProps: (props?: HTMLAttributes<HTMLElement>) => HTMLAttributes<HTMLElement>;
 }
 
 export interface UseModalParams {
@@ -36,9 +41,9 @@ export interface UseModalReturn {
   onOpen: () => void;
   onClose: () => void;
   onToggle: () => void;
-  getModalProps: (props?: unknown) => any;
-  getOverlayProps: (props?: unknown) => any;
-  getDialogProps: (props?: unknown) => any;
+  getModalProps: (props?: HTMLAttributes<HTMLElement>) => HTMLAttributes<HTMLElement>;
+  getOverlayProps: (props?: HTMLAttributes<HTMLDivElement>) => HTMLAttributes<HTMLDivElement>;
+  getDialogProps: (props?: HTMLAttributes<HTMLDialogElement>) => HTMLAttributes<HTMLDialogElement>;
 }
 
 export interface UseTooltipParams {
@@ -58,9 +63,9 @@ export interface UseTooltipReturn {
   onOpen: () => void;
   onClose: () => void;
   onToggle: () => void;
-  getTriggerProps: (props?: unknown) => any;
-  getTooltipProps: (props?: unknown) => any;
-  getArrowProps: (props?: unknown) => any;
+  getTriggerProps: (props?: HTMLAttributes<HTMLElement>) => HTMLAttributes<HTMLElement>;
+  getTooltipProps: (props?: HTMLAttributes<HTMLDivElement>) => HTMLAttributes<HTMLDivElement>;
+  getArrowProps: (props?: HTMLAttributes<HTMLElement>) => HTMLAttributes<HTMLElement>;
 }
 
 export interface UseDropdownParams {
@@ -73,7 +78,7 @@ export interface UseDropdownParams {
   defaultIsOpen?: boolean;
   onOpen?: () => void;
   onClose?: () => void;
-  onSelect?: (value: unknown) => void;
+  onSelect?: (value: string | number) => void;
 }
 
 export interface UseDropdownReturn {
@@ -83,7 +88,7 @@ export interface UseDropdownReturn {
   onToggle: () => void;
   selectedIndex: number;
   setSelectedIndex: (index: number) => void;
-  getTriggerProps: (props?: unknown) => any;
-  getMenuProps: (props?: unknown) => any;
-  getItemProps: (props?: any, index?: number) => any;
+  getTriggerProps: (props?: ButtonHTMLAttributes<HTMLButtonElement>) => ButtonHTMLAttributes<HTMLButtonElement>;
+  getMenuProps: (props?: HTMLAttributes<HTMLUListElement>) => HTMLAttributes<HTMLUListElement>;
+  getItemProps: (props?: HTMLAttributes<HTMLLIElement>, index?: number) => HTMLAttributes<HTMLLIElement>;
 }

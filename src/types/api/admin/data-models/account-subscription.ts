@@ -98,7 +98,7 @@ export interface PaymentMethodDetails {
   
   // Common Details
   billingAddress?: Address;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface TaxInformation {
@@ -176,7 +176,7 @@ export interface BillingCredit {
   reason: string;
   appliedAt?: string;
   expiresAt?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface BillingDiscount {

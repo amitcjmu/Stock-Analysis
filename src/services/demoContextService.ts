@@ -7,6 +7,28 @@
  */
 
 import { apiCall } from '@/config/api';
+import { ApiError } from '../types/shared/api-types';
+
+/**
+ * External client data from backend API
+ */
+export interface ExternalClientData {
+  id: string;
+  name: string;
+  status?: string;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * External engagement data from backend API
+ */
+export interface ExternalEngagementData {
+  id: string;
+  name: string;
+  client_id?: string;
+  status?: string;
+  metadata?: Record<string, unknown>;
+}
 
 export interface DemoContext {
   client: {
@@ -86,7 +108,7 @@ class DemoContextService {
       
       if (clientsResponse && Array.isArray(clientsResponse)) {
         // Check if user has access to demo client
-        const demoClient = clientsResponse.find((client: unknown) => 
+        const demoClient = (clientsResponse as ExternalClientData[]).find((client: ExternalClientData) => 
           client.id && client.id.includes('def0-def0-def0')
         );
         
@@ -102,7 +124,7 @@ class DemoContextService {
           );
           
           if (engagementsResponse && Array.isArray(engagementsResponse)) {
-            const demoEngagement = engagementsResponse.find((eng: unknown) =>
+            const demoEngagement = (engagementsResponse as ExternalEngagementData[]).find((eng: ExternalEngagementData) =>
               eng.id && eng.id.includes('def0-def0-def0')
             );
             
@@ -132,13 +154,14 @@ class DemoContextService {
       
       return null;
       
-    } catch (error: unknown) {
-      if (error.response?.status === 401) {
+    } catch (error) {
+      const apiError = error as ApiError;
+      if (apiError.status === 401) {
         console.log('⚠️ User not authenticated');
-      } else if (error.response?.status === 403) {
+      } else if (apiError.status === 403) {
         console.log('⚠️ User not authorized for demo data');
       } else {
-        console.error('❌ Failed to fetch demo context:', error);
+        console.error('❌ Failed to fetch demo context:', apiError.message || 'Unknown error');
       }
       return null;
     }

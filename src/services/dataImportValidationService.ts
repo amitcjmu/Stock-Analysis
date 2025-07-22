@@ -33,8 +33,18 @@ export interface ValidationResponse {
   next_step: string;
 }
 
+export interface ValidationAgentConfig {
+  agent_id: string;
+  agent_name: string;
+  description: string;
+  validation_types: string[];
+  confidence_threshold: number;
+  processing_time_limit: number;
+  enabled: boolean;
+}
+
 export interface ValidationAgentsResponse {
-  agents: Record<string, any>;
+  agents: Record<string, ValidationAgentConfig>;
   categories: {
     cmdb: string[];
     'app-discovery': string[];
@@ -159,7 +169,7 @@ export class DataImportValidationService {
   /**
    * Get validation data by flow ID
    */
-  static async getValidationByFlowId(flowId: string): Promise<any> {
+  static async getValidationByFlowId(flowId: string): Promise<ValidationResponse> {
     try {
       const response = await apiCall(`/data-import/flow/${flowId}/validation`, {
         method: 'GET',

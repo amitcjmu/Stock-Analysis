@@ -266,10 +266,11 @@ export const useAuthInitialization = ({
               throw new Error('No user data available');
             }
           }
-        } catch (error: unknown) {
+        } catch (error) {
           if (!isMounted) return;
           
-          if (error.status === 401) {
+          const apiError = error as { status?: number; message?: string };
+          if (apiError.status === 401) {
             console.log('🔄 Token is invalid, clearing authentication and redirecting to login');
             tokenStorage.removeToken();
             tokenStorage.setUser(null);
@@ -280,7 +281,7 @@ export const useAuthInitialization = ({
             navigate('/login');
             return;
           } else {
-            console.error('🔄 Error getting user context:', error);
+            console.error('🔄 Error getting user context:', apiError.message || 'Unknown error');
             // Try to use stored user as fallback but be more lenient with errors
             const storedUser = tokenStorage.getUser();
             if (storedUser) {
@@ -297,10 +298,11 @@ export const useAuthInitialization = ({
             }
           }
         }
-      } catch (error: unknown) {
+      } catch (error) {
         if (!isMounted) return;
         
-        console.error('Auth initialization error:', error);
+        const authError = error as { message?: string };
+        console.error('Auth initialization error:', authError.message || 'Unknown error');
         tokenStorage.removeToken();
         tokenStorage.setUser(null);
         setUser(null);

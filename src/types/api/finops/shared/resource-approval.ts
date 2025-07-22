@@ -8,6 +8,7 @@
  */
 
 import { CostAmount } from '../cost-analysis';
+import type { ConfigurationValue, TypedConstraint } from '../../../shared/config-types';
 
 // Resource and Approval Management
 export interface ResourceRequirement {
@@ -28,10 +29,8 @@ export interface ResourceAvailability {
   exclusions?: string[];
 }
 
-export interface ResourceConstraint {
+export interface ResourceConstraint extends Omit<TypedConstraint, 'type' | 'impact'> {
   type: 'capacity' | 'performance' | 'location' | 'compliance' | 'cost';
-  description: string;
-  value: unknown;
   mandatory: boolean;
 }
 

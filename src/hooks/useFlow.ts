@@ -20,7 +20,7 @@ export interface UseFlowOptions {
   autoRefresh?: boolean;
   refreshInterval?: number;
   onError?: (error: Error) => void;
-  onSuccess?: (data: unknown) => void;
+  onSuccess?: (data: FlowStatus | FlowStatus[]) => void;
 }
 
 export interface FlowHookState {
@@ -46,7 +46,7 @@ export interface FlowHookState {
 export interface FlowHookActions {
   // Flow operations
   createFlow: (request: CreateFlowRequest) => Promise<FlowStatus>;
-  executePhase: (flowId: string, request: ExecutePhaseRequest) => Promise<any>;
+  executePhase: (flowId: string, request: ExecutePhaseRequest) => Promise<unknown>;
   pauseFlow: (flowId: string, reason?: string) => Promise<void>;
   resumeFlow: (flowId: string) => Promise<void>;
   deleteFlow: (flowId: string, reason?: string) => Promise<void>;
@@ -131,7 +131,7 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
   }, [onError]);
 
   // Success handling
-  const handleSuccess = useCallback((data: unknown) => {
+  const handleSuccess = useCallback((data: FlowStatus | FlowStatus[]) => {
     if (!mountedRef.current) return;
     
     setState(prev => ({
@@ -174,7 +174,7 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
   }, [flowService, handleError, handleSuccess]);
 
   // MFO-076: Implement flow execution with phase handling
-  const executePhase = useCallback(async (flowId: string, request: ExecutePhaseRequest): Promise<any> => {
+  const executePhase = useCallback(async (flowId: string, request: ExecutePhaseRequest): Promise<{ success: boolean; message?: string; data?: Record<string, unknown> }> => {
     setState(prev => ({ ...prev, isExecuting: true, error: null }));
 
     try {

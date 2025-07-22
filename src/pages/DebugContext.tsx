@@ -6,14 +6,18 @@ import { AlertCircle, CheckCircle } from 'lucide-react';
 
 export const DebugContext: React.FC = () => {
   const { user, client, engagement, flow } = useAuth();
-  const [localStorage, setLocalStorage] = useState<Record<string, any>>({});
-  const [apiResponse, setApiResponse] = useState<any>(null);
+  const [localStorage, setLocalStorage] = useState<Record<string, unknown>>({});
+  const [apiResponse, setApiResponse] = useState<{
+    error?: string;
+    clients?: unknown[];
+    [key: string]: unknown;
+  } | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     // Read all auth-related localStorage items
     const authKeys = ['auth_token', 'user_data', 'auth_client', 'auth_engagement', 'auth_session', 'auth_client_id'];
-    const data: Record<string, any> = {};
+    const data: Record<string, unknown> = {};
     
     authKeys.forEach(key => {
       const value = window.localStorage.getItem(key);
@@ -51,7 +55,7 @@ export const DebugContext: React.FC = () => {
       setApiResponse(data);
     } catch (error) {
       console.error('Failed to fetch clients:', error);
-      setApiResponse({ error: error.message });
+      setApiResponse({ error: error instanceof Error ? error.message : String(error) });
     } finally {
       setLoading(false);
     }

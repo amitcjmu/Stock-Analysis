@@ -90,7 +90,7 @@ export interface FeatureConfig {
   name: string;
   enabled: boolean;
   rollout: number;
-  conditions?: Record<string, any>;
+  conditions?: Record<string, unknown>;
 }
 
 export interface SystemLimits {
@@ -183,7 +183,7 @@ export interface ExportFormat {
 export interface ExportOptions {
   sheets?: ExportSheet[];
   columns?: string[];
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
   formatting?: ExportFormatting;
   compression?: CompressionOptions;
   encryption?: EncryptionOptions;
@@ -273,7 +273,7 @@ export interface TableColumn {
   resizable?: boolean;
   fixed?: 'left' | 'right';
   align?: 'left' | 'center' | 'right';
-  render?: (value: any, record: any, index: number) => React.ReactNode;
+  render?: (value: unknown, record: unknown, index: number) => React.ReactNode;
   headerRender?: (column: TableColumn) => React.ReactNode;
   filterRender?: (column: TableColumn) => React.ReactNode;
   sorterRender?: (column: TableColumn) => React.ReactNode;

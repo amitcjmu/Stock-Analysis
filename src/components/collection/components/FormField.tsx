@@ -18,7 +18,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { HelpCircle, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-import type { FormFieldProps, FieldType } from '../types';
+import type { FormFieldProps, FieldType, FieldValue } from '../types';
 
 export const FormField: React.FC<FormFieldProps> = ({
   field,
@@ -30,8 +30,9 @@ export const FormField: React.FC<FormFieldProps> = ({
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [hasBeenTouched, setHasBeenTouched] = useState(false);
 
-  const handleChange = useCallback((newValue: unknown) => {
+  const handleChange = useCallback((newValue: FieldValue) => {
     onChange(newValue);
   }, [onChange]);
 
@@ -40,12 +41,15 @@ export const FormField: React.FC<FormFieldProps> = ({
       id: field.id,
       disabled,
       onFocus: () => setIsFocused(true),
-      onBlur: () => setIsFocused(false),
+      onBlur: () => {
+        setIsFocused(false);
+        setHasBeenTouched(true);
+      },
       className: cn(
         'transition-colors',
-        validation?.isValid === false && 'border-red-500 focus:border-red-500',
-        validation?.isValid === true && 'border-green-500',
-        validation?.warnings?.length && 'border-amber-500'
+        hasBeenTouched && validation?.isValid === false && 'border-red-500 focus:border-red-500',
+        hasBeenTouched && validation?.isValid === true && 'border-green-500',
+        hasBeenTouched && validation?.warnings?.length && 'border-amber-500'
       )
     };
 
@@ -210,13 +214,13 @@ export const FormField: React.FC<FormFieldProps> = ({
   };
 
   const renderValidationFeedback = () => {
-    if (!validation) return null;
+    if (!validation || !hasBeenTouched) return null;
 
     const { errors, warnings } = validation;
     const allIssues = [...errors, ...warnings];
 
     if (allIssues.length === 0) {
-      return validation.isValid ? (
+      return validation.isValid && hasBeenTouched ? (
         <div className="flex items-center gap-1 text-sm text-green-600">
           <CheckCircle className="h-4 w-4" />
           Valid
@@ -303,8 +307,8 @@ export const FormField: React.FC<FormFieldProps> = ({
           )}
         </div>
 
-        {/* Confidence Score */}
-        {validation?.confidenceScore !== undefined && (
+        {/* Confidence Score - Only show after field has been touched */}
+        {hasBeenTouched && validation?.confidenceScore !== undefined && validation.confidenceScore > 0 && (
           <Badge
             variant="outline"
             className={cn(

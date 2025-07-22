@@ -58,7 +58,7 @@ export const TechDebtAnalysisGrid: React.FC<TechDebtAnalysisGridProps> = ({
 
     const item: TechDebtItem = {
       category: newItem.category,
-      severity: newItem.severity as unknown,
+      severity: newItem.severity as 'critical' | 'high' | 'medium' | 'low',
       description: newItem.description,
       remediation_effort_hours: newItem.remediation_effort_hours || 0,
       impact_on_migration: newItem.impact_on_migration || '',
@@ -133,7 +133,7 @@ export const TechDebtAnalysisGrid: React.FC<TechDebtAnalysisGridProps> = ({
               <Label htmlFor="severity">Severity</Label>
               <Select
                 value={newItem.severity}
-                onValueChange={(value) => setNewItem({ ...newItem, severity: value as unknown })}
+                onValueChange={(value) => setNewItem({ ...newItem, severity: value as 'critical' | 'high' | 'medium' | 'low' })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -308,7 +308,7 @@ const TechDebtCard: React.FC<TechDebtCardProps> = ({
               <Label>Severity</Label>
               <Select
                 value={editData.severity}
-                onValueChange={(value) => setEditData({ ...editData, severity: value as unknown })}
+                onValueChange={(value) => setEditData({ ...editData, severity: value as 'critical' | 'high' | 'medium' | 'low' })}
               >
                 <SelectTrigger>
                   <SelectValue />

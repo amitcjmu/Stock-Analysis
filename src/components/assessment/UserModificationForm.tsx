@@ -22,10 +22,10 @@ export const UserModificationForm: React.FC<UserModificationFormProps> = ({
   onSave,
   onCancel
 }) => {
-  const [editData, setEditData] = useState(item || {});
+  const [editData, setEditData] = useState<ApplicationComponent | TechDebtItem>(item || {} as ApplicationComponent | TechDebtItem);
 
   const handleSave = () => {
-    onSave(editData as unknown);
+    onSave(editData);
   };
 
   if (type === 'component') {
@@ -159,7 +159,7 @@ export const UserModificationForm: React.FC<UserModificationFormProps> = ({
             <Label htmlFor="severity">Severity</Label>
             <Select
               value={techDebt.severity || ''}
-              onValueChange={(value) => setEditData({ ...editData, severity: value as unknown })}
+              onValueChange={(value) => setEditData({ ...editData, severity: value as 'critical' | 'high' | 'medium' | 'low' })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select severity" />

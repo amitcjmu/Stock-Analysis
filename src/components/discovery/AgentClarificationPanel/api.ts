@@ -16,7 +16,8 @@ export const fetchAgentQuestions = async (pageContext: string): Promise<AgentQue
     return [];
   } catch (err: unknown) {
     // Handle 404 errors gracefully - these endpoints may not exist yet
-    if (err.status === 404 || err.response?.status === 404) {
+    const error = err as { status?: number; response?: { status?: number } };
+    if (error.status === 404 || error.response?.status === 404) {
       console.log('Agent questions endpoint not available yet');
       return [];
     } else {

@@ -12,7 +12,7 @@
  */
 export interface ValidationRule {
   type: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, string | number | boolean | null>;
   message: string;
 }
 
@@ -35,7 +35,7 @@ export interface ValidationResult {
   errors: ValidationError[];
   warnings: ValidationWarning[];
   score: number;
-  details: Record<string, any>;
+  details: Record<string, string | number | boolean | null>;
 }
 
 /**
@@ -95,7 +95,7 @@ export interface AgentInsight {
   insight: string;
   confidence: number;
   timestamp: string;
-  context: Record<string, any>;
+  context: Record<string, string | number | boolean | null>;
 }
 
 /**

@@ -8,12 +8,12 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle } from 'lucide-react';
-import { AgentTask } from './types';
+import { AgentTask, TaskInput } from './types';
 import { getPriorityColor } from './utils';
 
 interface HumanInputTabProps {
   humanInputTasks: AgentTask[];
-  onHumanInputSubmission: (taskId: string, input: unknown) => void;
+  onHumanInputSubmission: (taskId: string, input: TaskInput) => void;
 }
 
 const HumanInputTab: React.FC<HumanInputTabProps> = ({ 
@@ -57,7 +57,11 @@ const HumanInputTab: React.FC<HumanInputTabProps> = ({
                     key={index}
                     variant="outline"
                     size="sm"
-                    onClick={() => onHumanInputSubmission(task.id, { selected_option: option })}
+                    onClick={() => onHumanInputSubmission(task.id, {
+                      type: 'selection',
+                      value: option,
+                      timestamp: new Date().toISOString()
+                    })}
                   >
                     {option}
                   </Button>

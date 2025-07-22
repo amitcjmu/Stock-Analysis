@@ -1,4 +1,19 @@
 // API Configuration
+import type { ApiResponse } from '@/types/shared/api-types';
+
+interface UserRegistrationData {
+  email: string;
+  password: string;
+  full_name: string;
+  organization: string;
+  [key: string]: unknown;
+}
+
+interface PasswordChangeResponse {
+  status: string;
+  message: string;
+  [key: string]: unknown;
+}
 const getApiBaseUrl = (): string => {
   // First, check for environment-specific variables
   const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL;
@@ -68,7 +83,7 @@ export const authApi = {
     return response.json();
   },
 
-  async register(userData: unknown): Promise<any> {
+  async register(userData: UserRegistrationData): Promise<ApiResponse<{ user: User; token: Token }>> {
     const response = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
       method: 'POST',
       headers: {
@@ -106,7 +121,7 @@ export const authApi = {
     }
   },
 
-  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<any> {
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<PasswordChangeResponse> {
     const response = await fetch(`${API_BASE_URL}/api/v1/auth/change-password`, {
       method: 'POST',
       headers: {

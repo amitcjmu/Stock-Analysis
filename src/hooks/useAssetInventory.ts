@@ -41,7 +41,20 @@ export interface MigrationReadiness {
   needs_more_data: number;
   has_dependencies: number;
   needs_modernization: number;
-  readiness_by_type: Record<string, any>;
+  readiness_by_type: Record<string, {
+    ready: number;
+    not_ready: number;
+    percentage: number;
+  }>;
+}
+
+export interface DependencyChain {
+  chain_id: string;
+  assets: string[];
+  chain_type: 'circular' | 'deep' | 'branching';
+  depth: number;
+  critical_path: boolean;
+  affected_services: string[];
 }
 
 export interface DependencyAnalysis {
@@ -49,7 +62,7 @@ export interface DependencyAnalysis {
   application_dependencies: number;
   server_dependencies: number;
   database_dependencies: number;
-  complex_dependency_chains: Array<any>;
+  complex_dependency_chains: Array<DependencyChain>;
   orphaned_assets: string[];
 }
 

@@ -6,6 +6,7 @@
  * Generated with CC for modular admin type organization.
  */
 
+import type { BaseMetadata } from '../../../shared/metadata-types';
 import { NotificationMetadata } from '../common';
 import { 
   NotificationPriority, 
@@ -60,7 +61,7 @@ export interface NotificationContent {
   summary?: string;
   html?: string;
   markdown?: string;
-  variables?: Record<string, any>;
+  variables?: BaseMetadata;
   template?: NotificationTemplate;
   attachments?: NotificationAttachment[];
   media?: NotificationMedia[];
@@ -76,7 +77,7 @@ export interface NotificationRecipient {
   groups?: string[];
   roles?: string[];
   conditions?: RecipientCondition[];
-  substitutions?: Record<string, any>;
+  substitutions?: BaseMetadata;
 }
 
 // Notification channel configuration
@@ -110,7 +111,7 @@ export interface NotificationRead {
   channel: ChannelType;
   device?: DeviceInfo;
   location?: GeoLocation;
-  metadata: Record<string, any>;
+  metadata: BaseMetadata;
 }
 
 // Delivery channel information
@@ -188,7 +189,7 @@ export interface MediaDimensions {
 export interface ActionTracking {
   track_clicks: boolean;
   utm_parameters?: UtmParameters;
-  custom_properties?: Record<string, any>;
+  custom_properties?: BaseMetadata;
 }
 
 export interface UtmParameters {
@@ -248,8 +249,8 @@ export interface CategoryPreference {
 
 export interface ChannelConfiguration {
   provider?: string;
-  credentials?: Record<string, any>;
-  settings: Record<string, any>;
+  credentials?: BaseMetadata;
+  settings: BaseMetadata;
   rate_limits?: import('../common').RateLimit[];
   retry_policy?: import('../common').RetryPolicy;
   fallback_channel?: ChannelType;

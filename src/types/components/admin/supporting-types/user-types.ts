@@ -28,7 +28,7 @@ export interface User {
   mfaEnabled: boolean;
   profile: UserProfile;
   preferences: UserPreferences;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
   createdAt: string;
   updatedAt: string;
   createdBy?: string;
@@ -198,12 +198,12 @@ export interface UserActivity {
   action: string;
   resource?: string;
   details?: string;
-  data?: Record<string, any>;
+  data?: Record<string, string | number | boolean | null>;
   duration?: number;
   ipAddress?: string;
   userAgent?: string;
   timestamp: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface UserMetrics {
@@ -227,7 +227,7 @@ export interface Role {
   isSystem: boolean;
   isActive: boolean;
   conditions?: RoleCondition[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
   createdAt: string;
   updatedAt: string;
   createdBy?: string;
@@ -247,7 +247,7 @@ export interface Permission {
   granted: boolean;
   inherited?: boolean;
   source?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 // Supporting types from role-permission-types
