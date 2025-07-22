@@ -6,9 +6,15 @@
 import React from 'react';
 import { SessionComparisonMain } from './session-comparison';
 
+interface ComparisonResult {
+  engagementId: string;
+  differences: unknown[];
+  summary: Record<string, unknown>;
+}
+
 interface SessionComparisonProps {
   engagementId: string;
-  onComparisonComplete?: (comparison: any) => void;
+  onComparisonComplete?: (comparison: ComparisonResult) => void;
 }
 
 export const SessionComparison: React.FC<SessionComparisonProps> = (props) => {

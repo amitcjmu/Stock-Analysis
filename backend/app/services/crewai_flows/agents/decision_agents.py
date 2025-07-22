@@ -14,16 +14,21 @@ Generated with CC for modular backend architecture.
 import logging
 
 # For backward compatibility - re-export all classes
-
-# Import modular components
+from .decision import (
+    AgentDecision,
+    BaseDecisionAgent,
+    PhaseAction,
+    PhaseTransitionAgent,
+    FieldMappingDecisionAgent
+)
 
 logger = logging.getLogger(__name__)
 
-
-# Backward compatibility: Keep existing classes available but delegate to modular components
-# This allows existing imports to continue working while enabling modular structure
-
-# All classes are now imported from the modular structure above
-# Existing code can continue to use:
-# from decision_agents import PhaseTransitionAgent, FieldMappingDecisionAgent
-# from decision_agents import PhaseAction, AgentDecision
+# Export all classes for backward compatibility
+__all__ = [
+    'AgentDecision',
+    'BaseDecisionAgent', 
+    'PhaseAction',
+    'PhaseTransitionAgent',
+    'FieldMappingDecisionAgent'
+]
