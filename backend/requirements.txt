@@ -163,6 +163,7 @@ pre_commit==4.2.0
 prompt_toolkit==3.0.51
 propcache==0.3.2
 protobuf==5.29.5
+psutil==6.1.1
 psycopg==3.2.9
 psycopg-binary==3.2.9
 ptyprocess==0.7.0

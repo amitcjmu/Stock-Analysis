@@ -9,8 +9,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.crewai_flows.persistence.exceptions import ConcurrentModificationError
-from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
+from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore, ConcurrentModificationError
 
 
 @pytest.fixture
