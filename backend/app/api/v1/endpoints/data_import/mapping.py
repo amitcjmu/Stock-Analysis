@@ -17,7 +17,7 @@ def get_field_mappings(
     if not workflow_state or "data_import_id" not in workflow_state.state_details:
         raise HTTPException(status_code=404, detail="No active data import found for this flow.")
     
-    workflow_state.state_details["data_import_id"]
+    data_import_id = workflow_state.state_details["data_import_id"]
     # ... (rest of the function uses data_import_id)
 
 @router.post("/")
@@ -30,5 +30,5 @@ def update_field_mappings(
     if not workflow_state or "data_import_id" not in workflow_state.state_details:
         raise HTTPException(status_code=404, detail="No active data import found for this flow.")
     
-    workflow_state.state_details["data_import_id"]
+    data_import_id = workflow_state.state_details["data_import_id"]
     # ... (rest of the function uses data_import_id) 
