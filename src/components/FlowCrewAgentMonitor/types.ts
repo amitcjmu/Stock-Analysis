@@ -82,5 +82,5 @@ export interface AgentMonitorState {
   refreshing: boolean;
   isStartingFlow: boolean;
   usePhase2Monitor: boolean;
-  discoveryFlows: any[];
+  discoveryFlows: DiscoveryFlow[];
 }

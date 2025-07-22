@@ -1,46 +1,58 @@
 import type { Crew, Agent, DiscoveryFlow, CrewStatus, AgentStatus } from '../types';
 
-export const transformCrewData = (crewData: any): Crew[] => {
+interface RawCrewData {
+  crews?: unknown[];
+}
+
+export const transformCrewData = (crewData: RawCrewData): Crew[] => {
   if (!crewData || !crewData.crews) {
     return [];
   }
 
-  return crewData.crews.map((crew: any): Crew => ({
-    id: crew.id || `crew_${Date.now()}_${Math.random()}`,
-    name: crew.name || 'Unknown Crew',
-    manager: crew.manager || 'AI Crew Manager',
-    status: crew.status as CrewStatus || 'pending',
-    progress: crew.progress || 0,
-    current_phase: crew.current_phase || 'initialization',
-    started_at: crew.started_at || new Date().toISOString(),
-    estimated_completion: crew.estimated_completion,
-    agents: crew.agents?.map((agent: any): Agent => ({
-      id: agent.id || `agent_${Date.now()}_${Math.random()}`,
-      name: agent.name || 'Unknown Agent',
-      role: agent.role || 'AI Agent',
-      status: agent.status as AgentStatus || 'idle',
-      current_task: agent.current_task || 'Awaiting tasks',
+  return crewData.crews.map((crew: unknown): Crew => {
+    const c = crew as Record<string, unknown>;
+    return {
+    id: (c.id as string) || `crew_${Date.now()}_${Math.random()}`,
+    name: (c.name as string) || 'Unknown Crew',
+    manager: (c.manager as string) || 'AI Crew Manager',
+    status: (c.status as CrewStatus) || 'pending',
+    progress: (c.progress as number) || 0,
+    current_phase: (c.current_phase as string) || 'initialization',
+    started_at: (c.started_at as string) || new Date().toISOString(),
+    estimated_completion: c.estimated_completion as string,
+    agents: (c.agents as unknown[])?.map((agent: unknown): Agent => {
+      const a = agent as Record<string, unknown>;
+      const perf = a.performance as Record<string, unknown> | undefined;
+      const collab = a.collaboration as Record<string, unknown> | undefined;
+      return {
+      id: (a.id as string) || `agent_${Date.now()}_${Math.random()}`,
+      name: (a.name as string) || 'Unknown Agent',
+      role: (a.role as string) || 'AI Agent',
+      status: (a.status as AgentStatus) || 'idle',
+      current_task: (a.current_task as string) || 'Awaiting tasks',
       performance: {
-        success_rate: agent.performance?.success_rate || 0,
-        tasks_completed: agent.performance?.tasks_completed || 0,
-        avg_response_time: agent.performance?.avg_response_time || 0
+        success_rate: (perf?.success_rate as number) || 0,
+        tasks_completed: (perf?.tasks_completed as number) || 0,
+        avg_response_time: (perf?.avg_response_time as number) || 0
       },
       collaboration: {
-        is_collaborating: agent.collaboration?.is_collaborating || false,
-        collaboration_partner: agent.collaboration?.collaboration_partner,
-        shared_memory_access: agent.collaboration?.shared_memory_access || false
+        is_collaborating: (collab?.is_collaborating as boolean) || false,
+        collaboration_partner: collab?.collaboration_partner as string,
+        shared_memory_access: (collab?.shared_memory_access as boolean) || false
       },
-      last_activity: agent.last_activity || new Date().toISOString()
-    })) || [],
+      last_activity: (a.last_activity as string) || new Date().toISOString()
+      };
+    }) || [],
     collaboration_metrics: {
-      internal_effectiveness: crew.collaboration_metrics?.internal_effectiveness || 0,
-      cross_crew_sharing: crew.collaboration_metrics?.cross_crew_sharing || 0,
-      memory_utilization: crew.collaboration_metrics?.memory_utilization || 0
+      internal_effectiveness: ((c.collaboration_metrics as Record<string, unknown>)?.internal_effectiveness as number) || 0,
+      cross_crew_sharing: ((c.collaboration_metrics as Record<string, unknown>)?.cross_crew_sharing as number) || 0,
+      memory_utilization: ((c.collaboration_metrics as Record<string, unknown>)?.memory_utilization as number) || 0
     }
-  }));
+    };
+  });
 };
 
-export const createAllAvailableCrews = (agentRegistryData: any): Crew[] => {
+export const createAllAvailableCrews = (agentRegistryData: unknown): Crew[] => {
   // Create standardized crews for Discovery Flow
   const standardCrews = [
     {
@@ -138,7 +150,7 @@ export const createAllAvailableCrews = (agentRegistryData: any): Crew[] => {
   }));
 };
 
-export const createCompleteFlowView = (activeFlows: DiscoveryFlow[], agentRegistryData: any): DiscoveryFlow[] => {
+export const createCompleteFlowView = (activeFlows: DiscoveryFlow[], agentRegistryData: unknown): DiscoveryFlow[] => {
   // If we have active flows, return them
   if (activeFlows.length > 0) {
     return activeFlows;
