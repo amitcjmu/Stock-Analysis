@@ -127,7 +127,7 @@ export interface AnalysisType {
 }
 
 export interface AnalysisParameters {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface AnalysisParameter {
@@ -136,8 +136,8 @@ export interface AnalysisParameter {
   label: string;
   description?: string;
   required?: boolean;
-  defaultValue?: any;
-  options?: { value: any; label: string }[];
+  defaultValue?: unknown;
+  options?: { value: unknown; label: string }[];
   min?: number;
   max?: number;
   step?: number;
@@ -162,7 +162,7 @@ export interface ChartType {
 export interface AnalysisFilter {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
   label?: string;
   enabled?: boolean;
 }

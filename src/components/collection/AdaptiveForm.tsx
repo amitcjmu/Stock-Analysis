@@ -97,7 +97,7 @@ export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({
   }, [formData.sections, formMetrics.sectionProgress, expandedSections.size]);
 
   // Handle field value changes
-  const handleFieldChange = useCallback((fieldId: string, value: any) => {
+  const handleFieldChange = useCallback((fieldId: string, value: unknown) => {
     setFormValues(prev => ({
       ...prev,
       [fieldId]: value

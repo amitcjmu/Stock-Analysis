@@ -46,7 +46,7 @@ export interface AdaptiveFormFlowState {
   formValues: CollectionFormData;
   validation: FormValidationResult | null;
   flowId: string | null;
-  questionnaires: any[];
+  questionnaires: unknown[];
   isLoading: boolean;
   isSaving: boolean;
   error: Error | null;
@@ -54,7 +54,7 @@ export interface AdaptiveFormFlowState {
 
 export interface AdaptiveFormFlowActions {
   initializeFlow: () => Promise<void>;
-  handleFieldChange: (fieldId: string, value: any) => void;
+  handleFieldChange: (fieldId: string, value: unknown) => void;
   handleValidationChange: (newValidation: FormValidationResult) => void;
   handleSave: () => Promise<void>;
   handleSubmit: (data: CollectionFormData) => Promise<void>;
@@ -201,7 +201,7 @@ export const useAdaptiveFormFlow = (
         description: `CrewAI agents generated ${agentQuestionnaires.length} questionnaire(s) based on gap analysis.`
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Failed to initialize adaptive collection:', error);
       
       setState(prev => ({ ...prev, error }));
@@ -228,7 +228,7 @@ export const useAdaptiveFormFlow = (
   /**
    * Handle field value changes
    */
-  const handleFieldChange = (fieldId: string, value: any): void => {
+  const handleFieldChange = (fieldId: string, value: unknown): void => {
     setState(prev => ({
       ...prev,
       formValues: {
@@ -327,7 +327,7 @@ export const useAdaptiveFormFlow = (
 
       console.log('✅ Form submitted successfully, CrewAI agents will continue processing');
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Adaptive form submission failed:', error);
       
       const errorMessage = error?.response?.data?.detail || 

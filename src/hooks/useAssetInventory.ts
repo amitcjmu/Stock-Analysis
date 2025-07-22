@@ -55,7 +55,7 @@ export interface DependencyAnalysis {
 
 export interface AIInsights {
   available: boolean;
-  analysis_result?: any;
+  analysis_result?: unknown;
   confidence_score?: number;
 }
 

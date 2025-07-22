@@ -4,7 +4,7 @@ import { ChevronDown } from 'lucide-react';
 interface EnhancedFieldDropdownProps {
   value: string;
   onChange: (field: string) => void;
-  availableFields: any[];
+  availableFields: unknown[];
   placeholder?: string;
 }
 

@@ -170,8 +170,8 @@ export interface CustomizationTemplate {
 export interface CustomizationParameter {
   parameter: string;
   type: string;
-  options: any[];
-  default: any;
+  options: unknown[];
+  default: unknown;
   validation: string;
 }
 

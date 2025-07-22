@@ -115,8 +115,8 @@ export interface AuditTrailEntry {
 
 export interface FieldChange {
   field: string;
-  oldValue: any;
-  newValue: any;
+  oldValue: unknown;
+  newValue: unknown;
   changeType: ChangeType;
   sensitive: boolean;
   encrypted: boolean;

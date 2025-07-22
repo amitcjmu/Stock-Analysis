@@ -181,7 +181,7 @@ export interface ScenarioAssumption {
   id: string;
   description: string;
   parameter: string;
-  value: any;
+  value: unknown;
   confidence: number;
 }
 

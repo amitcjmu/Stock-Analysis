@@ -501,7 +501,7 @@ export interface EngagementField {
   label: string;
   type: 'text' | 'number' | 'date' | 'boolean' | 'select' | 'multiselect' | 'textarea' | 'file';
   required: boolean;
-  defaultValue?: any;
+  defaultValue?: unknown;
   options?: FieldOption[];
   validation?: ValidationRule;
   dependencies?: FieldDependency[];
@@ -513,7 +513,7 @@ export interface EngagementField {
 
 export interface FieldOption {
   label: string;
-  value: any;
+  value: unknown;
   isDefault?: boolean;
   isActive?: boolean;
   order?: number;
@@ -527,7 +527,7 @@ export interface FieldDependency {
 
 export interface ValidationRule {
   type: 'required' | 'minLength' | 'maxLength' | 'pattern' | 'range' | 'custom';
-  value?: any;
+  value?: unknown;
   message?: string;
   customValidator?: string;
 }
@@ -547,8 +547,8 @@ export interface EngagementAuditLog {
 
 export interface FieldChange {
   field: string;
-  oldValue: any;
-  newValue: any;
+  oldValue: unknown;
+  newValue: unknown;
   dataType: string;
 }
 

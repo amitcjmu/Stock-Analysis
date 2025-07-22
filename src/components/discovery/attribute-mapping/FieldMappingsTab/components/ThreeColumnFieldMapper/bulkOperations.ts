@@ -22,12 +22,12 @@ export const createBulkApproveHandler = (
     // Filter out placeholder and fallback mappings that shouldn't be approved via API
     const validMappingIds = mappingIds.filter(id => {
       const mapping = fieldMappings.find(m => m.id === id);
-      return !(mapping && ((mapping as any).is_placeholder || (mapping as any).is_fallback));
+      return !(mapping && ((mapping as unknown).is_placeholder || (mapping as unknown).is_fallback));
     });
     
     if (validMappingIds.length === 0) {
-      if (typeof window !== 'undefined' && (window as any).showWarningToast) {
-        (window as any).showWarningToast('No valid mappings to approve. Please configure unmapped fields first.');
+      if (typeof window !== 'undefined' && (window as unknown).showWarningToast) {
+        (window as unknown).showWarningToast('No valid mappings to approve. Please configure unmapped fields first.');
       }
       return;
     }
@@ -38,8 +38,8 @@ export const createBulkApproveHandler = (
     
     // Check authentication before proceeding
     if (!client?.id || !engagement?.id) {
-      if (typeof window !== 'undefined' && (window as any).showErrorToast) {
-        (window as any).showErrorToast('Authentication required. Please log in to continue.');
+      if (typeof window !== 'undefined' && (window as unknown).showErrorToast) {
+        (window as unknown).showErrorToast('Authentication required. Please log in to continue.');
       }
       return;
     }
@@ -47,8 +47,8 @@ export const createBulkApproveHandler = (
     // Prevent concurrent bulk operations
     const now = Date.now();
     if (now - lastBulkOperationTime < 5000) { // 5 second cooldown
-      if (typeof window !== 'undefined' && (window as any).showWarningToast) {
-        (window as any).showWarningToast('Please wait before performing another bulk operation.');
+      if (typeof window !== 'undefined' && (window as unknown).showWarningToast) {
+        (window as unknown).showWarningToast('Please wait before performing another bulk operation.');
       }
       return;
     }
@@ -89,8 +89,8 @@ export const createBulkApproveHandler = (
           console.log(`⏳ Rate limited, waiting ${delay}ms before retry...`);
           
           // Show user feedback about retry
-          if (typeof window !== 'undefined' && (window as any).showInfoToast) {
-            (window as any).showInfoToast(`Rate limited, retrying in ${delay/1000} seconds...`);
+          if (typeof window !== 'undefined' && (window as unknown).showInfoToast) {
+            (window as unknown).showInfoToast(`Rate limited, retrying in ${delay/1000} seconds...`);
           }
           
           await new Promise(resolve => setTimeout(resolve, delay));
@@ -114,8 +114,8 @@ export const createBulkApproveHandler = (
       const response = await attemptBulkApproval();
       
       // Show success message
-      if (typeof window !== 'undefined' && (window as any).showSuccessToast) {
-        (window as any).showSuccessToast(`Successfully approved ${response.successful_updates} mappings`);
+      if (typeof window !== 'undefined' && (window as unknown).showSuccessToast) {
+        (window as unknown).showSuccessToast(`Successfully approved ${response.successful_updates} mappings`);
       }
       
       // Refresh the data
@@ -139,8 +139,8 @@ export const createBulkApproveHandler = (
         }
       }
       
-      if (typeof window !== 'undefined' && (window as any).showErrorToast) {
-        (window as any).showErrorToast(errorMessage);
+      if (typeof window !== 'undefined' && (window as unknown).showErrorToast) {
+        (window as unknown).showErrorToast(errorMessage);
       }
     } finally {
       // Remove all valid mappings from processing set
@@ -166,8 +166,8 @@ export const createBulkRejectHandler = (
     
     // Check authentication before proceeding
     if (!client?.id || !engagement?.id) {
-      if (typeof window !== 'undefined' && (window as any).showErrorToast) {
-        (window as any).showErrorToast('Authentication required. Please log in to continue.');
+      if (typeof window !== 'undefined' && (window as unknown).showErrorToast) {
+        (window as unknown).showErrorToast('Authentication required. Please log in to continue.');
       }
       return;
     }
@@ -175,8 +175,8 @@ export const createBulkRejectHandler = (
     // Prevent concurrent bulk operations
     const now = Date.now();
     if (now - lastBulkOperationTime < 5000) { // 5 second cooldown
-      if (typeof window !== 'undefined' && (window as any).showWarningToast) {
-        (window as any).showWarningToast('Please wait before performing another bulk operation.');
+      if (typeof window !== 'undefined' && (window as unknown).showWarningToast) {
+        (window as unknown).showWarningToast('Please wait before performing another bulk operation.');
       }
       return;
     }
@@ -217,8 +217,8 @@ export const createBulkRejectHandler = (
           console.log(`⏳ Rate limited, waiting ${delay}ms before retry...`);
           
           // Show user feedback about retry
-          if (typeof window !== 'undefined' && (window as any).showInfoToast) {
-            (window as any).showInfoToast(`Rate limited, retrying in ${delay/1000} seconds...`);
+          if (typeof window !== 'undefined' && (window as unknown).showInfoToast) {
+            (window as unknown).showInfoToast(`Rate limited, retrying in ${delay/1000} seconds...`);
           }
           
           await new Promise(resolve => setTimeout(resolve, delay));
@@ -242,8 +242,8 @@ export const createBulkRejectHandler = (
       const response = await attemptBulkRejection();
       
       // Show success message
-      if (typeof window !== 'undefined' && (window as any).showSuccessToast) {
-        (window as any).showSuccessToast(`Successfully rejected ${response.successful_updates} mappings`);
+      if (typeof window !== 'undefined' && (window as unknown).showSuccessToast) {
+        (window as unknown).showSuccessToast(`Successfully rejected ${response.successful_updates} mappings`);
       }
       
       // Refresh the data
@@ -267,8 +267,8 @@ export const createBulkRejectHandler = (
         }
       }
       
-      if (typeof window !== 'undefined' && (window as any).showErrorToast) {
-        (window as any).showErrorToast(errorMessage);
+      if (typeof window !== 'undefined' && (window as unknown).showErrorToast) {
+        (window as unknown).showErrorToast(errorMessage);
       }
     } finally {
       // Remove all mappings from processing set

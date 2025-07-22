@@ -103,7 +103,7 @@ export interface CreateContextStateReturn<T> {
 // Async State Hook Types
 export interface UseAsyncStateParams<T> {
   asyncFunction: () => Promise<T>;
-  dependencies?: any[];
+  dependencies?: unknown[];
   immediate?: boolean;
   onSuccess?: (data: T) => void;
   onError?: (error: Error) => void;
@@ -128,7 +128,7 @@ export interface UseAsyncStateReturn<T> {
 // Computed State Hook Types
 export interface UseComputedStateParams<T, R> {
   computeFn: (state: T) => R;
-  dependencies: any[];
+  dependencies: unknown[];
   equalityFn?: EqualityFn<R>;
   lazy?: boolean;
   memoize?: boolean;
@@ -307,7 +307,7 @@ export interface Store<T> {
 }
 
 export interface StoreActions<T> {
-  [key: string]: (...args: any[]) => void;
+  [key: string]: (...args: unknown[]) => void;
 }
 
 export interface ContextValue<T> {
@@ -317,7 +317,7 @@ export interface ContextValue<T> {
 }
 
 export interface ContextActions<T> {
-  [key: string]: (...args: any[]) => void;
+  [key: string]: (...args: unknown[]) => void;
 }
 
 export interface StateMachine<TContext, TEvent> {
@@ -336,7 +336,7 @@ export interface StateMachineState {
   entry?: string | string[];
   exit?: string | string[];
   on?: StateMachineTransitions<any>;
-  meta?: any;
+  meta?: unknown;
   tags?: string[];
 }
 
@@ -348,7 +348,7 @@ export interface StateMachineTransition {
   target: string;
   guard?: string;
   actions?: string | string[];
-  cond?: (context: any, event: any) => boolean;
+  cond?: (context: any, event: unknown) => boolean;
 }
 
 export interface StateMachineActions<TContext, TEvent> {
@@ -370,7 +370,7 @@ export interface StateMachineService<TContext, TEvent> {
   start: () => void;
   stop: () => void;
   send: (event: TEvent) => void;
-  subscribe: (listener: (state: any) => void) => () => void;
+  subscribe: (listener: (state: unknown) => void) => () => void;
 }
 
 export interface StorageAdapter {
@@ -387,7 +387,7 @@ export interface StateSerializer<T> {
 
 export interface StateValidator<T> {
   validate: (state: T) => boolean;
-  schema?: any;
+  schema?: unknown;
 }
 
 export interface StateHistory<TState, TAction> {
@@ -400,7 +400,7 @@ export interface StateHistory<TState, TAction> {
 export interface StateHistoryEntry<T> {
   state: T;
   timestamp: number;
-  action?: any;
+  action?: unknown;
 }
 
 export interface OptimisticConflict<T> {
@@ -469,10 +469,10 @@ export type EqualityFn<T = any> = (a: T, b: T) => boolean;
 export type Reducer<TState, TAction> = (state: TState, action: TAction) => TState;
 export type Dispatch<TAction> = (action: TAction) => void;
 export type Middleware<TState, TAction> = (store: MiddlewareStore<TState, TAction>) => (next: Dispatch<TAction>) => Dispatch<TAction>;
-export type StoreDispatch<T> = (action: any) => void;
-export type ContextDispatch<T> = (action: any) => void;
-export type ContextActionCreators<T> = Record<string, (...args: any[]) => any>;
-export type ContextMiddleware<T> = (store: any) => (next: any) => (action: any) => any;
+export type StoreDispatch<T> = (action: unknown) => void;
+export type ContextDispatch<T> = (action: unknown) => void;
+export type ContextActionCreators<T> = Record<string, (...args: unknown[]) => any>;
+export type ContextMiddleware<T> = (store: unknown) => (next: unknown) => (action: unknown) => any;
 export type FormValidator<T> = (values: T) => FormErrors<T> | Promise<FormErrors<T>>;
 export type ConflictResolutionStrategy<T> = 'local' | 'remote' | 'merge' | ((local: T, remote: T) => T);
 

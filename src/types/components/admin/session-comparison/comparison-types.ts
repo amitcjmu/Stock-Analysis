@@ -74,15 +74,15 @@ export interface ComparisonDifference {
 export interface ComparisonSimilarity {
   field: string;
   label: string;
-  value: any;
+  value: unknown;
   confidence: number;
   category: SimilarityCategory;
 }
 
 export interface ComparisonValue {
   sessionId: string;
-  value: any;
-  normalized?: any;
+  value: unknown;
+  normalized?: unknown;
   deviation?: number;
 }
 

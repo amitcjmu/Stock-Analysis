@@ -35,7 +35,7 @@ export interface NodePosition {
 
 export interface NodeAttribute {
   attribute: string;
-  value: any;
+  value: unknown;
   type: string;
   source: string;
   currency: string;

@@ -124,7 +124,7 @@ class HttpClient implements ApiClient {
     
     // Apply request interceptors
     let requestConfig = {
-      method: method as any,
+      method: method as unknown,
       url: fullUrl,
       data,
       headers: { ...this.config.headers, ...config.headers },
@@ -224,7 +224,7 @@ class HttpClient implements ApiClient {
     const response = await fetch(fullUrl, requestInit);
     
     // Handle different response types
-    let responseData: any;
+    let responseData: unknown;
     const contentType = response.headers.get('Content-Type');
     
     if (contentType?.includes('application/json')) {

@@ -18,7 +18,7 @@ export interface Filter {
   type: FilterType;
   field: string;
   operator?: FilterOperator;
-  value?: any;
+  value?: unknown;
   options?: FilterOption[];
   multiple?: boolean;
   clearable?: boolean;
@@ -50,7 +50,7 @@ export interface GroupConfig {
 
 export interface FilterOption {
   label: string;
-  value: any;
+  value: unknown;
   count?: number;
   disabled?: boolean;
   description?: string;

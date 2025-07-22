@@ -305,7 +305,7 @@ export interface RollbackPlan {
 
 export interface RollbackTrigger {
   type: 'performance_degradation' | 'cost_increase' | 'availability_impact' | 'manual';
-  threshold: any;
+  threshold: unknown;
   automated: boolean;
   description: string;
 }
@@ -367,7 +367,7 @@ export interface ExecutionValidation {
 export interface ValidationCriteria {
   metric: string;
   operator: string;
-  value: any;
+  value: unknown;
   tolerance: number;
   critical: boolean;
 }
@@ -382,7 +382,7 @@ export interface ExecutionMonitoring {
 export interface MonitoringAlert {
   metric: string;
   condition: string;
-  threshold: any;
+  threshold: unknown;
   severity: 'info' | 'warning' | 'error' | 'critical';
   actions: string[];
 }

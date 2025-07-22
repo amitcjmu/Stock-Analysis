@@ -101,8 +101,8 @@ export function PollingControls({
       setIsEmergencyActive(true);
       
       // Stop all frontend polling
-      if (typeof window !== 'undefined' && (window as any).stopAllPolling) {
-        (window as any).stopAllPolling();
+      if (typeof window !== 'undefined' && (window as unknown).stopAllPolling) {
+        (window as unknown).stopAllPolling();
       }
 
       // Clear all query cache to stop React Query polling
@@ -185,8 +185,8 @@ export function PollingControls({
       });
       
       // Stop all frontend polling for this flow
-      if (typeof window !== 'undefined' && (window as any).stopAllPolling) {
-        (window as any).stopAllPolling();
+      if (typeof window !== 'undefined' && (window as unknown).stopAllPolling) {
+        (window as unknown).stopAllPolling();
       }
 
       // Stop backend polling for this flow
@@ -358,8 +358,8 @@ export function PollingStatusIndicator({ flowId }: { flowId?: string }) {
   const handleQuickStop = async () => {
     try {
       // Stop all frontend polling
-      if (typeof window !== 'undefined' && (window as any).stopAllPolling) {
-        (window as any).stopAllPolling();
+      if (typeof window !== 'undefined' && (window as unknown).stopAllPolling) {
+        (window as unknown).stopAllPolling();
       }
 
       // Stop backend polling

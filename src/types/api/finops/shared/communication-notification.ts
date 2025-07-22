@@ -82,7 +82,7 @@ export interface TemplateVariable {
   name: string;
   type: 'string' | 'number' | 'date' | 'object';
   required: boolean;
-  default?: any;
+  default?: unknown;
 }
 
 export interface CommunicationSchedule {

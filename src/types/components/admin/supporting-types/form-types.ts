@@ -21,14 +21,14 @@ export interface FormField {
 
 export interface ValidationRule {
   type: ValidationType;
-  value?: any;
+  value?: unknown;
   message: string;
-  validator?: (value: any) => boolean | Promise<boolean>;
+  validator?: (value: unknown) => boolean | Promise<boolean>;
 }
 
 export interface FieldOption {
   label: string;
-  value: any;
+  value: unknown;
   disabled?: boolean;
   description?: string;
   group?: string;
@@ -37,7 +37,7 @@ export interface FieldOption {
 
 export interface FieldDependency {
   field: string;
-  value: any;
+  value: unknown;
   operation: DependencyOperation;
 }
 
@@ -50,14 +50,14 @@ export interface FieldConditional {
 export interface ConditionalExpression {
   field: string;
   operator: ConditionalOperator;
-  value: any;
+  value: unknown;
   logic?: 'and' | 'or';
   nested?: ConditionalExpression[];
 }
 
 export interface ConditionalAction {
   type: 'show' | 'hide' | 'enable' | 'disable' | 'require' | 'setValue';
-  value?: any;
+  value?: unknown;
 }
 
 // Enum and union types

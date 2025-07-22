@@ -8,7 +8,7 @@ import { CreateEngagementData, CloudProviders } from './types';
 
 interface EngagementScopeProps {
   formData: CreateEngagementData;
-  onFormChange: (field: keyof CreateEngagementData, value: any) => void;
+  onFormChange: (field: keyof CreateEngagementData, value: unknown) => void;
 }
 
 export const EngagementScope: React.FC<EngagementScopeProps> = ({

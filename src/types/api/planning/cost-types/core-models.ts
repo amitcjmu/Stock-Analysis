@@ -131,7 +131,7 @@ export interface CostAssumption {
   id: string;
   description: string;
   category: string;
-  value: any;
+  value: unknown;
   confidence: number;
   impact: AssumptionImpact;
   validation: AssumptionValidation;
@@ -144,7 +144,7 @@ export interface CostConstraint {
   id: string;
   type: 'budget' | 'timeline' | 'resource' | 'regulatory' | 'contractual';
   description: string;
-  value: any;
+  value: unknown;
   flexibility: 'fixed' | 'flexible' | 'negotiable';
   impact: ConstraintImpact;
   workaround: string;
@@ -258,7 +258,7 @@ export interface ModelStructure {
 export interface ModelParameter {
   name: string;
   type: 'input' | 'output' | 'calculated' | 'derived';
-  value: any;
+  value: unknown;
   distribution: ParameterDistribution;
   sensitivity: number;
   uncertainty: number;
@@ -419,15 +419,15 @@ export interface ConstraintImpact {
 // Scenario Supporting Types
 export interface ScenarioAssumption {
   assumption: string;
-  value: any;
+  value: unknown;
   rationale: string;
   confidence: number;
 }
 
 export interface ScenarioParameter {
   parameter: string;
-  baseValue: any;
-  scenarioValue: any;
+  baseValue: unknown;
+  scenarioValue: unknown;
   variance: number;
   impact: string;
 }

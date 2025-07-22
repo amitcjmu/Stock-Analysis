@@ -60,13 +60,13 @@ export interface ToastProps extends BaseComponentProps {
   progressColor?: string;
   toastId?: string | number;
   updateId?: string | number;
-  data?: any;
+  data?: unknown;
   role?: 'alert' | 'status';
   containerId?: string;
   onOpen?: () => void;
   hideProgressBar?: boolean;
   theme?: 'light' | 'dark' | 'colored';
-  transition?: any;
+  transition?: unknown;
   style?: React.CSSProperties;
   toastClassName?: string;
   bodyClassName?: string;

@@ -86,10 +86,10 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
     
     // Check if this is a placeholder or fallback mapping that shouldn't be approved via API
     const mapping = fieldMappings.find(m => m.id === mappingId);
-    if (mapping && ((mapping as any).is_placeholder || (mapping as any).is_fallback)) {
+    if (mapping && ((mapping as unknown).is_placeholder || (mapping as unknown).is_fallback)) {
       console.warn('Cannot approve placeholder or fallback mapping via API:', mappingId);
-      if (typeof window !== 'undefined' && (window as any).showWarningToast) {
-        (window as any).showWarningToast('This field mapping needs to be configured before approval.');
+      if (typeof window !== 'undefined' && (window as unknown).showWarningToast) {
+        (window as unknown).showWarningToast('This field mapping needs to be configured before approval.');
       }
       return;
     }

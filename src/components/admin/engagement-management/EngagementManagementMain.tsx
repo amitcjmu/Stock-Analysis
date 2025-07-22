@@ -65,7 +65,7 @@ const EngagementManagementMain: React.FC = () => {
           console.warn('⚠️ Unexpected engagements API response format:', result);
           return [];
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('❌ Error fetching engagements:', {
           error: error.message || error,
           status: error.status,
@@ -77,7 +77,7 @@ const EngagementManagementMain: React.FC = () => {
       }
     },
     initialData: [],
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error: unknown) => {
       // Only retry on network errors, not on 404/403 which are expected
       if (error.status === 404 || error.status === 403) {
         return false;
@@ -160,7 +160,7 @@ const EngagementManagementMain: React.FC = () => {
   });
 
   // Handle form changes
-  const handleFormChange = useCallback((field: keyof EngagementFormData, value: any) => {
+  const handleFormChange = useCallback((field: keyof EngagementFormData, value: unknown) => {
     setFormData(prev => ({
       ...prev,
       [field]: value

@@ -54,7 +54,7 @@ export interface QuestionResponse {
 interface QualifyingQuestionsProps {
   questions: QualifyingQuestion[];
   responses: QuestionResponse[];
-  onResponseChange: (questionId: string, response: any) => void;
+  onResponseChange: (questionId: string, response: unknown) => void;
   onSubmit: (responses: QuestionResponse[], isPartial?: boolean) => void;
   disabled?: boolean;
   showProgress?: boolean;
@@ -192,7 +192,7 @@ export const QualifyingQuestions: React.FC<QualifyingQuestionsProps> = ({
     return response?.response;
   };
 
-  const handleResponseChange = (questionId: string, value: any) => {
+  const handleResponseChange = (questionId: string, value: unknown) => {
     onResponseChange(questionId, value);
   };
 

@@ -17,7 +17,7 @@ export interface UploadedFile {
     route?: string;
     description?: string;
     isExternal?: boolean;
-    dataQualityIssues?: any[];
+    dataQualityIssues?: unknown[];
   }>;
   confidence?: number;
   detectedFileType?: string;
@@ -40,7 +40,7 @@ export interface DiscoveryFlowResponse {
   flow_id: string;
   workflow_status: string;
   current_phase: string;
-  flow_result: any;
+  flow_result: unknown;
   next_steps: {
     ready_for_assessment: boolean;
     recommended_actions: string[];
@@ -55,13 +55,13 @@ interface AnalysisStatusResponse {
   progress_percentage?: number;
   message?: string;
   // Raw agent data (pass through what CrewAI agents actually produce)
-  flow_status?: any;
-  agent_insights?: any[];
+  flow_status?: unknown;
+  agent_insights?: unknown[];
   agent_results?: Record<string, any>;
-  clarification_questions?: any[];
-  data_quality_assessment?: any;
+  clarification_questions?: unknown[];
+  data_quality_assessment?: unknown;
   field_mappings?: Record<string, any>;
-  classified_assets?: any[];
+  classified_assets?: unknown[];
   processing_summary?: {
     total_records_processed?: number;
     records_found?: number;
@@ -69,7 +69,7 @@ interface AnalysisStatusResponse {
     workflow_phase?: string;
     agent_status?: string;
   };
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // Helper function to parse CSV file into structured data
@@ -184,7 +184,7 @@ export const useDiscoveryFlowStatus = (flowId: string | null) => {
       // Use the public status endpoint that doesn't require authentication
       const response = await apiCall(
         `/api/v1/discovery/flow/agentic-analysis/status-public?flow_id=${flowId}`
-      ) as any;
+      ) as unknown;
       
       // Extract the actual workflow status from the backend response
       const flowStatus = response.flow_status || {};
@@ -316,7 +316,7 @@ export const useAuthenticatedDiscoveryStatus = (flowId: string | null) => {
             },
             credentials: 'include' // Ensure cookies are sent with the request
           }
-        ) as any;
+        ) as unknown;
         
         // Transform response to match AnalysisStatusResponse
         const flowStatus = response.flow_status || {};

@@ -16,7 +16,7 @@ export interface AgentTask {
   started_at?: string;
   completed_at?: string;
   requires_human_input?: boolean;
-  human_feedback?: any;
+  human_feedback?: unknown;
 }
 
 export interface AgentPlan {
@@ -37,8 +37,8 @@ export interface AgentPlan {
 export interface AgentPlanningDashboardProps {
   pageContext: string;
   onPlanApproval?: (planId: string, approved: boolean) => void;
-  onTaskFeedback?: (taskId: string, feedback: any) => void;
-  onHumanInput?: (taskId: string, input: any) => void;
+  onTaskFeedback?: (taskId: string, feedback: unknown) => void;
+  onHumanInput?: (taskId: string, input: unknown) => void;
   isOpen?: boolean;
   onClose?: () => void;
   triggerElement?: React.ReactNode;

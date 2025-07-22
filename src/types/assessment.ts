@@ -1,5 +1,5 @@
 export interface SixRParameters {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface SixRRecommendation {
@@ -11,7 +11,7 @@ export interface SixRRecommendation {
 
 export interface QuestionResponse {
   questionId: string;
-  response: any;
+  response: unknown;
 }
 
 export interface AnalysisProgress {

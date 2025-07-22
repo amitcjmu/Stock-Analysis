@@ -14,7 +14,7 @@ export interface AssetInventory {
   operating_system?: string;
   location?: string;
   status?: string;
-  dependencies?: any[];
+  dependencies?: unknown[];
 }
 
 export interface InventoryProgress {

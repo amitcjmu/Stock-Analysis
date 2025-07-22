@@ -285,7 +285,7 @@ interface ProgressiveLazyComponentProps {
   baseComponent: React.ComponentType<any>;
   enhancedImport: () => Promise<{ default: React.ComponentType<any> }>;
   enhancementCondition: boolean;
-  props: any;
+  props: unknown;
 }
 
 export const ProgressiveLazyComponent: React.FC<ProgressiveLazyComponentProps> = ({

@@ -75,7 +75,7 @@ export interface MetricFilter {
   type: FilterType;
   field: string;
   options?: FilterOption[];
-  value?: any;
+  value?: unknown;
   required?: boolean;
 }
 
@@ -146,14 +146,14 @@ export interface TrendForecast {
 export interface AlertCondition {
   field: string;
   operator: AlertOperator;
-  value: any;
+  value: unknown;
   duration?: number;
   consecutive?: boolean;
 }
 
 export interface FilterOption {
   label: string;
-  value: any;
+  value: unknown;
   description?: string;
   count?: number;
 }

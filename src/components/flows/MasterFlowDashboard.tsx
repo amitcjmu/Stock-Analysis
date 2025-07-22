@@ -169,7 +169,7 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
     };
 
     return (
-      <Badge variant={variants[status] as any || 'secondary'}>
+      <Badge variant={variants[status] as unknown || 'secondary'}>
         {status}
       </Badge>
     );

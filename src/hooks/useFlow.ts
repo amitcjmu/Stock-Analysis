@@ -20,7 +20,7 @@ export interface UseFlowOptions {
   autoRefresh?: boolean;
   refreshInterval?: number;
   onError?: (error: Error) => void;
-  onSuccess?: (data: any) => void;
+  onSuccess?: (data: unknown) => void;
 }
 
 export interface FlowHookState {
@@ -131,7 +131,7 @@ export function useFlow(options: UseFlowOptions = {}): [FlowHookState, FlowHookA
   }, [onError]);
 
   // Success handling
-  const handleSuccess = useCallback((data: any) => {
+  const handleSuccess = useCallback((data: unknown) => {
     if (!mountedRef.current) return;
     
     setState(prev => ({

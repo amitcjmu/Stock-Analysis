@@ -150,7 +150,7 @@ const AgentUIMonitor: React.FC<AgentUIMonitorProps> = ({
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
               <div className="text-2xl font-bold text-green-600">
-                {Object.values(agents).filter((a: any) => a.status === 'idle').length}
+                {Object.values(agents).filter((a: unknown) => a.status === 'idle').length}
               </div>
               <div className="text-xs text-gray-600">Ready</div>
             </div>

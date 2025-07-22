@@ -17,8 +17,8 @@ export interface UseDisclosureReturn {
   onOpen: () => void;
   onClose: () => void;
   onToggle: () => void;
-  getButtonProps: (props?: any) => any;
-  getDisclosureProps: (props?: any) => any;
+  getButtonProps: (props?: unknown) => any;
+  getDisclosureProps: (props?: unknown) => any;
 }
 
 export interface UseModalParams {
@@ -36,9 +36,9 @@ export interface UseModalReturn {
   onOpen: () => void;
   onClose: () => void;
   onToggle: () => void;
-  getModalProps: (props?: any) => any;
-  getOverlayProps: (props?: any) => any;
-  getDialogProps: (props?: any) => any;
+  getModalProps: (props?: unknown) => any;
+  getOverlayProps: (props?: unknown) => any;
+  getDialogProps: (props?: unknown) => any;
 }
 
 export interface UseTooltipParams {
@@ -58,9 +58,9 @@ export interface UseTooltipReturn {
   onOpen: () => void;
   onClose: () => void;
   onToggle: () => void;
-  getTriggerProps: (props?: any) => any;
-  getTooltipProps: (props?: any) => any;
-  getArrowProps: (props?: any) => any;
+  getTriggerProps: (props?: unknown) => any;
+  getTooltipProps: (props?: unknown) => any;
+  getArrowProps: (props?: unknown) => any;
 }
 
 export interface UseDropdownParams {
@@ -73,7 +73,7 @@ export interface UseDropdownParams {
   defaultIsOpen?: boolean;
   onOpen?: () => void;
   onClose?: () => void;
-  onSelect?: (value: any) => void;
+  onSelect?: (value: unknown) => void;
 }
 
 export interface UseDropdownReturn {
@@ -83,7 +83,7 @@ export interface UseDropdownReturn {
   onToggle: () => void;
   selectedIndex: number;
   setSelectedIndex: (index: number) => void;
-  getTriggerProps: (props?: any) => any;
-  getMenuProps: (props?: any) => any;
+  getTriggerProps: (props?: unknown) => any;
+  getMenuProps: (props?: unknown) => any;
   getItemProps: (props?: any, index?: number) => any;
 }

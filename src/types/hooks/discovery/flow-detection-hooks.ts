@@ -36,7 +36,7 @@ export interface UseFlowDetectionReturn {
   refetch: () => Promise<any>;
   detectFlows: (dataImportId: string) => Promise<DetectedFlow[]>;
   selectFlow: (flowId: string) => Promise<void>;
-  createFlowFromTemplate: (templateId: string, data: any) => Promise<DetectedFlow>;
+  createFlowFromTemplate: (templateId: string, data: unknown) => Promise<DetectedFlow>;
   customizeFlow: (flowId: string, customizations: FlowCustomization) => Promise<DetectedFlow>;
   validateFlow: (flowId: string) => Promise<FlowValidation>;
   previewFlow: (flowId: string) => Promise<FlowPreview>;
@@ -267,7 +267,7 @@ export interface FlowDetectionAnalytics {
 export interface FlowDetectionActions {
   detect: (dataImportId: string, options?: DetectionOptions) => Promise<DetectedFlow[]>;
   select: (flowId: string) => Promise<void>;
-  create: (template: FlowTemplate, data: any) => Promise<DetectedFlow>;
+  create: (template: FlowTemplate, data: unknown) => Promise<DetectedFlow>;
   customize: (flowId: string, customizations: FlowCustomization) => Promise<DetectedFlow>;
   validate: (flowId: string) => Promise<FlowValidation>;
   preview: (flowId: string) => Promise<FlowPreview>;
@@ -442,13 +442,13 @@ export type CustomizationType = 'parameter' | 'phase' | 'validation' | 'transfor
 export interface FlowDetectionFilter {
   field: string;
   operator: FilterOperator;
-  value: any;
+  value: unknown;
 }
 
 export interface ImportDataFilter {
   field: string;
   operator: FilterOperator;
-  value: any;
+  value: unknown;
 }
 
 export type FilterOperator = 'equals' | 'not_equals' | 'contains' | 'not_contains' | 'in' | 'not_in' | 'greater_than' | 'less_than';

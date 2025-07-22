@@ -219,7 +219,7 @@ export interface TaskResource {
 
 export interface TaskConstraint {
   type: string;
-  value: any;
+  value: unknown;
   description: string;
   impact: string;
 }
@@ -252,8 +252,8 @@ export interface MilestoneCriteria {
   id: string;
   description: string;
   measurable: boolean;
-  target: any;
-  achieved?: any;
+  target: unknown;
+  achieved?: unknown;
   status: 'pending' | 'met' | 'not_met';
 }
 
@@ -354,9 +354,9 @@ export interface Holiday {
 export interface WorkingCalendar {
   name: string;
   workingDays: string[];
-  workingHours: any;
+  workingHours: unknown;
   holidays: Holiday[];
-  exceptions: any[];
+  exceptions: unknown[];
   timeZone: string;
 }
 
@@ -364,39 +364,39 @@ export interface WorkingCalendar {
 export interface CriticalPathAnalysis {
   criticalPath: string[];
   totalDuration: number;
-  criticalTasks: any[];
-  nearCriticalPaths: any[];
-  floatAnalysis: any;
-  bottlenecks: any[];
-  optimizationOpportunities: any[];
+  criticalTasks: unknown[];
+  nearCriticalPaths: unknown[];
+  floatAnalysis: unknown;
+  bottlenecks: unknown[];
+  optimizationOpportunities: unknown[];
 }
 
 export interface TimelineVisualization {
   viewType: 'gantt' | 'calendar' | 'kanban' | 'milestone';
   granularity: 'day' | 'week' | 'month' | 'quarter';
-  data: any;
-  layout: any;
-  styling: any;
-  interactions: any[];
+  data: unknown;
+  layout: unknown;
+  styling: unknown;
+  interactions: unknown[];
 }
 
 export interface SlackAnalysis {
   totalSlack: number;
   freeSlack: number;
-  tasks: any[];
-  phases: any[];
+  tasks: unknown[];
+  phases: unknown[];
   criticalPath: boolean;
-  slackDistribution: any;
-  riskAreas: any[];
+  slackDistribution: unknown;
+  riskAreas: unknown[];
 }
 
 export interface ResourceUtilization {
   overallUtilization: number;
-  byResource: any[];
-  byPeriod: any[];
+  byResource: unknown[];
+  byPeriod: unknown[];
   conflicts: ResourceConflict[];
-  optimization: any[];
-  forecasts: any[];
+  optimization: unknown[];
+  forecasts: unknown[];
 }
 
 export interface ResourceConflict {
@@ -406,7 +406,7 @@ export interface ResourceConflict {
   affectedTasks: string[];
   startDate: string;
   endDate: string;
-  resolution: any[];
+  resolution: unknown[];
 }
 
 export interface TimelineImpactAnalysis {
@@ -414,30 +414,30 @@ export interface TimelineImpactAnalysis {
   affectedItems: string[];
   durationImpact: number;
   costImpact: number;
-  resourceImpact: any[];
-  milestoneImpact: any[];
-  riskImpact: any[];
-  recommendations: any[];
+  resourceImpact: unknown[];
+  milestoneImpact: unknown[];
+  riskImpact: unknown[];
+  recommendations: unknown[];
 }
 
 export interface TimelineFeasibility {
   overallFeasibility: 'high' | 'medium' | 'low' | 'not_feasible';
-  durationFeasibility: any;
-  resourceFeasibility: any;
-  dependencyFeasibility: any;
-  constraintFeasibility: any;
-  riskFeasibility: any;
-  recommendations: any[];
+  durationFeasibility: unknown;
+  resourceFeasibility: unknown;
+  dependencyFeasibility: unknown;
+  constraintFeasibility: unknown;
+  riskFeasibility: unknown;
+  recommendations: unknown[];
 }
 
 export interface TimelineOptimization {
   currentDuration: number;
   optimizedDuration: number;
   savings: number;
-  optimizations: any[];
-  tradeoffs: any[];
+  optimizations: unknown[];
+  tradeoffs: unknown[];
   alternatives: TimelineAlternative[];
-  recommendations: any[];
+  recommendations: unknown[];
 }
 
 export interface TimelineAlternative {
@@ -466,7 +466,7 @@ export interface ResourceAvailability {
   resourceName: string;
   type: string;
   capacity: number;
-  periods: any[];
+  periods: unknown[];
   constraints: string[];
   cost: number;
 }
@@ -476,13 +476,13 @@ export interface TimelineResource {
   name: string;
   type: 'human' | 'equipment' | 'material' | 'facility' | 'external';
   capacity: number;
-  availability: any[];
-  cost: any;
+  availability: unknown[];
+  cost: unknown;
   skills: string[];
   location: string;
   calendar: WorkingCalendar;
-  constraints: any[];
-  assignments: any[];
+  constraints: unknown[];
+  assignments: unknown[];
 }
 
 export interface ResourceImpact {

@@ -23,7 +23,7 @@ export interface CriticalAttribute {
 export interface CriticalAttributesResult {
   criticalAttributes: CriticalAttribute[];
   isCriticalAttributesLoading: boolean;
-  criticalAttributesError: any;
+  criticalAttributesError: unknown;
   refetchCriticalAttributes: () => Promise<any>;
 }
 
@@ -33,7 +33,7 @@ export interface CriticalAttributesResult {
  */
 export const useCriticalAttributes = (
   finalFlowId: string | null,
-  realFieldMappings: any[],
+  realFieldMappings: unknown[],
   fieldMappings: FieldMapping[],
   fieldMappingData: any
 ): CriticalAttributesResult => {
@@ -131,7 +131,7 @@ export const useCriticalAttributes = (
           all_target_fields: realFieldMappings.map(m => m.target_field?.toLowerCase()).sort()
         });
         
-        const criticalMappings = realFieldMappings.filter((mapping: any) => 
+        const criticalMappings = realFieldMappings.filter((mapping: unknown) => 
           criticalFieldsForMigration.includes(mapping.target_field?.toLowerCase())
         );
         
@@ -141,7 +141,7 @@ export const useCriticalAttributes = (
           critical_mapping_targets: criticalMappings.map(m => m.target_field?.toLowerCase())
         });
         
-        const criticalAttrs = criticalMappings.map((mapping: any) => ({
+        const criticalAttrs = criticalMappings.map((mapping: unknown) => ({
           name: mapping.target_field,
           description: `${mapping.target_field} mapped from source field "${mapping.source_field}"`,
           category: 'technical',
@@ -181,17 +181,17 @@ export const useCriticalAttributes = (
         });
         
         // PRIMARY: Use exact same logic as dashboard mappingProgress calculation
-        const exactCriticalMappings = fieldMappings.filter((m: any) => 
+        const exactCriticalMappings = fieldMappings.filter((m: unknown) => 
           criticalFieldsForMigration.includes(m.targetAttribute?.toLowerCase()) && m.status === 'approved'
         );
         
         // SECONDARY: Also include pending critical mappings (not just approved ones)
-        const pendingCriticalMappings = fieldMappings.filter((m: any) => 
+        const pendingCriticalMappings = fieldMappings.filter((m: unknown) => 
           criticalFieldsForMigration.includes(m.targetAttribute?.toLowerCase()) && m.status !== 'approved' && m.status !== 'deleted'
         );
         
         // TERTIARY: Enhanced matching logic for other important fields
-        const otherImportantMappings = fieldMappings.filter((mapping: any) => {
+        const otherImportantMappings = fieldMappings.filter((mapping: unknown) => {
           const targetField = mapping.targetAttribute?.toLowerCase();
           
           // Skip unmapped or null target fields
@@ -248,7 +248,7 @@ export const useCriticalAttributes = (
           }))
         });
         
-        const criticalAttrs = criticalMappings.map((mapping: any) => ({
+        const criticalAttrs = criticalMappings.map((mapping: unknown) => ({
           name: mapping.targetAttribute,
           description: `${mapping.targetAttribute} mapped from source field "${mapping.sourceField}"`,
           category: 'technical',
@@ -305,14 +305,14 @@ export const useCriticalAttributes = (
         });
         
         // Convert all field mappings to critical attributes, but only those with valid targets
-        const mappedFieldMappings = fieldMappings.filter((mapping: any) => 
+        const mappedFieldMappings = fieldMappings.filter((mapping: unknown) => 
           mapping.targetAttribute && 
           mapping.targetAttribute !== 'null' && 
           mapping.mapping_type !== 'unmapped' &&
           mapping.status !== 'deleted'
         );
         
-        const allCriticalAttrs = mappedFieldMappings.map((mapping: any) => ({
+        const allCriticalAttrs = mappedFieldMappings.map((mapping: unknown) => ({
           name: mapping.targetAttribute,
           description: `${mapping.targetAttribute} mapped from source field "${mapping.sourceField}"`,
           category: 'technical',

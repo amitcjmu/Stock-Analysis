@@ -89,7 +89,7 @@ class FlowDeletionService {
   /**
    * Analyze individual flow for deletion eligibility
    */
-  private analyzeFlowForDeletion(flow: any): FlowDeletionCandidate | null {
+  private analyzeFlowForDeletion(flow: unknown): FlowDeletionCandidate | null {
     const now = new Date();
     const updatedAt = new Date(flow.updated_at || flow.updatedAt);
     const daysSinceUpdate = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24);
@@ -236,7 +236,7 @@ class FlowDeletionService {
       }, {} as Record<string, number>);
 
       Object.entries(reasonGroups).forEach(([reason, count]) => {
-        message += `• ${this.getReasonDescription(reason as any)}: ${count} flows\n`;
+        message += `• ${this.getReasonDescription(reason as unknown)}: ${count} flows\n`;
       });
       
       message += `\nOldest flows:\n`;

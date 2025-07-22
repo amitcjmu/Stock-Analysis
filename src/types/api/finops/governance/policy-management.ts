@@ -119,7 +119,7 @@ export interface GovernanceRule {
 export interface RuleCondition {
   operator: 'equals' | 'not_equals' | 'greater_than' | 'less_than' | 'contains' | 'not_contains' | 'in' | 'not_in';
   field: string;
-  value: any;
+  value: unknown;
   threshold?: number;
   timeWindow?: string;
   aggregation?: 'sum' | 'avg' | 'max' | 'min' | 'count';
@@ -191,7 +191,7 @@ export interface PolicyException {
 export interface ExceptionCondition {
   type: 'time_based' | 'value_based' | 'event_based' | 'approval_based';
   condition: string;
-  value?: any;
+  value?: unknown;
   monitoring: boolean;
 }
 
@@ -304,18 +304,18 @@ export interface EnforcementIssue {
 export interface PolicyEnforcement {
   mode: 'monitoring' | 'advisory' | 'preventive' | 'corrective';
   strictness: 'lenient' | 'moderate' | 'strict' | 'rigid';
-  automation: any;
-  notifications: any[];
-  escalation: any;
-  exceptions: any[];
+  automation: unknown;
+  notifications: unknown[];
+  escalation: unknown;
+  exceptions: unknown[];
 }
 
 export interface EnforcementPlan {
-  strategy: any;
-  phases: any[];
-  automation: any;
-  monitoring: any;
-  escalation: any;
+  strategy: unknown;
+  phases: unknown[];
+  automation: unknown;
+  monitoring: unknown;
+  escalation: unknown;
 }
 
 export interface ComplianceCheck {
@@ -324,12 +324,12 @@ export interface ComplianceCheck {
   type: 'automated' | 'manual' | 'hybrid';
   frequency: string;
   scope: string[];
-  criteria: any[];
-  remediation: any;
+  criteria: unknown[];
+  remediation: unknown;
 }
 
 export interface AuditTrail {
-  entries: any[];
+  entries: unknown[];
   retention: string;
-  compliance: any;
+  compliance: unknown;
 }

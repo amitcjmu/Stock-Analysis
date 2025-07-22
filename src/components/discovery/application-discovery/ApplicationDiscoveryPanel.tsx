@@ -43,7 +43,7 @@ interface Application {
 
 interface ApplicationDiscoveryPanelProps {
   onApplicationSelect?: (application: Application) => void;
-  onValidationSubmit?: (applicationId: string, validation: any) => void;
+  onValidationSubmit?: (applicationId: string, validation: unknown) => void;
 }
 
 const ApplicationDiscoveryPanel: React.FC<ApplicationDiscoveryPanelProps> = ({

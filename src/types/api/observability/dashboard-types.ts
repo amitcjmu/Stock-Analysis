@@ -158,7 +158,7 @@ export interface DashboardValidation {
 
 export interface WidgetData {
   widgetId: string;
-  data: any;
+  data: unknown;
   metadata: WidgetMetadata;
   status: 'loading' | 'success' | 'error' | 'empty';
   error?: string;
@@ -290,7 +290,7 @@ export interface WidgetMetadata {
 export interface DashboardVariable {
   name: string;
   type: 'text' | 'select' | 'multiselect' | 'date' | 'timerange' | 'number';
-  value: any;
+  value: unknown;
   options?: VariableOption[];
   query?: string;
   refresh: 'never' | 'onload' | 'onchange';
@@ -488,7 +488,7 @@ export interface DashboardPerformanceMetrics {
 
 export interface VariableOption {
   text: string;
-  value: any;
+  value: unknown;
   selected: boolean;
 }
 
@@ -523,7 +523,7 @@ export interface AggregationOperation {
 export interface FilterOperation {
   field: string;
   operator: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'nin' | 'contains' | 'regex';
-  value: any;
+  value: unknown;
 }
 
 export interface SortOperation {

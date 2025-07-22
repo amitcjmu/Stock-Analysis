@@ -14,19 +14,19 @@ import { SixRStatusAlert } from '../SixRStatusAlert';
 
 // Mock the UI components
 jest.mock('@/components/ui/card', () => ({
-  Card: ({ children, ...props }: any) => <div data-testid="card" {...props}>{children}</div>,
-  CardContent: ({ children, ...props }: any) => <div data-testid="card-content" {...props}>{children}</div>,
-  CardDescription: ({ children, ...props }: any) => <div data-testid="card-description" {...props}>{children}</div>,
-  CardHeader: ({ children, ...props }: any) => <div data-testid="card-header" {...props}>{children}</div>,
-  CardTitle: ({ children, ...props }: any) => <div data-testid="card-title" {...props}>{children}</div>,
+  Card: ({ children, ...props }: unknown) => <div data-testid="card" {...props}>{children}</div>,
+  CardContent: ({ children, ...props }: unknown) => <div data-testid="card-content" {...props}>{children}</div>,
+  CardDescription: ({ children, ...props }: unknown) => <div data-testid="card-description" {...props}>{children}</div>,
+  CardHeader: ({ children, ...props }: unknown) => <div data-testid="card-header" {...props}>{children}</div>,
+  CardTitle: ({ children, ...props }: unknown) => <div data-testid="card-title" {...props}>{children}</div>,
 }));
 
 jest.mock('@/components/ui/badge', () => ({
-  Badge: ({ children, className, ...props }: any) => <span className={className} data-testid="badge" {...props}>{children}</span>
+  Badge: ({ children, className, ...props }: unknown) => <span className={className} data-testid="badge" {...props}>{children}</span>
 }));
 
 jest.mock('@/components/ui/button', () => ({
-  Button: ({ children, onClick, disabled, ...props }: any) => (
+  Button: ({ children, onClick, disabled, ...props }: unknown) => (
     <button onClick={onClick} disabled={disabled} data-testid="button" {...props}>
       {children}
     </button>

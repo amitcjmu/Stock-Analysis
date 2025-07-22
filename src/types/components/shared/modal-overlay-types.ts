@@ -87,5 +87,5 @@ export interface TooltipProps extends BaseComponentProps {
   floating?: RefObject<HTMLElement>;
   portal?: boolean;
   portalContainer?: HTMLElement;
-  middlewares?: any[];
+  middlewares?: unknown[];
 }

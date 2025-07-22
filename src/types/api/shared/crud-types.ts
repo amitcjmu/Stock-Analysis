@@ -100,8 +100,8 @@ export interface DeleteResponse extends BaseApiResponse<void> {
 
 export interface ConflictInfo {
   field: string;
-  currentValue: any;
-  attemptedValue: any;
+  currentValue: unknown;
+  attemptedValue: unknown;
   resolution: string;
 }
 

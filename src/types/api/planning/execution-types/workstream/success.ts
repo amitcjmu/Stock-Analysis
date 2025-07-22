@@ -18,8 +18,8 @@ export interface SuccessCriteria {
   criteria: string;
   description: string;
   measurable: boolean;
-  target: any;
-  threshold: any;
+  target: unknown;
+  threshold: unknown;
   verification: string;
 }
 

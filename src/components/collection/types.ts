@@ -74,7 +74,7 @@ export type FieldType =
   | 'file';
 
 export interface CollectionFormData {
-  [fieldId: string]: any;
+  [fieldId: string]: unknown;
 }
 
 export interface ValidationError {
@@ -92,7 +92,7 @@ export interface FieldValidationResult {
   resultType: 'valid' | 'invalid' | 'warning' | 'conditional';
   errors: ValidationError[];
   warnings: ValidationError[];
-  normalizedValue: any;
+  normalizedValue: unknown;
   confidenceScore: number;
 }
 
@@ -110,7 +110,7 @@ export interface FormValidationResult {
 export interface AdaptiveFormProps {
   formData: AdaptiveFormData;
   initialValues?: CollectionFormData;
-  onFieldChange: (fieldId: string, value: any) => void;
+  onFieldChange: (fieldId: string, value: unknown) => void;
   onSubmit: (data: CollectionFormData) => Promise<void>;
   onValidationChange?: (validation: FormValidationResult) => void;
   bulkMode?: boolean;
@@ -121,7 +121,7 @@ export interface AdaptiveFormProps {
 export interface BulkDataGridProps {
   applications: ApplicationSummary[];
   fields: FormField[];
-  onDataChange: (applicationId: string, fieldId: string, value: any) => void;
+  onDataChange: (applicationId: string, fieldId: string, value: unknown) => void;
   onBulkUpload?: (file: File) => Promise<void>;
   templateOptions?: TemplateOption[];
   className?: string;
@@ -188,8 +188,8 @@ export interface BulkUploadResult {
 // Form field component props
 export interface FormFieldProps {
   field: FormField;
-  value: any;
-  onChange: (value: any) => void;
+  value: unknown;
+  onChange: (value: unknown) => void;
   validation?: FieldValidationResult;
   disabled?: boolean;
   className?: string;
@@ -221,7 +221,7 @@ export interface DataConflict {
 }
 
 export interface ConflictingValue {
-  value: any;
+  value: unknown;
   source: 'automated' | 'manual' | 'bulk' | 'template';
   sourceId: string;
   confidenceScore: number;
@@ -229,7 +229,7 @@ export interface ConflictingValue {
 }
 
 export interface ConflictResolution {
-  selectedValue: any;
+  selectedValue: unknown;
   selectedSource: string;
   userJustification?: string;
 }

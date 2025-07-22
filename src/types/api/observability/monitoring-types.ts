@@ -165,7 +165,7 @@ export interface ConfigurationValidation {
   rule: string;
   status: 'passed' | 'failed' | 'warning';
   message: string;
-  details?: any;
+  details?: unknown;
 }
 
 export interface MonitoringCost {
@@ -338,13 +338,13 @@ export interface EscalationLevel {
 export interface NotificationCondition {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
 }
 
 export interface SuppressionCondition {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
 }
 
 export interface DeploymentTask {

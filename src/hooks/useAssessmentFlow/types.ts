@@ -108,7 +108,7 @@ export interface UseAssessmentFlowReturn {
   
   // Flow control
   initializeFlow: (selectedAppIds: string[]) => Promise<void>;
-  resumeFlow: (userInput: any) => Promise<void>;
+  resumeFlow: (userInput: unknown) => Promise<void>;
   navigateToPhase: (phase: AssessmentPhase) => Promise<void>;
   finalizeAssessment: () => Promise<void>;
   

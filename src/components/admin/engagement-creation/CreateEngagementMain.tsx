@@ -31,28 +31,28 @@ export const CreateEngagementMain: React.FC = () => {
       // Handle different response formats
       if (result && Array.isArray(result)) {
         console.log('✅ Using direct array format for clients');
-        return result.map((client: any) => ({
+        return result.map((client: unknown) => ({
           id: client.id,
           account_name: client.account_name,
           industry: client.industry
         }));
       } else if (result && result.items && Array.isArray(result.items)) {
         console.log('✅ Using items array format for clients');
-        return result.items.map((client: any) => ({
+        return result.items.map((client: unknown) => ({
           id: client.id,
           account_name: client.account_name,
           industry: client.industry
         }));
       } else if (result && result.clients && Array.isArray(result.clients)) {
         console.log('✅ Using clients array format for clients');
-        return result.clients.map((client: any) => ({
+        return result.clients.map((client: unknown) => ({
           id: client.id,
           account_name: client.account_name,
           industry: client.industry
         }));
       } else if (result && result.data && Array.isArray(result.data)) {
         console.log('✅ Using data array format for clients');
-        return result.data.map((client: any) => ({
+        return result.data.map((client: unknown) => ({
           id: client.id,
           account_name: client.account_name,
           industry: client.industry
@@ -75,7 +75,7 @@ export const CreateEngagementMain: React.FC = () => {
 
   // Server state: useMutation for API interaction
   const createEngagementMutation = useMutation({
-    mutationFn: async (submissionData: any) => {
+    mutationFn: async (submissionData: unknown) => {
       return await apiCall('/admin/engagements/', {
         method: 'POST',
         headers: {
@@ -92,7 +92,7 @@ export const CreateEngagementMain: React.FC = () => {
       });
       navigate('/admin/engagements');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Error",
         description: error?.message || "Failed to create engagement. Please try again.",
@@ -125,7 +125,7 @@ export const CreateEngagementMain: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Simple form handler - no useCallback to prevent re-renders
-  const handleFormChange = (field: keyof CreateEngagementData, value: any) => {
+  const handleFormChange = (field: keyof CreateEngagementData, value: unknown) => {
     setFormData(prev => ({
       ...prev,
       [field]: value

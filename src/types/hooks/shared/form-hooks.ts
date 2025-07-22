@@ -11,33 +11,33 @@ export interface UseFormParams<TFieldValues = any> {
   mode?: 'onSubmit' | 'onBlur' | 'onChange' | 'onTouched' | 'all';
   reValidateMode?: 'onSubmit' | 'onBlur' | 'onChange';
   defaultValues?: Partial<TFieldValues>;
-  resolver?: any;
-  context?: any;
+  resolver?: unknown;
+  context?: unknown;
   criteriaMode?: 'firstError' | 'all';
   shouldFocusError?: boolean;
   shouldUnregister?: boolean;
   shouldUseNativeValidation?: boolean;
   delayError?: number;
-  onSubmit?: (data: TFieldValues, event?: any) => void | Promise<void>;
-  onError?: (errors: any, event?: any) => void;
+  onSubmit?: (data: TFieldValues, event?: unknown) => void | Promise<void>;
+  onError?: (errors: any, event?: unknown) => void;
   onReset?: (data?: TFieldValues) => void;
-  onInvalid?: (errors: any, event?: any) => void;
+  onInvalid?: (errors: any, event?: unknown) => void;
 }
 
 export interface UseFormReturn<TFieldValues = any> {
-  control: any;
-  handleSubmit: (onValid: (data: TFieldValues, event?: any) => void | Promise<void>, onInvalid?: (errors: any, event?: any) => void) => (event?: any) => Promise<void>;
-  reset: (values?: Partial<TFieldValues>, options?: any) => void;
-  setError: (name: string, error: any, options?: any) => void;
+  control: unknown;
+  handleSubmit: (onValid: (data: TFieldValues, event?: unknown) => void | Promise<void>, onInvalid?: (errors: any, event?: unknown) => void) => (event?: unknown) => Promise<void>;
+  reset: (values?: Partial<TFieldValues>, options?: unknown) => void;
+  setError: (name: string, error: any, options?: unknown) => void;
   clearErrors: (name?: string | string[]) => void;
-  setValue: (name: string, value: any, options?: any) => void;
+  setValue: (name: string, value: any, options?: unknown) => void;
   getValue: (name: string) => any;
   getValues: (names?: string | string[]) => any;
   trigger: (name?: string | string[]) => Promise<boolean>;
-  unregister: (name?: string | string[], options?: any) => void;
-  watch: (name?: string | string[] | ((data: any, options: any) => any), defaultValue?: any) => any;
+  unregister: (name?: string | string[], options?: unknown) => void;
+  watch: (name?: string | string[] | ((data: any, options: unknown) => any), defaultValue?: unknown) => any;
   formState: FormState<TFieldValues>;
-  register: (name: string, options?: any) => any;
+  register: (name: string, options?: unknown) => any;
 }
 
 export interface FormState<TFieldValues = any> {
@@ -51,14 +51,14 @@ export interface FormState<TFieldValues = any> {
   submitCount: number;
   dirtyFields: Partial<Record<string, boolean>>;
   touchedFields: Partial<Record<string, boolean>>;
-  errors: any;
+  errors: unknown;
   defaultValues?: Partial<TFieldValues>;
 }
 
 export interface UseFieldParams {
   name: string;
-  defaultValue?: any;
-  rules?: any;
+  defaultValue?: unknown;
+  rules?: unknown;
   shouldUnregister?: boolean;
   disabled?: boolean;
 }
@@ -66,16 +66,16 @@ export interface UseFieldParams {
 export interface UseFieldReturn {
   field: {
     name: string;
-    value: any;
-    onChange: (value: any) => void;
+    value: unknown;
+    onChange: (value: unknown) => void;
     onBlur: () => void;
-    ref: any;
+    ref: unknown;
   };
   fieldState: {
     invalid: boolean;
     isTouched: boolean;
     isDirty: boolean;
-    error?: any;
+    error?: unknown;
   };
   formState: FormState;
 }

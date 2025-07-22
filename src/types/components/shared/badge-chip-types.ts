@@ -27,8 +27,8 @@ export interface BadgeProps extends BaseComponentProps {
   };
   component?: keyof JSX.IntrinsicElements | React.ComponentType<any>;
   slotProps?: {
-    root?: any;
-    badge?: any;
+    root?: unknown;
+    badge?: unknown;
   };
 }
 

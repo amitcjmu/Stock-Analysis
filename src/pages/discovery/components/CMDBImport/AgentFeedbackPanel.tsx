@@ -22,7 +22,7 @@ import {
 
 interface AgentFeedbackPanelProps {
   flowId: string;
-  statusData: any;
+  statusData: unknown;
 }
 
 const AgentFeedbackPanel: React.FC<AgentFeedbackPanelProps> = ({

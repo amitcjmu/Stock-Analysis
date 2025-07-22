@@ -101,7 +101,7 @@ export class AgentObservabilityService {
   /**
    * Transform API response to UI-friendly agent card data
    */
-  transformToAgentCardData(response: any): AgentCardData[] {
+  transformToAgentCardData(response: unknown): AgentCardData[] {
     if (!response.success || !response.agents_by_phase) {
       return [];
     }
@@ -111,9 +111,9 @@ export class AgentObservabilityService {
     // Iterate through all phases and extract agent data
     for (const [phaseName, phaseData] of Object.entries(response.agents_by_phase)) {
       if (phaseData && typeof phaseData === 'object' && 'agents' in phaseData) {
-        const phaseAgents = (phaseData as any).agents;
+        const phaseAgents = (phaseData as unknown).agents;
         
-        phaseAgents.forEach((agent: any) => {
+        phaseAgents.forEach((agent: unknown) => {
           agents.push({
             id: agent.agent_id || agent.name,
             name: agent.name,
@@ -134,7 +134,7 @@ export class AgentObservabilityService {
   /**
    * Parse success rate from different formats
    */
-  private parseSuccessRate(successRate: any): number {
+  private parseSuccessRate(successRate: unknown): number {
     if (typeof successRate === 'number') {
       return successRate;
     }
@@ -153,7 +153,7 @@ export class AgentObservabilityService {
   /**
    * Parse task count from different formats
    */
-  private parseTaskCount(taskCount: any): number {
+  private parseTaskCount(taskCount: unknown): number {
     if (typeof taskCount === 'number') {
       return taskCount;
     }
@@ -169,7 +169,7 @@ export class AgentObservabilityService {
   /**
    * Parse average duration from different formats
    */
-  private parseAvgDuration(avgDuration: any): number {
+  private parseAvgDuration(avgDuration: unknown): number {
     if (typeof avgDuration === 'number') {
       return avgDuration;
     }

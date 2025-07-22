@@ -45,22 +45,23 @@ export const useClientOperations = () => {
       } else {
         throw new Error(response.message || 'Failed to create client');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating client:', error);
       
-      let errorMessage = error.message || "Failed to create client. Please try again.";
-      if (error.response && error.response.detail) {
-        if (Array.isArray(error.response.detail)) {
-          const validationErrors = error.response.detail.map((d: any) => {
+      const err = error as { message?: string; response?: { detail?: unknown } };
+      let errorMessage = err.message || "Failed to create client. Please try again.";
+      if (err.response && err.response.detail) {
+        if (Array.isArray(err.response.detail)) {
+          const validationErrors = err.response.detail.map((d: Record<string, unknown>) => {
             if (d.loc && d.msg) {
-              const field = d.loc[d.loc.length - 1];
+              const field = Array.isArray(d.loc) ? d.loc[d.loc.length - 1] : d.loc;
               return `${field}: ${d.msg}`;
             }
             return d.msg || d.message || JSON.stringify(d);
           });
           errorMessage = validationErrors.join(', ');
         } else {
-          errorMessage = error.response.detail;
+          errorMessage = String(err.response.detail);
         }
       }
       
@@ -108,15 +109,16 @@ export const useClientOperations = () => {
       } else {
         throw new Error(response.message || 'Failed to update client');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating client:', error);
       
-      let errorMessage = error.message || "Failed to update client. Please try again.";
-      if (error.response && error.response.detail) {
-        if (Array.isArray(error.response.detail)) {
-          errorMessage = error.response.detail.map((d: any) => d.msg || d.message || JSON.stringify(d)).join(', ');
+      const err = error as { message?: string; response?: { detail?: unknown } };
+      let errorMessage = err.message || "Failed to update client. Please try again.";
+      if (err.response && err.response.detail) {
+        if (Array.isArray(err.response.detail)) {
+          errorMessage = err.response.detail.map((d: Record<string, unknown>) => d.msg || d.message || JSON.stringify(d)).join(', ');
         } else {
-          errorMessage = error.response.detail;
+          errorMessage = String(err.response.detail);
         }
       }
       
@@ -160,12 +162,13 @@ export const useClientOperations = () => {
       } else {
         throw new Error(response.message || 'Failed to delete client');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting client:', error);
       
-      let errorMessage = error.message || "Failed to delete client. Please try again.";
-      if (error.response && error.response.detail) {
-        errorMessage = error.response.detail;
+      const err = error as { message?: string; response?: { detail?: unknown } };
+      let errorMessage = err.message || "Failed to delete client. Please try again.";
+      if (err.response && err.response.detail) {
+        errorMessage = String(err.response.detail);
       }
       
       toast({

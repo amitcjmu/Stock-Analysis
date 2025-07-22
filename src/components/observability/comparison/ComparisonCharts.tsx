@@ -24,7 +24,7 @@ export const SuccessRateTrendChart: React.FC<ComparisonChartsProps> = ({ compari
     const maxLength = Math.max(...comparisonData.map(agent => agent.trends.timestamps.length));
     
     return Array.from({ length: maxLength }, (_, index) => {
-      const dataPoint: any = { index };
+      const dataPoint: unknown = { index };
       
       comparisonData.forEach(agent => {
         if (agent.trends.timestamps[index]) {
@@ -70,7 +70,7 @@ export const SuccessRateTrendChart: React.FC<ComparisonChartsProps> = ({ compari
 export const PerformanceRadarChart: React.FC<ComparisonChartsProps> = ({ comparisonData }) => {
   const radarData = useMemo(() => {
     return COMPARISON_METRICS.slice(0, 6).map(metric => {
-      const dataPoint: any = { metric: metric.label };
+      const dataPoint: unknown = { metric: metric.label };
       
       comparisonData.forEach(agent => {
         const value = agent.metrics[metric.key];

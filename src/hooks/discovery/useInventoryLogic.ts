@@ -31,8 +31,8 @@ export const useInventoryLogic = (flowId?: string) => {
   const summary = { total: flowAssets.length };
   const inventoryProgress = {
     total_assets: flowAssets.length,
-    classified_assets: flowAssets.filter((asset: any) => asset.asset_type).length,
-    classification_accuracy: flowAssets.length > 0 ? (flowAssets.filter((asset: any) => asset.asset_type).length / flowAssets.length) * 100 : 0
+    classified_assets: flowAssets.filter((asset: unknown) => asset.asset_type).length,
+    classification_accuracy: flowAssets.length > 0 ? (flowAssets.filter((asset: unknown) => asset.asset_type).length / flowAssets.length) * 100 : 0
   };
 
   // Get real classification summary from backend

@@ -34,7 +34,7 @@ interface CollectionFlow {
   automation_tier: string;
   created_at: string;
   updated_at: string;
-  collection_config?: any;
+  collection_config?: unknown;
   gaps_identified?: number;
   can_resume?: boolean;
 }

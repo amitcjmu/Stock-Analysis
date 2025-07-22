@@ -6,7 +6,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { apiCall, API_CONFIG } from '../../../config/api';
 
 interface CriticalAttributesTabProps {
-  fieldMappings?: any[];
+  fieldMappings?: unknown[];
   availableFields?: TargetField[];
   onMappingAction?: (mappingId: string, action: 'approve' | 'reject', rejectionReason?: string) => void;
   onMappingChange?: (mappingId: string, newTarget: string) => void;

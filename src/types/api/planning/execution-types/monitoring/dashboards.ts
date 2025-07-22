@@ -79,7 +79,7 @@ export interface WidgetData {
 export interface DataFilter {
   filter: string;
   type: string;
-  values: any[];
+  values: unknown[];
   operator: string;
   logic: string;
 }
@@ -141,7 +141,7 @@ export interface WidgetConfiguration {
 
 export interface ConfigurationSetting {
   setting: string;
-  value: any;
+  value: unknown;
   type: string;
   validation: string;
   impact: string;

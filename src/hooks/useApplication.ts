@@ -32,7 +32,7 @@ export const useApplication = (applicationId: string) => {
       try {
         const response = await apiCall(`/api/v1/discovery/applications/${applicationId}`);
         return response.data;
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Handle 404 and 403 errors gracefully - endpoint may not exist yet
         if (error.status === 404 || error.response?.status === 404 || error.status === 403) {
           console.log('Discovery applications endpoint not available yet');

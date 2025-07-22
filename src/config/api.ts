@@ -184,7 +184,7 @@ const pendingRequests = new Map<string, Promise<any>>();
 
 // Enhanced rate limiting and caching system
 interface CacheEntry {
-  data: any;
+  data: unknown;
   timestamp: number;
   expiry: number;
 }
@@ -253,7 +253,7 @@ function getCachedResponse(method: string, normalizedEndpoint: string): any | nu
   return entry.data;
 }
 
-function setCachedResponse(method: string, normalizedEndpoint: string, data: any): void {
+function setCachedResponse(method: string, normalizedEndpoint: string, data: unknown): void {
   const key = `${method}:${normalizedEndpoint}`;
   const config = CACHE_CONFIG[key] || CACHE_CONFIG.default;
   const expiry = Date.now() + config;
@@ -265,7 +265,7 @@ function setCachedResponse(method: string, normalizedEndpoint: string, data: any
 interface ApiError extends Error {
   status?: number;
   statusText?: string;
-  response?: any;
+  response?: unknown;
   requestId?: string;
   isApiError: boolean;
   isRateLimited?: boolean;
@@ -591,7 +591,7 @@ export const apiCallWithFallback = async (
   endpoint: string, 
   options: RequestInit = {}, 
   includeContext: boolean = true
-): Promise<{ ok: boolean; status: string; data?: any; message?: string; json?: () => Promise<any> }> => {
+): Promise<{ ok: boolean; status: string; data?: unknown; message?: string; json?: () => Promise<any> }> => {
   try {
     const data = await apiCall(endpoint, options, includeContext);
     

@@ -148,7 +148,7 @@ export interface FinOpsConstraint {
   id: string;
   type: 'budget' | 'performance' | 'compliance' | 'operational';
   description: string;
-  value: any;
+  value: unknown;
   operator: string;
   mandatory: boolean;
   exceptions?: string[];
@@ -198,14 +198,14 @@ export type FinOpsStatus =
   | 'completed' | 'paused' | 'failed' | 'cancelled';
 
 // Forward declarations for types used from other modules
-export interface FinOpsAction { [key: string]: any; }
-export interface OptimizationOpportunity { [key: string]: any; }
-export interface CostBaseline { [key: string]: any; }
-export interface FinOpsStatusDetail { [key: string]: any; }
-export interface CostAnalysis { [key: string]: any; }
-export interface ActiveOptimization { [key: string]: any; }
-export interface BudgetStatus { [key: string]: any; }
-export interface CostForecast { [key: string]: any; }
+export interface FinOpsAction { [key: string]: unknown; }
+export interface OptimizationOpportunity { [key: string]: unknown; }
+export interface CostBaseline { [key: string]: unknown; }
+export interface FinOpsStatusDetail { [key: string]: unknown; }
+export interface CostAnalysis { [key: string]: unknown; }
+export interface ActiveOptimization { [key: string]: unknown; }
+export interface BudgetStatus { [key: string]: unknown; }
+export interface CostForecast { [key: string]: unknown; }
 export interface FinOpsAlert {
   id: string;
   type: string;
@@ -218,13 +218,13 @@ export interface FinOpsFlowSummary {
   name: string;
   status: string;
   progress: number;
-  cost: any;
+  cost: unknown;
 }
 export interface FinOpsAggregation {
   name: string;
   type: string;
   field: string;
-  value: any;
+  value: unknown;
 }
 export interface FinOpsTrend {
   metric: string;
@@ -236,22 +236,22 @@ export interface FinOpsBenchmark {
   value: number;
   percentile: number;
 }
-export interface FinOpsPortfolioMetrics { [key: string]: any; }
-export interface ObjectiveTarget { [key: string]: any; }
-export interface ApprovalWorkflow { [key: string]: any; }
-export interface Stakeholder { [key: string]: any; }
-export interface EscalationPath { [key: string]: any; }
-export interface FinOpsAutomation { [key: string]: any; }
-export interface FinOpsMonitoring { [key: string]: any; }
-export interface FinOpsAlerting { [key: string]: any; }
-export interface FinOpsReporting { [key: string]: any; }
-export interface FinOpsOptimization { [key: string]: any; }
-export interface FinOpsGovernanceConfig { [key: string]: any; }
-export interface FinOpsIntegration { [key: string]: any; }
-export interface PhaseState { [key: string]: any; }
-export interface OptimizationStatus { [key: string]: any; }
-export interface GovernanceStatus { [key: string]: any; }
-export interface FinOpsKPI { [key: string]: any; }
-export interface FinOpsRecommendation { [key: string]: any; }
-export interface FinOpsDecision { [key: string]: any; }
-export interface FinOpsPhases { [key: string]: any; }
+export interface FinOpsPortfolioMetrics { [key: string]: unknown; }
+export interface ObjectiveTarget { [key: string]: unknown; }
+export interface ApprovalWorkflow { [key: string]: unknown; }
+export interface Stakeholder { [key: string]: unknown; }
+export interface EscalationPath { [key: string]: unknown; }
+export interface FinOpsAutomation { [key: string]: unknown; }
+export interface FinOpsMonitoring { [key: string]: unknown; }
+export interface FinOpsAlerting { [key: string]: unknown; }
+export interface FinOpsReporting { [key: string]: unknown; }
+export interface FinOpsOptimization { [key: string]: unknown; }
+export interface FinOpsGovernanceConfig { [key: string]: unknown; }
+export interface FinOpsIntegration { [key: string]: unknown; }
+export interface PhaseState { [key: string]: unknown; }
+export interface OptimizationStatus { [key: string]: unknown; }
+export interface GovernanceStatus { [key: string]: unknown; }
+export interface FinOpsKPI { [key: string]: unknown; }
+export interface FinOpsRecommendation { [key: string]: unknown; }
+export interface FinOpsDecision { [key: string]: unknown; }
+export interface FinOpsPhases { [key: string]: unknown; }

@@ -46,7 +46,7 @@ export interface ResourceOptimizationStrategy {
 
 export interface OptimizationConstraint {
   type: 'budget' | 'performance' | 'availability' | 'compliance';
-  value: any;
+  value: unknown;
   mandatory: boolean;
   description: string;
 }
@@ -60,7 +60,7 @@ export interface OptimizationPriority {
 export interface ResourceConstraint {
   type: 'capacity' | 'performance' | 'location' | 'compliance' | 'budget';
   description: string;
-  value: any;
+  value: unknown;
   flexibility: 'none' | 'low' | 'medium' | 'high';
 }
 
@@ -163,8 +163,8 @@ export interface AllocationDetail {
 export interface ConstraintStatus {
   constraint: string;
   status: 'satisfied' | 'violated' | 'at_risk';
-  value: any;
-  limit: any;
+  value: unknown;
+  limit: unknown;
 }
 
 export interface OptimizationValidation {

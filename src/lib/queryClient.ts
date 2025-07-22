@@ -7,7 +7,7 @@ export const queryClient = new QueryClient({
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
       refetchOnWindowFocus: false, // Optional: disable refetching on window focus
-      retry: (failureCount: number, error: any) => {
+      retry: (failureCount: number, error: unknown) => {
         // Don't retry on authentication errors
         if (error?.status === 401 || error?.isAuthError) {
           return false;

@@ -28,7 +28,7 @@ interface AgentQuestionsResponse {
 
 interface AgentQuestionResponse {
   question_id: string;
-  response: any;
+  response: unknown;
   confidence?: number;
 }
 
@@ -44,7 +44,7 @@ export const useAgentQuestions = (page: string = "dependencies") => {
         const response = await apiCall(`/api/v1/agents/discovery/agent-questions?page=${page}`);
         consecutiveErrors.current = 0; // Reset on success
         return response;
-      } catch (err: any) {
+      } catch (err: unknown) {
         consecutiveErrors.current += 1;
         console.error(`❌ Agent questions fetch error (attempt ${consecutiveErrors.current}):`, err);
         
@@ -116,7 +116,7 @@ export const useAgentInsights = (page: string = "dependencies") => {
         const response = await apiCall(`/api/v1/agents/discovery/agent-insights?page=${page}`);
         consecutiveErrors.current = 0; // Reset on success
         return response;
-      } catch (err: any) {
+      } catch (err: unknown) {
         consecutiveErrors.current += 1;
         console.error(`❌ Agent insights fetch error (attempt ${consecutiveErrors.current}):`, err);
         
@@ -168,7 +168,7 @@ export const useAgentStatus = () => {
         const response = await apiCall('/api/v1/agents/discovery/agent-status');
         consecutiveErrors.current = 0; // Reset on success
         return response;
-      } catch (err: any) {
+      } catch (err: unknown) {
         consecutiveErrors.current += 1;
         console.error(`❌ Agent status fetch error (attempt ${consecutiveErrors.current}):`, err);
         
@@ -220,7 +220,7 @@ export const useConfidenceScores = (page: string = "dependencies") => {
         const response = await apiCall(`/api/v1/agents/discovery/confidence-scores?page=${page}`);
         consecutiveErrors.current = 0; // Reset on success
         return response;
-      } catch (err: any) {
+      } catch (err: unknown) {
         consecutiveErrors.current += 1;
         console.error(`❌ Confidence scores fetch error (attempt ${consecutiveErrors.current}):`, err);
         

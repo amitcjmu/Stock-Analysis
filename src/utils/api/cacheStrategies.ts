@@ -11,7 +11,7 @@ export interface CacheOptions {
 }
 
 interface CacheEntry {
-  data: any;
+  data: unknown;
   expiry: number;
   lastAccessed: number;
 }

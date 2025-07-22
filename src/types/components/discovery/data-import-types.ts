@@ -77,14 +77,14 @@ export interface FileUploadAreaProps extends BaseDiscoveryProps {
 }
 
 export interface RawDataTableProps extends BaseDiscoveryProps {
-  data: any[];
+  data: unknown[];
   columns: ColumnDefinition[];
   loading?: boolean;
   error?: string | null;
-  onRowSelect?: (row: any) => void;
+  onRowSelect?: (row: unknown) => void;
   selectable?: boolean;
-  selectedRows?: any[];
-  onSelectionChange?: (selectedRows: any[]) => void;
+  selectedRows?: unknown[];
+  onSelectionChange?: (selectedRows: unknown[]) => void;
   searchable?: boolean;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
@@ -102,7 +102,7 @@ export interface RawDataTableProps extends BaseDiscoveryProps {
   expandable?: boolean;
   expandedRows?: string[];
   onRowExpand?: (rowId: string) => void;
-  renderExpandedContent?: (row: any) => ReactNode;
+  renderExpandedContent?: (row: unknown) => ReactNode;
   groupable?: boolean;
   groupBy?: string;
   onGroupByChange?: (groupBy: string) => void;
@@ -120,18 +120,18 @@ export interface RawDataTableProps extends BaseDiscoveryProps {
   onColumnVisibilityChange?: (visibility: Record<string, boolean>) => void;
   exportEnabled?: boolean;
   exportFormats?: ExportFormat[];
-  onExport?: (format: ExportFormat, data: any[]) => void;
+  onExport?: (format: ExportFormat, data: unknown[]) => void;
   customActions?: TableAction[];
-  onCustomAction?: (action: TableAction, rows: any[]) => void;
-  onRowClick?: (row: any) => void;
-  onRowDoubleClick?: (row: any) => void;
+  onCustomAction?: (action: TableAction, rows: unknown[]) => void;
+  onRowClick?: (row: unknown) => void;
+  onRowDoubleClick?: (row: unknown) => void;
   onRowContextMenu?: (row: any, event: React.MouseEvent) => void;
-  onCellClick?: (row: any, column: ColumnDefinition, value: any) => void;
-  onCellDoubleClick?: (row: any, column: ColumnDefinition, value: any) => void;
-  onCellEdit?: (row: any, column: ColumnDefinition, newValue: any) => void;
+  onCellClick?: (row: any, column: ColumnDefinition, value: unknown) => void;
+  onCellDoubleClick?: (row: any, column: ColumnDefinition, value: unknown) => void;
+  onCellEdit?: (row: any, column: ColumnDefinition, newValue: unknown) => void;
   editableColumns?: string[];
   editMode?: 'inline' | 'modal' | 'drawer';
-  renderEditCell?: (row: any, column: ColumnDefinition, value: any, onChange: (value: any) => void) => ReactNode;
+  renderEditCell?: (row: any, column: ColumnDefinition, value: any, onChange: (value: unknown) => void) => ReactNode;
   striped?: boolean;
   bordered?: boolean;
   hover?: boolean;
@@ -162,7 +162,7 @@ export interface UploadConfig {
 export interface ImportFilter {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
   label?: string;
   enabled?: boolean;
 }
@@ -221,7 +221,7 @@ export interface UploadError {
 export interface TableFilter {
   column: string;
   operator: string;
-  value: any;
+  value: unknown;
   label?: string;
   enabled?: boolean;
 }
@@ -252,7 +252,7 @@ export interface TableAction {
   id: string;
   label: string;
   icon?: string | ReactNode;
-  handler: (rows: any[]) => void;
+  handler: (rows: unknown[]) => void;
   disabled?: boolean;
   tooltip?: string;
 }

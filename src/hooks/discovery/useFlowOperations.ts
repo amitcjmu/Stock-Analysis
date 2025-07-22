@@ -49,7 +49,7 @@ export const useIncompleteFlowDetectionV2 = () => {
         console.log('📋 [DEBUG] All flows found:', allFlows.length);
         
         // Filter for incomplete flows (not completed or failed)
-        const incompleteFlows = allFlows.filter((flow: any) => 
+        const incompleteFlows = allFlows.filter((flow: unknown) => 
           flow.status !== 'completed' && 
           flow.status !== 'failed' &&
           flow.status !== 'error'
@@ -164,7 +164,7 @@ export const useFlowResumptionV2 = () => {
         navigate(route);
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('❌ [DEBUG] Flow resumption mutation error:', error);
       toast({
         title: "Error",
@@ -204,7 +204,7 @@ export const useFlowDeletionV2 = () => {
       queryClient.invalidateQueries({ queryKey: ['incomplete-flows'] });
       queryClient.invalidateQueries({ queryKey: ['discovery-flows'] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Error",
         description: error.message || "Failed to delete flow",
@@ -239,7 +239,7 @@ export const useBulkFlowOperationsV2 = () => {
       queryClient.invalidateQueries({ queryKey: ['incomplete-flows'] });
       queryClient.invalidateQueries({ queryKey: ['discovery-flows'] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Error",
         description: error.message || "Failed to delete flows",

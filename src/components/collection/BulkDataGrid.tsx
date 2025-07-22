@@ -90,7 +90,7 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
   }, [gridData, filterText]);
 
   // Handle cell value change
-  const handleCellChange = useCallback((applicationId: string, fieldId: string, value: any) => {
+  const handleCellChange = useCallback((applicationId: string, fieldId: string, value: unknown) => {
     setGridData(prev => {
       const newData = new Map(prev);
       const row = newData.get(applicationId);

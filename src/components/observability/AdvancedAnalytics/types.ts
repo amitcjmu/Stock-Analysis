@@ -7,7 +7,7 @@
 export interface AnalyticsData {
   timeSeriesData: {
     timestamp: string;
-    [key: string]: any; // Dynamic agent metrics
+    [key: string]: unknown; // Dynamic agent metrics
   }[];
   patternAnalysis: {
     peakHours: { hour: number; activity: number }[];

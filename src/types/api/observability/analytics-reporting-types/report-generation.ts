@@ -97,7 +97,7 @@ export interface ReportChart {
   id: string;
   type: string;
   title: string;
-  data: any;
+  data: unknown;
   config: ChartConfig;
 }
 
@@ -105,7 +105,7 @@ export interface ReportTable {
   id: string;
   title: string;
   headers: string[];
-  rows: any[][];
+  rows: unknown[][];
   formatting?: TableFormatting;
 }
 

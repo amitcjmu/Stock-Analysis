@@ -207,7 +207,7 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
     get typeSystem() {
       return import('./index').then(m => m.TYPE_SYSTEM_METADATA);
     }
-  } as any;
+  } as unknown;
 }
 
 // Type system constants

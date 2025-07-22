@@ -15,7 +15,7 @@ export interface BaseHookParams {
   refetchOnMount?: boolean;
   refetchOnWindowFocus?: boolean;
   refetchInterval?: number;
-  onSuccess?: (data: any) => void;
+  onSuccess?: (data: unknown) => void;
   onError?: (error: Error) => void;
   onSettled?: (data: any, error: Error | null) => void;
 }

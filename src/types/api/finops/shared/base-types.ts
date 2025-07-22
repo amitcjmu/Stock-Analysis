@@ -58,7 +58,7 @@ export interface OptimizationTarget {
 export interface OptimizationConstraint {
   type: 'performance' | 'availability' | 'security' | 'compliance' | 'operational';
   description: string;
-  value: any;
+  value: unknown;
   operator: string;
   mandatory: boolean;
   exceptions?: string[];
@@ -169,7 +169,7 @@ export interface Dependency {
 export interface MonitoringAlert {
   metric: string;
   condition: string;
-  threshold: any;
+  threshold: unknown;
   severity: 'info' | 'warning' | 'error' | 'critical';
   actions: string[];
 }

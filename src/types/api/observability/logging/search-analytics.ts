@@ -70,7 +70,7 @@ export interface LogSearchResult {
   took: number;
   timedOut: boolean;
   maxScore: number;
-  searchAfter?: any[];
+  searchAfter?: unknown[];
 }
 
 export interface LogEntry {
@@ -287,7 +287,7 @@ export interface LogInsight {
 export interface InsightEvidence {
   type: 'metric' | 'pattern' | 'correlation' | 'threshold';
   description: string;
-  value: any;
+  value: unknown;
   confidence: number;
 }
 
@@ -407,7 +407,7 @@ export interface LogMLPrediction {
   id: string;
   modelId: string;
   input: Record<string, any>;
-  prediction: any;
+  prediction: unknown;
   confidence: number;
   probability?: number;
   timestamp: string;
@@ -416,7 +416,7 @@ export interface LogMLPrediction {
 
 export interface PredictionFeature {
   name: string;
-  value: any;
+  value: unknown;
   importance: number;
   contribution: number;
 }

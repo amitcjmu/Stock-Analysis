@@ -132,7 +132,7 @@ export interface ReportContent {
 
 export interface ContentBlock {
   type: string;
-  data: any;
+  data: unknown;
   metadata: BlockMetadata;
   relationships: BlockRelationship[];
 }

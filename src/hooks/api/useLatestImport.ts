@@ -24,7 +24,7 @@ export const useLatestImport = (enabled = true) => {
     enabled: enabled && !!user?.id,
     staleTime: 2 * 60 * 1000, // Consider data fresh for 2 minutes
     cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error: unknown) => {
       // Don't retry on 429 (Too Many Requests) or authentication errors
       if (error?.status === 429 || error?.status === 401 || error?.status === 403) {
         return false;

@@ -64,7 +64,7 @@ export interface ReportMetadata extends BaseMetadata {
   template_version?: string;
   data_sources: DataSource[];
   generation_time: number;
-  filters_applied: any[];
+  filters_applied: unknown[];
   permissions: ReportPermission[];
 }
 
@@ -91,7 +91,7 @@ export interface TemplateMetadata extends BaseMetadata {
   approved_by?: string;
   approved_at?: string;
   usage_count: number;
-  performance_metrics?: any;
+  performance_metrics?: unknown;
 }
 
 /**

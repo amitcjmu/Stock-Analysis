@@ -18,72 +18,72 @@ import { CostAmount } from '../cost-analysis';
 // Forward type declarations - actual types defined in respective modules
 export interface AllocationRule {
   id: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface CostPool {
   id: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ChargebackModel {
   id: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface AllocationSchedule {
   frequency: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface AllocationReporting {
-  reports: any[];
-  [key: string]: any;
+  reports: unknown[];
+  [key: string]: unknown;
 }
 
 export interface AllocationApprovalConfig {
   required: string[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface AllocationValidation {
-  checks: any[];
-  [key: string]: any;
+  checks: unknown[];
+  [key: string]: unknown;
 }
 
 export interface AllocationExecutionSummary {
   executionId: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface AllocationPerformance {
-  executionTime: any;
-  [key: string]: any;
+  executionTime: unknown;
+  [key: string]: unknown;
 }
 
 export interface AllocationValidationResult {
   check: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface CostAllocationExecution {
   id: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface AllocatedCost {
   id: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface Chargeback {
   id: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface AllocationApproval {
   id: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // API Request/Response Types

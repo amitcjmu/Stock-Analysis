@@ -25,7 +25,7 @@ export const UserModificationForm: React.FC<UserModificationFormProps> = ({
   const [editData, setEditData] = useState(item || {});
 
   const handleSave = () => {
-    onSave(editData as any);
+    onSave(editData as unknown);
   };
 
   if (type === 'component') {
@@ -159,7 +159,7 @@ export const UserModificationForm: React.FC<UserModificationFormProps> = ({
             <Label htmlFor="severity">Severity</Label>
             <Select
               value={techDebt.severity || ''}
-              onValueChange={(value) => setEditData({ ...editData, severity: value as any })}
+              onValueChange={(value) => setEditData({ ...editData, severity: value as unknown })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select severity" />

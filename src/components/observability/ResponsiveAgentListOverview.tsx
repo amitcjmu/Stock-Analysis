@@ -76,8 +76,8 @@ const filterAgents = (agents: AgentCardData[], filters: AgentListFilters): Agent
   // Sort
   if (filters.sortBy) {
     filtered.sort((a, b) => {
-      let aValue: any = a[filters.sortBy!];
-      let bValue: any = b[filters.sortBy!];
+      let aValue: unknown = a[filters.sortBy!];
+      let bValue: unknown = b[filters.sortBy!];
 
       if (filters.sortBy === 'name') {
         aValue = aValue.toLowerCase();
@@ -523,7 +523,7 @@ export const ResponsiveAgentListOverview: React.FC<AgentListOverviewProps> = ({
                   value={filters.status?.[0] || 'all'}
                   onValueChange={(value) => 
                     updateFilters({ 
-                      status: value === 'all' ? undefined : [value as any]
+                      status: value === 'all' ? undefined : [value as unknown]
                     })
                   }
                 >
@@ -542,7 +542,7 @@ export const ResponsiveAgentListOverview: React.FC<AgentListOverviewProps> = ({
                 {/* Sort By */}
                 <Select
                   value={filters.sortBy || 'name'}
-                  onValueChange={(value) => updateFilters({ sortBy: value as any })}
+                  onValueChange={(value) => updateFilters({ sortBy: value as unknown })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Sort by" />

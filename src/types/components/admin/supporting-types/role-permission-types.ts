@@ -43,7 +43,7 @@ export interface RoleCondition {
   type: ConditionType;
   field: string;
   operator: ConditionOperator;
-  value: any;
+  value: unknown;
   description?: string;
 }
 
@@ -51,7 +51,7 @@ export interface PermissionCondition {
   type: ConditionType;
   field: string;
   operator: ConditionOperator;
-  value: any;
+  value: unknown;
   description?: string;
 }
 

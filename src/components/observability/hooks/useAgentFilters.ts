@@ -42,8 +42,8 @@ export const useAgentFilters = (agents: AgentCardData[]) => {
     // Sort
     if (filters.sortBy) {
       filtered.sort((a, b) => {
-        let aValue: any = a[filters.sortBy!];
-        let bValue: any = b[filters.sortBy!];
+        let aValue: unknown = a[filters.sortBy!];
+        let bValue: unknown = b[filters.sortBy!];
 
         if (filters.sortBy === 'name' || filters.sortBy === 'lastActive') {
           aValue = aValue.toLowerCase();

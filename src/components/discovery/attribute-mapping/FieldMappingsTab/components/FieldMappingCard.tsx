@@ -5,7 +5,7 @@ import { EnhancedFieldDropdown } from './EnhancedFieldDropdown';
 
 interface FieldMappingCardProps {
   mapping: FieldMapping;
-  availableFields: any[];
+  availableFields: unknown[];
   onMappingAction: (mappingId: string, action: 'approve' | 'reject') => void;
   onMappingChange?: (mappingId: string, newTarget: string) => void;
   onReject: (mappingId: string, sourceField: string, targetField: string) => void;

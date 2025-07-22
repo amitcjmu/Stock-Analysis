@@ -34,7 +34,7 @@ export namespace Hooks {
     mappings: FieldMapping[];
     criticalAttributes: CriticalAttribute[];
     crewAnalysis: CrewAnalysis[];
-    agenticData: { attributes: any[] };
+    agenticData: { attributes: unknown[] };
     
     // Flow context
     flowId: string | null;

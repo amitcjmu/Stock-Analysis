@@ -3,13 +3,13 @@ import type { CollectionFlow, CleanupResult, FlowContinueResult } from '@/hooks/
 
 export interface CollectionFlowCreateRequest {
   automation_tier?: string;
-  collection_config?: any;
+  collection_config?: unknown;
 }
 
 export interface CollectionFlowResponse extends CollectionFlow {
   client_account_id: string;
   engagement_id: string;
-  collection_config: any;
+  collection_config: unknown;
   gaps_identified?: number;
   collection_metrics?: {
     platforms_detected: number;
@@ -38,11 +38,11 @@ export interface AdaptiveQuestionnaireResponse {
   collection_flow_id: string;
   title: string;
   description: string;
-  target_gaps: any[];
-  questions: any[];
-  validation_rules: any;
+  target_gaps: unknown[];
+  questions: unknown[];
+  validation_rules: unknown;
   completion_status: string;
-  responses_collected?: any;
+  responses_collected?: unknown;
   created_at: string;
   completed_at?: string;
 }
@@ -76,7 +76,7 @@ class CollectionFlowApi {
     return await apiCall(`${this.baseUrl}/flows/${flowId}`, { method: 'GET' });
   }
 
-  async updateFlow(flowId: string, data: any): Promise<CollectionFlowResponse> {
+  async updateFlow(flowId: string, data: unknown): Promise<CollectionFlowResponse> {
     return await apiCall(`${this.baseUrl}/flows/${flowId}`, { 
       method: 'PUT', 
       body: JSON.stringify(data)
@@ -110,7 +110,7 @@ class CollectionFlowApi {
     return await apiCall(`${this.baseUrl}/incomplete`, { method: 'GET' });
   }
 
-  async continueFlow(flowId: string, resumeContext?: any): Promise<FlowContinueResult> {
+  async continueFlow(flowId: string, resumeContext?: unknown): Promise<FlowContinueResult> {
     return await apiCall(`${this.baseUrl}/flows/${flowId}/continue`, {
       method: 'POST',
       body: JSON.stringify({ resume_context: resumeContext })

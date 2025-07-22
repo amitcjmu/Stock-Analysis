@@ -14,7 +14,7 @@ import { getStatusStyling } from '../utils/statusUtils';
 
 interface CMDBValidationPanelProps {
   file: UploadFile;
-  onValidationUpdate: (validationData: any) => void;
+  onValidationUpdate: (validationData: unknown) => void;
 }
 
 export const CMDBValidationPanel: React.FC<CMDBValidationPanelProps> = ({ 

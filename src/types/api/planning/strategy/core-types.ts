@@ -225,7 +225,7 @@ export interface StrategyConstraint {
   id: string;
   type: 'time' | 'budget' | 'resource' | 'technical' | 'regulatory' | 'business' | 'security';
   description: string;
-  value: any;
+  value: unknown;
   flexibility: 'fixed' | 'flexible' | 'negotiable';
   impact: 'low' | 'medium' | 'high' | 'critical';
   mitigation?: string;
@@ -265,7 +265,7 @@ export interface BusinessDriver {
   impact: 'low' | 'medium' | 'high' | 'very_high';
   urgency: 'low' | 'medium' | 'high' | 'immediate';
   measurable: boolean;
-  metrics: any[];
+  metrics: unknown[];
 }
 
 export interface SuccessCriteria {
@@ -274,18 +274,18 @@ export interface SuccessCriteria {
   description: string;
   category: string;
   measurable: boolean;
-  metrics: any[];
-  targetValue: any;
-  minimumAcceptable: any;
+  metrics: unknown[];
+  targetValue: unknown;
+  minimumAcceptable: unknown;
   weight: number;
 }
 
 export interface BusinessCase {
-  objectives: any[];
-  benefits: any[];
-  costs: any[];
-  risks: any[];
-  roi: any;
+  objectives: unknown[];
+  benefits: unknown[];
+  costs: unknown[];
+  risks: unknown[];
+  roi: unknown;
   paybackPeriod: number;
   npv: number;
   irr: number;
@@ -294,49 +294,49 @@ export interface BusinessCase {
 
 // These will be fully defined in other modules
 export interface StrategyRiskAnalysis {
-  risks: any[];
+  risks: unknown[];
   riskScore: number;
   riskLevel: 'low' | 'medium' | 'high' | 'critical';
-  mitigationStrategies: any[];
-  contingencyPlans: any[];
+  mitigationStrategies: unknown[];
+  contingencyPlans: unknown[];
   probabilityOfSuccess: number;
 }
 
 export interface StrategyCostAnalysis {
   totalCost: number;
-  costBreakdown: any[];
-  costVariances: any[];
-  costSensitivity: any[];
-  fundingOptions: any[];
-  paymentSchedule: any[];
+  costBreakdown: unknown[];
+  costVariances: unknown[];
+  costSensitivity: unknown[];
+  fundingOptions: unknown[];
+  paymentSchedule: unknown[];
 }
 
 export interface FeasibilityAssessment {
   overallFeasibility: 'high' | 'medium' | 'low' | 'not_feasible';
-  technicalFeasibility: any;
-  businessFeasibility: any;
-  operationalFeasibility: any;
-  resourceFeasibility: any;
-  constraints: any[];
-  recommendations: any[];
+  technicalFeasibility: unknown;
+  businessFeasibility: unknown;
+  operationalFeasibility: unknown;
+  resourceFeasibility: unknown;
+  constraints: unknown[];
+  recommendations: unknown[];
 }
 
 export interface StrategyAnalysis {
-  strengthsWeaknessesOpportunitiesThreats: any;
-  competitiveAnalysis: any;
-  stakeholderAnalysis: any;
-  impactAnalysis: any;
-  sensitivityAnalysis: any;
-  scenarioAnalysis: any;
+  strengthsWeaknessesOpportunitiesThreats: unknown;
+  competitiveAnalysis: unknown;
+  stakeholderAnalysis: unknown;
+  impactAnalysis: unknown;
+  sensitivityAnalysis: unknown;
+  scenarioAnalysis: unknown;
 }
 
 export interface StrategyComparison {
   strategies: string[];
-  criteria: any[];
-  comparisonMatrix: any;
-  rankings: any[];
-  recommendations: any[];
-  decisionTree: any[];
+  criteria: unknown[];
+  comparisonMatrix: unknown;
+  rankings: unknown[];
+  recommendations: unknown[];
+  decisionTree: unknown[];
 }
 
 export interface StrategyRecommendation {

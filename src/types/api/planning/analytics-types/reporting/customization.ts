@@ -42,14 +42,14 @@ export interface ReportBranding {
 export interface ReportFilter {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
   description: string;
 }
 
 export interface ReportParameter {
   parameter: string;
   type: 'string' | 'number' | 'date' | 'boolean' | 'list';
-  value: any;
+  value: unknown;
   description: string;
 }
 
@@ -57,7 +57,7 @@ export interface ReportParameter {
 export interface SectionCustomization {
   element: string;
   property: string;
-  value: any;
+  value: unknown;
 }
 
 // Custom Styling Types

@@ -228,7 +228,7 @@ export const masterFlowService = {
       await apiClient.delete(`/discovery/flow/${flowId}`, undefined, {
         headers: getMultiTenantHeaders(clientAccountId, engagementId),
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       // If master flow delete fails with 404, try discovery flow endpoint
       if (error?.response?.status === 404 || error?.status === 404) {
         console.log('Master flow not found, trying discovery flow delete endpoint...');

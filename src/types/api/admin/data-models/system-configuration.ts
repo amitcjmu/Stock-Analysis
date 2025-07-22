@@ -20,7 +20,7 @@ export interface SystemConfiguration {
 
 export interface ConfigurationSetting {
   key: string;
-  value: any;
+  value: unknown;
   type: SettingType;
   required: boolean;
   sensitive: boolean;
@@ -85,7 +85,7 @@ export interface SettingValidation {
   min?: number;
   max?: number;
   pattern?: string;
-  allowed_values?: any[];
+  allowed_values?: unknown[];
   custom_validator?: string;
 }
 

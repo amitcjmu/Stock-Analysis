@@ -408,7 +408,7 @@ export interface NotificationTemplate {
 export interface NotificationFilter {
   field: string;
   operator: 'eq' | 'neq' | 'contains' | 'regex' | 'in' | 'nin';
-  value: any;
+  value: unknown;
   enabled: boolean;
 }
 
@@ -435,7 +435,7 @@ export interface ActionConfiguration {
 export interface ActionCondition {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
   required: boolean;
 }
 
@@ -520,6 +520,6 @@ export interface ActionAuthentication {
 export interface PolicyCondition {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
   negate: boolean;
 }

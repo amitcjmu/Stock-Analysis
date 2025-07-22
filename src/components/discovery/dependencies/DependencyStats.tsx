@@ -4,11 +4,11 @@ import { Network } from 'lucide-react';
 interface DependencyStatsProps {
   dependencyData: {
     cross_application_mapping: {
-      cross_app_dependencies: any[];
-      application_clusters: any[];
+      cross_app_dependencies: unknown[];
+      application_clusters: unknown[];
     };
     app_server_mapping: {
-      hosting_relationships: any[];
+      hosting_relationships: unknown[];
     };
   } | null;
 }

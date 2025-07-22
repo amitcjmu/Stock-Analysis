@@ -84,7 +84,7 @@ export interface FeatureToggle {
 
 export interface ToggleCondition {
   type: 'user' | 'role' | 'percentage' | 'custom';
-  value: any;
+  value: unknown;
   operator?: 'equals' | 'in' | 'greater_than' | 'less_than';
 }
 

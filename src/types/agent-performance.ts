@@ -37,7 +37,7 @@ export interface AgentPerformanceSummary {
   };
   current_status?: {
     is_active: boolean;
-    active_tasks: any[];
+    active_tasks: unknown[];
     last_activity: string;
   };
 }
@@ -154,7 +154,7 @@ export interface AgentActivity {
   duration_seconds?: number;
   success?: boolean;
   confidence_score?: number;
-  details: any;
+  details: unknown;
 }
 
 export interface AgentActivityFeed {
@@ -173,7 +173,7 @@ export interface DiscoveredPattern {
   pattern_type: string;
   pattern_name: string;
   description: string;
-  metadata: any;
+  metadata: unknown;
   confidence_score: number;
   times_referenced: number;
   discovered_by_agent: string;
@@ -262,14 +262,14 @@ export interface EnhancedMonitoringStatus {
     phase_distribution: {
       [phase: string]: number;
     };
-    capabilities: any;
-    system_status: any;
+    capabilities: unknown;
+    system_status: unknown;
   };
   tasks: {
-    active: any[];
-    hanging: any[];
+    active: unknown[];
+    hanging: unknown[];
   };
-  registry_status: any;
+  registry_status: unknown;
   individual_agent_performance?: {
     period_days: number;
     agents: Array<{

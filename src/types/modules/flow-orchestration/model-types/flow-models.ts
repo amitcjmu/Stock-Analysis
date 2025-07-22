@@ -34,7 +34,7 @@ export interface FlowExecutionResult {
   flowId: string;
   executionId: string;
   status: 'started' | 'running' | 'completed' | 'failed' | 'paused' | 'cancelled';
-  result?: any;
+  result?: unknown;
   error?: ExecutionError;
   metrics: ExecutionMetrics;
   startTime: string;

@@ -147,7 +147,7 @@ export const JobResults: React.FC<JobResultsProps> = ({
             
             {selectedJobId && (
               <div className="flex items-center space-x-2">
-                <Select value={exportFormat} onValueChange={(value: any) => setExportFormat(value)}>
+                <Select value={exportFormat} onValueChange={(value: unknown) => setExportFormat(value)}>
                   <SelectTrigger className="w-32">
                     <SelectValue />
                   </SelectTrigger>

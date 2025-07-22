@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Database } from 'lucide-react';
 
 interface RawDataTableProps {
-  data: any[];
+  data: unknown[];
   title?: string;
   getFieldHighlight?: (fieldName: string, assetId: string) => string;
   pageSize?: number;
@@ -65,7 +65,7 @@ const RawDataTable: React.FC<RawDataTableProps> = ({
   };
 
   // Get asset identifier for highlighting
-  const getAssetIdentifier = (row: any) => {
+  const getAssetIdentifier = (row: unknown) => {
     return row.id || row.ID || row.asset_name || row.hostname || row.name || row.NAME || 'unknown';
   };
 

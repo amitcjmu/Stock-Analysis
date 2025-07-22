@@ -57,7 +57,7 @@ export interface BaselineMetric {
 
 export interface BaselineCondition {
   parameter: string;
-  value: any;
+  value: unknown;
   tolerance: number;
   critical: boolean;
 }

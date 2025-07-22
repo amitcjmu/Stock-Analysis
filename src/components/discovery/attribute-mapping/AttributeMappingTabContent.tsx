@@ -6,9 +6,9 @@ import { FieldMappingErrorBoundary } from './FieldMappingErrorBoundary';
 
 interface AttributeMappingTabContentProps {
   activeTab: 'mappings' | 'data' | 'critical';
-  fieldMappings: any[];
-  criticalAttributes: any[];
-  agenticData: any;
+  fieldMappings: unknown[];
+  criticalAttributes: unknown[];
+  agenticData: unknown;
   onApproveMapping: (mappingId: string) => void;
   onRejectMapping: (mappingId: string, rejectionReason?: string) => void;
   onMappingChange?: (mappingId: string, newTarget: string) => void;
@@ -18,7 +18,7 @@ interface AttributeMappingTabContentProps {
   isLoading?: boolean;
   sessionInfo?: {
     flowId: string | null;
-    availableDataImports: any[];
+    availableDataImports: unknown[];
     selectedDataImportId: string | null;
     hasMultipleSessions: boolean;
   };

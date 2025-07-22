@@ -68,14 +68,14 @@ export interface FlowAnalysisResponse {
   flow_id: string;
   timestamp: string;
   analysis: {
-    flow_state: any;
-    checklist_results: any[];
+    flow_state: unknown;
+    checklist_results: unknown[];
     routing_decision: {
       target_page: string;
       phase: string;
       specific_task?: string;
     };
-    user_guidance: any;
+    user_guidance: unknown;
   };
 }
 

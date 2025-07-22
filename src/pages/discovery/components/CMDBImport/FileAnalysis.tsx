@@ -22,7 +22,7 @@ import AgentFeedbackPanel from './AgentFeedbackPanel';
 interface FileAnalysisProps {
   file: UploadedFile;
   onRetry?: () => void;
-  onNavigate: (path: string, state?: any) => void;
+  onNavigate: (path: string, state?: unknown) => void;
 }
 
 export const FileAnalysis: React.FC<FileAnalysisProps> = ({ file, onRetry, onNavigate }) => {

@@ -39,7 +39,7 @@ export interface ValidationCheck {
 export interface ValidationCriteria {
   metric: string;
   operator: string;
-  value: any;
+  value: unknown;
   tolerance?: number;
   unit?: string;
   critical: boolean;

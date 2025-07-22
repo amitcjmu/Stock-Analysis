@@ -7,7 +7,7 @@ import { AdvancedSettingsTab } from './AdvancedSettingsTab';
 
 interface ClientFormProps {
   formData: ClientFormData;
-  onFormChange: (field: keyof ClientFormData, value: any) => void;
+  onFormChange: (field: keyof ClientFormData, value: unknown) => void;
 }
 
 type TabType = 'basic' | 'business' | 'technical' | 'advanced';

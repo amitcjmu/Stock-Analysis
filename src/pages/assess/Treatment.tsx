@@ -156,7 +156,7 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
     setCurrentTab('parameters');
   }, [iterateAnalysis]);
   
-  const handleCreateQueueItem = useCallback(async (request: any) => {
+  const handleCreateQueueItem = useCallback(async (request: unknown) => {
     try {
       const newQueue = await createQueue({
         name: `Analysis ${Date.now()}`,

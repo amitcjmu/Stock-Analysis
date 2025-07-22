@@ -75,7 +75,7 @@ export function createApiError(
   } as NetworkError;
 }
 
-function determineAuthReason(response: any): 'token_expired' | 'invalid_credentials' | 'missing_token' {
+function determineAuthReason(response: unknown): 'token_expired' | 'invalid_credentials' | 'missing_token' {
   const code = response?.error_code?.toLowerCase();
   
   if (code?.includes('expired')) return 'token_expired';

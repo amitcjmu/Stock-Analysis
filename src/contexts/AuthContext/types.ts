@@ -52,7 +52,7 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   login: (email: string, password: string) => Promise<User>;
-  register: (userData: any) => Promise<any>;
+  register: (userData: unknown) => Promise<any>;
   logout: () => void;
   switchClient: (clientId: string, clientData?: Client) => Promise<void>;
   switchEngagement: (engagementId: string, engagementData?: Engagement) => Promise<void>;

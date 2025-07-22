@@ -143,7 +143,7 @@ export interface LoggingDestination {
 export interface LoggingFilter {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
   action: 'include' | 'exclude';
 }
 
@@ -170,6 +170,6 @@ export interface ReportContent {
 export interface ReportCondition {
   metric: string;
   operator: string;
-  value: any;
+  value: unknown;
   action: 'include' | 'highlight' | 'escalate';
 }

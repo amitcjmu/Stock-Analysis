@@ -236,8 +236,8 @@ export interface ActivitySummary {
 
 export interface UserChange {
   field: string;
-  oldValue: any;
-  newValue: any;
+  oldValue: unknown;
+  newValue: unknown;
   changedAt: string;
   changedBy: string;
 }

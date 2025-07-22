@@ -205,7 +205,7 @@ const Observability = () => {
 
     // Add hanging tasks as warnings
     if (monitoringData.tasks?.hanging) {
-      monitoringData.tasks.hanging.forEach((task: any) => {
+      monitoringData.tasks.hanging.forEach((task: unknown) => {
         events.push({
           time: 'Alert',
           event: `${task.agent} task hanging`,

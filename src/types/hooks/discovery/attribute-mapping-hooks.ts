@@ -64,7 +64,7 @@ export interface UseAttributeMappingReturn {
   getMappingDependencies: (mappingId: string) => Promise<MappingDependency[]>;
   validateMappingSet: (mappingIds: string[]) => Promise<SetValidation>;
   previewMapping: (mapping: FieldMapping) => Promise<MappingPreview>;
-  testMapping: (mapping: FieldMapping, sampleData: any[]) => Promise<MappingTestResult>;
+  testMapping: (mapping: FieldMapping, sampleData: unknown[]) => Promise<MappingTestResult>;
   compareMappings: (mappingId1: string, mappingId2: string) => Promise<MappingComparison>;
   optimizeMappings: () => Promise<OptimizationResult>;
   scheduleMapping: (mapping: FieldMapping, schedule: MappingSchedule) => Promise<void>;
@@ -82,7 +82,7 @@ export interface AttributeMappingActions {
   suggest: (sourceField: string, options?: SuggestionOptions) => Promise<MappingSuggestion[]>;
   validate: (mapping: FieldMapping) => Promise<MappingValidation>;
   preview: (mapping: FieldMapping) => Promise<MappingPreview>;
-  test: (mapping: FieldMapping, sampleData: any[]) => Promise<MappingTestResult>;
+  test: (mapping: FieldMapping, sampleData: unknown[]) => Promise<MappingTestResult>;
   save: (mapping: FieldMapping) => Promise<void>;
   delete: (mappingId: string) => Promise<void>;
   duplicate: (mappingId: string) => Promise<FieldMapping>;
@@ -285,7 +285,7 @@ export interface CriticalAttribute {
   type: AttributeType;
   dataType: string;
   isRequired: boolean;
-  defaultValue?: any;
+  defaultValue?: unknown;
   constraints: AttributeConstraint[];
   validationRules: ValidationRule[];
   businessRules: BusinessRule[];
@@ -299,7 +299,7 @@ export interface CriticalAttribute {
   dependencies: string[];
   derivedFrom: string[];
   usedBy: string[];
-  examples: any[];
+  examples: unknown[];
   notes: string;
   status: AttributeStatus;
   visibility: AttributeVisibility;
@@ -445,7 +445,7 @@ export interface BusinessRule {
 
 export interface AttributeConstraint {
   type: ConstraintType;
-  value: any;
+  value: unknown;
   message: string;
 }
 
@@ -490,7 +490,7 @@ export interface PageInfo {
 export interface FieldMappingFilter {
   field: string;
   operator: FilterOperator;
-  value: any;
+  value: unknown;
 }
 
 export interface FieldMappingSort {

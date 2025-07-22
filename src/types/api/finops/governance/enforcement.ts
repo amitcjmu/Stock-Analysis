@@ -51,7 +51,7 @@ export interface EnforcementAutomation {
 export interface AutomationTrigger {
   event: string;
   condition: string;
-  threshold?: any;
+  threshold?: unknown;
   frequency?: string;
 }
 

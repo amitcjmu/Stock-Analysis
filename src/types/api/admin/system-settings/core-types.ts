@@ -87,8 +87,8 @@ export interface Setting {
   name: string;
   description: string;
   type: SettingType;
-  value: any;
-  defaultValue: any;
+  value: unknown;
+  defaultValue: unknown;
   required: boolean;
   validation: SettingValidationRule[];
   dependencies: string[];
@@ -107,7 +107,7 @@ export interface SettingValidation {
 
 export interface SettingValidationRule {
   type: ValidationType;
-  value?: any;
+  value?: unknown;
   message: string;
   severity: ValidationSeverity;
 }
@@ -129,8 +129,8 @@ export interface SettingValidationResult {
 
 export interface SettingChange {
   setting: string;
-  oldValue: any;
-  newValue: any;
+  oldValue: unknown;
+  newValue: unknown;
   appliedAt: string;
   appliedBy: string;
   impact: ChangeImpact;

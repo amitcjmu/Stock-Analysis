@@ -108,7 +108,7 @@ export interface ResourceConstraint {
   impact: 'low' | 'medium' | 'high' | 'critical';
   startDate?: string;
   endDate?: string;
-  value?: any;
+  value?: unknown;
 }
 
 export interface ResourceAssignment {

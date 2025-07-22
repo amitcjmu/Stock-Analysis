@@ -129,7 +129,7 @@ async function generateRealDataRecommendations(
     .slice(0, maxRecommendations);
 }
 
-function generateAgentRecommendations(agentName: string, perfData: any, analyticsData: any): Recommendation[] {
+function generateAgentRecommendations(agentName: string, perfData: any, analyticsData: unknown): Recommendation[] {
   const recommendations: Recommendation[] = [];
   const summary = perfData.summary;
   const resourceUsage = analyticsData.analytics.resource_usage;

@@ -16,7 +16,7 @@ export interface CollectionFlow {
   created_at: string;
   updated_at: string;
   completed_at?: string;
-  collection_config?: any;
+  collection_config?: unknown;
   gaps_identified?: number;
   can_resume?: boolean;
 }
@@ -32,15 +32,15 @@ export interface CleanupResult {
   flows_cleaned: number;
   space_recovered: string;
   dry_run: boolean;
-  flows_details: any[];
-  cleanup_criteria: any;
+  flows_details: unknown[];
+  cleanup_criteria: unknown;
 }
 
 export interface FlowContinueResult {
   status: string;
   message: string;
   flow_id: string;
-  resume_result?: any;
+  resume_result?: unknown;
 }
 
 // Hook for detecting incomplete collection flows
@@ -55,7 +55,7 @@ export const useIncompleteCollectionFlows = (enabled: boolean = true) => {
         const result = await collectionFlowApi.getIncompleteFlows();
         console.log('✅ Incomplete flows fetched:', result);
         return result;
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('❌ Failed to fetch incomplete flows:', error);
         
         // If it's an auth error, don't throw it back to React Query
@@ -110,7 +110,7 @@ export const useCollectionFlowManagement = () => {
       // Invalidate and refetch flow queries
       queryClient.invalidateQueries({ queryKey: ['collection-flows'] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Resume Failed",
         description: error.response?.data?.detail || "Failed to resume collection flow",
@@ -133,7 +133,7 @@ export const useCollectionFlowManagement = () => {
       });
       queryClient.invalidateQueries({ queryKey: ['collection-flows'] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Delete Failed",
         description: error.response?.data?.detail || "Failed to delete collection flow",
@@ -156,7 +156,7 @@ export const useCollectionFlowManagement = () => {
       });
       queryClient.invalidateQueries({ queryKey: ['collection-flows'] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Batch Delete Failed",
         description: error.response?.data?.detail || "Failed to delete collection flows",
@@ -192,7 +192,7 @@ export const useCollectionFlowManagement = () => {
         queryClient.invalidateQueries({ queryKey: ['collection-flows'] });
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Cleanup Failed",
         description: error.response?.data?.detail || "Failed to cleanup collection flows",
@@ -203,7 +203,7 @@ export const useCollectionFlowManagement = () => {
   });
 
   // Helper functions
-  const continueFlow = async (flowId: string, resumeContext?: any) => {
+  const continueFlow = async (flowId: string, resumeContext?: unknown) => {
     return continueFlowMutation.mutateAsync({ flowId, resumeContext });
   };
 

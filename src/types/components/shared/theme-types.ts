@@ -136,8 +136,8 @@ export interface ThemeZIndex {
 
 export interface ThemeComponents {
   [componentName: string]: {
-    defaultProps?: any;
-    styleOverrides?: any;
-    variants?: any[];
+    defaultProps?: unknown;
+    styleOverrides?: unknown;
+    variants?: unknown[];
   };
 }

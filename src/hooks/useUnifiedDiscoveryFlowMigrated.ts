@@ -16,7 +16,7 @@ interface UseUnifiedDiscoveryFlowReturn {
   isLoading: boolean;
   error: Error | null;
   isHealthy: boolean;
-  initializeFlow: (data: any) => Promise<any>;
+  initializeFlow: (data: unknown) => Promise<any>;
   executeFlowPhase: (phase: string) => Promise<any>;
   getPhaseData: (phase: string) => any;
   isPhaseComplete: (phase: string) => boolean;
@@ -73,7 +73,7 @@ export function useUnifiedDiscoveryFlow(): UseUnifiedDiscoveryFlowReturn {
   }, [state.flow]);
 
   // Initialize flow adapter
-  const initializeFlow = useCallback(async (data: any) => {
+  const initializeFlow = useCallback(async (data: unknown) => {
     try {
       const flow = await actions.createDiscoveryFlow({
         flow_name: data.flow_name || 'Discovery Flow',

@@ -8,7 +8,7 @@ export interface WidgetFilter {
   id: string;
   field: string;
   operator: FilterOperator;
-  value: any;
+  value: unknown;
   label?: string;
 }
 
@@ -58,7 +58,7 @@ export interface ConditionalFormatting {
 
 export interface FormattingCondition {
   operator: ConditionOperator;
-  value: any;
+  value: unknown;
   style: FormattingStyle;
 }
 

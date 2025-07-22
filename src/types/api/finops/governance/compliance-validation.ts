@@ -150,7 +150,7 @@ export interface ComplianceCheck {
 
 export interface CheckCriteria {
   rule: string;
-  threshold: any;
+  threshold: unknown;
   operator: string;
   tolerance: number;
 }

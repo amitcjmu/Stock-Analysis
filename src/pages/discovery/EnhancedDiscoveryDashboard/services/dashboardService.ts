@@ -23,7 +23,7 @@ const makeApiCallWithRetry = async (url: string, options: any, maxRetries = 3): 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await apiCall(url, options);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error.status === 429 && attempt < maxRetries) {
         const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
         console.log(`🕐 Rate limited (429), retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`);
@@ -37,7 +37,7 @@ const makeApiCallWithRetry = async (url: string, options: any, maxRetries = 3): 
 
 export class DashboardService {
   
-  async fetchDashboardData(user: any, client: any, engagement: any): Promise<DashboardData> {
+  async fetchDashboardData(user: any, client: any, engagement: unknown): Promise<DashboardData> {
     const now = Date.now();
     
     // Return cached response if still valid
@@ -79,7 +79,7 @@ export class DashboardService {
     }
   }
   
-  private async _performDashboardFetch(user: any, client: any, engagement: any): Promise<DashboardData> {
+  private async _performDashboardFetch(user: any, client: any, engagement: unknown): Promise<DashboardData> {
     // Fetch real-time active flows from multiple sources with retry logic
     const [discoveryFlowsResponse, dataImportsResponse] = await Promise.allSettled([
       // Get active Discovery flows - try the discovery flows endpoint first

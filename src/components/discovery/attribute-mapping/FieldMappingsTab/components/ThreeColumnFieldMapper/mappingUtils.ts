@@ -68,7 +68,7 @@ export const calculateProgress = (buckets: MappingBuckets, totalMappings: number
   };
 };
 
-export const formatFieldValue = (field: any): string => {
+export const formatFieldValue = (field: unknown): string => {
   if (typeof field === 'string') {
     return field;
   } else if (typeof field === 'object') {
@@ -78,7 +78,7 @@ export const formatFieldValue = (field: any): string => {
   }
 };
 
-export const formatTargetAttribute = (targetAttribute: any): string => {
+export const formatTargetAttribute = (targetAttribute: unknown): string => {
   if (typeof targetAttribute === 'string') {
     return targetAttribute || 'No target mapping';
   } else if (typeof targetAttribute === 'object') {

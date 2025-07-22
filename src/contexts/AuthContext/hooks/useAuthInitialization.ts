@@ -266,7 +266,7 @@ export const useAuthInitialization = ({
               throw new Error('No user data available');
             }
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           if (!isMounted) return;
           
           if (error.status === 401) {
@@ -297,7 +297,7 @@ export const useAuthInitialization = ({
             }
           }
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (!isMounted) return;
         
         console.error('Auth initialization error:', error);

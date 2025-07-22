@@ -32,7 +32,7 @@ export const generateAnalyticsData = async (
   // Get actual performance data for each agent
   for (let i = 0; i < days; i++) {
     const timestamp = format(addDays(dateRange.from, i), 'yyyy-MM-dd');
-    const dataPoint: any = { timestamp };
+    const dataPoint: unknown = { timestamp };
     
     for (const agent of agents) {
       try {
@@ -70,7 +70,7 @@ export const generateAnalyticsData = async (
   }
 
   // Generate pattern analysis from real task activity data
-  let taskActivity: any[] = [];
+  let taskActivity: unknown[] = [];
   try {
     const taskHistoryResponse = await agentObservabilityService.getTaskHistory(100, true);
     if (taskHistoryResponse.success && taskHistoryResponse.tasks) {

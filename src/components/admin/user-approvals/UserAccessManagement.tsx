@@ -113,7 +113,7 @@ export const UserAccessManagement: React.FC = () => {
       const response = await apiCall('/admin/clients/?page_size=100');
 
       if (response.items) {
-        setClients(response.items.map((client: any) => ({
+        setClients(response.items.map((client: unknown) => ({
           id: client.id,
           account_name: client.account_name,
           industry: client.industry,
@@ -140,7 +140,7 @@ export const UserAccessManagement: React.FC = () => {
       const response = await apiCall('/admin/engagements/?page_size=100&client_account_id=11111111-1111-1111-1111-111111111111');
 
       if (response.items) {
-        setEngagements(response.items.map((engagement: any) => ({
+        setEngagements(response.items.map((engagement: unknown) => ({
           id: engagement.id,
           name: engagement.name,
           client_account_id: engagement.client_account_id,

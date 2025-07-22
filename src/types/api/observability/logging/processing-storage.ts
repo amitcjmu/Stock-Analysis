@@ -37,7 +37,7 @@ export interface PipelineStage {
 export interface StageCondition {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
   action: 'continue' | 'skip' | 'route' | 'fail';
 }
 
@@ -113,7 +113,7 @@ export interface TransformationConfig {
 export interface TransformationCondition {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
   required: boolean;
 }
 
@@ -244,7 +244,7 @@ export interface RolloverConfig {
 
 export interface RolloverCondition {
   type: 'size' | 'age' | 'docs' | 'custom';
-  value: any;
+  value: unknown;
   operator: string;
 }
 
@@ -416,7 +416,7 @@ export interface AccessControl {
 export interface AccessCondition {
   type: 'ip' | 'time' | 'mfa' | 'custom';
   operator: string;
-  value: any;
+  value: unknown;
 }
 
 // Forwarding Configuration

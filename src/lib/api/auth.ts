@@ -68,7 +68,7 @@ export const authApi = {
     return response.json();
   },
 
-  async register(userData: any): Promise<any> {
+  async register(userData: unknown): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
       method: 'POST',
       headers: {

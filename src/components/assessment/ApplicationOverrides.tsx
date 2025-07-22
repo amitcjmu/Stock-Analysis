@@ -327,7 +327,7 @@ export const ApplicationOverrides: React.FC<ApplicationOverridesProps> = ({
                   <Label htmlFor="risk-level">Risk Level</Label>
                   <Select
                     value={newOverride.risk_level}
-                    onValueChange={(value) => setNewOverride({ ...newOverride, risk_level: value as any })}
+                    onValueChange={(value) => setNewOverride({ ...newOverride, risk_level: value as unknown })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -346,7 +346,7 @@ export const ApplicationOverrides: React.FC<ApplicationOverridesProps> = ({
                   <Label htmlFor="approval-status">Approval Status</Label>
                   <Select
                     value={newOverride.approval_status}
-                    onValueChange={(value) => setNewOverride({ ...newOverride, approval_status: value as any })}
+                    onValueChange={(value) => setNewOverride({ ...newOverride, approval_status: value as unknown })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -440,7 +440,7 @@ const OverrideCard: React.FC<OverrideCardProps> = ({
               <Label>Risk Level</Label>
               <Select
                 value={editData.risk_level}
-                onValueChange={(value) => setEditData({ ...editData, risk_level: value as any })}
+                onValueChange={(value) => setEditData({ ...editData, risk_level: value as unknown })}
               >
                 <SelectTrigger>
                   <SelectValue />

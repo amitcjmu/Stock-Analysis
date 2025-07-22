@@ -83,5 +83,5 @@ export interface UserDetailsModalProps {
 
 export interface UserFiltersProps {
   // Future filtering props
-  onFilterChange?: (filters: any) => void;
+  onFilterChange?: (filters: unknown) => void;
 } 

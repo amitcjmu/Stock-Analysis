@@ -60,7 +60,7 @@ export interface InsightRecommendation {
 // Supporting data for insights
 export interface InsightData {
   type: DataVisualizationType;
-  data: any;
+  data: unknown;
   metadata: Record<string, any>;
 }
 

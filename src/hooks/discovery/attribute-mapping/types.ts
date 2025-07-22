@@ -9,18 +9,18 @@ export type { MappingProgress, AttributeMappingStateResult } from './useAttribut
 // Main composition type that matches the original hook's return type
 export interface AttributeMappingLogicResult {
   // Data
-  agenticData: { attributes: any[] };
+  agenticData: { attributes: unknown[] };
   fieldMappings: FieldMapping[];
-  crewAnalysis: any[];
+  crewAnalysis: unknown[];
   mappingProgress: MappingProgress;
   criticalAttributes: CriticalAttribute[];
   
   // Flow state
-  flowState: any;
-  flow: any;
+  flowState: unknown;
+  flow: unknown;
   flowId: string | null;
   dataImportId: string | null;
-  availableDataImports: any[];
+  availableDataImports: unknown[];
   selectedDataImportId: string | null;
   
   // Auto-detection info
@@ -28,7 +28,7 @@ export interface AttributeMappingLogicResult {
   autoDetectedFlowId: string | null;
   effectiveFlowId: string | null;
   hasEffectiveFlow: boolean;
-  flowList: any[];
+  flowList: unknown[];
   
   // Loading states
   isAgenticLoading: boolean;
@@ -36,15 +36,15 @@ export interface AttributeMappingLogicResult {
   isAnalyzing: boolean;
   
   // Error states
-  agenticError: any;
-  flowStateError: any;
+  agenticError: unknown;
+  flowStateError: unknown;
   
   // Action handlers
   handleTriggerFieldMappingCrew: () => Promise<void>;
   handleApproveMapping: (mappingId: string) => Promise<void>;
   handleRejectMapping: (mappingId: string, rejectionReason?: string) => Promise<void>;
   handleMappingChange: (mappingId: string, newTarget: string) => Promise<void>;
-  handleAttributeUpdate: (attributeId: string, updates: any) => Promise<void>;
+  handleAttributeUpdate: (attributeId: string, updates: unknown) => Promise<void>;
   handleDataImportSelection: (importId: string) => Promise<void>;
   refetchAgentic: () => Promise<any>;
   refetchCriticalAttributes: () => Promise<any>;
@@ -57,8 +57,8 @@ export interface AttributeMappingLogicResult {
   flowProgress: number;
   
   // Agent clarifications
-  agentClarifications: any[];
+  agentClarifications: unknown[];
   isClarificationsLoading: boolean;
-  clarificationsError: any;
+  clarificationsError: unknown;
   refetchClarifications: () => Promise<void>;
 }

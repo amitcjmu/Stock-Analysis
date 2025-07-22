@@ -56,7 +56,7 @@ export interface AlertAction {
   action: string;
   type: 'notification' | 'automation' | 'escalation' | 'resolution';
   trigger: string;
-  parameters: any;
+  parameters: unknown;
   validation: string;
 }
 
@@ -77,7 +77,7 @@ export interface AlertingChannel {
 }
 
 export interface ChannelConfiguration {
-  settings: any;
+  settings: unknown;
   formatting: string[];
   filtering: string[];
   routing: string[];

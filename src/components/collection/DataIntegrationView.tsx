@@ -29,7 +29,7 @@ interface DataIntegrationViewProps {
   applicationId: string;
   integratedData: Record<string, any>;
   conflicts: DataConflict[];
-  dataSources: Record<string, any[]>;
+  dataSources: Record<string, unknown[]>;
   qualityScore: number;
   confidenceScore: number;
   completenessScore: number;

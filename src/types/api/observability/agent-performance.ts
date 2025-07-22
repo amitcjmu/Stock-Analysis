@@ -118,7 +118,7 @@ export interface RealTimeUpdate {
   type: 'agent_status' | 'task_completed' | 'task_started' | 'agent_error';
   agentName: string;
   timestamp: string;
-  data: any;
+  data: unknown;
 }
 
 export interface RealTimeConfig {

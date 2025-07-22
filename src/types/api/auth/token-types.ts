@@ -50,7 +50,7 @@ export interface RevokeApiTokenRequest extends BaseApiRequest {
 }
 
 export interface RevokeApiTokenResponse extends BaseApiResponse<any> {
-  data: any;
+  data: unknown;
   revoked: boolean;
   revokedAt: string;
 }

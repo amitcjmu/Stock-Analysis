@@ -258,7 +258,7 @@ export interface ExecuteTaskResponse extends BaseApiResponse<TaskExecutionResult
   data: TaskExecutionResult;
   executionId: string;
   status: TaskExecutionStatus;
-  output?: any;
+  output?: unknown;
   logs: TaskExecutionLog[];
 }
 

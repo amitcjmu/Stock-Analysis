@@ -14,7 +14,7 @@ import {
 
 interface EngagementFormProps {
   formData: EngagementFormData;
-  onFormChange: (field: keyof EngagementFormData, value: any) => void;
+  onFormChange: (field: keyof EngagementFormData, value: unknown) => void;
   clients: Client[];
 }
 

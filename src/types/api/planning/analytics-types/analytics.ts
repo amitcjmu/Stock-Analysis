@@ -121,7 +121,7 @@ export interface AnalyticsTimeframe {
 export interface AnalyticsFilter {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
   description: string;
 }
 
@@ -259,13 +259,13 @@ export interface DimensionRelationship {
 export interface SegmentCriteria {
   dimension: string;
   operator: string;
-  value: any;
+  value: unknown;
   logic: 'and' | 'or' | 'not';
 }
 
 export interface SegmentCharacteristic {
   characteristic: string;
-  value: any;
+  value: unknown;
   prevalence: number;
   significance: number;
 }
@@ -338,7 +338,7 @@ export interface CalculationVariable {
 export interface CalculationFilter {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
 }
 
 export interface ValueMetadata {
@@ -396,7 +396,7 @@ export interface BehaviorInteraction {
 
 export interface DetectionParameter {
   parameter: string;
-  value: any;
+  value: unknown;
   description: string;
 }
 

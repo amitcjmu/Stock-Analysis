@@ -5,7 +5,7 @@
 
 import { defineConfig } from 'vite';
 
-export const createLazyLoadingConfig = (baseConfig: any = {}) => {
+export const createLazyLoadingConfig = (baseConfig: unknown = {}) => {
   return defineConfig({
     ...baseConfig,
     build: {

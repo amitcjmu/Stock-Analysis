@@ -57,7 +57,7 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
     
     // Priority 1: Flow currently in the specified phase (next_phase matches)
     if (currentPhase) {
-      const currentPhaseFlow = flowList.find((flow: any) => 
+      const currentPhaseFlow = flowList.find((flow: unknown) => 
         flow.next_phase === currentPhase
       );
       if (currentPhaseFlow) {
@@ -69,7 +69,7 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
     
     // Priority 1.5: For attribute_mapping, also check flows that completed data_import
     if (currentPhase === 'attribute_mapping') {
-      const dataImportCompleteFlow = flowList.find((flow: any) => {
+      const dataImportCompleteFlow = flowList.find((flow: unknown) => {
         // Check if data_import is completed
         const dataImportCompleted = flow.phases?.data_import === true || 
                                    flow.data_import_completed === true ||
@@ -94,7 +94,7 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
     
     // Priority 2: Flow with specified phase completed but still in preferred status
     if (currentPhase) {
-      const completedPhaseFlow = flowList.find((flow: any) => {
+      const completedPhaseFlow = flowList.find((flow: unknown) => {
         // Check both direct field and phases object for completion status
         const directField = flow[`${currentPhase}_completed`];
         const phasesField = flow.phases?.[`${currentPhase}_completed`];
@@ -122,7 +122,7 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
     
     // Priority 3: Any flow in preferred status
     if (fallbackToAnyRunning) {
-      const runningFlow = flowList.find((flow: any) => 
+      const runningFlow = flowList.find((flow: unknown) => 
         preferredStatuses.includes(flow.status)
       );
       if (runningFlow) {
@@ -133,7 +133,7 @@ export const useDiscoveryFlowAutoDetection = (options: FlowAutoDetectionOptions 
     }
     
     // Priority 4: Most recent flow (even if completed)
-    const sortedFlows = [...flowList].sort((a: any, b: any) => 
+    const sortedFlows = [...flowList].sort((a: any, b: unknown) => 
       new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime()
     );
     

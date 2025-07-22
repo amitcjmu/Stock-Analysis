@@ -346,7 +346,7 @@ export interface InstrumentationTrigger {
 export interface SamplingCondition {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
 }
 
 export interface SamplingAction {

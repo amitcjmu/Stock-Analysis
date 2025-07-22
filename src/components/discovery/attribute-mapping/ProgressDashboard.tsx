@@ -11,10 +11,10 @@ interface MappingProgress {
 
 interface ProgressDashboardProps {
   progress?: MappingProgress;
-  agentAnalysis?: any;
+  agentAnalysis?: unknown;
   flowId?: string;
   effectiveFlowId?: string;
-  availableDataImports?: any[];
+  availableDataImports?: unknown[];
   selectedDataImportId?: string;
   onDataImportSelection?: (importId: string) => void;
   isLoading?: boolean;

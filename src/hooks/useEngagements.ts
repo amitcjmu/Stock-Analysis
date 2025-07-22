@@ -27,7 +27,7 @@ export const useEngagements = () => {
         const response = await apiCallWithFallback(`/admin/engagements/?client_account_id=${clientId}`);
         const engagements = response?.items || response || [];
         // Filter by client_account_id to ensure we only get engagements for this client
-        return engagements.filter((engagement: any) => engagement.client_account_id === clientId);
+        return engagements.filter((engagement: unknown) => engagement.client_account_id === clientId);
       } catch (error) {
         console.error("Error fetching engagements:", error);
         return [];

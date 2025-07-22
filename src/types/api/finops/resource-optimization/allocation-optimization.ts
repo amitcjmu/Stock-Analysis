@@ -61,7 +61,7 @@ export interface OptimizationPriority {
 export interface ResourceConstraint {
   type: 'capacity' | 'performance' | 'location' | 'compliance' | 'budget';
   description: string;
-  value: any;
+  value: unknown;
   flexibility: 'none' | 'low' | 'medium' | 'high';
 }
 
@@ -123,8 +123,8 @@ export interface AllocationDetail {
 export interface ConstraintStatus {
   constraint: string;
   status: 'satisfied' | 'violated' | 'at_risk';
-  value: any;
-  limit: any;
+  value: unknown;
+  limit: unknown;
 }
 
 // Implementation Planning Types

@@ -118,7 +118,7 @@ export interface ValidationCheck {
 export interface ValidationCriteria {
   metric: string;
   operator: string;
-  value: any;
+  value: unknown;
   tolerance?: number;
   unit?: string;
   critical: boolean;
@@ -157,7 +157,7 @@ export interface RollbackTrigger {
   id: string;
   type: 'performance_degradation' | 'cost_increase' | 'availability_impact' | 'manual' | 'quality_gate_failure';
   condition: string;
-  threshold?: any;
+  threshold?: unknown;
   automated: boolean;
   description: string;
   priority: 'low' | 'medium' | 'high' | 'critical';
@@ -323,7 +323,7 @@ export interface LoggingDestination {
 export interface LoggingFilter {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
   action: 'include' | 'exclude';
 }
 
@@ -349,7 +349,7 @@ export interface ReportContent {
 export interface ReportCondition {
   metric: string;
   operator: string;
-  value: any;
+  value: unknown;
   action: 'include' | 'highlight' | 'escalate';
 }
 
@@ -375,7 +375,7 @@ export interface ResourceAvailability {
 export interface ResourceConstraint {
   type: 'capacity' | 'performance' | 'location' | 'compliance' | 'cost';
   description: string;
-  value: any;
+  value: unknown;
   mandatory: boolean;
 }
 
@@ -439,7 +439,7 @@ export interface WorkflowRouting {
 export interface WorkflowCondition {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
   action: string;
 }
 
@@ -564,7 +564,7 @@ export interface TemplateVariable {
   name: string;
   type: 'string' | 'number' | 'date' | 'object';
   required: boolean;
-  default?: any;
+  default?: unknown;
 }
 
 export interface CommunicationSchedule {

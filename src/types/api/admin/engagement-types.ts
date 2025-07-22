@@ -335,8 +335,8 @@ export interface TimelineAnalysis {
 
 export interface EngagementChange {
   field: string;
-  oldValue: any;
-  newValue: any;
+  oldValue: unknown;
+  newValue: unknown;
   changedAt: string;
   changedBy: string;
   reason?: string;

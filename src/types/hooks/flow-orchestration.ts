@@ -18,7 +18,7 @@ export interface UseFlowManagementParams extends BaseAsyncHookParams {
   includeMetrics?: boolean;
   onFlowStateChange?: (flowId: string, newState: FlowState) => void;
   onFlowError?: (flowId: string, error: Error) => void;
-  onFlowComplete?: (flowId: string, result: any) => void;
+  onFlowComplete?: (flowId: string, result: unknown) => void;
 }
 
 export interface UseFlowManagementReturn extends BaseAsyncHookReturn<FlowSummary[]> {
@@ -310,7 +310,7 @@ export interface UseWorkflowStateReturn extends BaseAsyncHookReturn<WorkflowStat
   
   // Variables and context
   variables: WorkflowVariables;
-  setVariable: (name: string, value: any) => void;
+  setVariable: (name: string, value: unknown) => void;
   getVariable: (name: string) => any;
   deleteVariable: (name: string) => void;
   clearVariables: () => void;

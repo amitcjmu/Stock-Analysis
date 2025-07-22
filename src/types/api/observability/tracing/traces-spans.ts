@@ -280,10 +280,10 @@ export interface OptimizationOpportunity {
 
 export interface PerformanceAnalysis {
   overallScore: number;
-  latencyAnalysis: any;
-  throughputAnalysis: any;
-  errorAnalysis: any;
-  recommendations: any[];
+  latencyAnalysis: unknown;
+  throughputAnalysis: unknown;
+  errorAnalysis: unknown;
+  recommendations: unknown[];
 }
 
 export interface ErrorAnalysis {

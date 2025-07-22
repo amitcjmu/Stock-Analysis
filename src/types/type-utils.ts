@@ -33,7 +33,7 @@ export type Exact<T, U> = T & Record<Exclude<keyof U, keyof T>, never>;
 export type Parameters<T> = T extends (...args: infer P) => any ? P : never;
 
 // Extract function return type
-export type ReturnType<T> = T extends (...args: any[]) => infer R ? R : any;
+export type ReturnType<T> = T extends (...args: unknown[]) => infer R ? R : unknown;
 
 // Extract promise type
 export type PromiseType<T> = T extends Promise<infer P> ? P : T;

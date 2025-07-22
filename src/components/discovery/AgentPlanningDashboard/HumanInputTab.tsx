@@ -13,7 +13,7 @@ import { getPriorityColor } from './utils';
 
 interface HumanInputTabProps {
   humanInputTasks: AgentTask[];
-  onHumanInputSubmission: (taskId: string, input: any) => void;
+  onHumanInputSubmission: (taskId: string, input: unknown) => void;
 }
 
 const HumanInputTab: React.FC<HumanInputTabProps> = ({ 

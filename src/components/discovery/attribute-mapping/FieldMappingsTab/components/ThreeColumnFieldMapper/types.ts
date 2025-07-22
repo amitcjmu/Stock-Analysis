@@ -59,6 +59,6 @@ export interface BulkActionsProps {
   onBulkReject: (mappingIds: string[]) => Promise<void>;
   processingMappings: Set<string>;
   lastBulkOperationTime: number;
-  client: any;
-  engagement: any;
+  client: unknown;
+  engagement: unknown;
 }

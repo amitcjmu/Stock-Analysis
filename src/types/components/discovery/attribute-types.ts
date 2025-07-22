@@ -52,7 +52,7 @@ export interface AttributeEditorProps extends BaseDiscoveryProps {
   onTagAdd?: (tag: string) => void;
   onTagRemove?: (tag: string) => void;
   customFields?: CustomField[];
-  onCustomFieldUpdate?: (fieldId: string, value: any) => void;
+  onCustomFieldUpdate?: (fieldId: string, value: unknown) => void;
   tabs?: AttributeEditorTab[];
   activeTab?: string;
   onTabChange?: (tab: string) => void;
@@ -112,8 +112,8 @@ export interface DataTypeOption {
   value: string;
   label: string;
   description?: string;
-  validator?: (value: any) => boolean;
-  formatter?: (value: any) => string;
+  validator?: (value: unknown) => boolean;
+  formatter?: (value: unknown) => string;
   parser?: (value: string) => any;
 }
 
@@ -124,9 +124,9 @@ export interface CustomField {
   label: string;
   placeholder?: string;
   required?: boolean;
-  options?: { value: any; label: string }[];
+  options?: { value: unknown; label: string }[];
   validation?: ValidationRule[];
-  value?: any;
+  value?: unknown;
   metadata?: Record<string, any>;
 }
 

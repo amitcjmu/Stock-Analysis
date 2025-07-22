@@ -109,8 +109,8 @@ export interface SchemaField {
   required: boolean;
   description?: string;
   constraints?: FieldConstraint[];
-  defaultValue?: any;
-  examples?: any[];
+  defaultValue?: unknown;
+  examples?: unknown[];
 }
 
 export interface SchemaConstraint {
@@ -205,7 +205,7 @@ export interface ValidationStatus {
 
 export interface DataPreview {
   headers: string[];
-  rows: any[][];
+  rows: unknown[][];
   totalRows: number;
   sampleSize: number;
   statistics: ColumnStatistics[];
@@ -226,7 +226,7 @@ export interface ValidationIssue {
   message: string;
   field?: string;
   row?: number;
-  value?: any;
+  value?: unknown;
   context?: Record<string, any>;
 }
 
@@ -274,10 +274,10 @@ export interface ColumnStatistics {
   type: string;
   nullCount: number;
   uniqueCount: number;
-  minValue?: any;
-  maxValue?: any;
-  averageValue?: any;
-  topValues?: Array<{ value: any; count: number }>;
+  minValue?: unknown;
+  maxValue?: unknown;
+  averageValue?: unknown;
+  topValues?: Array<{ value: unknown; count: number }>;
 }
 
 export interface ProcessingSummary {
@@ -309,7 +309,7 @@ export interface ProcessingArtifact {
 
 export interface FieldConstraint {
   type: ConstraintType;
-  value: any;
+  value: unknown;
   message: string;
 }
 
@@ -334,7 +334,7 @@ export interface DataFilter {
   name: string;
   field: string;
   operator: FilterOperator;
-  value: any;
+  value: unknown;
   inverse?: boolean;
 }
 
@@ -352,7 +352,7 @@ export interface ProcessingError {
   details?: string;
   row?: number;
   field?: string;
-  value?: any;
+  value?: unknown;
   timestamp: string;
 }
 

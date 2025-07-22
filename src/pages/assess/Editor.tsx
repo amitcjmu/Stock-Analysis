@@ -21,7 +21,7 @@ const Editor = () => {
   const { mutate: updateApplication, isPending: isUpdating } = useUpdateApplication();
 
   // Handle input changes
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: unknown) => {
     if (!applicationId) return;
     
     updateApplication(

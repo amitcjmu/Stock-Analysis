@@ -43,7 +43,7 @@ export const assessmentFlowAPI = {
     return response.json();
   },
 
-  async resume(flowId: string, data: { user_input: any; save_progress: boolean }) {
+  async resume(flowId: string, data: { user_input: unknown; save_progress: boolean }) {
     const response = await fetch(`${API_BASE}/api/v1/assessment-flow/${flowId}/resume`, {
       method: 'POST',
       headers: {

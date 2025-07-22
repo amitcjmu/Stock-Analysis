@@ -36,14 +36,14 @@ export interface SettingsValidationConfig {
   validateOnBlur?: boolean;
   showErrors?: boolean;
   stopOnFirstError?: boolean;
-  customValidators?: Record<string, (value: any) => boolean | string>;
+  customValidators?: Record<string, (value: unknown) => boolean | string>;
 }
 
 export interface SettingsValidationRule {
   type: 'required' | 'email' | 'url' | 'min' | 'max' | 'pattern' | 'custom';
-  value?: any;
+  value?: unknown;
   message: string;
-  validator?: (value: any) => boolean | Promise<boolean>;
+  validator?: (value: unknown) => boolean | Promise<boolean>;
 }
 
 export interface SettingsAuditLog {
@@ -53,8 +53,8 @@ export interface SettingsAuditLog {
   action: SettingsAction;
   section: string;
   field?: string;
-  oldValue?: any;
-  newValue?: any;
+  oldValue?: unknown;
+  newValue?: unknown;
   timestamp: string;
   ipAddress?: string;
   userAgent?: string;
@@ -63,14 +63,14 @@ export interface SettingsAuditLog {
 
 export interface FieldOption {
   label: string;
-  value: any;
+  value: unknown;
   disabled?: boolean;
   description?: string;
 }
 
 export interface FieldDependency {
   field: string;
-  value: any;
+  value: unknown;
   operation: 'equals' | 'not_equals' | 'in' | 'not_in';
 }
 

@@ -86,7 +86,7 @@ class DemoContextService {
       
       if (clientsResponse && Array.isArray(clientsResponse)) {
         // Check if user has access to demo client
-        const demoClient = clientsResponse.find((client: any) => 
+        const demoClient = clientsResponse.find((client: unknown) => 
           client.id && client.id.includes('def0-def0-def0')
         );
         
@@ -102,7 +102,7 @@ class DemoContextService {
           );
           
           if (engagementsResponse && Array.isArray(engagementsResponse)) {
-            const demoEngagement = engagementsResponse.find((eng: any) =>
+            const demoEngagement = engagementsResponse.find((eng: unknown) =>
               eng.id && eng.id.includes('def0-def0-def0')
             );
             
@@ -132,7 +132,7 @@ class DemoContextService {
       
       return null;
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error.response?.status === 401) {
         console.log('⚠️ User not authenticated');
       } else if (error.response?.status === 403) {

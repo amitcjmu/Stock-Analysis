@@ -59,7 +59,7 @@ export interface UseFilteringParams<T> {
 
 export interface UseFilteringReturn<T> {
   filters: Record<string, any>;
-  setFilter: (key: string, value: any) => void;
+  setFilter: (key: string, value: unknown) => void;
   removeFilter: (key: string) => void;
   clearFilters: () => void;
   hasFilters: boolean;

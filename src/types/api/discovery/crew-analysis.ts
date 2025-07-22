@@ -165,7 +165,7 @@ export interface AnalysisFinding {
 export interface Evidence {
   type: 'data' | 'statistic' | 'pattern' | 'rule' | 'comparison';
   description: string;
-  value?: any;
+  value?: unknown;
   source?: string;
   metadata?: Record<string, any>;
 }

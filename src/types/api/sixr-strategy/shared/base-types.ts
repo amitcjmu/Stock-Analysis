@@ -648,7 +648,7 @@ export interface TemplateVariable {
   name: string;
   type: 'text' | 'number' | 'date' | 'list' | 'object';
   required: boolean;
-  default?: any;
+  default?: unknown;
 }
 
 export interface EscalationPath {
@@ -734,7 +734,7 @@ export interface RollbackPlan {
 
 export interface RollbackTrigger {
   condition: string;
-  threshold: any;
+  threshold: unknown;
   automatic: boolean;
   approver?: string;
   timeframe: string;

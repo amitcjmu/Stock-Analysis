@@ -39,7 +39,7 @@ export interface CriticalAttribute {
   description: string;
   dataType: string;
   isRequired: boolean;
-  defaultValue?: any;
+  defaultValue?: unknown;
   validationRules: ValidationRule[];
   mappingStatus: 'mapped' | 'unmapped' | 'partially_mapped';
   sourceFields: string[];
@@ -180,7 +180,7 @@ export interface TrainingProgress {
 export interface MappingFilter {
   field: string;
   operator: 'eq' | 'ne' | 'contains' | 'startsWith' | 'endsWith';
-  value: any;
+  value: unknown;
 }
 
 /**

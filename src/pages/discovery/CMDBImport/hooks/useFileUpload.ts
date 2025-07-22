@@ -23,7 +23,7 @@ export const useFileUpload = () => {
     const headers = lines[0].split(',').map(h => h.trim().replace(/\"/g, ''));
     const records = lines.slice(1).map((line, index) => {
       const values = line.split(',').map(v => v.trim().replace(/\"/g, ''));
-      const record: any = { row_index: index + 1 };
+      const record: unknown = { row_index: index + 1 };
       headers.forEach((header, headerIndex) => {
         record[header] = values[headerIndex] || '';
       });
@@ -40,7 +40,7 @@ export const useFileUpload = () => {
   }, []);
 
   const storeImportData = useCallback(async (
-    csvData: any[], 
+    csvData: unknown[], 
     file: File, 
     uploadId: string, 
     categoryId: string
@@ -116,7 +116,7 @@ export const useFileUpload = () => {
         console.error('❌ Failed to store data:', response.error);
         return { import_flow_id: null, flow_id: null };
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Error storing data:', error);
       return { import_flow_id: null, flow_id: null };
     }

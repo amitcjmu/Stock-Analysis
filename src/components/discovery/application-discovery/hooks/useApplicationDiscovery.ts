@@ -38,7 +38,7 @@ interface ApplicationPortfolio {
     application_name: string;
     question: string;
     options: string[];
-    context: any;
+    context: unknown;
   }>;
   discovery_metadata: {
     total_assets_analyzed: number;
@@ -81,7 +81,7 @@ export const useApplicationDiscovery = () => {
       } else {
         throw new Error(response.message || 'Failed to fetch application portfolio');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching application portfolio:', err);
       setError(err.message || 'Failed to load application discovery data');
     } finally {
@@ -92,7 +92,7 @@ export const useApplicationDiscovery = () => {
   const handleApplicationValidation = useCallback(async (
     applicationId: string, 
     validationType: string, 
-    feedback: any = {}
+    feedback: unknown = {}
   ) => {
     try {
       const validationData = {
@@ -126,7 +126,7 @@ export const useApplicationDiscovery = () => {
       }
       
       return false;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error validating application:', err);
       return false;
     }

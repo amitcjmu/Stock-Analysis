@@ -37,7 +37,7 @@ export interface GetSessionDetailsRequest extends BaseApiRequest {
 export interface GetSessionDetailsResponse extends BaseApiResponse<UserSession> {
   data: UserSession;
   activities: SessionActivity[];
-  securityEvents: any[];
+  securityEvents: unknown[];
   riskScore: number;
 }
 
@@ -48,7 +48,7 @@ export interface RevokeSessionRequest extends BaseApiRequest {
 }
 
 export interface RevokeSessionResponse extends BaseApiResponse<any> {
-  data: any;
+  data: unknown;
   revoked: boolean;
   revokedAt: string;
   notificationSent: boolean;
@@ -61,7 +61,7 @@ export interface RevokeAllSessionsRequest extends BaseApiRequest {
 }
 
 export interface RevokeAllSessionsResponse extends BaseApiResponse<any> {
-  data: any;
+  data: unknown;
   sessionsRevoked: number;
   tokensRevoked: number;
   devicesUntrusted: number;

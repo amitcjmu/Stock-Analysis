@@ -18,7 +18,7 @@ export interface DashboardStatsData {
     active: number;
     byIndustry: Record<string, number>;
     bySize: Record<string, number>;
-    recentRegistrations: any[];
+    recentRegistrations: unknown[];
   };
   engagements: {
     total: number;
@@ -27,13 +27,13 @@ export interface DashboardStatsData {
     byScope: Record<string, number>;
     completionRate: number;
     budgetUtilization: number;
-    recentActivity: any[];
+    recentActivity: unknown[];
   };
   users: {
     total: number;
     pending: number;
     approved: number;
-    recentRequests: any[];
+    recentRequests: unknown[];
   };
 }
 

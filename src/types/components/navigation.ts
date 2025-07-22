@@ -447,7 +447,7 @@ export interface UseMenuParams {
 // Event types
 export interface NavigationEvent {
   type: 'navigate' | 'back' | 'forward' | 'sidebar_toggle' | 'tab_change' | 'menu_open' | 'menu_close';
-  payload: any;
+  payload: unknown;
   timestamp: string;
   metadata?: Record<string, any>;
 }

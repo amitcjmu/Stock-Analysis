@@ -35,7 +35,7 @@ export interface CriticalAttribute {
   description: string;
   dataType: string;
   isRequired: boolean;
-  defaultValue?: any;
+  defaultValue?: unknown;
   validationRules: ValidationRule[];
   mappingStatus: 'mapped' | 'unmapped' | 'partially_mapped';
   sourceFields: string[];
@@ -89,7 +89,7 @@ export interface ValidationError {
   message: string;
   code: string;
   severity: 'error' | 'warning' | 'info';
-  value?: any;
+  value?: unknown;
   metadata?: Record<string, any>;
 }
 
@@ -105,7 +105,7 @@ export interface ImportError {
 export interface RuleCondition {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
   logicalOperator?: 'and' | 'or';
 }
 

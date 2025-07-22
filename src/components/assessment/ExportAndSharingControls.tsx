@@ -4,7 +4,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Download, Share, FileText, FileSpreadsheet, Mail } from 'lucide-react';
 
 interface ExportAndSharingControlsProps {
-  assessmentData: any;
+  assessmentData: unknown;
 }
 
 export const ExportAndSharingControls: React.FC<ExportAndSharingControlsProps> = ({

@@ -25,7 +25,7 @@ export interface BusinessObjective {
   description: string;
   measurable: boolean;
   metrics: ObjectiveMetric[];
-  target: any;
+  target: unknown;
   timeline: string;
 }
 
@@ -87,8 +87,8 @@ export interface SuccessCriteria {
   category: string;
   measurable: boolean;
   metrics: CriteriaMetric[];
-  targetValue: any;
-  minimumAcceptable: any;
+  targetValue: unknown;
+  minimumAcceptable: unknown;
   weight: number;
 }
 

@@ -66,7 +66,7 @@ export const useRehostProjects = () => {
     queryFn: async () => {
       try {
         return await apiCall('/execute/rehost');
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Handle 404 errors gracefully - endpoint may not exist yet
         if (error.status === 404 || error.response?.status === 404) {
           console.log('Rehost projects endpoint not available yet');
@@ -91,7 +91,7 @@ export const useReplatformProjects = () => {
     queryFn: async () => {
       try {
         return await apiCall('/execute/replatform');
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Handle 404 errors gracefully - endpoint may not exist yet
         if (error.status === 404 || error.response?.status === 404) {
           console.log('Replatform projects endpoint not available yet');
@@ -116,7 +116,7 @@ export const useCutoverEvents = () => {
     queryFn: async () => {
       try {
         return await apiCall('/execute/cutovers');
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Handle 404 errors gracefully - endpoint may not exist yet
         if (error.status === 404 || error.response?.status === 404) {
           console.log('Cutover events endpoint not available yet');
@@ -141,7 +141,7 @@ export const useLessonsLearned = () => {
     queryFn: async () => {
       try {
         return await apiCall('/execute/lessons');
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Handle 404 errors gracefully - endpoint may not exist yet
         if (error.status === 404 || error.response?.status === 404) {
           console.log('Lessons learned endpoint not available yet');
@@ -166,7 +166,7 @@ export const useExecutionMetrics = () => {
     queryFn: async () => {
       try {
         return await apiCall('/execute/metrics');
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Handle 404 errors gracefully - endpoint may not exist yet
         if (error.status === 404 || error.response?.status === 404) {
           console.log('Execution metrics endpoint not available yet');
@@ -199,7 +199,7 @@ export const useExecutionReports = () => {
     queryFn: async () => {
       try {
         return await apiCall('/execute/reports');
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Handle 404 errors gracefully - endpoint may not exist yet
         if (error.status === 404 || error.response?.status === 404) {
           console.log('Execution reports endpoint not available yet');

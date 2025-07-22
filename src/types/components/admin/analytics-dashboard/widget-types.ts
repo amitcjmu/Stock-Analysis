@@ -15,7 +15,7 @@ export interface DashboardWidget {
   position: WidgetPosition;
   size: WidgetSize;
   configuration: WidgetConfiguration;
-  data?: any;
+  data?: unknown;
   loading?: boolean;
   error?: string;
   refreshInterval?: number;
@@ -71,7 +71,7 @@ export interface DashboardFilter {
   type: FilterType;
   field: string;
   options?: FilterOption[];
-  value?: any;
+  value?: unknown;
   required?: boolean;
   cascading?: boolean;
   dependencies?: string[];
@@ -118,7 +118,7 @@ export interface LayoutSettings {
 
 export interface FilterOption {
   label: string;
-  value: any;
+  value: unknown;
   description?: string;
   count?: number;
 }

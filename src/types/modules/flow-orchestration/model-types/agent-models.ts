@@ -76,7 +76,7 @@ export interface AgentMessage {
   fromAgentId: string;
   toAgentId?: string; // null for broadcast
   messageType: string;
-  content: any;
+  content: unknown;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   timestamp: string;
   deliveryStatus: 'sent' | 'delivered' | 'acknowledged' | 'failed';
@@ -130,7 +130,7 @@ export interface AgentDependency {
 
 export interface AgentResult {
   agentId: string;
-  result: any;
+  result: unknown;
   status: 'success' | 'failure' | 'partial';
   error?: ExecutionError;
   metrics: AgentMetrics;
@@ -159,7 +159,7 @@ export interface CoordinationMetrics {
 
 export interface AgentContribution {
   agentId: string;
-  contribution: any;
+  contribution: unknown;
   weight: number;
   confidence: number;
   quality: number;

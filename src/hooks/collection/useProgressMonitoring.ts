@@ -306,7 +306,7 @@ export const useProgressMonitoring = (
         selectedFlow: flowId || mockFlows[0]?.id || null,
         isLoading: false
       }));
-    } catch (error: any) {
+    } catch (error: unknown) {
       setState(prev => ({ ...prev, error, isLoading: false }));
     }
   };

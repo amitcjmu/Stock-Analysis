@@ -7,7 +7,7 @@ import { AgentRecommendation } from '../components/discovery/data-cleansing/Reco
 export const getFieldHighlight = (
   fieldName: string, 
   assetId: string, 
-  rawData: any[], 
+  rawData: unknown[], 
   qualityIssues: QualityIssue[], 
   agentRecommendations: AgentRecommendation[],
   selectedIssue: string | null,
@@ -160,7 +160,7 @@ const normalizeFieldName = (fieldName: string): string => {
 /**
  * Find asset by various identifier formats - MUST match table's getAssetIdentifier logic exactly
  */
-const findAssetByIdentifier = (rawData: any[], identifier: string): any | null => {
+const findAssetByIdentifier = (rawData: unknown[], identifier: string): any | null => {
   if (!identifier || !rawData || rawData.length === 0) return null;
   
   return rawData.find(asset => {
@@ -173,7 +173,7 @@ const findAssetByIdentifier = (rawData: any[], identifier: string): any | null =
 /**
  * Get the asset identifier that the table is using for row identification - MUST match RawDataTable exactly
  */
-const getAssetTableIdentifier = (asset: any): string => {
+const getAssetTableIdentifier = (asset: unknown): string => {
   // EXACT same logic as RawDataTable's getAssetIdentifier: row.id || row.ID || row.asset_name || row.hostname || row.name || row.NAME || 'unknown'
   return asset.id || asset.ID || asset.asset_name || asset.hostname || asset.name || asset.NAME || 'unknown';
 };

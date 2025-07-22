@@ -147,7 +147,7 @@ export interface BudgetAllocation {
 
 export interface AllocationConstraint {
   type: 'min_amount' | 'max_amount' | 'percentage' | 'dependency';
-  value: any;
+  value: unknown;
   description: string;
   mandatory: boolean;
 }

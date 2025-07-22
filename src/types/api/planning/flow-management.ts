@@ -222,7 +222,7 @@ export interface PlanningConstraint {
   id: string;
   type: 'time' | 'budget' | 'resource' | 'technical' | 'regulatory' | 'business';
   description: string;
-  value: any;
+  value: unknown;
   priority: 'low' | 'medium' | 'high' | 'critical';
   impact: string;
 }
@@ -235,8 +235,8 @@ export interface PlanningObjective {
   priority: number;
   measurable: boolean;
   metrics: ObjectiveMetric[];
-  targetValue: any;
-  currentValue?: any;
+  targetValue: unknown;
+  currentValue?: unknown;
 }
 
 // Additional supporting interfaces
@@ -454,19 +454,19 @@ export interface PlanningTimeline {
   name: string;
   startDate: string;
   endDate: string;
-  phases: any[];
+  phases: unknown[];
 }
 
 export interface ResourcePlan {
   id: string;
   name: string;
-  resources: any[];
+  resources: unknown[];
   utilization: number;
 }
 
 export interface RiskRegister {
   id: string;
-  risks: any[];
+  risks: unknown[];
   totalRisks: number;
   highRisks: number;
 }

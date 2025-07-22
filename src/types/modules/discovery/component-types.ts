@@ -112,11 +112,11 @@ export namespace Components {
   }
 
   export interface RawDataTableProps extends BaseComponentProps {
-    data: any[];
+    data: unknown[];
     columns: ColumnDefinition[];
     loading?: boolean;
     error?: string | null;
-    onRowSelect?: (row: any) => void;
+    onRowSelect?: (row: unknown) => void;
     selectable?: boolean;
   }
 }

@@ -127,7 +127,7 @@ export interface UseSystemSettingsParams extends BaseAsyncHookParams {
   category?: SettingCategory;
   includeDefaults?: boolean;
   includeValidation?: boolean;
-  onSettingChange?: (key: string, newValue: any, oldValue: any) => void;
+  onSettingChange?: (key: string, newValue: any, oldValue: unknown) => void;
   onValidationError?: (key: string, error: ValidationError) => void;
 }
 
@@ -137,7 +137,7 @@ export interface UseSystemSettingsReturn extends BaseAsyncHookReturn<SystemSetti
   
   // Setting operations
   getSetting: (key: string) => any;
-  setSetting: (key: string, value: any) => Promise<void>;
+  setSetting: (key: string, value: unknown) => Promise<void>;
   resetSetting: (key: string) => Promise<void>;
   updateSettings: (settings: Record<string, any>) => Promise<void>;
   
@@ -147,7 +147,7 @@ export interface UseSystemSettingsReturn extends BaseAsyncHookReturn<SystemSetti
   resetCategorySettings: (category: SettingCategory) => Promise<void>;
   
   // Validation
-  validateSetting: (key: string, value: any) => Promise<SettingValidationResult>;
+  validateSetting: (key: string, value: unknown) => Promise<SettingValidationResult>;
   validateAllSettings: () => Promise<SystemSettingsValidationResult>;
   
   // Import/Export

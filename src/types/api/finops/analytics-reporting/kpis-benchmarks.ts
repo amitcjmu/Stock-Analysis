@@ -314,7 +314,7 @@ export interface BenchmarkSegment {
 export interface SegmentCriteria {
   dimension: string;
   operator: 'equals' | 'greater_than' | 'less_than' | 'in_range' | 'contains';
-  value: any;
+  value: unknown;
 }
 
 export interface SegmentPerformance {

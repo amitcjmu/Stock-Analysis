@@ -6,7 +6,7 @@
  */
 
 // Flow Type Guards
-export const isDiscoveryFlow = (obj: any): obj is import('./modules/discovery').DiscoveryFlow.Models.FlowData => {
+export const isDiscoveryFlow = (obj: unknown): obj is import('./modules/discovery').DiscoveryFlow.Models.FlowData => {
   return obj && 
     typeof obj === 'object' &&
     typeof obj.id === 'string' &&
@@ -15,7 +15,7 @@ export const isDiscoveryFlow = (obj: any): obj is import('./modules/discovery').
     Array.isArray(obj.phases);
 };
 
-export const isFlowState = (obj: any): obj is import('./modules/flow-orchestration').FlowOrchestration.Models.FlowState => {
+export const isFlowState = (obj: unknown): obj is import('./modules/flow-orchestration').FlowOrchestration.Models.FlowState => {
   return obj &&
     typeof obj === 'object' &&
     typeof obj.flowId === 'string' &&
@@ -24,7 +24,7 @@ export const isFlowState = (obj: any): obj is import('./modules/flow-orchestrati
     typeof obj.progress === 'number';
 };
 
-export const isAgentConfiguration = (obj: any): obj is import('./modules/flow-orchestration').FlowOrchestration.Models.AgentConfiguration => {
+export const isAgentConfiguration = (obj: unknown): obj is import('./modules/flow-orchestration').FlowOrchestration.Models.AgentConfiguration => {
   return obj &&
     typeof obj === 'object' &&
     typeof obj.id === 'string' &&
@@ -34,28 +34,28 @@ export const isAgentConfiguration = (obj: any): obj is import('./modules/flow-or
 };
 
 // Component Type Guards
-export const isNavigationProps = (obj: any): obj is import('./components/navigation').NavigationSidebarProps => {
+export const isNavigationProps = (obj: unknown): obj is import('./components/navigation').NavigationSidebarProps => {
   return obj &&
     typeof obj === 'object' &&
     typeof obj.isOpen === 'boolean' &&
     typeof obj.onToggle === 'function';
 };
 
-export const isFieldMappingProps = (obj: any): obj is import('./components/discovery').FieldMappingsTabProps => {
+export const isFieldMappingProps = (obj: unknown): obj is import('./components/discovery').FieldMappingsTabProps => {
   return obj &&
     typeof obj === 'object' &&
     typeof obj.flowId === 'string' &&
     Array.isArray(obj.mappings);
 };
 
-export const isFormProps = (obj: any): obj is import('./components/forms').FormProps => {
+export const isFormProps = (obj: unknown): obj is import('./components/forms').FormProps => {
   return obj &&
     typeof obj === 'object' &&
     typeof obj.onSubmit === 'function';
 };
 
 // Hook Type Guards
-export const isAttributeMappingReturn = (obj: any): obj is import('./hooks/discovery').UseAttributeMappingReturn => {
+export const isAttributeMappingReturn = (obj: unknown): obj is import('./hooks/discovery').UseAttributeMappingReturn => {
   return obj &&
     typeof obj === 'object' &&
     Array.isArray(obj.mappings) &&
@@ -63,7 +63,7 @@ export const isAttributeMappingReturn = (obj: any): obj is import('./hooks/disco
     typeof obj.flowId === 'string';
 };
 
-export const isAsyncHookReturn = (obj: any): obj is import('./hooks/shared').BaseAsyncHookReturn => {
+export const isAsyncHookReturn = (obj: unknown): obj is import('./hooks/shared').BaseAsyncHookReturn => {
   return obj &&
     typeof obj === 'object' &&
     typeof obj.isLoading === 'boolean' &&
@@ -73,21 +73,21 @@ export const isAsyncHookReturn = (obj: any): obj is import('./hooks/shared').Bas
 };
 
 // API Type Guards
-export const isBaseApiRequest = (obj: any): obj is import('./api/shared').BaseApiRequest => {
+export const isBaseApiRequest = (obj: unknown): obj is import('./api/shared').BaseApiRequest => {
   return obj &&
     typeof obj === 'object' &&
     (obj.requestId === undefined || typeof obj.requestId === 'string') &&
     (obj.timestamp === undefined || typeof obj.timestamp === 'string');
 };
 
-export const isBaseApiResponse = (obj: any): obj is import('./api/shared').BaseApiResponse => {
+export const isBaseApiResponse = (obj: unknown): obj is import('./api/shared').BaseApiResponse => {
   return obj &&
     typeof obj === 'object' &&
     typeof obj.success === 'boolean' &&
     typeof obj.metadata === 'object';
 };
 
-export const isMultiTenantContext = (obj: any): obj is import('./api/shared').MultiTenantContext => {
+export const isMultiTenantContext = (obj: unknown): obj is import('./api/shared').MultiTenantContext => {
   return obj &&
     typeof obj === 'object' &&
     typeof obj.clientAccountId === 'string' &&
@@ -96,7 +96,7 @@ export const isMultiTenantContext = (obj: any): obj is import('./api/shared').Mu
 };
 
 // Utility Type Guards
-export const isValidationResult = (obj: any): obj is import('./api/shared').ValidationResult => {
+export const isValidationResult = (obj: unknown): obj is import('./api/shared').ValidationResult => {
   return obj &&
     typeof obj === 'object' &&
     typeof obj.isValid === 'boolean' &&
@@ -104,7 +104,7 @@ export const isValidationResult = (obj: any): obj is import('./api/shared').Vali
     Array.isArray(obj.warnings);
 };
 
-export const isPaginationInfo = (obj: any): obj is import('./api/shared').PaginationInfo => {
+export const isPaginationInfo = (obj: unknown): obj is import('./api/shared').PaginationInfo => {
   return obj &&
     typeof obj === 'object' &&
     typeof obj.page === 'number' &&
@@ -115,14 +115,14 @@ export const isPaginationInfo = (obj: any): obj is import('./api/shared').Pagina
 };
 
 // Complex Type Guards
-export const isDiscoveryFlowRequest = (obj: any): obj is import('./api/discovery').InitializeDiscoveryFlowRequest => {
+export const isDiscoveryFlowRequest = (obj: unknown): obj is import('./api/discovery').InitializeDiscoveryFlowRequest => {
   return obj &&
     typeof obj === 'object' &&
     typeof obj.flowName === 'string' &&
     isMultiTenantContext(obj.context);
 };
 
-export const isFieldMapping = (obj: any): obj is import('./hooks/discovery').FieldMapping => {
+export const isFieldMapping = (obj: unknown): obj is import('./hooks/discovery').FieldMapping => {
   return obj &&
     typeof obj === 'object' &&
     typeof obj.id === 'string' &&
@@ -133,20 +133,20 @@ export const isFieldMapping = (obj: any): obj is import('./hooks/discovery').Fie
 };
 
 // Array Type Guards
-export const isFieldMappingArray = (obj: any): obj is import('./hooks/discovery').FieldMapping[] => {
+export const isFieldMappingArray = (obj: unknown): obj is import('./hooks/discovery').FieldMapping[] => {
   return Array.isArray(obj) && obj.every(isFieldMapping);
 };
 
-export const isValidationResultArray = (obj: any): obj is import('./api/shared').ValidationResult[] => {
+export const isValidationResultArray = (obj: unknown): obj is import('./api/shared').ValidationResult[] => {
   return Array.isArray(obj) && obj.every(isValidationResult);
 };
 
 // Generic Type Guard Creator
 export const createTypeGuard = <T>(
-  validator: (obj: any) => boolean,
+  validator: (obj: unknown) => boolean,
   typeName: string
 ) => {
-  const guard = (obj: any): obj is T => {
+  const guard = (obj: unknown): obj is T => {
     const isValid = validator(obj);
     if (!isValid && process.env.NODE_ENV === 'development') {
       console.warn(`Type guard failed for ${typeName}:`, obj);
@@ -166,11 +166,11 @@ export const createTypeGuard = <T>(
 
 // Enhanced Type Guards with Error Reporting
 export const createValidatingTypeGuard = <T>(
-  validator: (obj: any) => { isValid: boolean; errors: string[] },
+  validator: (obj: unknown) => { isValid: boolean; errors: string[] },
   typeName: string
 ) => {
   return {
-    guard: (obj: any): obj is T => {
+    guard: (obj: unknown): obj is T => {
       const result = validator(obj);
       if (!result.isValid && process.env.NODE_ENV === 'development') {
         console.warn(`Type validation failed for ${typeName}:`, {
@@ -180,7 +180,7 @@ export const createValidatingTypeGuard = <T>(
       }
       return result.isValid;
     },
-    validate: (obj: any) => validator(obj),
+    validate: (obj: unknown) => validator(obj),
     typeName
   };
 };
@@ -191,8 +191,8 @@ export interface ValidationSchema {
     type: 'string' | 'number' | 'boolean' | 'object' | 'array' | 'function';
     required?: boolean;
     nullable?: boolean;
-    validator?: (value: any) => boolean;
-    arrayItemValidator?: (item: any) => boolean;
+    validator?: (value: unknown) => boolean;
+    arrayItemValidator?: (item: unknown) => boolean;
     properties?: ValidationSchema;
   };
 }
@@ -308,10 +308,10 @@ export const FieldMappingGuard = createSchemaTypeGuard<import('./hooks/discovery
 
 // Runtime Type Registry
 export class TypeRegistry {
-  private static guards = new Map<string, (obj: any) => boolean>();
+  private static guards = new Map<string, (obj: unknown) => boolean>();
   private static schemas = new Map<string, ValidationSchema>();
   
-  static register<T>(typeName: string, guard: (obj: any) => obj is T): void {
+  static register<T>(typeName: string, guard: (obj: unknown) => obj is T): void {
     this.guards.set(typeName, guard);
   }
   
@@ -320,7 +320,7 @@ export class TypeRegistry {
     this.guards.set(typeName, (obj) => validateSchema(obj, schema).isValid);
   }
   
-  static check<T>(typeName: string, obj: any): obj is T {
+  static check<T>(typeName: string, obj: unknown): obj is T {
     const guard = this.guards.get(typeName);
     if (!guard) {
       throw new Error(`Type guard for '${typeName}' not registered`);
@@ -328,7 +328,7 @@ export class TypeRegistry {
     return guard(obj);
   }
   
-  static validate(typeName: string, obj: any): { isValid: boolean; errors: string[] } {
+  static validate(typeName: string, obj: unknown): { isValid: boolean; errors: string[] } {
     const schema = this.schemas.get(typeName);
     if (!schema) {
       // Fallback to simple guard check
@@ -363,8 +363,8 @@ Object.entries(COMMON_SCHEMAS).forEach(([name, schema]) => {
 // Development Utilities
 export const DEV_TYPE_GUARDS = {
   listRegisteredTypes: () => TypeRegistry.getRegisteredTypes(),
-  validateType: (typeName: string, obj: any) => TypeRegistry.validate(typeName, obj),
-  checkType: (typeName: string, obj: any) => TypeRegistry.check(typeName, obj),
-  createTestGuard: <T>(validator: (obj: any) => boolean) => 
+  validateType: (typeName: string, obj: unknown) => TypeRegistry.validate(typeName, obj),
+  checkType: (typeName: string, obj: unknown) => TypeRegistry.check(typeName, obj),
+  createTestGuard: <T>(validator: (obj: unknown) => boolean) => 
     createTypeGuard<T>(validator, 'TestType')
 } as const;

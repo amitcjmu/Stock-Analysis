@@ -108,8 +108,8 @@ export const pollingManager = new PollingManager();
 
 // Console debugging functions (for development)
 if (typeof window !== 'undefined') {
-  (window as any).pollingManager = pollingManager;
-  (window as any).stopAllPolling = () => pollingManager.emergencyStop();
+  (window as unknown).pollingManager = pollingManager;
+  (window as unknown).stopAllPolling = () => pollingManager.emergencyStop();
 }
 
 export default pollingManager;

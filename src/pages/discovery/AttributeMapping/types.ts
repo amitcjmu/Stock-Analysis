@@ -1,31 +1,31 @@
 // TypeScript interfaces for Attribute Mapping
 export interface AttributeMappingState {
-  agenticData: any;
-  fieldMappings: any[];
-  crewAnalysis: any;
-  mappingProgress: any;
-  criticalAttributes: any[];
-  flowState: any;
+  agenticData: unknown;
+  fieldMappings: unknown[];
+  crewAnalysis: unknown;
+  mappingProgress: unknown;
+  criticalAttributes: unknown[];
+  flowState: unknown;
   flowId: string | null;
-  availableDataImports: any[];
+  availableDataImports: unknown[];
   selectedDataImportId: string | null;
   isAgenticLoading: boolean;
   isFlowStateLoading: boolean;
   isAnalyzing: boolean;
-  agenticError: any;
-  flowStateError: any;
+  agenticError: unknown;
+  flowStateError: unknown;
   autoDetectedFlowId: string | null;
   effectiveFlowId: string | null;
   hasEffectiveFlow: boolean;
-  flowList: any[];
+  flowList: unknown[];
 }
 
 export interface AttributeMappingActions {
   handleTriggerFieldMappingCrew: () => void;
   handleApproveMapping: (mappingId: string) => void;
   handleRejectMapping: (mappingId: string) => void;
-  handleMappingChange: (mappingId: string, updates: any) => void;
-  handleAttributeUpdate: (attributeId: string, updates: any) => void;
+  handleMappingChange: (mappingId: string, updates: unknown) => void;
+  handleAttributeUpdate: (attributeId: string, updates: unknown) => void;
   handleDataImportSelection: (importId: string) => void;
   refetchAgentic: () => void;
   refetchCriticalAttributes: () => void;
@@ -39,7 +39,7 @@ export interface NavigationState {
 
 export interface SessionInfo {
   flowId: string | null;
-  availableDataImports: any[];
+  availableDataImports: unknown[];
   selectedDataImportId: string | null;
   hasMultipleSessions: boolean;
 }
@@ -59,8 +59,8 @@ export interface AttributeMappingProps {
   onTriggerAnalysis: () => void;
   onApproveMapping: (mappingId: string) => void;
   onRejectMapping: (mappingId: string) => void;
-  onMappingChange: (mappingId: string, updates: any) => void;
-  onAttributeUpdate: (attributeId: string, updates: any) => void;
+  onMappingChange: (mappingId: string, updates: unknown) => void;
+  onAttributeUpdate: (attributeId: string, updates: unknown) => void;
   onDataImportSelection: (importId: string) => void;
   onRefetchAgentic: () => void;
   onContinueToDataCleansing: () => void;

@@ -27,7 +27,7 @@ export const useChartData = ({
       : analyticsData.timeSeriesData;
     
     return data.map(item => {
-      const transformed: any = { timestamp: item.timestamp };
+      const transformed: unknown = { timestamp: item.timestamp };
       
       agentNames.forEach(agent => {
         selectedMetrics.forEach(metric => {

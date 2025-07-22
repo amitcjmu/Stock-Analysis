@@ -29,7 +29,7 @@ export interface AttributeMappingActionsResult {
   handleApproveMapping: (mappingId: string) => Promise<void>;
   handleRejectMapping: (mappingId: string, rejectionReason?: string) => Promise<void>;
   handleMappingChange: (mappingId: string, newTarget: string) => Promise<void>;
-  handleAttributeUpdate: (attributeId: string, updates: any) => Promise<void>;
+  handleAttributeUpdate: (attributeId: string, updates: unknown) => Promise<void>;
   handleDataImportSelection: (importId: string) => Promise<void>;
   canContinueToDataCleansing: () => boolean;
   checkMappingApprovalStatus: (dataImportId: string) => Promise<any>;
@@ -134,7 +134,7 @@ export const useAttributeMappingActions = (
       console.log(`✅ Approving mapping: ${mappingId}`);
       
       // Find the mapping
-      const mapping = fieldMappings.find((m: any) => m.id === mappingId);
+      const mapping = fieldMappings.find((m: unknown) => m.id === mappingId);
       if (!mapping) {
         console.error('❌ Mapping not found:', mappingId);
         return;
@@ -156,8 +156,8 @@ export const useAttributeMappingActions = (
       console.log('✅ Mapping approved successfully:', approvalResult);
       
       // Show success feedback
-      if (typeof window !== 'undefined' && (window as any).showSuccessToast) {
-        (window as any).showSuccessToast(`Mapping approved: ${mapping.sourceField} → ${mapping.targetAttribute}`);
+      if (typeof window !== 'undefined' && (window as unknown).showSuccessToast) {
+        (window as unknown).showSuccessToast(`Mapping approved: ${mapping.sourceField} → ${mapping.targetAttribute}`);
       }
       
       // Add delay before refetching to prevent rate limiting
@@ -175,9 +175,9 @@ export const useAttributeMappingActions = (
       console.error('❌ Failed to approve mapping:', error);
       
       // Show error toast if available
-      if (typeof window !== 'undefined' && (window as any).showErrorToast) {
+      if (typeof window !== 'undefined' && (window as unknown).showErrorToast) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to approve mapping';
-        (window as any).showErrorToast(errorMessage);
+        (window as unknown).showErrorToast(errorMessage);
       }
     }
   }, [fieldMappings, getAuthHeaders, user?.id, refetchFieldMappings]);
@@ -191,8 +191,8 @@ export const useAttributeMappingActions = (
       console.log('ℹ️ To change a field mapping, please edit it directly');
       
       // Show info message
-      if (typeof window !== 'undefined' && (window as any).showInfoToast) {
-        (window as any).showInfoToast('To change a field mapping, please edit it directly in the dropdown.');
+      if (typeof window !== 'undefined' && (window as unknown).showInfoToast) {
+        (window as unknown).showInfoToast('To change a field mapping, please edit it directly in the dropdown.');
       }
       
     } catch (error) {
@@ -205,7 +205,7 @@ export const useAttributeMappingActions = (
       console.log(`🔄 Changing mapping: ${mappingId} -> ${newTarget}`);
       
       // Find the mapping in the current data
-      const mapping = fieldMappings.find((m: any) => m.id === mappingId);
+      const mapping = fieldMappings.find((m: unknown) => m.id === mappingId);
       if (!mapping) {
         console.error('❌ Mapping not found:', mappingId);
         return;
@@ -218,17 +218,17 @@ export const useAttributeMappingActions = (
       // Update local state to reflect the change
       // The parent component should handle this state update
       // For now, just show feedback
-      if (typeof window !== 'undefined' && (window as any).showInfoToast) {
-        (window as any).showInfoToast(`Field mapping updated: ${mapping.sourceField} → ${newTarget}`);
+      if (typeof window !== 'undefined' && (window as unknown).showInfoToast) {
+        (window as unknown).showInfoToast(`Field mapping updated: ${mapping.sourceField} → ${newTarget}`);
       }
       
     } catch (error) {
       console.error('❌ Failed to update mapping:', error);
       
       // Show error toast if available
-      if (typeof window !== 'undefined' && (window as any).showErrorToast) {
+      if (typeof window !== 'undefined' && (window as unknown).showErrorToast) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to update mapping';
-        (window as any).showErrorToast(errorMessage);
+        (window as unknown).showErrorToast(errorMessage);
       }
       
       // Re-throw for component error handling
@@ -236,7 +236,7 @@ export const useAttributeMappingActions = (
     }
   }, [fieldMappings]);
 
-  const handleAttributeUpdate = useCallback(async (attributeId: string, updates: any) => {
+  const handleAttributeUpdate = useCallback(async (attributeId: string, updates: unknown) => {
     try {
       console.log(`🔄 Updating attribute: ${attributeId}`, updates);
       // TODO: Implement attribute update logic

@@ -8,14 +8,14 @@ import { useState, useMemo, useCallback } from 'react';
 export interface FilterConfig<T = any> {
   [key: string]: {
     type: 'string' | 'select' | 'multi-select' | 'date-range';
-    defaultValue: any;
+    defaultValue: unknown;
     options?: Array<{ value: string; label: string }>;
   };
 }
 
 export interface UseFiltersResult<T> {
   filters: T;
-  setFilter: (key: keyof T, value: any) => void;
+  setFilter: (key: keyof T, value: unknown) => void;
   setFilters: (filters: Partial<T>) => void;
   clearFilters: () => void;
   hasActiveFilters: boolean;
@@ -35,7 +35,7 @@ export function useFilters<T extends Record<string, any>>(
 
   const [filters, setFiltersState] = useState<T>(defaultFilters);
 
-  const setFilter = useCallback((key: keyof T, value: any) => {
+  const setFilter = useCallback((key: keyof T, value: unknown) => {
     setFiltersState(prev => ({ ...prev, [key]: value }));
   }, []);
 

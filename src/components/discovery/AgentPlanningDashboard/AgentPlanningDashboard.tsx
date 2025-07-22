@@ -81,7 +81,7 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
     }
   };
 
-  const handleHumanInputSubmission = async (taskId: string, input: any) => {
+  const handleHumanInputSubmission = async (taskId: string, input: unknown) => {
     try {
       await api.submitHumanInput(taskId, input, pageContext);
       

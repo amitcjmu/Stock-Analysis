@@ -96,7 +96,7 @@ export const useAssessmentFlow = (
   }, [clientAccountId, engagementId, navigate, getAuthHeaders]);
   
   // Resume flow from current phase
-  const resumeFlow = useCallback(async (userInput: any) => {
+  const resumeFlow = useCallback(async (userInput: unknown) => {
     if (!state.flowId) {
       throw new Error('No active flow to resume');
     }

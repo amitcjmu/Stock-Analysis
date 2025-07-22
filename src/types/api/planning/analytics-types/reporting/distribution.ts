@@ -33,7 +33,7 @@ export interface ChannelConfiguration {
 
 export interface ChannelSetting {
   setting: string;
-  value: any;
+  value: unknown;
   description: string;
 }
 
@@ -87,7 +87,7 @@ export interface RecipientPermission {
 
 export interface RecipientPreference {
   preference: string;
-  value: any;
+  value: unknown;
   priority: number;
 }
 
@@ -108,7 +108,7 @@ export interface ScheduleTiming {
 
 export interface ScheduleCondition {
   condition: string;
-  value: any;
+  value: unknown;
   action: 'send' | 'skip' | 'delay';
 }
 
@@ -132,7 +132,7 @@ export interface AutomationAction {
 
 export interface ActionParameter {
   name: string;
-  value: any;
+  value: unknown;
   type: string;
 }
 
@@ -223,7 +223,7 @@ export interface SuggestionEvent {
 
 export interface EventDetail {
   property: string;
-  value: any;
+  value: unknown;
   context: string;
 }
 

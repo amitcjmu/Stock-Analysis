@@ -128,7 +128,7 @@ export interface FieldMapping {
   source: string;
   target: string;
   type?: string;
-  default?: any;
+  default?: unknown;
 }
 
 export interface TypeConversion {
@@ -156,7 +156,7 @@ export interface LogFilter {
 export interface FilterCondition {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
   logicalOperator?: 'and' | 'or';
 }
 
@@ -189,7 +189,7 @@ export interface LookupConfig {
   keyField: string;
   valueFields: string[];
   cacheTimeout?: string;
-  fallback?: any;
+  fallback?: unknown;
 }
 
 export interface LogSampling {

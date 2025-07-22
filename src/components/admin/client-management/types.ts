@@ -10,19 +10,19 @@ export interface Client {
   description?: string;
   subscription_tier?: string;
   billing_contact_email?: string;
-  settings?: Record<string, any>;
-  branding?: Record<string, any>;
+  settings?: Record<string, unknown>;
+  branding?: Record<string, unknown>;
   slug?: string;
   created_by?: string;
   business_objectives: string[];
   target_cloud_providers: string[];
   business_priorities: string[];
   compliance_requirements: string[];
-  it_guidelines?: Record<string, any>;
-  decision_criteria?: Record<string, any>;
-  agent_preferences?: Record<string, any>;
-  budget_constraints?: Record<string, any>;
-  timeline_constraints?: Record<string, any>;
+  it_guidelines?: Record<string, unknown>;
+  decision_criteria?: Record<string, unknown>;
+  agent_preferences?: Record<string, unknown>;
+  budget_constraints?: Record<string, unknown>;
+  timeline_constraints?: Record<string, unknown>;
   created_at: string;
   updated_at?: string;
   is_active: boolean;
@@ -41,17 +41,17 @@ export interface ClientFormData {
   description: string;
   subscription_tier: string;
   billing_contact_email: string;
-  settings: Record<string, any>;
-  branding: Record<string, any>;
+  settings: Record<string, unknown>;
+  branding: Record<string, unknown>;
   business_objectives: string[];
   target_cloud_providers: string[];
   business_priorities: string[];
   compliance_requirements: string[];
-  it_guidelines: Record<string, any>;
-  decision_criteria: Record<string, any>;
-  agent_preferences: Record<string, any>;
-  budget_constraints: Record<string, any>;
-  timeline_constraints: Record<string, any>;
+  it_guidelines: Record<string, unknown>;
+  decision_criteria: Record<string, unknown>;
+  agent_preferences: Record<string, unknown>;
+  budget_constraints: Record<string, unknown>;
+  timeline_constraints: Record<string, unknown>;
 }
 
 export const CloudProviders = [

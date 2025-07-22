@@ -34,7 +34,7 @@ export interface AdaptiveFormContainerProps {
   milestones: ProgressMilestone[];
   isSaving?: boolean;
   isSubmitting?: boolean;
-  onFieldChange: (fieldId: string, value: any) => void;
+  onFieldChange: (fieldId: string, value: unknown) => void;
   onValidationChange: (validation: FormValidationResult) => void;
   onSave: () => void;
   onSubmit: (data: CollectionFormData) => void;

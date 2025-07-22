@@ -4,9 +4,9 @@ import { apiCall } from '../../../config/api';
 import { useLatestImport } from '../../api/useLatestImport';
 
 export interface ImportDataResult {
-  importData: any;
+  importData: unknown;
   isImportDataLoading: boolean;
-  importDataError: any;
+  importDataError: unknown;
   refetchImportData: () => Promise<any>;
 }
 
@@ -58,7 +58,7 @@ export const useImportData = (finalFlowId: string | null): ImportDataResult => {
     enabled: !!(finalFlowId && user?.id),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     cacheTime: 15 * 60 * 1000, // Keep in cache for 15 minutes
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error: unknown) => {
       // Don't retry on 429 or auth errors
       if (error?.status === 429 || error?.status === 401 || error?.status === 403) {
         return false;

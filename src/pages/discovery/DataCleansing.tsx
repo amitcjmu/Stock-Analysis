@@ -66,7 +66,7 @@ const DataCleansing: React.FC = () => {
   } = useLatestImport();
 
   // Extract data cleansing results from flow state - fix data path
-  const flowDataCleansing = (flow as any)?.data_cleansing_results || (flow as any)?.data_cleansing || (flow as any)?.results?.data_cleansing || {};
+  const flowDataCleansing = (flow as unknown)?.data_cleansing_results || (flow as unknown)?.data_cleansing || (flow as unknown)?.results?.data_cleansing || {};
   const qualityIssues = flowDataCleansing?.quality_issues || [];
   const agentRecommendations = flowDataCleansing?.recommendations || [];
   

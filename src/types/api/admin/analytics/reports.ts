@@ -62,7 +62,7 @@ export interface ReportDelivery {
 // Section content wrapper
 export interface SectionContent {
   type: string;
-  data: any;
+  data: unknown;
   configuration: Record<string, any>;
 }
 

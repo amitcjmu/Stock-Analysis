@@ -66,13 +66,13 @@ const FeedbackView: React.FC = () => {
       const allFeedback = response.feedback || [];
       
       // Filter for page feedback only (exclude CMDB analysis feedback)
-      const pageFeedback = allFeedback.filter((item: any) => 
+      const pageFeedback = allFeedback.filter((item: unknown) => 
         item.feedback_type === 'page_feedback' || 
         (!item.feedback_type && item.page && item.rating && item.comment)
       );
       
       // Transform the data to match our expected format
-      const transformedFeedback: FeedbackItem[] = pageFeedback.map((item: any) => ({
+      const transformedFeedback: FeedbackItem[] = pageFeedback.map((item: unknown) => ({
         id: item.id || Math.random().toString(),
         page: item.page || 'Unknown',
         rating: item.rating || 0,

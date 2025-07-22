@@ -28,7 +28,7 @@ interface CMDBDataTableProps {
   onStartDiscoveryFlow?: () => void; // New
   isFlowRunning?: boolean;
   isStartingFlow?: boolean;
-  flowState?: any;
+  flowState?: unknown;
 }
 
 export const CMDBDataTable: React.FC<CMDBDataTableProps> = ({

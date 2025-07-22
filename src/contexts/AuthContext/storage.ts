@@ -102,16 +102,16 @@ export const contextStorage = {
   }
 };
 
-export const persistClientData = (client: any) => {
+export const persistClientData = (client: unknown) => {
   localStorage.setItem('auth_client', JSON.stringify(client));
   localStorage.setItem('auth_client_id', client.id);
 };
 
-export const persistEngagementData = (engagement: any) => {
+export const persistEngagementData = (engagement: unknown) => {
   localStorage.setItem('auth_engagement', JSON.stringify(engagement));
 };
 
-export const persistSessionData = (session: any) => {
+export const persistSessionData = (session: unknown) => {
   localStorage.setItem('auth_session', JSON.stringify(session));
 };
 

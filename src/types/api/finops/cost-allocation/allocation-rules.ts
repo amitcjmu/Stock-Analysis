@@ -133,7 +133,7 @@ export interface ResidualHandling {
 export interface AllocationCondition {
   type: 'time_based' | 'value_based' | 'tag_based' | 'dependency_based';
   condition: string;
-  value?: any;
+  value?: unknown;
   operator: string;
   action: 'apply' | 'skip' | 'modify' | 'escalate';
 }

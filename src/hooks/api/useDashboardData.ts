@@ -22,8 +22,8 @@ export interface DashboardData {
     completed_flows: number;
     error_flows: number;
   };
-  crewPerformance: any[];
-  platformAlerts: any[];
+  crewPerformance: unknown[];
+  platformAlerts: unknown[];
 }
 
 /**
@@ -56,7 +56,7 @@ export const useDashboardData = () => {
       if (discoveryFlowsResponse.status === 'fulfilled') {
         const flowsData = discoveryFlowsResponse.value;
         if (Array.isArray(flowsData)) {
-          allFlows = flowsData.map((flow: any) => ({
+          allFlows = flowsData.map((flow: unknown) => ({
             flow_id: flow.flow_id,
             status: flow.status,
             type: flow.type || 'discovery',
@@ -87,7 +87,7 @@ export const useDashboardData = () => {
     enabled: !!(user?.id && client?.id && engagement?.id),
     staleTime: 30 * 1000, // Consider fresh for 30 seconds
     cacheTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error: unknown) => {
       // Don't retry on 429 or auth errors
       if (error?.status === 429 || error?.status === 401 || error?.status === 403) {
         return false;

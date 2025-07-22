@@ -192,7 +192,7 @@ export interface BillingDiscount {
 
 export interface DiscountRestriction {
   type: RestrictionType;
-  value: any;
+  value: unknown;
   message: string;
 }
 

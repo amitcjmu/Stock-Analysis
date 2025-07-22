@@ -31,7 +31,7 @@ export interface ResourceAvailability {
 export interface ResourceConstraint {
   type: 'capacity' | 'performance' | 'location' | 'compliance' | 'cost';
   description: string;
-  value: any;
+  value: unknown;
   mandatory: boolean;
 }
 
@@ -96,7 +96,7 @@ export interface WorkflowRouting {
 export interface WorkflowCondition {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
   action: string;
 }
 

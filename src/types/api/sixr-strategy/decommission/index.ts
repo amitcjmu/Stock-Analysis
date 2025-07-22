@@ -521,7 +521,7 @@ export interface CutoverRollback {
 
 export interface RollbackTrigger {
   condition: string;
-  threshold: any;
+  threshold: unknown;
   automatic: boolean;
   approver?: string;
   timeframe: string;
@@ -876,7 +876,7 @@ export interface RollbackScope {
 export interface DecommissionRollbackTrigger {
   type: 'automatic' | 'manual';
   condition: string;
-  threshold: any;
+  threshold: unknown;
   approver?: string;
   timeline: string;
   actions: string[];

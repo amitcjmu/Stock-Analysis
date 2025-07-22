@@ -15,13 +15,13 @@ interface UnifiedDiscoveryFlowState {
   current_phase: string;
   phase_completion: Record<string, boolean>;
   crew_status: Record<string, any>;
-  raw_data: any[];
+  raw_data: unknown[];
   field_mappings: Record<string, any>;
-  cleaned_data: any[];
+  cleaned_data: unknown[];
   asset_inventory: Record<string, any>;
   dependencies: Record<string, any>;
   technical_debt: Record<string, any>;
-  agent_insights: any[];
+  agent_insights: unknown[];
   status: string;
   progress_percentage: number;
   errors: string[];
@@ -35,8 +35,8 @@ interface UseUnifiedDiscoveryFlowReturn {
   isLoading: boolean;
   error: Error | null;
   isHealthy: boolean;
-  initializeFlow: (data: any) => Promise<any>;
-  executeFlowPhase: (phase: string, data?: any) => Promise<any>;
+  initializeFlow: (data: unknown) => Promise<any>;
+  executeFlowPhase: (phase: string, data?: unknown) => Promise<any>;
   getPhaseData: (phase: string) => any;
   isPhaseComplete: (phase: string) => boolean;
   canProceedToPhase: (phase: string) => boolean;
@@ -105,11 +105,11 @@ const createUnifiedDiscoveryAPI = (clientAccountId: string, engagementId: string
     return mappedResponse;
   },
 
-  async initializeFlow(data: any): Promise<any> {
+  async initializeFlow(data: unknown): Promise<any> {
     return masterFlowServiceExtended.initializeDiscoveryFlow(clientAccountId, engagementId, data);
   },
 
-  async executePhase(flowId: string, phase: string, data: any = {}): Promise<any> {
+  async executePhase(flowId: string, phase: string, data: unknown = {}): Promise<any> {
     // ADR-012: Use discovery flow service for operational phase execution
     return discoveryFlowService.executePhase(flowId, phase, data, clientAccountId, engagementId);
   },
@@ -206,7 +206,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
         return false;
       }
 
-      const state = query.state.data as any;
+      const state = query.state.data as unknown;
       
       // Poll when flow is active AND not waiting for approval
       if ((state?.status === 'running' || state?.status === 'in_progress' || 
@@ -232,7 +232,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
     refetchOnWindowFocus: false, // Don't refetch on window focus to reduce API calls
     staleTime: 2 * 60 * 1000, // Consider data stale after 2 minutes (increased from 30s)
     cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error: unknown) => {
       // Max 2 retries with exponential backoff
       if (failureCount >= 2) {
         return false;
@@ -246,7 +246,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
       return false;
     },
     retryDelay: (attemptIndex) => Math.min(2000 * Math.pow(2, attemptIndex), 8000), // 2s, 4s, 8s max
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       // Stop polling on error
       setPollingEnabled(false);
       
@@ -279,7 +279,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
 
   // Initialize flow mutation
   const initializeFlowMutation = useMutation({
-    mutationFn: (data: any) => {
+    mutationFn: (data: unknown) => {
       if (!unifiedDiscoveryAPI) throw new Error('No API instance available');
       return unifiedDiscoveryAPI.initializeFlow(data);
     },
@@ -359,11 +359,11 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
     return isPhaseComplete(previousPhase);
   }, [flowState, isPhaseComplete]);
 
-  const executeFlowPhase = useCallback(async (phase: string, data?: any) => {
+  const executeFlowPhase = useCallback(async (phase: string, data?: unknown) => {
     return executePhhaseMutation.mutateAsync({ phase, data });
   }, [executePhhaseMutation]);
 
-  const initializeFlow = useCallback(async (data: any) => {
+  const initializeFlow = useCallback(async (data: unknown) => {
     return initializeFlowMutation.mutateAsync(data);
   }, [initializeFlowMutation]);
 

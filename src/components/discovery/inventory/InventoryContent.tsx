@@ -92,7 +92,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
           }
           
           // Transform API assets to match expected format
-          return response.assets.map((asset: any) => ({
+          return response.assets.map((asset: unknown) => ({
             id: asset.id,
             asset_name: asset.name,
             asset_type: asset.asset_type,

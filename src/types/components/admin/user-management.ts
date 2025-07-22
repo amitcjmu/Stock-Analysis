@@ -135,7 +135,7 @@ export interface UserStatsProps extends BaseComponentProps {
   onComparisonPeriodChange?: (timeRange: TimeRange) => void;
   charts?: UserStatsChart[];
   customMetrics?: CustomMetric[];
-  onChartClick?: (chart: UserStatsChart, data: any) => void;
+  onChartClick?: (chart: UserStatsChart, data: unknown) => void;
   renderStat?: (stat: UserStatCard) => ReactNode;
   renderChart?: (chart: UserStatsChart) => ReactNode;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -214,7 +214,7 @@ export interface UserFilter {
   label: string;
   type: 'text' | 'select' | 'date' | 'number' | 'boolean' | 'multiselect';
   options?: FilterOption[];
-  value?: any;
+  value?: unknown;
   placeholder?: string;
   validation?: ValidationRule[];
 }
@@ -278,7 +278,7 @@ export interface UserStatsChart {
   id: string;
   title: string;
   type: 'line' | 'bar' | 'pie' | 'area' | 'scatter';
-  data: any[];
+  data: unknown[];
   config?: ChartConfig;
   loading?: boolean;
   error?: string;
@@ -389,22 +389,22 @@ export interface DisplayPreferences {
 // Common supporting types
 export interface FilterOption {
   label: string;
-  value: any;
+  value: unknown;
   disabled?: boolean;
   description?: string;
 }
 
 export interface FieldOption {
   label: string;
-  value: any;
+  value: unknown;
   disabled?: boolean;
 }
 
 export interface ValidationRule {
   type: 'required' | 'email' | 'min' | 'max' | 'pattern' | 'custom';
-  value?: any;
+  value?: unknown;
   message: string;
-  validator?: (value: any) => boolean | Promise<boolean>;
+  validator?: (value: unknown) => boolean | Promise<boolean>;
 }
 
 export interface ExportFormat {
@@ -421,10 +421,10 @@ export interface ExportOptions {
 }
 
 export interface ChartConfig {
-  xAxis?: any;
-  yAxis?: any;
-  legend?: any;
-  tooltip?: any;
+  xAxis?: unknown;
+  yAxis?: unknown;
+  legend?: unknown;
+  tooltip?: unknown;
   colors?: string[];
   responsive?: boolean;
 }

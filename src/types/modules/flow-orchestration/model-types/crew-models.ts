@@ -55,7 +55,7 @@ export interface CrewExecutionResult {
   crewId: string;
   executionId: string;
   status: 'completed' | 'failed' | 'cancelled';
-  result: any;
+  result: unknown;
   taskResults: CrewTaskResult[];
   agentResults: AgentResult[];
   metrics: CrewMetrics;
@@ -81,7 +81,7 @@ export interface CrewStatus {
 export interface CrewResults {
   crewId: string;
   executionId: string;
-  finalResult: any;
+  finalResult: unknown;
   taskResults: CrewTaskResult[];
   agentContributions: AgentContribution[];
   consensusReached: boolean;
@@ -134,7 +134,7 @@ export interface CrewTaskInstance {
   startTime?: string;
   endTime?: string;
   duration?: number;
-  result?: any;
+  result?: unknown;
   error?: ExecutionError;
   retryCount: number;
 }
@@ -147,7 +147,7 @@ export interface CrewCallback {
 
 export interface CrewTaskResult {
   taskId: string;
-  result: any;
+  result: unknown;
   status: 'success' | 'failure' | 'partial';
   agentId: string;
   error?: ExecutionError;
@@ -206,7 +206,7 @@ export interface TaskMetrics {
 
 export interface AgentContribution {
   agentId: string;
-  contribution: any;
+  contribution: unknown;
   weight: number;
   confidence: number;
   quality: number;

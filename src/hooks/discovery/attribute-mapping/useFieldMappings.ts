@@ -9,11 +9,11 @@ export interface FieldMapping {
   targetAttribute: string | null;
   confidence: number;
   mapping_type: string;
-  sample_values: any[];
+  sample_values: unknown[];
   status: 'approved' | 'pending' | 'unmapped' | 'suggested';
   ai_reasoning: string;
   is_user_defined: boolean;
-  user_feedback: any;
+  user_feedback: unknown;
   validation_method: string;
   is_validated: boolean;
   transformation_rule?: string;
@@ -23,9 +23,9 @@ export interface FieldMapping {
 
 export interface FieldMappingsResult {
   fieldMappings: FieldMapping[];
-  realFieldMappings: any[];
+  realFieldMappings: unknown[];
   isFieldMappingsLoading: boolean;
-  fieldMappingsError: any;
+  fieldMappingsError: unknown;
   refetchFieldMappings: () => Promise<any>;
 }
 
@@ -124,7 +124,7 @@ export const useFieldMappings = (
               });
               
               // Transform enhanced mappings to frontend format before returning
-              const transformedEnhancedMappings = enhancedMappings.map((mapping: any) => ({
+              const transformedEnhancedMappings = enhancedMappings.map((mapping: unknown) => ({
                 id: mapping.id,
                 sourceField: mapping.source_field,
                 targetAttribute: mapping.target_field === 'UNMAPPED' ? null : mapping.target_field,
@@ -178,7 +178,7 @@ export const useFieldMappings = (
     retry: (failureCount, error) => {
       // Allow retries on 429 (Too Many Requests) with longer delays
       if (error && typeof error === 'object' && 'status' in error) {
-        const status = (error as any).status;
+        const status = (error as unknown).status;
         if (status === 429) {
           // Retry rate-limited requests up to 3 times with longer delays
           console.log(`🔄 Rate limit retry attempt ${failureCount + 1}/3`);
@@ -193,7 +193,7 @@ export const useFieldMappings = (
     },
     retryDelay: (attemptIndex, error) => {
       // Longer delays for rate-limited requests
-      if (error && typeof error === 'object' && 'status' in error && (error as any).status === 429) {
+      if (error && typeof error === 'object' && 'status' in error && (error as unknown).status === 429) {
         // For rate limits: 10s, 30s, 60s
         const delays = [10000, 30000, 60000];
         return delays[attemptIndex] || 60000;

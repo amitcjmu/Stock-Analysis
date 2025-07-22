@@ -316,7 +316,7 @@ export class LegacyDiscoveryService {
     this.flowService = FlowService.getInstance();
   }
 
-  async createFlow(config: any): Promise<FlowStatus> {
+  async createFlow(config: unknown): Promise<FlowStatus> {
     console.warn('LegacyDiscoveryService.createFlow is deprecated. Use FlowService.createDiscoveryFlow instead.');
     return this.flowService.createDiscoveryFlow(config);
   }
@@ -326,7 +326,7 @@ export class LegacyDiscoveryService {
     return this.flowService.getFlowStatus(flowId);
   }
 
-  async executePhase(flowId: string, phase: string, data: any): Promise<any> {
+  async executePhase(flowId: string, phase: string, data: unknown): Promise<any> {
     console.warn('LegacyDiscoveryService.executePhase is deprecated. Use FlowService.executePhase instead.');
     return this.flowService.executePhase(flowId, {
       phase_name: phase,
@@ -342,7 +342,7 @@ export class LegacyAssessmentService {
     this.flowService = FlowService.getInstance();
   }
 
-  async createFlow(config: any): Promise<FlowStatus> {
+  async createFlow(config: unknown): Promise<FlowStatus> {
     console.warn('LegacyAssessmentService.createFlow is deprecated. Use FlowService.createAssessmentFlow instead.');
     return this.flowService.createAssessmentFlow(config);
   }

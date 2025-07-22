@@ -66,7 +66,7 @@ export interface ColumnDefinition {
   sortable?: boolean;
   filterable?: boolean;
   width?: number;
-  render?: (value: any, row: any) => ReactNode;
+  render?: (value: any, row: unknown) => ReactNode;
 }
 
 /**

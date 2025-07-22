@@ -229,7 +229,7 @@ export interface DataBinding {
   source: string;
   transformation: string[];
   validation: string[];
-  fallback: any;
+  fallback: unknown;
 }
 
 export interface TemplateStyleConfig {
@@ -277,7 +277,7 @@ export interface TemplateVariable {
   type: 'string' | 'number' | 'date' | 'boolean' | 'array' | 'object';
   description: string;
   required: boolean;
-  defaultValue: any;
+  defaultValue: unknown;
   validation: VariableValidation;
   options?: VariableOption[];
 }
@@ -292,7 +292,7 @@ export interface VariableValidation {
 
 export interface VariableOption {
   label: string;
-  value: any;
+  value: unknown;
   description?: string;
 }
 

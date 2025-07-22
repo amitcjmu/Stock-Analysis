@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Clock } from 'lucide-react';
 
 interface ResultsTabProps {
-  flowState: any;
+  flowState: unknown;
 }
 
 export const ResultsTab: React.FC<ResultsTabProps> = ({ flowState }) => (

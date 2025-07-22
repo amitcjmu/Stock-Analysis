@@ -4,7 +4,7 @@ import { SixRDecision } from '@/hooks/useAssessmentFlow';
 interface UseSixRSubmissionProps {
   sixrDecisions: Record<string, SixRDecision>;
   updateSixRDecision: (appId: string, decision: Partial<SixRDecision>) => void;
-  resumeFlow: (data: any) => Promise<void>;
+  resumeFlow: (data: unknown) => Promise<void>;
   selectedApp: string;
   currentAppDecision: SixRDecision | null;
 }

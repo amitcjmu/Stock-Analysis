@@ -70,7 +70,7 @@ export interface ForgotPasswordRequest extends BaseApiRequest {
 }
 
 export interface ForgotPasswordResponse extends BaseApiResponse<any> {
-  data: any;
+  data: unknown;
   emailSent: boolean;
   resetTokenGenerated: boolean;
   expiresAt: string;

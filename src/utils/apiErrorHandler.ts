@@ -39,7 +39,7 @@ export const handleApiError = (error: any, navigate: (path: string) => void) => 
 export const createQueryClient = (navigate: (path: string) => void) => {
   return {
     queryCache: new QueryCache({
-      onError: (error: any) => {
+      onError: (error: unknown) => {
         console.error('Query error:', error);
         
         // Handle authentication errors
@@ -58,7 +58,7 @@ export const createQueryClient = (navigate: (path: string) => void) => {
       }
     }),
     mutationCache: new MutationCache({
-      onError: (error: any) => {
+      onError: (error: unknown) => {
         console.error('Mutation error:', error);
         
         // Handle authentication errors
@@ -71,7 +71,7 @@ export const createQueryClient = (navigate: (path: string) => void) => {
     }),
     defaultOptions: {
       queries: {
-        retry: (failureCount: number, error: any) => {
+        retry: (failureCount: number, error: unknown) => {
           // Don't retry on authentication errors
           if (error?.status === 401 || error?.isAuthError) {
             return false;

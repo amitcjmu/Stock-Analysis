@@ -159,7 +159,7 @@ export interface InsightRecommendation {
 export interface InsightEvidence {
   type: 'metric' | 'trend' | 'anomaly' | 'pattern' | 'correlation';
   source: string;
-  value: any;
+  value: unknown;
   confidence: number;
   timestamp: string;
 }

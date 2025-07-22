@@ -82,7 +82,7 @@ export interface CriticalAttribute {
   description: string;
   dataType: string;
   isRequired: boolean;
-  defaultValue?: any;
+  defaultValue?: unknown;
   validationRules: ValidationRule[];
   mappingStatus: AttributeMappingStatus;
   sourceFields: string[];
@@ -103,7 +103,7 @@ export interface CriticalAttributeInput {
   description: string;
   dataType: string;
   isRequired: boolean;
-  defaultValue?: any;
+  defaultValue?: unknown;
   validationRules?: ValidationRule[];
   businessRules?: BusinessRule[];
   priority: AttributePriority;
@@ -127,7 +127,7 @@ export interface BusinessRule {
 export interface RuleCondition {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
   logicalOperator?: 'and' | 'or';
 }
 

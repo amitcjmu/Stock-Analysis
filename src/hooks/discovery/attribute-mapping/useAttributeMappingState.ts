@@ -11,21 +11,21 @@ export interface MappingProgress {
 
 export interface AttributeMappingStateResult {
   mappingProgress: MappingProgress;
-  agenticData: { attributes: any[] };
-  crewAnalysis: any[];
+  agenticData: { attributes: unknown[] };
+  crewAnalysis: unknown[];
   isAgenticLoading: boolean;
   isFlowStateLoading: boolean;
   isAnalyzing: boolean;
-  agenticError: any;
-  flowStateError: any;
-  availableDataImports: any[];
+  agenticError: unknown;
+  flowStateError: unknown;
+  availableDataImports: unknown[];
   selectedDataImportId: string | null;
   hasActiveFlow: boolean;
   currentPhase: string;
   flowProgress: number;
-  agentClarifications: any[];
+  agentClarifications: unknown[];
   isClarificationsLoading: boolean;
-  clarificationsError: any;
+  clarificationsError: unknown;
 }
 
 /**
@@ -34,10 +34,10 @@ export interface AttributeMappingStateResult {
  */
 export const useAttributeMappingState = (
   fieldMappings: FieldMapping[],
-  realFieldMappings: any[],
+  realFieldMappings: unknown[],
   fieldMappingData: any,
   flow: any,
-  flowList: any[],
+  flowList: unknown[],
   effectiveFlowId: string | null,
   isFlowLoading: boolean,
   isFlowListLoading: boolean,
@@ -125,9 +125,9 @@ export const useAttributeMappingState = (
       
       // Otherwise calculate from field mappings
       const total = fieldMappings?.length || 0;
-      const approved = fieldMappings?.filter((m: any) => m.status === 'approved').length || 0;
-      const pending = fieldMappings?.filter((m: any) => m.status === 'pending').length || 0;
-      const unmapped = fieldMappings?.filter((m: any) => m.status === 'unmapped').length || 0;
+      const approved = fieldMappings?.filter((m: unknown) => m.status === 'approved').length || 0;
+      const pending = fieldMappings?.filter((m: unknown) => m.status === 'pending').length || 0;
+      const unmapped = fieldMappings?.filter((m: unknown) => m.status === 'unmapped').length || 0;
       
       // Only count explicitly approved mappings as "mapped"
       // Pending mappings are suggestions that need user approval
@@ -144,7 +144,7 @@ export const useAttributeMappingState = (
       
       // Count how many critical fields are mapped (only count approved mappings for critical)
       // Critical mappings must be user-approved for accuracy
-      const criticalMapped = fieldMappings?.filter((m: any) => 
+      const criticalMapped = fieldMappings?.filter((m: unknown) => 
         criticalFields.includes(m.targetAttribute?.toLowerCase()) && m.status === 'approved'
       ).length || 0;
       

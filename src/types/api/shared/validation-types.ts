@@ -8,15 +8,15 @@ export interface ValidationError {
   field: string;
   code: string;
   message: string;
-  value?: any;
-  constraint?: any;
+  value?: unknown;
+  constraint?: unknown;
 }
 
 export interface ValidationWarning {
   field: string;
   code: string;
   message: string;
-  value?: any;
+  value?: unknown;
 }
 
 export interface ValidationResult {

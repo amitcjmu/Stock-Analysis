@@ -12,7 +12,7 @@ export interface SidebarHeaderProps {
   onAuthClick: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
-  user: any;
+  user: unknown;
   isAdmin: boolean;
 }
 
@@ -39,7 +39,7 @@ export interface NavigationItemProps {
 
 export interface AuthenticationIndicatorProps {
   isAuthenticated: boolean;
-  user: any;
+  user: unknown;
 }
 
 export interface VersionDisplayProps {

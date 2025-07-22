@@ -83,40 +83,40 @@ export interface TimelineDependency {
 
 // Forward declarations for complex types
 export interface ResourcePlan {
-  human: any[];
-  technical: any[];
-  financial: any[];
-  external: any[];
+  human: unknown[];
+  technical: unknown[];
+  financial: unknown[];
+  external: unknown[];
 }
 
 export interface QualityPlan {
-  standards: any[];
-  gates: any[];
-  metrics: any[];
-  testing: any;
-  reviews: any[];
+  standards: unknown[];
+  gates: unknown[];
+  metrics: unknown[];
+  testing: unknown;
+  reviews: unknown[];
 }
 
 export interface CommunicationPlan {
-  stakeholders: any[];
-  channels: any[];
-  schedules: any[];
-  templates: any[];
-  escalation: any[];
+  stakeholders: unknown[];
+  channels: unknown[];
+  schedules: unknown[];
+  templates: unknown[];
+  escalation: unknown[];
 }
 
 export interface MonitoringPlan {
-  metrics: any[];
-  dashboards: any[];
-  alerts: any[];
-  reports: any[];
+  metrics: unknown[];
+  dashboards: unknown[];
+  alerts: unknown[];
+  reports: unknown[];
   frequency: string;
 }
 
 export interface RollbackPlan {
-  triggers: any[];
-  procedures: any[];
-  decision: any;
-  communication: any;
-  validation: any;
+  triggers: unknown[];
+  procedures: unknown[];
+  decision: unknown;
+  communication: unknown;
+  validation: unknown;
 }

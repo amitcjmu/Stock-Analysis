@@ -29,7 +29,7 @@ export async function applyRetryPolicy<T>(
   options: RetryOptions = {}
 ): Promise<T> {
   const config = { ...DEFAULT_RETRY_OPTIONS, ...options };
-  let lastError: any;
+  let lastError: unknown;
   
   for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
     try {

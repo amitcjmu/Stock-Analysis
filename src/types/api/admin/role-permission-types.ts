@@ -199,7 +199,7 @@ export interface RoleScope {
 export interface RoleCondition {
   type: RoleConditionType;
   operator: ConditionOperator;
-  value: any;
+  value: unknown;
   description?: string;
 }
 

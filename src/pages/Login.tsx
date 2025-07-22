@@ -62,7 +62,7 @@ const Login: React.FC = () => {
         title: "Login Successful",
         description: "Welcome to AI Modernize Migration Platform",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message);
     } finally {
       setLoading(false);

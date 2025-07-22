@@ -31,7 +31,7 @@ export const FormField: React.FC<FormFieldProps> = ({
   const [isFocused, setIsFocused] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
-  const handleChange = useCallback((newValue: any) => {
+  const handleChange = useCallback((newValue: unknown) => {
     onChange(newValue);
   }, [onChange]);
 

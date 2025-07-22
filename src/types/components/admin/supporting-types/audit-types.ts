@@ -13,8 +13,8 @@ export interface AuditLog {
   action: AuditAction;
   resource: string;
   resourceId?: string;
-  oldValue?: any;
-  newValue?: any;
+  oldValue?: unknown;
+  newValue?: unknown;
   result: AuditResult;
   reason?: string;
   ipAddress?: string;

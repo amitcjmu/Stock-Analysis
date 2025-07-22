@@ -15,11 +15,11 @@ interface AssessmentFlowState {
   flow_id: string;
   status: string;
   current_phase: string;
-  applications: any[];
-  business_impact: any;
-  complexity_scores: any;
-  six_r_decisions: any;
-  dependencies: any;
+  applications: unknown[];
+  business_impact: unknown;
+  complexity_scores: unknown;
+  six_r_decisions: unknown;
+  dependencies: unknown;
   created_at: string;
   updated_at: string;
 }
@@ -28,7 +28,7 @@ interface UseAssessmentFlowReturn {
   flowState: AssessmentFlowState | null;
   isLoading: boolean;
   error: Error | null;
-  initializeAssessment: (applications: any[]) => Promise<any>;
+  initializeAssessment: (applications: unknown[]) => Promise<any>;
   performBusinessImpactAnalysis: () => Promise<any>;
   calculateComplexityScores: () => Promise<any>;
   determineSixRStrategy: () => Promise<any>;
@@ -73,7 +73,7 @@ export function useAssessmentFlow(): UseAssessmentFlowReturn {
   }, [state.flow]);
 
   // Initialize assessment flow
-  const initializeAssessment = useCallback(async (applications: any[]) => {
+  const initializeAssessment = useCallback(async (applications: unknown[]) => {
     const flow = await actions.createAssessmentFlow({
       flow_name: `Assessment - ${new Date().toISOString()}`,
       configuration: {
@@ -187,11 +187,11 @@ export function useAssessmentFlow(): UseAssessmentFlowReturn {
       dependencies: flowState.dependencies,
       summary: {
         total_applications: flowState.applications.length,
-        by_six_r: Object.values(flowState.six_r_decisions || {}).reduce((acc: any, decision: any) => {
+        by_six_r: Object.values(flowState.six_r_decisions || {}).reduce((acc: any, decision: unknown) => {
           acc[decision] = (acc[decision] || 0) + 1;
           return acc;
         }, {}),
-        average_complexity: Object.values(flowState.complexity_scores || {}).reduce((sum: number, score: any) => 
+        average_complexity: Object.values(flowState.complexity_scores || {}).reduce((sum: number, score: unknown) => 
           sum + (score.overall || 0), 0) / Object.keys(flowState.complexity_scores || {}).length || 0
       }
     };

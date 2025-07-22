@@ -34,7 +34,7 @@ export type PhaseStatusType =
 
 // Flow Configuration
 export interface FlowConfiguration {
-  [key: string]: any;
+  [key: string]: unknown;
   // Common configuration options
   auto_retry?: boolean;
   max_retries?: number;
@@ -328,7 +328,7 @@ export interface FlowListProps {
   loading?: boolean;
   error?: string;
   onFlowSelect?: (flow: FlowStatus) => void;
-  onFlowAction?: (action: string, flowId: string, data?: any) => void;
+  onFlowAction?: (action: string, flowId: string, data?: unknown) => void;
   filters?: FlowFilters;
   onFiltersChange?: (filters: FlowFilters) => void;
   pagination?: FlowPagination;
@@ -339,7 +339,7 @@ export interface FlowDetailsProps {
   flowId: string;
   flow?: FlowStatus;
   onPhaseExecute?: (phase: string, input?: Record<string, any>) => void;
-  onFlowAction?: (action: string, data?: any) => void;
+  onFlowAction?: (action: string, data?: unknown) => void;
   showLogs?: boolean;
   showPerformance?: boolean;
   showAgent?: boolean;

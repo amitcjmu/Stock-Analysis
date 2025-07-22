@@ -156,7 +156,7 @@ export interface PermissionScope {
 export interface PermissionCondition {
   type: string;
   operator: string;
-  value: any;
+  value: unknown;
   description?: string;
 }
 
@@ -494,8 +494,8 @@ export interface SecuritySettingsData {
 
 export interface SecurityChange {
   setting: string;
-  oldValue: any;
-  newValue: any;
+  oldValue: unknown;
+  newValue: unknown;
   changedAt: string;
 }
 

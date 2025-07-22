@@ -7,7 +7,7 @@ import { ClientFormData } from '../../types';
 
 interface TechnicalPreferencesTabProps {
   formData: ClientFormData;
-  onFormChange: (field: keyof ClientFormData, value: any) => void;
+  onFormChange: (field: keyof ClientFormData, value: unknown) => void;
 }
 
 export const TechnicalPreferencesTab: React.FC<TechnicalPreferencesTabProps> = ({ formData, onFormChange }) => {

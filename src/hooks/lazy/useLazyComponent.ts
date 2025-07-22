@@ -164,6 +164,6 @@ export const useHoverPreload = (
   }, []);
 
   // Return the event handler for the component to use
-  (handleMouseEnter as any).componentId = componentId;
-  return handleMouseEnter as any;
+  (handleMouseEnter as unknown).componentId = componentId;
+  return handleMouseEnter as unknown;
 };

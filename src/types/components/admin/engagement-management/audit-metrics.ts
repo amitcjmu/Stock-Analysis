@@ -26,8 +26,8 @@ export interface EngagementAuditLog {
 
 export interface FieldChange {
   field: string;
-  oldValue: any;
-  newValue: any;
+  oldValue: unknown;
+  newValue: unknown;
   dataType: string;
 }
 

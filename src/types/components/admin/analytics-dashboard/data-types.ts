@@ -58,7 +58,7 @@ export interface AggregationRule {
 export interface FilterRule {
   field: string;
   operator: FilterOperator;
-  value: any;
+  value: unknown;
 }
 
 export interface SortRule {

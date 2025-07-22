@@ -147,7 +147,7 @@ export interface EngagementFilter {
   searchable?: boolean;
   clearable?: boolean;
   placeholder?: string;
-  defaultValue?: any;
+  defaultValue?: unknown;
   validation?: FilterValidation;
   dependency?: FilterDependency;
   renderer?: FilterRenderer;
@@ -159,7 +159,7 @@ export type FilterType =
 
 export interface FilterOption {
   label: string;
-  value: any;
+  value: unknown;
   description?: string;
   icon?: string;
   disabled?: boolean;
@@ -171,19 +171,19 @@ export interface FilterValidation {
   min?: number;
   max?: number;
   pattern?: string;
-  custom?: (value: any) => boolean | string;
+  custom?: (value: unknown) => boolean | string;
 }
 
 export interface FilterDependency {
   field: string;
-  condition: (value: any) => boolean;
+  condition: (value: unknown) => boolean;
   action: 'show' | 'hide' | 'enable' | 'disable' | 'reset';
 }
 
 export type FilterRenderer = (
   filter: EngagementFilter, 
   value: any, 
-  onChange: (value: any) => void
+  onChange: (value: unknown) => void
 ) => ReactNode;
 
 // Sort Configuration
@@ -389,7 +389,7 @@ export interface EngagementTeamProps {
   showRoles?: boolean;
   showAvatars?: boolean;
   showNames?: boolean;
-  onClick?: (member: any) => void;
+  onClick?: (member: unknown) => void;
 }
 
 // Timeline display
@@ -399,5 +399,5 @@ export interface EngagementTimelineProps {
   showMilestones?: boolean;
   showPhases?: boolean;
   interactive?: boolean;
-  onClick?: (item: any) => void;
+  onClick?: (item: unknown) => void;
 }

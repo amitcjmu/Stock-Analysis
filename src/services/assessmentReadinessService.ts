@@ -56,7 +56,7 @@ export interface ReadinessAssessment {
     application_name: string;
     readiness_score: number;
     readiness_level: string;
-    readiness_factors: any;
+    readiness_factors: unknown;
     blocking_issues: string[];
     assessment_priority: number;
   }>;
@@ -125,7 +125,7 @@ const generateSignoffPackage = async (clientAccountId: string, engagementId: str
   return response.data;
 };
 
-const submitForApproval = async (clientAccountId: string, engagementId: string, signoffData: any) => {
+const submitForApproval = async (clientAccountId: string, engagementId: string, signoffData: unknown) => {
   const response = await api.post(`/api/v1/assess/submit-approval/${clientAccountId}/${engagementId}`, signoffData);
   return response.data;
 };
@@ -157,7 +157,7 @@ export const useSubmitForApproval = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (signoffData: any) => submitForApproval(clientAccountId, engagementId, signoffData),
+    mutationFn: (signoffData: unknown) => submitForApproval(clientAccountId, engagementId, signoffData),
     onSuccess: () => {
       // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: ['readinessAssessment', clientAccountId, engagementId] });

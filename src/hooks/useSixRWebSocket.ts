@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 
 export interface WebSocketMessage {
   type: 'analysis_progress' | 'analysis_complete' | 'analysis_error' | 'parameter_update' | 'agent_activity' | 'bulk_job_update';
-  data: any;
+  data: unknown;
   timestamp: string;
   analysis_id?: number;
   job_id?: string;
@@ -35,7 +35,7 @@ export interface AgentActivity {
   activity: string;
   status: 'started' | 'completed' | 'failed';
   timestamp: string;
-  details?: any;
+  details?: unknown;
 }
 
 interface UseSixRWebSocketOptions {
@@ -271,7 +271,7 @@ export const useSixRWebSocket = (options: UseSixRWebSocketOptions = {}) => {
   }, [clearReconnectTimeout, clearHeartbeat]);
 
   // Send message through WebSocket
-  const sendMessage = useCallback((message: any) => {
+  const sendMessage = useCallback((message: unknown) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(message));
       return true;

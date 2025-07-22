@@ -18,16 +18,16 @@ export interface BaseAsyncHookParams {
   refetchInterval?: number | false;
   refetchIntervalInBackground?: boolean;
   notifyOnChangeProps?: string[] | 'all' | (() => string[] | 'all');
-  onSuccess?: (data: any) => void;
+  onSuccess?: (data: unknown) => void;
   onError?: (error: Error) => void;
   onSettled?: (data: any | undefined, error: Error | null) => void;
-  select?: (data: any) => any;
-  initialData?: any;
+  select?: (data: unknown) => any;
+  initialData?: unknown;
   initialDataUpdatedAt?: number | (() => number);
-  placeholderData?: any;
+  placeholderData?: unknown;
   keepPreviousData?: boolean;
-  structuralSharing?: boolean | ((oldData: any, newData: any) => any);
-  useErrorBoundary?: boolean | ((error: Error, query: any) => boolean);
+  structuralSharing?: boolean | ((oldData: any, newData: unknown) => any);
+  useErrorBoundary?: boolean | ((error: Error, query: unknown) => boolean);
   meta?: Record<string, any>;
 }
 
@@ -53,7 +53,7 @@ export interface BaseAsyncHookReturn<TData = any, TError = Error> {
   isStale: boolean;
   isPlaceholderData: boolean;
   isPreviousData: boolean;
-  refetch: (options?: any) => Promise<any>;
+  refetch: (options?: unknown) => Promise<any>;
   remove: () => void;
 }
 
@@ -80,8 +80,8 @@ export interface BaseMutationHookReturn<TData = any, TError = Error, TVariables 
   status: 'idle' | 'loading' | 'error' | 'success';
   failureCount: number;
   failureReason: TError | null;
-  mutate: (variables: TVariables, options?: any) => void;
-  mutateAsync: (variables: TVariables, options?: any) => Promise<TData>;
+  mutate: (variables: TVariables, options?: unknown) => void;
+  mutateAsync: (variables: TVariables, options?: unknown) => Promise<TData>;
   reset: () => void;
   context: TContext | undefined;
   variables: TVariables | undefined;

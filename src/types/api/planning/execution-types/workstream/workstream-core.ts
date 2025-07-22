@@ -53,7 +53,7 @@ export interface WorkstreamObjective {
   description: string;
   measurable: boolean;
   metrics: ObjectiveMetric[];
-  target: any;
+  target: unknown;
   timeline: string;
 }
 

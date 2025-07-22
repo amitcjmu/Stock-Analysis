@@ -22,7 +22,7 @@ import { BatchDeletionConfirmDialog } from './BatchDeletionConfirmDialog';
 import { FlowDeletionConfirmDialog } from './FlowDeletionConfirmDialog';
 
 interface IncompleteFlowManagerProps {
-  flows: any[];
+  flows: unknown[];
   onContinueFlow: (flowId: string) => void;
   onDeleteFlow: (flowId: string) => void;
   onBatchDelete: (flowIds: string[]) => void;

@@ -5,7 +5,7 @@ import { apiCall, API_CONFIG } from '../../../config/api';
 
 interface TrainingProgressTabProps {
   className?: string;
-  fieldMappings?: any[]; // Field mappings data to calculate real metrics
+  fieldMappings?: unknown[]; // Field mappings data to calculate real metrics
 }
 
 interface TrainingMetrics {

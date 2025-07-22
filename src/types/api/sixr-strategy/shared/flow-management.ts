@@ -583,7 +583,7 @@ export interface StrategyValidationResult {
   rule: string;
   status: 'passed' | 'failed' | 'warning';
   message: string;
-  data?: any;
+  data?: unknown;
 }
 
 export interface NotificationResult {

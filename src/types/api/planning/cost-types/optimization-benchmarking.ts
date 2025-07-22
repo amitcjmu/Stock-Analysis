@@ -66,7 +66,7 @@ export interface OptimizationAction {
 export interface OptimizationConstraint {
   constraint: string;
   type: string;
-  value: any;
+  value: unknown;
   flexibility: string;
   impact: string;
   workaround: string;

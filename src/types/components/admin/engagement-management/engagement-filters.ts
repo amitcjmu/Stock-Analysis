@@ -53,7 +53,7 @@ export interface EngagementFilter {
   searchable?: boolean;
   clearable?: boolean;
   placeholder?: string;
-  defaultValue?: any;
+  defaultValue?: unknown;
   validation?: FilterValidation;
   dependency?: FilterDependency;
   renderer?: FilterRenderer;
@@ -63,7 +63,7 @@ export interface EngagementFilter {
   helpText?: string;
   icon?: string;
   tooltip?: string;
-  formatValue?: (value: any) => string;
+  formatValue?: (value: unknown) => string;
   parseValue?: (value: string) => any;
 }
 
@@ -74,7 +74,7 @@ export type FilterType =
 
 export interface FilterOption {
   label: string;
-  value: any;
+  value: unknown;
   description?: string;
   icon?: string;
   color?: string;
@@ -91,13 +91,13 @@ export interface FilterValidation {
   minLength?: number;
   maxLength?: number;
   pattern?: string | RegExp;
-  custom?: (value: any) => boolean | string;
+  custom?: (value: unknown) => boolean | string;
   message?: string;
 }
 
 export interface FilterDependency {
   field: string;
-  condition: (value: any) => boolean;
+  condition: (value: unknown) => boolean;
   action: 'show' | 'hide' | 'enable' | 'disable' | 'reset' | 'update_options';
   options?: FilterOption[];
 }
@@ -105,7 +105,7 @@ export interface FilterDependency {
 export type FilterRenderer = (
   filter: EngagementFilter, 
   value: any, 
-  onChange: (value: any) => void,
+  onChange: (value: unknown) => void,
   props?: any
 ) => ReactNode;
 
@@ -176,7 +176,7 @@ export interface AdvancedSearchQuery {
 export interface SearchCondition {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
   logicalOperator?: 'and' | 'or';
   negated?: boolean;
   caseSensitive?: boolean;
@@ -197,7 +197,7 @@ export interface SearchFieldValidation {
   pattern?: string;
   min?: number;
   max?: number;
-  custom?: (value: any) => boolean | string;
+  custom?: (value: unknown) => boolean | string;
 }
 
 export interface SearchOperator {
@@ -268,7 +268,7 @@ export interface AppliedFilter {
   id: string;
   field: string;
   label: string;
-  value: any;
+  value: unknown;
   displayValue: string;
   operator?: string;
   removable: boolean;
@@ -394,9 +394,9 @@ export interface CustomFilterType {
   name: string;
   description: string;
   component: string;
-  configSchema: any;
+  configSchema: unknown;
   validation: ValidationRule[];
-  examples: any[];
+  examples: unknown[];
 }
 
 export interface FilterPermission {

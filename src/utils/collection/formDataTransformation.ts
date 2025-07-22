@@ -9,7 +9,7 @@ import type { AdaptiveFormData, FormSection, FormField, FieldOption } from '@/co
 
 export interface QuestionnaireData {
   id?: string;
-  questions?: any[];
+  questions?: unknown[];
   estimated_completion_time?: number;
   confidence_impact_score?: number;
 }
@@ -23,9 +23,9 @@ export interface QuestionData {
   category?: string;
   critical_attribute?: string;
   required?: boolean;
-  validation?: any;
+  validation?: unknown;
   business_impact_score?: number;
-  options?: any[];
+  options?: unknown[];
   help_text?: string;
   description?: string;
 }

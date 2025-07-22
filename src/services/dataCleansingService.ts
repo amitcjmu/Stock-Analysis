@@ -45,7 +45,7 @@ export const fetchAssets = async (page = 1, pageSize = 1000) => {
 /**
  * Performs agent quality analysis on the provided data
  */
-export const performAgentAnalysis = async (data: any[]) => {
+export const performAgentAnalysis = async (data: unknown[]) => {
   try {
     const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.ANALYZE_QUALITY, {
       method: 'POST',
@@ -70,7 +70,7 @@ export const performAgentAnalysis = async (data: any[]) => {
 /**
  * Applies a fix to a specific issue
  */
-export const applyFix = async (issueId: string, fixData: any) => {
+export const applyFix = async (issueId: string, fixData: unknown) => {
   try {
     const response = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.APPLY_FIX}/${issueId}`, {
       method: 'POST',

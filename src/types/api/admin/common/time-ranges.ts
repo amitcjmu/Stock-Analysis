@@ -75,7 +75,7 @@ export interface RecurringSchedule {
 export interface ScheduleDelay {
   amount: number;
   unit: DelayUnit;
-  condition?: any;
+  condition?: unknown;
 }
 
 /**

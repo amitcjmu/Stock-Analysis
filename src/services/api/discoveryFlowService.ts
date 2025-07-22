@@ -35,12 +35,12 @@ export interface DiscoveryFlowStatusResponse {
   created_at: string;
   updated_at: string;
   // Additional operational fields
-  field_mappings?: any;
-  cleaned_data?: any[];
-  asset_inventory?: any;
-  dependencies?: any;
-  technical_debt?: any;
-  agent_insights?: any[];
+  field_mappings?: unknown;
+  cleaned_data?: unknown[];
+  asset_inventory?: unknown;
+  dependencies?: unknown;
+  technical_debt?: unknown;
+  agent_insights?: unknown[];
   errors?: string[];
   warnings?: string[];
 }

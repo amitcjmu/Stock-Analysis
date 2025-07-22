@@ -26,8 +26,8 @@ export class FieldMappingErrorBoundary extends Component<Props, State> {
     console.error('Field mapping error:', error, errorInfo);
     
     // Log to monitoring service if available
-    if (typeof window !== 'undefined' && (window as any).analytics) {
-      (window as any).analytics.track('Field Mapping Error', {
+    if (typeof window !== 'undefined' && (window as unknown).analytics) {
+      (window as unknown).analytics.track('Field Mapping Error', {
         error: error.message,
         stack: error.stack,
         componentStack: errorInfo.componentStack

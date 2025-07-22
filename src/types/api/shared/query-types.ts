@@ -15,8 +15,8 @@ export interface SortParameter {
 export interface FilterParameter {
   field: string;
   operator: FilterOperator;
-  value: any;
-  values?: any[];
+  value: unknown;
+  values?: unknown[];
   caseSensitive?: boolean;
   negate?: boolean;
 }
@@ -34,7 +34,7 @@ export interface SearchParameter {
 export interface AppliedFilter {
   field: string;
   operator: FilterOperator;
-  value: any;
+  value: unknown;
   label?: string;
   count?: number;
 }
@@ -55,7 +55,7 @@ export interface Aggregation {
 }
 
 export interface AggregationBucket {
-  key: any;
+  key: unknown;
   label?: string;
   count: number;
   selected?: boolean;

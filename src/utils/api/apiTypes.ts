@@ -31,7 +31,7 @@ export interface ApiError {
   code: string;
   message: string;
   field?: string;
-  value?: any;
+  value?: unknown;
   constraint?: string;
   additional_info?: Record<string, any>;
 }
@@ -41,7 +41,7 @@ export interface RequestConfig {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   headers?: Record<string, string>;
   params?: Record<string, any>;
-  data?: any;
+  data?: unknown;
   timeout?: number;
   retries?: number;
   cache?: boolean;
@@ -86,7 +86,7 @@ export interface NetworkError {
   url: string;
   method: string;
   status?: number;
-  response?: any;
+  response?: unknown;
   timestamp: string;
 }
 
@@ -95,7 +95,7 @@ export interface ValidationError {
   message: string;
   code: string;
   field?: string;
-  value?: any;
+  value?: unknown;
   errors: ApiError[];
   timestamp: string;
 }
@@ -152,7 +152,7 @@ export interface RequestInterceptor {
   name: string;
   priority: number;
   onRequest: (config: RequestConfig) => Promise<RequestConfig> | RequestConfig;
-  onError?: (error: any) => Promise<any> | any;
+  onError?: (error: unknown) => Promise<any> | any;
 }
 
 export interface ResponseInterceptor {
@@ -206,7 +206,7 @@ export interface WebSocketConfig {
 
 export interface WebSocketMessage {
   type: string;
-  data: any;
+  data: unknown;
   timestamp: string;
   id?: string;
 }
@@ -224,14 +224,14 @@ export interface BatchRequest {
   id: string;
   method: string;
   url: string;
-  data?: any;
+  data?: unknown;
   headers?: Record<string, string>;
 }
 
 export interface BatchResponse {
   id: string;
   status: number;
-  data: any;
+  data: unknown;
   error?: ApiErrorType;
 }
 
@@ -272,7 +272,7 @@ export interface QueryBuilder {
   page(page: number): QueryBuilder;
   pageSize(size: number): QueryBuilder;
   sort(field: string, order?: 'asc' | 'desc'): QueryBuilder;
-  filter(field: string, value: any): QueryBuilder;
+  filter(field: string, value: unknown): QueryBuilder;
   filters(filters: Record<string, any>): QueryBuilder;
   search(query: string): QueryBuilder;
   fields(fields: string[]): QueryBuilder;

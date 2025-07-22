@@ -56,7 +56,7 @@ export interface ResourceRequirement {
 export interface MilestoneCriteria {
   criterion: string;
   measurable: boolean;
-  target_value?: any;
+  target_value?: unknown;
   verification_method: string;
 }
 
@@ -291,7 +291,7 @@ export interface ResourceRequirement {
 export interface MilestoneCriteria {
   criterion: string;
   measurable: boolean;
-  target_value?: any;
+  target_value?: unknown;
   verification_method: string;
 }
 

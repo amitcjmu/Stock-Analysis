@@ -81,7 +81,7 @@ export interface SearchFacet {
 }
 
 export interface SearchFacetBucket {
-  key: any;
+  key: unknown;
   label?: string;
   count: number;
   selected?: boolean;
@@ -121,7 +121,7 @@ export interface SearchCriteria {
 export interface SearchClause {
   type: 'term' | 'match' | 'range' | 'exists' | 'wildcard' | 'regex' | 'fuzzy';
   field?: string;
-  value?: any;
+  value?: unknown;
   operator?: string;
   boost?: number;
   options?: Record<string, any>;

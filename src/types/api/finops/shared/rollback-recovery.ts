@@ -23,7 +23,7 @@ export interface RollbackTrigger {
   id: string;
   type: 'performance_degradation' | 'cost_increase' | 'availability_impact' | 'manual' | 'quality_gate_failure';
   condition: string;
-  threshold?: any;
+  threshold?: unknown;
   automated: boolean;
   description: string;
   priority: 'low' | 'medium' | 'high' | 'critical';
@@ -71,13 +71,13 @@ export interface ValidationCheck {
   name: string;
   type: string;
   description: string;
-  criteria: any[];
+  criteria: unknown[];
 }
 
 export interface CommunicationPlan {
-  stakeholders: any[];
-  channels: any[];
-  templates: any[];
-  schedules: any[];
-  escalation: any[];
+  stakeholders: unknown[];
+  channels: unknown[];
+  templates: unknown[];
+  schedules: unknown[];
+  escalation: unknown[];
 }

@@ -69,7 +69,7 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
           method: 'GET',
           headers
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Handle 404 errors gracefully - endpoint may not exist yet
         if (error.status === 404 || error.response?.status === 404) {
           console.log('Latest import endpoint not available yet');
@@ -83,7 +83,7 @@ const ImportedDataTab: React.FC<ImportedDataTabProps> = ({ className = "" }) => 
     refetchOnWindowFocus: false,
     refetchOnMount: true,
     refetchOnReconnect: false,
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error: unknown) => {
       // Don't retry on 404 errors
       if (error?.status === 404 || error?.response?.status === 404) {
         return false;

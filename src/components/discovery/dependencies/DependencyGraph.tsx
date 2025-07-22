@@ -15,7 +15,7 @@ import { DependencyData } from '../../../types/dependency';
 interface DependencyGraphProps {
   data: DependencyData | null;
   activeView: 'app-server' | 'app-app';
-  onUpdateDependency: (dependency: any) => void;
+  onUpdateDependency: (dependency: unknown) => void;
 }
 
 export const DependencyGraph: React.FC<DependencyGraphProps> = ({

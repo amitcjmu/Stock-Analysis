@@ -155,7 +155,7 @@ export interface PaginationConfig {
 export interface MappingFilter {
   field: string;
   operator: 'eq' | 'ne' | 'contains' | 'startsWith' | 'endsWith' | 'gt' | 'lt' | 'gte' | 'lte' | 'in' | 'not_in';
-  value: any;
+  value: unknown;
   label?: string;
   enabled?: boolean;
 }
@@ -173,12 +173,12 @@ export interface ColumnDefinition {
   minWidth?: number;
   maxWidth?: number;
   align?: 'left' | 'center' | 'right';
-  render?: (value: any, row: any) => ReactNode;
-  renderFilter?: (value: any, onChange: (value: any) => void) => ReactNode;
-  renderEdit?: (value: any, onChange: (value: any) => void) => ReactNode;
-  formatValue?: (value: any) => string;
+  render?: (value: any, row: unknown) => ReactNode;
+  renderFilter?: (value: any, onChange: (value: unknown) => void) => ReactNode;
+  renderEdit?: (value: any, onChange: (value: unknown) => void) => ReactNode;
+  formatValue?: (value: unknown) => string;
   parseValue?: (value: string) => any;
-  validateValue?: (value: any) => boolean | string;
+  validateValue?: (value: unknown) => boolean | string;
   tooltip?: string;
   icon?: string | ReactNode;
   sticky?: boolean;

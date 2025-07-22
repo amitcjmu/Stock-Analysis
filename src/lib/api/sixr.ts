@@ -133,7 +133,7 @@ class WebSocketManager {
 
   connect(
     endpoint: string,
-    onMessage?: (data: any) => void,
+    onMessage?: (data: unknown) => void,
     onError?: (error: Event) => void,
     onOpen?: () => void,
     onClose?: () => void
@@ -199,7 +199,7 @@ class WebSocketManager {
     }
   }
   
-  send(endpoint: string, data: any): boolean {
+  send(endpoint: string, data: unknown): boolean {
     const ws = this.connections.get(endpoint);
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(data));
@@ -488,7 +488,7 @@ export class SixRApiClient {
   // WebSocket Methods
   connectToAnalysis(
     analysisId: number,
-    onMessage?: (data: any) => void,
+    onMessage?: (data: unknown) => void,
     onError?: (error: Event) => void,
     onOpen?: () => void,
     onClose?: () => void
@@ -504,7 +504,7 @@ export class SixRApiClient {
   
   connectToBulkJob(
     jobId: string,
-    onMessage?: (data: any) => void,
+    onMessage?: (data: unknown) => void,
     onError?: (error: Event) => void,
     onOpen?: () => void,
     onClose?: () => void
@@ -522,7 +522,7 @@ export class SixRApiClient {
     this.ws.disconnect(endpoint);
   }
   
-  sendWebSocketMessage(endpoint: string, data: any): boolean {
+  sendWebSocketMessage(endpoint: string, data: unknown): boolean {
     return this.ws.send(endpoint, data);
   }
   

@@ -135,7 +135,7 @@ export const useAuthService = (
     }
   };
 
-  const register = async (userData: any) => {
+  const register = async (userData: unknown) => {
     try {
       setIsLoading(true);
       setError(null);
@@ -155,7 +155,7 @@ export const useAuthService = (
     }
   };
 
-  const switchClient = async (clientId: string, clientData?: any) => {
+  const switchClient = async (clientId: string, clientData?: unknown) => {
     try {
       console.log('🔍 switchClient - Starting with:', { clientId, hasClientData: !!clientData });
       
@@ -168,7 +168,7 @@ export const useAuthService = (
           headers: getAuthHeaders()
         }, false); // Don't include context - we're establishing it
         console.log('🔍 switchClient - Got clients response:', response);
-        fullClientData = response.clients?.find((c: any) => c.id === clientId);
+        fullClientData = response.clients?.find((c: unknown) => c.id === clientId);
       }
       
       if (!fullClientData) {
@@ -223,7 +223,7 @@ export const useAuthService = (
     }
   };
 
-  const switchEngagement = async (engagementId: string, engagementData?: any) => {
+  const switchEngagement = async (engagementId: string, engagementData?: unknown) => {
     try {
       console.log('🔍 switchEngagement - Starting with:', { engagementId, hasEngagementData: !!engagementData });
       
@@ -364,12 +364,12 @@ export const useAuthService = (
       });
       
       // Add a guard to prevent concurrent executions
-      if ((fetchDefaultContext as any).isRunning) {
+      if ((fetchDefaultContext as unknown).isRunning) {
         console.log('🔄 fetchDefaultContext already running, skipping');
         return;
       }
       
-      (fetchDefaultContext as any).isRunning = true;
+      (fetchDefaultContext as unknown).isRunning = true;
       console.log('🔄 Fetching default context...');
       
       console.log('🔍 Making API call to /api/v1/context-establishment/clients');
@@ -419,7 +419,7 @@ export const useAuthService = (
       
       console.log('🔍 fetchDefaultContext completed successfully');
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching default context:', error);
       if (error.message === 'Unauthorized' || error.status === 401) {
         console.log('🔄 Authentication expired during context fetch');
@@ -432,7 +432,7 @@ export const useAuthService = (
         // The user is still authenticated, just missing context
       }
     } finally {
-      (fetchDefaultContext as any).isRunning = false;
+      (fetchDefaultContext as unknown).isRunning = false;
     }
   };
 

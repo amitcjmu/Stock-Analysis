@@ -45,14 +45,14 @@ export interface OptimizationCriteria {
   criterion: string;
   weight: number;
   target: 'minimize' | 'maximize';
-  constraint?: any;
+  constraint?: unknown;
   priority: string;
 }
 
 export interface OptimizationConstraint {
   type: string;
   description: string;
-  value: any;
+  value: unknown;
   flexibility: FlexibilityLevel;
   violation: string;
 }

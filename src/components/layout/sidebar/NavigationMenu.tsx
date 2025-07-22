@@ -9,10 +9,10 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({
   expandedStates,
   onToggleExpanded
 }) => {
-  const checkIfParentActive = (item: any) => {
+  const checkIfParentActive = (item: unknown) => {
     if (currentPath === item.path) return true;
     if (item.submenu) {
-      return item.submenu.some((subItem: any) => currentPath === subItem.path);
+      return item.submenu.some((subItem: unknown) => currentPath === subItem.path);
     }
     return false;
   };

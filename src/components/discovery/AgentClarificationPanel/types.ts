@@ -12,13 +12,13 @@ export interface AgentQuestion {
   page: string;
   title: string;
   question: string;
-  context: any;
+  context: unknown;
   options?: string[];
   confidence: string;
   priority: string;
   created_at: string;
   answered_at?: string;
-  user_response?: any;
+  user_response?: unknown;
   is_resolved: boolean;
 }
 
@@ -44,7 +44,7 @@ export interface AssetDetails {
 
 export interface AgentClarificationPanelProps {
   pageContext: string;
-  onQuestionAnswered?: (questionId: string, response: any) => void;
+  onQuestionAnswered?: (questionId: string, response: unknown) => void;
   className?: string;
   refreshTrigger?: number; // Increment this to trigger a refresh
   isProcessing?: boolean; // Set to true when background processing is happening

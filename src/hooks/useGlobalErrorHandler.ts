@@ -14,7 +14,7 @@ export const useGlobalErrorHandler = () => {
     // Set up global error handler for queries
     const unsubscribeQuery = queryClient.getQueryCache().subscribe((event) => {
       if (event.type === 'error' && event.query.state.error) {
-        const error = event.query.state.error as any;
+        const error = event.query.state.error as unknown;
         
         // Check if it's an authentication error
         if (error?.status === 401 || error?.isAuthError) {
@@ -33,7 +33,7 @@ export const useGlobalErrorHandler = () => {
     // Set up global error handler for mutations
     const unsubscribeMutation = queryClient.getMutationCache().subscribe((event) => {
       if (event.type === 'error' && event.mutation?.state.error) {
-        const error = event.mutation.state.error as any;
+        const error = event.mutation.state.error as unknown;
         
         // Check if it's an authentication error
         if (error?.status === 401 || error?.isAuthError) {

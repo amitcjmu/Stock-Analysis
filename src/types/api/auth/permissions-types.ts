@@ -36,7 +36,7 @@ export interface CheckPermissionRequest extends BaseApiRequest {
 }
 
 export interface CheckPermissionResponse extends BaseApiResponse<any> {
-  data: any;
+  data: unknown;
   hasPermission: boolean;
   reason?: string;
   inheritedFrom?: string;
@@ -66,7 +66,7 @@ export interface AssignRoleRequest extends BaseApiRequest {
 }
 
 export interface AssignRoleResponse extends BaseApiResponse<any> {
-  data: any;
+  data: unknown;
   assigned: boolean;
   roleApplied: boolean;
   permissionsUpdated: string[];
@@ -81,7 +81,7 @@ export interface RevokeRoleRequest extends BaseApiRequest {
 }
 
 export interface RevokeRoleResponse extends BaseApiResponse<any> {
-  data: any;
+  data: unknown;
   revoked: boolean;
   permissionsRemoved: string[];
   effectivePermissions: string[];

@@ -88,7 +88,7 @@ export interface ConvergenceCriteria {
 
 export interface SamplingMethod {
   method: 'random' | 'stratified' | 'systematic' | 'cluster';
-  parameters: any[];
+  parameters: unknown[];
   validation: boolean;
 }
 

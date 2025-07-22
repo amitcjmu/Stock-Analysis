@@ -77,8 +77,8 @@ export interface DemoSixRAnalysis {
   total_current_cost: number;
   total_estimated_cost: number;
   potential_savings: number;
-  analysis_results?: any;
-  recommendations?: any;
+  analysis_results?: unknown;
+  recommendations?: unknown;
   created_at?: string;
 }
 
@@ -457,7 +457,7 @@ export const useSimilaritySearch = () => {
     queryText: string,
     topK: number = 10,
     similarityThreshold: number = 0.5
-  ): Promise<{ query: string; assets: any[]; total_found: number } | null> => {
+  ): Promise<{ query: string; assets: unknown[]; total_found: number } | null> => {
     setLoading(true);
     setError(null);
 
@@ -470,7 +470,7 @@ export const useSimilaritySearch = () => {
 
       const data = await apiRequest<{
         query: string;
-        assets: any[];
+        assets: unknown[];
         total_found: number;
       }>(`/assets/text-search?${params}`, { method: 'POST' });
       
@@ -492,7 +492,7 @@ export const useSimilaritySearch = () => {
       const data = await apiRequest<{
         asset_id: string;
         message: string;
-        assigned_tags: any[];
+        assigned_tags: unknown[];
       }>(`/assets/${assetId}/auto-tag`, { method: 'POST' });
       
       return data;

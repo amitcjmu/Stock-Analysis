@@ -179,7 +179,7 @@ export const DEV_HELPERS = {
   },
   validateImport: (category: string, module: string) => {
     const isValid = Object.entries(MODULE_BOUNDARIES).some(([key, modules]) => 
-      key.toLowerCase() === category.toLowerCase() && modules.includes(module as any)
+      key.toLowerCase() === category.toLowerCase() && modules.includes(module as unknown)
     );
     if (!isValid) {
       console.warn(

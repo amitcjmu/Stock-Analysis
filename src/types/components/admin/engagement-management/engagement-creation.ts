@@ -190,7 +190,7 @@ export interface FieldTransform {
 export interface AutoFillCondition {
   field: string;
   operator: 'equals' | 'not_equals' | 'contains' | 'not_contains' | 'greater' | 'less';
-  value: any;
+  value: unknown;
 }
 
 export interface ConditionalConfig {
@@ -204,7 +204,7 @@ export interface ConditionalConfig {
 export interface FieldCondition {
   field: string;
   operator: 'equals' | 'not_equals' | 'contains' | 'not_contains' | 'greater' | 'less' | 'in' | 'not_in';
-  value: any;
+  value: unknown;
   logicalOperator?: 'and' | 'or';
 }
 
@@ -377,7 +377,7 @@ export interface EngagementFormState {
 }
 
 export interface EngagementFormActions {
-  updateField: (field: string, value: any) => void;
+  updateField: (field: string, value: unknown) => void;
   updateFields: (updates: Record<string, any>) => void;
   validateField: (field: string) => Promise<boolean>;
   validateStep: (step: number) => Promise<boolean>;
@@ -408,7 +408,7 @@ export interface EngagementWizardNavigation {
 // Form Helpers and Utilities
 export interface EngagementFormHelpers {
   getFieldValue: (field: string) => any;
-  setFieldValue: (field: string, value: any) => void;
+  setFieldValue: (field: string, value: unknown) => void;
   getFieldError: (field: string) => string | undefined;
   hasFieldError: (field: string) => boolean;
   isFieldTouched: (field: string) => boolean;

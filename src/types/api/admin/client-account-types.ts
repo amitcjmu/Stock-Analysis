@@ -264,8 +264,8 @@ export interface RevenueSummary {
 
 export interface AccountChange {
   field: string;
-  oldValue: any;
-  newValue: any;
+  oldValue: unknown;
+  newValue: unknown;
   changedAt: string;
   changedBy: string;
   reason?: string;
@@ -273,16 +273,16 @@ export interface AccountChange {
 
 export interface SubscriptionChange {
   type: 'plan_change' | 'feature_change' | 'limit_change' | 'billing_change';
-  oldValue: any;
-  newValue: any;
+  oldValue: unknown;
+  newValue: unknown;
   effectiveDate: string;
   prorationAmount?: number;
 }
 
 export interface BillingChange {
   type: 'payment_method' | 'billing_address' | 'billing_cycle' | 'discount';
-  oldValue: any;
-  newValue: any;
+  oldValue: unknown;
+  newValue: unknown;
   effectiveDate: string;
 }
 

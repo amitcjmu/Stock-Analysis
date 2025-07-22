@@ -115,7 +115,7 @@ export const MetricBadge: React.FC<MetricBadgeProps> = ({
   const formattedValue = formatValue(value, format, '');
 
   return (
-    <Badge variant={variant as any} className={`
+    <Badge variant={variant as unknown} className={`
       ${size === 'sm' ? 'text-xs px-2 py-1' : 
         size === 'md' ? 'text-sm px-3 py-1' : 'text-base px-4 py-2'}
     `}>
