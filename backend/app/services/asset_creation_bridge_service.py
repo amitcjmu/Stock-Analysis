@@ -62,12 +62,12 @@ class AssetCreationBridgeService:
             if not discovery_flow:
                 raise ValueError(f"Discovery flow not found: {discovery_flow_id}")
             
-            # Get discovery assets
-            assets_query = select(DiscoveryAsset).where(
+            # Get discovery assets (using Asset model since DiscoveryAsset was removed)
+            assets_query = select(Asset).where(
                 and_(
-                    DiscoveryAsset.discovery_flow_id == discovery_flow.id,
-                    DiscoveryAsset.client_account_id == self.context.client_account_id,
-                    DiscoveryAsset.engagement_id == self.context.engagement_id
+                    Asset.discovery_flow_id == discovery_flow.id,
+                    Asset.client_account_id == self.context.client_account_id,
+                    Asset.engagement_id == self.context.engagement_id
                 )
             )
             assets_result = await self.db.execute(assets_query)
@@ -145,7 +145,7 @@ class AssetCreationBridgeService:
             await self.db.rollback()
             raise
     
-    async def _find_existing_asset(self, discovery_asset: DiscoveryAsset) -> Optional[Asset]:
+    async def _find_existing_asset(self, discovery_asset: Asset) -> Optional[Asset]:
         """
         Find existing asset to avoid duplicates.
         Uses business rules for deduplication.
@@ -190,7 +190,7 @@ class AssetCreationBridgeService:
     
     async def _create_asset_from_discovery(
         self, 
-        discovery_asset: DiscoveryAsset,
+        discovery_asset: Asset,
         discovery_flow: DiscoveryFlow,
         user_id: uuid.UUID = None
     ) -> Asset:

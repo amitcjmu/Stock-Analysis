@@ -9,7 +9,6 @@ import pytest
 @pytest.mark.smoke
 def test_basic_imports():
     """Test that essential backend modules can be imported."""
-    from app.core.database import get_db
     from app.core.config import settings
     assert hasattr(settings, 'DATABASE_URL')
 

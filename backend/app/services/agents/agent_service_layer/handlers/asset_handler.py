@@ -244,8 +244,8 @@ class AssetHandler:
                             debt_categories[category] += 1
                 
                 # Calculate overall statistics
-                total_debt_items = sum(len(asset_debt_by_asset.get(str(a.id), {}).get("debt_items", [])) for a in assets)
-                avg_debt_score = sum(asset_debt_by_asset.get(str(a.id), {}).get("debt_score", 0) for a in assets) / len(assets) if assets else 0
+                total_debt_items = sum(len(tech_debt_by_asset.get(str(a.id), {}).get("debt_items", [])) for a in assets)
+                avg_debt_score = sum(tech_debt_by_asset.get(str(a.id), {}).get("debt_score", 0) for a in assets) / len(assets) if assets else 0
                 
                 return {
                     "status": "success",
