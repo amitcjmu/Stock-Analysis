@@ -100,7 +100,7 @@ def upload_test_file():
         print(f"📊 Response Status: {response.status_code}")
         if response.status_code == 200:
             result = response.json()
-            print(f"✅ Upload successful!")
+            print("✅ Upload successful!")
             print(f"📋 Flow ID: {result.get('flow_id', 'N/A')}")
             print(f"📋 Import Session: {result.get('import_session_id', 'N/A')}")
             return result.get('flow_id')

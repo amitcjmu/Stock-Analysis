@@ -419,13 +419,13 @@ class CrewAIFlowValidator:
         # Show failed tests
         failed_results = [r for r in summary['results'] if not r.passed]
         if failed_results:
-            print(f"\nFAILED TESTS:")
+            print("\nFAILED TESTS:")
             print("-" * 40)
             for result in failed_results:
                 print(f"❌ {result.test_name}: {result.message}")
         
         # Show all test results
-        print(f"\nALL TEST RESULTS:")
+        print("\nALL TEST RESULTS:")
         print("-" * 40)
         for result in summary['results']:
             status = "✅" if result.passed else "❌"

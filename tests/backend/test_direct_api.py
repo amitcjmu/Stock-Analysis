@@ -43,8 +43,8 @@ def test_direct_api_call():
     
     print(f"🌐 API URL: {url}")
     print(f"🤖 Model: {settings.DEEPINFRA_MODEL}")
-    print(f"🧠 Reasoning effort: none")
-    print(f"📝 Prompt: What is 5+5? Answer with just the number.")
+    print("🧠 Reasoning effort: none")
+    print("📝 Prompt: What is 5+5? Answer with just the number.")
     
     try:
         print("\n🚀 Making API call...")

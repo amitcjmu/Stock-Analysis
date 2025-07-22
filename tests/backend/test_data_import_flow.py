@@ -168,7 +168,7 @@ class DatabaseDesignTest:
                     
                     # Should get different results for different contexts
                     if response.status_code == 200:
-                        logger.info(f"✅ Multi-tenant scoping responding correctly for context")
+                        logger.info("✅ Multi-tenant scoping responding correctly for context")
                     else:
                         logger.warning(f"⚠️ Context test returned: {response.status_code}")
             

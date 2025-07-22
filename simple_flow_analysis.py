@@ -103,7 +103,7 @@ async def analyze_flow():
             print(f"  Status: {discovery[1]}")
             print(f"  Current Phase: {discovery[2]}")
             print(f"  Progress: {discovery[3]}%")
-            print(f"  Phases Completed:")
+            print("  Phases Completed:")
             print(f"    - Data Import: {discovery[4]}")
             print(f"    - Field Mapping: {discovery[5]}")
             print(f"    - Data Cleansing: {discovery[6]}")

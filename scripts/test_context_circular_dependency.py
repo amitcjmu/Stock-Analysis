@@ -181,7 +181,7 @@ async def main():
         with open('context_dependency_test_results.json', 'w') as f:
             json.dump(results, f, indent=2)
         
-        print(f"\n📄 Detailed results saved to: context_dependency_test_results.json")
+        print("\n📄 Detailed results saved to: context_dependency_test_results.json")
 
 if __name__ == "__main__":
     asyncio.run(main()) 

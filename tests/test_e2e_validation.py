@@ -388,7 +388,7 @@ async def main():
     # Save results
     with open("e2e_validation_results.json", "w") as f:
         json.dump(test_results, f, indent=2)
-        print(f"\nDetailed results saved to: e2e_validation_results.json")
+        print("\nDetailed results saved to: e2e_validation_results.json")
 
 
 if __name__ == "__main__":

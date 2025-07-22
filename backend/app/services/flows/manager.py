@@ -76,7 +76,7 @@ class FlowManager:
     async def pause_flow(self, flow_id: str) -> bool:
         """Pause a running flow - delegated to MasterFlowOrchestrator"""
         # This method should be implemented through MasterFlowOrchestrator
-        logger.warning(f"pause_flow called but should use MasterFlowOrchestrator.pause_flow")
+        logger.warning("pause_flow called but should use MasterFlowOrchestrator.pause_flow")
         return False
         task = self.flow_tasks.get(flow_id)
         if task and not task.done():
@@ -108,7 +108,7 @@ class FlowManager:
     def _get_resume_method(self, flow_id: str, phases_completed: List[str]):
         """Determine which phase to resume from - now handled by MasterFlowOrchestrator"""
         # This method is deprecated - MasterFlowOrchestrator handles resume logic
-        logger.warning(f"_get_resume_method called but should use MasterFlowOrchestrator.resume_flow")
+        logger.warning("_get_resume_method called but should use MasterFlowOrchestrator.resume_flow")
         return None
     
     async def cleanup_completed_flows(self) -> int:

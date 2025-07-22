@@ -296,8 +296,8 @@ def main():
     checker.save_report(report_dir)
     
     # Print summary
-    print(f"\n✅ Security scan complete!")
-    print(f"\nSummary:")
+    print("\n✅ Security scan complete!")
+    print("\nSummary:")
     print(f"  Critical: {len(checker.issues['critical'])}")
     print(f"  High: {len(checker.issues['high'])}")
     print(f"  Medium: {len(checker.issues['medium'])}")

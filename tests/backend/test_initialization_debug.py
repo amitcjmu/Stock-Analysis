@@ -80,7 +80,7 @@ def step10_crewai_service_init():
     """Test CrewAI service initialization."""
     from app.services.crewai_flow_service import CrewAIService
     service = CrewAIService()
-    return f"CrewAI service initialized"
+    return "CrewAI service initialized"
 
 def step11_crewai_global_import():
     """Test importing the global crewai_service instance."""

@@ -95,13 +95,13 @@ async def test_store_import_validation():
                 result = await response.json()
                 
                 if response.status == 200:
-                    print(f"✅ Store-Import API: SUCCESS (200)")
+                    print("✅ Store-Import API: SUCCESS (200)")
                     print(f"   Import Session ID: {result.get('import_session_id')}")
                     print(f"   Records Stored: {result.get('records_stored')}")
                     print(f"   Message: {result.get('message')}")
                     return True
                 elif response.status == 422:
-                    print(f"❌ Store-Import API: VALIDATION ERROR (422)")
+                    print("❌ Store-Import API: VALIDATION ERROR (422)")
                     print(f"   Error Details: {result}")
                     return False
                 else:
@@ -135,9 +135,9 @@ async def test_context_persistence():
                 
                 if response.status == 200:
                     result = await response.json()
-                    print(f"✅ Context Persistence: Headers processed correctly")
+                    print("✅ Context Persistence: Headers processed correctly")
                     print(f"   Expected Client: Marathon Petroleum ({context['client_id']})")
-                    print(f"   Context Preserved: ✅")
+                    print("   Context Preserved: ✅")
                     return True
                 else:
                     print(f"❌ Context Persistence: Failed ({response.status})")

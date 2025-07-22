@@ -77,7 +77,7 @@ async def test_discovery_flow_creation():
                     print(f"   ✅ Discovery Flow Created: {flow_id}")
                     
                     # 2. Check Flow Status Multiple Times
-                    print(f"\n2. Checking Flow Status (30-second polling)...")
+                    print("\n2. Checking Flow Status (30-second polling)...")
                     status_url = f"{BASE_URL}/api/v1/unified-discovery/flow/{flow_id}/status"
                     
                     for i in range(5):  # Check 5 times over ~2.5 minutes
@@ -93,12 +93,12 @@ async def test_discovery_flow_creation():
                                 
                                 # Check if flow has progressed beyond initialization
                                 if status_data.get('status') != 'initialized' or status_data.get('current_phase') != 'initialization':
-                                    print(f"   ✅ Flow has progressed beyond initialization!")
+                                    print("   ✅ Flow has progressed beyond initialization!")
                                     return True
                             else:
                                 print(f"   ❌ Status check failed: {status_response.status}")
                     
-                    print(f"   ⚠️ Flow still in initialization after 2.5 minutes")
+                    print("   ⚠️ Flow still in initialization after 2.5 minutes")
                     return False
                 else:
                     print(f"   ❌ Flow creation failed: {result}")
@@ -131,7 +131,7 @@ async def test_assessment_flow_creation():
                     print(f"   ✅ Assessment Flow Created: {flow_id}")
                     
                     # 2. Check Flow Status
-                    print(f"\n2. Checking Flow Status...")
+                    print("\n2. Checking Flow Status...")
                     status_url = f"{BASE_URL}/api/v1/flows/{flow_id}"
                     
                     await asyncio.sleep(5)  # Wait a bit for initialization
@@ -143,10 +143,10 @@ async def test_assessment_flow_creation():
                             
                             # Check if we get real assessment data (not placeholder)
                             if "placeholder" not in str(status_data).lower() and status_data.get('flow_type') == 'assessment':
-                                print(f"   ✅ Real assessment flow data returned!")
+                                print("   ✅ Real assessment flow data returned!")
                                 return True
                             else:
-                                print(f"   ⚠️ Assessment flow may contain placeholder data")
+                                print("   ⚠️ Assessment flow may contain placeholder data")
                                 return False
                         else:
                             print(f"   ❌ Status check failed: {status_response.status}")
@@ -227,9 +227,9 @@ async def test_api_performance():
                 print(f"   Response Time: {response_time:.2f}ms")
                 
                 if response_time > 1000:  # More than 1 second
-                    print(f"   ⚠️ Response time exceeds 1 second!")
+                    print("   ⚠️ Response time exceeds 1 second!")
                 else:
-                    print(f"   ✅ Good response time")
+                    print("   ✅ Good response time")
                     
             except Exception as e:
                 print(f"   ❌ Error testing {endpoint}: {e}")

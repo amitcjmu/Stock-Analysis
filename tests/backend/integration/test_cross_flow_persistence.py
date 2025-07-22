@@ -300,7 +300,7 @@ class TestCrossFlowPersistence:
             asset_count=3
         )
         
-        print(f"✅ Created discovery flows for both clients")
+        print("✅ Created discovery flows for both clients")
         
         async with AsyncSessionLocal() as session:
             # Verify client 1 can only see their own data

@@ -41,7 +41,7 @@ async def test_public_clients_endpoint():
                             break
                     
                     if not marathon_found:
-                        print(f"❌ Marathon Petroleum not found in clients list")
+                        print("❌ Marathon Petroleum not found in clients list")
                         return False
                     
                     return True
@@ -66,7 +66,7 @@ async def test_engagements_without_engagement_header():
     
     print(f"   Client ID: {MARATHON_CONTEXT['client_id']}")
     print(f"   User ID: {MARATHON_CONTEXT['user_id']}")
-    print(f"   No X-Engagement-ID header (this was causing the 400 error)")
+    print("   No X-Engagement-ID header (this was causing the 400 error)")
     
     async with aiohttp.ClientSession() as session:
         try:
@@ -85,16 +85,16 @@ async def test_engagements_without_engagement_header():
                     
                     return True
                 elif response.status == 400:
-                    print(f"❌ Engagements Endpoint: Still getting 400 error")
+                    print("❌ Engagements Endpoint: Still getting 400 error")
                     print(f"   Response: {response_text}")
                     return False
                 elif response.status == 401:
-                    print(f"❌ Engagements Endpoint: Authentication required (401)")
-                    print(f"   This endpoint requires authentication - need to test with valid token")
+                    print("❌ Engagements Endpoint: Authentication required (401)")
+                    print("   This endpoint requires authentication - need to test with valid token")
                     return False
                 elif response.status == 403:
-                    print(f"❌ Engagements Endpoint: Access denied (403)")
-                    print(f"   User may not have access to this client")
+                    print("❌ Engagements Endpoint: Access denied (403)")
+                    print("   User may not have access to this client")
                     return False
                 else:
                     print(f"❌ Engagements Endpoint: Unexpected status {response.status}")
@@ -124,12 +124,12 @@ async def test_data_import_latest_without_engagement():
                 
                 if response.status == 200:
                     result = await response.json()
-                    print(f"✅ Data Import Latest: Success!")
+                    print("✅ Data Import Latest: Success!")
                     print(f"   Success: {result.get('success', False)}")
                     print(f"   Message: {result.get('message', 'No message')}")
                     return True
                 elif response.status == 400:
-                    print(f"❌ Data Import Latest: 400 error - may still require engagement context")
+                    print("❌ Data Import Latest: 400 error - may still require engagement context")
                     print(f"   Response: {response_text}")
                     return False
                 else:

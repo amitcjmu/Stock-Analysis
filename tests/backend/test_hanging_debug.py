@@ -56,13 +56,13 @@ class HangingDebugger:
         # Get detailed status
         status = agent_monitor.get_status_report()
         
-        print(f"\nMonitoring Status:")
+        print("\nMonitoring Status:")
         print(f"  Active: {status['monitoring_active']}")
         print(f"  Active tasks: {status['active_tasks']}")
         print(f"  Hanging tasks: {status['hanging_tasks']}")
         
         if status['hanging_task_details']:
-            print(f"\n🚨 HANGING TASK ANALYSIS:")
+            print("\n🚨 HANGING TASK ANALYSIS:")
             for task in status['hanging_task_details']:
                 print(f"  Task ID: {task['task_id']}")
                 print(f"  Agent: {task['agent']}")

@@ -31,7 +31,7 @@ def get_auth_token():
             return None
         
         token_data = response.json()
-        print(f"✅ Authentication successful")
+        print("✅ Authentication successful")
         # Extract token from nested structure
         if "token" in token_data and "access_token" in token_data["token"]:
             return token_data["token"]["access_token"]
@@ -86,13 +86,13 @@ def test_collection_flow():
         if response.status_code == 200:
             flow_data = response.json()
             flow_id = flow_data["id"]
-            print(f"✅ Collection flow created successfully!")
+            print("✅ Collection flow created successfully!")
             print(f"Flow ID: {flow_id}")
             print(f"Status: {flow_data['status']}")
             print(f"Automation Tier: {flow_data['automation_tier']}")
             
             # Monitor flow for a few seconds
-            print(f"\n⏱️ Monitoring flow execution for 10 seconds...")
+            print("\n⏱️ Monitoring flow execution for 10 seconds...")
             for i in range(10):
                 time.sleep(1)
                 

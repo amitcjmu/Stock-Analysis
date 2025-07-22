@@ -214,7 +214,7 @@ class MultiAgentIssueResolutionSystem:
         self.session_dir = f"/Users/chocka/CursorProjects/migrate-ui-orchestrator/temp/discovery-e2e/session_{self.session_id}"
         os.makedirs(self.session_dir, exist_ok=True)
         
-        logger.info(f"🚀 Multi-Agent Issue Resolution System initialized")
+        logger.info("🚀 Multi-Agent Issue Resolution System initialized")
         logger.info(f"📁 Session directory: {self.session_dir}")
     
     def process_screenshot(self, screenshot_path: str) -> str:
@@ -366,13 +366,13 @@ class MultiAgentIssueResolutionSystem:
     def _generate_next_steps(self, analysis: Dict) -> List[str]:
         """Generate next steps for the issue"""
         steps = [
-            f"1. Agent-5 performs historical review for similar issues",
+            "1. Agent-5 performs historical review for similar issues",
             f"2. {analysis['suggested_reporter']} validates issue reproduction",
-            f"3. Agent-4 documents solution approach",
-            f"4. Agent-8 implements the solution",
-            f"5. Agent-7 verifies implementation",
+            "3. Agent-4 documents solution approach",
+            "4. Agent-8 implements the solution",
+            "5. Agent-7 verifies implementation",
             f"6. {analysis['suggested_reporter']} validates resolution",
-            f"7. Issue marked as completed"
+            "7. Issue marked as completed"
         ]
         return steps
     
@@ -657,7 +657,7 @@ def main():
         # Launch agents if requested
         if args.launch:
             execution_plan = system.launch_agents(issue_id)
-            print(f"🚀 Launched multi-agent resolution")
+            print("🚀 Launched multi-agent resolution")
             print(f"📁 Session directory: {system.session_dir}")
             
             # Show next steps
@@ -667,7 +667,7 @@ def main():
             print("3. Use --status to check progress")
             
         else:
-            print(f"💡 Use --launch to start multi-agent resolution")
+            print("💡 Use --launch to start multi-agent resolution")
             print(f"💡 Use --status {issue_id} to check status")
 
 

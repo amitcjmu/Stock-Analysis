@@ -75,7 +75,7 @@ class DiscoveryFlowRecoveryTester:
             
             if response.status_code == 200:
                 status_data = response.json()
-                print(f"✅ Flow status retrieved:")
+                print("✅ Flow status retrieved:")
                 print(f"   Status: {status_data.get('status', 'unknown')}")
                 print(f"   Flow Type: {status_data.get('flow_type', 'unknown')}")
                 print(f"   Current Phase: {status_data.get('current_phase', 'unknown')}")
@@ -157,7 +157,7 @@ class DiscoveryFlowRecoveryTester:
             
             if response.status_code == 200:
                 status_data = response.json()
-                print(f"✅ Flow status after recovery:")
+                print("✅ Flow status after recovery:")
                 print(f"   Status: {status_data.get('status', 'unknown')}")
                 print(f"   Flow Type: {status_data.get('flow_type', 'unknown')}")
                 print(f"   Current Phase: {status_data.get('current_phase', 'unknown')}")

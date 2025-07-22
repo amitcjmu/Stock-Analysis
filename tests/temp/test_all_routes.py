@@ -79,7 +79,7 @@ async def test_all_routes():
                 await page.wait_for_timeout(2000)  # Extra wait for all API calls
                 
                 if route_name not in all_errors or len(all_errors[route_name]) == 0:
-                    print(f"  ✅ No errors")
+                    print("  ✅ No errors")
                 else:
                     print(f"  ❌ {len(all_errors[route_name])} errors found")
             

@@ -390,7 +390,7 @@ def print_final_report(report: Dict[str, Any]):
     print(f"🚀 Demo Ready: {'YES' if summary['ready_for_demo'] else 'NO'}")
     
     # Component breakdown
-    print(f"\n📋 COMPONENT RESULTS:")
+    print("\n📋 COMPONENT RESULTS:")
     print("-" * 40)
     for component, results in report['component_results'].items():
         status_emoji = "✅" if results['status'] == "PASS" else "❌" if results['status'] == "FAIL" else "⚠️"
@@ -406,17 +406,17 @@ def print_final_report(report: Dict[str, Any]):
             print(f"  • {issue}")
     
     # Recommendations
-    print(f"\n💡 RECOMMENDATIONS:")
+    print("\n💡 RECOMMENDATIONS:")
     print("-" * 40)
     for i, rec in enumerate(report['recommendations'], 1):
         print(f"{i}. {rec}")
     
     # Final verdict
     if summary['ready_for_demo']:
-        print(f"\n🎉 VALIDATION SUCCESSFUL!")
+        print("\n🎉 VALIDATION SUCCESSFUL!")
         print("The AI Modernize Migration Platform is ready for demonstration.")
     else:
-        print(f"\n⚠️ VALIDATION ISSUES DETECTED")
+        print("\n⚠️ VALIDATION ISSUES DETECTED")
         print("Address critical issues before demo deployment.")
         
     print(f"\n📁 Detailed reports exported to: {metadata['export_directory']}")

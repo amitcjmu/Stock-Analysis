@@ -53,7 +53,7 @@ def check_collection_flow():
         
         if response.status_code == 200:
             status = response.json()
-            print(f"✅ Collection Flow Status:")
+            print("✅ Collection Flow Status:")
             print(f"   Flow ID: {status.get('flow_id')}")
             print(f"   Status: {status.get('status')}")
             print(f"   Current Phase: {status.get('current_phase')}")
@@ -70,7 +70,7 @@ def check_collection_flow():
                 
                 if response.status_code == 200:
                     details = response.json()
-                    print(f"✅ Collection Flow Details:")
+                    print("✅ Collection Flow Details:")
                     print(f"   Flow ID: {details.get('id')}")
                     print(f"   Client Account: {details.get('client_account_id')}")
                     print(f"   Engagement: {details.get('engagement_id')}")

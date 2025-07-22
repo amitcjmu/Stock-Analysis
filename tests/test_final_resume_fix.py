@@ -142,9 +142,9 @@ def main():
     else:
         print("⚠️ Some issues remain - check logs above")
 
-    print(f"\nNote: Authentication errors (401) are expected without valid JWT tokens.")
-    print(f"The important thing is that 500 errors with 'too many values to unpack'")
-    print(f"or 'Cannot transition from active to active' are resolved.")
+    print("\nNote: Authentication errors (401) are expected without valid JWT tokens.")
+    print("The important thing is that 500 errors with 'too many values to unpack'")
+    print("or 'Cannot transition from active to active' are resolved.")
 
 if __name__ == "__main__":
     main()

@@ -51,7 +51,7 @@ async def test_no_thinking_mode():
             if duration > 10:
                 print(f"⚠️  Response took {duration:.2f}s - might still be using thinking mode")
             else:
-                print(f"🚀 Fast response - thinking mode likely disabled")
+                print("🚀 Fast response - thinking mode likely disabled")
                 
         except Exception as e:
             duration = time.time() - start_time
