@@ -349,7 +349,7 @@ async def simulate_agent_validation(
                         'Data structure appears consistent',
                         'Quality metrics within acceptable range'
                     ]
-        except:
+        except Exception:
             result.update({
                 'validation': 'warning',
                 'confidence': 0.60,

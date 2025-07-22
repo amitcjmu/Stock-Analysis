@@ -495,7 +495,7 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
                     numbers = re.findall(r'\d+', line)
                     if numbers:
                         result["gap_analysis_summary"]["overall_coverage_percentage"] = int(numbers[0])
-                except:
+                except Exception:
                     pass
         
         result["gap_analysis_summary"]["total_gaps_identified"] = gap_count

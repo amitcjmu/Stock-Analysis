@@ -629,7 +629,7 @@ class EnhancedRBACService:
             )
             result = await self.db.execute(query)
             return result.scalar_one_or_none() is not None
-        except:
+        except Exception:
             return False
     
     async def _log_access(self, **kwargs):

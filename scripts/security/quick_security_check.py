@@ -132,7 +132,7 @@ class QuickSecurityChecker:
                         'description': 'No token expiration implemented',
                         'recommendation': 'Add token expiration time'
                     })
-            except:
+            except (OSError, UnicodeDecodeError):
                 pass
                 
     def check_rate_limiting(self) -> None:
@@ -149,7 +149,7 @@ class QuickSecurityChecker:
                     if any(term in content.lower() for term in ['ratelimit', 'rate_limit', 'slowapi', 'limiter']):
                         rate_limit_found = True
                         break
-            except:
+            except (OSError, UnicodeDecodeError):
                 pass
                 
         if not rate_limit_found:
@@ -184,7 +184,7 @@ class QuickSecurityChecker:
                                 'description': 'Potential SQL injection with f-strings',
                                 'code': line.strip()[:80]
                             })
-            except:
+            except (OSError, UnicodeDecodeError):
                 pass
                 
     def generate_report(self) -> str:

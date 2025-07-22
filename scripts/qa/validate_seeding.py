@@ -25,7 +25,13 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
-from app.models import *
+from app.models import (
+    Asset,
+    ClientAccount,
+    DiscoveryFlow,
+    Engagement,
+    User,
+)
 
 
 @dataclass

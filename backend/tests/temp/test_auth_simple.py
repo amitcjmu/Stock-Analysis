@@ -29,7 +29,7 @@ async def test_login():
                     print("\n📡 Login API Response:")
                     print(f"   Status: {response.status}")
                     print(f"   Data: {json.dumps(data, indent=2)}")
-                except:
+                except Exception:
                     pass
         
         page.on("response", handle_response)

@@ -238,7 +238,7 @@ class CMDBAnalysisTool(BaseTool):
                     # Simple age check - applications older than 10 years are risky
                     if "2014" in str(date_str) or any(year in str(date_str) for year in ["2013", "2012", "2011", "2010"]):
                         risk_indicators.append("Legacy application (>10 years old)")
-                except:
+                except Exception:
                     pass
         
         # Technology risks

@@ -4,7 +4,6 @@ Thin controllers that delegate to service layer.
 """
 
 import logging
-from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -146,6 +145,8 @@ async def trigger_field_mapping_crew_analysis(
             )
         
         # Execute CrewAI analysis
+        from datetime import datetime
+        
         if request.background_execution:
             # TODO: Implement background task execution
             execution_id = f"crew_{request.import_id}_{int(datetime.utcnow().timestamp())}"
@@ -158,7 +159,6 @@ async def trigger_field_mapping_crew_analysis(
             )
         else:
             # Execute immediately
-            from datetime import datetime
             start_time = datetime.utcnow()
             
             crew_result = await coordinator.execute_crew_analysis(

@@ -16,6 +16,9 @@ from typing import Any, Dict, List
 # Add the backend directory to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
+# Set up logging first
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 from app.core.database import AsyncSessionLocal
 
@@ -26,9 +29,6 @@ try:
 except ImportError as e:
     logger.warning(f"Could not import models: {e}")
     MODELS_AVAILABLE = False
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 class PersistenceToDbMigrator:

@@ -77,7 +77,7 @@ TEST_ADAPTERS = [
                 "username": {"type": "string"},
                 "password": {"type": "string", "format": "password"},
                 "port": {"type": "integer", "default": 443},
-                "verify_ssl": {"type": "boolean", "default": true}
+                "verify_ssl": {"type": "boolean", "default": True}
             },
             "required": ["vcenter_host", "username", "password"]
         },

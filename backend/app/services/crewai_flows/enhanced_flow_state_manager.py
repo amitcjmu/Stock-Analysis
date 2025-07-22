@@ -218,7 +218,7 @@ class StateSerializer:
             if self.config.compress:
                 try:
                     data = gzip.decompress(data)
-                except:
+                except Exception:
                     # Data might not be compressed (backward compatibility)
                     pass
             

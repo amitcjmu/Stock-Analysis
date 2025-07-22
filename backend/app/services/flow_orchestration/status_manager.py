@@ -902,5 +902,5 @@ class FlowStatusManager:
             updated_at = datetime.fromisoformat(status["updated_at"].replace("Z", "+00:00"))
             runtime = (updated_at - created_at).total_seconds() / 60
             return round(runtime, 2)
-        except:
+        except Exception:
             return 0.0

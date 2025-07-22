@@ -14,6 +14,7 @@ This test suite covers:
 - Performance Tracker
 """
 
+import os
 from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
 

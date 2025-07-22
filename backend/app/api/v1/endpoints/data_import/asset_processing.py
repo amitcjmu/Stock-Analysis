@@ -159,7 +159,6 @@ async def process_raw_to_assets(
                         "classification_results": result.get("classification_results", {}),
                         "workflow_progression": result.get("workflow_progression", {}),
                         "processed_asset_ids": result.get("processed_asset_ids", []),
-                        "flow_id": flow_id,
                         "completed_at": result.get("completed_at"),
                         "duplicate_detection": {
                             "detection_active": True,
@@ -408,7 +407,6 @@ async def _fallback_raw_to_assets_processing(
                 "other_assets": 0
             },
             "processed_asset_ids": created_assets,
-            "flow_id": flow_id,
             "completed_at": datetime.utcnow().isoformat(),
             "duplicate_detection": {
                 "detection_active": False,

@@ -52,7 +52,7 @@ def is_valid_ip(ip: str) -> bool:
     try:
         parts = ip.split('.')
         return len(parts) == 4 and all(0 <= int(part) <= 255 for part in parts)
-    except:
+    except Exception:
         return False
 
 # Deprecated heuristic functions removed - replaced by CrewAI Field Mapping Crew
@@ -73,7 +73,7 @@ def matches_data_type(value: str, expected_type: str) -> bool:
             return len(parts) == 4 and all(0 <= int(part) <= 255 for part in parts)
         elif expected_type == "string":
             return isinstance(value, str) and len(value) > 0
-    except:
+    except Exception:
         pass
     return False
 
@@ -83,7 +83,7 @@ def is_in_range(value: str, value_range: dict) -> bool:
         if "min" in value_range and "max" in value_range:
             num_val = float(value)
             return value_range["min"] <= num_val <= value_range["max"]
-    except:
+    except Exception:
         pass
     return False
 

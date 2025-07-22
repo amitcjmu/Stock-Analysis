@@ -37,7 +37,7 @@ async def test_complete_demo_flow():
                     try:
                         error_data = await response.json()
                         print(f"   Error: {json.dumps(error_data, indent=2)}")
-                    except:
+                    except (json.JSONDecodeError, ValueError):
                         print(f"   Error text: {await response.text()}")
                 elif response.status == 200 and "data-import" in response.url:
                     try:

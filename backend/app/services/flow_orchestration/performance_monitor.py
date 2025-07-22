@@ -190,7 +190,7 @@ class FlowPerformanceMonitor:
                     "packets_sent": net_io.packets_sent,
                     "packets_recv": net_io.packets_recv
                 }
-            except:
+            except Exception:
                 pass
             
             return {

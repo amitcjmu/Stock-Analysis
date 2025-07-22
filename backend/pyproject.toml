@@ -1,6 +1,11 @@
 [tool.ruff]
 line-length = 120
 target-version = "py311"
+exclude = [
+    "*.backup.py", 
+    "*_backup.py",
+    "temp_*.py",
+]
 
 [tool.ruff.lint]
 select = [
@@ -12,6 +17,20 @@ ignore = [
     "E501",  # line too long (handled by formatter)
     "E402",  # module import not at top of file
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# Allow feature detection imports in API files
+"*/api/**/*.py" = ["F401"]
+# Allow test imports that may appear unused but are needed for fixtures
+"*/tests/**/*.py" = ["F401"]
+# Allow CLI scripts to have unused imports for optional features
+"*/scripts/**/*.py" = ["F401"]
+# Main app file may have imports for dynamic registration
+"main.py" = ["F401"]
+# Ignore errors in preserved/backup files
+".preserved_files/**/*.py" = ["E", "F", "W"]
+# Ignore errors in temporary test files
+"test_*.py" = ["E", "F", "W"]
 
 [tool.ruff.format]
 quote-style = "double"

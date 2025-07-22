@@ -206,7 +206,7 @@ class RailwayDatabaseFixer:
                         "SELECT COUNT(*) FROM users WHERE email = 'chocka@gmail.com'"
                     ))
                     validation['admin_exists'] = result.scalar() > 0
-                except:
+                except Exception:
                     validation['admin_exists'] = False
                 
                 # Check demo data
@@ -215,7 +215,7 @@ class RailwayDatabaseFixer:
                         "SELECT COUNT(*) FROM client_accounts WHERE name = 'Demo Corporation'"
                     ))
                     validation['demo_data_exists'] = result.scalar() > 0
-                except:
+                except Exception:
                     validation['demo_data_exists'] = False
                     
         except Exception as e:

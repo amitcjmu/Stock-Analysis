@@ -267,7 +267,7 @@ class ModularizationTester:
                 try:
                     if file_path.stat().st_size < 100:  # Less than 100 bytes
                         continue
-                except:
+                except (OSError, FileNotFoundError):
                     continue
                 
                 # Analyze the file

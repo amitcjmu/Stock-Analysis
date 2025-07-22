@@ -764,7 +764,7 @@ echo "Traffic split updated to {percentage}% green"
                             total_count += 1
                             if response.status >= 500:
                                 error_count += 1
-                    except:
+                    except Exception:
                         total_count += 1
                         error_count += 1
                 

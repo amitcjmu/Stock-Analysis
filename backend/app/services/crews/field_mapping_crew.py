@@ -314,7 +314,7 @@ class FieldMappingCrew(BaseDiscoveryCrew):
                             "data_type_compatible": True,
                             "requires_transformation": False
                         })
-                except:
+                except Exception:
                     continue
         
         return {

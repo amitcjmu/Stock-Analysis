@@ -26,7 +26,16 @@ from sqlalchemy import and_, distinct, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
-from app.models import *
+from app.models import (
+    Asset,
+    AssetDependency,
+    ClientAccount,
+    DataImport,
+    DiscoveryFlow,
+    Engagement,
+    Migration,
+    User,
+)
 
 
 @dataclass

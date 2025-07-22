@@ -509,7 +509,7 @@ class ConfidenceScorer:
             if isinstance(collection_timestamp, str):
                 try:
                     collection_time = datetime.fromisoformat(collection_timestamp.replace('Z', '+00:00'))
-                except:
+                except Exception:
                     collection_time = datetime.now(timezone.utc)
             elif isinstance(collection_timestamp, datetime):
                 collection_time = collection_timestamp

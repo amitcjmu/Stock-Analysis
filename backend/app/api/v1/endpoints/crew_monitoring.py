@@ -179,7 +179,7 @@ async def get_active_flows(
                         sample_inputs = {"raw_data": [{"sample": "data"}]}
                         crew.initialize_crew(sample_inputs)
                         agent_count = len(crew.agents)
-                except:
+                except Exception:
                     agent_count = 2  # Default estimate
                 
                 crew_details.append({

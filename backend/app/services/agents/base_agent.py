@@ -54,7 +54,7 @@ class BaseCrewAIAgent(Agent):
         # Multi-tenant context - store without setting as agent attribute
         try:
             self._request_context = get_current_context()
-        except:
+        except Exception:
             # Context may not be available during agent discovery
             self._request_context = None
         

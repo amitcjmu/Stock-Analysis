@@ -260,8 +260,7 @@ class CollectionFlow(Base, TimestampMixin):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
-            "is_complete": self.is_complete(),
-            "next_phase": self.get_next_phase()
+            "is_complete": self.is_complete()
         }
 
 

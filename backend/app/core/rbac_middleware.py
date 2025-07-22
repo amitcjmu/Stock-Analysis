@@ -155,7 +155,7 @@ class RBACMiddleware:
         try:
             context = get_current_context()
             return context.user_id
-        except:
+        except Exception:
             pass
         
         # For development, allow demo user

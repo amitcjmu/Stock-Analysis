@@ -25,7 +25,7 @@ from .monitoring_main import router as monitoring_router
 sixr_router = sixr_analysis.router
 discovery_router = discovery.router
 asset_inventory_router = asset_inventory.router
-# monitoring_router is already imported above
+monitoring_router = monitoring_router  # Use the imported monitoring_router
 chat_router = chat.router
 # websocket_router removed - using HTTP polling for Vercel+Railway compatibility
 agent_learning_router = agent_learning_endpoints.router
@@ -35,4 +35,4 @@ test_discovery_router = test_discovery.router
 flow_processing_router = flow_processing.router
 assessment_flow_router = assessment_flow.router
 assessment_events_router = assessment_events.router
-# agents_router is already imported above 
+agents_router = agents_router  # Use the imported agents_router 

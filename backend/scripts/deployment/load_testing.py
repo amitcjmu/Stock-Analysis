@@ -557,7 +557,7 @@ class LoadTestRunner:
                             result = await response.json()
                             if isinstance(result, dict) and "flow_id" in result:
                                 self.created_flows.append(result["flow_id"])
-                        except:
+                        except Exception:
                             pass
                     
                     return response_time, success, error

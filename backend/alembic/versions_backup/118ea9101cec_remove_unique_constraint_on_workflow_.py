@@ -21,15 +21,15 @@ def upgrade() -> None:
     try:
         # Try dropping by constraint name (most likely pattern)
         op.drop_constraint('workflow_states_session_id_key', 'workflow_states', type_='unique')
-    except:
+    except Exception:
         try:
             # Alternative constraint name pattern
             op.drop_constraint('uq_workflow_states_session_id', 'workflow_states', type_='unique')
-        except:
+        except Exception:
             try:
                 # Another common pattern
                 op.drop_constraint('workflow_states_session_id_unique', 'workflow_states', type_='unique')
-            except:
+            except Exception:
                 # If none of the constraint names work, we'll handle it gracefully
                 # This might happen if the constraint doesn't exist or has a different name
                 pass

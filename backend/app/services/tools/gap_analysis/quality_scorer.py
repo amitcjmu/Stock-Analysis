@@ -164,7 +164,7 @@ class QualityScorerTool(AsyncBaseDiscoveryTool):
             try:
                 if validation_func(value):
                     valid_count += 1
-            except:
+            except Exception:
                 pass
         
         return (valid_count / len(values) * 100) if values else 0

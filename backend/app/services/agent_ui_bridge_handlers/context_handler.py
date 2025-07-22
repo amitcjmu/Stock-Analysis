@@ -189,7 +189,7 @@ class ContextHandler:
                 
                 if age_hours > max_age_hours:
                     stale_keys.append(key)
-            except:
+            except Exception:
                 # Invalid timestamp, consider stale
                 stale_keys.append(key)
         

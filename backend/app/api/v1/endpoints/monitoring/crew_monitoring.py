@@ -73,7 +73,7 @@ async def get_crew_system_status(
                     sample_inputs = {"raw_data": [{"sample": "data"}]}
                     crew.initialize_crew(sample_inputs)
                     total_crew_agents += len(crew.agents)
-            except:
+            except Exception:
                 total_crew_agents += 2  # Estimate 2 agents per crew
         
         # Add platform agents from registry
@@ -81,7 +81,7 @@ async def get_crew_system_status(
         try:
             from app.services.agents.registry import agent_registry
             platform_agents = len(agent_registry.list_agents()) if hasattr(agent_registry, 'list_agents') else 0
-        except:
+        except Exception:
             platform_agents = 17  # Default from system
         
         total_agents = total_crew_agents + platform_agents
@@ -223,7 +223,7 @@ async def get_crew_flows_active(
                         sample_inputs = {"raw_data": [{"sample": "data"}]}
                         crew.initialize_crew(sample_inputs)
                         agent_count = len(crew.agents)
-                except:
+                except Exception:
                     agent_count = 2  # Default estimate
                 
                 crew_details.append({

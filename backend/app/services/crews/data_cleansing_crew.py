@@ -307,7 +307,7 @@ class DataCleansingCrew(BaseDiscoveryCrew):
                     numbers = re.findall(r'\d+', line)
                     if numbers:
                         result["quality_metrics"]["records_processed"] = int(numbers[0])
-                except:
+                except Exception:
                     pass
             elif 'quality score' in line:
                 try:
@@ -315,7 +315,7 @@ class DataCleansingCrew(BaseDiscoveryCrew):
                     scores = re.findall(r'\d+\.?\d*', line)
                     if scores:
                         result["quality_metrics"]["overall_quality_score"] = float(scores[0])
-                except:
+                except Exception:
                     pass
         
         return result
@@ -330,5 +330,5 @@ class DataCleansingCrew(BaseDiscoveryCrew):
                 improvement = ((after_score - before_score) / before_score) * 100
                 return max(0.0, min(100.0, improvement))  # Clamp between 0-100
             return 0.0
-        except:
+        except Exception:
             return 0.0

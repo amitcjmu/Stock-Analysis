@@ -371,7 +371,7 @@ class AssetInventoryCrew(BaseDiscoveryCrew):
                     numbers = re.findall(r'\d+', line)
                     if numbers:
                         result["summary"]["total_assets"] = int(numbers[0])
-                except:
+                except Exception:
                     pass
             elif 'critical' in line and 'asset' in line:
                 try:
@@ -379,7 +379,7 @@ class AssetInventoryCrew(BaseDiscoveryCrew):
                     numbers = re.findall(r'\d+', line)
                     if numbers:
                         result["summary"]["critical_assets"] = int(numbers[0])
-                except:
+                except Exception:
                     pass
         
         return result

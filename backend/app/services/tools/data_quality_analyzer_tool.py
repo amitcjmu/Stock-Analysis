@@ -347,7 +347,7 @@ class DataQualityAnalyzerTool(AsyncBaseDiscoveryTool):
             for v in values:
                 try:
                     numeric_values.append(float(v))
-                except:
+                except Exception:
                     pass
             
             if numeric_values and len(numeric_values) > len(values) * 0.5:  # Mostly numeric
@@ -548,7 +548,7 @@ class DataQualityAnalyzerTool(AsyncBaseDiscoveryTool):
             for v in values:
                 try:
                     numeric_values.append(float(v))
-                except:
+                except Exception:
                     pass
             
             if numeric_values:
@@ -748,7 +748,7 @@ class DataQualityAnalyzerTool(AsyncBaseDiscoveryTool):
                 for v in values:
                     try:
                         numeric_values.append(float(v))
-                    except:
+                    except Exception:
                         pass
                 
                 if numeric_values:

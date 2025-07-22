@@ -278,7 +278,7 @@ class CheckpointManager:
                                 "_serialized": True,
                                 "data": serialized
                             }
-                        except:
+                        except Exception:
                             # Skip if can't serialize
                             logger.warning(f"Could not serialize attribute: {attr}")
             
@@ -303,7 +303,7 @@ class CheckpointManager:
                             base64.b64decode(value["data"])
                         )
                         setattr(state, key, deserialized)
-                    except:
+                    except Exception:
                         logger.warning(f"Could not deserialize attribute: {key}")
                         setattr(state, key, None)
                 else:

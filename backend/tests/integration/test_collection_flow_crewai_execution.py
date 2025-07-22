@@ -8,6 +8,7 @@ import logging
 from unittest.mock import Mock
 
 import pytest
+from crewai import Task
 
 from app.services.agents.gap_prioritization_agent_crewai import GapPrioritizationAgent
 from app.services.agents.platform_detection_agent_crewai import PlatformDetectionAgent

@@ -132,7 +132,7 @@ class CrewResultParser:
         if json_match:
             try:
                 return json.loads(json_match.group())
-            except:
+            except Exception:
                 pass
         
         # Fallback to pattern extraction

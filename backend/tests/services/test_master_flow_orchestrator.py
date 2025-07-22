@@ -399,7 +399,7 @@ class TestMasterFlowOrchestrator:
                 mock_end.assert_called_once_with(
                     "tracking-id-123",
                     success=True,
-                    result_metadata={"flow_id": mock.ANY}
+                    result_metadata={"flow_id": Mock.ANY}
                 )
     
     @pytest.mark.asyncio

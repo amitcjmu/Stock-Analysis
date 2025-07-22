@@ -35,7 +35,7 @@ try:
     ERROR_HANDLERS_AVAILABLE = True
 except ImportError:
     ERROR_HANDLERS_AVAILABLE = False
-    logger.warning("Error handlers not available")
+    print("Warning: Error handlers not available")
 
 # Load environment variables
 load_dotenv()
@@ -180,16 +180,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Basic health check that's always available
-@app.get("/health")
-async def health_check():
-    """Health check endpoint for monitoring."""
-    return {
-        "status": "healthy",
-        "service": "ai-force-migration-api",
-        "version": "0.2.0",
-        "timestamp": "2025-01-27"
-    }
+# Health check is defined later with more comprehensive component status
 
 @app.get("/cors-test")
 async def cors_test():

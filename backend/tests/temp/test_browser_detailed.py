@@ -45,7 +45,7 @@ async def test_login():
                     print(f"   Status: {response.status}")
                     print(f"   Headers: {response.headers}")
                     print(f"   Data: {json.dumps(data, indent=2)}")
-                except:
+                except Exception:
                     text = await response.text()
                     print("\n📥 Login Response (text):")
                     print(f"   Status: {response.status}")

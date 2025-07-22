@@ -41,7 +41,7 @@ class BaseDiscoveryCrew(ABC):
         # Store context safely without triggering during module import
         try:
             self.context = get_current_context()
-        except:
+        except Exception:
             # Context may not be available during import/discovery
             self.context = None
             
@@ -104,7 +104,7 @@ class BaseDiscoveryCrew(ABC):
             if not self.context:
                 try:
                     self.context = get_current_context()
-                except:
+                except Exception:
                     raise ValueError("No context available for multi-tenant execution")
             
             logger.info(f"Executing crew {self.name} for client {self.context.client_account_id}")

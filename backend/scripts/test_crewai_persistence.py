@@ -40,12 +40,12 @@ try:
     from crewai.flow.flow import Flow
     flow_methods = [method for method in dir(Flow) if 'persist' in method.lower()]
     print(f"Flow persistence methods: {flow_methods}")
-except:
+except Exception:
     print("❌ Could not check Flow methods")
 
 # Check the Flow class structure
 try:
     from crewai.flow.flow import Flow
     print(f"Flow class attributes: {[attr for attr in dir(Flow) if not attr.startswith('_')]}")
-except:
+except Exception:
     print("❌ Could not check Flow attributes") 

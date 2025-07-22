@@ -620,7 +620,7 @@ async def test_discovery_flow_with_db_tracking():
                 error_counts = await tracker.check_table_counts()
                 for table, count in error_counts.items():
                     logger.info(f"  - {table}: {count}")
-            except:
+            except Exception:
                 pass
 
 

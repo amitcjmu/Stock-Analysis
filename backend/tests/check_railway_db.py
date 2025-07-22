@@ -148,7 +148,7 @@ async def test_table_access():
                 result = await session.execute(text("SELECT COUNT(*) FROM feedback LIMIT 1"))
                 count = result.fetchone()[0]
                 print(f"📊 Feedback table: {count} records found")
-            except:
+            except Exception:
                 print("⚠️  Feedback table not accessible (may not exist yet)")
             
             # Try to access assets table (if it exists)
@@ -156,7 +156,7 @@ async def test_table_access():
                 result = await session.execute(text("SELECT COUNT(*) FROM assets LIMIT 1"))
                 count = result.fetchone()[0]
                 print(f"📊 Assets table: {count} records found")
-            except:
+            except Exception:
                 print("⚠️  Assets table not accessible (may not exist yet)")
                 
     except Exception as e:
