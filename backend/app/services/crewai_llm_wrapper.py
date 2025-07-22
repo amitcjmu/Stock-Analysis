@@ -58,10 +58,8 @@ class RateLimitedLLM:
             # Try to get the current event loop
             loop = asyncio.get_event_loop()
             if loop.is_running():
-                # If we're already in an async context, create a task
-                asyncio.create_task(self._make_rate_limited_call('__call__', *args, **kwargs))
-                # For sync compatibility, we need to block until complete
-                # This is not ideal but necessary for CrewAI compatibility
+                # If we're already in an async context, we need to run in a separate thread
+                # to avoid blocking the event loop
                 import concurrent.futures
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     return executor.submit(asyncio.run, self._make_rate_limited_call('__call__', *args, **kwargs)).result()
