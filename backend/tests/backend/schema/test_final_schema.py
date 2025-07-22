@@ -4,7 +4,9 @@ Final schema validation test.
 """
 
 import asyncio
+
 from sqlalchemy import text
+
 from app.core.database import AsyncSessionLocal
 
 
@@ -108,7 +110,7 @@ async def test_final_schema():
         
         # Check ClientAccount fields
         print("\nClientAccount table fields:")
-        result = await session.execute(f"""
+        result = await session.execute("""
             SELECT EXISTS (
                 SELECT 1 FROM information_schema.columns 
                 WHERE table_name = 'client_accounts' AND column_name = 'agent_preferences'

@@ -1,8 +1,9 @@
 # Auth module for RBAC endpoints 
 from fastapi import APIRouter
+
+from .handlers.admin_handlers import admin_router
 from .handlers.authentication_handlers import authentication_router
 from .handlers.user_management_handlers import user_management_router
-from .handlers.admin_handlers import admin_router
 
 auth_router = APIRouter()
 

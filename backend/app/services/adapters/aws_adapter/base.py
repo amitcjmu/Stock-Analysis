@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-from app.services.collection_flow.adapters import AdapterMetadata, AdapterCapability
 from app.models.collection_flow import AutomationTier
+from app.services.collection_flow.adapters import AdapterCapability, AdapterMetadata
 
 
 @dataclass

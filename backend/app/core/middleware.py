@@ -3,20 +3,21 @@ FastAPI middleware for automatic context injection.
 Extracts multi-tenant context from request headers and makes it available via context variables.
 """
 
-from typing import Callable, Optional, List
+import logging
+import time
+from typing import Callable, List, Optional
+
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-import time
-import logging
 
 from .context import (
-    extract_context_from_request, 
-    set_request_context,
-    clear_request_context,
-    validate_context,
     RequestContext,
-    is_demo_client
+    clear_request_context,
+    extract_context_from_request,
+    is_demo_client,
+    set_request_context,
+    validate_context,
 )
 
 # Import security audit service
@@ -159,8 +160,8 @@ class ContextMiddleware(BaseHTTPMiddleware):
             
             # Security audit logging for admin access
             try:
-                from app.services.security_audit_service import SecurityAuditService
                 from app.core.database import AsyncSessionLocal
+                from app.services.security_audit_service import SecurityAuditService
                 
                 async with AsyncSessionLocal() as audit_db:
                     audit_service = SecurityAuditService(audit_db)
@@ -182,7 +183,12 @@ class ContextMiddleware(BaseHTTPMiddleware):
         
         # Extract context from request
         try:
-            from app.core.context import extract_context_from_request, validate_context, set_request_context, is_demo_client
+            from app.core.context import (
+                extract_context_from_request,
+                is_demo_client,
+                set_request_context,
+                validate_context,
+            )
             
             context = extract_context_from_request(request)
             
@@ -298,9 +304,11 @@ class ContextMiddleware(BaseHTTPMiddleware):
         """Check if user is a platform administrator."""
         try:
             import uuid
+
+            from sqlalchemy import and_, select
+
             from app.core.database import AsyncSessionLocal
             from app.models.rbac import UserRole
-            from sqlalchemy import select, and_
             
             # Convert string to UUID if needed
             try:

@@ -17,9 +17,10 @@ This script tests the complete discovery flow and verifies data persistence in:
 import asyncio
 import json
 import logging
-from datetime import datetime
-from typing import Dict, List, Any, Optional
 import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 from sqlalchemy import select, text
 
 # Configure logging
@@ -304,12 +305,12 @@ async def test_discovery_flow_with_db_tracking():
     
     try:
         # Initialize database session
-        from app.core.database import AsyncSessionLocal
         from app.core.context import RequestContext
+        from app.core.database import AsyncSessionLocal
         from app.services.crewai_flow_service import CrewAIFlowService
-        from app.services.data_import.background_execution_service import BackgroundExecutionService
         from app.services.crewai_flows.unified_discovery_flow import create_unified_discovery_flow
         from app.services.crewai_flows.unified_discovery_flow.phase_controller import PhaseController
+        from app.services.data_import.background_execution_service import BackgroundExecutionService
         
         # Test context
         test_context = RequestContext(
@@ -468,7 +469,7 @@ async def test_discovery_flow_with_db_tracking():
             # Start flow execution
             result = await phase_controller.start_flow_execution()
             
-            logger.info(f"📊 Initial execution result:")
+            logger.info("📊 Initial execution result:")
             logger.info(f"  - Phase: {result.phase.value}")
             logger.info(f"  - Status: {result.status}")
             logger.info(f"  - Requires user input: {result.requires_user_input}")
@@ -500,7 +501,7 @@ async def test_discovery_flow_with_db_tracking():
                 # Get field mappings from discovery flow state
                 if hasattr(discovery_flow, 'state') and hasattr(discovery_flow.state, 'field_mappings'):
                     field_mappings = discovery_flow.state.field_mappings
-                    logger.info(f"\n📊 Generated field mappings:")
+                    logger.info("\n📊 Generated field mappings:")
                     for source, target in field_mappings.items():
                         if source != "confidence_scores":
                             logger.info(f"  - {source} → {target}")
@@ -574,7 +575,7 @@ async def test_discovery_flow_with_db_tracking():
                     user_input=user_input
                 )
                 
-                logger.info(f"\n📊 Resume execution result:")
+                logger.info("\n📊 Resume execution result:")
                 logger.info(f"  - Phase: {resume_result.phase.value}")
                 logger.info(f"  - Status: {resume_result.status}")
                 
@@ -604,7 +605,7 @@ async def test_discovery_flow_with_db_tracking():
                 logger.info("\n🎉 E2E Test with DB Tracking completed successfully!")
                 
             else:
-                logger.error(f"\n❌ ERROR: Flow did not pause at field mapping approval!")
+                logger.error("\n❌ ERROR: Flow did not pause at field mapping approval!")
                 logger.error(f"  - Current phase: {result.phase.value}")
                 logger.error(f"  - Requires user input: {result.requires_user_input}")
             

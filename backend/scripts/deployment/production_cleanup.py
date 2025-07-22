@@ -7,13 +7,13 @@ This script removes deprecated code, updates documentation, and notifies stakeho
 of the Master Flow Orchestrator completion.
 """
 
+import logging
 import os
 import shutil
 import subprocess
-import logging
-from typing import Dict, Any, List
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -1083,7 +1083,7 @@ async def run_production_cleanup():
             for task in results["tasks_failed"]:
                 print(f"  ❌ {task}")
         
-        print(f"\nCleanup Summary:")
+        print("\nCleanup Summary:")
         summary = results.get("cleanup_summary", {})
         for task_name, task_result in summary.items():
             if isinstance(task_result, dict) and task_result.get("success"):

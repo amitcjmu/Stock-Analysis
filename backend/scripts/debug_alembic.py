@@ -2,9 +2,11 @@
 """Debug alembic migration issues"""
 import os
 import sys
+
+from sqlalchemy import create_engine, text
+
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import create_engine, text
 
 # Set up paths
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))

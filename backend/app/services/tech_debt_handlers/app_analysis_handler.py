@@ -2,7 +2,7 @@
 Application Analysis Handler for Tech Debt
 """
 import logging
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 

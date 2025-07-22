@@ -1,11 +1,13 @@
 """
 Pydantic schemas for Engagement and related entities.
 """
-from pydantic import BaseModel, Field, ConfigDict, field_validator
-from typing import Optional, List, Dict, Any
-from datetime import datetime, date
 import uuid
+from datetime import date, datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
 
 class EngagementStatus(str, Enum):
     PLANNING = "planning"

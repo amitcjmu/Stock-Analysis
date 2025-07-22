@@ -3,7 +3,8 @@ Risk assessment module for migration risk analysis.
 """
 
 import logging
-from typing import Dict, List, Any
+from typing import Any, Dict, List
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext

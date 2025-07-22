@@ -7,15 +7,13 @@ and handles pause/resume functionality.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from app.models.collection_flow import (
-    CollectionPhase, CollectionStatus, PlatformType, AutomationTier
-)
-from app.services.collection_flow import TierDetectionService, QualityAssessmentService
-from app.services.crewai_flows.utils.retry_utils import retry_with_backoff
+from app.models.collection_flow import AutomationTier, CollectionPhase, CollectionStatus, PlatformType
+from app.services.collection_flow import QualityAssessmentService, TierDetectionService
 from app.services.crewai_flows.handlers.enhanced_error_handler import enhanced_error_handler
+from app.services.crewai_flows.utils.retry_utils import retry_with_backoff
 
 logger = logging.getLogger(__name__)
 
@@ -176,9 +174,7 @@ class PlatformDetectionManager:
         logger.info("🤖 Creating platform detection crew")
         
         # Import crew creation function
-        from app.services.crewai_flows.crews.collection.platform_detection_crew import (
-            create_platform_detection_crew
-        )
+        from app.services.crewai_flows.crews.collection.platform_detection_crew import create_platform_detection_crew
         
         # Create crew with context
         crew = create_platform_detection_crew(

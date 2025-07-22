@@ -2,8 +2,8 @@
 Authentication infrastructure for deployment flexibility.
 """
 
-from .interface import AuthenticationBackend
 from .implementations import DatabaseAuthBackend, SSOAuthBackend
+from .interface import AuthenticationBackend
 
 __all__ = [
     "AuthenticationBackend",

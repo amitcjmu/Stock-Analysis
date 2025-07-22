@@ -4,7 +4,7 @@ Handles recommendation validation and verification tools.
 """
 
 import logging
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 

@@ -2,18 +2,19 @@
 Base CrewAI Flow implementation with proper patterns
 """
 
-from abc import abstractmethod
-from typing import Dict, Any, Optional, List
-from pydantic import BaseModel
-import logging
 import json
+import logging
+from abc import abstractmethod
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
 # CrewAI Flow imports with graceful fallback
 CREWAI_FLOW_AVAILABLE = False
 try:
-    from crewai.flow.flow import Flow, start, listen
+    from crewai.flow.flow import Flow, listen, start
     CREWAI_FLOW_AVAILABLE = True
     logger.info("✅ CrewAI Flow imports successful")
 except ImportError as e:
@@ -38,9 +39,10 @@ except ImportError as e:
             return func
         return decorator
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext
 from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class BaseFlowState(BaseModel):
@@ -107,8 +109,9 @@ class BaseDiscoveryFlow(Flow):
     def emit_event(self, event_type: str, data: Dict[str, Any]) -> None:
         """Emit flow events for monitoring"""
         try:
-            from app.services.flows.events import publish_flow_event
             import asyncio
+
+            from app.services.flows.events import publish_flow_event
             
             # Create event context
             context = {

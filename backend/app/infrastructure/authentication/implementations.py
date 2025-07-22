@@ -2,14 +2,14 @@
 Concrete implementations of the AuthenticationBackend interface.
 """
 
-import os
-import json
-import secrets
-import logging
 import hashlib
-from typing import Optional, Dict, Any, List
+import json
+import logging
+import os
+import secrets
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from .interface import AuthenticationBackend
 
@@ -330,7 +330,7 @@ class SSOAuthBackend(AuthenticationBackend):
         """Authenticate via SSO provider."""
         # SSO uses tokens, not passwords
         if not token:
-            logger.warning(f"SSO authentication requires token")
+            logger.warning("SSO authentication requires token")
             return None
         
         # Validate token with provider

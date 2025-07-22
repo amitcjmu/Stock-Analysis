@@ -4,7 +4,7 @@ Handles agent management and coordination operations.
 """
 
 import logging
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +18,8 @@ class AgentCoordinator:
     def _initialize_dependencies(self):
         """Initialize dependencies with graceful fallbacks."""
         try:
-            from app.services.memory import AgentMemory
             from app.services.agents import AgentManager
+            from app.services.memory import AgentMemory
             
             self.memory = AgentMemory()
             self.agent_manager = None

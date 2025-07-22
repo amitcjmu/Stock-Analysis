@@ -21,18 +21,16 @@ This file re-exports all public interfaces for backward compatibility.
 
 # Re-export all public interfaces from the modularized structure
 from .learning_optimizer import (
-    # Enums
-    LearningPattern,
-    OptimizationStrategy,
-    
     # Models
     LearningEvent,
-    OptimizationRecommendation,
     LearningInsight,
-    
     # Main class and function
     LearningOptimizer,
-    optimize_questionnaire_learning
+    # Enums
+    LearningPattern,
+    OptimizationRecommendation,
+    OptimizationStrategy,
+    optimize_questionnaire_learning,
 )
 
 # Maintain backward compatibility

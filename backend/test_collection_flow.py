@@ -26,10 +26,10 @@ async def test_collection_flow():
     try:
         # Import required modules
         from app.services.flow_configs import (
+            get_collection_flow_config,
+            get_flow_summary,
             initialize_all_flows,
             verify_flow_configurations,
-            get_flow_summary,
-            get_collection_flow_config
         )
         
         logger.info("=" * 80)
@@ -189,10 +189,11 @@ async def test_master_flow_orchestrator_integration():
         logger.info("=" * 80)
         
         # Import required modules
-        from app.core.database import AsyncSessionLocal
-        from app.core.context import RequestContext
-        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
         import uuid
+
+        from app.core.context import RequestContext
+        from app.core.database import AsyncSessionLocal
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
         
         # Create test context
         test_context = RequestContext(

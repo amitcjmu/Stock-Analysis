@@ -7,16 +7,18 @@ Enhanced implementation with CrewAI best practices:
 - Shared memory integration for dependency patterns
 """
 
-import logging
 import json
-from typing import Dict, List, Any, Optional
-from crewai import Agent, Task, Crew, Process
-from .crew_config import get_optimized_agent_config, MAX_DELEGATIONS
+import logging
+from typing import Any, Dict, List, Optional
+
+from crewai import Agent, Crew, Process, Task
+
+from .crew_config import MAX_DELEGATIONS, get_optimized_agent_config
 
 # Import advanced CrewAI features with fallbacks
 try:
-    from crewai.memory import LongTermMemory
     from crewai.knowledge.knowledge import Knowledge
+    from crewai.memory import LongTermMemory
     CREWAI_ADVANCED_AVAILABLE = True
 except ImportError:
     CREWAI_ADVANCED_AVAILABLE = False
@@ -395,7 +397,7 @@ def create_app_server_dependency_crew(crewai_service, asset_inventory: Dict[str,
         
         # Inventory-aware migration impact task
         migration_impact_task = Task(
-            description=f"""
+            description="""
             Analyze migration complexity and impact using hosting relationship intelligence.
             
             HOSTING CONTEXT USAGE:

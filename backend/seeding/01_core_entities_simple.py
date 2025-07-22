@@ -3,22 +3,28 @@ Seed core entities: Client Account, Engagement, Users, and RBAC setup.
 Simplified version that works with the actual database schema.
 """
 import asyncio
-import sys
 import json
-from pathlib import Path
-from datetime import datetime, timezone
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
-from passlib.context import CryptContext
+import sys
 import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+
+from passlib.context import CryptContext
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Add backend to path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from app.core.database import AsyncSessionLocal
 from seeding.constants import (
-    DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, DEMO_COMPANY_NAME,
-    USER_IDS, USERS, DEFAULT_PASSWORD, BASE_TIMESTAMP
+    BASE_TIMESTAMP,
+    DEFAULT_PASSWORD,
+    DEMO_CLIENT_ID,
+    DEMO_COMPANY_NAME,
+    DEMO_ENGAGEMENT_ID,
+    USER_IDS,
+    USERS,
 )
 
 # Password hashing
@@ -100,7 +106,7 @@ async def create_engagement(db: AsyncSession, client_id: uuid.UUID) -> dict:
     })
     
     await db.commit()
-    print(f"✓ Created engagement: Cloud Migration Assessment 2024")
+    print("✓ Created engagement: Cloud Migration Assessment 2024")
     return {"id": DEMO_ENGAGEMENT_ID, "name": "Cloud Migration Assessment 2024"}
 
 
@@ -276,7 +282,7 @@ async def main():
             engagement = await create_engagement(db, client["id"])
             users = await create_users(db)
             
-            print(f"\n✅ Successfully seeded core entities:")
+            print("\n✅ Successfully seeded core entities:")
             print(f"   - 1 Client Account: {client['name']}")
             print(f"   - 1 Engagement: {engagement['name']}")
             print(f"   - {len(users)} Users with RBAC setup")

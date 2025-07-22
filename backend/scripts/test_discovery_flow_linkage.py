@@ -7,12 +7,13 @@ This script tests if discovery flows are properly linked to master flows.
 import asyncio
 import logging
 from datetime import datetime
+
 from sqlalchemy import select
 
-from app.core.database import AsyncSessionLocal
-from app.models.discovery_flow import DiscoveryFlow
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.core.context import RequestContext
+from app.core.database import AsyncSessionLocal
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.models.discovery_flow import DiscoveryFlow
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
 logging.basicConfig(level=logging.INFO)
@@ -67,7 +68,7 @@ async def test_discovery_flow_linkage():
             discovery_flow = discovery_result.scalar_one_or_none()
             
             if discovery_flow:
-                logger.info(f"✅ Discovery flow found!")
+                logger.info("✅ Discovery flow found!")
                 logger.info(f"   - Flow ID: {discovery_flow.flow_id}")
                 logger.info(f"   - Master Flow ID: {discovery_flow.master_flow_id}")
                 logger.info(f"   - Status: {discovery_flow.status}")
@@ -87,7 +88,7 @@ async def test_discovery_flow_linkage():
             master_flow = master_result.scalar_one_or_none()
             
             if master_flow:
-                logger.info(f"✅ Master flow found!")
+                logger.info("✅ Master flow found!")
                 logger.info(f"   - Flow ID: {master_flow.flow_id}")
                 logger.info(f"   - Status: {master_flow.flow_status}")
                 logger.info(f"   - Type: {master_flow.flow_type}")

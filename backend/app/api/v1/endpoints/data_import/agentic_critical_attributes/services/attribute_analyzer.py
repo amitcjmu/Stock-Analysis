@@ -5,15 +5,20 @@ Core attribute analysis service containing business logic.
 import logging
 import uuid
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
 
 from app.core.context import RequestContext
 from app.models.data_import import DataImport, RawImportRecord
+
 from ..models.attribute_schemas import (
-    CriticalAttribute, AttributeSuggestion, AnalysisStatistics,
-    AttributeAnalysisRequest, AttributeAnalysisResponse
+    AnalysisStatistics,
+    AttributeAnalysisRequest,
+    AttributeAnalysisResponse,
+    AttributeSuggestion,
+    CriticalAttribute,
 )
 from .agent_coordinator import AgentCoordinator
 

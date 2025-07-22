@@ -7,9 +7,9 @@ Data models and dataclasses used throughout the workflow monitoring system.
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
-from .types import MetricType, AlertSeverity, MonitoringLevel
+from .types import AlertSeverity, MetricType, MonitoringLevel
 
 
 @dataclass

@@ -10,15 +10,16 @@ instead of bypassing it with direct CrewAI flow creation.
 
 import logging
 from datetime import datetime
-from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel
+from typing import Any, Dict, List, Optional
 
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
-from app.core.context import get_current_context, RequestContext
-from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 from app.services.flow_configs import initialize_all_flows
+from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -61,7 +62,7 @@ async def initialize_discovery_flow(
         FlowInitializationResponse with flow_id and status
     """
     try:
-        logger.info(f"🎯 Initializing Discovery Flow via Master Flow Orchestrator")
+        logger.info("🎯 Initializing Discovery Flow via Master Flow Orchestrator")
         logger.info(f"🔍 Client: {context.client_account_id}, Engagement: {context.engagement_id}, User: {context.user_id}")
         logger.info(f"🔍 Raw data count: {len(request.raw_data) if request.raw_data else 0}")
         
@@ -85,7 +86,7 @@ async def initialize_discovery_flow(
         }
         
         # Create discovery flow through orchestrator
-        logger.info(f"🚀 Creating discovery flow through Master Flow Orchestrator...")
+        logger.info("🚀 Creating discovery flow through Master Flow Orchestrator...")
         flow_result = await orchestrator.create_flow(
             flow_type="discovery",
             flow_name=request.flow_name or f"Discovery Flow {datetime.utcnow().strftime('%Y%m%d_%H%M%S')}",
@@ -108,7 +109,7 @@ async def initialize_discovery_flow(
                 flow_id=flow_id_str,
                 flow_name=request.flow_name or flow_details.get("flow_name"),
                 status="initialized",
-                message=f"Discovery flow initialized successfully with automatic kickoff"
+                message="Discovery flow initialized successfully with automatic kickoff"
             )
         else:
             logger.error(f"❌ Unexpected flow creation result: {flow_result}")
@@ -150,8 +151,9 @@ async def get_discovery_flow_status(
         logger.info(f"🔍 Context: Client={context.client_account_id}, Engagement={context.engagement_id}")
         
         # ADR-012: Get child flow status directly from discovery_flows table
+        from sqlalchemy import and_, select
+
         from app.models.discovery_flow import DiscoveryFlow
-        from sqlalchemy import select, and_
         
         # Query discovery flow with tenant context
         stmt = select(DiscoveryFlow).where(
@@ -262,7 +264,7 @@ async def get_discovery_flow_status(
         logger.info(f"✅ Retrieved discovery flow operational status for {flow_id}")
         return response
         
-    except ValueError as e:
+    except ValueError:
         # Flow not found - proper 404 handling
         logger.warning(f"Flow not found: {flow_id}")
         raise HTTPException(

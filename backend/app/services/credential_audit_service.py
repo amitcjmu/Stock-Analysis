@@ -3,17 +3,18 @@ Credential Audit Service
 Enhanced audit logging for credential-related security events
 """
 
+import logging
 import uuid
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, func, desc
-from sqlalchemy.orm import selectinload
-import logging
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
-from app.models.security_audit import SecurityAuditLog
+from sqlalchemy import and_, desc, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
 from app.models.platform_credentials import CredentialAccessLog
+from app.models.security_audit import SecurityAuditLog
 
 logger = logging.getLogger(__name__)
 

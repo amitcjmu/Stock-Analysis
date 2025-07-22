@@ -2,10 +2,12 @@
 PII Scanner Tool for sensitive data detection
 """
 
-from typing import Dict, Any, List, Set, ClassVar
+import re
+from typing import Any, ClassVar, Dict, List, Set
+
 from app.services.tools.base_tool import BaseDiscoveryTool
 from app.services.tools.registry import ToolMetadata
-import re
+
 
 class PIIScannerTool(BaseDiscoveryTool):
     """Scans data for personally identifiable information"""

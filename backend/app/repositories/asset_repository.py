@@ -3,13 +3,14 @@ Asset repository with context-aware multi-tenant data access.
 Provides asset-specific query methods with automatic client account scoping.
 """
 
-from typing import List, Optional, Dict, Any
+import logging
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import and_, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import and_, or_, func
-import logging
 
-from app.models.asset import Asset, AssetDependency, WorkflowProgress, AssetStatus, SixRStrategy
+from app.models.asset import Asset, AssetDependency, AssetStatus, SixRStrategy, WorkflowProgress
 from app.repositories.context_aware_repository import ContextAwareRepository
 
 logger = logging.getLogger(__name__)

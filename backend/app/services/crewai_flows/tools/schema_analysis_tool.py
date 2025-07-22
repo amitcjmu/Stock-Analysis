@@ -3,10 +3,11 @@ Schema Analysis Tool for Field Mapping Crew
 Analyzes data structure and field semantics using AI intelligence
 """
 
-from typing import Dict, List, Any, Optional
+import logging
+from typing import Any, Dict, List, Optional
+
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
-import logging
 
 logger = logging.getLogger(__name__)
 

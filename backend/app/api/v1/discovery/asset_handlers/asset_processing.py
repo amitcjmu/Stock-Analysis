@@ -4,7 +4,8 @@ Handles asset data processing, transformation, and reprocessing operations.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
+
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -19,10 +20,7 @@ class AssetProcessingHandler:
     def _initialize_dependencies(self):
         """Initialize optional dependencies with graceful fallbacks."""
         try:
-            from app.api.v1.discovery.persistence import (
-                get_processed_assets,
-                backup_processed_assets
-            )
+            from app.api.v1.discovery.persistence import backup_processed_assets, get_processed_assets
             self.get_processed_assets = get_processed_assets
             self.backup_processed_assets = backup_processed_assets
             self.persistence_available = True

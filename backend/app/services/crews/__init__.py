@@ -25,14 +25,14 @@ Usage:
     result = CrewFactory.execute_crew("field_mapping", inputs)
 """
 
+from .asset_inventory_crew import AssetInventoryCrew
 from .base_crew import BaseDiscoveryCrew
+from .data_cleansing_crew import DataCleansingCrew
 from .factory import CrewFactory, crew_factory
-from .task_templates import TaskTemplates
 
 # Crew implementations
 from .field_mapping_crew import FieldMappingCrew
-from .data_cleansing_crew import DataCleansingCrew  
-from .asset_inventory_crew import AssetInventoryCrew
+from .task_templates import TaskTemplates
 
 __all__ = [
     "BaseDiscoveryCrew",

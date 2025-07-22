@@ -4,16 +4,17 @@ Uses CrewAI agents and discovery flow to dynamically determine critical attribut
 based on actual data patterns, not static heuristics.
 """
 
-from datetime import datetime
-from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import and_, select
 import logging
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext, extract_context_from_request, get_current_context
 from app.core.database import get_db
-from app.core.context import get_current_context, RequestContext, extract_context_from_request
-from app.models.data_import import ImportFieldMapping, DataImport
+from app.models.data_import import DataImport, ImportFieldMapping
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -137,8 +138,9 @@ async def _get_agentic_critical_attributes(
         crewai_service = CrewAIFlowService()
         
         # Look for existing discovery flow 
-        from app.models.discovery_flow import DiscoveryFlow
         from sqlalchemy import select
+
+        from app.models.discovery_flow import DiscoveryFlow
         
         # Get the discovery flow for this data import
         # First try direct data_import_id lookup
@@ -162,11 +164,12 @@ async def _get_agentic_critical_attributes(
             if discovery_flow:
                 logger.info(f"✅ Found discovery flow through master flow relationship: {discovery_flow.flow_id}")
             else:
-                logger.info(f"🔍 No discovery flow found by master_flow_id, trying configuration-based lookup")
+                logger.info("🔍 No discovery flow found by master_flow_id, trying configuration-based lookup")
                 
                 # Additional fallback: Look for discovery flows where the master flow configuration contains this data import ID
-                from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
                 from sqlalchemy import text as sql_text
+
+                from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
                 config_query = select(CrewAIFlowStateExtensions).where(
                     sql_text(f"flow_configuration::text LIKE '%{data_import.id}%'")
                 )
@@ -186,7 +189,7 @@ async def _get_agentic_critical_attributes(
                         break
                 
                 if not discovery_flow:
-                    logger.warning(f"⚠️ No discovery flow found through any lookup method")
+                    logger.warning("⚠️ No discovery flow found through any lookup method")
         
         if discovery_flow and discovery_flow.field_mappings:
             logger.info("🤖 Found existing discovery flow field mapping results")
@@ -397,11 +400,12 @@ async def _trigger_field_mapping_reanalysis(
             if discovery_flow:
                 logger.info(f"✅ Found discovery flow for re-analysis through master flow relationship: {discovery_flow.flow_id}")
             else:
-                logger.info(f"🔍 No discovery flow found by master_flow_id for re-analysis, trying configuration-based lookup")
+                logger.info("🔍 No discovery flow found by master_flow_id for re-analysis, trying configuration-based lookup")
                 
                 # Additional fallback: Look for discovery flows where the master flow configuration contains this data import ID
-                from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
                 from sqlalchemy import text as sql_text
+
+                from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
                 config_query = select(CrewAIFlowStateExtensions).where(
                     sql_text(f"flow_configuration::text LIKE '%{data_import.id}%'")
                 )
@@ -441,15 +445,15 @@ async def _trigger_field_mapping_reanalysis(
         raw_data = [record.raw_data for record in raw_records if record.raw_data]
         
         if not raw_data:
-            logger.error(f"❌ No raw data available in records")
+            logger.error("❌ No raw data available in records")
             return
         
         logger.info(f"📊 Found {len(raw_data)} raw records for re-analysis")
         
         # Use the field mapping executor to regenerate mappings
+        from app.services.crewai_flow_service import CrewAIFlowService
         from app.services.crewai_flows.handlers.phase_executors.field_mapping_executor import FieldMappingExecutor
         from app.services.crewai_flows.handlers.unified_flow_crew_manager import UnifiedFlowCrewManager
-        from app.services.crewai_flow_service import CrewAIFlowService
         
         # Create a minimal state object for the executor
         class FlowState:

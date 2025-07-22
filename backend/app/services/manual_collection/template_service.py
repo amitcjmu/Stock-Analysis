@@ -7,20 +7,21 @@ enabling efficient data collection for groups of related applications.
 Agent Team B3 - Task B3.4
 """
 
-from typing import Dict, List, Optional, Any, Union, Tuple
-from dataclasses import dataclass, asdict
-from enum import Enum
-import logging
 import json
-from uuid import UUID, uuid4
-from datetime import datetime
+import logging
 from collections import defaultdict
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple, Union
+from uuid import UUID, uuid4
+
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from .adaptive_form_service import AdaptiveForm, FormField, FormSection
 from ..collection_flow.quality_scoring import QualityAssessmentService
+from .adaptive_form_service import AdaptiveForm, FormField, FormSection
 
 
 class TemplateType(str, Enum):

@@ -7,14 +7,14 @@ Handles metrics collection, aggregation, analysis, and trending.
 
 import statistics
 from collections import deque
-from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
 from dataclasses import asdict
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
 from app.core.logging import get_logger
 
-from .types import MetricType
 from .models import MetricPoint, PerformanceMetrics
+from .types import MetricType
 
 logger = get_logger(__name__)
 

@@ -5,9 +5,10 @@ Revises: 008_update_flow_type_constraint
 Create Date: 2025-07-20
 
 """
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = '009_add_collection_flow_id_to_questionnaires'

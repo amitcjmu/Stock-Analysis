@@ -4,8 +4,10 @@ Security Audit Model - Tracks all security-sensitive events
 
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Text, Boolean, Integer
-from sqlalchemy.dialects.postgresql import UUID as PostgresUUID, JSONB
+
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.sql import func
 
 from app.core.database import Base

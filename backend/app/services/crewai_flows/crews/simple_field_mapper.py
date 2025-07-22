@@ -5,7 +5,7 @@ Provides basic field mapping without using LLM calls to avoid rate limits.
 
 import logging
 import re
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 

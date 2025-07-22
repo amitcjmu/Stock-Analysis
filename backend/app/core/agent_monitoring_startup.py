@@ -5,6 +5,7 @@ Part of the Agent Observability Enhancement Phase 2
 """
 
 import logging
+
 from app.services.agent_monitor import agent_monitor
 from app.services.agent_performance_aggregation_service import agent_performance_aggregation_service
 

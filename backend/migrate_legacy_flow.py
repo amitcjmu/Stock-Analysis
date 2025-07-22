@@ -5,7 +5,9 @@ Migration script to add timeout tracking to discovery flows
 import asyncio
 import logging
 from datetime import datetime, timedelta
+
 from sqlalchemy import text
+
 from app.core.database import AsyncSessionLocal
 
 logging.basicConfig(level=logging.INFO)

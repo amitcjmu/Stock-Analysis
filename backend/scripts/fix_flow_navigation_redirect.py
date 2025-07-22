@@ -2,11 +2,14 @@
 Fix flow navigation by ensuring flows redirect to the correct phase based on their actual state
 """
 import asyncio
-from sqlalchemy import select, update
-from app.core.database import AsyncSessionLocal
-from app.models.discovery_flow import DiscoveryFlow
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 import json
+
+from sqlalchemy import select, update
+
+from app.core.database import AsyncSessionLocal
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.models.discovery_flow import DiscoveryFlow
+
 
 async def analyze_and_fix_flow_navigation():
     async with AsyncSessionLocal() as db:
@@ -51,7 +54,7 @@ async def analyze_and_fix_flow_navigation():
             elif discovery_flow.current_phase == 'data_cleansing' and not discovery_flow.field_mapping_completed:
                 correct_phase = 'field_mapping'
                 needs_correction = True
-                print(f"⚠️  ISSUE: Flow is in data_cleansing but field mapping not completed")
+                print("⚠️  ISSUE: Flow is in data_cleansing but field mapping not completed")
             
             if needs_correction and correct_phase:
                 print(f"✅ FIX: Updating phase from {discovery_flow.current_phase} to {correct_phase}")

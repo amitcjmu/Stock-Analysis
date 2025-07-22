@@ -4,14 +4,15 @@ Tests agent handling of multiple data import sessions, learning patterns across 
 cross-page agent collaboration, and application portfolio discovery accuracy with sporadic data inputs.
 """
 
-import pytest
 import asyncio
 import json
-import tempfile
 import os
+import tempfile
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
-from unittest.mock import AsyncMock, patch, MagicMock
+from typing import Any, Dict, List, Optional
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 # Backend service imports
 from app.services.agent_ui_bridge import agent_ui_bridge

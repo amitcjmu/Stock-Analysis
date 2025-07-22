@@ -4,22 +4,30 @@ Handles user registration, profile management, approval workflows, and user stat
 """
 
 import logging
-from typing import Dict, List, Any, Optional
-from datetime import datetime
 import uuid
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, desc, text
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 from fastapi import HTTPException
+from sqlalchemy import and_, desc, select, text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.client_account import User
 from app.models.rbac import UserProfile, UserRole
 from app.schemas.auth_schemas import (
-    UserRegistrationRequest, UserRegistrationResponse,
-    UserApprovalRequest, UserApprovalResponse,
-    UserRejectionRequest, UserRejectionResponse,
-    PendingApprovalsResponse, AccessValidationRequest, AccessValidationResponse,
-    ClientAccessGrant, ClientAccessGrantResponse,
-    PaginationParams, FilterParams
+    AccessValidationRequest,
+    AccessValidationResponse,
+    ClientAccessGrant,
+    ClientAccessGrantResponse,
+    FilterParams,
+    PaginationParams,
+    PendingApprovalsResponse,
+    UserApprovalRequest,
+    UserApprovalResponse,
+    UserRegistrationRequest,
+    UserRegistrationResponse,
+    UserRejectionRequest,
+    UserRejectionResponse,
 )
 from app.services.rbac_service import create_rbac_service
 

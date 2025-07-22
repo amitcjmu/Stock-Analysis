@@ -14,21 +14,21 @@ The agent uses the agentic memory tools to:
 - Learn from user feedback to improve future analysis
 """
 
+import json
 import logging
 import uuid
-import json
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 # CrewAI imports
-from crewai import Agent, Task, Crew, Process
+from crewai import Agent, Crew, Process, Task
 from crewai.tools import tool
 
 # Internal imports
 from app.services.agentic_intelligence.agent_reasoning_patterns import (
-    AgentReasoningEngine, 
+    AgentReasoningEngine,
+    AssetReasoningPatterns,
     ReasoningDimension,
-    AssetReasoningPatterns
 )
 from app.services.agentic_memory import ThreeTierMemoryManager
 from app.services.agentic_memory.agent_tools_functional import create_functional_agent_tools

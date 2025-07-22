@@ -4,10 +4,10 @@ Handles CrewAI-based analysis, wave planning, and CMDB processing with AI-driven
 """
 
 import logging
-from typing import Dict, List, Any, Optional
-from datetime import datetime
 import math
 import os
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 CREWAI_AVAILABLE = bool(os.getenv('DEEPINFRA_API_KEY') and os.getenv('CREWAI_ENABLED', 'true').lower() == 'true')
 
 try:
-    from app.services.crewai_flows.crews.technical_debt_crew import create_technical_debt_crew
     from app.services.crewai_flows.crews.inventory_building_crew import create_inventory_building_crew
+    from app.services.crewai_flows.crews.technical_debt_crew import create_technical_debt_crew
     from app.services.crewai_flows.data_cleansing_crew import create_data_cleansing_crew
     CREWS_AVAILABLE = True
 except ImportError:

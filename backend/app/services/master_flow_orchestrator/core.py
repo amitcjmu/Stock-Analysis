@@ -5,35 +5,36 @@ THE SINGLE ORCHESTRATOR - Refactored with modular components
 Centralized orchestration for all CrewAI flows using composition pattern.
 """
 
-import uuid
 import logging
-from typing import Dict, Any, List, Optional, Tuple
+import uuid
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging import get_logger
 from app.core.context import RequestContext
+from app.core.logging import get_logger
 from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
 from app.services.crewai_flows.flow_state_manager import FlowStateManager
 
 # Import modular components
 from app.services.flow_orchestration import (
-    FlowLifecycleManager,
-    FlowExecutionEngine,
-    FlowErrorHandler,
     FlowAuditLogger,
-    FlowStatusManager
+    FlowErrorHandler,
+    FlowExecutionEngine,
+    FlowLifecycleManager,
+    FlowStatusManager,
 )
-from app.services.flow_orchestration.smart_discovery_service import SmartDiscoveryService
 from app.services.flow_orchestration.flow_repair_service import FlowRepairService
+from app.services.flow_orchestration.smart_discovery_service import SmartDiscoveryService
+
+from .flow_operations import FlowOperations
+from .mock_monitor import MockFlowPerformanceMonitor
+from .monitoring_operations import MonitoringOperations
+from .status_operations import StatusOperations
 
 # Import operation modules
 from .status_sync_operations import StatusSyncOperations
-from .flow_operations import FlowOperations
-from .status_operations import StatusOperations
-from .monitoring_operations import MonitoringOperations
-from .mock_monitor import MockFlowPerformanceMonitor
 
 logger = get_logger(__name__)
 
@@ -75,8 +76,8 @@ class MasterFlowOrchestrator:
         
         # Initialize global singleton registries
         from app.services.flow_type_registry import flow_type_registry
-        from app.services.validator_registry import validator_registry
         from app.services.handler_registry import handler_registry
+        from app.services.validator_registry import validator_registry
         
         self.flow_registry = flow_type_registry
         self.validator_registry = validator_registry

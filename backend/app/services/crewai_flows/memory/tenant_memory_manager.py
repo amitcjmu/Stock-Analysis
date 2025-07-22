@@ -3,13 +3,13 @@ Multi-Tenant Memory Management Service
 Handles learning persistence with enterprise privacy controls and data isolation
 """
 
-import logging
 import hashlib
 import json
-from typing import Dict, List, Any, Optional, Union
-from datetime import datetime, timedelta
+import logging
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from enum import Enum
+from typing import Any, Dict, List, Optional, Union
 
 logger = logging.getLogger(__name__)
 

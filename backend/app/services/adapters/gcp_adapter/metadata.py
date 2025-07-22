@@ -4,9 +4,8 @@ GCP Adapter Metadata
 Contains the adapter metadata configuration for registration.
 """
 
-from app.services.collection_flow.adapters import AdapterMetadata, AdapterCapability
 from app.models.collection_flow import AutomationTier
-
+from app.services.collection_flow.adapters import AdapterCapability, AdapterMetadata
 
 # GCP Adapter metadata for registration
 GCP_ADAPTER_METADATA = AdapterMetadata(

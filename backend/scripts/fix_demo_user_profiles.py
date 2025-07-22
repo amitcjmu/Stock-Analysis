@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sqlalchemy import select
+
 from app.core.database import AsyncSessionLocal
 from app.models import User
 from app.models.rbac import UserProfile, UserStatus
@@ -69,7 +70,7 @@ async def create_active_profiles_for_demo_users():
         
         await session.commit()
         
-        print(f"\n📊 Summary:")
+        print("\n📊 Summary:")
         print(f"   - Created: {created_count} new profiles")
         print(f"   - Updated: {updated_count} existing profiles")
         print(f"   - Total demo users: {len(demo_users)}")

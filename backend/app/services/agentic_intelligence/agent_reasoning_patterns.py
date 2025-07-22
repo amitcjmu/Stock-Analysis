@@ -13,10 +13,10 @@ Instead of hard-coded rules, agents learn and apply insights through:
 
 import logging
 import uuid
-from datetime import datetime
-from typing import Dict, Any, List, Optional, Set, Tuple
-from enum import Enum
 from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -619,7 +619,7 @@ class AgentReasoningEngine:
         if has_high_cpu and has_production and is_database:
             pattern = {
                 "pattern_type": "business_value_indicator",
-                "pattern_name": f"High-Usage Production Database Pattern",
+                "pattern_name": "High-Usage Production Database Pattern",
                 "pattern_description": "Production databases with high CPU utilization indicate critical business systems",
                 "pattern_logic": {
                     "environment": "production",

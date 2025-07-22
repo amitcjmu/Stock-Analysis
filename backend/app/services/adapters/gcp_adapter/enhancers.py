@@ -4,16 +4,11 @@ GCP Resource Enhancers
 Provides detailed enhancement for different GCP resource types.
 """
 
-from typing import Dict, Any, List
 import logging
+from typing import Any, Dict, List
 
-from .dependencies import (
-    compute_v1,
-    sql_v1,
-    container_v1,
-    functions_v1
-)
 from .auth import GCPAuthManager
+from .dependencies import compute_v1, container_v1, functions_v1, sql_v1
 
 
 class GCPResourceEnhancer:

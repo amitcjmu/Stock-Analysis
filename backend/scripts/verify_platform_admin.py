@@ -21,12 +21,14 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import hashlib
+
+import bcrypt
 from sqlalchemy import select
+
 from app.core.database import AsyncSessionLocal
 from app.models import User
 from app.models.rbac import UserProfile
-import hashlib
-import bcrypt
 
 
 def get_password_hash(password: str) -> str:
@@ -55,7 +57,7 @@ async def verify_platform_admin():
         print(f"   Verified: {admin.is_verified}")
         
         # Check password hash
-        print(f"\n🔐 Checking password hash...")
+        print("\n🔐 Checking password hash...")
         print(f"   Current hash: {admin.password_hash[:20]}..." if admin.password_hash else "   No password hash!")
         
         # Update password to ensure it's valid
@@ -74,7 +76,7 @@ async def verify_platform_admin():
         if not profile:
             print("\n⚠️ No user profile found!")
         else:
-            print(f"\n👤 User profile:")
+            print("\n👤 User profile:")
             print(f"   Status: {profile.status}")
             print(f"   Organization: {profile.organization}")
         

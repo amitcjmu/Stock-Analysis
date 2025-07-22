@@ -3,11 +3,11 @@ Simple Synchronous Rate Limiter for LLM Calls
 Implements basic rate limiting without async complexity.
 """
 
-import time
 import logging
-from typing import Any, Dict, Optional, Callable
-from threading import Lock
 import random
+import time
+from threading import Lock
+from typing import Any, Callable, Dict, Optional
 
 logger = logging.getLogger(__name__)
 

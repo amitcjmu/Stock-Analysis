@@ -20,30 +20,27 @@ All existing imports and usage patterns remain unchanged for backward compatibil
 
 # Re-export all public interfaces from the modularized package
 from .monitoring_service import (
-    # Main service class
-    WorkflowMonitoringService,
-    
-    # Types and enums
-    MonitoringLevel,
-    AlertSeverity,
-    MetricType,
-    HealthStatus,
-    
-    # Data models
-    MetricPoint,
-    ProgressMilestone,
-    WorkflowProgress,
-    PerformanceMetrics,
-    AlertDefinition,
     Alert,
-    MonitoringSession,
-    
+    AlertDefinition,
     # Component managers (available if needed)
     AlertManager,
-    MetricsCollector,
-    ProgressTracker,
+    AlertSeverity,
+    AnalyticsEngine,
     HealthMonitor,
-    AnalyticsEngine
+    HealthStatus,
+    # Data models
+    MetricPoint,
+    MetricsCollector,
+    MetricType,
+    # Types and enums
+    MonitoringLevel,
+    MonitoringSession,
+    PerformanceMetrics,
+    ProgressMilestone,
+    ProgressTracker,
+    # Main service class
+    WorkflowMonitoringService,
+    WorkflowProgress,
 )
 
 # Maintain the same __all__ list for backward compatibility

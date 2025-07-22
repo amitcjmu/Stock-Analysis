@@ -1,9 +1,11 @@
 """
 Pydantic schemas for CrewAI agent-related data structures.
 """
-from typing import List, Dict, Any, Optional
-from pydantic import BaseModel, Field
 import uuid
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
+
 
 class Agent(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))

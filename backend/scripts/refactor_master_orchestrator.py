@@ -84,7 +84,7 @@ def refactor_master_orchestrator():
     with open(file_path, 'w') as f:
         f.write(new_content)
     
-    print(f"✅ Refactored MasterFlowOrchestrator")
+    print("✅ Refactored MasterFlowOrchestrator")
     print(f"📁 Backup saved to: {backup_path}")
     
     # Count lines saved

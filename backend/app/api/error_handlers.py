@@ -8,25 +8,26 @@ Provides centralized error handling for FastAPI endpoints with:
 - Request tracking and logging
 """
 
-from fastapi import Request, status
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
-from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+import logging
 import traceback
 from typing import Union
-import logging
+
+from fastapi import Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.exceptions import (
-    BaseApplicationError,
-    ValidationError,
     AuthenticationError,
     AuthorizationError,
-    FlowNotFoundError,
-    TenantIsolationError,
+    BaseApplicationError,
     DatabaseError,
+    FlowNotFoundError,
     NetworkTimeoutError,
-    ResourceExhaustedError
+    ResourceExhaustedError,
+    TenantIsolationError,
+    ValidationError,
 )
 from app.core.logging import get_logger, trace_id_context
 

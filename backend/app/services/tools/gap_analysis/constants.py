@@ -2,7 +2,7 @@
 Constants and configuration for gap analysis tools
 """
 
-from typing import Dict, List, ClassVar
+from typing import ClassVar, Dict, List
 
 # Critical attributes mapping patterns
 ATTRIBUTE_PATTERNS: Dict[str, List[str]] = {

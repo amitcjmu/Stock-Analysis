@@ -5,9 +5,10 @@ Revises: 009_add_collection_flow_id_to_questionnaires
 Create Date: 2025-07-21
 
 """
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = '010_add_timestamp_columns_to_collected_data_inventory'

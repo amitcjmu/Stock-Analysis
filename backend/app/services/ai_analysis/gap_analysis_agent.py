@@ -8,14 +8,15 @@ and provide targeted recommendations for gap resolution.
 Built by: Agent Team B2 (AI Analysis & Intelligence)
 """
 
-import logging
 import json
-from typing import List, Dict, Any, Optional, Union
+import logging
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Union
 from uuid import UUID
 
 try:
-    from crewai import Agent, Task, Process
+    from crewai import Agent, Process, Task
+
     from app.services.crews.base_crew import BaseDiscoveryCrew
     CREWAI_AVAILABLE = True
 except ImportError:
@@ -450,7 +451,7 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
                     "success_metrics": [
                         f"Fill {critical_gaps} critical gaps to improve strategy confidence",
                         f"Complete {high_priority_gaps} high-priority data collection activities",
-                        f"Achieve >85% coverage of critical attributes framework"
+                        "Achieve >85% coverage of critical attributes framework"
                     ]
                 },
                 "metadata": {

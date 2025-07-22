@@ -3,9 +3,9 @@ Analysis Tools Handler
 Handles CMDB analysis and parameter scoring tools.
 """
 
-import logging
 import json
-from typing import Dict, List, Any, Optional
+import logging
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

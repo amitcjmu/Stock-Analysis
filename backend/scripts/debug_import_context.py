@@ -1,6 +1,8 @@
 import asyncio
-import requests
 import json
+
+import requests
+
 
 def test_import_context():
     """Test what context is captured during import API calls."""

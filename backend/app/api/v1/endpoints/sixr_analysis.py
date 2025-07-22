@@ -3,29 +3,39 @@
 Provides REST API for 6R analysis, parameter updates, question handling, and recommendations.
 """
 
-import logging
-from typing import List, Dict, Any, Optional
-from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
-from sqlalchemy.ext.asyncio import AsyncSession
 import asyncio
-from sqlalchemy import select, func
+import logging
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from app.core.database import get_db, AsyncSessionLocal
-from app.models.sixr_analysis import (
-    SixRAnalysis, SixRAnalysisParameters as SixRParametersModel, SixRIteration, 
-    SixRRecommendation as SixRRecommendationModel, SixRQuestionResponse
-)
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.v1.endpoints.sixr_analysis_modular.services.analysis_service import analysis_service
+from app.core.database import AsyncSessionLocal, get_db
+from app.models.sixr_analysis import SixRAnalysis, SixRIteration, SixRQuestionResponse
+from app.models.sixr_analysis import SixRAnalysisParameters as SixRParametersModel
+from app.models.sixr_analysis import SixRRecommendation as SixRRecommendationModel
 from app.schemas.sixr_analysis import (
-    SixRAnalysisRequest, SixRAnalysisResponse, SixRAnalysisListResponse,
-    SixRParameterUpdateRequest, QualifyingQuestionsRequest,
-    IterationRequest, SixRRecommendationResponse, BulkAnalysisRequest,
-    BulkAnalysisResponse, SixRAnalysisError, AnalysisStatus,
-    SixRParameterBase, ApplicationType, SixRParameters, SixRRecommendation
+    AnalysisStatus,
+    ApplicationType,
+    BulkAnalysisRequest,
+    BulkAnalysisResponse,
+    IterationRequest,
+    QualifyingQuestionsRequest,
+    SixRAnalysisError,
+    SixRAnalysisListResponse,
+    SixRAnalysisRequest,
+    SixRAnalysisResponse,
+    SixRParameterBase,
+    SixRParameters,
+    SixRParameterUpdateRequest,
+    SixRRecommendation,
+    SixRRecommendationResponse,
 )
 from app.services.sixr_engine_modular import SixRDecisionEngine
 from app.services.tools.sixr_tools import get_sixr_tools
-from app.api.v1.endpoints.sixr_analysis_modular.services.analysis_service import analysis_service
 
 # Conditional import for CrewAI technical debt crew
 try:

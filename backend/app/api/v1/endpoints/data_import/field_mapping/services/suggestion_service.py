@@ -3,13 +3,16 @@ AI-powered field mapping suggestion service.
 """
 
 import logging
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
 
 from app.core.context import RequestContext
 from app.models.data_import import DataImport, RawImportRecord
-from ..models.mapping_schemas import FieldMappingSuggestion, FieldMappingAnalysis
+
+from ..models.mapping_schemas import FieldMappingAnalysis, FieldMappingSuggestion
+
 # Legacy hardcoded mapping helpers removed - using CrewAI agents only
 # from ..utils.mapping_helpers import intelligent_field_mapping, calculate_mapping_confidence
 

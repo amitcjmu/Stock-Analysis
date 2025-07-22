@@ -3,12 +3,14 @@ Field mapping suggestion route handlers.
 """
 
 import logging
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
-from app.core.context import get_current_context, RequestContext
+
 from ..models.mapping_schemas import FieldMappingAnalysis
 from ..services.suggestion_service import SuggestionService
 

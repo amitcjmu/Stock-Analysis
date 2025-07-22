@@ -9,12 +9,12 @@ This module provides a comprehensive multi-agent orchestration system that:
 - Follows the defined issue resolution workflow
 """
 
-from .orchestrator import MultiAgentOrchestrator
-from .workflow_engine import WorkflowEngine
 from .agent_manager import AgentManager
+from .agents import BackendMonitoringAgent, BaseAgent, SecurityAuditAgent, UITestingAgent
 from .communication import InterAgentCommunicator
+from .orchestrator import MultiAgentOrchestrator
 from .state_machine import WorkflowStateMachine
-from .agents import BaseAgent, UITestingAgent, BackendMonitoringAgent, SecurityAuditAgent
+from .workflow_engine import WorkflowEngine
 
 __all__ = [
     'MultiAgentOrchestrator',

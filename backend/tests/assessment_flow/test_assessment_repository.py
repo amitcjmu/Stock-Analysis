@@ -5,16 +5,18 @@ This module tests the repository layer for assessment flow data persistence
 and multi-tenant isolation.
 """
 
-import pytest
 from datetime import datetime, timezone
-from uuid import uuid4
 from typing import List
+from uuid import uuid4
+
+import pytest
 
 try:
-    from sqlalchemy.ext.asyncio import AsyncSession
     from sqlalchemy import text
-    from app.repositories.assessment_flow_repository import AssessmentFlowRepository
+    from sqlalchemy.ext.asyncio import AsyncSession
+
     from app.models.assessment_flow import AssessmentFlowState, AssessmentPhase
+    from app.repositories.assessment_flow_repository import AssessmentFlowRepository
     REPOSITORY_AVAILABLE = True
 except ImportError:
     # Mock classes for when components don't exist yet
@@ -37,11 +39,11 @@ except ImportError:
     AsyncSession = object
 
 from tests.fixtures.assessment_fixtures import (
+    assert_multi_tenant_isolation,
     async_db_session,
-    sample_assessment_flow_state,
     sample_applications,
     sample_architecture_standards,
-    assert_multi_tenant_isolation
+    sample_assessment_flow_state,
 )
 
 

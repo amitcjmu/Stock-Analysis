@@ -2,13 +2,14 @@
 """Test running migration code directly"""
 import os
 import sys
+
 from sqlalchemy import create_engine, text
 
 # Database URL
 db_url = 'postgresql://postgres:postgres@postgres:5432/migration_db'
 engine = create_engine(db_url, echo=True)  # Enable SQL echo
 
-print(f"Testing direct migration execution...")
+print("Testing direct migration execution...")
 print(f"Database URL: {db_url}")
 
 # Test connection and execute in transaction

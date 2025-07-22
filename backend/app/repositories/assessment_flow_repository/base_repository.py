@@ -6,24 +6,25 @@ Maintains backward compatibility with the original AssessmentFlowRepository inte
 """
 
 import logging
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.repositories.base import ContextAwareRepository
 from app.models.assessment_flow import AssessmentFlow
-from app.models.assessment_flow_state import (
-    AssessmentFlowState, ArchitectureRequirement, ApplicationArchitectureOverride as ApplicationArchitectureOverrideState,
-    ApplicationComponent as ApplicationComponentState, TechDebtItem, ComponentTreatment as ComponentTreatmentState, 
-    SixRDecision as SixRDecisionState, AssessmentLearningFeedback as AssessmentLearningFeedbackState
-)
+from app.models.assessment_flow_state import ApplicationArchitectureOverride as ApplicationArchitectureOverrideState
+from app.models.assessment_flow_state import ApplicationComponent as ApplicationComponentState
+from app.models.assessment_flow_state import ArchitectureRequirement, AssessmentFlowState, TechDebtItem
+from app.models.assessment_flow_state import AssessmentLearningFeedback as AssessmentLearningFeedbackState
+from app.models.assessment_flow_state import ComponentTreatment as ComponentTreatmentState
+from app.models.assessment_flow_state import SixRDecision as SixRDecisionState
+from app.repositories.base import ContextAwareRepository
 
 # Import command handlers
-from .commands import (
-    FlowCommands, ArchitectureCommands, ComponentCommands, 
-    DecisionCommands, FeedbackCommands
-)
+from .commands import ArchitectureCommands, ComponentCommands, DecisionCommands, FeedbackCommands, FlowCommands
+
 # Import query handlers  
-from .queries import FlowQueries, AnalyticsQueries, StateQueries
+from .queries import AnalyticsQueries, FlowQueries, StateQueries
+
 # Import specifications
 from .specifications import FlowSpecifications
 

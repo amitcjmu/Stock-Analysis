@@ -5,20 +5,18 @@ Task A1.6: Create test seed data
 """
 
 import asyncio
-import uuid
 import json
+import uuid
 from datetime import datetime, timedelta, timezone
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import Session
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import settings
 from app.core.database import Base, get_db
-from app.models import User, ClientAccount, Engagement, DiscoveryFlow
-
+from app.models import ClientAccount, DiscoveryFlow, Engagement, User
 
 # Test data constants
 TEST_ADAPTERS = [

@@ -3,9 +3,10 @@ Integration Analysis Tools for App-App Dependency Crew
 Provides specialized tools for analyzing application integration patterns and dependencies
 """
 
-import logging
 import json
-from typing import Dict, List, Any, Optional
+import logging
+from typing import Any, Dict, List, Optional
+
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 

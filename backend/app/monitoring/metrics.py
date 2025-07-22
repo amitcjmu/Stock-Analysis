@@ -79,7 +79,7 @@ def track_execution_time(func: Callable) -> Callable:
             execution_time = time.time() - start_time
             track_performance(f"{func.__name__}_execution_time", execution_time)
             return result
-        except Exception as e:
+        except Exception:
             execution_time = time.time() - start_time
             track_performance(f"{func.__name__}_execution_time_error", execution_time)
             raise
@@ -92,7 +92,7 @@ def track_execution_time(func: Callable) -> Callable:
             execution_time = time.time() - start_time
             track_performance(f"{func.__name__}_execution_time", execution_time)
             return result
-        except Exception as e:
+        except Exception:
             execution_time = time.time() - start_time
             track_performance(f"{func.__name__}_execution_time_error", execution_time)
             raise

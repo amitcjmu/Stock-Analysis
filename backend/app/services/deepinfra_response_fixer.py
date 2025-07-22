@@ -4,7 +4,7 @@ Patches litellm's response parsing to handle DeepInfra's null top_logprobs
 """
 
 import logging
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -71,8 +71,8 @@ def apply_alternative_fix():
     """
     try:
         # Try to patch pydantic's validation for this specific case
-        from pydantic import validator
         from litellm.types.utils import ChatCompletionTokenLogprob
+        from pydantic import validator
         
         # Create a custom validator that handles None
         def fix_top_logprobs(cls, v):

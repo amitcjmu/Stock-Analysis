@@ -8,16 +8,16 @@ Handles background execution including:
 - Progress tracking and monitoring
 """
 
-import logging
 import asyncio
-from typing import Dict, List, Any, Optional
+import logging
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging import get_logger
 from app.core.context import RequestContext
 from app.core.database import AsyncSessionLocal
 from app.core.exceptions import FlowError
+from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -313,7 +313,9 @@ class BackgroundExecutionService:
                     try:
                         # Check flow status
                         async with AsyncSessionLocal() as fresh_db:
-                            from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
+                            from app.repositories.crewai_flow_state_extensions_repository import (
+                                CrewAIFlowStateExtensionsRepository,
+                            )
                             
                             repo = CrewAIFlowStateExtensionsRepository(
                                 fresh_db,
@@ -397,10 +399,7 @@ class BackgroundExecutionService:
             async with AsyncSessionLocal() as fresh_db:
                 from app.services.crewai_flow_service import CrewAIFlowService
                 from app.services.crewai_flows.unified_discovery_flow import create_unified_discovery_flow
-                from app.services.crewai_flows.unified_discovery_flow.phase_controller import (
-                    PhaseController, 
-                    FlowPhase
-                )
+                from app.services.crewai_flows.unified_discovery_flow.phase_controller import FlowPhase, PhaseController
                 
                 crewai_service = CrewAIFlowService(fresh_db)
                 

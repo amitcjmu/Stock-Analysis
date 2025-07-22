@@ -2,9 +2,11 @@
 Reusable task templates for common operations
 """
 
-from crewai import Task
-from typing import Any, List, Dict
 import json
+from typing import Any, Dict, List
+
+from crewai import Task
+
 
 class TaskTemplates:
     """

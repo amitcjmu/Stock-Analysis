@@ -6,25 +6,22 @@ Main GCP adapter class that orchestrates all modular components.
 
 import asyncio
 import time
-from typing import Dict, Any, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.collection_flow.adapters import (
-    BaseAdapter, 
-    CollectionRequest,
-    CollectionResponse
-)
+from app.services.collection_flow.adapters import BaseAdapter, CollectionRequest, CollectionResponse
 
-from .dependencies import GCP_AVAILABLE
-from .models import GCPCredentials
-from .metadata import GCP_ADAPTER_METADATA
+from .assets import GCPAssetCollector
 from .auth import GCPAuthManager
 from .connectivity import GCPConnectivityTester
-from .assets import GCPAssetCollector
-from .enhancers import GCPResourceEnhancer
-from .metrics import GCPMetricsCollector
-from .transformer import GCPDataTransformer
 from .constants import SUPPORTED_ASSET_TYPES, TARGET_MAPPING
+from .dependencies import GCP_AVAILABLE
+from .enhancers import GCPResourceEnhancer
+from .metadata import GCP_ADAPTER_METADATA
+from .metrics import GCPMetricsCollector
+from .models import GCPCredentials
+from .transformer import GCPDataTransformer
 
 
 class GCPAdapter(BaseAdapter):

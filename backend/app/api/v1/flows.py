@@ -4,18 +4,19 @@ Task MFO-059 through MFO-073: Unified API endpoints for all flow types
 Provides a single, consistent API for creating, managing, and monitoring all CrewAI flows
 """
 
-from typing import List, Dict, Any, Optional
-from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel, Field, validator
 import logging
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from app.core.database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, Field, validator
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.v1.auth.auth_utils import get_current_user
-from app.models import User
 from app.api.v1.endpoints.context.services.user_service import UserService
 from app.core.context import RequestContext
+from app.core.database import get_db
+from app.models import User
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
 logger = logging.getLogger(__name__)
@@ -291,7 +292,7 @@ async def get_flow(
         
     except HTTPException:
         raise
-    except ValueError as e:
+    except ValueError:
         # Flow not found - proper 404 handling
         logger.warning(f"Flow not found: {flow_id}")
         raise HTTPException(
@@ -596,7 +597,7 @@ async def get_flow_status(
         
     except HTTPException:
         raise
-    except ValueError as e:
+    except ValueError:
         # Flow not found - proper 404 handling
         logger.warning(f"Flow not found: {flow_id}")
         raise HTTPException(
@@ -719,9 +720,10 @@ async def _recover_corrupted_flow(orchestrator, flow_id: str, flow_status: Dict[
     """
     try:
         # Check for existing field mappings to determine the current phase
+        from sqlalchemy import select
+
         from app.models.discovery_flow import DiscoveryFlow
         from app.models.field_mapping import FieldMapping
-        from sqlalchemy import select
         
         # Get the discovery flow record
         discovery_query = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id)

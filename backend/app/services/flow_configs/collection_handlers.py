@@ -6,15 +6,15 @@ Provides handler functions for initialization, finalization, error handling,
 and phase-specific operations in the Collection flow.
 """
 
+import asyncio
+import json
 import logging
 import uuid
-import json
-import asyncio
-from typing import Dict, Any, Optional, List
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
 
 logger = logging.getLogger(__name__)
 
@@ -1056,9 +1056,9 @@ async def _start_crewai_collection_flow_background(
             logger.info(f"🚀 Starting CrewAI collection flow execution: {flow_id}")
             
             # Import required modules
-            from app.services.crewai_flows.unified_collection_flow import create_unified_collection_flow
-            from app.services.crewai_flow_service import CrewAIFlowService
             from app.core.context import RequestContext
+            from app.services.crewai_flow_service import CrewAIFlowService
+            from app.services.crewai_flows.unified_collection_flow import create_unified_collection_flow
             
             # Extract context information
             if context and hasattr(context, 'client_account_id'):

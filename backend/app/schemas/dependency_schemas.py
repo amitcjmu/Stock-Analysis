@@ -2,9 +2,11 @@
 Pydantic schemas for dependency data.
 """
 
-from typing import List, Dict, Any, Optional
-from pydantic import BaseModel, UUID4
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from pydantic import UUID4, BaseModel
+
 
 class DependencyBase(BaseModel):
     """Base schema for dependency data."""

@@ -6,9 +6,11 @@ This model represents platform adapters for data collection.
 
 import uuid
 from datetime import datetime
-from typing import Optional, Dict, Any
 from enum import Enum
-from sqlalchemy import Column, String, UUID, Enum as SQLEnum, UniqueConstraint
+from typing import Any, Dict, Optional
+
+from sqlalchemy import UUID, Column, String, UniqueConstraint
+from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 

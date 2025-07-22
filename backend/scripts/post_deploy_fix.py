@@ -4,13 +4,14 @@ Post-deployment script for Railway production database schema fixes.
 This script runs automatically after deployment to ensure schema consistency.
 """
 
-import os
-import sys
 import asyncio
-import asyncpg
 import json
 import logging
+import os
+import sys
 from urllib.parse import urlparse
+
+import asyncpg
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)

@@ -5,11 +5,14 @@ Check Real Clients and Engagements for Multi-Tenant Testing
 
 import asyncio
 import sys
+
 sys.path.append('/app')
 
-from app.models.client_account import ClientAccount, Engagement
-from app.core.database import AsyncSessionLocal
 from sqlalchemy import select
+
+from app.core.database import AsyncSessionLocal
+from app.models.client_account import ClientAccount, Engagement
+
 
 async def check_clients_and_engagements():
     print("🏢 Checking Real Clients and Engagements")
@@ -42,7 +45,7 @@ async def check_clients_and_engagements():
                 real_clients.append(client_info)
                 print(f"  🏢 REAL: {client.name} ({client.id}) - {client.slug}")
         
-        print(f"\n📈 Summary:")
+        print("\n📈 Summary:")
         print(f"  Real Clients: {len(real_clients)}")
         print(f"  Demo Clients: {len(demo_clients)}")
         
@@ -59,7 +62,7 @@ async def check_clients_and_engagements():
             print("\n⚠️ Engagement model not available")
         
         # Recommend clients for testing
-        print(f"\n🧪 Recommended for End-to-End Testing:")
+        print("\n🧪 Recommended for End-to-End Testing:")
         for client in real_clients:
             print(f"  ✅ Use Client: {client['name']} (ID: {client['id']})")
         

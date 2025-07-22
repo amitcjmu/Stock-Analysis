@@ -5,21 +5,21 @@ Complete agent registry implementation combining all modular components.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
 
-from .registry_core import AgentRegistryCore
 from .lifecycle_manager import AgentLifecycleManager
 from .phase_agents import (
-    DiscoveryAgentManager,
     AssessmentAgentManager,
-    PlanningAgentManager,
-    MigrationAgentManager,
-    ModernizationAgentManager,
     DecommissionAgentManager,
+    DiscoveryAgentManager,
     FinOpsAgentManager,
     LearningContextAgentManager,
-    ObservabilityAgentManager
+    MigrationAgentManager,
+    ModernizationAgentManager,
+    ObservabilityAgentManager,
+    PlanningAgentManager,
 )
+from .registry_core import AgentRegistryCore
 
 logger = logging.getLogger(__name__)
 

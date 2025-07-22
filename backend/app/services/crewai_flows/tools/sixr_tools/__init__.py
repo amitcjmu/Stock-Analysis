@@ -6,7 +6,7 @@ supporting the determination of optimal migration strategies for applications
 and their components.
 """
 
-from .checkers.compatibility_checker import CompatibilityChecker
 from .calculators.business_value_calculator import BusinessValueCalculator
+from .checkers.compatibility_checker import CompatibilityChecker
 
 __all__ = ["CompatibilityChecker", "BusinessValueCalculator"]

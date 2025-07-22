@@ -4,8 +4,9 @@ ADCS: Crew for analyzing collected data gaps using intelligent agents
 """
 
 import logging
-from typing import Dict, Any, List, Optional
-from crewai import Agent, Task, Crew
+from typing import Any, Dict, List, Optional
+
+from crewai import Agent, Crew, Task
 
 logger = logging.getLogger(__name__)
 
@@ -182,7 +183,7 @@ def create_gap_analysis_crew(
         
         # Create 6R impact assessment task
         sixr_impact_task = Task(
-            description=f"""Assess how identified gaps impact 6R strategy decisions:
+            description="""Assess how identified gaps impact 6R strategy decisions:
 
             6R STRATEGY REQUIREMENTS:
             - Rehost: Infrastructure details, dependencies, performance metrics
@@ -212,36 +213,36 @@ def create_gap_analysis_crew(
                - Gaps that can be deferred
 
             OUTPUT FORMAT:
-            {{
-                "sixr_impact_analysis": {{
-                    "rehost": {{
+            {
+                "sixr_impact_analysis": {
+                    "rehost": {
                         "confidence_score": 0.82,
                         "blocking_gaps": [],
                         "confidence_impact": "Medium - missing performance baselines",
                         "risk_level": "low"
-                    }},
-                    "replatform": {{
+                    },
+                    "replatform": {
                         "confidence_score": 0.45,
                         "blocking_gaps": ["technology_stack", "platform_features"],
                         "confidence_impact": "High - cannot assess platform compatibility",
                         "risk_level": "high"
-                    }}
-                }},
-                "strategy_recommendations": {{
+                    }
+                },
+                "strategy_recommendations": {
                     "viable_strategies": ["rehost", "retire"],
                     "blocked_strategies": ["refactor", "repurchase"],
                     "confidence_threshold_met": ["rehost"],
                     "remediation_required_for": ["replatform", "refactor"]
-                }},
+                },
                 "critical_gaps_for_6r": [
-                    {{
+                    {
                         "gap_id": "gap-001",
                         "strategies_affected": ["replatform", "refactor"],
                         "confidence_impact": -35,
                         "priority": "critical"
-                    }}
+                    }
                 ]
-            }}""",
+            }""",
             agent=sixr_impact_assessor,
             expected_output="JSON object with 6R strategy impact analysis",
             context=[gap_analysis_task]

@@ -5,20 +5,20 @@ entry point for the discovery module, centered around the agentic CrewAI workflo
 """
 
 import logging
-from fastapi import APIRouter, HTTPException, Query
-from typing import Dict, Any
-from fastapi import Depends
+from typing import Any, Dict
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
-from app.core.context import get_current_context, RequestContext
-from app.services.discovery_flow_service import DiscoveryFlowService
-from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from app.core.context import RequestContext, get_current_context
 from app.core.database import AsyncSessionLocal
 from app.models.client_account import ClientAccount, Engagement
-from app.models.rbac import UserRole, ClientAccess
-from sqlalchemy import select, and_, or_
-from sqlalchemy.orm import selectinload
-from fastapi import status
+from app.models.rbac import ClientAccess, UserRole
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+from app.services.discovery_flow_service import DiscoveryFlowService
 
 logger = logging.getLogger(__name__)
 
@@ -180,12 +180,13 @@ async def get_active_discovery_flows(
         
         # ⚠️ DEPRECATED: WorkflowState removed - using V2 Discovery Flow architecture
         
+        from sqlalchemy import and_, or_, select
         from sqlalchemy.ext.asyncio import AsyncSession
+        from sqlalchemy.orm import selectinload
+
         from app.core.database import AsyncSessionLocal
         from app.models.client_account import ClientAccount, Engagement
-        from app.models.rbac import UserRole, ClientAccess
-        from sqlalchemy import select, and_, or_
-        from sqlalchemy.orm import selectinload
+        from app.models.rbac import ClientAccess, UserRole
         
         async with AsyncSessionLocal() as db:
             # Check if user is platform admin
@@ -196,7 +197,7 @@ async def get_active_discovery_flows(
             is_platform_admin = any(role.role_name in ['platform_admin', 'Platform Administrator'] for role in user_roles)
             
             if is_platform_admin:
-                logger.info(f"🔑 Platform admin detected - querying across all authorized clients")
+                logger.info("🔑 Platform admin detected - querying across all authorized clients")
                 
                 # Get authorized client IDs for platform admin
                 client_access_query = select(ClientAccess.client_account_id).where(

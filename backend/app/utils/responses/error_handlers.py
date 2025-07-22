@@ -5,15 +5,15 @@ Provides consistent error handling patterns and exception management.
 
 import logging
 import traceback
-from typing import Any, Dict, List, Optional, Union, Type
-from datetime import datetime
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional, Type, Union
 
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
-from sqlalchemy.exc import SQLAlchemyError, IntegrityError, NoResultFound
 from pydantic import ValidationError as PydanticValidationError
+from sqlalchemy.exc import IntegrityError, NoResultFound, SQLAlchemyError
 
 from .response_builders import ResponseBuilder
 from .status_codes import StatusCode

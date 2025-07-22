@@ -4,16 +4,17 @@ Scaffold: Seed sample data_quality_issues linked to assets.
 Run via:
   docker exec migration_backend python app/scripts/seed_data_quality_issues.py [--force]
 """
+import argparse
 import asyncio
+import json
 import logging
 import os
-import sys
-import argparse
-from datetime import datetime
-from sqlalchemy import text
-import uuid
-import json
 import random
+import sys
+import uuid
+from datetime import datetime
+
+from sqlalchemy import text
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 

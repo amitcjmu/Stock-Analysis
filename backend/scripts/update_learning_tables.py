@@ -5,14 +5,16 @@ Updates vector dimensions and creates missing tables with proper schema.
 """
 
 import asyncio
-import sys
 import os
+import sys
 
 # Add the backend directory to the path
 sys.path.append('/app')
 
 from sqlalchemy import text
+
 from app.core.database import AsyncSessionLocal
+
 
 async def update_learning_tables():
     """Update learning pattern tables to match new schema."""

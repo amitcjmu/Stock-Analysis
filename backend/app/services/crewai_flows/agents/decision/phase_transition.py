@@ -6,11 +6,12 @@ based on data quality, business context, and flow objectives.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
 
-from .base import BaseDecisionAgent, AgentDecision, PhaseAction
-from .utils import DecisionUtils, ConfidenceCalculator
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
+
+from .base import AgentDecision, BaseDecisionAgent, PhaseAction
+from .utils import ConfidenceCalculator, DecisionUtils
 
 logger = logging.getLogger(__name__)
 

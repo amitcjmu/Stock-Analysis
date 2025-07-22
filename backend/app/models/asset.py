@@ -3,10 +3,10 @@ CMDB Asset models for multi-tenant asset management.
 """
 
 try:
-    from sqlalchemy import Column, Integer, String, DateTime, Text, JSON, Enum, Boolean, ForeignKey, Float
+    from sqlalchemy import JSON, Boolean, Column, DateTime, Enum, Float, ForeignKey, Integer, String, Text
+    from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
     from sqlalchemy.orm import relationship
     from sqlalchemy.sql import func
-    from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
     SQLALCHEMY_AVAILABLE = True
 except ImportError:
     SQLALCHEMY_AVAILABLE = False

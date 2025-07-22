@@ -2,11 +2,13 @@
 Field Matcher Tool for intelligent field mapping
 """
 
-from typing import Dict, Any, List, Tuple
+import re
+from difflib import SequenceMatcher
+from typing import Any, Dict, List, Tuple
+
 from app.services.tools.base_tool import BaseDiscoveryTool
 from app.services.tools.registry import ToolMetadata
-from difflib import SequenceMatcher
-import re
+
 
 class FieldMatcherTool(BaseDiscoveryTool):
     """Matches source fields to target fields using various algorithms"""

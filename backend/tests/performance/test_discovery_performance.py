@@ -9,13 +9,15 @@ Tests performance characteristics of the Discovery Flow including:
 - Performance regression detection
 """
 
-import pytest
 import asyncio
-import time
 import gc
-from typing import Dict, List, Any
-from unittest.mock import AsyncMock, Mock, patch
+import time
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
+
 
 # Mock psutil for testing environment
 class MockProcess:

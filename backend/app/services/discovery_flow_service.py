@@ -6,16 +6,18 @@ Follows the Multi-Flow Architecture Implementation Plan.
 
 import logging
 import uuid
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
-from app.models.discovery_flow import DiscoveryFlow
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext
+
 # from app.models.discovery_asset import DiscoveryAsset  # Model removed - using Asset model instead
 from app.models.asset import Asset
-from app.core.context import RequestContext
-from sqlalchemy.ext.asyncio import AsyncSession
+from app.models.discovery_flow import DiscoveryFlow
+from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +96,7 @@ class DiscoveryFlowService:
                 logger.info(f"✅ Using existing master flow: {master_flow_id}")
             else:
                 # Create new master flow if none provided
-                logger.info(f"🔧 Creating new master flow for discovery flow coordination")
+                logger.info("🔧 Creating new master flow for discovery flow coordination")
                 
                 # Generate a unique master flow ID
                 import uuid

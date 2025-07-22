@@ -4,10 +4,11 @@ Contains core RBAC utilities, role management, and system initialization functio
 """
 
 import logging
-from typing import Dict, Any
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from typing import Any, Dict
+
 from fastapi import HTTPException
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.rbac import UserRole
 from app.services.rbac_service import create_rbac_service

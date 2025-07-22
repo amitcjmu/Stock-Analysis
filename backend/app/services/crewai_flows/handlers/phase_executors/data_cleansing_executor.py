@@ -4,11 +4,12 @@ Handles data cleansing phase execution for the Unified Discovery Flow.
 Now integrates agentic intelligence for comprehensive asset enrichment.
 """
 
+import asyncio
 import logging
 import uuid
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
 from .base_phase_executor import BasePhaseExecutor
-import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,9 @@ class DataCleansingExecutor(BasePhaseExecutor):
         
         try:
             # Import agentic intelligence
-            from app.services.agentic_intelligence.agentic_asset_enrichment import enrich_assets_with_agentic_intelligence
+            from app.services.agentic_intelligence.agentic_asset_enrichment import (
+                enrich_assets_with_agentic_intelligence,
+            )
             
             # Get raw import records from database with their IDs for proper linkage
             raw_import_records = await self._get_raw_import_records_with_ids()
@@ -78,7 +81,7 @@ class DataCleansingExecutor(BasePhaseExecutor):
             
         except Exception as e:
             logger.error(f"❌ Agentic enrichment failed: {e}")
-            logger.error(f"❌ This indicates a real issue with agent execution that must be fixed")
+            logger.error("❌ This indicates a real issue with agent execution that must be fixed")
             raise
     
     async def execute_fallback(self) -> Dict[str, Any]:
@@ -165,9 +168,10 @@ class DataCleansingExecutor(BasePhaseExecutor):
     
     async def _get_raw_import_records_with_ids(self) -> List[Dict[str, Any]]:
         """Get raw import records from database with their IDs preserved"""
+        from sqlalchemy import select
+
         from app.core.database import AsyncSessionLocal
         from app.models.data_import.core import RawImportRecord
-        from sqlalchemy import select
         
         records = []
         try:

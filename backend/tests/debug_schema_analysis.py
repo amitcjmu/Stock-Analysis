@@ -1,8 +1,9 @@
 import asyncio
-import sys
-import os
-from sqlalchemy import text, inspect
 import json
+import os
+import sys
+
+from sqlalchemy import inspect, text
 
 # Add the backend directory to the Python path
 sys.path.append('backend')
@@ -68,7 +69,7 @@ async def analyze_schema():
                         rows = result.fetchall()
                         column_names = [col[0] for col in columns]
                         
-                        print(f"Sample data (first 2 rows):")
+                        print("Sample data (first 2 rows):")
                         for i, row in enumerate(rows):
                             print(f"  Row {i+1}:")
                             for j, value in enumerate(row):

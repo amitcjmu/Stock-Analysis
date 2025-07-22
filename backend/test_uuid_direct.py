@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Direct test of the _ensure_json_serializable method"""
 
-import uuid
 import json
+import uuid
 from datetime import datetime
 from typing import Any
+
 
 # Copy the method from execution_engine.py
 def _ensure_json_serializable(obj: Any) -> Any:

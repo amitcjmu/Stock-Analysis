@@ -2,11 +2,13 @@
 Data Cleansing Crew - Converted to proper CrewAI pattern
 """
 
-from typing import List, Dict, Any
-from crewai import Task, Process
+import logging
+from typing import Any, Dict, List
+
+from crewai import Process, Task
+
 from app.services.crews.base_crew import BaseDiscoveryCrew
 from app.services.crews.task_templates import TaskTemplates
-import logging
 
 logger = logging.getLogger(__name__)
 

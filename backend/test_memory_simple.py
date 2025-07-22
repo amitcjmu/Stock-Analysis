@@ -5,6 +5,7 @@ This test focuses only on memory system initialization, not LLM execution.
 """
 
 import sys
+
 sys.path.append('/app')
 
 def test_memory_initialization():
@@ -14,7 +15,7 @@ def test_memory_initialization():
     print("=" * 50)
     
     try:
-        from crewai import Agent, Task, Crew
+        from crewai import Agent, Crew, Task
         from crewai.memory import LongTermMemory
         from crewai.memory.storage.ltm_sqlite_storage import LTMSQLiteStorage
         print("✅ All imports successful")
@@ -67,8 +68,8 @@ def test_memory_initialization():
 if __name__ == "__main__":
     success = test_memory_initialization()
     if success:
-        print(f"\n✅ READY TO PROCEED: Remove memory=False from crews")
+        print("\n✅ READY TO PROCEED: Remove memory=False from crews")
         exit(0)
     else:
-        print(f"\n❌ MEMORY ISSUES: Need further debugging")
+        print("\n❌ MEMORY ISSUES: Need further debugging")
         exit(1)

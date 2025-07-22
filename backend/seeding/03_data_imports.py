@@ -3,10 +3,11 @@ Seed data imports with different file types and states.
 Agent 2 Task 2.4 - Data imports seeding
 """
 import asyncio
-import sys
 import json
-from pathlib import Path
+import sys
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # Add backend to path
@@ -16,8 +17,15 @@ from app.core.database import AsyncSessionLocal
 from app.models.data_import.core import DataImport
 from app.models.data_import.enums import ImportStatus, ImportType
 from seeding.constants import (
-    DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, IMPORT_IDS, IMPORTS, 
-    USER_IDS, USERS, BASE_TIMESTAMP, FLOW_IDS, FLOWS
+    BASE_TIMESTAMP,
+    DEMO_CLIENT_ID,
+    DEMO_ENGAGEMENT_ID,
+    FLOW_IDS,
+    FLOWS,
+    IMPORT_IDS,
+    IMPORTS,
+    USER_IDS,
+    USERS,
 )
 
 
@@ -100,6 +108,7 @@ async def create_data_imports(db: AsyncSession) -> list[DataImport]:
     
     # Get CrewAI state extension IDs for the flow_ids
     from sqlalchemy import select
+
     from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
     
     flow_id_to_crewai_id = {}
@@ -238,7 +247,7 @@ async def generate_seeded_ids_json():
     with open(output_path, "w") as f:
         json.dump(seeded_data, f, indent=2)
     
-    print(f"\n✅ Generated SEEDED_IDS.json with all seeded entity IDs")
+    print("\n✅ Generated SEEDED_IDS.json with all seeded entity IDs")
 
 
 async def main():

@@ -5,16 +5,18 @@ Business logic for client-related operations.
 """
 
 import logging
-from typing import Optional, List, Dict, Any
-from uuid import UUID
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+from uuid import UUID
+
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
 
 from app.models import User
 from app.models.client_account import ClientAccount, Engagement
-from app.models.rbac import UserRole, ClientAccess
-from app.schemas.context import UserContext, ClientBase, EngagementBase, SessionBase
+from app.models.rbac import ClientAccess, UserRole
+from app.schemas.context import ClientBase, EngagementBase, SessionBase, UserContext
+
 from ..models.context_schemas import ClientResponse, ClientsListResponse
 
 logger = logging.getLogger(__name__)

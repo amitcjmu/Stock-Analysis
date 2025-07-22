@@ -10,22 +10,24 @@ This shows the complete solution working end-to-end.
 """
 
 import asyncio
-import sys
 import os
+import sys
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
 
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 
-from app.core.database import AsyncSessionLocal
-from app.core.context import RequestContext
-from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-from app.services.data_import.storage_manager import ImportStorageManager
-from app.models.data_import import DataImport, RawImportRecord, ImportFieldMapping
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from sqlalchemy import select, and_, func, text
 import uuid
+
+from sqlalchemy import and_, func, select, text
+
+from app.core.context import RequestContext
+from app.core.database import AsyncSessionLocal
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.models.data_import import DataImport, ImportFieldMapping, RawImportRecord
+from app.services.data_import.storage_manager import ImportStorageManager
+from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
 # Test configuration using real orphaned data
 TEST_CLIENT_ACCOUNT_ID = "21990f3a-abb6-4862-be06-cb6f854e167b"  # Real client with orphaned data
@@ -246,7 +248,7 @@ async def show_final_statistics():
             result = await db.execute(recent_flows_query)
             recent_flows = result.scalars().all()
             
-            print(f"\n🕒 Recent Flows:")
+            print("\n🕒 Recent Flows:")
             for flow in recent_flows:
                 print(f"   - {flow.flow_id}: {flow.flow_name} ({flow.flow_status})")
             

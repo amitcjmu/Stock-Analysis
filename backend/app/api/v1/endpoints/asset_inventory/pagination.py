@@ -4,10 +4,12 @@ Asset paginated listing endpoints.
 
 import logging
 from typing import Optional
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
-from app.core.context import get_current_context, RequestContext
+
+from app.core.context import RequestContext, get_current_context
 from app.core.database_timeout import get_db_for_asset_list
 
 logger = logging.getLogger(__name__)
@@ -85,7 +87,8 @@ async def list_assets_paginated(
             page_size = per_page
             
         # Import here to avoid circular imports
-        from sqlalchemy import select, func
+        from sqlalchemy import func, select
+
         from app.models.asset import Asset
         
         # Build base query with context filtering

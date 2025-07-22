@@ -6,9 +6,9 @@ This package provides intelligent flow continuation and routing across all
 flow types (Discovery, Assess, Plan, Execute, etc.).
 """
 
-from .models import FlowAnalysisResult, RouteDecision, FlowContinuationResult
-from .crew import UniversalFlowProcessingCrew
 from .agent import FlowProcessingAgent
+from .crew import UniversalFlowProcessingCrew
+from .models import FlowAnalysisResult, FlowContinuationResult, RouteDecision
 
 __all__ = [
     "FlowAnalysisResult",

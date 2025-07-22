@@ -5,9 +5,12 @@ Fix field mappings context issue by generating mappings for demo context
 import asyncio
 import uuid
 from datetime import datetime
+
+from sqlalchemy import select, update
+
 from app.core.database import get_db
 from app.models.data_import import DataImport, ImportFieldMapping, RawImportRecord
-from sqlalchemy import select, update
+
 
 async def fix_field_mappings_context():
     async for db in get_db():
@@ -51,7 +54,7 @@ async def fix_field_mappings_context():
             )
             
             await db.commit()
-            print(f"✅ Updated data import to demo context")
+            print("✅ Updated data import to demo context")
             
             # Also update discovery flow context if needed
             from app.models.discovery_flow import DiscoveryFlow
@@ -68,7 +71,7 @@ async def fix_field_mappings_context():
                 flow.client_account_id = demo_client_id
                 flow.engagement_id = demo_engagement_id
                 await db.commit()
-                print(f"✅ Updated flow to demo context")
+                print("✅ Updated flow to demo context")
             
         except Exception as e:
             print(f"❌ Error: {e}")

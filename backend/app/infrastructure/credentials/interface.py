@@ -3,7 +3,7 @@ Credential Manager interface for abstracting credential storage and retrieval.
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 
 class CredentialManager(ABC):

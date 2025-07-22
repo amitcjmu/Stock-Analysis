@@ -2,18 +2,15 @@
 API endpoints for dependency analysis and management.
 """
 
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
 from app.core.context import extract_context_from_request
+from app.core.database import get_db
+from app.schemas.dependency_schemas import DependencyAnalysisResponse, DependencyCreate, DependencyResponse
 from app.services.dependency_analysis_service import DependencyAnalysisService
-from app.schemas.dependency_schemas import (
-    DependencyCreate,
-    DependencyResponse,
-    DependencyAnalysisResponse
-)
 
 router = APIRouter()
 

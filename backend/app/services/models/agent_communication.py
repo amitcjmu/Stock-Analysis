@@ -4,9 +4,10 @@ Data structures for agent-UI communication and interaction.
 """
 
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Dict, List, Any, Optional
 from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
 
 class QuestionType(Enum):
     """Types of questions agents can ask users."""

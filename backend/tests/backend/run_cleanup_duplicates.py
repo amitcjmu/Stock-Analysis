@@ -3,14 +3,15 @@ Run the cleanup script for the specific client/engagement with duplicates
 """
 
 import asyncio
-import sys
 import os
+import sys
 
 # Add the backend directory to the Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
-from tests.backend.cleanup_duplicate_assets import cleanup_duplicate_assets, analyze_duplicates_by_flow
 from app.core.database import AsyncSessionLocal
+from tests.backend.cleanup_duplicate_assets import analyze_duplicates_by_flow, cleanup_duplicate_assets
+
 
 async def main():
     # Actual IDs from the database scan
@@ -36,7 +37,7 @@ async def main():
             db, CLIENT_ACCOUNT_ID, ENGAGEMENT_ID, dry_run=DRY_RUN
         )
         
-        print(f"\n✅ Cleanup complete!")
+        print("\n✅ Cleanup complete!")
         print(f"   Removed {stats.get('assets_deleted', 0)} duplicate assets")
 
 if __name__ == "__main__":

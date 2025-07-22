@@ -7,17 +7,17 @@ with platform adapters and use the advanced optimization features.
 
 import asyncio
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
 
-from app.services.collection_flow.adapters import CollectionRequest, CollectionResponse, AdapterMetadata
 from app.services.adapters import (
-    EnhancedBaseAdapter,
     AdapterConfiguration,
     AdapterManager,
+    EnhancedBaseAdapter,
     PerformanceThresholds,
     RetryConfig,
-    adapter_manager
+    adapter_manager,
 )
+from app.services.collection_flow.adapters import AdapterMetadata, CollectionRequest, CollectionResponse
 
 
 class ExampleEnhancedAWSAdapter(EnhancedBaseAdapter):
@@ -165,11 +165,11 @@ async def demonstrate_performance_monitoring():
     if adapter_instance:
         metrics = await adapter_instance.get_performance_metrics()
         
-        print(f"\n🔍 Detailed Performance Metrics:")
+        print("\n🔍 Detailed Performance Metrics:")
         for metric_type, value in metrics.get("metrics", {}).items():
             print(f"  {metric_type}: {value:.2f}")
             
-        print(f"\n💡 Optimization Recommendations:")
+        print("\n💡 Optimization Recommendations:")
         recommendations = metrics.get("optimization_recommendations", [])
         for i, rec in enumerate(recommendations[:3], 1):  # Show top 3
             print(f"  {i}. {rec['title']} ({rec['level']})")
@@ -177,7 +177,7 @@ async def demonstrate_performance_monitoring():
             print(f"     Expected: {rec['expected_improvement']}")
             
     # Demonstrate automatic optimization
-    print(f"\n⚡ Running Automatic Optimization")
+    print("\n⚡ Running Automatic Optimization")
     print("=" * 40)
     
     optimization_results = await adapter_manager.optimize_all_adapters()
@@ -194,7 +194,7 @@ async def demonstrate_performance_monitoring():
     print(f"Total configuration changes: {optimization_results['total_changes']}")
     
     # Show health status
-    print(f"\n🏥 Adapter Health Status")
+    print("\n🏥 Adapter Health Status")
     print("=" * 40)
     
     health_data = await adapter_instance.get_health_status()
@@ -217,7 +217,7 @@ async def demonstrate_performance_monitoring():
             hours=1
         )
         
-        print(f"\n📈 Performance Trends (Last Hour)")
+        print("\n📈 Performance Trends (Last Hour)")
         print("=" * 40)
         
         for metric_type, trend_data in trends.get("trends", {}).items():
@@ -237,7 +237,7 @@ async def demonstrate_performance_monitoring():
     await adapter_manager.stop_monitoring()
     await adapter_manager.stop_adapter("enhanced_aws_adapter")
     
-    print(f"\n✅ Performance monitoring demonstration completed")
+    print("\n✅ Performance monitoring demonstration completed")
 
 
 async def demonstrate_advanced_features():
@@ -288,7 +288,7 @@ async def demonstrate_advanced_features():
     # Get comprehensive dashboard
     dashboard = await adapter_manager.get_performance_dashboard()
     
-    print(f"\n📊 Multi-Platform Performance Summary")
+    print("\n📊 Multi-Platform Performance Summary")
     print("=" * 50)
     print(f"Overall Success Rate: {dashboard['overall_success_rate']:.1%}")
     print(f"Total Requests: {dashboard['total_requests']}")

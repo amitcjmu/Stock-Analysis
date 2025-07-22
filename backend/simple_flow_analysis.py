@@ -5,15 +5,17 @@ Simple flow analysis script - shows all database locations where flow data is st
 
 import asyncio
 import json
-from sqlalchemy import text
-from datetime import datetime
 import os
 import sys
+from datetime import datetime
+
+from sqlalchemy import text
 
 # Add the backend directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backend'))
 
 from app.core.database import AsyncSessionLocal
+
 
 async def analyze_flow():
     flow_id = "1e640262-4332-4087-ac4e-1674b08cd8f2"
@@ -79,7 +81,7 @@ async def analyze_flow():
                         print(f"✅ Found in {table_name}: {count} records")
                         print(f"   Columns: {', '.join(columns[:5])}{'...' if len(columns) > 5 else ''}")
                         
-            except Exception as e:
+            except Exception:
                 pass  # Skip tables that can't be queried
         
         print(f"\n📊 Flow data found in {len(tables_found)} tables\n")
@@ -103,7 +105,7 @@ async def analyze_flow():
             print(f"  Status: {discovery[1]}")
             print(f"  Current Phase: {discovery[2]}")
             print(f"  Progress: {discovery[3]}%")
-            print(f"  Phases Completed:")
+            print("  Phases Completed:")
             print(f"    - Data Import: {discovery[4]}")
             print(f"    - Field Mapping: {discovery[5]}")
             print(f"    - Data Cleansing: {discovery[6]}")

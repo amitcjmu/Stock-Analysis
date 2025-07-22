@@ -5,8 +5,9 @@ Tests the core issue without requiring database
 """
 
 import asyncio
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import logging
@@ -17,14 +18,15 @@ logger = logging.getLogger(__name__)
 
 # Initialize flows
 from app.core.flow_initialization import initialize_flows_on_startup
+
 print("[ECHO] Initializing flow configurations...")
 flow_init_results = initialize_flows_on_startup()
 print(f"[ECHO] Flow initialization results: {flow_init_results.get('success', False)}")
 
 # Import CrewAI flow components
 try:
-    from app.services.crewai_flows.unified_discovery_flow import create_unified_discovery_flow
     from app.core.context import RequestContext
+    from app.services.crewai_flows.unified_discovery_flow import create_unified_discovery_flow
     
     print("[ECHO] Testing direct CrewAI flow execution...")
     

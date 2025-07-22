@@ -5,29 +5,30 @@ This module handles the initialization of all required services for the collecti
 """
 
 import logging
+
 from app.core.context import RequestContext
-from app.services.collection_flow import (
-    CollectionFlowStateService,
-    TierDetectionService,
-    DataTransformationService,
-    QualityAssessmentService,
-    AuditLoggingService
-)
 from app.services.ai_analysis import (
+    AdaptiveQuestionnaireGenerator,
     AIValidationService,
     BusinessContextAnalyzer,
     ConfidenceScorer,
     GapAnalysisAgent,
-    AdaptiveQuestionnaireGenerator
+)
+from app.services.collection_flow import (
+    AuditLoggingService,
+    CollectionFlowStateService,
+    DataTransformationService,
+    QualityAssessmentService,
+    TierDetectionService,
 )
 from app.services.manual_collection import (
     AdaptiveFormService,
     BulkDataService,
-    QuestionnaireValidationService as ValidationService,
-    TemplateService,
+    DataIntegrationService,
     ProgressTrackingService,
-    DataIntegrationService
+    TemplateService,
 )
+from app.services.manual_collection import QuestionnaireValidationService as ValidationService
 
 logger = logging.getLogger(__name__)
 

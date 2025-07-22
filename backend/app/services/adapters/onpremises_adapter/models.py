@@ -4,7 +4,7 @@ Data models for On-Premises Platform Adapter
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 
 @dataclass

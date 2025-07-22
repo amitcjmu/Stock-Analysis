@@ -12,22 +12,22 @@ Generated with CC for modular backend architecture.
 """
 
 import logging
-from typing import Dict, Any, List, Optional, Tuple, Union
 from datetime import datetime
-
-# Import modular components
-from .decision import (
-    BaseDecisionAgent, 
-    AgentDecision, 
-    PhaseAction,
-    PhaseTransitionAgent,
-    FieldMappingDecisionAgent,
-    DecisionUtils,
-    ConfidenceCalculator
-)
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 # For backward compatibility - re-export all classes
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
+
+# Import modular components
+from .decision import (
+    AgentDecision,
+    BaseDecisionAgent,
+    ConfidenceCalculator,
+    DecisionUtils,
+    FieldMappingDecisionAgent,
+    PhaseAction,
+    PhaseTransitionAgent,
+)
 
 logger = logging.getLogger(__name__)
 

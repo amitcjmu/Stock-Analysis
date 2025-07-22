@@ -5,8 +5,9 @@ This script handles environment variable expansion and starts the FastAPI server
 """
 
 import os
-import sys
 import subprocess
+import sys
+
 
 def run_migrations():
     """Run database migrations before starting the app."""

@@ -5,15 +5,16 @@ Provides endpoints for fetching demo context data.
 This allows the frontend to dynamically load demo IDs instead of using hardcoded values.
 """
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
+import logging
 from typing import Optional
 
-from app.core.database import get_db
-from app.models import ClientAccount, Engagement, User
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.v1.auth.auth_utils import get_current_user_optional
+from app.core.database import get_db
 from app.core.seed_data_config import DemoDataConfig
-import logging
+from app.models import ClientAccount, Engagement, User
 
 logger = logging.getLogger(__name__)
 

@@ -2,9 +2,9 @@
 AWS CloudWatch Metrics Collection
 """
 
-from datetime import datetime, timedelta
-from typing import Dict, Any, List
 import logging
+from datetime import datetime, timedelta
+from typing import Any, Dict, List
 
 from .base import AWSResourceMetrics
 

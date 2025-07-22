@@ -5,13 +5,14 @@ Implements the DeepInfra OpenAI-compatible API format for Llama 4 Maverick model
 
 import json
 import logging
-import requests
-from typing import Dict, List, Optional, Any, Union
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
+
+import requests
 
 try:
-    from langchain_core.language_models.llms import LLM
     from langchain_core.callbacks.manager import CallbackManagerForLLMRun
+    from langchain_core.language_models.llms import LLM
     from pydantic import Field
     LANGCHAIN_AVAILABLE = True
 except ImportError:
@@ -104,7 +105,7 @@ class DeepInfraLlama4LLM(LLM if LANGCHAIN_AVAILABLE else object):
                 "response_format": {"type": "text"}
             }
             
-            logger.info(f"Making DeepInfra API call with reasoning_effort=none")
+            logger.info("Making DeepInfra API call with reasoning_effort=none")
             
             # Make the API call with reasonable timeout
             response = requests.post(self.base_url, headers=headers, json=payload, timeout=30)

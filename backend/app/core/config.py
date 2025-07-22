@@ -9,9 +9,10 @@ except ImportError:
     # Fallback for older pydantic versions
     from pydantic import BaseSettings
 
-from pydantic import Field, ConfigDict, field_validator
 import os
 from typing import Optional
+
+from pydantic import ConfigDict, Field, field_validator
 
 
 class Settings(BaseSettings):

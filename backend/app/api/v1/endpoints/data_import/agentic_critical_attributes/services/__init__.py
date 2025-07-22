@@ -1,7 +1,7 @@
 """Agentic critical attributes services."""
 
-from .attribute_analyzer import AttributeAnalyzer
 from .agent_coordinator import AgentCoordinator
+from .attribute_analyzer import AttributeAnalyzer
 from .learning_service import LearningService
 
 __all__ = [

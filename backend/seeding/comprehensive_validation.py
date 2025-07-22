@@ -4,15 +4,23 @@ This validates the complete database setup after all fixes have been applied.
 """
 import asyncio
 from datetime import datetime
-from sqlalchemy import select, func
+
+from sqlalchemy import func, select
+
 from app.core.database import AsyncSessionLocal
 from app.models import (
-    ClientAccount, Engagement, User, UserAccountAssociation,
-    DiscoveryFlow, DataImport, Asset, AssetDependency,
-    ImportFieldMapping, RawImportRecord
+    Asset,
+    AssetDependency,
+    ClientAccount,
+    DataImport,
+    DiscoveryFlow,
+    Engagement,
+    ImportFieldMapping,
+    RawImportRecord,
+    User,
+    UserAccountAssociation,
 )
-from app.models.asset import MigrationWave
-from app.models.asset import AssetType, AssetStatus, SixRStrategy
+from app.models.asset import AssetStatus, AssetType, MigrationWave, SixRStrategy
 
 
 class Colors:

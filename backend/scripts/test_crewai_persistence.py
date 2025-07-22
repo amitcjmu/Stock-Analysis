@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import crewai
+
 print(f"CrewAI version: {getattr(crewai, '__version__', 'unknown')}")
 
 # Check what's available in crewai.flow.flow
@@ -16,7 +17,7 @@ except ImportError as e:
 
 # Check decorators
 try:
-    from crewai.flow.flow import start, listen
+    from crewai.flow.flow import listen, start
     print("✅ start and listen decorators available")
 except ImportError as e:
     print(f"❌ Decorator imports failed: {e}")
@@ -29,7 +30,7 @@ except ImportError:
     print("❌ persist not available from crewai main")
 
 try:
-    from crewai.flow import persist  
+    from crewai.flow import persist
     print("✅ persist available from crewai.flow")
 except ImportError:
     print("❌ persist not available from crewai.flow")

@@ -3,9 +3,10 @@ Flow state definitions and management utilities.
 Provides standardized flow status, phases, and state transitions.
 """
 
+from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional, Set
-from dataclasses import dataclass
+
 
 class FlowStatus(str, Enum):
     """Standard flow status values."""

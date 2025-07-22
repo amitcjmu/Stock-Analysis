@@ -8,8 +8,8 @@ Built by: Agent Team B2 (AI Analysis & Intelligence)
 """
 
 import logging
-from typing import Dict, List, Any, Optional
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
 from .enums import BusinessDomain, StakeholderRole
 from .models import BusinessContext, QuestionnaireTarget
@@ -59,8 +59,8 @@ class QuestionnaireOptimizer:
                 business_justification=gap.get("business_justification", "Required for migration planning"),
                 success_metrics=[
                     f"Fill {gap.get('attribute_name', 'missing')} data gap",
-                    f"Improve 6R strategy confidence",
-                    f"Enable accurate migration planning"
+                    "Improve 6R strategy confidence",
+                    "Enable accurate migration planning"
                 ]
             )
             

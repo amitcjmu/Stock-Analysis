@@ -2,11 +2,12 @@
 Central Tool Registry with auto-discovery
 """
 
-import os
 import importlib
 import inspect
-from typing import Dict, List, Type, Optional, Any, Set
+import os
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Set, Type
+
 # Optional CrewAI import
 try:
     from crewai.tools import BaseTool

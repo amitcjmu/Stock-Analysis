@@ -4,7 +4,8 @@ Handles relationships between applications and servers.
 """
 
 import logging
-from typing import Dict, List, Any
+from typing import Any, Dict, List
+
 from fastapi import APIRouter, HTTPException
 
 from app.api.v1.discovery.persistence import get_processed_assets

@@ -4,11 +4,11 @@ Handles all learning, memory management, analytics, and knowledge validation fun
 """
 
 import logging
-from typing import Dict, List, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from app.services.crewai_flows.memory import TenantMemoryManager, LearningScope, MemoryIsolationLevel
-from app.services.crewai_flows.monitoring import CollaborationMonitor, CollaborationType, CollaborationStatus
+from app.services.crewai_flows.memory import LearningScope, MemoryIsolationLevel, TenantMemoryManager
+from app.services.crewai_flows.monitoring import CollaborationMonitor, CollaborationStatus, CollaborationType
 
 logger = logging.getLogger(__name__)
 

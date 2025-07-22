@@ -16,10 +16,10 @@ from fastapi import APIRouter
 
 # Import all sub-routers from monitoring modules
 from .monitoring.agent_monitoring import router as agent_router
-from .monitoring.health_metrics import router as health_router
-from .monitoring.crewai_flow_monitoring import router as crewai_flow_router
 from .monitoring.crew_monitoring import router as crew_router
+from .monitoring.crewai_flow_monitoring import router as crewai_flow_router
 from .monitoring.error_monitoring import router as error_router
+from .monitoring.health_metrics import router as health_router
 
 # Create main monitoring router
 router = APIRouter()

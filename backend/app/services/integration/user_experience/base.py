@@ -4,11 +4,11 @@ User Experience Base Types and Classes
 Core types and data structures for UX optimization.
 """
 
-from typing import Dict, List, Any
-from uuid import UUID
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from dataclasses import dataclass, field
+from typing import Any, Dict, List
+from uuid import UUID
 
 
 class UXOptimizationArea(Enum):

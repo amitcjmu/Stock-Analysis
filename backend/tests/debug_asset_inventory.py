@@ -4,8 +4,10 @@ Debug script to investigate Asset Inventory API issues.
 """
 
 import asyncio
-import aiohttp
 import json
+
+import aiohttp
+
 
 async def test_asset_inventory_api():
     """Test the Asset Inventory API endpoints to identify the 500 error."""
@@ -40,8 +42,9 @@ async def test_asset_inventory_api():
 async def test_database_cmdb_assets():
     """Test direct database access to cmdb_assets table."""
     try:
-        from app.core.database import AsyncSessionLocal
         from sqlalchemy import text
+
+        from app.core.database import AsyncSessionLocal
         
         print("\n🔍 Testing direct database access to cmdb_assets...")
         
@@ -55,7 +58,7 @@ async def test_database_cmdb_assets():
             """))
             tables = table_check.fetchall()
             if tables:
-                print(f"✅ cmdb_assets table exists")
+                print("✅ cmdb_assets table exists")
             else:
                 print("❌ cmdb_assets table does not exist!")
                 return
@@ -109,7 +112,7 @@ async def test_asset_model_import():
     """Test importing the CMDBAsset model."""
     try:
         print("\n🔍 Testing CMDBAsset model import...")
-        from app.models.cmdb_asset import CMDBAsset, AssetType, AssetStatus, SixRStrategy
+        from app.models.cmdb_asset import AssetStatus, AssetType, CMDBAsset, SixRStrategy
         print("✅ Successfully imported CMDBAsset model")
         
         # Test enum values

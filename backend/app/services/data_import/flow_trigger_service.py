@@ -9,14 +9,14 @@ Handles flow creation and triggering including:
 """
 
 import logging
-from typing import Dict, List, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging import get_logger
 from app.core.context import RequestContext
 from app.core.exceptions import FlowError
+from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -63,7 +63,7 @@ class FlowTriggerService:
             # Initialize Master Flow Orchestrator with existing session
             orchestrator = MasterFlowOrchestrator(self.db, context)
             
-            logger.info(f"🔍 Creating discovery flow through orchestrator...")
+            logger.info("🔍 Creating discovery flow through orchestrator...")
             logger.info(f"🔍 Parameters - import_id: {data_import_id}, client: {self.client_account_id}, engagement: {engagement_id}, user: {user_id}")
             logger.info(f"🔍 Raw data count: {len(file_data) if file_data else 0}")
             
@@ -91,10 +91,10 @@ class FlowTriggerService:
                 # 🔧 CC FIX: Now create the actual discovery flow that links to this master flow
                 # This is the missing piece - we need BOTH master flow AND discovery flow
                 try:
-                    from app.services.discovery_flow_service import DiscoveryFlowService
-                    
                     # Generate unique discovery flow ID for CrewAI
                     import uuid
+
+                    from app.services.discovery_flow_service import DiscoveryFlowService
                     discovery_flow_id = str(uuid.uuid4())
                     
                     # Create discovery flow service
@@ -165,14 +165,14 @@ class FlowTriggerService:
         try:
             logger.info(f"🚀 Triggering Discovery Flow via MasterFlowOrchestrator for import {data_import_id}")
             
-            from app.services.master_flow_orchestrator import MasterFlowOrchestrator
             from app.core.database import AsyncSessionLocal
+            from app.services.master_flow_orchestrator import MasterFlowOrchestrator
             
             async with AsyncSessionLocal() as fresh_db:
                 # Initialize Master Flow Orchestrator with fresh session
                 orchestrator = MasterFlowOrchestrator(fresh_db, context)
                 
-                logger.info(f"🔍 Creating discovery flow through orchestrator...")
+                logger.info("🔍 Creating discovery flow through orchestrator...")
                 logger.info(f"🔍 Parameters - import_id: {data_import_id}, client: {self.client_account_id}, engagement: {engagement_id}, user: {user_id}")
                 logger.info(f"🔍 Raw data count: {len(file_data) if file_data else 0}")
                 

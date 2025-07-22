@@ -3,10 +3,11 @@ Pydantic schemas for migration-related API operations.
 """
 
 from datetime import datetime
-from typing import Optional, Dict, Any, List
-from pydantic import BaseModel, Field, ConfigDict
+from typing import Any, Dict, List, Optional
 
-from app.models.migration import MigrationStatus, MigrationPhase
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.models.migration import MigrationPhase, MigrationStatus
 
 
 class MigrationBase(BaseModel):

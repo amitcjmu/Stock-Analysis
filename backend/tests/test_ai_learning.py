@@ -6,14 +6,15 @@ This simulates the exact scenario described by the user.
 
 import asyncio
 import json
-import sys
 import os
+import sys
 
 # Add the backend directory to the Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
 
-from app.services.field_mapper import field_mapper
 from app.services.crewai_service_modular import crewai_service
+from app.services.field_mapper import field_mapper
+
 
 async def test_ai_learning_scenario():
     """Test the exact scenario described by the user."""
@@ -55,7 +56,7 @@ async def test_ai_learning_scenario():
     # Also test the field mapping tool directly
     from app.services.tools.field_mapping_tool import field_mapping_tool
     
-    print(f"\n🔧 Testing field mapping tool directly...")
+    print("\n🔧 Testing field mapping tool directly...")
     
     # Test learning specific mappings from user feedback
     ram_learning = field_mapping_tool.learn_field_mapping("RAM_GB", "Memory (GB)", "user_feedback_test")
@@ -66,15 +67,15 @@ async def test_ai_learning_scenario():
     print(f"   APPLICATION_OWNER learning: {owner_learning['success']}")
     print(f"   DR_TIER learning: {tier_learning['success']}")
     
-    print(f"\n💬 Simulating user feedback:")
+    print("\n💬 Simulating user feedback:")
     print(f"   Analysis Issues: {user_feedback['user_corrections']['analysis_issues']}")
     print(f"   Missing Fields Feedback: {user_feedback['user_corrections']['missing_fields_feedback']}")
     
     # Process feedback through AI learning system
-    print(f"\n🤖 Processing feedback through AI Learning Specialist...")
+    print("\n🤖 Processing feedback through AI Learning Specialist...")
     try:
         learning_result = await crewai_service.process_user_feedback(user_feedback)
-        print(f"✅ AI Learning completed successfully")
+        print("✅ AI Learning completed successfully")
         print(f"   Patterns identified: {learning_result.get('patterns_identified', [])}")
         print(f"   Confidence boost: {learning_result.get('confidence_boost', 0)}")
     except Exception as e:
@@ -117,14 +118,14 @@ async def test_ai_learning_scenario():
     owner_matches = field_mapper.find_matching_fields(test_columns, 'Business Owner')
     criticality_matches = field_mapper.find_matching_fields(test_columns, 'Criticality')
     
-    print(f"\n🔍 Field matching results:")
+    print("\n🔍 Field matching results:")
     print(f"   Memory (GB) matches: {ram_matches}")
     print(f"   Business Owner matches: {owner_matches}")
     print(f"   Criticality matches: {criticality_matches}")
     
     # Calculate improvement
     improvement = len(missing_before) - len(missing_after)
-    print(f"\n📈 Learning effectiveness:")
+    print("\n📈 Learning effectiveness:")
     print(f"   Fields missing before: {len(missing_before)}")
     print(f"   Fields missing after: {len(missing_after)}")
     print(f"   Improvement: {improvement} fewer false missing fields")
@@ -132,7 +133,7 @@ async def test_ai_learning_scenario():
     
     # Verify persistence
     stats = field_mapper.get_mapping_statistics()
-    print(f"\n💾 Learning persistence:")
+    print("\n💾 Learning persistence:")
     print(f"   Learned field types: {stats['learned_field_types']}")
     print(f"   Learned variations: {stats['learned_variations']}")
     print(f"   Mappings file exists: {field_mapper.mappings_file.exists()}")
@@ -152,7 +153,7 @@ async def test_ai_learning_scenario():
 if __name__ == "__main__":
     result = asyncio.run(test_ai_learning_scenario())
     
-    print(f"\n🎯 Test Results Summary:")
+    print("\n🎯 Test Results Summary:")
     print(f"   RAM_GB → Memory (GB) learned: {result['ram_gb_learned']}")
     print(f"   APPLICATION_OWNER → Business Owner learned: {result['application_owner_learned']}")
     print(f"   DR_TIER → Criticality learned: {result['dr_tier_learned']}")
@@ -163,13 +164,13 @@ if __name__ == "__main__":
     field_mappings_learned = result['ram_gb_learned'] and result['application_owner_learned'] and result['dr_tier_learned']
     
     if result['improvement'] >= 1 and memory_learning_success and field_mappings_learned:
-        print(f"\n✅ SUCCESS: AI learning system is working correctly!")
-        print(f"   ✓ Memory field learning: RAM_GB → Memory (GB)")
-        print(f"   ✓ Business Owner field learning: APPLICATION_OWNER → Business Owner") 
-        print(f"   ✓ Criticality field learning: DR_TIER → Criticality")
+        print("\n✅ SUCCESS: AI learning system is working correctly!")
+        print("   ✓ Memory field learning: RAM_GB → Memory (GB)")
+        print("   ✓ Business Owner field learning: APPLICATION_OWNER → Business Owner") 
+        print("   ✓ Criticality field learning: DR_TIER → Criticality")
         print(f"   ✓ Reduced false missing field alerts by {result['improvement']}")
     else:
-        print(f"\n❌ FAILURE: AI learning system needs improvement")
-        print(f"   Expected: improvement >= 1, memory_learning=True, all_mappings_learned=True")
+        print("\n❌ FAILURE: AI learning system needs improvement")
+        print("   Expected: improvement >= 1, memory_learning=True, all_mappings_learned=True")
         print(f"   Actual: improvement={result['improvement']}, memory_learning={memory_learning_success}, all_mappings={field_mappings_learned}")
         print(f"   Details: ram_gb_learned={result['ram_gb_learned']}, application_owner_learned={result['application_owner_learned']}, dr_tier_learned={result['dr_tier_learned']}") 

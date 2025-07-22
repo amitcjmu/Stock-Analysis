@@ -7,7 +7,8 @@ for discovery flow API endpoints.
 
 import logging
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -267,6 +268,7 @@ class ResponseMappers:
                     
                     # Also get field mappings from the data import system
                     from sqlalchemy import select
+
                     from app.models.data_import.mapping import ImportFieldMapping
                     
                     mapping_stmt = select(ImportFieldMapping).where(

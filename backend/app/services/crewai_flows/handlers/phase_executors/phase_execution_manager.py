@@ -6,7 +6,7 @@ Now integrated with Flow State Bridge for PostgreSQL persistence.
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -34,11 +34,11 @@ class PhaseExecutionManager:
         self.context = context  # Request context for monitoring
         
         # Initialize phase executors with flow bridge
-        from .data_import_validation_executor import DataImportValidationExecutor
-        from .field_mapping_executor import FieldMappingExecutor
-        from .data_cleansing_executor import DataCleansingExecutor
         from .asset_inventory_executor import AssetInventoryExecutor
+        from .data_cleansing_executor import DataCleansingExecutor
+        from .data_import_validation_executor import DataImportValidationExecutor
         from .dependency_analysis_executor import DependencyAnalysisExecutor
+        from .field_mapping_executor import FieldMappingExecutor
         from .tech_debt_executor import TechDebtExecutor
         
         self.data_import_validation_executor = DataImportValidationExecutor(state, crew_manager, flow_bridge)

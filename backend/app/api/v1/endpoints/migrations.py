@@ -4,11 +4,12 @@ Handles CRUD operations for migration projects and related functionality.
 """
 
 from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 try:
+    from sqlalchemy import delete, select, update
     from sqlalchemy.ext.asyncio import AsyncSession
-    from sqlalchemy import select, update, delete
     from sqlalchemy.orm import selectinload
     SQLALCHEMY_AVAILABLE = True
 except ImportError:
@@ -26,13 +27,8 @@ except ImportError:
         return None
 
 from app.core.database import get_db
-from app.models.migration import Migration, MigrationStatus, MigrationPhase
-from app.schemas.migration import (
-    MigrationCreate,
-    MigrationUpdate,
-    MigrationResponse,
-    MigrationListResponse
-)
+from app.models.migration import Migration, MigrationPhase, MigrationStatus
+from app.schemas.migration import MigrationCreate, MigrationListResponse, MigrationResponse, MigrationUpdate
 from app.websocket.manager import ConnectionManager
 
 router = APIRouter()

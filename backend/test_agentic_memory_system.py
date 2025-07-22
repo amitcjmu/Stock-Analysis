@@ -12,10 +12,10 @@ This script tests the complete agentic memory architecture to verify:
 This demonstrates the architectural shift from rule-based to agentic intelligence.
 """
 
-import sys
 import asyncio
-import uuid
 import json
+import sys
+import uuid
 from datetime import datetime
 
 # Add the app directory to the Python path
@@ -30,8 +30,8 @@ async def test_agentic_memory_system():
     # Test 1: Create Test Tenant Context
     print("\n1️⃣ Creating Test Tenant Context...")
     try:
-        from app.models.client_account import ClientAccount  
         from app.core.database import AsyncSessionLocal
+        from app.models.client_account import ClientAccount
         
         # Create test entities with proper foreign key relationships
         client_account_id = uuid.uuid4()
@@ -104,8 +104,8 @@ async def test_agentic_memory_system():
     # Test 3: Pattern Storage (Tier 3 Memory)
     print("\n3️⃣ Testing Pattern Storage (Tier 3 Memory)...")
     try:
-        from app.models.agent_memory import PatternType, create_asset_enrichment_pattern
         from app.core.database import AsyncSessionLocal
+        from app.models.agent_memory import PatternType, create_asset_enrichment_pattern
         
         # Create a test pattern
         pattern = create_asset_enrichment_pattern(
@@ -174,8 +174,8 @@ async def test_agentic_memory_system():
     print("\n5️⃣ Testing Asset Data Query Tool...")
     try:
         # First, let's create a test asset
-        from app.models.asset import Asset
         from app.core.database import AsyncSessionLocal
+        from app.models.asset import Asset
         
         test_asset = Asset(
             id=uuid.uuid4(),
@@ -395,10 +395,10 @@ if __name__ == "__main__":
             success = await test_agentic_memory_system()
             
             if success:
-                print(f"\n✅ CONCLUSION: Agentic memory system is fully operational!")
+                print("\n✅ CONCLUSION: Agentic memory system is fully operational!")
                 exit(0)
             else:
-                print(f"\n❌ CONCLUSION: Agentic memory system has issues.")
+                print("\n❌ CONCLUSION: Agentic memory system has issues.")
                 exit(1)
                 
         except Exception as e:

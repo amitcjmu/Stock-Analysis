@@ -4,11 +4,14 @@ Context Schemas
 Pydantic models for user context data.
 """
 
-from typing import Dict, List, Optional, Any
-from uuid import UUID
-from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field
+
 from .flow import FlowBase
+
 
 class ClientBase(BaseModel):
     """Client account information."""

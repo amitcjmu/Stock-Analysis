@@ -3,15 +3,15 @@ Base Learning Module - Core functionality and utilities for the learning system
 """
 
 import logging
-from pathlib import Path
-from typing import Dict, List, Any, Optional
-from datetime import datetime
 from dataclasses import asdict
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from app.services.memory import AgentMemory
-from app.services.embedding_service import EmbeddingService
-from app.utils.vector_utils import VectorUtils
 from app.services.agent_learning.models import LearningContext, LearningPattern, PerformanceLearningPattern
+from app.services.embedding_service import EmbeddingService
+from app.services.memory import AgentMemory
+from app.utils.vector_utils import VectorUtils
 
 logger = logging.getLogger(__name__)
 

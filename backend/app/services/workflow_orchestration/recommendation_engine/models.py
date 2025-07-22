@@ -5,11 +5,11 @@ Team C1 - Task C1.5
 Data models and structures for the smart workflow recommendation system.
 """
 
-from datetime import datetime
-from typing import Dict, Any, List
 from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, List
 
-from .enums import RecommendationType, RecommendationConfidence, RecommendationSource
+from .enums import RecommendationConfidence, RecommendationSource, RecommendationType
 
 
 @dataclass

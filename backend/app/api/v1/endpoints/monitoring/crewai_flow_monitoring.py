@@ -5,15 +5,16 @@ Provides comprehensive monitoring for CrewAI Flow executions including real-time
 agent task details, and performance metrics.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Request
-from typing import Dict, Any
 import logging
 from datetime import datetime
+from typing import Any, Dict
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.api.v1.dependencies import get_crewai_flow_service
 from app.core.context import extract_context_from_request
-from app.services.crewai_flow_service import CrewAIFlowService
 from app.core.logging import get_logger as enhanced_get_logger
+from app.services.crewai_flow_service import CrewAIFlowService
 
 logger = enhanced_get_logger(__name__)
 

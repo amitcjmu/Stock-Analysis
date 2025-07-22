@@ -6,9 +6,12 @@ This tests the endpoint directly from inside the backend container
 
 import asyncio
 import sys
+
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.database import AsyncSessionLocal
+
 from app.api.v1.master_flows import get_active_master_flows
+from app.core.database import AsyncSessionLocal
+
 
 async def test_get_active_flows():
     """Test the get_active_master_flows function directly"""
@@ -58,13 +61,13 @@ async def test_get_active_flows():
             expected_discovery = sum(1 for flow in all_flows if flow['flow_type'] == 'discovery')
             
             if discovery_count == expected_discovery:
-                print(f"\n✅ SUCCESS: Filtering is working correctly!")
+                print("\n✅ SUCCESS: Filtering is working correctly!")
                 print(f"   - All flows: {len(all_flows)}")
                 print(f"   - Discovery flows (filtered): {discovery_count}")
                 print(f"   - Discovery flows (expected): {expected_discovery}")
                 return True
             else:
-                print(f"\n❌ FAILURE: Filtering mismatch!")
+                print("\n❌ FAILURE: Filtering mismatch!")
                 print(f"   - Discovery flows (filtered): {discovery_count}")
                 print(f"   - Discovery flows (expected): {expected_discovery}")
                 return False

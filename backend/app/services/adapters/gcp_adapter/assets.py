@@ -4,12 +4,12 @@ GCP Asset Collection
 Handles asset discovery and collection using Cloud Asset Inventory.
 """
 
-from typing import Dict, Any, List, Set
 import logging
+from typing import Any, Dict, List, Set
 
-from .dependencies import asset_v1
 from .auth import GCPAuthManager
 from .constants import SUPPORTED_ASSET_TYPES
+from .dependencies import asset_v1
 from .utils import proto_to_dict
 
 

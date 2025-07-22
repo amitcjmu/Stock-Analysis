@@ -4,11 +4,13 @@ Force migration script for Railway production database.
 This script directly applies missing schema changes to fix production issues.
 """
 
-import os
 import asyncio
-import asyncpg
 import json
+import os
 from urllib.parse import urlparse
+
+import asyncpg
+
 
 async def main():
     """Apply missing schema changes to Railway production database."""

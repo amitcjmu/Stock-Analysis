@@ -5,14 +5,14 @@ Provides comprehensive metrics collection for assessment flow operations
 using Prometheus-compatible metrics.
 """
 
-import time
 import logging
-from functools import wraps
-from typing import Dict, Any, Optional
+import time
 from datetime import datetime
+from functools import wraps
+from typing import Any, Dict, Optional
 
 try:
-    from prometheus_client import Counter, Histogram, Gauge, Info
+    from prometheus_client import Counter, Gauge, Histogram, Info
     PROMETHEUS_AVAILABLE = True
 except ImportError:
     # Mock classes when Prometheus is not available

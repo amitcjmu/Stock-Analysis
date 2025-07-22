@@ -3,16 +3,20 @@ Simple Integration Test for Collection Flow
 Tests basic functionality without complex dependencies
 """
 
-import pytest
 import asyncio
 from datetime import datetime
 
-from app.services.crewai_flows.unified_collection_flow import UnifiedCollectionFlow
-from app.models.collection_flow import (
-    CollectionFlowState, CollectionPhase, CollectionStatus,
-    AutomationTier, PlatformType
-)
+import pytest
+
 from app.core.context import RequestContext
+from app.models.collection_flow import (
+    AutomationTier,
+    CollectionFlowState,
+    CollectionPhase,
+    CollectionStatus,
+    PlatformType,
+)
+from app.services.crewai_flows.unified_collection_flow import UnifiedCollectionFlow
 
 
 @pytest.mark.asyncio

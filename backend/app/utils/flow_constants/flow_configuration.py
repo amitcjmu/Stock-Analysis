@@ -3,11 +3,12 @@ Flow configuration definitions and management utilities.
 Provides standardized flow configurations and validation.
 """
 
-from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
-from .flow_states import FlowType, FlowPhase, FlowPriority
+from .flow_states import FlowPhase, FlowPriority, FlowType
+
 
 class ConfigurationLevel(str, Enum):
     """Configuration inheritance levels."""

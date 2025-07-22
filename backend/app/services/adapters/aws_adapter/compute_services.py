@@ -2,8 +2,8 @@
 AWS Compute Services Collection (EC2, Lambda)
 """
 
-from typing import Dict, Any, List
 import logging
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 

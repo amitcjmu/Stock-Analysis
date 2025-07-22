@@ -4,8 +4,8 @@ Service utilities for agent service layer operations.
 
 import logging
 import uuid
-from typing import Dict, Any, List, Optional, Union
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Union
 
 logger = logging.getLogger(__name__)
 

@@ -5,9 +5,9 @@ Enhanced for Agent Observability Enhancement Phase 2.
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Tuple
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

@@ -3,38 +3,40 @@ Collection Flow API Endpoints
 Provides API interface for the Adaptive Data Collection System (ADCS)
 """
 
-from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
 
-from app.core.database import get_db
-from app.core.context import get_request_context
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.v1.auth.auth_utils import get_current_user
+from app.core.context import get_request_context
+from app.core.database import get_db
+from app.core.rbac_utils import COLLECTION_CREATE_ROLES, COLLECTION_DELETE_ROLES, COLLECTION_VIEW_ROLES, require_role
 from app.models import User
 from app.models.collection_flow import (
-    CollectionFlow, CollectionPhase, CollectionFlowStatus, 
-    AutomationTier, CollectionGapAnalysis, AdaptiveQuestionnaire
+    AdaptiveQuestionnaire,
+    AutomationTier,
+    CollectionFlow,
+    CollectionFlowStatus,
+    CollectionGapAnalysis,
+    CollectionPhase,
 )
-# from app.services.workflow_orchestration.collection_phase_engine import CollectionPhaseEngine
-from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+
 # from app.services.flow_state_service import FlowStateService
 from app.schemas.collection_flow import (
+    AdaptiveQuestionnaireResponse,
     CollectionFlowCreate,
     CollectionFlowResponse,
     CollectionFlowUpdate,
     CollectionGapAnalysisResponse,
-    AdaptiveQuestionnaireResponse
 )
-from app.core.rbac_utils import (
-    require_role, 
-    COLLECTION_CREATE_ROLES, 
-    COLLECTION_DELETE_ROLES,
-    COLLECTION_VIEW_ROLES
-)
+
+# from app.services.workflow_orchestration.collection_phase_engine import CollectionPhaseEngine
+from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +133,7 @@ async def create_collection_flow(
                 else:
                     raise HTTPException(
                         status_code=400,
-                        detail=f"An active collection flow is being initialized. Please wait or use the flow management UI to cancel it."
+                        detail="An active collection flow is being initialized. Please wait or use the flow management UI to cancel it."
                     )
             else:
                 raise HTTPException(

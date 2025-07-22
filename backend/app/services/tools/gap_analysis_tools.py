@@ -8,13 +8,13 @@ The actual implementations have been moved to the gap_analysis package.
 # Re-export all tools from the modularized package
 from .gap_analysis import (
     AttributeMapperTool,
+    CollectionPlannerTool,
     CompletenessAnalyzerTool,
-    QualityScorerTool,
+    EffortEstimatorTool,
     GapIdentifierTool,
     ImpactCalculatorTool,
-    EffortEstimatorTool,
     PriorityRankerTool,
-    CollectionPlannerTool
+    QualityScorerTool,
 )
 
 # Export the same classes for backward compatibility

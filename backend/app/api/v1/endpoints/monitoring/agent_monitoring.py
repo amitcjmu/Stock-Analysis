@@ -4,14 +4,16 @@ Agent monitoring endpoints.
 Provides real-time observability into agent status, task execution, and registry management.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query
-from typing import Dict, List, Any, Optional
 import logging
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from app.services.agent_monitor import agent_monitor, TaskStatus
-from app.services.agent_registry import agent_registry, AgentPhase, AgentStatus
+from fastapi import APIRouter, Depends, HTTPException, Query
+
 from app.core.logging import get_logger as enhanced_get_logger
+from app.services.agent_monitor import TaskStatus, agent_monitor
+from app.services.agent_registry import AgentPhase, AgentStatus, agent_registry
+
 from .base import get_monitoring_context
 
 logger = enhanced_get_logger(__name__)
@@ -143,8 +145,8 @@ async def get_task_history(
         # Add performance data if requested and context available
         if include_performance_data and context:
             try:
-                from app.services.agent_task_history_service import AgentTaskHistoryService
                 from app.core.database import get_db
+                from app.services.agent_task_history_service import AgentTaskHistoryService
                 
                 db = next(get_db())
                 service = AgentTaskHistoryService(db)

@@ -5,12 +5,10 @@ Validates compatibility between component treatments within an application.
 """
 
 import logging
-from typing import Dict, Any, List
 from datetime import datetime
+from typing import Any, Dict, List
 
-from app.models.assessment_flow_state import (
-    SixRStrategy, ComponentType
-)
+from app.models.assessment_flow_state import ComponentType, SixRStrategy
 
 logger = logging.getLogger(__name__)
 

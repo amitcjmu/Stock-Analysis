@@ -3,7 +3,7 @@ Asset Validation Handler
 Handles the validation of asset data.
 """
 import logging
-from typing import Dict, Any, Tuple
+from typing import Any, Dict, Tuple
 
 logger = logging.getLogger(__name__)
 

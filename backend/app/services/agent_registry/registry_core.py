@@ -5,11 +5,11 @@ Core functionality for agent registration, lookup, and management.
 """
 
 import logging
-from typing import Dict, List, Optional, Any
-from datetime import datetime
 from dataclasses import asdict
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from .base import AgentRegistration, AgentPhase, AgentStatus
+from .base import AgentPhase, AgentRegistration, AgentStatus
 
 logger = logging.getLogger(__name__)
 

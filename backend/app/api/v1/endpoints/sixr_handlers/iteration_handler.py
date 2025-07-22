@@ -4,10 +4,11 @@ Handles analysis iterations and refinement operations.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
+
 from fastapi import HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -21,9 +22,8 @@ class IterationHandler:
     def _initialize_dependencies(self):
         """Initialize dependencies with graceful fallbacks."""
         try:
-            from app.models.sixr_analysis import (
-                SixRAnalysis, SixRParameters as SixRParametersModel, SixRIteration
-            )
+            from app.models.sixr_analysis import SixRAnalysis, SixRIteration
+            from app.models.sixr_analysis import SixRParameters as SixRParametersModel
             from app.schemas.sixr_analysis import AnalysisStatus, SixRParameterBase
             try:
                 from app.services.sixr_engine_modular import SixRDecisionEngine

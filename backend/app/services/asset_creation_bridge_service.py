@@ -5,15 +5,17 @@ Converts discovery_assets to main assets table during inventory phase completion
 
 import logging
 import uuid
-from typing import List, Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+
+from app.core.context import RequestContext
 
 # from app.models.discovery_asset import DiscoveryAsset  # Model removed - using Asset model instead
-from app.models.asset import Asset, AssetType, AssetStatus
+from app.models.asset import Asset, AssetStatus, AssetType
 from app.models.discovery_flow import DiscoveryFlow
-from app.core.context import RequestContext
 
 logger = logging.getLogger(__name__)
 

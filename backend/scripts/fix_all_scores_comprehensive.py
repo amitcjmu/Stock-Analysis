@@ -2,9 +2,12 @@
 
 import asyncio
 import json
+
+from sqlalchemy import select, text
+
 from app.core.database import AsyncSessionLocal
 from app.models.sixr_analysis import SixRRecommendation as SixRRecommendationModel
-from sqlalchemy import select, text
+
 
 def fix_scores_recursively(data, path="", changes=None):
     """Recursively find and fix ALL scores > 100 in any data structure"""
@@ -50,7 +53,7 @@ async def comprehensive_score_fix():
             
             # Check strategy_scores
             if rec.strategy_scores:
-                print(f"  📋 Checking strategy_scores...")
+                print("  📋 Checking strategy_scores...")
                 original_data = json.loads(json.dumps(rec.strategy_scores))
                 changes = fix_scores_recursively(rec.strategy_scores, "strategy_scores")
                 
@@ -82,7 +85,7 @@ async def comprehensive_score_fix():
             
             # Verify fix worked by testing a problematic query
             try:
-                print(f"\n🧪 VERIFICATION TEST...")
+                print("\n🧪 VERIFICATION TEST...")
                 test_result = await session.execute(
                     text("SELECT id, strategy_scores FROM sixr_recommendations WHERE strategy_scores::text LIKE '%108.0%' LIMIT 5")
                 )
@@ -93,12 +96,12 @@ async def comprehensive_score_fix():
                     for row in remaining_issues:
                         print(f"   - Recommendation {row[0]}: {row[1]}")
                 else:
-                    print(f"✅ Verification passed - no more 108.0 scores found!")
+                    print("✅ Verification passed - no more 108.0 scores found!")
                     
             except Exception as e:
                 print(f"⚠️  Verification test failed: {e}")
         else:
-            print(f"\n✅ No scores > 100 found in any recommendations")
+            print("\n✅ No scores > 100 found in any recommendations")
 
 if __name__ == "__main__":
     asyncio.run(comprehensive_score_fix()) 

@@ -12,16 +12,18 @@ Options:
     --force-reset: Drop all tables and recreate from scratch (destructive)
 """
 
-import asyncio
 import argparse
+import asyncio
 import logging
 import os
 import sys
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
+
 import asyncpg
-from sqlalchemy import text, MetaData
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy import MetaData, text
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+
 from alembic import command
 from alembic.config import Config
 
@@ -49,7 +51,7 @@ class RailwayDatabaseFixer:
         if not self.database_url:
             raise ValueError("DATABASE_URL environment variable is required")
         
-        logger.info(f"Railway Database Fixer initialized")
+        logger.info("Railway Database Fixer initialized")
         logger.info(f"Force reset mode: {self.force_reset}")
 
     async def check_database_connection(self) -> bool:

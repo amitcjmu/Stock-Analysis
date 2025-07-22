@@ -7,12 +7,12 @@ and the 22 critical attributes framework defined in the ADCS specifications.
 Agent Team B3 - Task B3.1
 """
 
-from typing import Dict, List, Optional, Any, Union
-from dataclasses import dataclass, asdict
-from enum import Enum
 import logging
-from uuid import UUID
+from dataclasses import asdict, dataclass
 from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Union
+from uuid import UUID
 
 from ..collection_flow.quality_scoring import QualityAssessmentService
 

@@ -4,21 +4,19 @@ Handles background analysis tasks including initial analysis, parameter updates,
 question processing, iteration analysis, and bulk analysis operations.
 """
 
-import logging
 import asyncio
-from typing import List, Dict, Any, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
+import logging
+from typing import Any, Dict, List, Optional
+
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
-from app.models.sixr_analysis import (
-    SixRAnalysis, SixRAnalysisParameters as SixRParametersModel,
-    SixRRecommendation as SixRRecommendationModel, SixRQuestionResponse
-)
 from app.models.asset import Asset
-from app.schemas.sixr_analysis import (
-    AnalysisStatus, SixRParameterBase
-)
+from app.models.sixr_analysis import SixRAnalysis, SixRQuestionResponse
+from app.models.sixr_analysis import SixRAnalysisParameters as SixRParametersModel
+from app.models.sixr_analysis import SixRRecommendation as SixRRecommendationModel
+from app.schemas.sixr_analysis import AnalysisStatus, SixRParameterBase
 from app.services.sixr_engine_modular import SixRDecisionEngine
 
 logger = logging.getLogger(__name__)

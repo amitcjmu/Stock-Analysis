@@ -5,15 +5,11 @@ Enhanced with context-scoped learning for multi-tenancy.
 """
 
 import logging
-from typing import Dict, List, Optional, Any
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from .field_mapper_handlers import (
-    MappingEngineHandler,
-    ValidationHandler,
-    AgentInterfaceHandler
-)
-from .agent_learning_system import agent_learning_system, LearningContext
+from .agent_learning_system import LearningContext, agent_learning_system
+from .field_mapper_handlers import AgentInterfaceHandler, MappingEngineHandler, ValidationHandler
 
 logger = logging.getLogger(__name__)
 
@@ -380,8 +376,8 @@ class FieldMapperService:
             
             # Import workflow service for updates
             try:
-                from app.services.workflow_service import WorkflowService
                 from app.core.database import AsyncSessionLocal
+                from app.services.workflow_service import WorkflowService
                 
                 async with AsyncSessionLocal() as db:
                     workflow_service = WorkflowService(db, client_account_id, engagement_id)
@@ -487,8 +483,8 @@ class FieldMapperService:
             
             # Try to update workflow status
             try:
-                from app.services.workflow_service import WorkflowService
                 from app.core.database import AsyncSessionLocal
+                from app.services.workflow_service import WorkflowService
                 
                 async with AsyncSessionLocal() as db:
                     workflow_service = WorkflowService(db, client_account_id, engagement_id)

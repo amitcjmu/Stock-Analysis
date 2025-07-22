@@ -6,11 +6,11 @@ Helps prevent "Cannot transition from initialized to active" type errors.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.core.exceptions import InvalidFlowStateError
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 
 logger = logging.getLogger(__name__)
 

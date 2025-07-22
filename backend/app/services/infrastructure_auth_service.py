@@ -3,7 +3,7 @@ Infrastructure-aware authentication service that uses deployment abstractions.
 """
 
 import logging
-from typing import Optional, Dict, Any, List
+from typing import Any, Dict, List, Optional
 
 from app.infrastructure import get_service_factory
 

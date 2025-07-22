@@ -5,12 +5,13 @@ Manages error recovery during collection with intelligent retry strategies.
 """
 
 import asyncio
-import random
 import logging
-from typing import Dict, Any, List, Optional
+import random
+from typing import Any, Dict, List, Optional
 
 from app.services.tools.base_tool import AsyncBaseDiscoveryTool
 from app.services.tools.registry import ToolMetadata
+
 from .base import BaseCollectionTool
 
 logger = logging.getLogger(__name__)

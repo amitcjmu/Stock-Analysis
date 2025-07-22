@@ -6,8 +6,9 @@ This model represents questionnaire responses for filling data gaps.
 
 import uuid
 from datetime import datetime
-from typing import Optional, Dict, Any
-from sqlalchemy import Column, String, UUID, ForeignKey, Float, Text, DateTime
+from typing import Any, Dict, Optional
+
+from sqlalchemy import UUID, Column, DateTime, Float, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 

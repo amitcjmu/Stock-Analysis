@@ -8,13 +8,13 @@ and a registry for managing adapter implementations.
 import logging
 import uuid
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List, Optional, Type, Callable
-from datetime import datetime
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Type
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.collection_flow import AutomationTier
 

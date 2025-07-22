@@ -2,11 +2,13 @@
 Collection Planner Tool - Plans optimal collection strategy for gaps
 """
 
-from typing import Dict, Any, List, Optional
+import logging
+from typing import Any, Dict, List, Optional
+
 from app.services.tools.base_tool import AsyncBaseDiscoveryTool
 from app.services.tools.registry import ToolMetadata
+
 from .constants import BASE_EFFORT_HOURS
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -159,9 +161,9 @@ class CollectionPlannerTool(AsyncBaseDiscoveryTool):
         # Define deliverables
         phase["deliverables"] = [
             f"Complete data for {len(gaps)} attributes",
-            f"Data quality validation report",
-            f"Updated CMDB with collected data",
-            f"Gap closure confirmation"
+            "Data quality validation report",
+            "Updated CMDB with collected data",
+            "Gap closure confirmation"
         ]
         
         return phase

@@ -12,10 +12,13 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_path))
 
+import uuid
+
+from sqlalchemy import select, update
+
 from app.core.database import AsyncSessionLocal
 from app.models.client_account import ClientAccount
-from sqlalchemy import select, update
-import uuid
+
 
 async def seed_client_data():
     """Seed client account data with proper industry and company_size values."""
@@ -130,8 +133,8 @@ async def create_default_clients_if_missing():
             session.add(test_client)
             await session.commit()
             
-            print(f"  ✅ Created 'AI Modernize Platform' client")
-            print(f"  ✅ Created 'Test Corporation' client")
+            print("  ✅ Created 'AI Modernize Platform' client")
+            print("  ✅ Created 'Test Corporation' client")
             print("🎉 Successfully created default client accounts")
             
         except Exception as e:

@@ -1,9 +1,12 @@
 import uuid
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Text, JSON
+from datetime import datetime
+
+from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+
 from app.core.database import Base
-from datetime import datetime
+
 
 class CustomTargetField(Base):
     __tablename__ = 'custom_target_fields'

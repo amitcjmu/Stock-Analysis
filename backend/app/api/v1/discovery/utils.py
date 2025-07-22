@@ -4,7 +4,7 @@ Helper functions for asset processing and analysis.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 
 from app.core.config import settings
 

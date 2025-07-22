@@ -3,11 +3,12 @@ Background Tasks Handler
 Handles all background processing for 6R analysis operations.
 """
 
-import logging
 import asyncio
-from typing import List, Dict, Any
-from sqlalchemy.ext.asyncio import AsyncSession
+import logging
+from typing import Any, Dict, List
+
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -22,10 +23,9 @@ class BackgroundTasksHandler:
         """Initialize dependencies with graceful fallbacks."""
         try:
             from app.core.database import AsyncSessionLocal
-            from app.models.sixr_analysis import (
-                SixRAnalysis, SixRParameters as SixRParametersModel,
-                SixRRecommendation as SixRRecommendationModel
-            )
+            from app.models.sixr_analysis import SixRAnalysis
+            from app.models.sixr_analysis import SixRParameters as SixRParametersModel
+            from app.models.sixr_analysis import SixRRecommendation as SixRRecommendationModel
             from app.schemas.sixr_analysis import AnalysisStatus, SixRParameterBase
             try:
                 from app.services.sixr_engine_modular import SixRDecisionEngine

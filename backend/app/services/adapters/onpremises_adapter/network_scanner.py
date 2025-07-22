@@ -3,13 +3,13 @@ Network scanning functionality for On-Premises Platform Adapter
 """
 
 import asyncio
+import platform
+import re
 import socket
 import time
-import re
-import platform
-from typing import Optional, List, Dict, Any
 from datetime import datetime
-from ipaddress import IPv4Network, IPv4Address, AddressValueError
+from ipaddress import AddressValueError, IPv4Address, IPv4Network
+from typing import Any, Dict, List, Optional
 
 from .models import DiscoveredHost, OnPremisesCredentials
 

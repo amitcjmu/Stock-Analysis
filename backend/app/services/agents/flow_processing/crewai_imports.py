@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 try:
-    from crewai import Agent, Task, Crew, Process
+    from crewai import Agent, Crew, Process, Task
     from crewai.tools import BaseTool
     CREWAI_AVAILABLE = True
 except ImportError:

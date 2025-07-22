@@ -4,8 +4,9 @@ Basic ADCS Component Test
 Tests to verify ADCS components are properly integrated
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 def test_imports():
@@ -25,8 +26,8 @@ def test_imports():
     try:
         from app.services.collection_flow import (
             CollectionFlowStateService,
+            DataTransformationService,
             TierDetectionService,
-            DataTransformationService
         )
         print("✅ Core collection services imported")
     except Exception as e:
@@ -49,11 +50,8 @@ def test_imports():
         errors.append(f"❌ AI analysis services: {e}")
     
     try:
-        from app.services.manual_collection import (
-            AdaptiveFormService,
-            BulkDataService,
-            QuestionnaireValidationService as ValidationService
-        )
+        from app.services.manual_collection import AdaptiveFormService, BulkDataService
+        from app.services.manual_collection import QuestionnaireValidationService as ValidationService
         print("✅ Manual collection services imported")
     except Exception as e:
         errors.append(f"❌ Manual collection services: {e}")
@@ -61,9 +59,9 @@ def test_imports():
     # Test Phase 3 imports
     print("\nTesting Phase 3 (Workflow Orchestration) imports...")
     try:
+        from app.services.ai_analysis.confidence_scoring import ConfidenceScorer
         from app.services.workflow_orchestration.collection_phase_engine import CollectionPhaseExecutionEngine
         from app.services.workflow_orchestration.workflow_orchestrator import WorkflowOrchestrator
-        from app.services.ai_analysis.confidence_scoring import ConfidenceScorer
         print("✅ Workflow orchestration services imported")
     except Exception as e:
         errors.append(f"❌ Workflow orchestration services: {e}")
@@ -71,14 +69,14 @@ def test_imports():
     # Test Phase 4 imports
     print("\nTesting Phase 4 (Integration) imports...")
     try:
-        from app.services.integration.smart_workflow_orchestrator import SmartWorkflowOrchestrator
         from app.services.integration.data_flow_validator import DataFlowValidator
+        from app.services.integration.smart_workflow_orchestrator import SmartWorkflowOrchestrator
         print("✅ Integration services imported")
     except Exception as e:
         errors.append(f"❌ Integration services: {e}")
     
     # Summary
-    print(f"\n=== Import Test Summary ===")
+    print("\n=== Import Test Summary ===")
     print(f"Total errors: {len(errors)}")
     if errors:
         print("\nErrors found:")
@@ -95,12 +93,12 @@ def test_database_models():
     
     try:
         from app.models import (
-            CollectionFlow,
             CollectedDataInventory,
             CollectionDataGap,
+            CollectionFlow,
             CollectionQuestionnaireResponse,
             PlatformAdapter,
-            PlatformCredential
+            PlatformCredential,
         )
         
         # Check table names
@@ -121,8 +119,8 @@ def test_flow_registration():
     print("\n=== Testing Collection Flow Registration ===\n")
     
     try:
-        from app.services.flow_type_registry import flow_type_registry
         from app.services.flow_configs import initialize_all_flows
+        from app.services.flow_type_registry import flow_type_registry
         
         # Initialize flows if not already done
         initialize_all_flows()

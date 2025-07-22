@@ -4,9 +4,9 @@ Navigation Decision Tool
 Tool for making intelligent navigation and routing decisions.
 """
 
-import logging
 import json
-from typing import Dict, Any
+import logging
+from typing import Any, Dict
 
 try:
     from crewai.tools import BaseTool
@@ -26,10 +26,18 @@ except ImportError:
             return "CrewAI not available - using fallback"
 
 from app.knowledge_bases.flow_intelligence_knowledge import (
-    FlowType, PhaseStatus, ActionType,
-    get_flow_definition, get_phase_definition, get_next_phase,
-    get_navigation_path, get_validation_services, get_success_criteria,
-    get_user_actions, get_system_actions, AGENT_INTELLIGENCE
+    AGENT_INTELLIGENCE,
+    ActionType,
+    FlowType,
+    PhaseStatus,
+    get_flow_definition,
+    get_navigation_path,
+    get_next_phase,
+    get_phase_definition,
+    get_success_criteria,
+    get_system_actions,
+    get_user_actions,
+    get_validation_services,
 )
 
 logger = logging.getLogger(__name__)

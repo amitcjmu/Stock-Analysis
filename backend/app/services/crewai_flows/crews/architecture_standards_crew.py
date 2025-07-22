@@ -19,12 +19,12 @@ The crew consists of three specialized agents:
 """
 
 import logging
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 # CrewAI imports with fallback
 try:
-    from crewai import Agent, Task, Crew
+    from crewai import Agent, Crew, Task
     CREWAI_AVAILABLE = True
     logger = logging.getLogger(__name__)
     logger.info("✅ CrewAI imports successful for ArchitectureStandardsCrew")
@@ -78,9 +78,9 @@ class ArchitectureStandardsCrew:
         # Import tools (will be implemented in separate task)
         try:
             from app.services.crewai_flows.tools.architecture_tools import (
-                TechnologyVersionAnalyzer,
                 ComplianceChecker,
-                StandardsTemplateGenerator
+                StandardsTemplateGenerator,
+                TechnologyVersionAnalyzer,
             )
             tools_available = True
         except ImportError:

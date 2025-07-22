@@ -3,13 +3,14 @@ Test Collection Flow with actual CrewAI execution
 This test triggers real CrewAI agent calls to verify the integration
 """
 
-import pytest
 import asyncio
 import logging
 from unittest.mock import Mock, patch
 
-from app.services.agents.platform_detection_agent_crewai import PlatformDetectionAgent
+import pytest
+
 from app.services.agents.gap_prioritization_agent_crewai import GapPrioritizationAgent
+from app.services.agents.platform_detection_agent_crewai import PlatformDetectionAgent
 from app.services.llm_config import get_crewai_llm
 
 # Set up logging to see CrewAI calls
@@ -63,7 +64,7 @@ async def test_platform_detection_agent_execution():
         assert result is not None
         assert len(str(result)) > 0
         
-        print(f"\n✅ Platform Detection Agent executed successfully!")
+        print("\n✅ Platform Detection Agent executed successfully!")
         print(f"Result: {result}")
         
     except Exception as e:
@@ -111,7 +112,7 @@ async def test_gap_prioritization_agent_execution():
         logger.info(f"✅ Task Result: {result}")
         
         assert result is not None
-        print(f"\n✅ Gap Prioritization Agent executed successfully!")
+        print("\n✅ Gap Prioritization Agent executed successfully!")
         print(f"Result: {result}")
         
     except Exception as e:
@@ -158,7 +159,7 @@ async def test_crew_execution_with_multiple_agents():
         result = crew.kickoff()
         logger.info(f"✅ Crew Result: {result}")
         
-        print(f"\n✅ Multi-agent crew executed successfully!")
+        print("\n✅ Multi-agent crew executed successfully!")
         print(f"Result: {result}")
         
     except Exception as e:

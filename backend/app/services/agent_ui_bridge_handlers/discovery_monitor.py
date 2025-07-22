@@ -4,8 +4,8 @@ Monitors the enhanced discovery flow and field mappings for agent insights.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -54,9 +54,9 @@ class DiscoveryFlowMonitor:
                         },
                         options=[
                             f"Yes, map {mapping['sourceField']} → {mapping['targetAttribute']}",
-                            f"No, suggest different mapping",
-                            f"Skip this field",
-                            f"Need more context"
+                            "No, suggest different mapping",
+                            "Skip this field",
+                            "Need more context"
                         ],
                         confidence="medium",
                         priority="normal"

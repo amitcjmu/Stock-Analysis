@@ -2,14 +2,13 @@
 Gap Identifier Tool - Identifies gaps in critical attributes
 """
 
-from typing import Dict, Any, List, Optional
+import logging
+from typing import Any, Dict, List, Optional
+
 from app.services.tools.base_tool import AsyncBaseDiscoveryTool
 from app.services.tools.registry import ToolMetadata
-from .constants import (
-    ATTRIBUTE_CATEGORIES, PRIORITY_MAP, DIFFICULTY_MAP,
-    SOURCE_MAP, STRATEGY_REQUIREMENTS
-)
-import logging
+
+from .constants import ATTRIBUTE_CATEGORIES, DIFFICULTY_MAP, PRIORITY_MAP, SOURCE_MAP, STRATEGY_REQUIREMENTS
 
 logger = logging.getLogger(__name__)
 

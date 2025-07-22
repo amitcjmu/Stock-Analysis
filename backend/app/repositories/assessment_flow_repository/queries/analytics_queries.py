@@ -2,11 +2,12 @@
 Analytics Queries - Analytics and reporting queries
 """
 import logging
-from typing import Dict, Any
-from sqlalchemy import select, and_, func
+from typing import Any, Dict
+
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.assessment_flow import AssessmentFlow, SixRDecision, TechDebtAnalysis, ApplicationComponent
+from app.models.assessment_flow import ApplicationComponent, AssessmentFlow, SixRDecision, TechDebtAnalysis
 
 logger = logging.getLogger(__name__)
 

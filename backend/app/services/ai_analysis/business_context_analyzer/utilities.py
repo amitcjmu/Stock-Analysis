@@ -7,10 +7,10 @@ Utility functions and default creation methods.
 Built by: Agent Team B2 (AI Analysis & Intelligence)
 """
 
-from typing import Dict, Any
 from datetime import datetime, timezone
+from typing import Any, Dict
 
-from .enums import BusinessDomain, OrganizationSize, MigrationDriverType
+from .enums import BusinessDomain, MigrationDriverType, OrganizationSize
 from .models import BusinessContext
 
 

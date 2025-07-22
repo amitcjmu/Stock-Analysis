@@ -20,20 +20,18 @@ Usage:
     python scripts/seed_minimal_demo.py
 """
 import asyncio
+import hashlib
 import os
 import sys
 import uuid
 from datetime import datetime, timezone
-import hashlib
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
+
 from app.core.database import AsyncSessionLocal
-from app.models import (
-    ClientAccount, Engagement, User, UserAccountAssociation,
-    DiscoveryFlow, UserRole
-)
+from app.models import ClientAccount, DiscoveryFlow, Engagement, User, UserAccountAssociation, UserRole
 from app.models.rbac import UserProfile, UserStatus
 
 

@@ -6,11 +6,12 @@ Manages platform adapters for automated data collection.
 
 import asyncio
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
+from app.services.collection_flow import adapter_registry
 from app.services.tools.base_tool import AsyncBaseDiscoveryTool
 from app.services.tools.registry import ToolMetadata
-from app.services.collection_flow import adapter_registry
+
 from .base import BaseCollectionTool
 
 logger = logging.getLogger(__name__)

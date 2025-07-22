@@ -5,10 +5,10 @@ Prevents cascading failures by stopping requests after consecutive failures.
 """
 
 import asyncio
-import time
-from typing import Dict, Any, Optional, Callable
-from enum import Enum
 import logging
+import time
+from enum import Enum
+from typing import Any, Callable, Dict, Optional
 
 logger = logging.getLogger(__name__)
 

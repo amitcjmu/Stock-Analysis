@@ -4,12 +4,13 @@ Scaffold: Seed mock import sessions, field mappings & processing steps.
 Run via:
   docker exec migration_backend python app/scripts/seed_import_pipeline.py [--force]
 """
+import argparse
 import asyncio
 import logging
 import os
 import sys
-import argparse
 from datetime import datetime
+
 from sqlalchemy import text
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))

@@ -3,7 +3,8 @@ Complexity assessment module for migration complexity analysis.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext

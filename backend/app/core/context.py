@@ -3,13 +3,14 @@ Context management for multi-tenant request handling.
 Provides utilities for extracting and injecting client/engagement/flow context.
 """
 
-from typing import Optional, Dict, Any, TypeVar, Callable
-from contextvars import ContextVar
-from fastapi import Request, HTTPException, Depends
-from functools import wraps
-from dataclasses import dataclass, asdict
-import uuid
 import logging
+import uuid
+from contextvars import ContextVar
+from dataclasses import asdict, dataclass
+from functools import wraps
+from typing import Any, Callable, Dict, Optional, TypeVar
+
+from fastapi import Depends, HTTPException, Request
 from sqlalchemy import select
 
 logger = logging.getLogger(__name__)

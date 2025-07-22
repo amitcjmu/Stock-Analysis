@@ -4,16 +4,17 @@ PostgreSQL-only persistence for CrewAI flows.
 Single source of truth implementation replacing dual SQLite/PostgreSQL system.
 """
 
-import logging
 import asyncio
 import json
-from datetime import datetime
-from typing import Dict, Any, Optional
+import logging
 from contextlib import asynccontextmanager
+from datetime import datetime
+from typing import Any, Dict, Optional
 
-from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 from app.core.context import RequestContext
 from app.core.database import AsyncSessionLocal
+from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
+
 from .persistence.postgres_store import PostgresFlowStateStore
 
 logger = logging.getLogger(__name__)
@@ -89,7 +90,7 @@ class FlowStateBridge:
         # FIX: Ensure flow_id is available from state before logging
         flow_id = getattr(state, 'flow_id', None) or "MISSING_FLOW_ID"
         if flow_id == "MISSING_FLOW_ID":
-            logger.warning(f"⚠️ Cannot create/update flow - flow_id is missing from state")
+            logger.warning("⚠️ Cannot create/update flow - flow_id is missing from state")
             logger.warning(f"⚠️ State attributes: {list(vars(state).keys()) if hasattr(state, '__dict__') else 'No __dict__'}")
             return {"status": "missing_flow_id", "error": "flow_id not found in state"}
 
@@ -144,8 +145,9 @@ class FlowStateBridge:
             # Try to restore from PostgreSQL using postgres store
             async with AsyncSessionLocal() as db:
                 # First check DiscoveryFlow table for current phase and progress
-                from app.models.discovery_flow import DiscoveryFlow
                 from sqlalchemy import select
+
+                from app.models.discovery_flow import DiscoveryFlow
                 
                 flow_result = await db.execute(
                     select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id)

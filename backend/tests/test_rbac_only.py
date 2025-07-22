@@ -1,5 +1,7 @@
 import asyncio
+
 from app.core.database import AsyncSessionLocal
+
 
 async def test_rbac_only():
     print('=== Testing RBAC Service Only ===')

@@ -5,17 +5,16 @@ This module provides the service for assessing confidence levels in collected da
 """
 
 import logging
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
+
+from .constants import CONFIDENCE_WEIGHTS, PLATFORM_CONFIDENCE, SOURCE_RELIABILITY, TIER_CONFIDENCE
 from .enums import ConfidenceLevel
-from .models import QualityScore, ConfidenceScore
-from .constants import (
-    SOURCE_RELIABILITY, PLATFORM_CONFIDENCE, CONFIDENCE_WEIGHTS, TIER_CONFIDENCE
-)
+from .models import ConfidenceScore, QualityScore
 
 logger = logging.getLogger(__name__)
 

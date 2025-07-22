@@ -6,13 +6,12 @@ Built by: Agent Team B2 (AI Analysis & Intelligence)
 """
 
 # Import enums
+# Import main class
+from .core import LearningOptimizer, optimize_questionnaire_learning
 from .enums import LearningPattern, OptimizationStrategy
 
 # Import models
-from .models import LearningEvent, OptimizationRecommendation, LearningInsight
-
-# Import main class
-from .core import LearningOptimizer, optimize_questionnaire_learning
+from .models import LearningEvent, LearningInsight, OptimizationRecommendation
 
 # Re-export all public interfaces
 __all__ = [

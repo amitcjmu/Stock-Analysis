@@ -8,23 +8,14 @@ monitoring, error handling, and optimization capabilities for all platform adapt
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from app.services.collection_flow.adapters import (
-    BaseAdapter,
-    CollectionRequest,
-    CollectionResponse,
-    AdapterMetadata
-)
-from .retry_handler import RetryHandler, AdapterErrorHandler, RetryConfig
-from .performance_monitor import (
-    PerformanceMonitor,
-    PerformanceThresholds,
-    MetricType,
-    monitor_performance
-)
+from app.services.collection_flow.adapters import AdapterMetadata, BaseAdapter, CollectionRequest, CollectionResponse
+
+from .performance_monitor import MetricType, PerformanceMonitor, PerformanceThresholds, monitor_performance
+from .retry_handler import AdapterErrorHandler, RetryConfig, RetryHandler
 
 
 @dataclass
@@ -88,7 +79,7 @@ class EnhancedBaseAdapter(BaseAdapter, ABC):
         """Validate platform credentials with performance monitoring"""
         try:
             return await self._validate_credentials_impl(credentials)
-        except Exception as e:
+        except Exception:
             await self._record_metric(MetricType.ERROR_RATE, 1.0, "errors", "validate_credentials")
             raise
             
@@ -97,7 +88,7 @@ class EnhancedBaseAdapter(BaseAdapter, ABC):
         """Test platform connectivity with performance monitoring"""
         try:
             return await self._test_connectivity_impl(credentials)
-        except Exception as e:
+        except Exception:
             await self._record_metric(MetricType.ERROR_RATE, 1.0, "errors", "test_connectivity")
             raise
             
@@ -162,7 +153,7 @@ class EnhancedBaseAdapter(BaseAdapter, ABC):
                 
             return response
             
-        except Exception as e:
+        except Exception:
             await self._record_metric(MetricType.ERROR_RATE, 1.0, "errors", "collect_data")
             raise
         finally:

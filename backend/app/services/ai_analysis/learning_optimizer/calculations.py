@@ -5,7 +5,7 @@ Contains helper methods for statistical calculations and classifications.
 Built by: Agent Team B2 (AI Analysis & Intelligence)
 """
 
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 
 def calculate_variance(values: List[float]) -> float:

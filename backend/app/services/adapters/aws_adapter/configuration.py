@@ -2,8 +2,8 @@
 AWS Config Configuration Data Collection
 """
 
-from typing import Dict, Any, List
 import logging
+from typing import Any, Dict, List
 
 try:
     from botocore.exceptions import ClientError

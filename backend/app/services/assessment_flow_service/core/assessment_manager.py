@@ -5,18 +5,20 @@ Core assessment manager for discovery flow completion operations.
 import logging
 import uuid
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
 
 from app.core.context import RequestContext
-from app.models.discovery_flow import DiscoveryFlow
 from app.models.asset import Asset as DiscoveryAsset
-from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+from app.models.discovery_flow import DiscoveryFlow
 from app.repositories.asset_repository import AssetRepository
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+
+from ..assessors.complexity_assessor import ComplexityAssessor
 from ..assessors.readiness_assessor import ReadinessAssessor
 from ..assessors.risk_assessor import RiskAssessor
-from ..assessors.complexity_assessor import ComplexityAssessor
 
 logger = logging.getLogger(__name__)
 

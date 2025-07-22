@@ -3,15 +3,17 @@ Flow State Manager - PostgreSQL-only implementation
 Manages CrewAI flow state with PostgreSQL as single source of truth
 """
 
-from typing import Dict, Any, Optional, List
-from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
 import logging
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 from app.core.flow_state_validator import FlowStateValidator, ValidationError
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
-from .persistence.postgres_store import PostgresFlowStateStore, ConcurrentModificationError, StateValidationError
+
+from .persistence.postgres_store import ConcurrentModificationError, PostgresFlowStateStore, StateValidationError
 from .persistence.state_recovery import FlowStateRecovery, StateRecoveryError
 
 logger = logging.getLogger(__name__)

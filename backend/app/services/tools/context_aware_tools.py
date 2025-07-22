@@ -2,10 +2,12 @@
 Example context-aware tools for CrewAI agents
 """
 
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
+from sqlalchemy import select
+
 from app.core.context_aware import ContextAwareTool
 from app.core.database_context import get_context_db
-from sqlalchemy import select
 
 # Import models safely
 try:

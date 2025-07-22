@@ -4,8 +4,8 @@ Handles CrewAI-driven data processing and cleanup operations.
 """
 
 import logging
-from typing import Dict, List, Optional, Any
 import os
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 CREWAI_AVAILABLE = bool(os.getenv('DEEPINFRA_API_KEY') and os.getenv('CREWAI_ENABLED', 'true').lower() == 'true')
 
 try:
-    from app.services.crewai_flows.data_cleansing_crew import create_data_cleansing_crew
     from app.services.crewai_flows.crews.inventory_building_crew import create_inventory_building_crew
+    from app.services.crewai_flows.data_cleansing_crew import create_data_cleansing_crew
     CREWS_AVAILABLE = True
 except ImportError:
     CREWS_AVAILABLE = False

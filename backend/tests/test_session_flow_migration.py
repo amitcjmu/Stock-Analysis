@@ -9,18 +9,19 @@ Test cases cover:
 - Rollback scenarios
 """
 
-import pytest
 import uuid
 from datetime import datetime
+from unittest.mock import MagicMock, patch
+
+import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
-from unittest.mock import patch, MagicMock
 
 try:
     from app.core.database import Base
+    from app.models.asset import Asset, AssetStatus, AssetType
     from app.models.data_import_session import DataImportSession, SessionStatus
     from app.models.discovery_flow import DiscoveryFlow
-    from app.models.asset import Asset, AssetType, AssetStatus
     from app.models.flow_deletion_audit import FlowDeletionAudit
     from app.services.migration.session_to_flow import SessionFlowCompatibilityService
     MODELS_AVAILABLE = True

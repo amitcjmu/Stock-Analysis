@@ -4,15 +4,16 @@ Production-ready test for CMDB analysis with CrewAI and LiteLLM.
 """
 
 import asyncio
-import time
-import sys
-import os
 import json
+import os
+import sys
+import time
 
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
 
 from app.services.crewai_service_modular import CrewAIService
+
 
 async def test_production_cmdb_analysis():
     """Test CMDB analysis for production readiness."""
@@ -101,9 +102,9 @@ async def test_production_cmdb_analysis():
         
         # Evaluate results
         avg_duration = (duration1 + duration2 + duration3) / 3
-        print(f"\n📊 Performance Summary:")
+        print("\n📊 Performance Summary:")
         print(f"   Average duration: {avg_duration:.2f}s")
-        print(f"   All tests completed: ✅")
+        print("   All tests completed: ✅")
         
         # Check if performance is acceptable for production
         if avg_duration < 30:  # 30 seconds is reasonable for CMDB analysis

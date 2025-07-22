@@ -5,7 +5,8 @@ Handles Create, Read, Update, Delete operations for assets.
 
 import logging
 import math
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
+
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -22,14 +23,14 @@ class AssetCRUDHandler:
         """Initialize optional dependencies with graceful fallbacks."""
         try:
             from app.api.v1.discovery.persistence import (
-                get_processed_assets,
-                update_asset_by_id,
                 backup_processed_assets,
-                bulk_update_assets,
                 bulk_delete_assets,
+                bulk_update_assets,
                 cleanup_duplicates,
                 find_duplicate_assets,
-                initialize_persistence
+                get_processed_assets,
+                initialize_persistence,
+                update_asset_by_id,
             )
             self.get_processed_assets = get_processed_assets
             self.update_asset_by_id = update_asset_by_id

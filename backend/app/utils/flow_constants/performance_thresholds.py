@@ -3,9 +3,10 @@ Performance thresholds and monitoring constants for flow management.
 Provides performance metrics, timeout thresholds, and retry policies.
 """
 
-from enum import Enum
-from typing import Dict, Optional, Any
 from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Dict, Optional
+
 
 class PerformanceThreshold(str, Enum):
     """Performance threshold categories."""

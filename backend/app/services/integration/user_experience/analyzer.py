@@ -5,18 +5,18 @@ Analyzes user experience and journey through the ADCS workflow.
 """
 
 import logging
-from typing import Dict, Any, List, Tuple
-from uuid import UUID
 from datetime import datetime
+from typing import Any, Dict, List, Tuple
+from uuid import UUID
 
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
 
 from app.core.database import AsyncSessionLocal
-from app.models.collection_flow import CollectionFlow
-from app.models.discovery_flow import DiscoveryFlow
 from app.models.assessment_flow import AssessmentFlow
 from app.models.asset import Asset
+from app.models.collection_flow import CollectionFlow
+from app.models.discovery_flow import DiscoveryFlow
 from app.models.user_active_flows import UserActiveFlow
 
 from .base import OptimizationContext, UserJourneyAnalytics

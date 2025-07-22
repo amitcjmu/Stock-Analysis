@@ -6,18 +6,19 @@ Integrates with the DataCleansingCrew for processing field mappings and providin
 """
 
 import logging
-from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel
+from typing import Any, Dict, List, Optional
 
-from app.core.database import get_db
-from app.core.context import get_current_context, RequestContext
-from app.models.client_account import User
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.v1.auth.auth_utils import get_current_user
-from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+from app.core.context import RequestContext, get_current_context
+from app.core.database import get_db
+from app.models.client_account import User
 from app.models.data_import.core import DataImport
 from app.models.data_import.mapping import ImportFieldMapping
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +116,7 @@ async def get_data_cleansing_analysis(
         
         # Get data import for this flow using the same logic as import storage handler
         from sqlalchemy import select
+
         from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
         
         # First try to get data import via discovery flow's data_import_id
@@ -340,6 +342,7 @@ async def trigger_data_cleansing_analysis(
             if execution_result.get('status') == 'success':
                 # Get data import for this flow to perform analysis
                 from sqlalchemy import select
+
                 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
                 
                 # First try to get data import via discovery flow's data_import_id
@@ -452,8 +455,8 @@ async def _perform_data_cleansing_analysis(
     This function analyzes the data quality and provides recommendations.
     In the future, this should integrate with the DataCleansingCrew.
     """
-    from datetime import datetime
     import uuid
+    from datetime import datetime
     
     # Get the first data import (primary)
     data_import = data_imports[0] if data_imports else None

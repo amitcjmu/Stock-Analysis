@@ -4,19 +4,21 @@ Test script for PostgreSQL-only state store implementation
 """
 
 import asyncio
-import sys
 import os
+import sys
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
 
 # Add the backend directory to the Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../..'))
 
 from app.core.context import RequestContext
 from app.core.flow_state_validator import FlowStateValidator
+
 from .postgres_store import PostgresFlowStateStore, managed_postgres_store
-from .state_recovery import FlowStateRecovery
 from .state_migrator import StateMigrator
+from .state_recovery import FlowStateRecovery
+
 
 async def test_postgres_store():
     """Test the PostgreSQL-only state store"""

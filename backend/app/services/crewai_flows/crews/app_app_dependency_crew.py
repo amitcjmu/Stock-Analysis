@@ -7,15 +7,16 @@ Enhanced implementation with CrewAI best practices:
 - Shared memory integration for dependency patterns
 """
 
-import logging
 import json
-from typing import Dict, List, Any, Optional
-from crewai import Agent, Task, Crew, Process
+import logging
+from typing import Any, Dict, List, Optional
+
+from crewai import Agent, Crew, Process, Task
 
 # Import advanced CrewAI features with fallbacks
 try:
-    from crewai.memory import LongTermMemory
     from crewai.knowledge.knowledge import Knowledge
+    from crewai.memory import LongTermMemory
     CREWAI_ADVANCED_AVAILABLE = True
 except ImportError:
     CREWAI_ADVANCED_AVAILABLE = False

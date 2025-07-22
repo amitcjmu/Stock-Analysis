@@ -3,9 +3,11 @@ Assessment Flow Architecture Standards Seed Data
 Industry-standard templates for common technology stacks and engagement initialization.
 """
 import logging
-from typing import List, Dict, Any
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Any, Dict, List
+
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.assessment_flow import EngagementArchitectureStandard
 
 logger = logging.getLogger(__name__)

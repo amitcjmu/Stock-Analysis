@@ -3,10 +3,10 @@ Tags and vector embeddings models for auto-tagging and AI-driven asset classific
 """
 
 try:
-    from sqlalchemy import Column, String, Text, DateTime, ForeignKey, Float, Integer, Boolean
+    from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
+    from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
     from sqlalchemy.orm import relationship
     from sqlalchemy.sql import func
-    from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
     SQLALCHEMY_AVAILABLE = True
 except ImportError:
     SQLALCHEMY_AVAILABLE = False

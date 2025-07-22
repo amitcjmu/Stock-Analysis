@@ -13,9 +13,9 @@ honoring the principle: "ALL intelligence comes from CrewAI agents"
 
 import logging
 import uuid
-from datetime import datetime
-from typing import Dict, Any, List, Optional, Union
 from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
 
 try:
     from crewai.tools import BaseTool
@@ -27,10 +27,15 @@ except ImportError:
             pass
 
 try:
-    from app.models.agent_memory import AgentDiscoveredPattern, PatternType, get_patterns_for_agent_reasoning, create_asset_enrichment_pattern
-    from app.models.asset import Asset
     from app.core.database import AsyncSessionLocal
-    from app.services.agentic_memory import ThreeTierMemoryManager, MemoryQuery
+    from app.models.agent_memory import (
+        AgentDiscoveredPattern,
+        PatternType,
+        create_asset_enrichment_pattern,
+        get_patterns_for_agent_reasoning,
+    )
+    from app.models.asset import Asset
+    from app.services.agentic_memory import MemoryQuery, ThreeTierMemoryManager
     DATABASE_AVAILABLE = True
 except ImportError:
     DATABASE_AVAILABLE = False

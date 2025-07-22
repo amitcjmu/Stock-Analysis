@@ -3,12 +3,12 @@ Health check endpoints for the application.
 """
 import logging
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db, db_manager
+from app.core.database import db_manager, get_db
 
 logger = logging.getLogger(__name__)
 

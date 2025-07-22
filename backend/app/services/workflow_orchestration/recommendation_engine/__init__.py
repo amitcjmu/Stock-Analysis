@@ -7,34 +7,24 @@ for workflow configurations, automation tiers, and execution strategies.
 """
 
 # Export main engine
+# Export core components
+from .analyzers import RecommendationAnalyzers
 from .engine import SmartWorkflowRecommendationEngine
 
 # Export enums
-from .enums import (
-    RecommendationType,
-    RecommendationConfidence,
-    RecommendationSource
-)
-
-# Export models
-from .models import (
-    RecommendationInsight,
-    WorkflowRecommendation,
-    RecommendationPackage,
-    LearningPattern
-)
-
-# Export core components
-from .analyzers import RecommendationAnalyzers
+from .enums import RecommendationConfidence, RecommendationSource, RecommendationType
 from .evaluators import RecommendationEvaluator
-from .optimizers import RecommendationOptimizer
+from .generators.config_recommendations import ConfigRecommendationGenerator
+from .generators.performance_recommendations import PerformanceRecommendationGenerator
+from .generators.phase_recommendations import PhaseRecommendationGenerator
+from .generators.quality_recommendations import QualityRecommendationGenerator
 
 # Export generators
 from .generators.tier_recommendations import TierRecommendationGenerator
-from .generators.config_recommendations import ConfigRecommendationGenerator
-from .generators.phase_recommendations import PhaseRecommendationGenerator
-from .generators.quality_recommendations import QualityRecommendationGenerator
-from .generators.performance_recommendations import PerformanceRecommendationGenerator
+
+# Export models
+from .models import LearningPattern, RecommendationInsight, RecommendationPackage, WorkflowRecommendation
+from .optimizers import RecommendationOptimizer
 
 __all__ = [
     # Main engine

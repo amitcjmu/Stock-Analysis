@@ -4,14 +4,15 @@ Scaffold: Seed assessments demo data.
 Run via:
   docker exec migration_backend python app/scripts/seed_assessments.py [--force]
 """
+import argparse
 import asyncio
 import logging
 import os
-import sys
-import argparse
-from datetime import datetime
-from sqlalchemy import text
 import random
+import sys
+from datetime import datetime
+
+from sqlalchemy import text
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 

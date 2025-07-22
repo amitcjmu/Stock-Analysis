@@ -6,16 +6,19 @@ This replaces the monolithic field_mapping.py file.
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.context import RequestContext, get_current_context
+from app.core.database import get_db
+
+from .field_mapping.routes.approval_routes import router as approval_router
+
 # Import all modular routers
 from .field_mapping.routes.mapping_routes import router as mapping_router
 from .field_mapping.routes.suggestion_routes import router as suggestion_router
-from .field_mapping.routes.validation_routes import router as validation_router  
-from .field_mapping.routes.approval_routes import router as approval_router
+from .field_mapping.routes.validation_routes import router as validation_router
 
 # Import service dependencies
 from .field_mapping.services.mapping_service import MappingService
-from app.core.database import get_db
-from app.core.context import get_current_context, RequestContext
+
 
 def get_mapping_service(
     db: AsyncSession = Depends(get_db),
@@ -34,15 +37,12 @@ router.include_router(validation_router)
 router.include_router(approval_router)
 
 # Legacy compatibility routes - these delegate to the new modular structure
-from .field_mapping.routes.mapping_routes import (
-    get_field_mappings as legacy_get_mappings,
-    create_field_mapping_latest as legacy_create_latest,
-    generate_field_mappings as legacy_generate
-)
-from .field_mapping.routes.suggestion_routes import (
-    get_field_mapping_suggestions as legacy_get_suggestions,
-    get_available_target_fields as legacy_get_available_fields
-)
+from .field_mapping.routes.mapping_routes import create_field_mapping_latest as legacy_create_latest
+from .field_mapping.routes.mapping_routes import generate_field_mappings as legacy_generate
+from .field_mapping.routes.mapping_routes import get_field_mappings as legacy_get_mappings
+from .field_mapping.routes.suggestion_routes import get_available_target_fields as legacy_get_available_fields
+from .field_mapping.routes.suggestion_routes import get_field_mapping_suggestions as legacy_get_suggestions
+
 
 # Add legacy routes for backward compatibility
 @router.get("/imports/{import_id}/field-mappings")

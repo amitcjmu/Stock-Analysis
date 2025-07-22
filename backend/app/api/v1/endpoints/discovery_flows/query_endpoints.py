@@ -8,20 +8,22 @@ This module handles all GET operations for discovery flows:
 - Processing status monitoring
 """
 
-import logging
-from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, Header, Response
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_, func
-import json
 import hashlib
+import json
+import logging
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from app.core.database import get_db
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
+from sqlalchemy import and_, func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext, get_current_context
-from .response_mappers import ResponseMappers, DiscoveryFlowResponse, DiscoveryFlowStatusResponse
-from .status_calculator import StatusCalculator
+from app.core.database import get_db
 from app.services.user_context_service import UserContextService
+
+from .response_mappers import DiscoveryFlowResponse, DiscoveryFlowStatusResponse, ResponseMappers
+from .status_calculator import StatusCalculator
 
 logger = logging.getLogger(__name__)
 
@@ -163,9 +165,10 @@ async def get_flow_status(
         logger.info(f"Getting status for flow {flow_id}")
         
         # Import required models
-        from app.models.discovery_flow import DiscoveryFlow
-        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
         import uuid as uuid_lib
+
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+        from app.models.discovery_flow import DiscoveryFlow
         
         # Convert flow_id to UUID if needed
         try:
@@ -282,9 +285,10 @@ async def get_flow_agent_insights(
         logger.info(f"Getting agent insights for flow {flow_id}, page context: {page_context}")
         
         # Import required models
-        from app.models.discovery_flow import DiscoveryFlow
-        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
         import uuid as uuid_lib
+
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+        from app.models.discovery_flow import DiscoveryFlow
         
         # Convert flow_id to UUID if needed
         try:
@@ -656,8 +660,9 @@ async def get_flow_health(
         logger.info(f"Getting health status for flow {flow_id}")
         
         # Import required models
-        from app.models.discovery_flow import DiscoveryFlow
         import uuid as uuid_lib
+
+        from app.models.discovery_flow import DiscoveryFlow
         
         # Convert flow_id to UUID if needed
         try:

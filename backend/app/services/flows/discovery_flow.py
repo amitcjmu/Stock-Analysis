@@ -3,21 +3,22 @@ Unified Discovery Flow with proper CrewAI patterns
 Phase 2: Event-driven flow using @start/@listen decorators
 """
 
-from typing import Dict, Any, List, Optional
-from datetime import datetime
-import logging
 import asyncio
+import logging
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from app.services.flows.base_flow import BaseDiscoveryFlow, BaseFlowState
-from app.core.context import RequestContext
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext
+from app.services.flows.base_flow import BaseDiscoveryFlow, BaseFlowState
 
 logger = logging.getLogger(__name__)
 
 # CrewAI Flow imports with graceful fallback
 CREWAI_FLOW_AVAILABLE = False
 try:
-    from crewai.flow.flow import Flow, start, listen
+    from crewai.flow.flow import Flow, listen, start
     CREWAI_FLOW_AVAILABLE = True
     logger.info("✅ CrewAI Flow imports successful")
 except ImportError as e:

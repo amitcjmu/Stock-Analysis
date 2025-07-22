@@ -16,13 +16,16 @@ Fix multi-tenant data by adding additional client accounts and associations.
 This addresses Agent 4's validation issue where only one client account exists.
 """
 import asyncio
+import hashlib
 import uuid
 from datetime import datetime, timezone
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import AsyncSessionLocal
 from app.models import ClientAccount, Engagement, User, UserAccountAssociation
-import hashlib
+
 
 def get_password_hash(password: str) -> str:
     """Simple password hashing for demo purposes"""

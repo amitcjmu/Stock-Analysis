@@ -4,16 +4,18 @@ Health and metrics monitoring endpoints.
 Provides system health checks and performance metrics for monitoring and optimization.
 """
 
-from fastapi import APIRouter, HTTPException, Depends
-from typing import Dict, Any
 import logging
 from datetime import datetime
+from typing import Any, Dict
 
+from fastapi import APIRouter, Depends, HTTPException
+
+from app.api.v1.dependencies import get_crewai_flow_service
+from app.core.logging import get_logger as enhanced_get_logger
 from app.services.agent_monitor import agent_monitor
 from app.services.agent_registry import agent_registry
-from app.api.v1.dependencies import get_crewai_flow_service
 from app.services.crewai_flow_service import CrewAIFlowService
-from app.core.logging import get_logger as enhanced_get_logger
+
 from .base import get_monitoring_context
 
 logger = enhanced_get_logger(__name__)

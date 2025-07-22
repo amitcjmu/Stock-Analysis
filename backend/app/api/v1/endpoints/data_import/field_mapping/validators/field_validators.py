@@ -3,7 +3,7 @@ Field-level validators for mapping operations.
 """
 
 import re
-from typing import Any, List, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 
 class FieldValidator:

@@ -7,17 +7,18 @@ and batch processing for manual collection workflows.
 Agent Team B3 - Task B3.2
 """
 
-from typing import Dict, List, Optional, Any, Union, Tuple
-from dataclasses import dataclass
-from enum import Enum
-import logging
-import pandas as pd
+import asyncio
 import io
 import json
-from uuid import UUID, uuid4
+import logging
+from dataclasses import dataclass
 from datetime import datetime
-import asyncio
+from enum import Enum
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
+from uuid import UUID, uuid4
+
+import pandas as pd
 
 from ..collection_flow.data_transformation import DataTransformationService
 from ..collection_flow.quality_scoring import QualityAssessmentService
@@ -503,7 +504,7 @@ class BulkDataService:
                     column=field_id,
                     field_id=field_id,
                     severity=ValidationSeverity.WARNING,
-                    message=f'Field appears to have insufficient detail (less than 20 characters)',
+                    message='Field appears to have insufficient detail (less than 20 characters)',
                     suggested_value='Please provide more detailed information'
                 ))
         

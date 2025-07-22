@@ -2,9 +2,11 @@
 """Test minimal alembic functionality"""
 import os
 import sys
-from alembic.config import Config
-from alembic import command
+
 from sqlalchemy import create_engine, text
+
+from alembic import command
+from alembic.config import Config
 
 # Clean up first
 db_url = 'postgresql://postgres:postgres@postgres:5432/migration_db'

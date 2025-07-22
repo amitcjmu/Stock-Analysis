@@ -16,21 +16,22 @@ This module integrates directly with the UnifiedDiscoveryFlow's data cleansing p
 to provide intelligent asset analysis instead of basic data processing.
 """
 
-import logging
 import asyncio
+import logging
 import uuid
-from typing import Dict, Any, List, Optional, Tuple
-from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
-
-# Import agentic intelligence modules
-from .business_value_agent import BusinessValueAgent
-from .risk_assessment_agent import RiskAssessmentAgent  
-from .modernization_agent import ModernizationAgent
-from .agent_reasoning_patterns import AgentReasoningEngine
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
 # Import memory management
 from app.services.agentic_memory import ThreeTierMemoryManager
+
+from .agent_reasoning_patterns import AgentReasoningEngine
+
+# Import agentic intelligence modules
+from .business_value_agent import BusinessValueAgent
+from .modernization_agent import ModernizationAgent
+from .risk_assessment_agent import RiskAssessmentAgent
 
 logger = logging.getLogger(__name__)
 
@@ -475,7 +476,7 @@ async def enrich_assets_with_agentic_intelligence(
     
     # Log final statistics
     successful_enrichments = sum(1 for asset in enriched_assets if asset.get("enrichment_status") == "agentic_complete")
-    logger.info(f"✅ Agentic asset enrichment completed:")
+    logger.info("✅ Agentic asset enrichment completed:")
     logger.info(f"   - Total assets: {len(enriched_assets)}")
     logger.info(f"   - Successful enrichments: {successful_enrichments}")
     logger.info(f"   - Success rate: {(successful_enrichments/len(enriched_assets)*100):.1f}%")

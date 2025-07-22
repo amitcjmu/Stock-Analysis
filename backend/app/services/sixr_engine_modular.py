@@ -4,7 +4,8 @@ Enhanced with CrewAI Technical Debt Crew for AI-driven strategy analysis.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel
 
 # Import CrewAI Technical Debt Crew for AI-driven 6R strategy analysis
@@ -15,11 +16,7 @@ except ImportError:
     CREWAI_TECHNICAL_DEBT_AVAILABLE = False
     TechnicalDebtCrew = None
 
-from .sixr_handlers import (
-    RiskAssessor,
-    CostCalculator,
-    RecommendationEngine
-)
+from .sixr_handlers import CostCalculator, RecommendationEngine, RiskAssessor
 
 logger = logging.getLogger(__name__)
 

@@ -2,10 +2,11 @@
 Agent coordination service for CrewAI integration.
 """
 
-import logging
 import asyncio
+import logging
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 # Try to import CrewAI with fallback
 try:
-    from crewai import Agent, Task, Crew, Process
+    from crewai import Agent, Crew, Process, Task
     CREWAI_AVAILABLE = True
 except ImportError:
     CREWAI_AVAILABLE = False

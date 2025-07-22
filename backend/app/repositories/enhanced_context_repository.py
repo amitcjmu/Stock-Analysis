@@ -3,13 +3,14 @@ Enhanced Context-Aware Repository with Role-Based Data Scoping.
 Implements proper data filtering based on user roles and hierarchical access control.
 """
 
-from typing import Any, Dict, List, Optional, Type, TypeVar, Generic
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Query
-from sqlalchemy import and_, or_
-from sqlalchemy.future import select
-from sqlalchemy.sql import Select
 import logging
+from typing import Any, Dict, Generic, List, Optional, Type, TypeVar
+
+from sqlalchemy import and_, or_
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy.orm import Query
+from sqlalchemy.sql import Select
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +19,8 @@ ModelType = TypeVar('ModelType')
 
 # Import enhanced RBAC models
 try:
-    from app.models.rbac_enhanced import EnhancedUserProfile, RoleLevel, DataScope
     from app.models.client_account import ClientAccount, Engagement
+    from app.models.rbac_enhanced import DataScope, EnhancedUserProfile, RoleLevel
     ENHANCED_RBAC_AVAILABLE = True
 except ImportError:
     ENHANCED_RBAC_AVAILABLE = False

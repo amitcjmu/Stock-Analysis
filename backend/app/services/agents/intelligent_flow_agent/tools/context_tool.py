@@ -4,9 +4,9 @@ Flow Context Tool
 Tool for getting proper multi-tenant context for flow operations.
 """
 
-import logging
 import json
-from typing import Dict, Any
+import logging
+from typing import Any, Dict
 
 try:
     from crewai.tools import BaseTool

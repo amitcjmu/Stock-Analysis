@@ -5,7 +5,9 @@ Direct test of flow status to bypass all caching and complexity
 
 import asyncio
 import json
+
 from app.services.agents.intelligent_flow_agent import IntelligentFlowAgent
+
 
 async def test_flow_status_direct():
     agent = IntelligentFlowAgent()

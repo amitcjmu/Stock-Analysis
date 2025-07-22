@@ -7,11 +7,13 @@ import asyncio
 import json
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy.ext.asyncio import AsyncSession
+
+from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
-from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID
+
 
 async def get_assets_by_type_raw(session: AsyncSession, asset_type: str) -> list:
     """Get all assets of a specific type using raw SQL."""
@@ -323,15 +325,15 @@ async def create_dependencies_raw_sql():
         for asset_id, depends_on_id, dep_type in all_dependencies:
             dep_types[dep_type] = dep_types.get(dep_type, 0) + 1
         
-        print(f"\n✅ Dependencies created successfully!")
+        print("\n✅ Dependencies created successfully!")
         print(f"   📊 Total Dependencies: {total_dependencies}")
         print(f"   ⚠️ Circular Dependencies: {circular_dependencies} chains")
-        print(f"   📈 Dependency Types:")
+        print("   📈 Dependency Types:")
         for dep_type, count in sorted(dep_types.items()):
             print(f"     {dep_type}: {count}")
         
         # Sample dependency chains for first few applications
-        print(f"\n   📋 Sample Dependency Chains:")
+        print("\n   📋 Sample Dependency Chains:")
         for i, app in enumerate(applications[:3]):
             deps_sql = "SELECT dependencies FROM assets WHERE id = :asset_id"
             result = await session.execute(text(deps_sql), {"asset_id": app.id})

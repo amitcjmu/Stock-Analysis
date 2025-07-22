@@ -3,22 +3,22 @@
 Automatically tracks all LLM API calls for cost analysis and monitoring.
 """
 
-import time
-import json
-import uuid
 import asyncio
-from datetime import datetime
-from typing import Optional, Dict, Any, List
-from decimal import Decimal
-from contextlib import asynccontextmanager
-
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
-from fastapi import Request
+import json
 import logging
+import time
+import uuid
+from contextlib import asynccontextmanager
+from datetime import datetime
+from decimal import Decimal
+from typing import Any, Dict, List, Optional
 
-from app.models.llm_usage import LLMUsageLog, LLMModelPricing, LLMUsageSummary
+from fastapi import Request
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import AsyncSessionLocal
+from app.models.llm_usage import LLMModelPricing, LLMUsageLog, LLMUsageSummary
 
 logger = logging.getLogger(__name__)
 

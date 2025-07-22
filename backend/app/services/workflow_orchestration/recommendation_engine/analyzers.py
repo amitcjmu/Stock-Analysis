@@ -6,12 +6,13 @@ Analysis methods for environment context, historical patterns, and complexity as
 """
 
 import uuid
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 from app.core.logging import get_logger
-from ..tier_routing_service.service import TierRoutingService
-from app.services.collection_flow import TierDetectionService
 from app.services.ai_analysis import BusinessContextAnalyzer
+from app.services.collection_flow import TierDetectionService
+
+from ..tier_routing_service.service import TierRoutingService
 from .models import LearningPattern
 
 logger = get_logger(__name__)

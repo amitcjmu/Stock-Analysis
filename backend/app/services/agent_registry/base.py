@@ -5,8 +5,8 @@ Core types and base classes for the agent registry system.
 """
 
 import logging
-from datetime import datetime
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from typing import List, Optional
 

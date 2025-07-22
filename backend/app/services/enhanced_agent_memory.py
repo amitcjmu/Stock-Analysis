@@ -8,21 +8,22 @@ Implements optimized memory management for CrewAI agents with:
 - Integration with existing agent learning system
 """
 
-import logging
-import json
-import hashlib
-from typing import Dict, List, Any, Optional, Tuple
-from datetime import datetime, timedelta
-from dataclasses import dataclass, field
-from pathlib import Path
 import asyncio
-import numpy as np
+import hashlib
+import json
+import logging
 from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 
 # CrewAI memory imports with graceful fallback
 try:
-    from crewai.memory import LongTermMemory, ShortTermMemory, EntityMemory
-    from crewai.memory.storage import JSONStorage, ChromaStorage
+    from crewai.memory import EntityMemory, LongTermMemory, ShortTermMemory
+    from crewai.memory.storage import ChromaStorage, JSONStorage
     CREWAI_MEMORY_AVAILABLE = True
 except ImportError:
     CREWAI_MEMORY_AVAILABLE = False

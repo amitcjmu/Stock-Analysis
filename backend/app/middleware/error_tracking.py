@@ -5,13 +5,13 @@ Middleware to track and handle errors in background tasks and async operations.
 """
 
 import asyncio
-import uuid
-from typing import Optional, Dict, Any, Callable
-from datetime import datetime
 import logging
+import uuid
+from datetime import datetime
+from typing import Any, Callable, Dict, Optional
 
-from app.core.logging import get_logger, set_request_context
 from app.core.exceptions import BackgroundTaskError
+from app.core.logging import get_logger, set_request_context
 
 logger = get_logger(__name__)
 

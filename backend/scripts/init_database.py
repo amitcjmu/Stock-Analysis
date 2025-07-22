@@ -22,17 +22,19 @@ Options:
     --validate-only: Only validate database state
 """
 
-import asyncio
 import argparse
+import asyncio
 import logging
 import os
-import sys
 import subprocess
+import sys
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
+
 import asyncpg
-from sqlalchemy import text, create_engine, inspect
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+
 import alembic
 from alembic import command
 from alembic.config import Config
@@ -41,8 +43,8 @@ from alembic.config import Config
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.core.database import AsyncSessionLocal, Base
-from app.core.database_initialization import initialize_database, DatabaseInitializer
-from app.models import User, ClientAccount, Engagement
+from app.core.database_initialization import DatabaseInitializer, initialize_database
+from app.models import ClientAccount, Engagement, User
 
 # Configure logging
 logging.basicConfig(
@@ -70,7 +72,7 @@ class DatabaseSetup:
         self.admin_db_url = self._get_admin_db_url()
         self.app_db_url = self._get_app_db_url()
         
-        logger.info(f"Database setup initialized:")
+        logger.info("Database setup initialized:")
         logger.info(f"  Host: {self.db_config['host']}")
         logger.info(f"  Database: {self.db_config['database']}")
         logger.info(f"  Force mode: {self.force}")

@@ -19,12 +19,12 @@ The crew consists of three specialized agents:
 """
 
 import logging
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 # CrewAI imports with fallback
 try:
-    from crewai import Agent, Task, Crew
+    from crewai import Agent, Crew, Task
     CREWAI_AVAILABLE = True
     logger = logging.getLogger(__name__)
     logger.info("✅ CrewAI imports successful for ComponentAnalysisCrew")
@@ -53,7 +53,7 @@ except ImportError as e:
         def kickoff(self, inputs=None):
             return {"status": "fallback_mode", "components": [], "tech_debt_analysis": []}
 
-from app.models.assessment_flow import CrewExecutionError, ComponentType, TechDebtSeverity
+from app.models.assessment_flow import ComponentType, CrewExecutionError, TechDebtSeverity
 
 
 class ComponentAnalysisCrew:
@@ -79,9 +79,9 @@ class ComponentAnalysisCrew:
         try:
             from app.services.crewai_flows.tools.component_tools import (
                 ComponentDiscoveryTool,
-                MetadataAnalyzer,
                 DependencyMapper,
-                TechDebtCalculator
+                MetadataAnalyzer,
+                TechDebtCalculator,
             )
             tools_available = True
         except ImportError:

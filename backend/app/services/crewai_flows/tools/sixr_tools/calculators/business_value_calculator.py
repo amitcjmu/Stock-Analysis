@@ -12,7 +12,7 @@ Factors include:
 """
 
 import logging
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 from app.models.assessment_flow_state import SixRStrategy
 

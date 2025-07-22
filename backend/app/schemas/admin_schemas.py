@@ -3,10 +3,11 @@ Admin Management Schemas
 Pydantic schemas for client and engagement management with business context.
 """
 
-from typing import Dict, List, Any, Optional, Union
 from datetime import datetime
-from pydantic import BaseModel, Field, field_validator, ConfigDict, ValidationInfo
 from enum import Enum
+from typing import Any, Dict, List, Optional, Union
+
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
 # =========================
 # Enums for Business Context

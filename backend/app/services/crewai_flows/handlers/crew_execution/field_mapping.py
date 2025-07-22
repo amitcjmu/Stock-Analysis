@@ -4,12 +4,12 @@ Field Mapping Crew Execution Handler
 
 import logging
 import os
-from typing import Dict, List, Any
 from datetime import datetime
+from typing import Any, Dict, List
 
 from .base import CrewExecutionBase
-from .parsers import CrewResultParser
 from .fallbacks import CrewFallbackHandler
+from .parsers import CrewResultParser
 
 logger = logging.getLogger(__name__)
 

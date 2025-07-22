@@ -3,14 +3,17 @@
 Reset flow back to field_mapping phase for testing
 """
 import asyncio
-import sys
 import os
+import sys
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.core.database import AsyncSessionLocal
-from app.models.discovery_flow import DiscoveryFlow
-from app.models import CrewAIFlowStateExtensions
 from sqlalchemy import select, update
+
+from app.core.database import AsyncSessionLocal
+from app.models import CrewAIFlowStateExtensions
+from app.models.discovery_flow import DiscoveryFlow
+
 
 async def reset_flow():
     """Reset flow to field_mapping phase"""

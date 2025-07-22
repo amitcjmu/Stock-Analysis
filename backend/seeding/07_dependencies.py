@@ -11,12 +11,13 @@ Creating realistic dependencies between assets including:
 import asyncio
 import json
 from datetime import datetime, timezone
-from sqlalchemy.ext.asyncio import AsyncSession
+
+from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset, AssetDependency, AssetType
-from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID
 
 # Dependency patterns for realistic relationships
 DEPENDENCY_PATTERNS = {
@@ -357,20 +358,20 @@ async def create_dependencies():
             dep_type = dep.dependency_type
             dep_types[dep_type] = dep_types.get(dep_type, 0) + 1
         
-        print(f"\n✅ Dependencies created successfully!")
+        print("\n✅ Dependencies created successfully!")
         print(f"   📊 Total Dependencies: {total_dependencies}")
         print(f"   ⚠️ Circular Dependencies: {circular_dependencies} chains")
-        print(f"   📈 Dependency Types:")
+        print("   📈 Dependency Types:")
         for dep_type, count in sorted(dep_types.items()):
             print(f"     {dep_type}: {count}")
         
-        print(f"\n   🔗 Dependency Summary:")
+        print("\n   🔗 Dependency Summary:")
         print(f"     Applications with dependencies: {len([app for app in applications if app.dependencies])}")
         print(f"     Servers with dependencies: {len([srv for srv in servers if srv.dependencies])}")
         print(f"     Databases with dependencies: {len([db for db in databases if db.dependencies])}")
         
         # Detailed dependency chains for first few applications
-        print(f"\n   📋 Sample Dependency Chains:")
+        print("\n   📋 Sample Dependency Chains:")
         for i, app in enumerate(applications[:3]):
             if app.dependencies:
                 deps = [f"{dep['asset_name']} ({dep['dependency_type']})" for dep in app.dependencies]

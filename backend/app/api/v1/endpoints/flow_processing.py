@@ -4,17 +4,18 @@ Handles flow continuation and routing decisions using intelligent agents
 """
 
 import logging
-from typing import Dict, Any, Optional, List
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
-from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel
+from typing import Any, Dict, List, Optional
 
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext, get_request_context
 from app.core.database import get_db
-from app.core.context import get_request_context, RequestContext
 
 # Import the REAL single intelligent CrewAI agent
 try:
-    from app.services.agents.intelligent_flow_agent import IntelligentFlowAgent, FlowIntelligenceResult
+    from app.services.agents.intelligent_flow_agent import FlowIntelligenceResult, IntelligentFlowAgent
     INTELLIGENT_AGENT_AVAILABLE = True
     logger = logging.getLogger(__name__)
     logger.info("✅ REAL Single Intelligent CrewAI Agent imported successfully")

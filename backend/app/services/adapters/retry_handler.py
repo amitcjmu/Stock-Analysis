@@ -7,13 +7,13 @@ patterns for all platform adapters to ensure resilient data collection.
 
 import asyncio
 import logging
-import time
 import random
-from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional, Union, Callable, TypeVar, Generic
+import time
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from enum import Enum
 from functools import wraps
+from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
 
 from app.services.collection_flow.adapters import CollectionResponse
 

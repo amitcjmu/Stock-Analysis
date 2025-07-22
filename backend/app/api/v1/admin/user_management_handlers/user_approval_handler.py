@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # Add audit logging
@@ -36,8 +37,9 @@ class UserApprovalHandler:
     
     async def _validate_role_change_permissions(self, actor_user_id: str, target_role: str) -> bool:
         """Validate that the actor can assign the target role."""
+        from sqlalchemy import and_, select
+
         from app.models.rbac import UserRole
-        from sqlalchemy import select, and_
         
         # Get actor's current roles
         actor_roles_query = select(UserRole).where(

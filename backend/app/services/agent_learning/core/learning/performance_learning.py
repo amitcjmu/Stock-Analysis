@@ -3,16 +3,16 @@ Performance Learning Module - Handles performance-based learning and optimizatio
 """
 
 import logging
-from typing import Dict, List, Any, Optional
-from datetime import datetime
 from dataclasses import asdict
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from app.services.agent_learning.models import LearningContext, PerformanceLearningPattern
 
 # Performance monitoring integration
 try:
-    from app.services.performance.response_optimizer import response_optimizer
     from app.services.monitoring.performance_monitor import performance_monitor
+    from app.services.performance.response_optimizer import response_optimizer
     PERFORMANCE_MONITORING_AVAILABLE = True
 except ImportError:
     PERFORMANCE_MONITORING_AVAILABLE = False

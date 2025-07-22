@@ -22,11 +22,11 @@ Flow Phases:
 Each phase includes pause points for user input and collaboration.
 """
 
-import logging
 import asyncio
+import logging
 import uuid
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 # CrewAI Flow imports with graceful fallback
 CREWAI_FLOW_AVAILABLE = False
@@ -60,12 +60,18 @@ except ImportError as e:
         return decorator
 
 # Import models and dependencies
-from app.models.assessment_flow import (
-    AssessmentFlowState, AssessmentPhase, AssessmentStatus, SixRDecision,
-    ArchitectureRequirementType, ComponentType, TechDebtSeverity,
-    AssessmentFlowError, CrewExecutionError
-)
 from app.core.context import RequestContext
+from app.models.assessment_flow import (
+    ArchitectureRequirementType,
+    AssessmentFlowError,
+    AssessmentFlowState,
+    AssessmentPhase,
+    AssessmentStatus,
+    ComponentType,
+    CrewExecutionError,
+    SixRDecision,
+    TechDebtSeverity,
+)
 from app.services.crewai_flows.flow_state_manager import FlowStateManager
 from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
 

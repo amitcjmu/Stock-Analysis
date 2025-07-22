@@ -3,7 +3,7 @@ Service discovery and identification for On-Premises Platform Adapter
 """
 
 import asyncio
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
 from .models import DiscoveredHost, OnPremisesCredentials
 from .network_scanner import NetworkScanner

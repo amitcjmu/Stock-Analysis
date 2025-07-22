@@ -13,19 +13,20 @@ Usage:
     python scripts/fix_orphaned_discovery_flows.py [--dry-run] [--verbose]
 """
 
+import argparse
 import asyncio
 import logging
 import sys
-import argparse
-from datetime import datetime
-from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 # Add the backend directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from sqlalchemy import text
+
 from app.core.database import AsyncSessionLocal
 
 

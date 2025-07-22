@@ -4,14 +4,15 @@ Seed script for Six R Questions and Parameters.
 Usage:
     docker exec migration_backend python app/scripts/seed_sixr_questions.py [--force]
 """
+import argparse
 import asyncio
 import logging
 import os
 import sys
-from typing import List, Dict, Any
 from datetime import datetime
+from typing import Any, Dict, List
+
 from sqlalchemy import text
-import argparse
 
 # Adjust path for module imports
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))

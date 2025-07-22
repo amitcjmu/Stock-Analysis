@@ -9,21 +9,21 @@ import asyncio
 import json
 import logging
 import time
-from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional, Set
 from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Set
 
 try:
+    from azure.core.exceptions import ClientAuthenticationError, HttpResponseError
     from azure.identity import ClientSecretCredential, DefaultAzureCredential
+    from azure.mgmt.compute import ComputeManagementClient
+    from azure.mgmt.monitor import MonitorManagementClient
+    from azure.mgmt.network import NetworkManagementClient
     from azure.mgmt.resource import ResourceManagementClient
     from azure.mgmt.resourcegraph import ResourceGraphClient
-    from azure.mgmt.monitor import MonitorManagementClient
-    from azure.mgmt.compute import ComputeManagementClient
     from azure.mgmt.sql import SqlManagementClient
-    from azure.mgmt.web import WebSiteManagementClient
     from azure.mgmt.storage import StorageManagementClient
-    from azure.mgmt.network import NetworkManagementClient
-    from azure.core.exceptions import ClientAuthenticationError, HttpResponseError
+    from azure.mgmt.web import WebSiteManagementClient
     AZURE_SDK_AVAILABLE = True
 except ImportError:
     AZURE_SDK_AVAILABLE = False
@@ -35,15 +35,15 @@ except ImportError:
     ClientAuthenticationError = HttpResponseError = Exception
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.collection_flow import AutomationTier
 from app.services.collection_flow.adapters import (
-    BaseAdapter, 
-    AdapterMetadata, 
-    AdapterCapability, 
+    AdapterCapability,
+    AdapterMetadata,
+    BaseAdapter,
     CollectionMethod,
     CollectionRequest,
-    CollectionResponse
+    CollectionResponse,
 )
-from app.models.collection_flow import AutomationTier
 
 
 @dataclass

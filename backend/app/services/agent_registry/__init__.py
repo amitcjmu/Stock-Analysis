@@ -8,25 +8,25 @@ Generated with CC for modular backend architecture.
 """
 
 # Core registry components
-from .base import AgentPhase, AgentStatus, AgentRegistration
-from .registry_core import AgentRegistryCore
+from .base import AgentPhase, AgentRegistration, AgentStatus
 from .lifecycle_manager import AgentLifecycleManager
 
 # Phase-specific agent groups
 from .phase_agents import (
-    DiscoveryAgentManager,
     AssessmentAgentManager,
-    PlanningAgentManager,
-    MigrationAgentManager,
-    ModernizationAgentManager,
     DecommissionAgentManager,
+    DiscoveryAgentManager,
     FinOpsAgentManager,
     LearningContextAgentManager,
-    ObservabilityAgentManager
+    MigrationAgentManager,
+    ModernizationAgentManager,
+    ObservabilityAgentManager,
+    PlanningAgentManager,
 )
 
 # Main registry class
 from .registry import AgentRegistry
+from .registry_core import AgentRegistryCore
 
 # Global registry instance - maintaining backward compatibility
 try:

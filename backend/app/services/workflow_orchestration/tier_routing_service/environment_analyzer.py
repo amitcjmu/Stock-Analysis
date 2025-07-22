@@ -6,7 +6,7 @@ Environment complexity analysis and platform coverage assessment.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
 
 from app.core.logging import get_logger
 

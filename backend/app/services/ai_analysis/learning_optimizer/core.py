@@ -6,38 +6,38 @@ Built by: Agent Team B2 (AI Analysis & Intelligence)
 """
 
 import logging
-from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Any, Optional
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
 
-from .enums import LearningPattern, OptimizationStrategy
-from .models import LearningEvent, OptimizationRecommendation, LearningInsight
 from .analyzers import (
+    analyze_business_context_pattern,
+    analyze_completion_rates_pattern,
+    analyze_complexity_adaptation_pattern,
+    analyze_gap_resolution_pattern,
+    analyze_question_effectiveness_pattern,
     analyze_response_quality_pattern,
     analyze_stakeholder_engagement_pattern,
-    analyze_question_effectiveness_pattern,
-    analyze_completion_rates_pattern,
-    analyze_gap_resolution_pattern,
-    analyze_business_context_pattern,
     analyze_temporal_optimization_pattern,
-    analyze_complexity_adaptation_pattern
 )
+from .enums import LearningPattern, OptimizationStrategy
 from .insights import (
-    generate_quality_insights,
-    generate_engagement_insights,
-    generate_effectiveness_insights,
-    generate_completion_insights,
-    generate_resolution_insights,
-    generate_context_insights,
-    generate_temporal_insights,
+    calculate_pattern_correlation,
     generate_adaptation_insights,
+    generate_completion_insights,
+    generate_context_insights,
     generate_correlation_insights,
     generate_correlation_recommendations,
-    prioritize_recommendations,
-    optimize_recommendation_set,
-    calculate_pattern_correlation,
+    generate_effectiveness_insights,
+    generate_engagement_insights,
+    generate_quality_insights,
+    generate_resolution_insights,
+    generate_temporal_insights,
+    identify_next_actions,
     identify_pattern_interactions,
-    identify_next_actions
+    optimize_recommendation_set,
+    prioritize_recommendations,
 )
+from .models import LearningEvent, LearningInsight, OptimizationRecommendation
 
 logger = logging.getLogger(__name__)
 

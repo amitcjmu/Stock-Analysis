@@ -2,16 +2,16 @@
 Tests for the sessions API endpoints.
 """
 
-import pytest
-from fastapi.testclient import TestClient
-from fastapi import status
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
-from datetime import datetime, timezone, timedelta
 
-from backend.main import app
+import pytest
+from fastapi import status
+from fastapi.testclient import TestClient
+
+from app.models.client_account import ClientAccount, Engagement, User
 from app.models.data_import_session import DataImportSession, SessionStatus, SessionType
-from app.models.client_account import ClientAccount, Engagement
-from app.models.client_account import User
+from backend.main import app
 
 # Test client
 client = TestClient(app)

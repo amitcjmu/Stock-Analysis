@@ -6,8 +6,9 @@ Create Date: 2025-07-21 03:30:00.000000
 
 """
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = '011_add_updated_at_to_collection_data_gaps'

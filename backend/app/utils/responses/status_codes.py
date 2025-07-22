@@ -6,6 +6,7 @@ Provides standard status codes and helper functions.
 from enum import IntEnum
 from typing import Dict, Optional
 
+
 class StatusCode(IntEnum):
     """HTTP status codes enumeration."""
     

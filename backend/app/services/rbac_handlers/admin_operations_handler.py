@@ -5,19 +5,17 @@ Handles admin-specific operations like user creation and system management.
 
 import logging
 import uuid
-from typing import Dict, List, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
 
 from .base_handler import BaseRBACHandler
 
 # Import RBAC models with fallback
 try:
-    from app.models.rbac import (
-        UserProfile, UserRole, ClientAccess, EngagementAccess,
-        UserStatus, AccessLevel, RoleType
-    )
+    from app.models.rbac import AccessLevel, ClientAccess, EngagementAccess, RoleType, UserProfile, UserRole, UserStatus
     RBAC_MODELS_AVAILABLE = True
 except ImportError:
     RBAC_MODELS_AVAILABLE = False
@@ -61,6 +59,7 @@ class AdminOperationsHandler(BaseRBACHandler):
                 return {"status": "error", "message": "Email is required"}
             
             from sqlalchemy import select
+
             from app.models.client_account import User
             existing_user = await self.db.execute(select(User).where(User.email == email))
             if existing_user.scalar_one_or_none():

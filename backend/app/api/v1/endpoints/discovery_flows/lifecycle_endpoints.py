@@ -10,14 +10,16 @@ This module handles flow lifecycle operations:
 import logging
 import time
 from datetime import datetime
-from typing import Dict, Any
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from typing import Any, Dict
 
-from app.core.database import get_db
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext, get_current_context
-from .response_mappers import ResponseMappers, FlowInitializeResponse, FlowOperationResponse
+from app.core.database import get_db
+
+from .response_mappers import FlowInitializeResponse, FlowOperationResponse, ResponseMappers
 from .status_calculator import StatusCalculator
 
 logger = logging.getLogger(__name__)
@@ -83,9 +85,10 @@ async def pause_discovery_flow(
         logger.info(f"⏸️ Pausing discovery flow {flow_id}")
         
         # Import required models
-        from app.models.discovery_flow import DiscoveryFlow
-        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
         import uuid as uuid_lib
+
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+        from app.models.discovery_flow import DiscoveryFlow
         
         # Convert flow_id to UUID if needed
         try:
@@ -196,10 +199,11 @@ async def delete_discovery_flow(
         logger.info(f"🗑️ Marking discovery flow {flow_id} as deleted")
         
         # Import required models
-        from app.models.discovery_flow import DiscoveryFlow
-        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-        from app.models.flow_deletion_audit import FlowDeletionAudit
         import uuid as uuid_lib
+
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+        from app.models.discovery_flow import DiscoveryFlow
+        from app.models.flow_deletion_audit import FlowDeletionAudit
         
         start_time = time.time()
         
@@ -333,8 +337,9 @@ async def clone_discovery_flow(
         logger.info(f"🔄 Cloning discovery flow {flow_id}")
         
         # Import required models
-        from app.models.discovery_flow import DiscoveryFlow
         import uuid as uuid_lib
+
+        from app.models.discovery_flow import DiscoveryFlow
         
         # Convert flow_id to UUID if needed
         try:
@@ -408,8 +413,9 @@ async def archive_discovery_flow(
         logger.info(f"📦 Archiving discovery flow {flow_id}")
         
         # Import required models
-        from app.models.discovery_flow import DiscoveryFlow
         import uuid as uuid_lib
+
+        from app.models.discovery_flow import DiscoveryFlow
         
         # Convert flow_id to UUID if needed
         try:
@@ -499,8 +505,9 @@ async def restore_discovery_flow(
         logger.info(f"🔄 Restoring discovery flow {flow_id}")
         
         # Import required models
-        from app.models.discovery_flow import DiscoveryFlow
         import uuid as uuid_lib
+
+        from app.models.discovery_flow import DiscoveryFlow
         
         # Convert flow_id to UUID if needed
         try:

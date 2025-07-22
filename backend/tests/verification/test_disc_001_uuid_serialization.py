@@ -3,10 +3,12 @@ Verification Test for DISC-001: UUID Serialization in Data Cleansing
 Agent-7 Verification Test Suite
 """
 
-import pytest
-import httpx
 import json
-from typing import Dict, Any
+from typing import Any, Dict
+
+import httpx
+import pytest
+
 
 class TestDISC001UUIDSerialization:
     """Test suite to verify UUID serialization fix in data cleansing endpoint"""

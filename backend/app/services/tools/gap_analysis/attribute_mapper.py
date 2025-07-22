@@ -2,11 +2,13 @@
 Attribute Mapper Tool - Maps collected data fields to critical attributes framework
 """
 
-from typing import Dict, Any, List, ClassVar
+import logging
+from typing import Any, ClassVar, Dict, List
+
 from app.services.tools.base_tool import AsyncBaseDiscoveryTool
 from app.services.tools.registry import ToolMetadata
+
 from .constants import ATTRIBUTE_PATTERNS
-import logging
 
 logger = logging.getLogger(__name__)
 

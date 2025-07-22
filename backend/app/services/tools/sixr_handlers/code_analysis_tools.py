@@ -5,7 +5,7 @@ Handles code analysis and complexity assessment tools.
 
 import logging
 import re
-from typing import Dict, Any
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 

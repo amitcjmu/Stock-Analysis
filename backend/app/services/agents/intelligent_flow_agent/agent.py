@@ -5,14 +5,14 @@ Single intelligent CrewAI agent for flow processing that can handle all flow pro
 tasks using multiple tools and comprehensive knowledge of the platform.
 """
 
-import logging
 import asyncio
 import json
+import logging
 import re
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 
 try:
-    from crewai import Agent, Task, Crew, Process
+    from crewai import Agent, Crew, Process, Task
     CREWAI_AVAILABLE = True
 except ImportError:
     CREWAI_AVAILABLE = False
@@ -48,7 +48,7 @@ except ImportError:
         return None
 
 from .models import FlowIntelligenceResult
-from .tools import FlowContextTool, FlowStatusTool, PhaseValidationTool, NavigationDecisionTool
+from .tools import FlowContextTool, FlowStatusTool, NavigationDecisionTool, PhaseValidationTool
 
 logger = logging.getLogger(__name__)
 

@@ -4,13 +4,13 @@ GCP Metrics Collection
 Handles performance metrics collection using Cloud Monitoring.
 """
 
-from datetime import datetime, timedelta
-from typing import Dict, Any, List
 import logging
+from datetime import datetime, timedelta
+from typing import Any, Dict, List
 
-from .dependencies import monitoring_v3
 from .auth import GCPAuthManager
-from .constants import COMPUTE_METRICS, SQL_METRICS, FUNCTION_METRICS
+from .constants import COMPUTE_METRICS, FUNCTION_METRICS, SQL_METRICS
+from .dependencies import monitoring_v3
 
 
 class GCPMetricsCollector:

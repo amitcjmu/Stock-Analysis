@@ -4,18 +4,18 @@ Monitors agent performance, identifies bottlenecks, and provides optimization re
 based on performance patterns and learning data.
 """
 
-import logging
 import asyncio
-import time
-import statistics
-from typing import Dict, List, Any, Optional, Tuple
-from datetime import datetime, timedelta
-from dataclasses import dataclass, field
-from collections import defaultdict, deque
 import json
+import logging
+import statistics
+import time
+from collections import defaultdict, deque
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple
 
+from app.services.agent_learning_system import LearningContext, agent_learning_system
 from app.services.enhanced_agent_memory import enhanced_agent_memory
-from app.services.agent_learning_system import agent_learning_system, LearningContext
 from app.services.performance.response_optimizer import response_optimizer
 
 logger = logging.getLogger(__name__)

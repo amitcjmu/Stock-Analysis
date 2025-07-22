@@ -10,34 +10,33 @@ Modularized agent service layer providing synchronous access to backend services
 - utils/: Utility functions and helpers
 """
 
-from .core.service_layer import AgentServiceLayer
-from .handlers.flow_handler import FlowHandler
-from .handlers.data_handler import DataHandler
-from .handlers.asset_handler import AssetHandler
-from .validators.service_validator import ServiceValidator
-from .metrics.performance_tracker import PerformanceTracker
-from .models.service_models import (
-    ServiceCallStatus,
-    ErrorType,
-    PhaseType,
-    AssetType,
-    FlowStatusResponse,
-    NavigationGuidanceResponse,
-    AssetValidationResponse,
-    PerformanceMetrics,
-    HealthStatus
-)
-from .utils.service_utils import (
-    validate_uuid,
-    normalize_asset_type,
-    calculate_confidence_score,
-    format_duration,
-    build_error_response
-)
-
 # Main service class (backward compatibility)
 from .agent_service_layer import AgentServiceLayer as LegacyAgentServiceLayer
 from .agent_service_layer import get_agent_service
+from .core.service_layer import AgentServiceLayer
+from .handlers.asset_handler import AssetHandler
+from .handlers.data_handler import DataHandler
+from .handlers.flow_handler import FlowHandler
+from .metrics.performance_tracker import PerformanceTracker
+from .models.service_models import (
+    AssetType,
+    AssetValidationResponse,
+    ErrorType,
+    FlowStatusResponse,
+    HealthStatus,
+    NavigationGuidanceResponse,
+    PerformanceMetrics,
+    PhaseType,
+    ServiceCallStatus,
+)
+from .utils.service_utils import (
+    build_error_response,
+    calculate_confidence_score,
+    format_duration,
+    normalize_asset_type,
+    validate_uuid,
+)
+from .validators.service_validator import ServiceValidator
 
 __all__ = [
     # Core components

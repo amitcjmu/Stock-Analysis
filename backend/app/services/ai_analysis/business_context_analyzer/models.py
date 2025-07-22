@@ -8,7 +8,7 @@ Built by: Agent Team B2 (AI Analysis & Intelligence)
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 from .enums import MigrationDriverType, StakeholderRole
 

@@ -5,13 +5,11 @@ This module contains helper functions used across the collection flow.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from app.models.collection_flow import (
-    CollectionPhase, AutomationTier, AdaptiveQuestionnaire
-)
+from app.models.collection_flow import AdaptiveQuestionnaire, AutomationTier, CollectionPhase
 
 logger = logging.getLogger(__name__)
 

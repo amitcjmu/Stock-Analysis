@@ -6,8 +6,8 @@ Performs PII detection, malicious payload scanning, and data type validation.
 
 import logging
 import time
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from .base_phase_executor import BasePhaseExecutor
 
@@ -44,7 +44,7 @@ class DataImportValidationExecutor(BasePhaseExecutor):
     def _store_results(self, results: Dict[str, Any]):
         """Store execution results in state"""
         # Debug: Log what we're storing
-        logger.info(f"🔍 DEBUG: Storing data import validation results")
+        logger.info("🔍 DEBUG: Storing data import validation results")
         logger.info(f"🔍 DEBUG: Results keys: {list(results.keys())}")
         logger.info(f"🔍 DEBUG: Raw data in state: {len(self.state.raw_data) if hasattr(self.state, 'raw_data') and self.state.raw_data else 0} records")
         
@@ -64,7 +64,7 @@ class DataImportValidationExecutor(BasePhaseExecutor):
         
         if is_valid:
             self.state.phase_completion["data_import"] = True
-            logger.info(f"✅ DEBUG: Data import phase marked as completed")
+            logger.info("✅ DEBUG: Data import phase marked as completed")
         else:
             # Only log failure if validation actually failed
             if not reason:
@@ -503,7 +503,7 @@ class DataImportValidationExecutor(BasePhaseExecutor):
         """Check basic data structure validity"""
         try:
             # Enhanced debugging for data structure validation
-            logger.info(f"🔍 DEBUG: Checking data structure...")
+            logger.info("🔍 DEBUG: Checking data structure...")
             logger.info(f"🔍 DEBUG: Has raw_data attribute: {hasattr(self.state, 'raw_data')}")
             
             if not hasattr(self.state, 'raw_data'):

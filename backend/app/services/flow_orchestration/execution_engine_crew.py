@@ -4,17 +4,17 @@ Flow Execution Engine CrewAI Module
 Handles CrewAI-specific execution logic for discovery and assessment flows.
 """
 
-import logging
-from typing import Dict, Any, Optional
-from datetime import datetime
 import asyncio
+import logging
+from datetime import datetime
+from typing import Any, Dict, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging import get_logger
 from app.core.context import RequestContext
-from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
+from app.core.logging import get_logger
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
 from app.services.flow_type_registry import FlowTypeRegistry
 from app.services.handler_registry import HandlerRegistry
 from app.services.validator_registry import ValidatorRegistry
@@ -98,8 +98,8 @@ class FlowCrewExecutor:
         phase_input: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Execute discovery flow phase"""
-        from app.services.crewai_flow_service import CrewAIFlowService
         from app.core.database import AsyncSessionLocal
+        from app.services.crewai_flow_service import CrewAIFlowService
         
         async with AsyncSessionLocal() as db:
             crewai_service = CrewAIFlowService(db)

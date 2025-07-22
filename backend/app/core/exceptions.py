@@ -8,10 +8,10 @@ Provides a comprehensive hierarchy of exceptions with:
 - Context preservation
 """
 
-from typing import Optional, Dict, Any, List
-from datetime import datetime
 import traceback
 import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 
 class BaseApplicationError(Exception):
@@ -325,7 +325,7 @@ class InvalidFlowStateError(FlowError):
         message = f"Cannot transition from {current_state} to {target_state}"
         super().__init__(message, flow_id=flow_id, **kwargs)
         self.error_code = "FLOW_003"
-        self.user_message = f"Invalid workflow state transition"
+        self.user_message = "Invalid workflow state transition"
         self.recovery_suggestions = [
             "Wait for the current operation to complete",
             "Check the workflow status before retrying"

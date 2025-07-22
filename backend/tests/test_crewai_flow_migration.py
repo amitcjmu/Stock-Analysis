@@ -4,15 +4,17 @@ Tests the migration from legacy discovery patterns to the new CrewAI Flow implem
 Validates compatibility, fallback behavior, and performance characteristics.
 """
 
-import pytest
 import asyncio
-from unittest.mock import Mock, patch, AsyncMock
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
+
+from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 
 # Test the migration from legacy to CrewAI Flow
 from app.services.crewai_flow_service import CrewAIFlowService
-from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 
 
 class TestCrewAIFlowMigration:
@@ -413,8 +415,8 @@ class TestPerformanceAndScaling:
         mock_service = Mock()
         mock_service.agents = {}
         
-        from app.services.crewai_flows.unified_discovery_flow import create_unified_discovery_flow
         from app.core.context import RequestContext
+        from app.services.crewai_flows.unified_discovery_flow import create_unified_discovery_flow
         
         context = RequestContext(
             client_account_id="test-client",

@@ -5,15 +5,18 @@ Task 1.4.2: Test asset repository and discovery flow services with master flow q
 """
 
 import asyncio
-import sys
 import os
+import sys
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
+import json
+
 from sqlalchemy import text
+
 from app.core.database import AsyncSessionLocal
 from app.repositories.asset_repository import AssetRepository
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-import json
 
 
 async def test_asset_repository_master_flow():

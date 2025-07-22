@@ -3,22 +3,21 @@ Seed discovery flows in various states.
 Agent 2 Task 2.3 - Discovery flows seeding
 """
 import asyncio
-import sys
 import json
+import sys
 import uuid
-from pathlib import Path
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # Add backend to path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from app.core.database import AsyncSessionLocal
-from app.models.discovery_flow import DiscoveryFlow
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from seeding.constants import (
-    DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, FLOW_IDS, FLOWS, USER_IDS, BASE_TIMESTAMP
-)
+from app.models.discovery_flow import DiscoveryFlow
+from seeding.constants import BASE_TIMESTAMP, DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, FLOW_IDS, FLOWS, USER_IDS
 
 
 async def create_discovery_flows(db: AsyncSession) -> list[DiscoveryFlow]:

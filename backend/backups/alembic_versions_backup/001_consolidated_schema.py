@@ -11,9 +11,10 @@ This migration creates the entire database schema from scratch with:
 - Hybrid state tracking in discovery_flows
 - Master flow orchestration support
 """
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = '001_consolidated_schema'

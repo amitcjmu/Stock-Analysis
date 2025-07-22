@@ -5,9 +5,9 @@ Revises: 005_add_gap_analysis_and_questionnaire_tables
 Create Date: 2025-01-20
 
 """
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = '006_add_collection_flow_next_phase'

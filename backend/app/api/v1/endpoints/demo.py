@@ -4,18 +4,24 @@ Provides access to persistent mock data for demonstration and development purpos
 """
 
 import logging
-from typing import List, Dict, Optional, Any
+from typing import Any, Dict, List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.repositories.demo_repository import DemoRepository
-from app.services.embedding_service import EmbeddingService
 from app.schemas.demo import (
-    DemoAssetResponse, DemoAssetCreate, DemoAssetUpdate,
-    DemoAnalysisResponse, DemoWaveResponse, DemoTagResponse,
-    DemoSummaryResponse, DemoEngagementResponse
+    DemoAnalysisResponse,
+    DemoAssetCreate,
+    DemoAssetResponse,
+    DemoAssetUpdate,
+    DemoEngagementResponse,
+    DemoSummaryResponse,
+    DemoTagResponse,
+    DemoWaveResponse,
 )
+from app.services.embedding_service import EmbeddingService
 
 logger = logging.getLogger(__name__)
 

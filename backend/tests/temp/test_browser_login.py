@@ -3,7 +3,9 @@
 Test login flow using Playwright to simulate real browser behavior
 """
 import asyncio
+
 from playwright.async_api import async_playwright
+
 
 async def test_login():
     async with async_playwright() as p:

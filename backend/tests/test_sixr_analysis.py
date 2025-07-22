@@ -1,25 +1,36 @@
-import pytest
 import asyncio
-from unittest.mock import Mock, patch, AsyncMock
-from datetime import datetime, timedelta
-from typing import Dict, List, Any
+import os
 
 # Import the modules we're testing
 import sys
-import os
+from datetime import datetime, timedelta
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../backend'))
 
+from app.models.sixr_analysis import SixRAnalysis
+from app.models.sixr_analysis import SixRParameters as SixRParametersModel
 from app.schemas.sixr_analysis import (
-    SixRParameters, SixRAnalysisRequest, SixRRecommendationResponse,
-    QualifyingQuestion, QuestionResponse, SixRStrategy, ApplicationType
+    ApplicationType,
+    QualifyingQuestion,
+    QuestionResponse,
+    SixRAnalysisRequest,
+    SixRParameters,
+    SixRRecommendationResponse,
+    SixRStrategy,
 )
-from app.services.sixr_engine_modular import SixRDecisionEngine
 from app.services.crewai_flows.crews.technical_debt_crew import create_technical_debt_crew
+from app.services.sixr_engine_modular import SixRDecisionEngine
 from app.services.tools.sixr_tools import (
-    CMDBAnalysisTool, ParameterScoringTool, QuestionGenerationTool,
-    CodeAnalysisTool, RecommendationValidationTool
+    CMDBAnalysisTool,
+    CodeAnalysisTool,
+    ParameterScoringTool,
+    QuestionGenerationTool,
+    RecommendationValidationTool,
 )
-from app.models.sixr_analysis import SixRAnalysis, SixRParameters as SixRParametersModel
 
 
 class TestSixRDecisionEngine:

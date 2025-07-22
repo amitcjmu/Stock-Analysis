@@ -3,7 +3,7 @@
 """
 
 try:
-    from sqlalchemy import Column, Integer, String, DateTime, Text, JSON, Enum, Boolean, ForeignKey, Float
+    from sqlalchemy import JSON, Boolean, Column, DateTime, Enum, Float, ForeignKey, Integer, String, Text
     from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
     from sqlalchemy.orm import relationship
     from sqlalchemy.sql import func
@@ -20,14 +20,14 @@ except ImportError:
             return None
 
 import enum
-from datetime import datetime
-from typing import Dict, Any, List, Optional
 import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 try:
     from app.core.database import Base
-    from app.schemas.sixr_analysis import AnalysisStatus, QuestionType, ApplicationType
     from app.models.asset import SixRStrategy
+    from app.schemas.sixr_analysis import AnalysisStatus, ApplicationType, QuestionType
 except ImportError:
     Base = object
     

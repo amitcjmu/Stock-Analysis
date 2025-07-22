@@ -16,13 +16,13 @@ This script implements all flow type configurations for the Master Flow Orchestr
 
 import asyncio
 import logging
-from typing import Dict, Any, List
 from datetime import datetime
+from typing import Any, Dict, List
 
-from app.services.flow_type_registry import FlowTypeRegistry, FlowTypeConfig, PhaseConfig
-from app.services.validator_registry import ValidatorRegistry
-from app.services.handler_registry import HandlerRegistry
 from app.core.database import AsyncSessionLocal
+from app.services.flow_type_registry import FlowTypeConfig, FlowTypeRegistry, PhaseConfig
+from app.services.handler_registry import HandlerRegistry
+from app.services.validator_registry import ValidatorRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -913,7 +913,7 @@ async def run_flow_type_configuration():
         
         if results.get("verification"):
             verification = results["verification"]
-            print(f"\nVerification results:")
+            print("\nVerification results:")
             print(f"  - Total flows: {verification['total_flows']}")
             print(f"  - Verified flows: {len(verification['verified_flows'])}")
             print(f"  - Consistency check: {'✅ PASSED' if verification['consistency_check'] else '❌ FAILED'}")

@@ -4,12 +4,14 @@ Architecture Commands - Architecture standards and overrides management
 import logging
 from datetime import datetime
 from typing import List
-from sqlalchemy import delete, and_
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.dialects.postgresql import insert
 
-from app.models.assessment_flow import EngagementArchitectureStandard, ApplicationArchitectureOverride
-from app.models.assessment_flow_state import ArchitectureRequirement, ApplicationArchitectureOverride as ApplicationArchitectureOverrideState
+from sqlalchemy import and_, delete
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.assessment_flow import ApplicationArchitectureOverride, EngagementArchitectureStandard
+from app.models.assessment_flow_state import ApplicationArchitectureOverride as ApplicationArchitectureOverrideState
+from app.models.assessment_flow_state import ArchitectureRequirement
 
 logger = logging.getLogger(__name__)
 

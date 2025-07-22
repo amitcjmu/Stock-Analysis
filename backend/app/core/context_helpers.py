@@ -1,10 +1,11 @@
 """
 Context helper functions for multi-tenant access verification.
 """
+import logging
 from typing import Optional
+
 from fastapi import Header, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-import logging
 
 logger = logging.getLogger(__name__)
 

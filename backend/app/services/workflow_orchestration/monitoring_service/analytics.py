@@ -6,7 +6,7 @@ Handles analytics generation, insights, and predictive monitoring.
 """
 
 from datetime import datetime, timedelta
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 from app.core.logging import get_logger
 

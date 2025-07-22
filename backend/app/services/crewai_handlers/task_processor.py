@@ -3,9 +3,9 @@ Task Processor Handler
 Handles task execution and processing operations.
 """
 
-import logging
 import asyncio
-from typing import Dict, Any, Optional, List
+import logging
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +130,7 @@ class TaskProcessor:
                 "enhanced_mappings": enhanced_mappings,
                 "field_analysis": field_analysis,
                 "mapping_context": mapping_context,
-                "analysis_summary": f"Enhanced AI analysis with field mapping intelligence applied"
+                "analysis_summary": "Enhanced AI analysis with field mapping intelligence applied"
             }
             
         except Exception as e:

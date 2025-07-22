@@ -8,25 +8,26 @@ agent memory, database records, and associated data with proper audit trail.
 Migrating from WorkflowState to DiscoveryFlow V2 architecture.
 """
 
-import logging
 import json
-from typing import Dict, List, Any, Optional
+import logging
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import and_, delete, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, and_, text
 from sqlalchemy.orm import selectinload
 
-from app.core.database import AsyncSessionLocal
 from app.core.context import RequestContext
-
-# V2 Discovery Flow imports (target architecture)
-from app.models.discovery_flow import DiscoveryFlow
-from app.models.asset import Asset as DiscoveryAsset
-from app.services.discovery_flow_service import DiscoveryFlowService
+from app.core.database import AsyncSessionLocal
 
 # Legacy imports for backward compatibility
 from app.models.asset import Asset
+from app.models.asset import Asset as DiscoveryAsset
 from app.models.data_import.core import DataImport as DataImportSession
+
+# V2 Discovery Flow imports (target architecture)
+from app.models.discovery_flow import DiscoveryFlow
+from app.services.discovery_flow_service import DiscoveryFlowService
 
 # Optional dependency model import
 try:
@@ -162,7 +163,7 @@ class DiscoveryFlowCleanupService:
                 
                 return {
                     "success": True,
-                    "message": f"V2 Discovery flow and all associated data deleted successfully",
+                    "message": "V2 Discovery flow and all associated data deleted successfully",
                     "flow_id": flow_id,
                     "cleanup_summary": cleanup_summary,
                     "deletion_timestamp": datetime.utcnow().isoformat(),

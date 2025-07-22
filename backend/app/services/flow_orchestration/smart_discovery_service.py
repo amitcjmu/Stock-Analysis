@@ -5,16 +5,17 @@ Handles intelligent flow data discovery and reconciliation for the Master Flow O
 Extracted from MasterFlowOrchestrator to follow single responsibility principle.
 """
 
-import uuid
 import logging
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timezone, timedelta
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import text
+import uuid
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
 
-from app.core.logging import get_logger
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext
+from app.core.logging import get_logger
 from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
 
 logger = get_logger(__name__)
@@ -48,19 +49,19 @@ class SmartDiscoveryService:
         # Strategy 1: Find related data by timestamp
         discovered_data = await self._find_related_data_by_timestamp(flow_id)
         if discovered_data:
-            logger.info(f"✅ Found flow data via timestamp correlation")
+            logger.info("✅ Found flow data via timestamp correlation")
             return discovered_data
         
         # Strategy 2: Find related data by context
         discovered_data = await self._find_related_data_by_context(flow_id)
         if discovered_data:
-            logger.info(f"✅ Found flow data via context correlation")
+            logger.info("✅ Found flow data via context correlation")
             return discovered_data
         
         # Strategy 3: Check flow persistence data
         discovered_data = await self._find_in_flow_persistence(flow_id)
         if discovered_data:
-            logger.info(f"✅ Found flow data in persistence layer")
+            logger.info("✅ Found flow data in persistence layer")
             return discovered_data
         
         logger.warning(f"❌ No flow data discovered for {flow_id}")

@@ -4,13 +4,26 @@ Patterns discovered by agents during task execution for learning and optimizatio
 Part of the Agent Observability Enhancement
 """
 
-from sqlalchemy import Column, String, DateTime, ForeignKey, func, Integer, Boolean, Text, DECIMAL, CheckConstraint, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import text
 import uuid
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
+from sqlalchemy import (
+    DECIMAL,
+    Boolean,
+    CheckConstraint,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import text
 
 from app.core.database import Base
 

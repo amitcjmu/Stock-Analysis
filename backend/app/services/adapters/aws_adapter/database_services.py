@@ -2,8 +2,8 @@
 AWS Database Services Collection (RDS, DynamoDB, Redshift, ElastiCache)
 """
 
-from typing import Dict, Any, List
 import logging
+from typing import Any, Dict, List
 
 try:
     import boto3

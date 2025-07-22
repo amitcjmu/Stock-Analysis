@@ -5,13 +5,14 @@ Manages data classifications and quality assessments.
 
 import logging
 import uuid
-from datetime import datetime
-from typing import Dict, List, Any, Optional
 from dataclasses import asdict
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from ..models.agent_communication import DataItem, DataClassification, ConfidenceLevel
-from app.services.agent_ui_bridge_handlers.storage_manager import classification_storage
 from app.models.agent_communication import AgentInsight, AgentQuestion
+from app.services.agent_ui_bridge_handlers.storage_manager import classification_storage
+
+from ..models.agent_communication import ConfidenceLevel, DataClassification, DataItem
 
 logger = logging.getLogger(__name__)
 

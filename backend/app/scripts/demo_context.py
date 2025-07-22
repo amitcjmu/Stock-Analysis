@@ -3,8 +3,8 @@
 All scripts can import `get_demo_context` to obtain the UUIDs needed for
 multi-tenant inserts.  Assumes `init_db.py` has already seeded the demo data.
 """
-from typing import Dict
 import uuid
+from typing import Dict
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession

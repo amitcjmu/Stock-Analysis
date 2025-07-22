@@ -8,29 +8,34 @@ import asyncio
 import uuid
 from datetime import datetime
 
-# Import all models
-from app.models.client_account import ClientAccount, Engagement, User, UserAccountAssociation
-from app.models.discovery_flow import DiscoveryFlow
-from app.models.data_import import DataImport
-from app.models.data_import.core import RawImportRecord, ImportProcessingStep
-from app.models.data_import.mapping import ImportFieldMapping
-from app.models.data_import_session import DataImportSession
-from app.models.asset import Asset, AssetDependency, WorkflowProgress, CMDBSixRAnalysis
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from app.models.rbac import UserProfile, UserRole, ClientAccess, EngagementAccess, AccessAuditLog
-from app.models.rbac_enhanced import EnhancedUserProfile, RolePermissions, SoftDeletedItems
-from app.models.tags import Tag, AssetTag
-from app.models.migration import Migration
-from app.models.assessment import Assessment, WavePlan
-from app.models.analytics import (
-    SixRAnalysis, MigrationWave, AgentQuestion, 
-    AgentInsight, DataItem, Feedback, FlowDeletionAudit
-)
-from app.models.observability import LLMUsageLog, LLMUsageSummary
-from app.models.security import SecurityAuditLog, RoleChangeApproval
-
 # Import database session
 from app.core.database import AsyncSessionLocal
+from app.models.analytics import (
+    AgentInsight,
+    AgentQuestion,
+    DataItem,
+    Feedback,
+    FlowDeletionAudit,
+    MigrationWave,
+    SixRAnalysis,
+)
+from app.models.assessment import Assessment, WavePlan
+from app.models.asset import Asset, AssetDependency, CMDBSixRAnalysis, WorkflowProgress
+
+# Import all models
+from app.models.client_account import ClientAccount, Engagement, User, UserAccountAssociation
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.models.data_import import DataImport
+from app.models.data_import.core import ImportProcessingStep, RawImportRecord
+from app.models.data_import.mapping import ImportFieldMapping
+from app.models.data_import_session import DataImportSession
+from app.models.discovery_flow import DiscoveryFlow
+from app.models.migration import Migration
+from app.models.observability import LLMUsageLog, LLMUsageSummary
+from app.models.rbac import AccessAuditLog, ClientAccess, EngagementAccess, UserProfile, UserRole
+from app.models.rbac_enhanced import EnhancedUserProfile, RolePermissions, SoftDeletedItems
+from app.models.security import RoleChangeApproval, SecurityAuditLog
+from app.models.tags import AssetTag, Tag
 
 
 async def test_all_models():
@@ -330,7 +335,7 @@ async def test_all_models():
     success_count = sum(1 for r in results if r.startswith("✅"))
     total_count = len(results)
     
-    print(f"\n=== SUMMARY ===")
+    print("\n=== SUMMARY ===")
     print(f"Total models tested: {total_count}")
     print(f"Successful: {success_count}")
     print(f"Failed: {total_count - success_count}")

@@ -6,12 +6,13 @@ Maps import_session_id to data_import_id for existing flows.
 
 import asyncio
 import logging
+
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
-from app.models.discovery_flow import DiscoveryFlow
 from app.models.data_import import DataImport
+from app.models.discovery_flow import DiscoveryFlow
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

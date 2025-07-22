@@ -3,9 +3,10 @@ Topology Mapping Tools for Dependency Analysis Crews
 Provides specialized tools for mapping application and infrastructure topology
 """
 
-import logging
 import json
-from typing import Dict, List, Any, Optional, Tuple
+import logging
+from typing import Any, Dict, List, Optional, Tuple
+
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 

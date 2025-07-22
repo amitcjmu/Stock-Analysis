@@ -3,14 +3,15 @@ API Integration tests for enhanced asset inventory functionality.
 Tests the full API endpoints with Docker container validation.
 """
 
-import pytest
 import asyncio
-import httpx
-import os
-from typing import Dict, Any
 import json
+import os
 import time
-from unittest.mock import patch, Mock
+from typing import Any, Dict
+from unittest.mock import Mock, patch
+
+import httpx
+import pytest
 
 # Docker test configuration
 DOCKER_API_BASE = os.getenv('DOCKER_API_BASE', 'http://localhost:8000')
@@ -559,8 +560,8 @@ async def test_end_to_end_workflow(api_client, sample_cmdb_csv_content, auth_hea
     
     # Step 2: Process the data
     # Convert CSV to asset list for processing
-    import io
     import csv
+    import io
     csv_reader = csv.DictReader(io.StringIO(sample_cmdb_csv_content))
     assets = list(csv_reader)
     

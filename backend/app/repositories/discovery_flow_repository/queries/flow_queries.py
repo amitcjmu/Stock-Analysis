@@ -4,12 +4,13 @@ Flow Queries
 Read operations for discovery flows.
 """
 
-import uuid
 import logging
-from typing import List, Optional
+import uuid
 from datetime import datetime
+from typing import List, Optional
+
+from sqlalchemy import and_, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, desc
 
 from app.models.discovery_flow import DiscoveryFlow
 

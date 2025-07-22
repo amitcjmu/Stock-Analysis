@@ -6,13 +6,11 @@ to determine the optimal 6R migration strategy based on multiple factors includi
 technology stack, technical debt, cloud readiness, and complexity.
 """
 
-import logging
-from typing import Dict, Any, List, Tuple
 import json
+import logging
+from typing import Any, Dict, List, Tuple
 
-from app.models.assessment_flow_state import (
-    SixRStrategy, ComponentType, TechDebtSeverity
-)
+from app.models.assessment_flow_state import ComponentType, SixRStrategy, TechDebtSeverity
 
 logger = logging.getLogger(__name__)
 

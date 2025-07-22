@@ -4,18 +4,18 @@ Flow Execution Engine Initialization Module
 Handles flow initialization logic for different flow types.
 """
 
-import logging
-from typing import Dict, Any, Optional
-from datetime import datetime
 import asyncio
+import logging
+from datetime import datetime
+from typing import Any, Dict, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging import get_logger
 from app.core.context import RequestContext
-from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
+from app.core.logging import get_logger
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
+from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
 from app.services.flow_type_registry import FlowTypeRegistry
 from app.services.handler_registry import HandlerRegistry
 from app.services.validator_registry import ValidatorRegistry
@@ -202,8 +202,8 @@ class FlowInitializer:
             logger.info(f"📋 Collection flow initial state: {initial_state}")
             
             # Import required modules
-            from app.services.crewai_flows.unified_collection_flow import create_unified_collection_flow
             from app.services.crewai_flow_service import CrewAIFlowService
+            from app.services.crewai_flows.unified_collection_flow import create_unified_collection_flow
             
             # Create CrewAI service
             crewai_service = CrewAIFlowService(self.db)

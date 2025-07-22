@@ -5,17 +5,17 @@ Complete UX optimizer combining all modular components.
 """
 
 import logging
-from typing import Dict, Any, Tuple, List
-from uuid import UUID
 from datetime import datetime
+from typing import Any, Dict, List, Tuple
+from uuid import UUID
 
 from app.core.logging import get_logger
 from app.monitoring.metrics import track_performance
 
-from .base import UserJourneyAnalytics, UXRecommendation
 from .analyzer import UXAnalyzer
-from .recommendations import UXRecommendationEngine
+from .base import UserJourneyAnalytics, UXRecommendation
 from .optimization_manager import OptimizationManager
+from .recommendations import UXRecommendationEngine
 
 logger = get_logger(__name__)
 

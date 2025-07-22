@@ -5,8 +5,8 @@ Handles flow completion, user approval, and finalization logic.
 """
 
 import logging
-from typing import Dict, Any
 from datetime import datetime
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -110,9 +110,9 @@ class FlowFinalizer:
     async def _update_master_flow_status(self, status: str) -> None:
         """Update master flow table status"""
         try:
+            from app.core.context import RequestContext
             from app.core.database import AsyncSessionLocal
             from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
-            from app.core.context import RequestContext
             
             async with AsyncSessionLocal() as db:
                 context = RequestContext(

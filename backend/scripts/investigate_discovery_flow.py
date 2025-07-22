@@ -6,21 +6,23 @@ This script checks the current status across all relevant tables to identify any
 
 import asyncio
 import json
+import os
+
+# Add parent directory to Python path
+import sys
 from datetime import datetime
+
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-# Add parent directory to Python path
-import sys
-import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.core.database import AsyncSessionLocal
-from app.models.discovery_flow import DiscoveryFlow
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.models.asset import Asset
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.models.data_import.core import DataImport, RawImportRecord
+from app.models.discovery_flow import DiscoveryFlow
 
 
 async def investigate_flow(flow_id: str):
@@ -66,7 +68,7 @@ async def investigate_flow(flow_id: str):
                 print("\n  Agent State:")
                 print(json.dumps(discovery_flow.agent_state, indent=4))
         else:
-            print(f"  ❌ Discovery flow not found!")
+            print("  ❌ Discovery flow not found!")
             return
         
         # 2. Check CrewAI Flow State Extensions
@@ -94,7 +96,7 @@ async def investigate_flow(flow_id: str):
                 print("\n  Execution State:")
                 print(json.dumps(crewai_state.execution_state, indent=4))
         else:
-            print(f"  ❌ CrewAI flow state extension not found!")
+            print("  ❌ CrewAI flow state extension not found!")
         
         # 3. Check Unified Discovery Flow State - SKIPPED (table doesn't exist)
         print("\n\n3. UNIFIED DISCOVERY FLOW STATE")
@@ -129,7 +131,7 @@ async def investigate_flow(flow_id: str):
                 if di.field_mapping_config:
                     print(f"    Field Mapping Config: {json.dumps(di.field_mapping_config, indent=6)}")
         else:
-            print(f"  ❌ No data imports found for this flow!")
+            print("  ❌ No data imports found for this flow!")
         
         # 5. Check Raw Import Records
         print("\n\n5. RAW IMPORT RECORDS")
@@ -157,7 +159,7 @@ async def investigate_flow(flow_id: str):
                         print(f"    Sample Record ID: {sample.id}")
                         print(f"    Raw Data: {json.dumps(sample.raw_data, indent=6)}")
         else:
-            print(f"  ⚠️  No data imports to check for raw records")
+            print("  ⚠️  No data imports to check for raw records")
         
         # 6. Check Assets
         print("\n\n6. ASSETS")
@@ -182,7 +184,7 @@ async def investigate_flow(flow_id: str):
             if len(assets) > 5:
                 print(f"\n  ... and {len(assets) - 5} more assets")
         else:
-            print(f"  ❌ No assets found for this flow!")
+            print("  ❌ No assets found for this flow!")
         
         # 7. Check Master Flow Reference
         print("\n\n7. MASTER FLOW REFERENCE")
@@ -203,9 +205,9 @@ async def investigate_flow(flow_id: str):
                 print(f"  Is Active: {master_flow.is_active}")
                 print(f"  Created At: {master_flow.created_at}")
             else:
-                print(f"  ❌ Master flow reference not found in CrewAI extensions!")
+                print("  ❌ Master flow reference not found in CrewAI extensions!")
         else:
-            print(f"  ⚠️  No master flow ID set on discovery flow")
+            print("  ⚠️  No master flow ID set on discovery flow")
         
         # 8. Potential Issues Summary
         print("\n\n8. POTENTIAL ISSUES SUMMARY")

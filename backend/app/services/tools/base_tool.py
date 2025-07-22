@@ -2,11 +2,13 @@
 Base tool classes for CrewAI integration
 """
 
-from typing import Dict, Any, List, Optional, Type
+import logging
+from typing import Any, Dict, List, Optional, Type
+
 from pydantic import Field
+
 from app.core.context_aware import ContextAwareTool
 from app.services.tools.registry import ToolMetadata
-import logging
 
 # Optional CrewAI import
 try:

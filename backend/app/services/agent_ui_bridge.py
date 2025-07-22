@@ -3,29 +3,29 @@ Agent-UI Communication Bridge
 Enables agents to communicate with users through the UI for clarifications, feedback, and iterative learning.
 """
 
-import logging
-from typing import Dict, List, Any, Optional
-from pathlib import Path
-from datetime import datetime
-import uuid
 import asyncio
+import logging
+import uuid
 from collections import defaultdict
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from .agent_ui_bridge_handlers import (
-    QuestionHandler, 
-    ClassificationHandler, 
-    InsightHandler, 
-    ContextHandler,
     AnalysisHandler,
-    StorageManager
+    ClassificationHandler,
+    ContextHandler,
+    InsightHandler,
+    QuestionHandler,
+    StorageManager,
 )
 from .models.agent_communication import (
-    QuestionType, 
-    ConfidenceLevel, 
-    DataClassification,
+    AgentInsight,
     AgentQuestion,
+    ConfidenceLevel,
+    DataClassification,
     DataItem,
-    AgentInsight
+    QuestionType,
 )
 
 logger = logging.getLogger(__name__)

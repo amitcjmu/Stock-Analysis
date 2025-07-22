@@ -6,7 +6,7 @@ Handles file-based storage until full client account design.
 import json
 import logging
 from pathlib import Path
-from typing import Any, List, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +137,7 @@ def bulk_update_assets(asset_ids: List[str], updates: Dict[str, Any]) -> int:
     else:
         # Debug: Show sample asset IDs in store
         sample_assets = processed_assets_store[:3]
-        logger.warning(f"No assets were updated. Sample asset IDs in store:")
+        logger.warning("No assets were updated. Sample asset IDs in store:")
         for asset in sample_assets:
             sample_id = asset.get('id') or asset.get('ci_id') or asset.get('asset_id')
             logger.warning(f"  Sample ID: {sample_id}, hostname: {asset.get('hostname', 'Unknown')}")

@@ -4,12 +4,12 @@ Crew Coordination Module
 Handles agent orchestration and crew management for the Unified Discovery Flow.
 """
 
-import logging
 import asyncio
-from typing import Dict, Any, List, Optional
+import logging
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from .flow_config import PhaseNames, FlowConfig
+from .flow_config import FlowConfig, PhaseNames
 
 logger = logging.getLogger(__name__)
 
@@ -150,7 +150,7 @@ class CrewCoordinator:
                 logger.warning(f"⚠️ {len(errors)} agents failed during parallel execution")
                 combined_results["errors"] = errors
             
-            logger.info(f"✅ Parallel agent execution completed - all tasks finished")
+            logger.info("✅ Parallel agent execution completed - all tasks finished")
             return combined_results
             
         except Exception as e:

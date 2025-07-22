@@ -13,11 +13,13 @@ Revises: ce14d7658e0c
 Create Date: 2025-06-29 08:30:00.000000
 
 """
-from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
-from sqlalchemy import text
 import uuid
+
+import sqlalchemy as sa
+from sqlalchemy import text
+from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers
 revision = 'migrate_session_to_flow_id'
@@ -116,7 +118,7 @@ def upgrade():
             'user_id': session.created_by,
             'import_session_id': session.id,
             'flow_name': f"Migration Flow: {session.session_name}",
-            'flow_description': f"Auto-created during session-to-flow migration",
+            'flow_description': "Auto-created during session-to-flow migration",
             'status': 'migrated',
             'progress_percentage': 100.0,
             'crewai_state_data': '{}',
@@ -258,7 +260,7 @@ def upgrade():
     total_sessions = conn.execute(text("SELECT COUNT(*) as count FROM data_import_sessions")).fetchone().count
     total_mappings = conn.execute(text("SELECT COUNT(*) as count FROM session_flow_mapping")).fetchone().count
     
-    print(f"📊 Migration Summary:")
+    print("📊 Migration Summary:")
     print(f"   - Total sessions: {total_sessions}")
     print(f"   - Total mappings: {total_mappings}")
     print(f"   - Assets updated: {assets_updated + assets_no_session}")

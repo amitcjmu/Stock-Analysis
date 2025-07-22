@@ -3,8 +3,8 @@ Global Rich console configuration to prevent conflicts.
 Ensures only one Rich console/live display is active across the application.
 """
 
-import os
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 

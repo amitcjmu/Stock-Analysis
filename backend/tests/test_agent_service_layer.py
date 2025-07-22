@@ -3,10 +3,12 @@ Unit tests for Agent Service Layer
 Tests the synchronous service interface for AI agents
 """
 
-import pytest
-import json
 import concurrent.futures
-from unittest.mock import Mock, patch, AsyncMock
+import json
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
+
 from app.services.agents.agent_service_layer import AgentServiceLayer, get_agent_service
 
 

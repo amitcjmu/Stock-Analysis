@@ -6,12 +6,13 @@ Optimization methods for recommendation prioritization, execution ordering, and 
 """
 
 import statistics
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
-from app.core.logging import get_logger
 from app.core.exceptions import FlowError
-from .models import WorkflowRecommendation, RecommendationPackage
+from app.core.logging import get_logger
+
 from .enums import RecommendationType
+from .models import RecommendationPackage, WorkflowRecommendation
 
 logger = get_logger(__name__)
 

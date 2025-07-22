@@ -7,12 +7,13 @@ Extends the existing health check to include assessment flow services.
 import asyncio
 import logging
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
 
 try:
     from fastapi import APIRouter, Response
     from sqlalchemy import text
     from sqlalchemy.ext.asyncio import AsyncSession
+
     from app.core.database import AsyncSessionLocal
     FASTAPI_AVAILABLE = True
 except ImportError:

@@ -13,14 +13,15 @@ separating concerns into specialized modules:
 """
 
 import logging
+
 from fastapi import APIRouter
 
-from .query_endpoints import query_router
-from .lifecycle_endpoints import lifecycle_router
 from .execution_endpoints import execution_router
-from .validation_endpoints import validation_router
+from .lifecycle_endpoints import lifecycle_router
+from .query_endpoints import query_router
 from .response_mappers import ResponseMappers
 from .status_calculator import StatusCalculator
+from .validation_endpoints import validation_router
 
 logger = logging.getLogger(__name__)
 

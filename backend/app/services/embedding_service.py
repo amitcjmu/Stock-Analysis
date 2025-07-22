@@ -4,10 +4,11 @@ Provides AI-powered vector embeddings using DeepInfra's thenlper/gte-large model
 Supports learning pattern storage and similarity search for assets.
 """
 
-import logging
 import asyncio
+import logging
 import random
-from typing import List, Dict, Optional, Any, Union
+from typing import Any, Dict, List, Optional, Union
+
 from sqlalchemy.orm import Session
 
 # Use the new LLM configuration instead of direct OpenAI import
@@ -17,12 +18,12 @@ try:
 except ImportError:
     EMBEDDING_LLM_AVAILABLE = False
 
-from app.core.database import get_db
-from app.models.asset import Asset  # Updated from CMDBAsset to Asset
-from app.models.tags import Tag
 # from app.models.data_import import MappingLearningPattern  # Model removed in consolidation
 # from app.models.learning_patterns import AssetClassificationPattern
 from app.core.config import settings
+from app.core.database import get_db
+from app.models.asset import Asset  # Updated from CMDBAsset to Asset
+from app.models.tags import Tag
 
 logger = logging.getLogger(__name__)
 

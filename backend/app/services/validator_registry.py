@@ -5,11 +5,11 @@ Registry for phase-specific validators across all flow types.
 Provides a centralized system for registering and executing validation logic.
 """
 
+import inspect
 import logging
-from typing import Dict, Callable, Any, List, Optional, Awaitable
 from dataclasses import dataclass
 from enum import Enum
-import inspect
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -85,10 +85,10 @@ class ValidatorRegistry:
         """
         # Validate the validator function
         if not callable(validator):
-            raise ValueError(f"Validator must be callable")
+            raise ValueError("Validator must be callable")
         
         if not inspect.iscoroutinefunction(validator):
-            raise ValueError(f"Validator must be async function")
+            raise ValueError("Validator must be async function")
         
         # Register based on scope
         if flow_type and phase:

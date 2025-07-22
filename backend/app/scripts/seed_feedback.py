@@ -4,12 +4,13 @@ Scaffold: Seed feedback & feedback_summaries demo data.
 Run via:
   docker exec migration_backend python app/scripts/seed_feedback.py [--force]
 """
+import argparse
 import asyncio
 import logging
 import os
 import sys
-import argparse
 from datetime import datetime
+
 from sqlalchemy import text
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))

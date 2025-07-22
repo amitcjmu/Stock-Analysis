@@ -2,10 +2,11 @@
 Pydantic schemas for Collection Flow API
 """
 
-from typing import Dict, Any, List, Optional
 from datetime import datetime
-from pydantic import BaseModel, Field
+from typing import Any, Dict, List, Optional
 from uuid import UUID
+
+from pydantic import BaseModel, Field
 
 
 class CollectionFlowCreate(BaseModel):

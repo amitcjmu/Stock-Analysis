@@ -10,6 +10,7 @@ import re
 import sys
 from pathlib import Path
 
+
 def validate_authentication_bypass_fix():
     """Validate that authentication bypass has been fixed"""
     auth_service_path = Path(__file__).parent.parent / "app" / "services" / "auth_services" / "authentication_service.py"
@@ -169,7 +170,7 @@ def run_security_validation():
             failed += 1
     
     print("=" * 50)
-    print(f"📊 Security Validation Results:")
+    print("📊 Security Validation Results:")
     print(f"   Passed: {passed}")
     print(f"   Failed: {failed}")
     print(f"   Total:  {passed + failed}")

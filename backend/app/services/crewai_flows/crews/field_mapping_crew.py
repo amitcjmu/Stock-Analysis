@@ -8,10 +8,11 @@ Provides intelligent field mapping with full agent capabilities:
 - Full audit trail
 """
 
-import logging
 import json
-from typing import Dict, List, Any, Optional
-from crewai import Agent, Task, Crew, Process
+import logging
+from typing import Any, Dict, List, Optional
+
+from crewai import Agent, Crew, Process, Task
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 
@@ -25,8 +26,9 @@ class AssetSchemaAnalysisTool(BaseTool):
     
     def _run(self) -> str:
         """Return complete Asset model schema"""
-        from app.models.asset import Asset
         from sqlalchemy import inspect
+
+        from app.models.asset import Asset
         
         mapper = inspect(Asset)
         schema_info = []
@@ -333,7 +335,7 @@ class FieldMappingCrew:
         
         # Task 3: Design Complex Transformations
         synthesis_task = Task(
-            description=f"""
+            description="""
             Design transformation rules for any complex mappings identified.
             
             Based on the mapping analysis, create specific transformation rules for:
@@ -351,17 +353,17 @@ class FieldMappingCrew:
             - Conflict resolution strategy
             
             OUTPUT FORMAT:
-            {{
+            {
                 "transformations": [
-                    {{
+                    {
                         "source_fields": ["field1", "field2"],
                         "target_field": "asset_field",
                         "transformation_type": "synthesis",
                         "logic": "Detailed transformation logic",
                         "conflict_resolution": "How to handle conflicts"
-                    }}
+                    }
                 ]
-            }}
+            }
             """,
             agent=synthesis_specialist,
             context=[data_analysis_task, mapping_task],

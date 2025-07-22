@@ -1,6 +1,7 @@
-import os
 import importlib
+import os
 import sys
+
 
 def find_bad_imports(start_path):
     # Add the app directory to the python path

@@ -3,21 +3,22 @@ Asset Workflow Management API Endpoints.
 Handles workflow progression for assets through discovery → mapping → cleanup → assessment phases.
 """
 
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from pydantic import BaseModel, Field
 import logging
+from typing import Any, Dict, List, Optional
 
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from pydantic import BaseModel, Field
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.v1.auth.auth_utils import get_current_active_user
 from app.core.database import get_db
 from app.models.asset import Asset, AssetStatus
-from app.repositories.asset_repository import AssetRepository
-from app.schemas.asset_schemas import AssetCreate, AssetUpdate, AssetOut, WorkflowStepUpdate
-from app.services.asset_service import AssetService
-from app.repositories.context_aware_repository import ContextAwareRepository
-from app.api.v1.auth.auth_utils import get_current_active_user
 from app.models.client_account import User
+from app.repositories.asset_repository import AssetRepository
+from app.repositories.context_aware_repository import ContextAwareRepository
+from app.schemas.asset_schemas import AssetCreate, AssetOut, AssetUpdate, WorkflowStepUpdate
+from app.services.asset_service import AssetService
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

@@ -3,10 +3,12 @@ Demo Data Schemas
 Pydantic models for demo API request/response data structures.
 """
 
-from typing import List, Dict, Optional, Any, Union
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
 from uuid import UUID
+
 from pydantic import BaseModel, Field, field_validator
+
 
 # Base demo schemas
 class DemoAssetBase(BaseModel):

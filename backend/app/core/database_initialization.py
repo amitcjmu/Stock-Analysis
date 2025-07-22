@@ -18,17 +18,18 @@ Run this module manually when:
 """
 
 import asyncio
-import uuid
 import hashlib
 import logging
+import uuid
 from datetime import datetime, timezone
-from typing import List, Dict, Optional
-from sqlalchemy import select, delete, text
+from typing import Dict, List, Optional
+
+from sqlalchemy import delete, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import User, ClientAccount, Engagement
-from app.models.rbac import UserProfile, UserStatus, UserRole, RoleType
+from app.models import ClientAccount, Engagement, User
 from app.models.client_account import UserAccountAssociation
+from app.models.rbac import RoleType, UserProfile, UserRole, UserStatus
 
 # Conditional import to handle migration scenarios
 try:
@@ -491,11 +492,11 @@ class DatabaseInitializer:
                 created_at=datetime.now(timezone.utc)
             )
             self.db.add(association)
-            logger.info(f"Created user association for primary demo user")
+            logger.info("Created user association for primary demo user")
         
         # Import RBAC models and create access
         try:
-            from app.models.rbac import ClientAccess, EngagementAccess, AccessLevel
+            from app.models.rbac import AccessLevel, ClientAccess, EngagementAccess
             
             # Get platform admin ID
             admin_result = await self.db.execute(
@@ -531,7 +532,7 @@ class DatabaseInitializer:
                     is_active=True
                 )
                 self.db.add(client_access)
-                logger.info(f"Created ClientAccess for primary demo user")
+                logger.info("Created ClientAccess for primary demo user")
             
             # Ensure EngagementAccess
             engagement_access_result = await self.db.execute(
@@ -561,7 +562,7 @@ class DatabaseInitializer:
                     is_active=True
                 )
                 self.db.add(engagement_access)
-                logger.info(f"Created EngagementAccess for primary demo user")
+                logger.info("Created EngagementAccess for primary demo user")
                 
         except ImportError as e:
             logger.warning(f"RBAC models not available during initialization: {e}")
@@ -694,7 +695,7 @@ class DatabaseInitializer:
         
         # Import RBAC models conditionally to avoid circular imports
         try:
-            from app.models.rbac import ClientAccess, EngagementAccess, AccessLevel
+            from app.models.rbac import AccessLevel, ClientAccess, EngagementAccess
             
             # Get platform admin ID to use as granted_by
             admin_result = await self.db.execute(
@@ -944,6 +945,7 @@ async def initialize_database(db: AsyncSession):
 # Make this available as a CLI command
 if __name__ == "__main__":
     import asyncio
+
     from app.core.database import AsyncSessionLocal
     
     async def main():

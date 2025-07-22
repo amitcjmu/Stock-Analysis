@@ -1,9 +1,11 @@
 import asyncio
-import time
 import signal
 import sys
-from app.services.crewai_service_modular import crewai_service
+import time
+
 from app.services.agent_monitor import agent_monitor
+from app.services.crewai_service_modular import crewai_service
+
 
 class MonitoredTest:
     def __init__(self):

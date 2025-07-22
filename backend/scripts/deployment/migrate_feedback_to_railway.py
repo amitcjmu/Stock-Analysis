@@ -5,12 +5,12 @@ Exports local feedback data and imports it to Railway database
 """
 
 import asyncio
-import os
-import sys
 import json
 import logging
-from pathlib import Path
+import os
+import sys
 from datetime import datetime
+from pathlib import Path
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -26,9 +26,10 @@ async def export_local_feedback():
     
     try:
         # Connect to local database
+        from sqlalchemy import select
+
         from app.core.database import AsyncSessionLocal
         from app.models.feedback import Feedback
-        from sqlalchemy import select
         
         feedback_data = []
         
@@ -83,9 +84,10 @@ async def import_to_railway(feedback_data):
         os.environ["DATABASE_URL"] = railway_db_url
         
         # Import with Railway connection
+        import uuid
+
         from app.core.database import AsyncSessionLocal
         from app.models.feedback import Feedback
-        import uuid
         
         imported_count = 0
         

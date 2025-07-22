@@ -4,13 +4,9 @@ Test script to demonstrate deployment flexibility features.
 
 import asyncio
 import os
-from typing import Dict, Any
+from typing import Any, Dict
 
-from app.infrastructure import (
-    get_deployment_config,
-    get_service_factory,
-    DeploymentMode
-)
+from app.infrastructure import DeploymentMode, get_deployment_config, get_service_factory
 from app.infrastructure.telemetry import MetricType
 
 

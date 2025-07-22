@@ -4,10 +4,10 @@ Provides intelligent agents with tools to check task completion status,
 avoid redundant work, and deduplicate data.
 """
 
-import logging
-from typing import Dict, Any, List, Optional
 import asyncio
+import logging
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -174,8 +174,8 @@ if CREWAI_TOOLS_AVAILABLE:
                 logger.info(f"🔍 Agent checking completion status for task: {task_name}")
                 
                 # Check agent insights for recent completion
-                from pathlib import Path
                 import json
+                from pathlib import Path
                 
                 insights_file = Path("backend/data/agent_insights.json")
                 if insights_file.exists():

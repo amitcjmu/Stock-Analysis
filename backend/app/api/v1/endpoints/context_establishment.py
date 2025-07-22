@@ -12,13 +12,14 @@ These endpoints are exempt from the global engagement requirement middleware.
 
 import logging
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
-from pydantic import BaseModel
 
-from app.core.database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.v1.auth.auth_utils import get_current_user
+from app.core.database import get_db
 from app.models import User
 
 # Make client_account import conditional to avoid deployment failures

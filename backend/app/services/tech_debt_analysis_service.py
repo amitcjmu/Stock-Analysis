@@ -3,14 +3,14 @@ Modular Tech Debt Analysis Service
 Refactored to use a modular handler architecture.
 """
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 
 from .tech_debt_handlers import (
-    OSAnalysisHandler,
     AppAnalysisHandler,
     InfraAnalysisHandler,
-    SecurityAnalysisHandler,
+    OSAnalysisHandler,
     RiskAssessmentHandler,
+    SecurityAnalysisHandler,
 )
 
 logger = logging.getLogger(__name__)

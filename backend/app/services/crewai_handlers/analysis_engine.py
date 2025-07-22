@@ -4,7 +4,7 @@ Handles analysis operations and AI processing.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +19,8 @@ class AnalysisEngine:
     def _initialize_dependencies(self):
         """Initialize dependencies with graceful fallbacks."""
         try:
-            from app.services.memory import AgentMemory
             from app.services.analysis_modular import IntelligentAnalysisService
+            from app.services.memory import AgentMemory
             
             self.memory = AgentMemory()
             self.analyzer = IntelligentAnalyzer(self.memory)

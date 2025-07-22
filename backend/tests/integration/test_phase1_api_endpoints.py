@@ -1,9 +1,10 @@
 """
 Integration tests for Phase 1 API endpoints
 """
-import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 
 class MockAsyncClient:

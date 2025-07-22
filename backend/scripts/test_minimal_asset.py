@@ -5,16 +5,18 @@ Tests basic CRUD operations with only essential fields.
 """
 
 import asyncio
-import sys
 import os
+import sys
 from pathlib import Path
 
 # Add the backend directory to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import AsyncSessionLocal
-from app.models.asset_minimal import AssetMinimal, AssetTypeEnum, AssetStatusEnum, SixRStrategyEnum
+from app.models.asset_minimal import AssetMinimal, AssetStatusEnum, AssetTypeEnum, SixRStrategyEnum
+
 
 async def test_minimal_asset_creation():
     """Test creating a minimal asset record with only essential fields."""
@@ -110,7 +112,7 @@ async def test_workflow_status_fields():
             await db.commit()
             await db.refresh(test_asset)
             
-            print(f"✅ Created asset with workflow statuses:")
+            print("✅ Created asset with workflow statuses:")
             print(f"   Discovery: {test_asset.discovery_status}")
             print(f"   Mapping: {test_asset.mapping_status}")
             print(f"   Cleanup: {test_asset.cleanup_status}")

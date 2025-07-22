@@ -7,15 +7,17 @@ Implements the enhanced memory and performance optimizations:
 - Provides fast execution with learning capabilities
 """
 
-import logging
 import json
-from typing import Dict, List, Any, Optional
-from crewai import Agent, Task, Crew, Process
+import logging
+from typing import Any, Dict, List, Optional
+
+from crewai import Agent, Crew, Process, Task
+
+from app.services.agent_learning_system import LearningContext, agent_learning_system
+from app.services.enhanced_agent_memory import enhanced_agent_memory
+from app.services.performance.response_optimizer import optimize_response
 
 from .optimized_crew_base import OptimizedCrewBase
-from app.services.enhanced_agent_memory import enhanced_agent_memory
-from app.services.agent_learning_system import LearningContext, agent_learning_system
-from app.services.performance.response_optimizer import optimize_response
 
 logger = logging.getLogger(__name__)
 

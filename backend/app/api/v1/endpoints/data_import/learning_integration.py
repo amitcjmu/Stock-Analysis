@@ -3,18 +3,18 @@ Learning Integration Module - AI learning and pattern management.
 Handles user feedback learning, pattern creation, and learning statistics.
 """
 
-from datetime import datetime
-from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import and_, select
 import logging
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
-from app.core.context import get_current_context, RequestContext
-from app.models.data_import import (
-    DataImport, ImportFieldMapping, CustomTargetField
-)
+from app.models.data_import import CustomTargetField, DataImport, ImportFieldMapping
+
 # Note: Field analysis functions have been replaced by CrewAI Field Mapping Crew
 # infer_field_type and generate_format_regex are now handled by AI agents
 from .utilities import generate_matching_rules
@@ -84,7 +84,7 @@ async def create_or_update_learning_pattern(
     """Create or update AI learning patterns based on user feedback."""
     # MappingLearningPattern model removed in consolidation
     # TODO: Implement new learning pattern storage if needed
-    logger.info(f"Learning pattern creation skipped - model removed in consolidation")
+    logger.info("Learning pattern creation skipped - model removed in consolidation")
     return None
     
     # Original implementation commented out:

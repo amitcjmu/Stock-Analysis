@@ -13,9 +13,9 @@ This script tests the complete discovery flow including:
 import asyncio
 import json
 import logging
-from datetime import datetime
-from typing import Dict, List, Any
 import uuid
+from datetime import datetime
+from typing import Any, Dict, List
 
 # Configure logging
 logging.basicConfig(
@@ -71,12 +71,12 @@ async def test_discovery_flow():
     
     try:
         # Initialize database session
-        from app.core.database import AsyncSessionLocal
         from app.core.context import RequestContext
+        from app.core.database import AsyncSessionLocal
         from app.services.crewai_flow_service import CrewAIFlowService
-        from app.services.data_import.background_execution_service import BackgroundExecutionService
         from app.services.crewai_flows.unified_discovery_flow import create_unified_discovery_flow
         from app.services.crewai_flows.unified_discovery_flow.phase_controller import PhaseController
+        from app.services.data_import.background_execution_service import BackgroundExecutionService
         
         # Test context
         test_context = RequestContext(
@@ -146,7 +146,7 @@ async def test_discovery_flow():
             logger.info("\n📋 Step 4: Starting phase-by-phase execution")
             result = await phase_controller.start_flow_execution()
             
-            logger.info(f"📊 Initial execution result:")
+            logger.info("📊 Initial execution result:")
             logger.info(f"  - Phase: {result.phase.value}")
             logger.info(f"  - Status: {result.status}")
             logger.info(f"  - Requires user input: {result.requires_user_input}")
@@ -154,7 +154,7 @@ async def test_discovery_flow():
             
             # Check flow status
             flow_status = phase_controller.get_flow_status()
-            logger.info(f"\n📊 Flow status after initial execution:")
+            logger.info("\n📊 Flow status after initial execution:")
             logger.info(f"  - Current phase: {flow_status['current_phase']}")
             logger.info(f"  - Execution halted: {flow_status['execution_halted']}")
             logger.info(f"  - Completed phases: {flow_status['completed_phases']}")
@@ -167,7 +167,7 @@ async def test_discovery_flow():
                 # Check the field mappings generated
                 if hasattr(discovery_flow, 'state') and hasattr(discovery_flow.state, 'field_mappings'):
                     field_mappings = discovery_flow.state.field_mappings
-                    logger.info(f"\n📊 Generated field mappings:")
+                    logger.info("\n📊 Generated field mappings:")
                     for source, target in field_mappings.items():
                         if source != "confidence_scores":
                             logger.info(f"  - {source} → {target}")
@@ -196,14 +196,14 @@ async def test_discovery_flow():
                     user_input=user_input
                 )
                 
-                logger.info(f"\n📊 Resume execution result:")
+                logger.info("\n📊 Resume execution result:")
                 logger.info(f"  - Phase: {resume_result.phase.value}")
                 logger.info(f"  - Status: {resume_result.status}")
                 logger.info(f"  - Requires user input: {resume_result.requires_user_input}")
                 
                 # Check final flow status
                 final_status = phase_controller.get_flow_status()
-                logger.info(f"\n📊 Final flow status:")
+                logger.info("\n📊 Final flow status:")
                 logger.info(f"  - Current phase: {final_status['current_phase']}")
                 logger.info(f"  - Completed phases: {final_status['completed_phases']}")
                 logger.info(f"  - Progress: {final_status['progress_percentage']}%")
@@ -214,7 +214,7 @@ async def test_discovery_flow():
                     logger.warning(f"\n⚠️ Flow ended at phase: {resume_result.phase.value} with status: {resume_result.status}")
                 
             else:
-                logger.error(f"\n❌ ERROR: Flow did not pause at field mapping approval!")
+                logger.error("\n❌ ERROR: Flow did not pause at field mapping approval!")
                 logger.error(f"  - Current phase: {result.phase.value}")
                 logger.error(f"  - Requires user input: {result.requires_user_input}")
             

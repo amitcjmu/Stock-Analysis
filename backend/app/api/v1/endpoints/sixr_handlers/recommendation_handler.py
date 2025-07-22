@@ -4,10 +4,11 @@ Handles recommendation generation and retrieval operations.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
+
 from fastapi import HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -21,9 +22,8 @@ class RecommendationHandler:
     def _initialize_dependencies(self):
         """Initialize dependencies with graceful fallbacks."""
         try:
-            from app.models.sixr_analysis import (
-                SixRAnalysis, SixRRecommendation as SixRRecommendationModel
-            )
+            from app.models.sixr_analysis import SixRAnalysis
+            from app.models.sixr_analysis import SixRRecommendation as SixRRecommendationModel
             from app.schemas.sixr_analysis import SixRRecommendationResponse
             
             self.SixRAnalysis = SixRAnalysis

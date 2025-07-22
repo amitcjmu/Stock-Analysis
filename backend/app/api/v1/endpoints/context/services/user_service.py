@@ -5,20 +5,20 @@ Business logic for user context operations.
 """
 
 import logging
-from typing import Optional, Dict, Any
-from uuid import UUID
 from datetime import datetime
+from typing import Any, Dict, Optional
+from uuid import UUID
+
+from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, update
 
 from app.models import User
 from app.models.client_account import ClientAccount, Engagement
-from app.models.rbac import UserRole, ClientAccess
-from app.schemas.context import UserContext, ClientBase, EngagementBase, SessionBase
+from app.models.rbac import ClientAccess, UserRole
+from app.schemas.context import ClientBase, EngagementBase, SessionBase, UserContext
 from app.schemas.flow import FlowBase
-from .client_service import (
-    DEMO_USER_ID, DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, DEMO_SESSION_ID
-)
+
+from .client_service import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, DEMO_SESSION_ID, DEMO_USER_ID
 
 logger = logging.getLogger(__name__)
 
@@ -44,9 +44,9 @@ class UserService:
         if basic_context.engagement:
             try:
                 # Import here to avoid circular dependencies
-                from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-                from app.core.database import AsyncSessionLocal
                 from app.core.context import RequestContext
+                from app.core.database import AsyncSessionLocal
+                from app.services.master_flow_orchestrator import MasterFlowOrchestrator
                 
                 # Ensure we have a client context
                 if not basic_context.client:

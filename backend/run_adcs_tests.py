@@ -4,9 +4,10 @@ ADCS Test Runner
 Runs available tests for the ADCS implementation
 """
 
+import os
 import subprocess
 import sys
-import os
+
 
 def run_command(cmd, description):
     """Run a command and return success status"""

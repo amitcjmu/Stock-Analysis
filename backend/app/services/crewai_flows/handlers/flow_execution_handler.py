@@ -4,8 +4,8 @@ Handles all core flow execution, crew orchestration, and validation functionalit
 """
 
 import logging
-from typing import Dict, List, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -160,7 +160,7 @@ class FlowExecutionHandler:
             
             asset_inventory = result.get("asset_inventory", {})
             
-            logger.info(f"✅ Inventory Building Crew completed")
+            logger.info("✅ Inventory Building Crew completed")
             
             return {
                 "status": "inventory_building_completed",
@@ -189,7 +189,7 @@ class FlowExecutionHandler:
             
             dependencies = result.get("dependencies", {})
             
-            logger.info(f"✅ App-Server Dependency Crew completed")
+            logger.info("✅ App-Server Dependency Crew completed")
             
             return {
                 "status": "app_server_dependencies_completed",
@@ -218,7 +218,7 @@ class FlowExecutionHandler:
             
             dependencies = result.get("dependencies", {})
             
-            logger.info(f"✅ App-App Dependency Crew completed")
+            logger.info("✅ App-App Dependency Crew completed")
             
             return {
                 "status": "app_app_dependencies_completed",
@@ -246,7 +246,7 @@ class FlowExecutionHandler:
             
             assessment = result.get("assessment", {})
             
-            logger.info(f"✅ Technical Debt Crew completed")
+            logger.info("✅ Technical Debt Crew completed")
             
             return {
                 "status": "technical_debt_completed",

@@ -3,22 +3,22 @@ Master Flow Coordination API Endpoints
 Task 5.2.1: API endpoints for cross-phase asset queries and master flow analytics
 """
 
-from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from app.core.database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.v1.auth.auth_utils import get_current_user
+from app.api.v1.endpoints.context.services.user_service import UserService
 from app.core.auth import get_current_user_id
+from app.core.database import get_db
+from app.models import User
 from app.repositories.asset_repository import AssetRepository
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.schemas.asset_schemas import AssetResponse
-from pydantic import BaseModel
-from datetime import datetime
-from app.api.v1.auth.auth_utils import get_current_user
-from app.models import User
-from app.api.v1.endpoints.context.services.user_service import UserService
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +120,8 @@ async def get_active_master_flows(
         raise HTTPException(status_code=400, detail="Client account ID required")
     
     try:
-        from sqlalchemy import select, and_, or_
+        from sqlalchemy import and_, or_, select
+
         from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
         
         # Build query conditions
@@ -387,12 +388,14 @@ async def delete_master_flow(
     if not client_account_id:
         raise HTTPException(status_code=400, detail="Client account ID required")
     
+    import time
+    import uuid as uuid_lib
+
     from sqlalchemy import select, update
+
     from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
     from app.models.discovery_flow import DiscoveryFlow
     from app.models.flow_deletion_audit import FlowDeletionAudit
-    import uuid as uuid_lib
-    import time
     
     start_time = time.time()
     
@@ -469,7 +472,7 @@ async def delete_master_flow(
         
         # Mark discovery flows
         # Handle both cases: flows linked by master_flow_id OR flows with same flow_id
-        from sqlalchemy import or_, and_
+        from sqlalchemy import and_, or_
         discovery_update = update(DiscoveryFlow).where(
             and_(
                 or_(

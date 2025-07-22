@@ -4,7 +4,9 @@ Test Fallback Analysis
 """
 
 import asyncio
+
 from app.services.agents.intelligent_flow_agent import IntelligentFlowAgent
+
 
 async def test_fallback_analysis():
     agent = IntelligentFlowAgent()

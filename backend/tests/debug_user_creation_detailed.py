@@ -1,8 +1,10 @@
 import asyncio
 import traceback
+
 from app.core.database import AsyncSessionLocal
-from app.services.rbac_service import create_rbac_service
 from app.schemas.auth_schemas import UserRegistrationResponse
+from app.services.rbac_service import create_rbac_service
+
 
 async def debug_user_creation():
     print('=== Debugging User Creation with Detailed Error Tracking ===')

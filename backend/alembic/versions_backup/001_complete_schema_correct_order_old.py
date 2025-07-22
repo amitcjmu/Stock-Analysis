@@ -8,10 +8,12 @@ This migration creates ALL tables with correct field types, proper foreign keys,
 and complete schemas matching the SQLAlchemy models exactly.
 Tables are created in dependency order to avoid foreign key constraint errors.
 """
-from alembic import op
+import uuid
+
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
-import uuid
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = '001_complete_schema_correct_order'

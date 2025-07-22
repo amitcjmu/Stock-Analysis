@@ -5,9 +5,10 @@ Revises: 001_comprehensive_initial_schema
 Create Date: 2025-07-19
 
 """
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = '002_add_security_audit_tables'

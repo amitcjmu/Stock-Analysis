@@ -4,27 +4,27 @@ Main On-Premises Platform Adapter implementing BaseAdapter interface
 
 import asyncio
 import time
-from typing import Dict, Any, List, Optional
-from ipaddress import IPv4Network, AddressValueError
+from ipaddress import AddressValueError, IPv4Network
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.collection_flow import AutomationTier
 from app.services.collection_flow.adapters import (
-    BaseAdapter, 
-    AdapterMetadata, 
-    AdapterCapability, 
+    AdapterCapability,
+    AdapterMetadata,
+    BaseAdapter,
     CollectionMethod,
     CollectionRequest,
-    CollectionResponse
+    CollectionResponse,
 )
-from app.models.collection_flow import AutomationTier
 
-from .models import OnPremisesCredentials, DiscoveredHost
-from .network_scanner import NetworkScanner
-from .service_discovery import ServiceDiscovery
-from .protocol_collectors import ProtocolCollectors
-from .topology import TopologyDiscovery
 from .data_transformer import DataTransformer
+from .models import DiscoveredHost, OnPremisesCredentials
+from .network_scanner import NetworkScanner
+from .protocol_collectors import ProtocolCollectors
+from .service_discovery import ServiceDiscovery
+from .topology import TopologyDiscovery
 
 
 class OnPremisesAdapter(BaseAdapter):

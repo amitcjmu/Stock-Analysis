@@ -4,13 +4,14 @@ Database Consolidation Deployment Script
 Coordinates the deployment of database consolidation changes
 """
 
-import os
-import sys
-import subprocess
 import argparse
+import os
+import subprocess
+import sys
 import time
 from datetime import datetime
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
+
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 

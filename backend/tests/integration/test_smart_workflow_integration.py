@@ -7,28 +7,28 @@ validating end-to-end functionality, state transitions, and data flow integrity.
 Generated with CC for ADCS end-to-end integration testing.
 """
 
-import pytest
 import asyncio
-from uuid import uuid4, UUID
 from datetime import datetime, timedelta
-from typing import Dict, List, Any
+from typing import Any, Dict, List
+from uuid import UUID, uuid4
 
+import pytest
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
 
 from app.core.database import AsyncSessionLocal
-from app.services.integration.smart_workflow_orchestrator import (
-    SmartWorkflowOrchestrator,
-    SmartWorkflowContext,
-    WorkflowPhase
-)
-from app.services.integration.data_flow_validator import DataFlowValidator
-from app.services.integration.state_synchronizer import StateSynchronizer
-from app.models.collection_flow import CollectionFlow
-from app.models.discovery_flow import DiscoveryFlow
+from app.models import ClientAccount, Engagement, User
 from app.models.assessment_flow import AssessmentFlow
 from app.models.asset import Asset
-from app.models import ClientAccount, Engagement, User
+from app.models.collection_flow import CollectionFlow
+from app.models.discovery_flow import DiscoveryFlow
+from app.services.integration.data_flow_validator import DataFlowValidator
+from app.services.integration.smart_workflow_orchestrator import (
+    SmartWorkflowContext,
+    SmartWorkflowOrchestrator,
+    WorkflowPhase,
+)
+from app.services.integration.state_synchronizer import StateSynchronizer
 
 
 class SmartWorkflowIntegrationTests:

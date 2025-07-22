@@ -2,11 +2,12 @@
 Agent Factory for dynamic agent creation
 """
 
-from typing import List, Dict, Any, Optional
-from app.services.agents.registry import agent_registry
-from app.services.tools.registry import tool_registry
-from app.services.llm_config import get_crewai_llm
 import logging
+from typing import Any, Dict, List, Optional
+
+from app.services.agents.registry import agent_registry
+from app.services.llm_config import get_crewai_llm
+from app.services.tools.registry import tool_registry
 
 logger = logging.getLogger(__name__)
 

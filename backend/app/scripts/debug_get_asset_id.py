@@ -1,9 +1,10 @@
 import asyncio
 import os
 import sys
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
 
 # Add the project root to the Python path, essential for running in the container
 sys.path.append('/app')

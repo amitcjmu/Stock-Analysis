@@ -8,9 +8,9 @@ This version uses separate sessions for different operations to avoid transactio
 import asyncio
 import json
 import logging
-from datetime import datetime
-from typing import Dict, List, Any
 import uuid
+from datetime import datetime
+from typing import Any, Dict, List
 
 # Configure logging
 logging.basicConfig(
@@ -50,8 +50,9 @@ SAMPLE_CSV_DATA = [
 
 async def check_db_state(phase_name: str):
     """Check database state at a specific phase"""
-    from app.core.database import AsyncSessionLocal
     from sqlalchemy import text
+
+    from app.core.database import AsyncSessionLocal
     
     logger.info(f"\n📊 Database State - {phase_name}:")
     
@@ -81,12 +82,13 @@ async def test_discovery_flow_simple():
     logger.info("🚀 Starting Simplified Discovery Flow E2E Test")
     
     try:
-        from app.core.database import AsyncSessionLocal
+        from sqlalchemy import select, text
+
         from app.core.context import RequestContext
+        from app.core.database import AsyncSessionLocal
         from app.services.crewai_flow_service import CrewAIFlowService
         from app.services.crewai_flows.unified_discovery_flow import create_unified_discovery_flow
-        from app.services.crewai_flows.unified_discovery_flow.phase_controller import PhaseController, FlowPhase
-        from sqlalchemy import text, select
+        from app.services.crewai_flows.unified_discovery_flow.phase_controller import FlowPhase, PhaseController
         
         # Test context - use proper demo UUIDs
         test_context = RequestContext(
@@ -121,7 +123,7 @@ async def test_discovery_flow_simple():
                 flow_name="Simple E2E Test Flow"
             )
             await db.commit()
-            logger.info(f"✅ Master flow created")
+            logger.info("✅ Master flow created")
         
         # Step 2: Create data import
         logger.info("\n📋 Step 2: Creating data import record")
@@ -246,7 +248,7 @@ async def test_discovery_flow_simple():
             # Start execution
             result = await phase_controller.start_flow_execution()
             
-            logger.info(f"\n📊 Execution Result:")
+            logger.info("\n📊 Execution Result:")
             logger.info(f"  - Current Phase: {result.phase.value}")
             logger.info(f"  - Status: {result.status}")
             logger.info(f"  - Requires User Input: {result.requires_user_input}")
@@ -329,7 +331,7 @@ async def test_discovery_flow_simple():
                     user_input=user_input
                 )
                 
-                logger.info(f"\n📊 Resume Result:")
+                logger.info("\n📊 Resume Result:")
                 logger.info(f"  - Phase: {resume_result.phase.value}")
                 logger.info(f"  - Status: {resume_result.status}")
                 
@@ -366,8 +368,8 @@ async def test_discovery_flow_simple():
                 
                 logger.info("\n🎉 E2E Test completed successfully!")
             else:
-                logger.error(f"\n❌ Flow did not pause at expected phase!")
-                logger.error(f"  - Expected: field_mapping_approval")
+                logger.error("\n❌ Flow did not pause at expected phase!")
+                logger.error("  - Expected: field_mapping_approval")
                 logger.error(f"  - Actual: {result.phase.value}")
                 
     except Exception as e:
@@ -377,8 +379,8 @@ async def test_discovery_flow_simple():
 
 
 if __name__ == "__main__":
-    from datetime import timedelta
     import sys
+    from datetime import timedelta
     
     # Add backend to path for imports
     sys.path.insert(0, '/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend')

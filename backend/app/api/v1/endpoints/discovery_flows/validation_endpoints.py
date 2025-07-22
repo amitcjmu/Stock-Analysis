@@ -9,13 +9,15 @@ This module handles validation and health check operations:
 """
 
 import logging
-from typing import Dict, Any, List
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, func
+from typing import Any, Dict, List
 
-from app.core.database import get_db
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext, get_current_context
+from app.core.database import get_db
+
 from .response_mappers import ResponseMappers
 from .status_calculator import StatusCalculator
 
@@ -72,8 +74,9 @@ async def get_flow_validation_status(
         logger.info(f"Getting validation status for flow {flow_id}")
         
         # Import required models
-        from app.models.discovery_flow import DiscoveryFlow
         import uuid as uuid_lib
+
+        from app.models.discovery_flow import DiscoveryFlow
         
         # Convert flow_id to UUID if needed
         try:
@@ -142,8 +145,9 @@ async def validate_flow(
         include_configuration = request.get("include_configuration", True)
         
         # Import required models
-        from app.models.discovery_flow import DiscoveryFlow
         import uuid as uuid_lib
+
+        from app.models.discovery_flow import DiscoveryFlow
         
         # Convert flow_id to UUID if needed
         try:
@@ -214,8 +218,9 @@ async def check_flow_prerequisites(
         logger.info(f"Checking prerequisites for flow {flow_id}, phase: {phase}")
         
         # Import required models
-        from app.models.discovery_flow import DiscoveryFlow
         import uuid as uuid_lib
+
+        from app.models.discovery_flow import DiscoveryFlow
         
         # Convert flow_id to UUID if needed
         try:

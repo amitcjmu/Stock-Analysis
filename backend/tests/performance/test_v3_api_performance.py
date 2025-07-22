@@ -3,22 +3,23 @@ Performance tests for V3 API and consolidated database
 Tests response times, throughput, and resource usage
 """
 
-import pytest
-import pytest_asyncio
 import asyncio
-import time
+import json
 import statistics
+import time
+import uuid
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 import httpx
 import psutil
-import json
+import pytest
+import pytest_asyncio
+from sqlalchemy import text
 
 from app.core.database import AsyncSessionLocal
 from app.models.client_account import ClientAccount, Engagement, User
 from app.services.v3.asset_service import V3AssetService
-from sqlalchemy import text
-import uuid
 
 # Configure pytest to use asyncio
 pytestmark = pytest.mark.asyncio
@@ -515,6 +516,7 @@ async def run_performance_tests():
 
 if __name__ == "__main__":
     import uuid
+
     from sqlalchemy import text
     
     asyncio.run(run_performance_tests())

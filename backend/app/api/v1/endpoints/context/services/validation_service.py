@@ -7,11 +7,13 @@ Business logic for context validation.
 import logging
 from typing import List, Optional
 from uuid import UUID
+
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
 
 from app.models.client_account import ClientAccount, Engagement
 from app.models.rbac import ClientAccess
+
 from ..models.context_schemas import ValidateContextResponse
 
 logger = logging.getLogger(__name__)
@@ -151,7 +153,7 @@ class ValidationService:
             return True, None
             
         except ValueError:
-            return False, f"Invalid ID format"
+            return False, "Invalid ID format"
         except Exception as e:
             logger.error(f"Error validating user access: {e}")
             return False, f"Error validating user access: {str(e)}"

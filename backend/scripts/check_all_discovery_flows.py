@@ -5,25 +5,27 @@ Check all discovery flows in the database to understand what's there.
 
 import asyncio
 import json
-from datetime import datetime
-from sqlalchemy import select, text
-from sqlalchemy.ext.asyncio import AsyncSession
+import os
 
 # Add parent directory to Python path
 import sys
-import os
+from datetime import datetime
+
+from sqlalchemy import select, text
+from sqlalchemy.ext.asyncio import AsyncSession
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.core.database import AsyncSessionLocal
-from app.models.discovery_flow import DiscoveryFlow
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.models.discovery_flow import DiscoveryFlow
 
 
 async def check_all_flows():
     """Check all discovery flows in the database."""
     
     print(f"\n{'='*80}")
-    print(f"ALL DISCOVERY FLOWS IN DATABASE")
+    print("ALL DISCOVERY FLOWS IN DATABASE")
     print(f"Check Time: {datetime.utcnow().isoformat()}")
     print(f"{'='*80}\n")
     
@@ -93,10 +95,10 @@ async def check_all_flows():
             if crewai_ext:
                 print(f"   ✅ Has CrewAI Extension (Active: {crewai_ext.is_active})")
             else:
-                print(f"   ❌ Missing CrewAI Extension")
+                print("   ❌ Missing CrewAI Extension")
         
         # Also check for the specific flow ID we're looking for
-        print(f"\n\nSearching specifically for flow ID: 582b87c4-0df1-4c2f-aa3b-e4b5a287d725")
+        print("\n\nSearching specifically for flow ID: 582b87c4-0df1-4c2f-aa3b-e4b5a287d725")
         print("-" * 40)
         
         # Direct SQL query to be absolutely sure
@@ -109,7 +111,7 @@ async def check_all_flows():
         if row:
             print(f"✅ Found in direct SQL query: {row}")
         else:
-            print(f"❌ Not found in direct SQL query either")
+            print("❌ Not found in direct SQL query either")
 
 
 async def main():

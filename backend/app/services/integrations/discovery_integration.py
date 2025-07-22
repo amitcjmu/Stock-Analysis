@@ -3,14 +3,15 @@ Discovery Flow Integration Service for Assessment Flow.
 Handles integration points with Discovery Flow for application metadata and readiness management.
 """
 
-from typing import List, Dict, Any, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, and_
 import logging
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import and_, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset import Asset
-from app.models.discovery_flow import DiscoveryFlow
 from app.models.client_account import Engagement
+from app.models.discovery_flow import DiscoveryFlow
 
 logger = logging.getLogger(__name__)
 

@@ -4,13 +4,13 @@ Multi-Model Service for handling different LLMs for different use cases.
 - Gemma 3 4B: Chat interactions, simple queries, cost-efficient operations (uses OpenAI interface)
 """
 
-import json
-import logging
 import asyncio
 import concurrent.futures
-from typing import Dict, List, Optional, Any
+import json
+import logging
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 # Import LLM Usage Tracker
 from app.services.llm_usage_tracker import LLMUsageTracker

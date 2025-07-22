@@ -3,20 +3,18 @@ AI-powered Asset Intelligence endpoints leveraging CrewAI framework.
 """
 
 import logging
-from typing import Dict, Any
-from fastapi import APIRouter, HTTPException, Depends
+from typing import Any, Dict
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from app.api.v1.dependencies import get_crewai_flow_service
-from app.services.crewai_flow_service import CrewAIFlowService
-from app.core.context import get_current_context, RequestContext
+from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.core.database_timeout import get_db_for_asset_analysis
-from .models import (
-    AssetAnalysisRequest,
-    BulkUpdatePlanRequest,
-    AssetClassificationRequest,
-    AssetFeedbackRequest
-)
+from app.services.crewai_flow_service import CrewAIFlowService
+
+from .models import AssetAnalysisRequest, AssetClassificationRequest, AssetFeedbackRequest, BulkUpdatePlanRequest
 from .utils import get_asset_data
 
 logger = logging.getLogger(__name__)

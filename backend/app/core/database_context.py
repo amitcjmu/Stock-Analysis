@@ -2,12 +2,14 @@
 Context-aware database session management
 """
 
-from contextlib import asynccontextmanager
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
-from app.core.database import AsyncSessionLocal
-from app.core.context import get_current_context
 import logging
+from contextlib import asynccontextmanager
+
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import get_current_context
+from app.core.database import AsyncSessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +40,7 @@ async def get_context_db():
             
             yield session
             
-        except Exception as e:
+        except Exception:
             await session.rollback()
             raise
         finally:

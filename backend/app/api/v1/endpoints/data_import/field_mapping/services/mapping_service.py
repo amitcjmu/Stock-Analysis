@@ -6,16 +6,22 @@ Enhanced to use CrewAI agents for intelligent field mapping.
 import logging
 import os
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
 
 from app.core.context import RequestContext
 from app.models.data_import import DataImport, ImportFieldMapping, RawImportRecord
+
 from ..models.mapping_schemas import (
-    FieldMappingCreate, FieldMappingUpdate, FieldMappingResponse,
-    MappingValidationRequest, MappingValidationResponse
+    FieldMappingCreate,
+    FieldMappingResponse,
+    FieldMappingUpdate,
+    MappingValidationRequest,
+    MappingValidationResponse,
 )
+
 # Legacy hardcoded mapping helpers removed - using CrewAI agents only
 # from ..utils.mapping_helpers import intelligent_field_mapping, calculate_mapping_confidence
 from ..validators.mapping_validators import MappingValidator
@@ -23,9 +29,9 @@ from ..validators.mapping_validators import MappingValidator
 # CrewAI integration for intelligent field mapping
 CREWAI_FIELD_MAPPING_ENABLED = os.getenv("CREWAI_FIELD_MAPPING_ENABLED", "true").lower() == "true"
 try:
+    from app.services.crewai_flows.flow_state_manager import FlowStateManager
     from app.services.crewai_flows.handlers.phase_executors.field_mapping_executor import FieldMappingExecutor
     from app.services.crewai_flows.handlers.unified_flow_crew_manager import UnifiedFlowCrewManager
-    from app.services.crewai_flows.flow_state_manager import FlowStateManager
     CREWAI_AVAILABLE = True
     logger = logging.getLogger(__name__)
     logger.info("✅ CrewAI field mapping components available")

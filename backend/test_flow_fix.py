@@ -5,12 +5,13 @@ Test Flow Processing Fix
 
 import asyncio
 import sys
+
 sys.path.append('/app')
 
 async def test_flow_processing_fix():
-    from app.api.v1.endpoints.flow_processing import continue_flow_processing, FlowContinuationRequest
-    from app.core.database import AsyncSessionLocal
+    from app.api.v1.endpoints.flow_processing import FlowContinuationRequest, continue_flow_processing
     from app.core.context import RequestContext
+    from app.core.database import AsyncSessionLocal
     
     try:
         # Test with a real flow ID that exists in both discovery_flows and master orchestrator

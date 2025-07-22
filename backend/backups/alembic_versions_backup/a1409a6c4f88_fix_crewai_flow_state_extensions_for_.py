@@ -5,9 +5,10 @@ Revises: f410c7d36d82
 Create Date: 2025-06-30 03:56:39.719292
 
 """
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = 'a1409a6c4f88'

@@ -7,7 +7,8 @@ and phase validation results.
 
 import logging
 import re
-from typing import Dict, List, ClassVar
+from typing import ClassVar, Dict, List
+
 from ..crewai_imports import BaseTool
 
 logger = logging.getLogger(__name__)

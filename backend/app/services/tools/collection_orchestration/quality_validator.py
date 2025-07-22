@@ -4,14 +4,15 @@ Quality Validator
 Validates collection data quality throughout the process.
 """
 
-import re
 import logging
-from typing import Dict, Any, List, Optional
+import re
+from typing import Any, Dict, List, Optional
 
+from app.core.context import get_current_context
+from app.services.collection_flow.quality_scoring import QualityAssessmentService
 from app.services.tools.base_tool import AsyncBaseDiscoveryTool
 from app.services.tools.registry import ToolMetadata
-from app.services.collection_flow.quality_scoring import QualityAssessmentService
-from app.core.context import get_current_context
+
 from .base import BaseCollectionTool
 
 logger = logging.getLogger(__name__)

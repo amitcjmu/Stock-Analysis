@@ -4,10 +4,10 @@ Phase Validation Tool
 Tool for validating specific phase completion using success criteria.
 """
 
-import logging
 import asyncio
 import json
-from typing import Dict, Any, List
+import logging
+from typing import Any, Dict, List
 
 try:
     from crewai.tools import BaseTool
@@ -26,13 +26,21 @@ except ImportError:
         def _run(self, *args, **kwargs):
             return "CrewAI not available - using fallback"
 
-from app.knowledge_bases.flow_intelligence_knowledge import (
-    FlowType, PhaseStatus, ActionType,
-    get_flow_definition, get_phase_definition, get_next_phase,
-    get_navigation_path, get_validation_services, get_success_criteria,
-    get_user_actions, get_system_actions, AGENT_INTELLIGENCE
-)
 from app.core.context import RequestContext
+from app.knowledge_bases.flow_intelligence_knowledge import (
+    AGENT_INTELLIGENCE,
+    ActionType,
+    FlowType,
+    PhaseStatus,
+    get_flow_definition,
+    get_navigation_path,
+    get_next_phase,
+    get_phase_definition,
+    get_success_criteria,
+    get_system_actions,
+    get_user_actions,
+    get_validation_services,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -123,8 +131,8 @@ class PhaseValidationTool(BaseTool):
     async def _async_validate_data_import(self, flow_id: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """Async validation of data import phase"""
         try:
-            from app.services.data_import_v2_service import DataImportV2Service
             from app.core.database import AsyncSessionLocal
+            from app.services.data_import_v2_service import DataImportV2Service
             
             # Create request context
             request_context = RequestContext(

@@ -3,32 +3,33 @@ Credential Management API Endpoints
 Provides secure CRUD operations for platform credentials
 """
 
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
-from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from app.core.database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.auth import get_current_user
-from app.models.user import User
-from app.models.platform_credentials import CredentialStatus, CredentialType, VaultProvider
-from app.services.credential_service import CredentialService
-from app.services.credential_audit_service import CredentialAuditService, AuditEventType
-from app.services.credential_lifecycle_service import CredentialLifecycleService
-from app.services.credential_validators import get_credential_validator
+from app.core.database import get_db
 from app.middleware.credential_access_control import CredentialAccessControl
+from app.models.platform_credentials import CredentialStatus, CredentialType, VaultProvider
+from app.models.user import User
 from app.schemas.credential_schemas import (
     CredentialCreate,
-    CredentialUpdate,
-    CredentialResponse,
-    CredentialListResponse,
     CredentialHealthReport,
-    CredentialRotationRequest,
+    CredentialListResponse,
     CredentialPermissionRequest,
+    CredentialResponse,
+    CredentialRotationRequest,
+    CredentialUpdate,
     CredentialValidationResponse,
-    LifecycleReport
+    LifecycleReport,
 )
+from app.services.credential_audit_service import AuditEventType, CredentialAuditService
+from app.services.credential_lifecycle_service import CredentialLifecycleService
+from app.services.credential_service import CredentialService
+from app.services.credential_validators import get_credential_validator
 
 router = APIRouter(prefix="/credentials", tags=["credentials"])
 

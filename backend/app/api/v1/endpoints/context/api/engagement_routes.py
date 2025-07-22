@@ -6,15 +6,17 @@ API endpoints for engagement-related operations.
 
 from typing import Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status, Path
+
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.auth.auth_utils import get_current_user
 from app.core.database import get_db
 from app.models import User
-from app.api.v1.auth.auth_utils import get_current_user
-from ..services.engagement_service import EngagementService
-from ..services.client_service import ClientService
+
 from ..models.context_schemas import EngagementsListResponse
+from ..services.client_service import ClientService
+from ..services.engagement_service import EngagementService
 
 router = APIRouter()
 

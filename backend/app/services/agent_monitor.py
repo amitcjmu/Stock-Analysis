@@ -4,22 +4,23 @@ Provides real-time observability into agent task execution with database persist
 Enhanced for Agent Observability Enhancement Phase 2.
 """
 
-import time
-import threading
-import logging
 import asyncio
-from typing import Dict, List, Any, Optional, Tuple
-from datetime import datetime, timedelta
-from dataclasses import dataclass, field
-from enum import Enum
-from decimal import Decimal
+import logging
+import threading
+import time
 from contextlib import contextmanager
-from sqlalchemy.orm import Session
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from decimal import Decimal
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
+
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.agent_task_history import AgentTaskHistory
 from app.models.agent_discovered_patterns import AgentDiscoveredPatterns
+from app.models.agent_task_history import AgentTaskHistory
 
 logger = logging.getLogger(__name__)
 

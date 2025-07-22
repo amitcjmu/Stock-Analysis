@@ -14,10 +14,10 @@ import asyncio
 import logging
 import uuid
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
 
 from app.core.database import AsyncSessionLocal
 from app.models.discovery_flow import DiscoveryFlow
@@ -62,6 +62,7 @@ class OrphanFlowMigrator:
                 
                 # Get discovery flows without corresponding extensions records
                 from sqlalchemy import exists
+
                 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
                 
                 orphaned_flows_stmt = select(DiscoveryFlow).where(
@@ -89,7 +90,7 @@ class OrphanFlowMigrator:
                     "analysis_timestamp": datetime.utcnow().isoformat()
                 }
                 
-                logger.info(f"📊 Orphan Analysis Results:")
+                logger.info("📊 Orphan Analysis Results:")
                 logger.info(f"   Total Discovery Flows: {analysis['total_discovery_flows']}")
                 logger.info(f"   Total Master Flows: {analysis['total_master_flows']}")
                 logger.info(f"   Orphaned Flows: {analysis['orphaned_flows_count']} ({analysis['orphaned_percentage']:.1f}%)")
@@ -114,6 +115,7 @@ class OrphanFlowMigrator:
             async with AsyncSessionLocal() as db_session:
                 # Get all discovery flows without corresponding extensions records
                 from sqlalchemy import exists
+
                 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
                 
                 orphaned_flows_stmt = select(DiscoveryFlow).where(
@@ -143,7 +145,7 @@ class OrphanFlowMigrator:
                     await db_session.rollback()
                     logger.info("🔄 Dry run completed - no changes made")
                 
-                logger.info(f"📊 Migration Summary:")
+                logger.info("📊 Migration Summary:")
                 logger.info(f"   Total Orphaned Flows: {self.migration_stats['total_orphaned_flows']}")
                 logger.info(f"   Master Flows Created: {self.migration_stats['master_flows_created']}")
                 logger.info(f"   Flows Linked: {self.migration_stats['flows_linked']}")
@@ -232,6 +234,7 @@ class OrphanFlowMigrator:
                 # Count discovery flows that have corresponding extensions records
                 # Join to check for matching flow_id values
                 from sqlalchemy import exists
+
                 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
                 
                 linked_flows_stmt = select(func.count(DiscoveryFlow.id)).where(
@@ -257,7 +260,7 @@ class OrphanFlowMigrator:
                     "validation_timestamp": datetime.utcnow().isoformat()
                 }
                 
-                logger.info(f"📊 Migration Validation Results:")
+                logger.info("📊 Migration Validation Results:")
                 logger.info(f"   Total Discovery Flows: {validation['total_discovery_flows']}")
                 logger.info(f"   Total Master Flows: {validation['total_master_flows']}")
                 logger.info(f"   Linked Flows: {validation['linked_flows']}")

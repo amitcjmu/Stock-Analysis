@@ -9,21 +9,23 @@ Usage:
     python scripts/qa/multi_tenant_isolation_tests.py [--verbose] [--client-id ID]
 """
 
-import asyncio
-import sys
 import argparse
+import asyncio
 import json
-from datetime import datetime
-from typing import Dict, List, Any, Optional, Tuple
+import sys
 from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
 # Add app path
 sys.path.append('/app')
 
-from sqlalchemy import text, select, func, and_, or_, distinct
+from sqlalchemy import and_, distinct, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import AsyncSessionLocal
 from app.models import *
+
 
 @dataclass
 class IsolationTestResult:
@@ -380,7 +382,7 @@ class MultiTenantIsolationTester:
     
     async def _test_cross_client_contamination(self, session: AsyncSession):
         """Test for any cross-client data contamination."""
-        print(f"\n🔍 Testing Cross-Client Data Contamination")
+        print("\n🔍 Testing Cross-Client Data Contamination")
         
         # Test 1: Assets referencing wrong client's engagements
         result = await session.execute(
@@ -437,7 +439,7 @@ class MultiTenantIsolationTester:
     
     async def _test_permission_boundaries(self, session: AsyncSession):
         """Test permission boundary enforcement."""
-        print(f"\n🔍 Testing Permission Boundaries")
+        print("\n🔍 Testing Permission Boundaries")
         
         # Test role distribution
         result = await session.execute(
@@ -625,7 +627,7 @@ def print_isolation_report(report: Dict[str, Any]):
     
     # Failed tests
     if summary['failed_tests'] > 0:
-        print(f"\n❌ FAILED TESTS:")
+        print("\n❌ FAILED TESTS:")
         print("-" * 40)
         
         for client_name, results in report['client_results'].items():
@@ -639,7 +641,7 @@ def print_isolation_report(report: Dict[str, Any]):
         
         failed_system_tests = [r for r in report['system_results'] if not r['passed']]
         if failed_system_tests:
-            print(f"\nSystem-wide:")
+            print("\nSystem-wide:")
             for result in failed_system_tests:
                 print(f"  • {result['message']}")
                 if result['data_leak_count'] > 0:
@@ -647,7 +649,7 @@ def print_isolation_report(report: Dict[str, Any]):
     
     # Recommendations
     if report['recommendations']:
-        print(f"\n💡 SECURITY RECOMMENDATIONS:")
+        print("\n💡 SECURITY RECOMMENDATIONS:")
         print("-" * 40)
         for i, rec in enumerate(report['recommendations'], 1):
             priority = "🚨 URGENT" if "URGENT" in rec else "⚠️"
@@ -655,10 +657,10 @@ def print_isolation_report(report: Dict[str, Any]):
     
     # Overall status
     if summary['failed_tests'] == 0:
-        print(f"\n🎉 ALL ISOLATION TESTS PASSED!")
+        print("\n🎉 ALL ISOLATION TESTS PASSED!")
         print("Multi-tenant security is working correctly.")
     else:
-        print(f"\n⚠️ ISOLATION ISSUES DETECTED")
+        print("\n⚠️ ISOLATION ISSUES DETECTED")
         print(f"Found {summary['failed_tests']} issues that need immediate attention.")
 
 async def main():

@@ -5,8 +5,9 @@ Performs ONLY essential tasks: file type analysis, security validation, PII dete
 """
 
 import logging
-from typing import Dict, Any, List, Optional
-from crewai import Agent, Task, Crew
+from typing import Any, Dict, List, Optional
+
+from crewai import Agent, Crew, Task
 
 logger = logging.getLogger(__name__)
 

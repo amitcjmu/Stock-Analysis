@@ -3,8 +3,8 @@ Helper functions for intelligent field mapping.
 """
 
 import re
-from typing import Dict, List, Any, Optional
 from difflib import SequenceMatcher
+from typing import Any, Dict, List, Optional
 
 
 def intelligent_field_mapping(source_field: str) -> str:

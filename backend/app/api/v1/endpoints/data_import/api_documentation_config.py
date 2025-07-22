@@ -5,8 +5,9 @@ This module configures FastAPI's automatic documentation generation
 with custom examples, descriptions, and tags.
 """
 
+from typing import Any, Dict
+
 from fastapi import FastAPI
-from typing import Dict, Any
 
 
 def configure_api_documentation(app: FastAPI) -> None:

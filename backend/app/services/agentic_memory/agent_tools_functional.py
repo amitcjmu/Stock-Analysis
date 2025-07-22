@@ -5,12 +5,12 @@ This module provides agent tools using a functional approach that avoids
 Pydantic validation issues while maintaining the same functionality.
 """
 
+import asyncio
+import json
 import logging
 import uuid
-import json
-import asyncio
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 try:
     from crewai.tools import tool
@@ -23,10 +23,15 @@ except ImportError:
         return decorator
 
 try:
-    from app.models.agent_memory import AgentDiscoveredPattern, PatternType, get_patterns_for_agent_reasoning, create_asset_enrichment_pattern
-    from app.models.asset import Asset
     from app.core.database import AsyncSessionLocal
-    from app.services.agentic_memory import ThreeTierMemoryManager, MemoryQuery
+    from app.models.agent_memory import (
+        AgentDiscoveredPattern,
+        PatternType,
+        create_asset_enrichment_pattern,
+        get_patterns_for_agent_reasoning,
+    )
+    from app.models.asset import Asset
+    from app.services.agentic_memory import MemoryQuery, ThreeTierMemoryManager
     DATABASE_AVAILABLE = True
 except ImportError:
     DATABASE_AVAILABLE = False

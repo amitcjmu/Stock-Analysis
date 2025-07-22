@@ -4,19 +4,27 @@ Implements the correct role hierarchy: Platform Admin > Client Admin > Engagemen
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+
+from sqlalchemy import and_, not_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_, not_
 from sqlalchemy.orm import selectinload
 
 # Import enhanced RBAC models
 try:
+    from app.models.client_account import ClientAccount, Engagement, User
     from app.models.rbac_enhanced import (
-        EnhancedUserProfile, RolePermissions, SoftDeletedItems, AccessAuditLog,
-        RoleLevel, DataScope, UserStatus, DeletedItemType, DEFAULT_ROLE_PERMISSIONS
+        DEFAULT_ROLE_PERMISSIONS,
+        AccessAuditLog,
+        DataScope,
+        DeletedItemType,
+        EnhancedUserProfile,
+        RoleLevel,
+        RolePermissions,
+        SoftDeletedItems,
+        UserStatus,
     )
-    from app.models.client_account import User, ClientAccount, Engagement
     ENHANCED_RBAC_AVAILABLE = True
 except ImportError:
     ENHANCED_RBAC_AVAILABLE = False

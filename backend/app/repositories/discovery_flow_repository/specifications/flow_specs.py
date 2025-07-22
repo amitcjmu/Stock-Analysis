@@ -4,8 +4,9 @@ Flow Specifications
 Reusable query specifications for discovery flows.
 """
 
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional
+
 from sqlalchemy import and_, or_
 from sqlalchemy.sql import ColumnElement
 

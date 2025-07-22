@@ -3,15 +3,18 @@ Client CRUD Handler - Core client account operations
 """
 
 import logging
-from typing import Dict, Any, Optional
-from fastapi import HTTPException, Request
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, text, and_
 from datetime import datetime, timedelta
+from typing import Any, Dict, Optional
+
+from fastapi import HTTPException, Request
+from sqlalchemy import and_, func, select, text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.admin_schemas import (
-    ClientAccountCreate, ClientAccountUpdate, ClientAccountResponse,
-    AdminSuccessResponse
+    AdminSuccessResponse,
+    ClientAccountCreate,
+    ClientAccountResponse,
+    ClientAccountUpdate,
 )
 
 # Import models with fallback
@@ -361,7 +364,7 @@ class ClientCRUDHandler:
                     logger.error(f"Error during soft delete for client {client_id}: {soft_delete_error}")
                     raise HTTPException(
                         status_code=500, 
-                        detail=f"Failed to delete client account: Unable to delete due to data dependencies. Please contact administrator."
+                        detail="Failed to delete client account: Unable to delete due to data dependencies. Please contact administrator."
                     )
             
         except HTTPException:
@@ -387,7 +390,7 @@ class ClientCRUDHandler:
             is_platform_admin = False
             if user_id:
                 try:
-                    from app.models.rbac import UserRole, RoleType
+                    from app.models.rbac import RoleType, UserRole
                     admin_check = await db.execute(
                         select(UserRole).where(
                             and_(

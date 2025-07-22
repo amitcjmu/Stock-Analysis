@@ -11,12 +11,12 @@ PERFORMANCE OPTIMIZATIONS:
 """
 
 import logging
-from typing import Dict, List, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 # CrewAI imports with graceful fallback
 try:
-    from crewai import Agent, Task, Crew, Process
+    from crewai import Agent, Crew, Process, Task
     CREWAI_AVAILABLE = True
 except ImportError:
     CREWAI_AVAILABLE = False

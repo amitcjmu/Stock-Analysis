@@ -4,23 +4,31 @@ Handles user registration, approvals, profile management, and user status operat
 """
 
 import logging
-from typing import Dict, Any
-from fastapi import APIRouter, HTTPException, Depends, Request, Query
+from typing import Any, Dict
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
+from app.api.v1.auth.auth_utils import get_current_user
 from app.core.context import get_current_context
+from app.core.database import get_db
+from app.models.client_account import User
 from app.schemas.auth_schemas import (
-    UserRegistrationRequest, UserRegistrationResponse,
-    UserApprovalRequest, UserApprovalResponse,
-    UserRejectionRequest, UserRejectionResponse,
-    PendingApprovalsResponse, AccessValidationRequest, AccessValidationResponse,
-    ClientAccessGrant, ClientAccessGrantResponse,
-    PaginationParams, FilterParams
+    AccessValidationRequest,
+    AccessValidationResponse,
+    ClientAccessGrant,
+    ClientAccessGrantResponse,
+    FilterParams,
+    PaginationParams,
+    PendingApprovalsResponse,
+    UserApprovalRequest,
+    UserApprovalResponse,
+    UserRegistrationRequest,
+    UserRegistrationResponse,
+    UserRejectionRequest,
+    UserRejectionResponse,
 )
 from app.services.auth_services.user_management_service import UserManagementService
-from app.api.v1.auth.auth_utils import get_current_user
-from app.models.client_account import User
 
 logger = logging.getLogger(__name__)
 

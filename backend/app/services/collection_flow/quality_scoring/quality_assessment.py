@@ -6,17 +6,18 @@ This module provides the service for assessing data quality across multiple dime
 
 import logging
 import statistics
-from typing import Dict, Any, List, Optional, Tuple, Union
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 from app.services.collection_flow.data_transformation import DataType
+
+from .constants import DIMENSION_WEIGHTS, REQUIRED_FIELDS, VALIDATION_RULES
 from .enums import QualityDimension
 from .models import QualityScore
-from .constants import REQUIRED_FIELDS, VALIDATION_RULES, DIMENSION_WEIGHTS
-from .validators import validate_ip_address, validate_hostname, validate_type
+from .validators import validate_hostname, validate_ip_address, validate_type
 
 logger = logging.getLogger(__name__)
 
@@ -178,7 +179,7 @@ class QualityAssessmentService:
                     "dimension": QualityDimension.COMPLETENESS.value,
                     "severity": "high" if missing_critical else "medium",
                     "record_index": idx,
-                    "description": f"Missing fields",
+                    "description": "Missing fields",
                     "details": {
                         "missing_critical": missing_critical,
                         "missing_important": missing_important

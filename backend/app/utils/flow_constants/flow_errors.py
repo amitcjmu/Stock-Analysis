@@ -3,10 +3,11 @@ Flow error definitions and management utilities.
 Provides standardized error types, codes, and error handling patterns.
 """
 
-from enum import Enum
-from typing import Dict, Optional, Any
 from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, Optional
+
 
 class FlowErrorType(str, Enum):
     """Types of flow errors."""

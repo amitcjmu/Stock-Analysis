@@ -3,8 +3,8 @@ Network topology discovery for On-Premises Platform Adapter
 """
 
 from datetime import datetime
-from typing import Dict, Any, List
-from ipaddress import IPv4Network, IPv4Address, AddressValueError
+from ipaddress import AddressValueError, IPv4Address, IPv4Network
+from typing import Any, Dict, List
 
 from .models import DiscoveredHost
 

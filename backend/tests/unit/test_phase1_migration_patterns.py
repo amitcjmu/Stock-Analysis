@@ -1,9 +1,10 @@
 """
 Test Phase 1 migration patterns and compatibility
 """
-import pytest
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 
 class MockDataImport:

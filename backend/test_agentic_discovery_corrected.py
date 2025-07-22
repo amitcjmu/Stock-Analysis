@@ -6,8 +6,8 @@ Run with: docker exec migration_backend python test_agentic_discovery_corrected.
 
 import asyncio
 import json
-import sys
 import os
+import sys
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -192,10 +192,10 @@ async def test_hardcoded_threshold_removal():
     
     try:
         # Check field mapping phase for hardcoded thresholds
-        from app.services.crewai_flows.unified_discovery_flow.phases import field_mapping
-        
         # Read the source code to check for hardcoded values
         import inspect
+
+        from app.services.crewai_flows.unified_discovery_flow.phases import field_mapping
         source = inspect.getsource(field_mapping)
         
         # Look for common threshold patterns

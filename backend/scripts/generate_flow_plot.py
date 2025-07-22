@@ -4,8 +4,8 @@ Generate Discovery Flow Plot
 Creates an HTML visualization of the AI Modernize Migration Platform Discovery Flow
 """
 
-import sys
 import os
+import sys
 from pathlib import Path
 
 # Add the backend directory to the Python path
@@ -239,9 +239,9 @@ def generate_flow_plot():
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(html_content)
         
-        logger.info(f"✅ Discovery Flow visualization generated successfully!")
+        logger.info("✅ Discovery Flow visualization generated successfully!")
         logger.info(f"📁 File saved as: {output_file}")
-        logger.info(f"🌐 Open the HTML file in your browser to view the flow structure")
+        logger.info("🌐 Open the HTML file in your browser to view the flow structure")
         
         return True
         

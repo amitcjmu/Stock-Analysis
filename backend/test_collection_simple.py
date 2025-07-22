@@ -2,12 +2,15 @@
 Simple test to debug collection flow creation
 """
 import asyncio
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.database import AsyncSessionLocal
-from app.models.collection_flow import CollectionFlow, CollectionFlowStatus, AutomationTier, CollectionPhase
-from app.models import User
 import uuid
 from datetime import datetime
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import AsyncSessionLocal
+from app.models import User
+from app.models.collection_flow import AutomationTier, CollectionFlow, CollectionFlowStatus, CollectionPhase
+
 
 async def test_create_collection_flow():
     async with AsyncSessionLocal() as db:

@@ -6,8 +6,8 @@ to improve maintainability and code organization.
 """
 
 import logging
-from typing import Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class NotificationUtilities:
                 flow_id=self.flow._flow_id
             )
             
-            self.logger.info(f"📡 Sent flow start notification via agent-ui-bridge")
+            self.logger.info("📡 Sent flow start notification via agent-ui-bridge")
             return True
             
         except Exception as e:
@@ -96,7 +96,7 @@ class NotificationUtilities:
                 flow_id=self.flow._flow_id
             )
             
-            self.logger.info(f"📡 Sent flow completion notification via agent-ui-bridge")
+            self.logger.info("📡 Sent flow completion notification via agent-ui-bridge")
             return True
             
         except Exception as e:
@@ -136,7 +136,7 @@ class NotificationUtilities:
                 flow_id=self.flow._flow_id
             )
             
-            self.logger.info(f"📡 Sent error notification via agent-ui-bridge")
+            self.logger.info("📡 Sent error notification via agent-ui-bridge")
             return True
             
         except Exception as e:
@@ -176,7 +176,7 @@ class NotificationUtilities:
                 flow_id=self.flow._flow_id
             )
             
-            self.logger.info(f"📡 Sent approval request notification via agent-ui-bridge")
+            self.logger.info("📡 Sent approval request notification via agent-ui-bridge")
             return True
             
         except Exception as e:
@@ -227,8 +227,8 @@ class NotificationUtilities:
         """Update flow status in database"""
         try:
             if hasattr(self.flow, 'flow_bridge') and self.flow.flow_bridge:
-                from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
                 from app.core.database import AsyncSessionLocal
+                from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
                 
                 async with AsyncSessionLocal() as db:
                     store = PostgresFlowStateStore(db, self.flow.context)

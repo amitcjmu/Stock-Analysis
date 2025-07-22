@@ -10,8 +10,14 @@ def test_modular_structure():
     
     try:
         # Test main module imports
-        from . import query_endpoints, lifecycle_endpoints, execution_endpoints, validation_endpoints
-        from . import response_mappers, status_calculator
+        from . import (
+            execution_endpoints,
+            lifecycle_endpoints,
+            query_endpoints,
+            response_mappers,
+            status_calculator,
+            validation_endpoints,
+        )
         print("✅ All modules import successfully")
         
         # Test router existence
@@ -23,11 +29,11 @@ def test_modular_structure():
         
         # Test response models
         from .response_mappers import (
-            DiscoveryFlowResponse, 
+            DiscoveryFlowResponse,
             DiscoveryFlowStatusResponse,
             FlowInitializeResponse,
             FlowOperationResponse,
-            ResponseMappers
+            ResponseMappers,
         )
         print("✅ Response models available")
         

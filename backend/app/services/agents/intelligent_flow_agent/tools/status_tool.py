@@ -4,10 +4,10 @@ Flow Status Tool
 Tool for getting comprehensive flow status and phase information.
 """
 
-import logging
 import asyncio
 import json
-from typing import Dict, Any
+import logging
+from typing import Any, Dict
 
 try:
     from crewai.tools import BaseTool
@@ -73,9 +73,10 @@ class FlowStatusTool(BaseTool):
         """Get real flow status using FIXED FlowHandler directly"""
         try:
             # Import our fixed FlowHandler directly
-            from app.services.agents.agent_service_layer.handlers.flow_handler import FlowHandler
-            from app.core.context import RequestContext
             import asyncio
+
+            from app.core.context import RequestContext
+            from app.services.agents.agent_service_layer.handlers.flow_handler import FlowHandler
             
             # Create proper context for FlowHandler
             request_context = RequestContext(
@@ -196,8 +197,8 @@ class FlowStatusTool(BaseTool):
         """Async flow status lookup using our FIXED FlowHandler"""
         try:
             # Import our fixed FlowHandler directly
-            from app.services.agents.agent_service_layer.handlers.flow_handler import FlowHandler
             from app.core.context import RequestContext
+            from app.services.agents.agent_service_layer.handlers.flow_handler import FlowHandler
             
             # Create proper context for FlowHandler
             request_context = RequestContext(
@@ -269,8 +270,8 @@ class FlowStatusTool(BaseTool):
         """Async flow status lookup with proper error handling"""
         try:
             from app.api.v1.discovery_handlers.flow_management import FlowManagementHandler
-            from app.core.database import AsyncSessionLocal
             from app.core.context import RequestContext
+            from app.core.database import AsyncSessionLocal
             
             # Create request context
             request_context = RequestContext(

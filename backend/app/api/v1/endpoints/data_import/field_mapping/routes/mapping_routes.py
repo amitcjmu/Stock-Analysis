@@ -5,15 +5,20 @@ Thin controllers that delegate to service layer.
 
 import logging
 from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
-from app.core.context import get_current_context, RequestContext
 from app.core.auth import get_current_user_id
+from app.core.context import RequestContext, get_current_context
+from app.core.database import get_db
+
 from ..models.mapping_schemas import (
-    FieldMappingCreate, FieldMappingUpdate, FieldMappingResponse,
-    MappingValidationRequest, MappingValidationResponse
+    FieldMappingCreate,
+    FieldMappingResponse,
+    FieldMappingUpdate,
+    MappingValidationRequest,
+    MappingValidationResponse,
 )
 from ..services.mapping_service import MappingService
 
@@ -122,9 +127,11 @@ async def trigger_field_mapping_reanalysis(
         logger.info(f"🔄 Triggering field mapping re-analysis for import: {import_id}")
         
         # Get the data import
-        from app.models.data_import import DataImport
-        from sqlalchemy import select
         from uuid import UUID
+
+        from sqlalchemy import select
+
+        from app.models.data_import import DataImport
         
         # Convert string UUID to UUID object if needed
         try:
@@ -173,7 +180,8 @@ async def generate_field_mappings(
         if force_regenerate:
             logger.info(f"🔄 Force regenerating field mappings for import {import_id}")
             # Delete existing mappings to trigger CrewAI regeneration
-            from sqlalchemy import select, and_, delete
+            from sqlalchemy import and_, delete, select
+
             from app.models.data_import import ImportFieldMapping
             
             delete_query = delete(ImportFieldMapping).where(
@@ -210,8 +218,9 @@ async def create_field_mapping_latest(
         context = extract_context_from_request(request)
         
         # Get latest import for context
+        from sqlalchemy import and_, select
+
         from app.models.data_import import DataImport
-        from sqlalchemy import select, and_
         
         latest_query = select(DataImport).where(
             and_(
@@ -236,7 +245,8 @@ async def create_field_mapping_latest(
             if force_regenerate:
                 logger.info(f"🔄 Force regenerating field mappings for latest import {latest_import.id}")
                 # Delete existing mappings to trigger CrewAI regeneration
-                from sqlalchemy import select, and_, delete
+                from sqlalchemy import and_, delete, select
+
                 from app.models.data_import import ImportFieldMapping
                 
                 delete_query = delete(ImportFieldMapping).where(

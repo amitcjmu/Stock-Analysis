@@ -8,18 +8,19 @@ and quality scoring.
 Agent Team B3 - Task B3.6
 """
 
-from typing import Dict, List, Optional, Any, Union, Tuple
-from dataclasses import dataclass, asdict
-from enum import Enum
-import logging
 import json
-from datetime import datetime
-from uuid import UUID, uuid4
+import logging
 from collections import defaultdict
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple, Union
+from uuid import UUID, uuid4
+
 import numpy as np
 
 from ..collection_flow.data_transformation import DataTransformationService
-from ..collection_flow.quality_scoring import QualityAssessmentService, ConfidenceAssessmentService
+from ..collection_flow.quality_scoring import ConfidenceAssessmentService, QualityAssessmentService
 from .validation_service import FormValidationResult
 
 

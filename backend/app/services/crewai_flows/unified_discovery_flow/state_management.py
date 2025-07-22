@@ -5,13 +5,14 @@ Handles all state-related operations for the Unified Discovery Flow,
 including state updates, validation, and persistence coordination.
 """
 
+import asyncio
 import logging
 from datetime import datetime
-from typing import Dict, Any, Optional, List
-import asyncio
+from typing import Any, Dict, List, Optional
 
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
-from .flow_config import PhaseNames, FlowConfig
+
+from .flow_config import FlowConfig, PhaseNames
 
 logger = logging.getLogger(__name__)
 
@@ -158,9 +159,9 @@ class StateManager:
         
         # Then update discovery_flows table (source of truth for discovery flows)
         try:
+            from app.core.context import RequestContext
             from app.core.database import AsyncSessionLocal
             from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-            from app.core.context import RequestContext
             
             async with AsyncSessionLocal() as db:
                 # Ensure all IDs are strings and not empty
@@ -217,7 +218,7 @@ class StateManager:
                         progress_percentage=self.state.progress_percentage
                     )
                 else:
-                    logger.warning(f"⚠️ Cannot create/update flow - flow_id is missing")
+                    logger.warning("⚠️ Cannot create/update flow - flow_id is missing")
                 
                 # Update current phase data if needed
                 current_phase = getattr(self.state, 'current_phase', None)
@@ -232,7 +233,7 @@ class StateManager:
                             agent_insights=getattr(self.state, 'agent_insights', [])
                         )
                 elif not flow_id:
-                    logger.warning(f"⚠️ Cannot update phase completion - flow_id is missing")
+                    logger.warning("⚠️ Cannot update phase completion - flow_id is missing")
                 
                 logger.info("✅ Discovery flows table updated")
         except Exception as e:

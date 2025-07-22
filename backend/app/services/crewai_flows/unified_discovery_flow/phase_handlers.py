@@ -6,8 +6,8 @@ to improve maintainability and code organization.
 """
 
 import logging
-from typing import Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -29,13 +29,13 @@ class PhaseHandlers:
         try:
             # Update flow status and sync to state
             if hasattr(self.flow, 'flow_bridge') and self.flow.flow_bridge:
-                from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
                 from app.core.database import AsyncSessionLocal
+                from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
                 
                 async with AsyncSessionLocal() as db:
                     store = PostgresFlowStateStore(db, self.flow.context)
                     await store.update_flow_status(self.flow._flow_id, "processing_data_validation")
-                    self.logger.info(f"✅ [ECHO] Updated flow status to 'processing_data_validation'")
+                    self.logger.info("✅ [ECHO] Updated flow status to 'processing_data_validation'")
             
             # Load raw data into flow state if not already loaded
             if hasattr(self.flow.state, 'raw_data') and not self.flow.state.raw_data:
@@ -76,8 +76,8 @@ class PhaseHandlers:
         try:
             # Update flow status
             if hasattr(self.flow, 'flow_bridge') and self.flow.flow_bridge:
-                from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
                 from app.core.database import AsyncSessionLocal
+                from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
                 
                 async with AsyncSessionLocal() as db:
                     store = PostgresFlowStateStore(db, self.flow.context)
@@ -120,8 +120,8 @@ class PhaseHandlers:
         try:
             # Update flow status
             if hasattr(self.flow, 'flow_bridge') and self.flow.flow_bridge:
-                from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
                 from app.core.database import AsyncSessionLocal
+                from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
                 
                 async with AsyncSessionLocal() as db:
                     store = PostgresFlowStateStore(db, self.flow.context)
@@ -168,8 +168,8 @@ class PhaseHandlers:
         try:
             # Update flow status
             if hasattr(self.flow, 'flow_bridge') and self.flow.flow_bridge:
-                from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
                 from app.core.database import AsyncSessionLocal
+                from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
                 
                 async with AsyncSessionLocal() as db:
                     store = PostgresFlowStateStore(db, self.flow.context)
@@ -211,8 +211,8 @@ class PhaseHandlers:
         try:
             # Update flow status
             if hasattr(self.flow, 'flow_bridge') and self.flow.flow_bridge:
-                from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
                 from app.core.database import AsyncSessionLocal
+                from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
                 
                 async with AsyncSessionLocal() as db:
                     store = PostgresFlowStateStore(db, self.flow.context)
@@ -254,8 +254,8 @@ class PhaseHandlers:
         try:
             # Update flow status
             if hasattr(self.flow, 'flow_bridge') and self.flow.flow_bridge:
-                from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
                 from app.core.database import AsyncSessionLocal
+                from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
                 
                 async with AsyncSessionLocal() as db:
                     store = PostgresFlowStateStore(db, self.flow.context)

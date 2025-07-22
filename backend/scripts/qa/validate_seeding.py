@@ -9,22 +9,24 @@ Usage:
     python scripts/qa/validate_seeding.py [--verbose] [--fix-issues] [--export-report]
 """
 
-import asyncio
-import sys
 import argparse
+import asyncio
 import json
-from datetime import datetime
-from typing import Dict, List, Any, Optional, Tuple
-from dataclasses import dataclass
+import sys
 from collections import defaultdict
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
 # Add app path
 sys.path.append('/app')
 
-from sqlalchemy import text, select, func, and_, or_
+from sqlalchemy import and_, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import AsyncSessionLocal
 from app.models import *
+
 
 @dataclass
 class ValidationResult:
@@ -136,7 +138,7 @@ class DatabaseValidator:
         
         if len(industries) < 1:
             self._add_result("client_accounts_diversity", False,
-                           f"No industries found")
+                           "No industries found")
         else:
             self._add_result("client_accounts_diversity", True,
                            f"✅ Industries present: {list(industries.keys())}")
@@ -178,7 +180,7 @@ class DatabaseValidator:
         
         if len(statuses) == 0:
             self._add_result("engagement_status_diversity", False,
-                           f"No engagement statuses found")
+                           "No engagement statuses found")
         else:
             self._add_result("engagement_status_diversity", True,
                            f"✅ Engagement statuses present: {list(statuses.keys())}")
@@ -715,31 +717,31 @@ def print_report(report: Dict[str, Any]):
     print(f"📈 Success Rate: {summary['success_rate']:.1f}%")
     
     if summary['failed'] > 0:
-        print(f"\n❌ FAILED CHECKS:")
+        print("\n❌ FAILED CHECKS:")
         print("-" * 40)
         failed = [r for r in report['all_results'] if not r['passed'] and r['severity'] == 'error']
         for result in failed:
             print(f"  • {result['message']}")
     
     if summary['warnings'] > 0:
-        print(f"\n⚠️ WARNINGS:")
+        print("\n⚠️ WARNINGS:")
         print("-" * 40)
         warnings = [r for r in report['all_results'] if not r['passed'] and r['severity'] == 'warning']
         for result in warnings:
             print(f"  • {result['message']}")
     
     if report['recommendations']:
-        print(f"\n💡 RECOMMENDATIONS:")
+        print("\n💡 RECOMMENDATIONS:")
         print("-" * 40)
         for i, rec in enumerate(report['recommendations'], 1):
             print(f"{i}. {rec}")
     
     # Overall status
     if summary['failed'] == 0:
-        print(f"\n🎉 VALIDATION SUCCESSFUL!")
+        print("\n🎉 VALIDATION SUCCESSFUL!")
         print("Database seeding completed successfully with all checks passing.")
     else:
-        print(f"\n⚠️ VALIDATION ISSUES DETECTED")
+        print("\n⚠️ VALIDATION ISSUES DETECTED")
         print(f"Found {summary['failed']} critical issues that should be addressed.")
 
 async def main():

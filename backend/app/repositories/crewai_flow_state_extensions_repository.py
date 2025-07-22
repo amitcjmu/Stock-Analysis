@@ -4,16 +4,17 @@ Repository for managing master flow records in crewai_flow_state_extensions tabl
 This is the master table that coordinates all CrewAI flows (Discovery, Assessment, Planning, etc.)
 """
 
-import uuid
 import logging
-from typing import List, Optional, Dict, Any
+import uuid
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import and_, delete, desc, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete, and_, desc, func
 from sqlalchemy.orm import selectinload
 
-from app.repositories.context_aware_repository import ContextAwareRepository
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.repositories.context_aware_repository import ContextAwareRepository
 
 logger = logging.getLogger(__name__)
 

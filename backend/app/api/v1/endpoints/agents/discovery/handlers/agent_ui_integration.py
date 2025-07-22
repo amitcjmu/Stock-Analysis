@@ -5,19 +5,20 @@ Implements Phase 2 of the Discovery Flow redesign.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
-from datetime import datetime
 from dataclasses import asdict
-from fastapi import APIRouter, HTTPException, Depends, Body, Request
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_request_context_dependency
 from app.core.database import get_db
-from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-from app.services.agents.agent_communication_protocol import get_communication_protocol
 from app.services.agent_ui_bridge import agent_ui_bridge
+from app.services.agents.agent_communication_protocol import get_communication_protocol
 from app.services.confidence.confidence_manager import ConfidenceManager
+from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

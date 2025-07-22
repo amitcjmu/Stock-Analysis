@@ -6,7 +6,8 @@ to determine progress and completion status using API validation endpoints.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
+
 from ..crewai_imports import BaseTool
 
 logger = logging.getLogger(__name__)
@@ -41,10 +42,11 @@ class FlowStateAnalysisTool(BaseTool):
         """Get flow status using real service calls to provide actionable insights"""
         try:
             # Call the actual flow management service to get real status
+            import asyncio
+
             from app.api.v1.discovery_handlers.flow_management import FlowManagementHandler
             from app.core.context import RequestContext
             from app.core.database import AsyncSessionLocal
-            import asyncio
             
             # Create context for service calls
             context = RequestContext(

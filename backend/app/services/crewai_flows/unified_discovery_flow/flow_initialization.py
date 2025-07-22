@@ -6,17 +6,18 @@ Handles initialization of flow components, agents, and phases.
 
 import logging
 import uuid
-from typing import Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, Optional
 
 from app.core.context import RequestContext
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 
+from ..flow_state_bridge import FlowStateBridge
+from ..handlers.phase_executors import PhaseExecutionManager
+
 # Import handlers and bridges
 from ..handlers.unified_flow_crew_manager import UnifiedFlowCrewManager
-from ..handlers.phase_executors import PhaseExecutionManager
 from ..handlers.unified_flow_management import UnifiedFlowManagement
-from ..flow_state_bridge import FlowStateBridge
 
 # Real CrewAI agents are managed by UnifiedFlowCrewManager - no individual agent imports needed
 
@@ -42,7 +43,7 @@ class FlowInitializer:
         self.context = context
         
         # Extract initialization parameters
-        logger.info(f"🔍 DEBUG: FlowInitializer context values:")
+        logger.info("🔍 DEBUG: FlowInitializer context values:")
         logger.info(f"   - context.client_account_id: {context.client_account_id}")
         logger.info(f"   - context.engagement_id: {context.engagement_id}")
         logger.info(f"   - context.user_id: {context.user_id}")
@@ -57,7 +58,7 @@ class FlowInitializer:
             'metadata': kwargs.get('metadata', {})
         }
         
-        logger.info(f"🔍 DEBUG: FlowInitializer init_context:")
+        logger.info("🔍 DEBUG: FlowInitializer init_context:")
         logger.info(f"   - client_account_id: {self.init_context['client_account_id']}")
         logger.info(f"   - engagement_id: {self.init_context['engagement_id']}")
         logger.info(f"   - user_id: {self.init_context['user_id']}")

@@ -15,22 +15,22 @@ Generated with CC for modular backend architecture.
 """
 
 import logging
-from typing import Dict, List, Any, Tuple
+from typing import Any, Dict, List, Tuple
 from uuid import UUID
-
-# Import modular components
-from .user_experience import (
-    UXOptimizationArea,
-    UXMetricType,
-    UXRecommendation,
-    UserJourneyAnalytics,
-    OptimizationContext,
-    UserExperienceOptimizer as ModularUserExperienceOptimizer
-)
 
 # For backward compatibility - re-export all classes
 from app.core.logging import get_logger
 from app.monitoring.metrics import track_performance
+
+# Import modular components
+from .user_experience import (
+    OptimizationContext,
+    UserJourneyAnalytics,
+    UXMetricType,
+    UXOptimizationArea,
+    UXRecommendation,
+)
+from .user_experience import UserExperienceOptimizer as ModularUserExperienceOptimizer
 
 logger = get_logger(__name__)
 

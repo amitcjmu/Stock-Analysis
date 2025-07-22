@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
 import asyncio
-from app.core.database import AsyncSessionLocal
+
 from sqlalchemy import text
+
+from app.core.database import AsyncSessionLocal
+
 
 async def fix_scores_with_sql():
     async with AsyncSessionLocal() as session:

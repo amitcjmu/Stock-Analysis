@@ -4,11 +4,13 @@ Minimal test to verify the core CrewAI Flow state property fix
 """
 
 import asyncio
-import sys
 import os
+import sys
+
 sys.path.append('/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend')
 
 from app.core.context import RequestContext
+
 
 async def test_minimal_state_fix():
     """Test the absolute core state property fix"""
@@ -17,8 +19,8 @@ async def test_minimal_state_fix():
     
     try:
         # Import and create minimal version
-        from app.services.crewai_flows.unified_collection_flow import UnifiedCollectionFlow
         from app.services.crewai_flow_service import CrewAIFlowService
+        from app.services.crewai_flows.unified_collection_flow import UnifiedCollectionFlow
         
         context = RequestContext(
             client_account_id="11111111-1111-1111-1111-111111111111",
@@ -34,8 +36,9 @@ async def test_minimal_state_fix():
         
         def minimal_init(self, crewai_service, context, automation_tier="tier_2", **kwargs):
             """Minimal initialization that only tests the state property"""
-            from app.models.collection_flow import AutomationTier
             import uuid
+
+            from app.models.collection_flow import AutomationTier
             
             logger = __import__('logging').getLogger(__name__)
             logger.info("🚀 Minimal Unified Collection Flow initialization")

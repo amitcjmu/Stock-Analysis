@@ -6,7 +6,8 @@ that check actual data presence and quality.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
+
 from ..crewai_imports import BaseTool
 
 logger = logging.getLogger(__name__)
@@ -40,10 +41,11 @@ class PhaseValidationTool(BaseTool):
         """Validate phase using real validation services to provide actionable guidance"""
         try:
             # Call the actual phase validation endpoint
+            import asyncio
+
             from app.api.v1.endpoints.flow_processing import validate_phase_data
             from app.core.context import RequestContext
             from app.core.database import AsyncSessionLocal
-            import asyncio
             
             # Create context for service calls
             context = RequestContext(

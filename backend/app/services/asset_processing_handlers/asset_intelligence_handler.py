@@ -3,8 +3,10 @@ Asset Intelligence Handler
 Handles AI-powered analysis of asset readiness for migration assessment.
 """
 import logging
-from typing import Dict, List, Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List
+
 from app.services.tools.asset_intelligence_tools import AssetAnalysisTool, BulkOperationsTool
+
 if TYPE_CHECKING:
     from app.services.agent_registry import AgentRegistry
     from app.services.crewai_flow_service import crewai_flow_service

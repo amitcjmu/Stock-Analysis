@@ -5,13 +5,16 @@ Task 1.4.1: Verify master flow ID consistency and cross-phase relationship integ
 """
 
 import asyncio
-import sys
 import os
+import sys
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from sqlalchemy import text
-from app.core.database import AsyncSessionLocal
 import json
+
+from sqlalchemy import text
+
+from app.core.database import AsyncSessionLocal
 
 
 async def validate_master_flow_integrity():
@@ -38,7 +41,7 @@ async def validate_master_flow_integrity():
         print(f"   ✅ Linked Discovery Flows: {stats.linked_discovery_flows}")
         
         if stats.extension_count != stats.unique_flow_ids:
-            print(f"   ❌ ERROR: Duplicate flow_id values detected!")
+            print("   ❌ ERROR: Duplicate flow_id values detected!")
             return False
             
         # 2. Verify Discovery Flows Master Flow References
@@ -59,7 +62,7 @@ async def validate_master_flow_integrity():
         print(f"   ✅ Valid Master References: {flows_stats.valid_master_refs}")
         
         if flows_stats.flows_with_master_id != flows_stats.valid_master_refs:
-            print(f"   ❌ ERROR: Invalid master flow references detected!")
+            print("   ❌ ERROR: Invalid master flow references detected!")
             return False
             
         # 3. Verify Assets Master Flow Integration
@@ -102,7 +105,7 @@ async def validate_master_flow_integrity():
         """))
         relationships = result.fetchall()
         
-        print(f"   ✅ Top 10 Discovery Flows with Assets:")
+        print("   ✅ Top 10 Discovery Flows with Assets:")
         integrity_issues = 0
         for rel in relationships:
             status = "✅" if rel.asset_count == rel.matching_master_flows else "❌"
@@ -144,10 +147,10 @@ async def validate_master_flow_integrity():
         discovery_assets_exists = result.scalar()
         
         if discovery_assets_exists:
-            print(f"   ❌ ERROR: Legacy discovery_assets table still exists!")
+            print("   ❌ ERROR: Legacy discovery_assets table still exists!")
             return False
         else:
-            print(f"   ✅ Legacy discovery_assets table successfully removed")
+            print("   ✅ Legacy discovery_assets table successfully removed")
             
         # Check migrated asset data integrity
         result = await session.execute(text("""

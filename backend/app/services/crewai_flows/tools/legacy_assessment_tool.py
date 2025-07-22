@@ -3,9 +3,10 @@ Legacy Assessment Tools for Technical Debt Crew
 Provides specialized tools for assessing legacy technology and modernization needs
 """
 
-import logging
 import json
-from typing import Dict, List, Any, Optional
+import logging
+from typing import Any, Dict, List, Optional
+
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 

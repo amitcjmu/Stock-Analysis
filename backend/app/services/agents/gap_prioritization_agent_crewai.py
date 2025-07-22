@@ -3,13 +3,15 @@ Gap Prioritization Agent - CrewAI Implementation
 Prioritizes missing critical attributes by business impact and migration strategy requirements
 """
 
-from typing import List, Dict, Any, Optional, Tuple
+import logging
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
+
 from crewai import Agent
+
 from app.services.agents.base_agent import BaseCrewAIAgent
 from app.services.agents.metadata import AgentMetadata
 from app.services.llm_config import get_crewai_llm
-import logging
-from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 

@@ -4,12 +4,14 @@ Test script to verify stuck flow fixes
 
 import asyncio
 import logging
+import uuid
 from datetime import datetime, timedelta
-from sqlalchemy import select, and_, update
+
+from sqlalchemy import and_, select, update
+
 from app.core.database import AsyncSessionLocal
 from app.models.discovery_flow import DiscoveryFlow
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-import uuid
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -57,7 +59,7 @@ async def create_test_stuck_flow():
             await db.execute(stmt)
             await db.commit()
             
-            logger.info(f"✅ Backdated flow to appear stuck")
+            logger.info("✅ Backdated flow to appear stuck")
             
             return str(flow_id)
             

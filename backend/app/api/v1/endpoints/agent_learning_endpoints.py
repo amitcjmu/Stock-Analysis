@@ -3,13 +3,14 @@ Agent Learning API Endpoints
 Supports Tasks C.1 and C.2: Agent Memory/Learning System and Cross-Page Communication.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Body, Request
-from typing import Dict, List, Any, Optional
 import logging
+from typing import Any, Dict, List, Optional
 
-from app.services.agent_learning_system import agent_learning_system, LearningContext
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
+
 # from app.services.client_context_manager import client_context_manager
 from app.api.v1.dependencies import get_crewai_flow_service
+from app.services.agent_learning_system import LearningContext, agent_learning_system
 from app.services.crewai_flow_service import CrewAIFlowService
 
 logger = logging.getLogger(__name__)

@@ -5,8 +5,8 @@ Provides consistent pagination patterns and metadata generation.
 
 import logging
 import math
-from typing import Optional, List, Dict, Any, TypeVar, Generic
 from dataclasses import dataclass
+from typing import Any, Dict, Generic, List, Optional, TypeVar
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession

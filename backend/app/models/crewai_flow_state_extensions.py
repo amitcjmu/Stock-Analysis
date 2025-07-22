@@ -4,15 +4,17 @@ Phase 4: Advanced CrewAI Flow analytics and performance tracking
 Extended table for CrewAI-specific flow state data and metrics
 """
 
-from sqlalchemy import Column, String, DateTime, ForeignKey, func, Integer
-from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import text
 import uuid
 from datetime import datetime
-from typing import Optional, Any
+from typing import Any, Optional
+
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import text
 
 from app.core.database import Base
+
 
 class CrewAIFlowStateExtensions(Base):
     """

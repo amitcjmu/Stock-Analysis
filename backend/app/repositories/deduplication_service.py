@@ -3,13 +3,14 @@ Deduplication service for engagement-level views.
 Provides intelligent deduplication logic for multi-session data with CrewAI agent integration.
 """
 
-from typing import Any, Dict, List, Optional, Type, TypeVar, Tuple
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import and_, or_, func, desc, text
-from sqlalchemy.future import select
-from sqlalchemy.sql import Select
 import logging
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
+
+from sqlalchemy import and_, desc, func, or_, text
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy.sql import Select
 
 logger = logging.getLogger(__name__)
 
@@ -347,7 +348,7 @@ class DeduplicationService:
         """
         # For now, fall back to data quality strategy
         # Use MasterFlowOrchestrator for intelligent deduplication
-        logger.info(f"Agent-assisted deduplication not yet implemented, using data quality strategy")
+        logger.info("Agent-assisted deduplication not yet implemented, using data quality strategy")
         return await self._data_quality_strategy(model_class, engagement_id, filters)
     
     async def get_duplicate_groups(

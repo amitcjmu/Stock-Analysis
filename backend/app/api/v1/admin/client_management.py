@@ -5,18 +5,27 @@ Admin endpoints for managing client accounts with business context and migration
 
 import logging
 from datetime import datetime
-from typing import Dict, List, Any, Optional
-from fastapi import APIRouter, HTTPException, Depends, Query, Request
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.admin.client_management_handlers import ClientCRUDHandler
 from app.core.database import get_db
 from app.core.rbac_middleware import require_admin_access
 from app.schemas.admin_schemas import (
-    ClientAccountCreate, ClientAccountUpdate, ClientAccountResponse,
-    ClientSearchFilters, ClientDashboardStats, BulkClientImport, BulkOperationResponse,
-    AdminPaginationParams, PaginatedResponse, AdminSuccessResponse, AdminErrorResponse
+    AdminErrorResponse,
+    AdminPaginationParams,
+    AdminSuccessResponse,
+    BulkClientImport,
+    BulkOperationResponse,
+    ClientAccountCreate,
+    ClientAccountResponse,
+    ClientAccountUpdate,
+    ClientDashboardStats,
+    ClientSearchFilters,
+    PaginatedResponse,
 )
-from app.api.v1.admin.client_management_handlers import ClientCRUDHandler
 
 # Import handlers with fallback
 try:

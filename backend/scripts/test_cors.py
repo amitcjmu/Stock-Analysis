@@ -4,14 +4,16 @@ Test CORS configuration for the backend
 This script verifies that CORS is properly configured for Vercel frontend
 """
 
-import requests
 import sys
+
+import requests
+
 
 def test_cors_preflight(backend_url="https://migrate-ui-orchestrator-production.up.railway.app", 
                         frontend_origin="https://aiforce-assess.vercel.app"):
     """Test CORS preflight request"""
     
-    print(f"🧪 Testing CORS configuration")
+    print("🧪 Testing CORS configuration")
     print(f"   Backend: {backend_url}")
     print(f"   Frontend Origin: {frontend_origin}")
     print("=" * 60)
@@ -53,7 +55,7 @@ def test_cors_preflight(backend_url="https://migrate-ui-orchestrator-production.
         
         # Verify origin is allowed
         if cors_headers["Access-Control-Allow-Origin"] == frontend_origin:
-            print(f"\n   ✅ Frontend origin is allowed!")
+            print("\n   ✅ Frontend origin is allowed!")
         else:
             print(f"\n   ❌ Frontend origin NOT allowed. Got: {cors_headers['Access-Control-Allow-Origin']}")
             return False
@@ -76,10 +78,10 @@ def test_cors_preflight(backend_url="https://migrate-ui-orchestrator-production.
         
         # Check CORS response headers
         if "Access-Control-Allow-Origin" in response.headers:
-            print(f"   ✅ CORS headers present in response")
+            print("   ✅ CORS headers present in response")
             print(f"   Access-Control-Allow-Origin: {response.headers.get('Access-Control-Allow-Origin')}")
         else:
-            print(f"   ⚠️  No CORS headers in response (may be normal for non-CORS requests)")
+            print("   ⚠️  No CORS headers in response (may be normal for non-CORS requests)")
             
     except Exception as e:
         print(f"   ❌ API request failed: {e}")

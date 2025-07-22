@@ -3,8 +3,8 @@ Type inference utilities for field mapping.
 """
 
 import re
-from typing import Any, List, Dict, Optional, Union
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
 
 
 def infer_field_type(values: List[Any]) -> str:

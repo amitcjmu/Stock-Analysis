@@ -8,17 +8,18 @@ Implements performance optimizations for all CrewAI crews:
 - Performance monitoring
 """
 
-import logging
 import asyncio
+import logging
 from datetime import datetime
-from typing import Dict, List, Any, Optional
-from crewai import Agent, Task, Crew, Process
+from typing import Any, Dict, List, Optional
+
+from crewai import Agent, Crew, Process, Task
 from crewai.memory import LongTermMemory, ShortTermMemory
 
-from app.services.enhanced_agent_memory import enhanced_agent_memory, MemoryConfiguration
-from app.services.performance.response_optimizer import response_optimizer
 from app.services.agent_learning_system import LearningContext, agent_learning_system
+from app.services.enhanced_agent_memory import MemoryConfiguration, enhanced_agent_memory
 from app.services.llm_config import get_crewai_llm
+from app.services.performance.response_optimizer import response_optimizer
 
 logger = logging.getLogger(__name__)
 
@@ -262,7 +263,7 @@ class OptimizedCrewBase:
                     cache_key = f"crew_{crew.__class__.__name__}_{str(args)}"
                     cached_result = await response_optimizer.cache.get("crew_execution", {"key": cache_key})
                     if cached_result:
-                        logger.info(f"🎯 Crew execution cache hit")
+                        logger.info("🎯 Crew execution cache hit")
                         return cached_result
                 
                 # Execute crew

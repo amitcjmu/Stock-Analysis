@@ -4,13 +4,14 @@ Handles login, password changes, token validation, and session management.
 """
 
 import logging
-from typing import Dict, Any, Optional
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import Any, Dict, Optional
+
 import bcrypt
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, func
 from fastapi import HTTPException
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.client_account import User
 from app.models.rbac import UserProfile, UserRole

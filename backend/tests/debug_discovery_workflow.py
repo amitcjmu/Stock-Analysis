@@ -7,24 +7,26 @@ of the disconnect between agentic processing and user-visible results.
 """
 
 import asyncio
-import sys
-import os
 import csv
-import tempfile
 import json
-import aiohttp
+import os
+import sys
+import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
+
+import aiohttp
 
 # Add the backend directory to the path
 sys.path.append('/app')
 
+from sqlalchemy import and_, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, text, and_
+
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
-from app.models.data_import import DataImport, RawImportRecord
 from app.models.client_account import ClientAccount, Engagement
+from app.models.data_import import DataImport, RawImportRecord
 
 # Application model is not used - Asset model handles all assets
 APPLICATION_AVAILABLE = False
@@ -156,7 +158,7 @@ class DiscoveryWorkflowDebugger:
                 
                 self.test_results["database_baseline"] = baseline
                 
-                print(f"🗄️ Database Baseline:")
+                print("🗄️ Database Baseline:")
                 print(f"   Client Account: {baseline['client_account_id']}")
                 print(f"   Engagement: {baseline['engagement_id']}")
                 print(f"   Assets: {total_assets}")
@@ -239,7 +241,7 @@ class DiscoveryWorkflowDebugger:
                                 "test_data_count": len(test_data)
                             }
                             
-                            print(f"✅ CSV Upload successful:")
+                            print("✅ CSV Upload successful:")
                             print(f"   Import Session ID: {upload_result.get('import_session_id')}")
                             print(f"   Total Records: {upload_result.get('total_records')}")
                             print(f"   Message: {upload_result.get('message')}")
@@ -311,7 +313,7 @@ class DiscoveryWorkflowDebugger:
                             "message": process_result.get("message")
                         }
                         
-                        print(f"✅ CrewAI Processing successful:")
+                        print("✅ CrewAI Processing successful:")
                         print(f"   Import Session: {import_session_id}")
                         print(f"   Assets Created: {process_result.get('assets_created', 0)}")
                         print(f"   Message: {process_result.get('message')}")
@@ -408,7 +410,7 @@ class DiscoveryWorkflowDebugger:
                 
                 self.test_results["database_final"] = final_analysis
                 
-                print(f"📊 Database Changes:")
+                print("📊 Database Changes:")
                 print(f"   Assets: {baseline['total_assets']} → {total_assets_after} (+{total_assets_after - baseline['total_assets']})")
                 print(f"   Imports: {baseline['total_imports']} → {total_imports_after} (+{total_imports_after - baseline['total_imports']})")
                 print(f"   Raw Records: {baseline['total_raw_records']} → {total_raw_after} (+{total_raw_after - baseline['total_raw_records']})")
@@ -607,7 +609,7 @@ class DiscoveryWorkflowDebugger:
                 json.dump(self.test_results, f, indent=2, default=str)
             
             # Generate executive summary
-            print(f"\n📊 DISCOVERY WORKFLOW DEBUG SUMMARY")
+            print("\n📊 DISCOVERY WORKFLOW DEBUG SUMMARY")
             print("=" * 80)
             
             # Test results overview
@@ -625,14 +627,14 @@ class DiscoveryWorkflowDebugger:
             # Database changes summary
             final_db = self.test_results.get("database_final", {})
             if final_db:
-                print(f"\nDatabase Changes During Test:")
+                print("\nDatabase Changes During Test:")
                 print(f"   Assets Added: {final_db.get('assets_added', 0)}")
                 print(f"   Imports Added: {final_db.get('imports_added', 0)}")
                 print(f"   Raw Records Added: {final_db.get('raw_added', 0)}")
                 print(f"   Debug Test Assets Created: {len(final_db.get('debug_test_assets', []))}")
             
             # Critical findings
-            print(f"\n🚨 CRITICAL FINDINGS:")
+            print("\n🚨 CRITICAL FINDINGS:")
             
             # Check for mock success vs real persistence
             crewai_assets_claimed = self.test_results.get("crewai_processing", {}).get("assets_created", 0)
@@ -640,13 +642,13 @@ class DiscoveryWorkflowDebugger:
             
             if crewai_success and crewai_assets_claimed > 0 and actual_assets_added == 0:
                 print(f"   🚨 MOCK SUCCESS DETECTED: CrewAI claims {crewai_assets_claimed} assets created but 0 actually persisted")
-                print(f"      This confirms the user's suspicion of mock functionality!")
+                print("      This confirms the user's suspicion of mock functionality!")
             
             elif crewai_success and actual_assets_added > 0:
                 print(f"   ✅ REAL PERSISTENCE CONFIRMED: {actual_assets_added} assets actually created")
             
             else:
-                print(f"   ⚠️ PROCESSING FAILURE: CrewAI processing did not complete successfully")
+                print("   ⚠️ PROCESSING FAILURE: CrewAI processing did not complete successfully")
             
             # API availability
             discovery_metrics_working = self.test_results.get("api_tests", {}).get("discovery_metrics", {}).get("success", False)
@@ -658,23 +660,23 @@ class DiscoveryWorkflowDebugger:
                 print(f"   🔌 API RESPONSES: {api_assets} assets, {api_apps} applications via discovery-metrics")
                 
                 if api_assets == 0 and final_db.get("total_assets_after", 0) > 0:
-                    print(f"   🚨 API-DATABASE DISCONNECT: Database has assets but API returns 0")
+                    print("   🚨 API-DATABASE DISCONNECT: Database has assets but API returns 0")
             
             # Workflow gaps summary
             if gap_count > 0:
-                print(f"\n🔧 WORKFLOW GAPS TO FIX:")
+                print("\n🔧 WORKFLOW GAPS TO FIX:")
                 for gap in self.test_results.get("workflow_gaps", []):
                     print(f"   - {gap['type']}: {gap['description']}")
             
             # Next steps
-            print(f"\n🎯 RECOMMENDED NEXT STEPS:")
+            print("\n🎯 RECOMMENDED NEXT STEPS:")
             if gap_count > 0:
                 print(f"   1. Fix the {gap_count} identified workflow gaps")
                 for gap in self.test_results.get("workflow_gaps", [])[:3]:  # Top 3
                     print(f"      - {gap['recommendation']}")
             else:
-                print(f"   1. All major workflow components appear functional")
-                print(f"   2. Check frontend integration and user interface display")
+                print("   1. All major workflow components appear functional")
+                print("   2. Check frontend integration and user interface display")
             
             print(f"\n📁 Detailed report saved to: {report_path}")
             

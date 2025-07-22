@@ -2,8 +2,9 @@
 Tool category definitions and management
 """
 
-from typing import Dict, List, Set
 from dataclasses import dataclass
+from typing import Dict, List, Set
+
 
 @dataclass
 class ToolCategory:

@@ -3,11 +3,12 @@ Base CrewAI Agent implementation
 All discovery agents must inherit from this class
 """
 
+import logging
 from abc import abstractmethod
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
 from app.core.context import get_current_context
 from app.services.agents.metadata import AgentMetadata
-import logging
 
 # Optional CrewAI import
 try:

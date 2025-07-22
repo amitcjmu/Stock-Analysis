@@ -4,20 +4,18 @@ Only accessible by platform administrators with proper role verification.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel
+from typing import Any, Dict, List, Optional
 
-from app.core.database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import get_current_context
+from app.core.database import get_db
 
 # Import enhanced RBAC models and services
 try:
-    from app.models.rbac_enhanced import (
-        EnhancedUserProfile, SoftDeletedItems, RoleLevel, 
-        DataScope, DeletedItemType
-    )
+    from app.models.rbac_enhanced import DataScope, DeletedItemType, EnhancedUserProfile, RoleLevel, SoftDeletedItems
     from app.services.rbac_handlers.enhanced_rbac_service import EnhancedRBACService
     ENHANCED_RBAC_AVAILABLE = True
 except ImportError:

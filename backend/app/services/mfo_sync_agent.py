@@ -6,20 +6,20 @@ Handles terminal state synchronization (completed, failed, deleted) based on
 child flow status and database state validation.
 """
 
-import logging
 import asyncio
-from typing import Dict, Any, Optional, List
+import logging
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 from app.core.exceptions import FlowNotFoundError
+from app.repositories.assessment_flow_repository import AssessmentFlowRepository
 from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-from app.repositories.assessment_flow_repository import AssessmentFlowRepository
 
 logger = logging.getLogger(__name__)
 
@@ -182,9 +182,10 @@ class MFOSyncAgent:
     async def _verify_discovery_db_state(self, flow_id: str) -> bool:
         """Verify discovery flow database state completion"""
         try:
+            from sqlalchemy import func, select
+
             from app.models.asset import Asset
             from app.models.discovery_flow import DiscoveryFlow
-            from sqlalchemy import select, func
             
             # Check if discovery flow exists and has completed phases
             discovery_query = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id)
@@ -221,8 +222,9 @@ class MFOSyncAgent:
     async def _verify_assessment_db_state(self, flow_id: str) -> bool:
         """Verify assessment flow database state completion"""
         try:
-            from app.models.assessment_flow import AssessmentFlow
             from sqlalchemy import select
+
+            from app.models.assessment_flow import AssessmentFlow
             
             # Check if assessment flow exists and has completed phases
             assessment_query = select(AssessmentFlow).where(AssessmentFlow.id == flow_id)
@@ -266,8 +268,9 @@ class MFOSyncAgent:
         
         try:
             # Get all active master flows
-            from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
             from sqlalchemy import select
+
+            from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
             
             master_flows_query = select(CrewAIFlowStateExtensions).where(
                 CrewAIFlowStateExtensions.client_account_id == self.context.client_account_id,

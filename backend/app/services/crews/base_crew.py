@@ -2,12 +2,14 @@
 Base Crew implementation with context awareness and standard patterns
 """
 
+import logging
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional
-from crewai import Crew, Task, Process
+from typing import Any, Dict, List, Optional
+
+from crewai import Crew, Process, Task
+
 from app.core.context import get_current_context
 from app.services.llm_config import get_crewai_llm
-import logging
 
 logger = logging.getLogger(__name__)
 

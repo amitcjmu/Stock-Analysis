@@ -3,19 +3,20 @@
 Specialized tools for CMDB analysis, parameter scoring, question generation, and validation.
 """
 
-import logging
-from typing import Dict, List, Any, Optional
 import json
+import logging
 import re
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 try:
     from crewai.tools import BaseTool
     from pydantic import BaseModel, Field
+
+    from app.schemas.sixr_analysis import SixRParameterBase, SixRStrategy
     from app.services.field_mapper_modular import FieldMapperService
     from app.services.sixr_engine_modular import SixRDecisionEngine
     from app.services.tech_debt_analysis_service import TechDebtAnalysisService as TechDebtService
-    from app.schemas.sixr_analysis import SixRParameterBase, SixRStrategy
     SIXR_AVAILABLE = True
 except ImportError as e:
     logging.warning(f"Tool imports failed: {e}")

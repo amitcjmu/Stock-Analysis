@@ -16,21 +16,23 @@ and cleaner code organization.
 """
 
 import logging
+
 from fastapi import APIRouter
+
+from .discovery_flows.execution_endpoints import execution_router
+from .discovery_flows.lifecycle_endpoints import lifecycle_router
 
 # Import all modular routers
 from .discovery_flows.query_endpoints import query_router
-from .discovery_flows.lifecycle_endpoints import lifecycle_router
-from .discovery_flows.execution_endpoints import execution_router
-from .discovery_flows.validation_endpoints import validation_router
 
 # Import response models for OpenAPI documentation
 from .discovery_flows.response_mappers import (
-    DiscoveryFlowResponse, 
+    DiscoveryFlowResponse,
     DiscoveryFlowStatusResponse,
     FlowInitializeResponse,
-    FlowOperationResponse
+    FlowOperationResponse,
 )
+from .discovery_flows.validation_endpoints import validation_router
 
 logger = logging.getLogger(__name__)
 

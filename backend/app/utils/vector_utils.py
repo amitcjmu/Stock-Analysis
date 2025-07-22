@@ -4,8 +4,8 @@ This is a stub implementation until proper pattern storage is reimplemented
 """
 
 import logging
-from typing import List, Dict, Optional, Any, Tuple
 import uuid
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

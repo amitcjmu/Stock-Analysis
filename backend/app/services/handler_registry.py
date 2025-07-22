@@ -5,11 +5,11 @@ Registry for custom phase handlers and flow lifecycle hooks.
 Provides a centralized system for registering and executing custom business logic.
 """
 
+import inspect
 import logging
-from typing import Dict, Callable, Any, List, Optional, Awaitable
 from dataclasses import dataclass
 from enum import Enum
-import inspect
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 
 from app.core.context import RequestContext
 

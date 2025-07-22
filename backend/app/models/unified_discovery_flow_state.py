@@ -4,11 +4,13 @@ Single source of truth for Discovery Flow state following CrewAI Flow documentat
 Consolidates all competing state model implementations into one unified model.
 """
 
-from pydantic import BaseModel, Field
-from typing import Dict, Any, List, Optional
-from datetime import datetime
-import uuid
 import json
+import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
+
 
 class UUIDEncoder(json.JSONEncoder):
     """Custom JSON encoder that handles UUID objects"""
@@ -572,7 +574,7 @@ class UnifiedDiscoveryFlowState(BaseModel):
             from app.services.llm_config import get_crewai_llm
             llm = get_crewai_llm()
             return llm
-        except ImportError as e:
+        except ImportError:
             # Return a mock LLM for fallback
             class MockLLM:
                 def __init__(self):

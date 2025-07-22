@@ -13,27 +13,28 @@ Usage:
     --table: Check specific table only
 """
 
-import asyncio
-import sys
 import argparse
-from typing import Dict, List, Set, Any, Optional, Tuple
-from datetime import datetime
+import asyncio
 import json
+import sys
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 # Database imports
 import asyncpg
-from sqlalchemy import inspect, MetaData, create_engine, text
+from sqlalchemy import MetaData, create_engine, inspect, text
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.schema import CreateTable
-from sqlalchemy.dialects import postgresql
 
 # App imports
 sys.path.append('/app')
-from app.core.database import get_database_url, AsyncSessionLocal, Base
 from app.core.config import settings
+from app.core.database import AsyncSessionLocal, Base, get_database_url
 
 # Import all models to ensure they're registered
 from app.models import *
+
 
 class DatabaseModelChecker:
     """Compare SQLAlchemy models with actual database schema."""

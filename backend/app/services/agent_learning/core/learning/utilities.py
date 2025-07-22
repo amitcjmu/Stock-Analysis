@@ -3,8 +3,8 @@ Utilities Module - Shared utilities for the learning system
 """
 
 import logging
-from typing import List
 from datetime import datetime, timedelta
+from typing import List
 
 from app.services.agent_learning.models import LearningPattern
 

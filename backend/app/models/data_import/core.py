@@ -2,17 +2,19 @@
 Core Data Import Models
 """
 from __future__ import annotations
+
 from datetime import datetime
+
 from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    DateTime,
-    Text,
     JSON,
     Boolean,
-    ForeignKey,
+    Column,
+    DateTime,
     Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship

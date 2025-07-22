@@ -7,14 +7,16 @@ and plans the data unification strategy for the Data Model Consolidation project
 """
 
 import asyncio
-import sys
 import os
+import sys
 
 # Add the backend directory to Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from sqlalchemy import text, inspect
+from sqlalchemy import inspect, text
+
 from app.core.database import AsyncSessionLocal
+
 
 async def analyze_model_differences():
     """Compare assets vs cmdb_assets table schemas and plan unification."""
@@ -61,7 +63,7 @@ async def analyze_model_differences():
             if 'cmdb_assets' in tables:
                 cmdb_assets_columns[col_name] = col_info
         
-        print(f"\n📊 **SCHEMA COMPARISON**")
+        print("\n📊 **SCHEMA COMPARISON**")
         print(f"Assets table columns: {len(assets_columns)}")
         print(f"CMDB Assets table columns: {len(cmdb_assets_columns)}")
         
@@ -70,7 +72,7 @@ async def analyze_model_differences():
         assets_only = set(assets_columns.keys()) - set(cmdb_assets_columns.keys())
         cmdb_only = set(cmdb_assets_columns.keys()) - set(assets_columns.keys())
         
-        print(f"\n🔗 **COLUMN OVERLAP ANALYSIS**")
+        print("\n🔗 **COLUMN OVERLAP ANALYSIS**")
         print(f"Common columns: {len(common_columns)}")
         print(f"Assets-only columns: {len(assets_only)}")
         print(f"CMDB-only columns: {len(cmdb_only)}")
@@ -109,7 +111,7 @@ async def analyze_model_differences():
             print(f"  - {col}")
         
         # Check data distribution
-        print(f"\n📈 **DATA DISTRIBUTION**")
+        print("\n📈 **DATA DISTRIBUTION**")
         
         assets_count = await session.execute(text("SELECT COUNT(*) FROM migration.assets"))
         cmdb_count = await session.execute(text("SELECT COUNT(*) FROM migration.cmdb_assets"))
@@ -130,16 +132,16 @@ async def analyze_model_differences():
             """
             samples = await session.execute(text(sample_query))
             
-            print(f"\n📋 **SAMPLE CMDB DATA** (First 5 records)")
+            print("\n📋 **SAMPLE CMDB DATA** (First 5 records)")
             for row in samples.fetchall():
                 print(f"  - {row[0]} | {row[1]} | App: {row[2]} | Tech: {row[3]}")
         
         # Plan the migration mapping
-        print(f"\n🗺️  **MIGRATION PLAN**")
+        print("\n🗺️  **MIGRATION PLAN**")
         print(f"1. **Direct Migration**: {len(common_columns)} fields map directly")
         print(f"2. **Enhanced Fields**: {len(assets_only)} new capabilities from Assets model")
         print(f"3. **Data Preservation**: {cmdb_total} records to migrate to unified model")
-        print(f"4. **Table Consolidation**: Drop cmdb_assets after successful migration")
+        print("4. **Table Consolidation**: Drop cmdb_assets after successful migration")
         
         # Critical fields mapping
         critical_fields = ['name', 'asset_type', 'client_account_id', 'engagement_id']
@@ -149,10 +151,10 @@ async def analyze_model_differences():
             print(f"\n❌ **CRITICAL FIELDS MISSING**: {missing_critical}")
             print("   Migration cannot proceed without these fields!")
         else:
-            print(f"\n✅ **CRITICAL FIELDS VERIFIED**: All essential fields present")
+            print("\n✅ **CRITICAL FIELDS VERIFIED**: All essential fields present")
         
         # Heuristic population opportunities
-        print(f"\n🧠 **HEURISTIC POPULATION OPPORTUNITIES**")
+        print("\n🧠 **HEURISTIC POPULATION OPPORTUNITIES**")
         print("During migration, we can intelligently populate enhanced fields:")
         print("  - intelligent_asset_type: Detect applications vs infrastructure")
         print("  - application_type: Parse application patterns from names")
@@ -171,7 +173,7 @@ async def plan_foreign_key_updates():
     """Plan the foreign key constraint updates needed."""
     
     async with AsyncSessionLocal() as session:
-        print(f"\n🔗 **FOREIGN KEY ANALYSIS**")
+        print("\n🔗 **FOREIGN KEY ANALYSIS**")
         print("=" * 50)
         
         # Find all foreign keys pointing to cmdb_assets
@@ -219,7 +221,7 @@ if __name__ == "__main__":
             # Plan foreign key updates
             foreign_keys = await plan_foreign_key_updates()
             
-            print(f"\n📊 **SUMMARY**")
+            print("\n📊 **SUMMARY**")
             print("=" * 50)
             print(f"✅ Common fields: {analysis['common_columns']}")
             print(f"🚀 Enhanced capabilities: {analysis['assets_only']}")
@@ -229,10 +231,10 @@ if __name__ == "__main__":
             print(f"🎯 Migration ready: {'Yes' if analysis['migration_ready'] else 'No'}")
             
             if analysis['migration_ready']:
-                print(f"\n✅ **READY TO PROCEED**")
+                print("\n✅ **READY TO PROCEED**")
                 print("All critical fields verified. Migration can proceed safely.")
             else:
-                print(f"\n❌ **MIGRATION BLOCKED**")
+                print("\n❌ **MIGRATION BLOCKED**")
                 print("Critical fields missing. Review schema before proceeding.")
                 
         except Exception as e:

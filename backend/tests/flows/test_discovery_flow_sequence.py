@@ -6,18 +6,19 @@ data handoff validation between crews, shared memory integration,
 and cross-crew collaboration patterns.
 """
 
-import pytest
 import asyncio
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from typing import Dict, List, Any, Optional
 import json
 import time
+from typing import Any, Dict, List, Optional
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
+import pytest
 
 # Mock imports for testing
 try:
-    from app.services.crewai_flows.discovery_flow_service import DiscoveryFlowService
     from app.models.data_import.import_session import ImportSession
     from app.models.discovery_workflow import DiscoveryWorkflow
+    from app.services.crewai_flows.discovery_flow_service import DiscoveryFlowService
 except ImportError:
     # Fallback for testing environment
     DiscoveryFlowService = Mock

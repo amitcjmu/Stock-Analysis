@@ -5,12 +5,15 @@ Check Database State Script
 
 import asyncio
 import sys
+
 sys.path.append('/app')
 
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
-from sqlalchemy import select, func
+
 
 async def check_database_state():
     """Check the current state of assets and workflow in the database."""

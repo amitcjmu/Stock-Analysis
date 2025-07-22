@@ -5,17 +5,14 @@ Provides security-enforced dependencies that ensure proper multi-tenant isolatio
 All API endpoints should use these dependencies instead of raw context extraction.
 """
 
+import logging
 from typing import Optional
+
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
-import logging
 
+from app.core.context import RequestContext, extract_context_from_request, validate_context
 from app.core.database import get_db
-from app.core.context import (
-    extract_context_from_request,
-    RequestContext,
-    validate_context
-)
 
 logger = logging.getLogger(__name__)
 

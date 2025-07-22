@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """Test dependency analysis API endpoint"""
-import sys
 import os
+import sys
+
 sys.path.append(os.path.join(os.path.dirname(__file__), 'backend'))
 
-from app.api.v1.discovery.persistence import get_processed_assets
-import requests
 import json
+
+import requests
+
+from app.api.v1.discovery.persistence import get_processed_assets
+
 
 def test_dependency_api():
     assets = get_processed_assets()[:5]

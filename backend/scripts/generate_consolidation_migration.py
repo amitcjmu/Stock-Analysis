@@ -4,8 +4,8 @@ Generate the database consolidation migration with proper revision linking
 """
 
 import os
-import sys
 import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -72,7 +72,7 @@ def generate_proper_migration():
     # Update the migration file
     if update_migration_file(latest_revision):
         print("\n✓ Database consolidation migration prepared successfully!")
-        print(f"  Migration file: alembic/versions/20250101_database_consolidation.py")
+        print("  Migration file: alembic/versions/20250101_database_consolidation.py")
         print(f"  Down revision: {latest_revision or 'None (first migration)'}")
         print("\nTo apply the migration:")
         print("  alembic upgrade head")

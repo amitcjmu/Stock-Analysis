@@ -3,12 +3,13 @@ Credential Access Control Middleware
 Enforces role-based and permission-based access control for credentials
 """
 
-from typing import Dict, Any, List, Optional, Callable
-from fastapi import Request, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.ext.asyncio import AsyncSession
-import uuid
 import logging
+import uuid
+from typing import Any, Callable, Dict, List, Optional
+
+from fastapi import HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.platform_credentials import CredentialPermission

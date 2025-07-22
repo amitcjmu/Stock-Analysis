@@ -1,6 +1,8 @@
 import asyncio
+
 from app.core.database import AsyncSessionLocal
 from app.services.rbac_service import create_rbac_service
+
 
 async def test_rbac_modular():
     print('Testing modular RBAC service...')

@@ -4,12 +4,13 @@ Security Audit Service - Comprehensive security event tracking and monitoring
 
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, desc, func
 
 try:
-    from app.models.security_audit import SecurityAuditLog, RoleChangeApproval
+    from app.models.security_audit import RoleChangeApproval, SecurityAuditLog
     AUDIT_AVAILABLE = True
 except ImportError:
     AUDIT_AVAILABLE = False

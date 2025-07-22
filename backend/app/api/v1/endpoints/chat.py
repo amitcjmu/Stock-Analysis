@@ -4,12 +4,13 @@ Provides conversational interface for getting help and information.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from datetime import datetime
 
-from app.services.multi_model_service import multi_model_service, TaskComplexity
+from app.services.multi_model_service import TaskComplexity, multi_model_service
 
 logger = logging.getLogger(__name__)
 

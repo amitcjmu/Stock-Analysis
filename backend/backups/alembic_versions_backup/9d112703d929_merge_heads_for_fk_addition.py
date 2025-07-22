@@ -5,9 +5,9 @@ Revises: 001_consolidated_schema, rls_policies_001, railway_safe_schema_sync
 Create Date: 2025-06-30 23:36:22.241486
 
 """
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = '9d112703d929'

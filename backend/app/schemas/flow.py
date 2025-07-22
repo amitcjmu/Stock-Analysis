@@ -4,11 +4,13 @@ Flow Schemas
 Pydantic models for flow-based architecture replacing session-based patterns.
 """
 
-from typing import Optional, Dict, Any, List
-from uuid import UUID
-from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field
+
 
 class FlowType(str, Enum):
     """Types of flows supported by the platform."""

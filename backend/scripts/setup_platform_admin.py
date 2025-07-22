@@ -17,21 +17,19 @@ Setup platform admin account and clean demo data.
 Creates a single platform admin for initial platform setup.
 """
 import asyncio
+import hashlib
 import os
 import sys
 import uuid
 from datetime import datetime, timezone
-import hashlib
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sqlalchemy import select, delete
+from sqlalchemy import delete, select
+
 from app.core.database import AsyncSessionLocal
-from app.models import (
-    ClientAccount, Engagement, User, UserAccountAssociation,
-    DiscoveryFlow, UserRole
-)
-from app.models.rbac import UserProfile, UserStatus, RoleType
+from app.models import ClientAccount, DiscoveryFlow, Engagement, User, UserAccountAssociation, UserRole
+from app.models.rbac import RoleType, UserProfile, UserStatus
 
 
 def get_password_hash(password: str) -> str:
@@ -195,9 +193,9 @@ async def create_platform_admin():
         # If no client exists, we'll create one when demo data is created
         # For now, just commit what we have
         await session.commit()
-        print(f"✅ Created platform admin: chocka@gmail.com")
+        print("✅ Created platform admin: chocka@gmail.com")
         print(f"   ID: {admin_id}")
-        print(f"   Password: Password123!")
+        print("   Password: Password123!")
         
         return admin_id
 
@@ -327,8 +325,8 @@ async def create_minimal_demo_data():
         await session.commit()
         print("\n✅ Demo data created")
         print(f"   Client: Demo Corporation (ID: {demo_client_id})")
-        print(f"   Engagement: Demo Cloud Migration Project")
-        print(f"   Demo users password: Demo123!")
+        print("   Engagement: Demo Cloud Migration Project")
+        print("   Demo users password: Demo123!")
 
 
 async def ensure_platform_admin_association():

@@ -5,11 +5,7 @@ Enhanced startup module with deployment flexibility support.
 import logging
 from typing import Optional
 
-from app.infrastructure import (
-    get_deployment_config,
-    get_service_factory,
-    ServiceDetector
-)
+from app.infrastructure import ServiceDetector, get_deployment_config, get_service_factory
 from app.infrastructure.deployment.detector import service_detector
 
 logger = logging.getLogger(__name__)

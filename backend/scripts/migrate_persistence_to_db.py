@@ -7,21 +7,22 @@ Migrates assets from file-based storage to the new comprehensive Asset model.
 import asyncio
 import json
 import logging
-import sys
 import os
-from pathlib import Path
-from typing import Dict, List, Any, Optional
+import sys
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 # Add the backend directory to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import AsyncSessionLocal
 
 # Import models directly to avoid relationship issues
 try:
-    from app.models.asset import Asset, AssetType, AssetStatus
+    from app.models.asset import Asset, AssetStatus, AssetType
     MODELS_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"Could not import models: {e}")
@@ -298,7 +299,7 @@ class PersistenceToDbMigrator:
         await self.migrate_assets(assets_data)
         
         # Report results
-        logger.info(f"Migration completed:")
+        logger.info("Migration completed:")
         logger.info(f"  Successfully migrated: {self.migrated_count} assets")
         logger.info(f"  Errors: {self.error_count}")
         

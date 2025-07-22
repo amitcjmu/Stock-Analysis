@@ -4,7 +4,8 @@ External tool interface for dynamic field mapping learning and querying.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
+
 from app.services.field_mapper_modular import field_mapper
 
 logger = logging.getLogger(__name__)
@@ -178,7 +179,7 @@ class FieldMappingTool:
                 "patterns_processed": len(patterns),
                 "context": context,
                 "learning_statistics": stats,
-                "message": f"Processed feedback text for field mapping patterns"
+                "message": "Processed feedback text for field mapping patterns"
             }
             
         except Exception as e:

@@ -3,20 +3,21 @@ RBAC Access Validation Middleware
 Middleware for validating user access to API endpoints based on RBAC system.
 """
 
+import asyncio
 import logging
-from typing import Optional, List, Dict, Any
-from fastapi import Request, HTTPException, status
+import uuid
+from typing import Any, Dict, List, Optional
+
+from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-import asyncio
-import uuid
 
+from app.core.context import RequestContext, get_current_context
 from app.core.database import AsyncSessionLocal
-from app.core.context import get_current_context, RequestContext
 
 # Import RBAC service with fallback
 try:
-    from app.services.rbac_service import create_rbac_service, RBAC_MODELS_AVAILABLE
+    from app.services.rbac_service import RBAC_MODELS_AVAILABLE, create_rbac_service
     RBAC_SERVICE_AVAILABLE = True
 except ImportError:
     RBAC_SERVICE_AVAILABLE = False

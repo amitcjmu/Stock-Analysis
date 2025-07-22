@@ -9,8 +9,8 @@ from fastapi import APIRouter
 router = APIRouter(tags=["agents"])
 
 # Import and include sub-routers and handlers
-from .discovery.router import router as discovery_router
 from .discovery.handlers.status import router as status_router
+from .discovery.router import router as discovery_router
 
 # Include sub-routers with appropriate prefixes
 router.include_router(discovery_router, prefix="/discovery")

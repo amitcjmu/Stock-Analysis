@@ -9,12 +9,14 @@ Tests error handling and recovery mechanisms including:
 - Graceful degradation under various failure conditions
 """
 
-import pytest
 import asyncio
-from typing import Dict, List, Any, Optional
-from unittest.mock import AsyncMock, Mock, patch
-import sqlalchemy.exc
 from contextlib import asynccontextmanager
+from typing import Any, Dict, List, Optional
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
+import sqlalchemy.exc
+
 
 # Error simulation fixtures
 @pytest.fixture

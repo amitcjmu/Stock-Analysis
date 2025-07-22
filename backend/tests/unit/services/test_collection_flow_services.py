@@ -4,28 +4,29 @@ Tests core collection services including initialization, finalization, error han
 and phase-specific operations in the ADCS system.
 """
 
-import pytest
 import uuid
 from datetime import datetime
+from typing import Any, Dict, List
 from unittest.mock import AsyncMock, MagicMock, patch
-from typing import Dict, Any, List
+
+import pytest
 
 from app.services.flow_configs.collection_handlers import (
-    collection_initialization,
-    collection_finalization,
-    collection_error_handler,
-    collection_rollback_handler,
-    collection_checkpoint_handler,
-    platform_inventory_creation,
+    _get_question_template,
+    _normalize_platform_data,
     adapter_preparation,
+    collection_checkpoint_handler,
     collection_data_normalization,
+    collection_error_handler,
+    collection_finalization,
+    collection_initialization,
+    collection_rollback_handler,
     gap_analysis_preparation,
     gap_prioritization,
+    platform_inventory_creation,
     questionnaire_generation,
     response_processing,
     synthesis_preparation,
-    _normalize_platform_data,
-    _get_question_template
 )
 
 

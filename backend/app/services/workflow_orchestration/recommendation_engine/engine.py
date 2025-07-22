@@ -7,24 +7,24 @@ Main orchestration engine that coordinates all recommendation components.
 
 import uuid
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging import get_logger
 from app.core.context import RequestContext
 from app.core.exceptions import FlowError
+from app.core.logging import get_logger
 from app.services.ai_analysis import ConfidenceScorer, LearningOptimizer
 
-from .models import RecommendationPackage, LearningPattern
 from .analyzers import RecommendationAnalyzers
 from .evaluators import RecommendationEvaluator
-from .optimizers import RecommendationOptimizer
-from .generators.tier_recommendations import TierRecommendationGenerator
 from .generators.config_recommendations import ConfigRecommendationGenerator
+from .generators.performance_recommendations import PerformanceRecommendationGenerator
 from .generators.phase_recommendations import PhaseRecommendationGenerator
 from .generators.quality_recommendations import QualityRecommendationGenerator
-from .generators.performance_recommendations import PerformanceRecommendationGenerator
+from .generators.tier_recommendations import TierRecommendationGenerator
+from .models import LearningPattern, RecommendationPackage
+from .optimizers import RecommendationOptimizer
 
 logger = get_logger(__name__)
 

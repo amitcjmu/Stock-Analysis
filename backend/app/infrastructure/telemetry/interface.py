@@ -3,9 +3,9 @@ Telemetry Service interface for abstracting monitoring and metrics collection.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, List
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 
 class MetricType(Enum):

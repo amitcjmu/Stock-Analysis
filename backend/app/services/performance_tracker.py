@@ -5,9 +5,9 @@ Tracks and monitors performance metrics for all flow operations.
 Provides insights into execution times, resource usage, and bottlenecks.
 """
 
+import asyncio
 import logging
 import time
-import asyncio
 
 try:
     import psutil
@@ -15,11 +15,11 @@ try:
 except ImportError:
     PSUTIL_AVAILABLE = False
     psutil = None
-from typing import Dict, Any, Optional, List, Tuple
+import statistics
+from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from collections import defaultdict, deque
-import statistics
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

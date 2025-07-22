@@ -7,7 +7,7 @@ Managers for registering and organizing agents by their execution phase.
 import logging
 from typing import List
 
-from .base import AgentRegistration, AgentPhase, AgentStatus
+from .base import AgentPhase, AgentRegistration, AgentStatus
 from .registry_core import AgentRegistryCore
 
 logger = logging.getLogger(__name__)

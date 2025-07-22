@@ -6,7 +6,6 @@ This module contains constants used for quality scoring and confidence assessmen
 
 from app.services.collection_flow.data_transformation import DataType
 
-
 # Required fields by data type
 REQUIRED_FIELDS = {
     DataType.SERVER: {

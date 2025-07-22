@@ -7,7 +7,7 @@ Built by: Agent Team B2 (AI Analysis & Intelligence)
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 
 from .enums import LearningPattern, OptimizationStrategy
 

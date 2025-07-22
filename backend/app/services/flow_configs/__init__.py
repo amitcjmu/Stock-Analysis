@@ -7,180 +7,164 @@ handles registration of all flow types with the registry.
 """
 
 import logging
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 from app.services.flow_type_registry import FlowTypeRegistry
-from app.services.validator_registry import ValidatorRegistry
 from app.services.handler_registry import HandlerRegistry
+from app.services.validator_registry import ValidatorRegistry
 
-# Import flow configurations
-from .discovery_flow_config import get_discovery_flow_config
-from .assessment_flow_config import get_assessment_flow_config
-from .collection_flow_config import get_collection_flow_config
 from .additional_flow_configs import (
-    get_planning_flow_config,
+    get_decommission_flow_config,
     get_execution_flow_config,
-    get_modernize_flow_config,
     get_finops_flow_config,
+    get_modernize_flow_config,
     get_observability_flow_config,
-    get_decommission_flow_config
+    get_planning_flow_config,
 )
-
-# Import validators
-from .discovery_validators import (
-    field_mapping_validation,
-    asset_validation,
-    inventory_validation,
-    dependency_validation as discovery_dependency_validation,
-    mapping_completeness,
-    cleansing_validation,
-    circular_dependency_check
+from .additional_handlers import (
+    cost_data_collection,
+    decommission_completion,
+    decommission_error_handler,
+    decommission_finalization,
+    # Decommission handlers
+    decommission_initialization,
+    environment_preparation,
+    execution_error_handler,
+    execution_finalization,
+    # Execution handlers
+    execution_initialization,
+    final_backup,
+    finops_completion,
+    finops_error_handler,
+    finops_finalization,
+    # FinOps handlers
+    finops_initialization,
+    impact_analysis,
+    migration_completion,
+    modernization_completion,
+    modernize_error_handler,
+    modernize_finalization,
+    # Modernize handlers
+    modernize_initialization,
+    monitoring_design,
+    observability_completion,
+    observability_error_handler,
+    observability_finalization,
+    # Observability handlers
+    observability_initialization,
+    planning_completion,
+    planning_error_handler,
+    planning_finalization,
+    # Planning handlers
+    planning_initialization,
+    wave_analysis,
+    wave_optimization,
 )
-
+from .additional_validators import (
+    alerting_validation,
+    architecture_validation,
+    budget_validation,
+    capacity_validation,
+    # FinOps validators
+    cost_validation,
+    data_migration_validation,
+    # Decommission validators
+    decommission_validation,
+    # Common validators
+    dependency_validation,
+    execution_validation,
+    logging_validation,
+    # Modernize validators
+    modernization_validation,
+    # Observability validators
+    monitoring_validation,
+    optimization_validation,
+    post_migration_validation,
+    # Execution validators
+    pre_migration_validation,
+    resource_validation,
+    shutdown_validation,
+    timeline_validation,
+    # Planning validators
+    wave_validation,
+)
+from .assessment_flow_config import get_assessment_flow_config
+from .assessment_handlers import (
+    assessment_completion,
+    assessment_error_handler,
+    assessment_finalization,
+    assessment_initialization,
+    complexity_categorization,
+    complexity_preparation,
+    mitigation_planning,
+    readiness_preparation,
+    readiness_scoring,
+    recommendation_analysis,
+    risk_identification,
+    roadmap_generation,
+)
 from .assessment_validators import (
     assessment_validation,
     complexity_validation,
-    risk_validation,
-    recommendation_validation,
     inventory_completeness,
-    score_validation,
     mitigation_validation,
-    roadmap_validation
+    recommendation_validation,
+    risk_validation,
+    roadmap_validation,
+    score_validation,
 )
-
+from .collection_flow_config import get_collection_flow_config
+from .collection_handlers import (
+    adapter_preparation,
+    collection_checkpoint_handler,
+    collection_data_normalization,
+    collection_error_handler,
+    collection_finalization,
+    collection_initialization,
+    collection_rollback_handler,
+    gap_analysis_preparation,
+    gap_prioritization,
+    platform_inventory_creation,
+    questionnaire_generation,
+    response_processing,
+    synthesis_preparation,
+)
 from .collection_validators import (
-    platform_validation,
-    credential_validation,
     collection_validation,
-    data_quality_validation,
-    gap_validation,
-    sixr_impact_validation,
-    response_validation,
     completeness_validation,
+    credential_validation,
+    data_quality_validation,
     final_validation,
-    sixr_readiness_validation
+    gap_validation,
+    platform_validation,
+    response_validation,
+    sixr_impact_validation,
+    sixr_readiness_validation,
 )
 
-from .additional_validators import (
-    # Planning validators
-    wave_validation,
-    resource_validation,
-    
-    # Execution validators
-    pre_migration_validation,
-    execution_validation,
-    post_migration_validation,
-    
-    # Modernize validators
-    modernization_validation,
-    architecture_validation,
-    
-    # FinOps validators
-    cost_validation,
-    optimization_validation,
-    budget_validation,
-    
-    # Observability validators
-    monitoring_validation,
-    logging_validation,
-    alerting_validation,
-    
-    # Decommission validators
-    decommission_validation,
-    data_migration_validation,
-    shutdown_validation,
-    
-    # Common validators
-    dependency_validation,
-    timeline_validation,
-    capacity_validation
-)
+# Import flow configurations
+from .discovery_flow_config import get_discovery_flow_config
 
 # Import handlers
 from .discovery_handlers import (
-    discovery_initialization,
-    discovery_finalization,
-    discovery_error_handler,
     asset_creation_completion,
     data_import_preparation,
-    data_import_validation as data_import_validation_handler
+    discovery_error_handler,
+    discovery_finalization,
+    discovery_initialization,
 )
+from .discovery_handlers import data_import_validation as data_import_validation_handler
 
-from .assessment_handlers import (
-    assessment_initialization,
-    assessment_finalization,
-    assessment_error_handler,
-    assessment_completion,
-    readiness_preparation,
-    readiness_scoring,
-    complexity_preparation,
-    complexity_categorization,
-    risk_identification,
-    mitigation_planning,
-    recommendation_analysis,
-    roadmap_generation
+# Import validators
+from .discovery_validators import (
+    asset_validation,
+    circular_dependency_check,
+    cleansing_validation,
+    field_mapping_validation,
+    inventory_validation,
+    mapping_completeness,
 )
-
-from .collection_handlers import (
-    collection_initialization,
-    collection_finalization,
-    collection_error_handler,
-    collection_rollback_handler,
-    collection_checkpoint_handler,
-    platform_inventory_creation,
-    adapter_preparation,
-    collection_data_normalization,
-    gap_analysis_preparation,
-    gap_prioritization,
-    questionnaire_generation,
-    response_processing,
-    synthesis_preparation
-)
-
-from .additional_handlers import (
-    # Planning handlers
-    planning_initialization,
-    planning_finalization,
-    planning_error_handler,
-    planning_completion,
-    wave_analysis,
-    wave_optimization,
-    
-    # Execution handlers
-    execution_initialization,
-    execution_finalization,
-    execution_error_handler,
-    migration_completion,
-    environment_preparation,
-    
-    # Modernize handlers
-    modernize_initialization,
-    modernize_finalization,
-    modernize_error_handler,
-    modernization_completion,
-    
-    # FinOps handlers
-    finops_initialization,
-    finops_finalization,
-    finops_error_handler,
-    finops_completion,
-    cost_data_collection,
-    
-    # Observability handlers
-    observability_initialization,
-    observability_finalization,
-    observability_error_handler,
-    observability_completion,
-    monitoring_design,
-    
-    # Decommission handlers
-    decommission_initialization,
-    decommission_finalization,
-    decommission_error_handler,
-    decommission_completion,
-    impact_analysis,
-    final_backup
-)
+from .discovery_validators import dependency_validation as discovery_dependency_validation
 
 logger = logging.getLogger(__name__)
 
@@ -193,8 +177,8 @@ class FlowConfigurationManager:
     def __init__(self):
         # [ECHO] Use global singleton instances instead of creating new ones
         from app.services.flow_type_registry import flow_type_registry
-        from app.services.validator_registry import validator_registry  
         from app.services.handler_registry import handler_registry
+        from app.services.validator_registry import validator_registry
         
         self.flow_registry = flow_type_registry  # Use global singleton
         self.validator_registry = validator_registry  # Use global singleton

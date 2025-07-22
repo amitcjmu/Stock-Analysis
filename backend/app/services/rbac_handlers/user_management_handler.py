@@ -4,20 +4,18 @@ Handles user registration, approval, rejection, and basic user operations.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_
 from sqlalchemy.orm import selectinload
 
 from .base_handler import BaseRBACHandler
 
 # Import RBAC models with fallback
 try:
-    from app.models.rbac import (
-        UserProfile, UserRole, ClientAccess, EngagementAccess,
-        UserStatus, AccessLevel, RoleType
-    )
+    from app.models.rbac import AccessLevel, ClientAccess, EngagementAccess, RoleType, UserProfile, UserRole, UserStatus
     RBAC_MODELS_AVAILABLE = True
 except ImportError:
     RBAC_MODELS_AVAILABLE = False
@@ -221,7 +219,7 @@ class UserManagementHandler(BaseRBACHandler):
                 user_id=user_id,
                 role_type=self._determine_role_type(access_level),
                 role_name=approval_data.get("role_name", "Analyst"),
-                description=f"Default role assigned upon approval",
+                description="Default role assigned upon approval",
                 permissions=self._get_default_role_permissions(access_level),
                 assigned_by=approved_by
             )

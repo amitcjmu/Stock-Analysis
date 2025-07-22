@@ -3,32 +3,37 @@ Assessment Flow API endpoints for v1 API.
 Implements core flow management, architecture standards, component analysis, and 6R decisions.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Header, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Dict, Any, Optional
-from datetime import datetime
-import logging
 import asyncio
+import logging
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from app.core.database import get_db
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.v1.auth.auth_utils import get_current_user
-from app.core.context_helpers import verify_client_access, verify_engagement_access, verify_standards_modification_permission
+from app.core.context_helpers import (
+    verify_client_access,
+    verify_engagement_access,
+    verify_standards_modification_permission,
+)
+from app.core.database import get_db
+from app.models.assessment_flow import AssessmentFlowStatus, AssessmentPhase
 from app.repositories.assessment_flow_repository import AssessmentFlowRepository
 from app.schemas.assessment_flow import (
+    AppOnPageResponse,
+    ArchitectureStandardsUpdateRequest,
+    AssessmentFinalization,
     AssessmentFlowCreateRequest,
     AssessmentFlowResponse,
     AssessmentFlowStatusResponse,
-    ResumeFlowRequest,
-    NavigateToPhaseRequest,
-    ArchitectureStandardsUpdateRequest,
+    AssessmentReport,
     ComponentUpdate,
-    TechDebtUpdates,
+    NavigateToPhaseRequest,
+    ResumeFlowRequest,
     SixRDecisionUpdate,
-    AppOnPageResponse,
-    AssessmentFinalization,
-    AssessmentReport
+    TechDebtUpdates,
 )
-from app.models.assessment_flow import AssessmentPhase, AssessmentFlowStatus
 
 # Import integration services
 try:

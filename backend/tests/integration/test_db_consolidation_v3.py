@@ -11,24 +11,25 @@ Some tests may fail if:
 The tests are written to be run after the full consolidation is complete.
 """
 
+import asyncio
+import uuid
+from datetime import datetime
+
 import pytest
 import pytest_asyncio
-import asyncio
-from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
-import uuid
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
-from app.models.discovery_flow import DiscoveryFlow
-from app.models.data_import.core import DataImport
-from app.models.data_import.mapping import ImportFieldMapping
 from app.models.asset import Asset
 from app.models.client_account import ClientAccount, Engagement, User
-from app.services.v3.discovery_flow_service import V3DiscoveryFlowService
-from app.services.v3.data_import_service import V3DataImportService
-from app.services.v3.field_mapping_service import V3FieldMappingService
+from app.models.data_import.core import DataImport
+from app.models.data_import.mapping import ImportFieldMapping
+from app.models.discovery_flow import DiscoveryFlow
 from app.services.v3.asset_service import V3AssetService
+from app.services.v3.data_import_service import V3DataImportService
+from app.services.v3.discovery_flow_service import V3DiscoveryFlowService
+from app.services.v3.field_mapping_service import V3FieldMappingService
 
 # Configure pytest to use asyncio
 pytestmark = pytest.mark.asyncio

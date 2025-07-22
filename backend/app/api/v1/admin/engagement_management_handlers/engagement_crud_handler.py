@@ -3,14 +3,16 @@ Engagement CRUD Handler - Core engagement operations
 """
 
 import logging
-from typing import Dict, Any, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, text, and_
-from app.models.client_account import Engagement
-from app.schemas.admin_schemas import EngagementResponse, AdminSuccessResponse
 from datetime import datetime, timedelta
+from typing import Any, Dict, Optional
+
 from dateutil import parser as date_parser
 from fastapi import HTTPException
+from sqlalchemy import and_, func, select, text
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.client_account import Engagement
+from app.schemas.admin_schemas import AdminSuccessResponse, EngagementResponse
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +125,7 @@ class EngagementCRUDHandler:
             is_platform_admin = False
             if user_id:
                 try:
-                    from app.models.rbac import UserRole, RoleType
+                    from app.models.rbac import RoleType, UserRole
                     admin_check = await db.execute(
                         select(UserRole).where(
                             and_(
@@ -493,7 +495,7 @@ class EngagementCRUDHandler:
                     logger.error(f"Error during soft delete for engagement {engagement_id}: {soft_delete_error}")
                     raise HTTPException(
                         status_code=500, 
-                        detail=f"Failed to delete engagement: Unable to delete due to data dependencies. Please contact administrator."
+                        detail="Failed to delete engagement: Unable to delete due to data dependencies. Please contact administrator."
                     )
             
         except HTTPException:

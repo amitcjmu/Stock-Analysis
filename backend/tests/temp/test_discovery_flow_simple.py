@@ -6,7 +6,7 @@ Simple test to verify Discovery Flow execution after repository fixes
 import asyncio
 import json
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -57,8 +57,8 @@ async def test_discovery_flow():
             
         # Try to create discovery flow
         try:
-            from app.core.database import AsyncSessionLocal
             from app.core.context import RequestContext
+            from app.core.database import AsyncSessionLocal
             
             # Create session and context
             async with AsyncSessionLocal() as db:

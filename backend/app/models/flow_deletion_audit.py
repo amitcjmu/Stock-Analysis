@@ -2,9 +2,10 @@
 
 Comprehensive audit trail for discovery flow deletions.
 """
-from sqlalchemy import Column, String, Text, Integer, Boolean, UUID, TIMESTAMP
+from sqlalchemy import TIMESTAMP, UUID, Boolean, Column, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
+
 from app.core.database import Base
 
 

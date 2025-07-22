@@ -5,6 +5,7 @@ import asyncio
 import uuid
 from datetime import datetime
 
+
 async def test_uuid_serialization():
     print("Testing UUID serialization fix...")
     

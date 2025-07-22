@@ -6,7 +6,7 @@ Quality-based routing optimization and adaptive insights.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from app.core.logging import get_logger
 

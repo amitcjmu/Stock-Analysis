@@ -4,7 +4,7 @@ GCP Adapter Utilities
 Common utility functions used across the GCP adapter.
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
 
 
 def proto_to_dict(proto_message) -> Dict[str, Any]:

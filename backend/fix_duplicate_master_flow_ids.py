@@ -10,10 +10,12 @@ and causes "Multiple rows were found when one or none was required" errors.
 import asyncio
 import logging
 from datetime import datetime
-from sqlalchemy import select, func, update, and_
+
+from sqlalchemy import and_, func, select, update
+
 from app.core.database import AsyncSessionLocal
-from app.models.discovery_flow import DiscoveryFlow
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.models.discovery_flow import DiscoveryFlow
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

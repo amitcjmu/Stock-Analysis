@@ -2,11 +2,13 @@
 Field Mapping Crew - Proper CrewAI implementation
 """
 
-from typing import List, Dict, Any
-from crewai import Task, Process
-from app.services.crews.base_crew import BaseDiscoveryCrew
 import json
 import logging
+from typing import Any, Dict, List
+
+from crewai import Process, Task
+
+from app.services.crews.base_crew import BaseDiscoveryCrew
 
 logger = logging.getLogger(__name__)
 

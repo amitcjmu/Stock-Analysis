@@ -4,28 +4,24 @@ Handles storing imported data in database for cross-page persistence.
 Now uses modular service architecture for better maintainability.
 """
 
-import logging
-from datetime import datetime
-from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import desc, select, and_, func
-import uuid
 import asyncio
+import logging
 import os
+import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy import and_, desc, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext, extract_context_from_request, get_current_context
+from app.core.database import AsyncSessionLocal, get_db
+from app.core.exceptions import DatabaseError, DataImportError, FlowError
+from app.core.exceptions import ValidationError as AppValidationError
 from app.core.logging import get_logger
-from app.core.exceptions import (
-    DataImportError,
-    ValidationError as AppValidationError,
-    DatabaseError,
-    FlowError
-)
 from app.middleware.error_tracking import track_async_errors
-
-from app.core.database import get_db, AsyncSessionLocal
-from app.core.context import get_current_context, RequestContext, extract_context_from_request
-from app.models.data_import import DataImport, RawImportRecord, ImportStatus, ImportFieldMapping
+from app.models.data_import import DataImport, ImportFieldMapping, ImportStatus, RawImportRecord
 from app.schemas.data_import_schemas import StoreImportRequest
 
 # Import the new modular service
@@ -213,8 +209,8 @@ async def get_import_data_by_flow_id(
             
             # Try to find data import directly using master flow ID
             # This handles cases where discovery flow record is missing but data exists
-            from app.models.data_import import DataImport
             from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+            from app.models.data_import import DataImport
             
             # Get the database ID for this flow_id (FK references id, not flow_id)
             db_id_query = select(CrewAIFlowStateExtensions.id).where(
@@ -263,8 +259,8 @@ async def get_import_data_by_flow_id(
             
             # Try to find data import directly using master flow ID
             # This handles cases where discovery flow exists but data_import_id is None
-            from app.models.data_import import DataImport
             from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+            from app.models.data_import import DataImport
             
             # Get the database ID for this flow_id (FK references id, not flow_id)
             db_id_query = select(CrewAIFlowStateExtensions.id).where(

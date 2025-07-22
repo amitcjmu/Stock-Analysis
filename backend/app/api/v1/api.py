@@ -3,22 +3,23 @@ Main API router for the AI Modernize Migration Platform.
 Includes all endpoint routers and API versioning.
 """
 
-from fastapi import APIRouter, Depends
 import logging
 
+from fastapi import APIRouter, Depends
+
 from app.api.v1.endpoints import (
-    sixr_router,
-    discovery_router,
-    asset_inventory_router,
-    monitoring_router,
-    chat_router,
     agent_learning_router,
-    data_import_router,
-    context_router,
-    test_discovery_router,
     agents_router,
-    assessment_flow_router,
     assessment_events_router,
+    assessment_flow_router,
+    asset_inventory_router,
+    chat_router,
+    context_router,
+    data_import_router,
+    discovery_router,
+    monitoring_router,
+    sixr_router,
+    test_discovery_router,
 )
 from app.api.v1.endpoints.flow_sync_debug import router as flow_sync_debug_router
 
@@ -31,8 +32,8 @@ except ImportError:
 
 # Admin endpoints
 try:
-    from app.api.v1.admin.security_monitoring_handlers.security_audit_handler import router as security_audit_router
     from app.api.v1.admin.platform_admin_handlers import router as platform_admin_router
+    from app.api.v1.admin.security_monitoring_handlers.security_audit_handler import router as security_audit_router
     from app.api.v1.admin.user_management_handlers.user_approval_handler import router as user_approval_router
     ADMIN_ENDPOINTS_AVAILABLE = True
 except ImportError as e:
@@ -76,16 +77,16 @@ except ImportError:
     WAVE_PLANNING_AVAILABLE = False
 
 # Import the /me endpoint function for root-level access
+from app.api.v1.auth.auth_utils import get_current_user
 from app.api.v1.endpoints.context import get_user_context
 from app.core.database import get_db
-from app.api.v1.auth.auth_utils import get_current_user
 from app.schemas.context import UserContext
 
 # Collection Flow endpoints
 try:
     from app.api.v1.endpoints.collection import router as collection_router
     COLLECTION_AVAILABLE = True
-except ImportError as e:
+except ImportError:
     COLLECTION_AVAILABLE = False
     # logger not available yet - will log later
 

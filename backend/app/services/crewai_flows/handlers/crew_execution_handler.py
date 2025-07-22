@@ -5,16 +5,16 @@ from the modularized crew_execution modules.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
 
 # Import all modularized components
 from .crew_execution import (
-    FieldMappingExecutor,
     DataCleansingExecutor,
-    InventoryBuildingExecutor,
     DependencyAnalysisExecutor,
+    DiscoveryIntegrationExecutor,
+    FieldMappingExecutor,
+    InventoryBuildingExecutor,
     TechnicalDebtExecutor,
-    DiscoveryIntegrationExecutor
 )
 
 logger = logging.getLogger(__name__)

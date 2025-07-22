@@ -3,10 +3,11 @@ Agent Communication Models
 Data models for agent-UI communication.
 """
 
-from datetime import datetime
-from typing import Dict, List, Any, Optional
-from enum import Enum
 from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
+
 
 class QuestionType(Enum):
     """Types of questions agents can ask users."""

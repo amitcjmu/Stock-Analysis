@@ -6,7 +6,7 @@ Tests flow creation, execution, and event handling
 import asyncio
 import logging
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -15,9 +15,9 @@ logger = logging.getLogger(__name__)
 async def test_flow_creation():
     """Test basic flow creation and initialization"""
     try:
-        from app.services.flows.discovery_flow import UnifiedDiscoveryFlow, DiscoveryFlowState
         from app.core.context import RequestContext
         from app.core.database import AsyncSessionLocal
+        from app.services.flows.discovery_flow import DiscoveryFlowState, UnifiedDiscoveryFlow
         
         logger.info("🧪 Testing Phase 2 Flow Creation")
         
@@ -76,8 +76,9 @@ async def test_flow_creation():
 async def test_event_bus():
     """Test event bus functionality"""
     try:
-        from app.services.flows.events import flow_event_bus, FlowEvent
         from datetime import datetime
+
+        from app.services.flows.events import FlowEvent, flow_event_bus
         
         logger.info("🧪 Testing Event Bus")
         
@@ -135,7 +136,7 @@ async def test_flow_manager():
 async def test_decorators():
     """Test @start and @listen decorators"""
     try:
-        from app.services.flows.discovery_flow import start, listen
+        from app.services.flows.discovery_flow import listen, start
         
         logger.info("🧪 Testing CrewAI Decorators")
         
@@ -164,7 +165,7 @@ async def test_decorators():
 async def test_crew_factory():
     """Test crew factory integration"""
     try:
-        from app.services.flows.discovery_flow import CrewFactory, CREW_FACTORY_AVAILABLE
+        from app.services.flows.discovery_flow import CREW_FACTORY_AVAILABLE, CrewFactory
         
         logger.info("🧪 Testing Crew Factory Integration")
         

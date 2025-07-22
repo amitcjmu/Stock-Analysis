@@ -8,13 +8,13 @@ Provides optimized settings and configurations for CrewAI agents based on:
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Union
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
 
-from app.services.enhanced_agent_memory import enhanced_agent_memory, MemoryConfiguration
+from app.services.agent_learning_system import LearningContext, agent_learning_system
 from app.services.agent_performance_monitor import agent_performance_monitor
-from app.services.agent_learning_system import agent_learning_system, LearningContext
+from app.services.enhanced_agent_memory import MemoryConfiguration, enhanced_agent_memory
 from app.services.llm_config import get_crewai_llm
 
 logger = logging.getLogger(__name__)

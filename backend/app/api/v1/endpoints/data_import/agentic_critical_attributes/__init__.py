@@ -12,11 +12,10 @@ Modularized agentic critical attributes functionality with clear separation:
 from fastapi import APIRouter
 
 from .routes.analysis_routes import router as analysis_router
-from .routes.suggestion_routes import router as suggestion_router
 from .routes.feedback_routes import router as feedback_router
-
-from .services.attribute_analyzer import AttributeAnalyzer
+from .routes.suggestion_routes import router as suggestion_router
 from .services.agent_coordinator import AgentCoordinator
+from .services.attribute_analyzer import AttributeAnalyzer
 from .services.learning_service import LearningService
 
 # Create main router for the package

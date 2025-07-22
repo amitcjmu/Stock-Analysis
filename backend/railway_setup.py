@@ -5,9 +5,9 @@ Handles database initialization and environment setup for Railway deployment
 """
 
 import asyncio
+import logging
 import os
 import sys
-import logging
 from pathlib import Path
 
 # Set up logging
@@ -53,8 +53,9 @@ async def test_database_connection():
     
     try:
         # Simple connection test using psycopg2 (sync) first
-        import psycopg2
         from urllib.parse import urlparse
+
+        import psycopg2
         
         database_url = os.getenv('DATABASE_URL')
         if not database_url:
@@ -81,7 +82,7 @@ async def test_database_connection():
         cursor.close()
         conn.close()
         
-        logger.info(f"✅ Database Connection: SUCCESS")
+        logger.info("✅ Database Connection: SUCCESS")
         logger.info(f"📋 PostgreSQL Version: {version}")
         return True
         
@@ -90,13 +91,14 @@ async def test_database_connection():
         
         try:
             # Fall back to async connection
-            from app.core.database import engine
             from sqlalchemy import text
+
+            from app.core.database import engine
             
             async with engine.begin() as conn:
                 result = await conn.execute(text("SELECT version()"))
                 version = result.fetchone()[0]
-                logger.info(f"✅ Async Database Connection: SUCCESS")
+                logger.info("✅ Async Database Connection: SUCCESS")
                 logger.info(f"📋 PostgreSQL Version: {version}")
                 return True
                 
@@ -113,8 +115,8 @@ async def run_alembic_migrations():
     logger.info("🔄 Running Alembic Migrations...")
     
     try:
-        import subprocess
         import os
+        import subprocess
         import sys
         
         # Get the backend directory
@@ -197,9 +199,10 @@ async def run_migrations_programmatically():
     logger.info("🔧 Running migrations programmatically...")
     
     try:
-        from alembic.config import Config
-        from alembic import command
         import os
+
+        from alembic import command
+        from alembic.config import Config
         
         # Get the backend directory
         backend_dir = Path(__file__).parent
@@ -235,17 +238,17 @@ async def create_database_tables():
     logger.info("🏗️ Creating Database Tables...")
     
     try:
-        from app.core.database import engine, Base
+        from app.core.database import Base, engine
         
         # Import all models to ensure they're registered
         logger.info("📦 Importing database models...")
-        from app.models.feedback import Feedback, FeedbackSummary
         from app.models.client_account import ClientAccount, Engagement, User
+        from app.models.feedback import Feedback, FeedbackSummary
         
         # Additional models
         try:
-            from app.models.migration import Migration
             from app.models.asset import Asset
+            from app.models.migration import Migration
             logger.info("✅ All models imported successfully")
         except ImportError as e:
             logger.warning(f"Some optional models not available: {e}")
@@ -268,8 +271,8 @@ async def initialize_database_data():
     try:
         # Check if database initialization module exists
         try:
-            from app.core.database_initialization import initialize_database
             from app.core.database import AsyncSessionLocal
+            from app.core.database_initialization import initialize_database
             
             async with AsyncSessionLocal() as db:
                 await initialize_database(db)
@@ -290,9 +293,10 @@ async def test_feedback_functionality():
     logger.info("🧪 Testing Feedback System...")
     
     try:
+        from sqlalchemy import select, text
+
         from app.core.database import AsyncSessionLocal
         from app.models.feedback import Feedback
-        from sqlalchemy import select, text
         
         async with AsyncSessionLocal() as session:
             # Test table exists

@@ -110,18 +110,6 @@ class FlowManager:
         # This method is deprecated - MasterFlowOrchestrator handles resume logic
         logger.warning(f"_get_resume_method called but should use MasterFlowOrchestrator.resume_flow")
         return None
-            "field_mapping": flow.cleanse_data,
-            "data_cleansing": flow.build_asset_inventory,
-            "asset_inventory": flow.analyze_dependencies,
-            "dependency_analysis": flow.assess_technical_debt
-        }
-        
-        # Find next phase
-        for phase, method in phase_methods.items():
-            if phase not in phases_completed:
-                return method
-        
-        return None
     
     async def cleanup_completed_flows(self) -> int:
         """Clean up completed flow instances"""

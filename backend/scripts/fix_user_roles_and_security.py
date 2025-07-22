@@ -4,19 +4,21 @@ Fix User Roles and Security Issues
 """
 
 import asyncio
-import sys
 import os
+import sys
 import uuid
 from datetime import datetime
 
 # Add the backend directory to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
+from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, update
+
 from app.core.database import AsyncSessionLocal
 from app.models.client_account import User
-from app.models.rbac import UserProfile, UserRole, RoleType
+from app.models.rbac import RoleType, UserProfile, UserRole
+
 
 async def fix_user_roles_and_security():
     """Fix user roles and remove security vulnerabilities."""

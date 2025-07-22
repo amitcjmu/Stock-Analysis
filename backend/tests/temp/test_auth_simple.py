@@ -3,8 +3,10 @@
 Simple test to check authentication flow
 """
 import asyncio
-from playwright.async_api import async_playwright
 import json
+
+from playwright.async_api import async_playwright
+
 
 async def test_login():
     async with async_playwright() as p:
@@ -24,7 +26,7 @@ async def test_login():
                         "status": response.status,
                         "data": data
                     })
-                    print(f"\n📡 Login API Response:")
+                    print("\n📡 Login API Response:")
                     print(f"   Status: {response.status}")
                     print(f"   Data: {json.dumps(data, indent=2)}")
                 except:

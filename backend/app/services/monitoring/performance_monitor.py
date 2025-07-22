@@ -6,11 +6,11 @@ Provides comprehensive performance monitoring for agents, crews, and user intera
 
 import logging
 import time
-from datetime import datetime
-from typing import Dict, Any, List, Optional
-from dataclasses import dataclass
 from collections import defaultdict, deque
+from dataclasses import dataclass
+from datetime import datetime
 from threading import Lock
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

@@ -3,18 +3,19 @@ Asset Processing Module - Asset creation and processing workflows.
 Handles raw data to asset conversion, CrewAI integration, and agentic processing.
 """
 
+import logging
 import uuid
 from datetime import datetime
-from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import and_, select, or_, func
-import logging
+from typing import Any, Dict, List, Optional
 
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import and_, func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
-from app.core.context import get_current_context, RequestContext
-from app.models.data_import import RawImportRecord
 from app.models.asset import Asset
+from app.models.data_import import RawImportRecord
 from app.models.data_import.mapping import ImportFieldMapping
 
 router = APIRouter()
@@ -123,7 +124,7 @@ async def process_raw_to_assets(
                 
                 # Enhanced response with detailed classification results
                 if result.get("status") == "success":
-                    logger.info(f"✅ Unified CrewAI Flow completed successfully!")
+                    logger.info("✅ Unified CrewAI Flow completed successfully!")
                     logger.info(f"   📊 Processing Status: {result.get('processing_status', 'completed')}")
                     logger.info(f"   📱 Applications: {result.get('classification_results', {}).get('applications', 0)}")
                     logger.info(f"   🖥️  Servers: {result.get('classification_results', {}).get('servers', 0)}")
@@ -132,7 +133,7 @@ async def process_raw_to_assets(
                     # Generate detailed user message
                     total_processed = result.get("total_processed", 0)
                     
-                    user_message = f"✨ Unified CrewAI intelligent processing completed successfully! "
+                    user_message = "✨ Unified CrewAI intelligent processing completed successfully! "
                     if total_processed > 0:
                         user_message += f"Processed {total_processed} assets with AI classification, workflow progression, and database integration using the unified modular service architecture. "
                         user_message += "All assets have been enriched with AI insights and properly classified using agentic intelligence."

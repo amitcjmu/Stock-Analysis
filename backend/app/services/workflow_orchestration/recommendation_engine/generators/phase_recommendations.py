@@ -6,11 +6,12 @@ Generates phase-specific optimization recommendations for workflow execution.
 """
 
 import uuid
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from app.core.logging import get_logger
-from ..models import WorkflowRecommendation, RecommendationInsight, LearningPattern
-from ..enums import RecommendationType, RecommendationConfidence, RecommendationSource
+
+from ..enums import RecommendationConfidence, RecommendationSource, RecommendationType
+from ..models import LearningPattern, RecommendationInsight, WorkflowRecommendation
 
 logger = get_logger(__name__)
 

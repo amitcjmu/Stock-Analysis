@@ -2,11 +2,11 @@
 Service availability detection for automatic fallbacks.
 """
 
-import os
 import asyncio
 import logging
-from typing import Dict, Any, Optional, List, Callable
+import os
 from datetime import datetime, timedelta
+from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

@@ -5,9 +5,10 @@ Revises: 078ab506c9da
 Create Date: 2025-06-27 17:30:00.000000
 
 """
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = 'enhanced_client_accounts'

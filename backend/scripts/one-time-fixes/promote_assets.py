@@ -5,12 +5,14 @@ Promotes discovery assets to main assets table for completed discovery flows
 """
 
 import asyncio
-import uuid
 import logging
+import uuid
+
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext
 from app.core.database import AsyncSessionLocal
 from app.services.asset_creation_bridge_service import AssetCreationBridgeService
-from app.core.context import RequestContext
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -35,7 +37,7 @@ async def promote_discovery_assets(flow_id: str):
                 discovery_flow_id=uuid.UUID(flow_id)
             )
             
-            logger.info(f"✅ Asset promotion completed!")
+            logger.info("✅ Asset promotion completed!")
             logger.info(f"📊 Results: {result}")
             
             return result

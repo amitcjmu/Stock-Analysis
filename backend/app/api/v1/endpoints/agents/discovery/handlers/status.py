@@ -3,22 +3,21 @@ Status handler for discovery agent.
 
 This module contains the status-related endpoints for the discovery agent.
 """
-import logging
-from typing import Optional, Dict, Any
-from datetime import datetime
 import asyncio
+import logging
+from datetime import datetime
 from functools import lru_cache
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
 
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
-from app.models.client_account import User
 from app.models.client_account import ClientAccount, Engagement, User
-from app.services.discovery_flow_service import DiscoveryFlowService
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+from app.services.discovery_flow_service import DiscoveryFlowService
 
 logger = logging.getLogger(__name__)
 
@@ -57,8 +56,9 @@ async def _get_dynamic_agent_insights(db: AsyncSession, context: RequestContext)
             return _get_fallback_agent_insights()
         
         # Get latest import for this context
-        from app.models.data_import import DataImport
         import uuid
+
+        from app.models.data_import import DataImport
         
         latest_import_query = select(DataImport).where(
             and_(
@@ -409,8 +409,9 @@ async def _get_data_classifications(db: AsyncSession, context: RequestContext):
             return []
         
         # Get the latest data import for analysis
-        from app.models.data_import.core import DataImport
         import uuid
+
+        from app.models.data_import.core import DataImport
         
         query = select(DataImport).where(
             DataImport.client_account_id == uuid.UUID(context.client_account_id),

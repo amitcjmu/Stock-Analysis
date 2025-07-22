@@ -6,7 +6,7 @@ Data models for tier analysis and routing decisions.
 """
 
 from dataclasses import dataclass
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from .enums import AutomationTier, EnvironmentComplexity
 

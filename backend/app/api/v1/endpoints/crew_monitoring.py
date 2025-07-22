@@ -2,10 +2,11 @@
 Crew Monitoring API endpoints for the Agent Monitoring dashboard
 """
 
-from fastapi import APIRouter, HTTPException, Depends
-from typing import Dict, Any, List
-from datetime import datetime
 import logging
+from datetime import datetime
+from typing import Any, Dict, List
+
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.context import get_current_context_dependency
 from app.services.crews.factory import CrewFactory

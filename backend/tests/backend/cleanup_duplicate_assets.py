@@ -6,14 +6,15 @@ while keeping the most recently created asset for each unique identifier.
 
 import asyncio
 import logging
-from typing import Dict, List, Set
 from datetime import datetime
-from sqlalchemy import select, and_, delete
+from typing import Dict, List, Set
+
+from sqlalchemy import and_, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.context import RequestContext
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
-from app.core.context import RequestContext
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

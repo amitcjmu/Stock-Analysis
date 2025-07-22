@@ -6,8 +6,8 @@ for representing flow analysis results, routing decisions, and continuation resu
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 
 @dataclass

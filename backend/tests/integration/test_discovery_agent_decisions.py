@@ -5,20 +5,21 @@ This module tests the agent decision-making process during Discovery flow execut
 including data validation, field mapping, and asset classification decisions.
 """
 
-import pytest
 import asyncio
 import json
 from datetime import datetime
-from typing import Dict, List, Any
-from unittest.mock import Mock, patch, AsyncMock
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock, Mock, patch
 
-from tests.test_discovery_flow_base import BaseDiscoveryFlowTest, integration_test, requires_llm
+import pytest
+
 from tests.fixtures.discovery_flow_fixtures import (
-    MOCK_CMDB_DATA,
     AGENT_DECISIONS,
+    MOCK_CMDB_DATA,
     SSE_EVENT_SEQUENCE,
-    get_mock_file_content
+    get_mock_file_content,
 )
+from tests.test_discovery_flow_base import BaseDiscoveryFlowTest, integration_test, requires_llm
 
 
 @pytest.mark.asyncio

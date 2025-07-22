@@ -3,14 +3,14 @@ Adaptive Rate Limiter using Token Bucket Algorithm
 Implements intelligent rate limiting that adapts to user behavior and testing patterns.
 """
 
-import time
+import hashlib
+import json
 import logging
-from typing import Dict, Optional, Any
+import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-import hashlib
-import json
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 

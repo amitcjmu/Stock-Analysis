@@ -3,14 +3,8 @@ Test model consolidation changes
 """
 import pytest
 from sqlalchemy import inspect
-from app.models import (
-    DataImport, 
-    RawImportRecord,
-    ImportFieldMapping,
-    DiscoveryFlow,
-    Asset,
-    AssetDependency
-)
+
+from app.models import Asset, AssetDependency, DataImport, DiscoveryFlow, ImportFieldMapping, RawImportRecord
 
 
 def test_data_import_model_fields():

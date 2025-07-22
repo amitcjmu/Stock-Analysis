@@ -2,8 +2,9 @@
 Protocol-specific collectors for On-Premises Platform Adapter
 """
 
-from typing import Optional, Dict, Any, List
-from .models import OnPremisesCredentials, DiscoveredHost
+from typing import Any, Dict, List, Optional
+
+from .models import DiscoveredHost, OnPremisesCredentials
 
 
 class ProtocolCollectors:

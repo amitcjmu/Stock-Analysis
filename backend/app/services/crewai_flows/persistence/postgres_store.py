@@ -3,19 +3,20 @@ PostgreSQL-based state persistence for CrewAI flows.
 Replaces the dual SQLite/PostgreSQL system with a single source of truth.
 """
 
-from typing import Dict, Any, Optional, List
-from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, insert, and_, func
-from sqlalchemy.exc import SQLAlchemyError
 import json
-import uuid
 import logging
+import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
+from sqlalchemy import and_, func, insert, select, update
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext
 from app.core.database import AsyncSessionLocal
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 
 logger = logging.getLogger(__name__)
 

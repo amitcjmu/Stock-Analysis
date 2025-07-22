@@ -4,10 +4,11 @@ Provides context-aware data access patterns for multi-tenant applications.
 """
 
 import logging
-from typing import Optional, Any
-from sqlalchemy.orm import Session, Query
+from typing import Any, Optional
+
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Query, Session
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ class ContextAwareRepository:
             
         try:
             # Import models here to avoid circular imports
-            from app.models.rbac import UserRole, RoleType
+            from app.models.rbac import RoleType, UserRole
             
             # Check if this is an async session
             if isinstance(self.db, AsyncSession):
@@ -76,7 +77,7 @@ class ContextAwareRepository:
         try:
             # Run sync check for platform admin (repositories typically use sync sessions)
             if self.user_id and not isinstance(self.db, AsyncSession):
-                from app.models.rbac import UserRole, RoleType
+                from app.models.rbac import RoleType, UserRole
                 admin_role = self.db.query(UserRole).filter(
                     and_(
                         UserRole.user_id == self.user_id,

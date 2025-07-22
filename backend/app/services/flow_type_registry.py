@@ -6,9 +6,9 @@ Manages registration, validation, and retrieval of flow types.
 """
 
 import logging
-from typing import Dict, List, Optional, Type, Any
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any, Dict, List, Optional, Type
 
 from pydantic import BaseModel
 
@@ -156,7 +156,7 @@ class FlowTypeConfig:
         # Validate each phase
         for phase in self.phases:
             if not phase.name:
-                errors.append(f"Phase name is required")
+                errors.append("Phase name is required")
             if not phase.display_name:
                 errors.append(f"Phase {phase.name} display name is required")
         

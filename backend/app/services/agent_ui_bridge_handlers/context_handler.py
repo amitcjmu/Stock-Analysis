@@ -5,7 +5,7 @@ Manages cross-page context and agent coordination.
 
 import logging
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

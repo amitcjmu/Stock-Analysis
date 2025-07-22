@@ -4,14 +4,15 @@ Implements Task 4.3 of the Discovery Flow Redesign.
 Provides API endpoints for performance monitoring and optimization metrics.
 """
 
-from fastapi import APIRouter, HTTPException, Query
-from typing import Dict, Any, Optional
 import logging
 from datetime import datetime
+from typing import Any, Dict, Optional
+
+from fastapi import APIRouter, HTTPException, Query
 
 try:
-    from app.services.performance.response_optimizer import get_performance_metrics, clear_response_cache
     from app.services.monitoring.performance_monitor import get_performance_dashboard
+    from app.services.performance.response_optimizer import clear_response_cache, get_performance_metrics
     PERFORMANCE_SERVICES_AVAILABLE = True
 except ImportError as e:
     PERFORMANCE_SERVICES_AVAILABLE = False

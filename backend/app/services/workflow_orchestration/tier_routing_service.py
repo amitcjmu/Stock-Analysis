@@ -15,13 +15,13 @@ For new imports, consider importing directly from the submodules:
 from .tier_routing_service import (
     # Enums
     AutomationTier,
-    RoutingStrategy,
     EnvironmentComplexity,
+    RoutingDecision,
+    RoutingStrategy,
     # Models
     TierAnalysis,
-    RoutingDecision,
     # Main Service
-    TierRoutingService
+    TierRoutingService,
 )
 
 __all__ = [

@@ -4,14 +4,15 @@ Data Import API Examples - Python Client Implementation.
 This file provides complete working examples for all data import API endpoints.
 """
 
-import requests
-import json
 import base64
 import csv
 import io
-from typing import List, Dict, Any, Optional
-from datetime import datetime
+import json
 import time
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+import requests
 
 
 class DataImportClient:
@@ -232,7 +233,7 @@ def main():
             filename="servers_inventory.csv",
             import_type="servers"
         )
-        print(f"Import successful!")
+        print("Import successful!")
         print(f"Import ID: {result['data_import_id']}")
         print(f"Flow ID: {result['flow_id']}")
         print(f"Total Records: {result['total_records']}")
@@ -276,7 +277,7 @@ PaymentGateway,2.1.0,prod-payment-01,Java Spring,Critical"""
             file_path="applications.csv",
             import_type="applications"
         )
-        print(f"Applications import successful!")
+        print("Applications import successful!")
         print(f"Import ID: {result['data_import_id']}")
         
     except Exception as e:

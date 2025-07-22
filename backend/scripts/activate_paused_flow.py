@@ -2,11 +2,14 @@
 Activate a paused flow so it can be properly resumed
 """
 import asyncio
-from sqlalchemy import select, update
-from app.core.database import AsyncSessionLocal
-from app.models.discovery_flow import DiscoveryFlow
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 import json
+
+from sqlalchemy import select, update
+
+from app.core.database import AsyncSessionLocal
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.models.discovery_flow import DiscoveryFlow
+
 
 async def activate_paused_flow():
     flow_id = '77e32363-c719-4c7d-89a6-81a104f8b8ac'

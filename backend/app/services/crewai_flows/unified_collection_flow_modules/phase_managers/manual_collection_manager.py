@@ -6,23 +6,21 @@ This manager coordinates questionnaire generation and response collection.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from app.models.collection_flow import (
-    CollectionPhase, CollectionStatus, AutomationTier
-)
+from app.models.collection_flow import AutomationTier, CollectionPhase, CollectionStatus
 from app.services.ai_analysis import AdaptiveQuestionnaireGenerator
-from app.services.manual_collection import (
-    AdaptiveFormService,
-    QuestionnaireValidationService,
-    ProgressTrackingService,
-    DataIntegrationService
-)
 from app.services.collection_flow import QualityAssessmentService
-from app.services.crewai_flows.utils.retry_utils import retry_with_backoff
 from app.services.crewai_flows.handlers.enhanced_error_handler import enhanced_error_handler
 from app.services.crewai_flows.handlers.unified_flow_management import UnifiedFlowManagement
+from app.services.crewai_flows.utils.retry_utils import retry_with_backoff
+from app.services.manual_collection import (
+    AdaptiveFormService,
+    DataIntegrationService,
+    ProgressTrackingService,
+    QuestionnaireValidationService,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -272,9 +270,7 @@ class ManualCollectionManager:
         logger.info("🤖 Creating manual collection crew")
         
         # Import crew creation function
-        from app.services.crewai_flows.crews.collection.manual_collection_crew import (
-            create_manual_collection_crew
-        )
+        from app.services.crewai_flows.crews.collection.manual_collection_crew import create_manual_collection_crew
         
         # Create crew with context
         crew = create_manual_collection_crew(

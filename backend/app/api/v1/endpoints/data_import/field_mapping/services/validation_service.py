@@ -3,10 +3,12 @@ Field mapping validation service.
 """
 
 import logging
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
+
 from ..models.mapping_schemas import FieldMappingCreate, MappingValidationResponse
 from ..validators.mapping_validators import MappingValidator
 

@@ -3,8 +3,9 @@ Flow Specifications - Query specifications and filters
 """
 import logging
 from datetime import datetime
-from typing import Optional, Dict, Any, List
-from sqlalchemy import select, update, and_
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
@@ -25,8 +26,8 @@ class FlowSpecifications:
         phase_data: Optional[Dict[str, Any]] = None
     ):
         """Update master flow status and phase data"""
-        from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
         from app.models.assessment_flow import AssessmentFlow
+        from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
         
         try:
             # Get engagement_id for this flow
@@ -71,8 +72,8 @@ class FlowSpecifications:
         insights: List[Dict[str, Any]]
     ):
         """Log agent collaboration to master flow"""
-        from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
         from app.models.assessment_flow import AssessmentFlow
+        from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
         
         try:
             # Get engagement_id for this flow

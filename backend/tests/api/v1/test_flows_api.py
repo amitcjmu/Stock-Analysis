@@ -9,21 +9,22 @@ Comprehensive tests covering all flow API endpoints:
 - Backward compatibility support
 """
 
-import pytest
 import asyncio
 import json
-from typing import Dict, List, Any
-from unittest.mock import AsyncMock, Mock, patch, MagicMock
 from datetime import datetime, timedelta
-from fastapi.testclient import TestClient
-from sqlalchemy.ext.asyncio import AsyncSession
-from httpx import AsyncClient
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
+import pytest
+from fastapi.testclient import TestClient
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.v1.endpoints.context.services.user_service import UserService
 from app.core.database import get_db
 from app.core.schemas import RequestContext
-from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 from app.models import User
-from app.api.v1.endpoints.context.services.user_service import UserService
+from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
 
 # Test fixtures

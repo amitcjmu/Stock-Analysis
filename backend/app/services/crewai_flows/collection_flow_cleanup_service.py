@@ -5,22 +5,23 @@ Smart cleanup implementation for Collection flows with enhanced persistence mana
 Handles expired flows, orphaned state, and flow lifecycle management.
 """
 
-import uuid
 import logging
+import uuid
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_
 from sqlalchemy.orm import selectinload
 
+from app.core.context import RequestContext
 from app.models.collection_flow import (
-    CollectionFlow, 
+    AdaptiveQuestionnaire,
+    CollectionFlow,
     CollectionFlowStatus,
     CollectionGapAnalysis,
-    AdaptiveQuestionnaire
 )
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from app.core.context import RequestContext
 
 logger = logging.getLogger(__name__)
 

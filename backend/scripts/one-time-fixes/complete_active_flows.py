@@ -6,17 +6,18 @@ Completes any active discovery flows in the database to stop frontend polling.
 
 import asyncio
 import logging
-import sys
 import os
+import sys
 
 # Add the backend directory to the Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import AsyncSessionLocal
-from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.models.discovery_flow import DiscoveryFlow
-from sqlalchemy import select, and_
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

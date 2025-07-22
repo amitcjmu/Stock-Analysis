@@ -4,7 +4,7 @@ Defines database schema for migration projects and related entities.
 """
 
 try:
-    from sqlalchemy import Column, Integer, String, DateTime, Text, JSON, Enum, Boolean, ForeignKey, UUID
+    from sqlalchemy import JSON, UUID, Boolean, Column, DateTime, Enum, ForeignKey, Integer, String, Text
     from sqlalchemy.orm import relationship
     from sqlalchemy.sql import func
     SQLALCHEMY_AVAILABLE = True
@@ -19,9 +19,9 @@ except ImportError:
         def now():
             return None
 
-from datetime import datetime
 import enum
 import uuid
+from datetime import datetime
 
 try:
     from app.core.database import Base

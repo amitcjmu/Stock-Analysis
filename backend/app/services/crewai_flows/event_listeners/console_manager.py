@@ -3,10 +3,10 @@ Console Manager for CrewAI Event Listeners
 Ensures only one Rich console/live display is active at a time to prevent conflicts.
 """
 
+import logging
 import threading
 from contextlib import contextmanager
 from typing import Optional
-import logging
 
 logger = logging.getLogger(__name__)
 

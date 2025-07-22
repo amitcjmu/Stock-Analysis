@@ -7,25 +7,25 @@ Main service class that orchestrates tier routing operations.
 
 import asyncio
 import logging
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging import get_logger
 from app.core.context import RequestContext
 from app.core.exceptions import FlowError, InvalidFlowStateError
+from app.core.logging import get_logger
+from app.services.ai_analysis import BusinessContextAnalyzer, ConfidenceScorer
 
 # Import Phase 1 & 2 components
 from app.services.collection_flow import TierDetectionService, adapter_registry
-from app.services.ai_analysis import BusinessContextAnalyzer, ConfidenceScorer
 
 # Import modular components
-from .enums import AutomationTier, RoutingStrategy, EnvironmentComplexity
-from .models import TierAnalysis, RoutingDecision
-from .tier_analyzer import TierAnalyzer
+from .enums import AutomationTier, EnvironmentComplexity, RoutingStrategy
 from .environment_analyzer import EnvironmentAnalyzer
-from .routing_engine import RoutingEngine
+from .models import RoutingDecision, TierAnalysis
 from .quality_optimizer import QualityOptimizer
+from .routing_engine import RoutingEngine
+from .tier_analyzer import TierAnalyzer
 
 logger = get_logger(__name__)
 
@@ -183,7 +183,7 @@ class TierRoutingService:
                 recommendations.append(f"Consider using recommended tier: {tier_analysis.recommended_tier.value}")
             
             if not tier_match and tier_analysis.confidence_score > 0.8:
-                warnings.append(f"Selected tier differs from high-confidence recommendation")
+                warnings.append("Selected tier differs from high-confidence recommendation")
                 recommendations.append(f"Recommended tier {tier_analysis.recommended_tier.value} has {tier_analysis.confidence_score:.2f} confidence")
             
             # Risk assessment for selected tier

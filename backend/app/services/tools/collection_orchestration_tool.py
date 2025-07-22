@@ -15,17 +15,17 @@ Generated with CC for modular backend architecture.
 import logging
 from datetime import timedelta
 
+# For backward compatibility - re-export all classes
+from typing import Any, Dict, List, Optional
+
 # Import modular components
 from .collection_orchestration import (
-    PlatformAdapterManager,
     CollectionStrategyPlanner,
+    ErrorRecoveryManager,
+    PlatformAdapterManager,
     ProgressMonitor,
     QualityValidator,
-    ErrorRecoveryManager
 )
-
-# For backward compatibility - re-export all classes
-from typing import Dict, Any, List, Optional
 
 logger = logging.getLogger(__name__)
 

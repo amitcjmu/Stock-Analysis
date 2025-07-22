@@ -5,9 +5,10 @@ Revises: enhanced_client_accounts
 Create Date: 2025-06-27 17:55:02.257647
 
 """
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # Import pgvector for vector columns
 try:

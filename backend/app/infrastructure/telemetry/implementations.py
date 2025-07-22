@@ -2,16 +2,16 @@
 Concrete implementations of the TelemetryService interface.
 """
 
-import os
+import asyncio
 import json
 import logging
-import asyncio
-from typing import Dict, Any, Optional, List, Deque
-from datetime import datetime, timedelta
+import os
 from collections import defaultdict, deque
+from datetime import datetime, timedelta
+from typing import Any, Deque, Dict, List, Optional
 from uuid import uuid4
 
-from .interface import TelemetryService, MetricType, LogLevel
+from .interface import LogLevel, MetricType, TelemetryService
 
 logger = logging.getLogger(__name__)
 

@@ -2,11 +2,13 @@
 Completeness Analyzer Tool - Analyzes completeness of critical attributes in collected data
 """
 
-from typing import Dict, Any, List
+import logging
+from typing import Any, Dict, List
+
 from app.services.tools.base_tool import AsyncBaseDiscoveryTool
 from app.services.tools.registry import ToolMetadata
+
 from .constants import ATTRIBUTE_CATEGORIES
-import logging
 
 logger = logging.getLogger(__name__)
 

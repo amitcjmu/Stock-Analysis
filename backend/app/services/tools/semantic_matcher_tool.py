@@ -2,12 +2,14 @@
 Semantic Matcher Tool for intelligent field matching using ML embeddings
 """
 
-from typing import Dict, Any, List, Tuple
+import json
+import logging
+from typing import Any, Dict, List, Tuple
+
+import numpy as np
+
 from app.services.tools.base_tool import AsyncBaseDiscoveryTool
 from app.services.tools.registry import ToolMetadata
-import json
-import numpy as np
-import logging
 
 logger = logging.getLogger(__name__)
 

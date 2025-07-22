@@ -15,20 +15,20 @@ Key Features:
 
 import logging
 import uuid
-from typing import Dict, List, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 try:
-    from crewai import Agent, Task, Crew, Process
+    from crewai import Agent, Crew, Process, Task
     from crewai.memory import LongTermMemory
     CREWAI_AVAILABLE = True
 except ImportError:
     CREWAI_AVAILABLE = False
 
 try:
+    from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
     from app.services.agentic_memory import ThreeTierMemoryManager
     from app.services.agentic_memory.agent_tools import create_agent_tools
-    from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
     AGENTIC_MEMORY_AVAILABLE = True
 except ImportError:
     AGENTIC_MEMORY_AVAILABLE = False
@@ -176,7 +176,7 @@ class AgenticAssetEnrichmentCrew:
         
         # Task 2: Pattern Discovery and Learning
         pattern_discovery_task = Task(
-            description=f"""
+            description="""
             Analyze the enrichment results to discover and record new patterns for future learning.
             
             Your Process:

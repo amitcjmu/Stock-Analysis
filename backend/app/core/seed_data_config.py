@@ -6,11 +6,11 @@ This configuration ensures consistent demo data creation across the platform.
 All demo data uses recognizable UUID patterns for easy identification.
 """
 
-from enum import Enum
-from typing import List, Dict, Any
-from datetime import datetime, timezone
-import uuid
 import random
+import uuid
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Dict, List
 
 
 class DemoDataConfig:

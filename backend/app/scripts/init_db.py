@@ -3,31 +3,33 @@ Database initialization script for AI Modernize Migration Platform.
 Populates the database with mock data for demo purposes.
 """
 
+import argparse
 import asyncio
+import json
 import logging
 import os
 import sys
-from datetime import datetime, timedelta
-from typing import List, Dict, Any
-import json
 import uuid
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text, select
-import argparse
+from datetime import datetime, timedelta
 from enum import Enum
+from typing import Any, Dict, List
+
+from sqlalchemy import select, text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Add the parent directory to the path so we can import our app modules
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 try:
-    from app.core.database import engine, AsyncSessionLocal, init_db
-    from app.models.client_account import ClientAccount, Engagement, User, UserAccountAssociation
-    from app.models.asset import Asset, AssetType, AssetStatus, SixRStrategy, MigrationWave
-    from app.models.sixr_analysis import SixRAnalysis, AnalysisStatus
-    from app.models.tags import Tag, AssetEmbedding, AssetTag
-    from app.models.rbac import UserProfile, UserRole, RoleType, AccessLevel, UserStatus, ClientAccess, EngagementAccess
     import bcrypt
     import numpy as np
+
+    from app.core.database import AsyncSessionLocal, engine, init_db
+    from app.models.asset import Asset, AssetStatus, AssetType, MigrationWave, SixRStrategy
+    from app.models.client_account import ClientAccount, Engagement, User, UserAccountAssociation
+    from app.models.rbac import AccessLevel, ClientAccess, EngagementAccess, RoleType, UserProfile, UserRole, UserStatus
+    from app.models.sixr_analysis import AnalysisStatus, SixRAnalysis
+    from app.models.tags import AssetEmbedding, AssetTag, Tag
     DEPENDENCIES_AVAILABLE = True
 except ImportError as e:
     print(f"Missing dependencies: {e}")

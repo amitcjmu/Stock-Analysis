@@ -9,7 +9,8 @@ import asyncio
 import logging
 import uuid
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
 from fastapi import BackgroundTasks
 
 # Setup logger first
@@ -623,7 +624,7 @@ class CrewEscalationManager:
                 "type": "crew_execution_error",
                 "crew_type": crew_type,
                 "error": str(e),
-                "insight": f"Strategic crew execution encountered issues but provided fallback analysis",
+                "insight": "Strategic crew execution encountered issues but provided fallback analysis",
                 "confidence": 0.3,
                 "timestamp": datetime.utcnow().isoformat()
             })

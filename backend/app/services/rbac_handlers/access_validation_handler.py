@@ -4,19 +4,17 @@ Handles user access validation, permission checking, and authorization.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import and_, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .base_handler import BaseRBACHandler
 
 # Import RBAC models with fallback
 try:
-    from app.models.rbac import (
-        UserProfile, UserRole, ClientAccess, EngagementAccess,
-        UserStatus, AccessLevel, RoleType
-    )
+    from app.models.rbac import AccessLevel, ClientAccess, EngagementAccess, RoleType, UserProfile, UserRole, UserStatus
     RBAC_MODELS_AVAILABLE = True
 except ImportError:
     RBAC_MODELS_AVAILABLE = False

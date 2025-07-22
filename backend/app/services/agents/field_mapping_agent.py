@@ -3,11 +3,14 @@ Field Mapping Agent - Converted to proper CrewAI pattern
 Enterprise Asset Schema Mapping Specialist
 """
 
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 from crewai import Agent
+
 from app.services.agents.base_agent import BaseCrewAIAgent
 from app.services.agents.metadata import AgentMetadata
 from app.services.llm_config import get_crewai_llm
+
 
 class FieldMappingAgent(BaseCrewAIAgent):
     """

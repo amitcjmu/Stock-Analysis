@@ -6,10 +6,12 @@ This script tests if deletion properly cascades from master flow to discovery fl
 
 import asyncio
 import logging
+
 from sqlalchemy import select
+
 from app.core.database import AsyncSessionLocal
-from app.models.discovery_flow import DiscoveryFlow
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.models.discovery_flow import DiscoveryFlow
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -32,9 +34,10 @@ async def test_deletion():
             logger.info(f'Status before: {discovery_flow.status}')
             
             # Delete using the master flow deletion logic directly
-            from sqlalchemy import update, and_, or_
-            from datetime import datetime
             import uuid
+            from datetime import datetime
+
+            from sqlalchemy import and_, or_, update
             
             try:
                 flow_uuid = uuid.UUID(str(flow_id))

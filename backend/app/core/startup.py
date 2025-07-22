@@ -5,6 +5,7 @@ Handles initialization tasks when the application starts.
 
 import logging
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from app.core.database import AsyncSessionLocal

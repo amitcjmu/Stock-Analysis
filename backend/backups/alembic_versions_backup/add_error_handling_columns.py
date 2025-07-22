@@ -6,10 +6,11 @@ Create Date: 2025-06-30 23:55:00.000000
 
 This migration adds the missing error_message and error_details columns to data_imports table.
 """
-from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 from sqlalchemy import text
+from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = 'add_error_handling_columns'

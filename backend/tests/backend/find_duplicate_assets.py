@@ -4,9 +4,10 @@ Quick script to find duplicate assets and get the client/engagement IDs
 
 import asyncio
 import logging
-from sqlalchemy import select, func, and_
-from sqlalchemy.ext.asyncio import AsyncSession
 from collections import defaultdict
+
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
@@ -79,11 +80,11 @@ async def find_all_duplicates():
                 
                 if duplicate_count > 0:
                     logger.info(f"   ⚠️  Total duplicates: {duplicate_count}")
-                    logger.info(f"   To clean up, run cleanup_duplicate_assets.py with:")
+                    logger.info("   To clean up, run cleanup_duplicate_assets.py with:")
                     logger.info(f"     CLIENT_ACCOUNT_ID = '{client_id}'")
                     logger.info(f"     ENGAGEMENT_ID = '{engagement_id}'")
                 else:
-                    logger.info(f"   ✅ No duplicates found")
+                    logger.info("   ✅ No duplicates found")
             
         except Exception as e:
             logger.error(f"❌ Error: {e}", exc_info=True)

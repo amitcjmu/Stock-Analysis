@@ -12,26 +12,24 @@ Built by: Agent Team B2 (AI Analysis & Intelligence)
 """
 
 import logging
-from typing import Dict, List, Any, Optional
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
 # Import all components from the modularized package
 from .business_context_analyzer import (
-    # Enums
-    BusinessDomain,
-    OrganizationSize,
-    StakeholderRole,
-    MigrationDriverType,
-    
+    BusinessAnalyzers,
     # Models
     BusinessContext,
-    QuestionnaireTarget,
-    
+    BusinessContextUtilities,
+    # Enums
+    BusinessDomain,
     # Components
     DomainConfigurationManager,
-    BusinessAnalyzers,
+    MigrationDriverType,
+    OrganizationSize,
     QuestionnaireOptimizer,
-    BusinessContextUtilities
+    QuestionnaireTarget,
+    StakeholderRole,
 )
 
 logger = logging.getLogger(__name__)

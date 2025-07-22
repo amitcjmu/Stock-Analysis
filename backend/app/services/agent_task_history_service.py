@@ -5,16 +5,17 @@ Part of the Agent Observability Enhancement Phase 2
 """
 
 import logging
-from typing import List, Dict, Any, Optional, Tuple
-from datetime import datetime, timedelta, date
+from datetime import date, datetime, timedelta
 from decimal import Decimal
-from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, or_, desc
+from typing import Any, Dict, List, Optional, Tuple
+
+from sqlalchemy import and_, desc, func, or_
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.agent_task_history import AgentTaskHistory
 from app.models.agent_discovered_patterns import AgentDiscoveredPatterns
+from app.models.agent_task_history import AgentTaskHistory
 
 logger = logging.getLogger(__name__)
 

@@ -12,8 +12,8 @@ from pathlib import Path
 # Add backend to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.middleware.adaptive_rate_limiter import AdaptiveRateLimiter
 from app.core.config import settings
+from app.middleware.adaptive_rate_limiter import AdaptiveRateLimiter
 
 # Configure logging
 logging.basicConfig(
@@ -152,7 +152,7 @@ def test_scenarios():
             break
     else:
         print(f"   ✅ All {allowed_count} requests allowed (testing mode)")
-        print(f"   📊 User type detected: testing")
+        print("   📊 User type detected: testing")
     
     limiter.reset_client(client_key)
     

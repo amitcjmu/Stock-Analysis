@@ -3,15 +3,17 @@ Deduplicating repository for multi-tenant data access.
 Extends ContextAwareRepository to add deduplication for engagement-level views.
 """
 
+import logging
 from typing import Any, Dict, List, Optional, Type, TypeVar
+
+from sqlalchemy import desc, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import func, desc
 from sqlalchemy.future import select
 from sqlalchemy.sql import Select
-import logging
+
+from app.core.context import get_current_context
 
 from .context_aware_repository import ContextAwareRepository
-from app.core.context import get_current_context
 
 logger = logging.getLogger(__name__)
 

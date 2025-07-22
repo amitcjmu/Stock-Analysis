@@ -5,11 +5,12 @@ Creating AI-suggested field mappings with varied confidence scores for all impor
 
 import asyncio
 from datetime import datetime, timezone
+
+from constants import DEMO_CLIENT_ID, IMPORT_IDS
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 from app.models.data_import.mapping import ImportFieldMapping
-from constants import DEMO_CLIENT_ID, IMPORT_IDS
 
 # Field mappings for each import type
 CSV_SERVER_MAPPINGS = [
@@ -418,7 +419,7 @@ async def create_field_mappings():
         
         avg_confidence = sum(confidence_scores) / len(confidence_scores)
         
-        print(f"\n✅ Field mappings created successfully!")
+        print("\n✅ Field mappings created successfully!")
         print(f"   📊 Total Mappings: {total_mappings}")
         print(f"   ✅ Approved: {status_counts.get('approved', 0)}")
         print(f"   ⏳ Pending: {status_counts.get('pending', 0)}")

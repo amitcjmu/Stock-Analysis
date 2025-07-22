@@ -7,19 +7,20 @@ bidirectional agent communication, collaboration effectiveness measurement,
 and real-time collaboration monitoring.
 """
 
-import pytest
 import asyncio
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from typing import Dict, List, Any, Optional
 import json
 import time
 import uuid
+from typing import Any, Dict, List, Optional
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
+import pytest
 
 # Mock imports for testing
 try:
-    from app.services.crewai_flows.collaboration_service import CollaborationService
-    from app.services.crewai_flows.agent_monitor import AgentMonitor
     from app.models.agent_communication import AgentCommunication
+    from app.services.crewai_flows.agent_monitor import AgentMonitor
+    from app.services.crewai_flows.collaboration_service import CollaborationService
 except ImportError:
     # Fallback for testing environment
     CollaborationService = Mock

@@ -7,13 +7,9 @@ before the application starts serving requests.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
 
-from app.services.flow_configs import (
-    initialize_all_flows,
-    verify_flow_configurations,
-    get_flow_summary
-)
+from app.services.flow_configs import get_flow_summary, initialize_all_flows, verify_flow_configurations
 
 logger = logging.getLogger(__name__)
 

@@ -1,15 +1,16 @@
 import asyncio
-import sys
 import os
+import sys
 
 # Add the backend directory to the Python path
 sys.path.append('backend')
 
 async def check_asset_count():
     try:
+        from sqlalchemy import func, select
+
         from app.core.database import AsyncSessionLocal
         from app.models.asset import Asset
-        from sqlalchemy import select, func
         
         print("🔍 Checking asset count in database...")
         
@@ -23,7 +24,7 @@ async def check_asset_count():
             result = await session.execute(select(Asset).limit(5))
             assets = result.scalars().all()
             
-            print(f"📋 Sample assets:")
+            print("📋 Sample assets:")
             for asset in assets:
                 print(f"  - {asset.hostname} ({asset.asset_type})")
                 
@@ -34,7 +35,7 @@ async def check_asset_count():
             )
             type_counts = result.all()
             
-            print(f"📈 Asset type breakdown:")
+            print("📈 Asset type breakdown:")
             for asset_type, count in type_counts:
                 print(f"  - {asset_type}: {count}")
             

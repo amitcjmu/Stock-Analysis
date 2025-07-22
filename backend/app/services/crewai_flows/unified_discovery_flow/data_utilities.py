@@ -6,8 +6,8 @@ to improve maintainability and code organization.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
 import uuid
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -28,10 +28,11 @@ class DataUtilities:
             flow_id_to_use = self.flow._flow_id
             self.logger.info(f"🔍 Loading raw data for flow {flow_id_to_use}")
             
+            from sqlalchemy import or_, select
+
             from app.core.database import AsyncSessionLocal
-            from sqlalchemy import select, or_
+            from app.models.data_import import DataImport, RawImportRecord
             from app.models.discovery_flow import DiscoveryFlow
-            from app.models.data_import import RawImportRecord, DataImport
             
             async with AsyncSessionLocal() as db:
                 # First, try to get the discovery flow record

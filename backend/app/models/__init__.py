@@ -9,47 +9,27 @@ V2 Discovery Flow Architecture:
 """
 
 # Import base models first to avoid circular dependencies
-from app.models.base import Base, TimestampMixin
+# Agent Communication Models
+from app.models.agent_communication import AgentInsight, AgentQuestion, DataItem
+from app.models.agent_discovered_patterns import AgentDiscoveredPatterns
+from app.models.agent_performance_daily import AgentPerformanceDaily
 
-# Platform Models (needed by Collection Flow)
-from app.models.platform_adapter import PlatformAdapter, AdapterStatus
-from app.models.platform_credentials import (
-    PlatformCredential, CredentialAccessLog, CredentialRotationHistory, 
-    CredentialPermission, CredentialStatus, CredentialType
-)
-
-# Collection Flow Models (needed by ClientAccount)
-from app.models.collection_flow import CollectionFlow, AutomationTier, CollectionFlowStatus
-from app.models.collected_data_inventory import CollectedDataInventory
-from app.models.collection_data_gap import CollectionDataGap
-from app.models.collection_questionnaire_response import CollectionQuestionnaireResponse
-
-# Core Models
-from app.models.client_account import ClientAccount, Engagement, User, UserAccountAssociation
-
-# User Flow Management Models
-from app.models.user_active_flows import UserActiveFlow
-
-# V2 Discovery Flow Models (Primary)
-from app.models.discovery_flow import DiscoveryFlow
-
-# Data Import Models
-from app.models.data_import.core import DataImport, RawImportRecord
-from app.models.data_import.mapping import ImportFieldMapping
+# Agent Observability Models
+from app.models.agent_task_history import AgentTaskHistory
 
 # Assessment Models
 from app.models.assessment import Assessment, WavePlan
 
 # Assessment Flow Models (New)
 from app.models.assessment_flow import (
-    AssessmentFlow, 
-    EngagementArchitectureStandard, 
     ApplicationArchitectureOverride,
-    ApplicationComponent, 
-    TechDebtAnalysis, 
-    ComponentTreatment, 
-    SixRDecision, 
-    AssessmentLearningFeedback
+    ApplicationComponent,
+    AssessmentFlow,
+    AssessmentLearningFeedback,
+    ComponentTreatment,
+    EngagementArchitectureStandard,
+    SixRDecision,
+    TechDebtAnalysis,
 )
 
 # Assessment Flow State Models (New) - Temporarily disabled due to SQLAlchemy compatibility issue
@@ -72,45 +52,66 @@ from app.models.assessment_flow import (
 #     AssessmentPhaseResult,
 #     AssessmentValidationResult
 # )
-
 # Asset Models
 from app.models.asset import Asset, AssetDependency
+from app.models.base import Base, TimestampMixin
 
-# Migration Models
-from app.models.migration import Migration
+# Core Models
+from app.models.client_account import ClientAccount, Engagement, User, UserAccountAssociation
+from app.models.collected_data_inventory import CollectedDataInventory
+from app.models.collection_data_gap import CollectionDataGap
 
-# RBAC Models
-from app.models.rbac import UserRole, ClientAccess, AccessLevel
-
-# Agent Communication Models
-from app.models.agent_communication import AgentQuestion, DataItem, AgentInsight
+# Collection Flow Models (needed by ClientAccount)
+from app.models.collection_flow import AutomationTier, CollectionFlow, CollectionFlowStatus
+from app.models.collection_questionnaire_response import CollectionQuestionnaireResponse
 
 # CrewAI Flow Models
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 
-# Flow Deletion Audit Models
-from app.models.flow_deletion_audit import FlowDeletionAudit
+# Data Import Models
+from app.models.data_import.core import DataImport, RawImportRecord
+from app.models.data_import.mapping import ImportFieldMapping
+
+# V2 Discovery Flow Models (Primary)
+from app.models.discovery_flow import DiscoveryFlow
 
 # Feedback Models
 from app.models.feedback import Feedback
 
-# Security Audit Models
-from app.models.security_audit import SecurityAuditLog, RoleChangeApproval
-
-# Tags Models
-from app.models.tags import Tag, AssetTag
+# Flow Deletion Audit Models
+from app.models.flow_deletion_audit import FlowDeletionAudit
 
 # LLM Usage Models
 from app.models.llm_usage import LLMUsageLog, LLMUsageSummary
 
+# Migration Models
+from app.models.migration import Migration
+
+# Platform Models (needed by Collection Flow)
+from app.models.platform_adapter import AdapterStatus, PlatformAdapter
+from app.models.platform_credentials import (
+    CredentialAccessLog,
+    CredentialPermission,
+    CredentialRotationHistory,
+    CredentialStatus,
+    CredentialType,
+    PlatformCredential,
+)
+
+# RBAC Models
+from app.models.rbac import AccessLevel, ClientAccess, UserRole
+
+# Security Audit Models
+from app.models.security_audit import RoleChangeApproval, SecurityAuditLog
+
 # SixR Analysis Models
 from app.models.sixr_analysis import SixRAnalysis
 
-# Agent Observability Models
-from app.models.agent_task_history import AgentTaskHistory
-from app.models.agent_performance_daily import AgentPerformanceDaily
-from app.models.agent_discovered_patterns import AgentDiscoveredPatterns
+# Tags Models
+from app.models.tags import AssetTag, Tag
 
+# User Flow Management Models
+from app.models.user_active_flows import UserActiveFlow
 
 # V3 Models REMOVED - Using consolidated schema
 

@@ -2,13 +2,16 @@
 Schema Analyzer Tool for data structure analysis
 """
 
-from typing import Dict, Any, List
+import json
+from typing import Any, Dict, List
+
+from sqlalchemy import inspect, select
+
+from app.core.database_context import get_context_db
+from app.models import RawImportRecord
 from app.services.tools.base_tool import AsyncBaseDiscoveryTool
 from app.services.tools.registry import ToolMetadata
-from app.core.database_context import get_context_db
-from sqlalchemy import select, inspect
-from app.models import RawImportRecord
-import json
+
 
 class SchemaAnalyzerTool(AsyncBaseDiscoveryTool):
     """Analyzes data schema and structure"""

@@ -5,12 +5,14 @@ This bypasses service initialization to focus on the core state property issue
 """
 
 import asyncio
-import sys
 import os
+import sys
+
 sys.path.append('/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend')
 
 from app.core.context import RequestContext
 from app.services.crewai_flow_service import CrewAIFlowService
+
 
 async def test_state_property_fix():
     """Test that UnifiedCollectionFlow state property can be accessed without setter error"""

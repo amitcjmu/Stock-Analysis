@@ -6,7 +6,7 @@ Provides common functionality and fallback mechanisms.
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +100,7 @@ class BasePhaseExecutor(ABC):
         try:
             # CREWAI MODE: Check if we should disable CrewAI (fast mode)
             import os
+
             from app.core.config import settings
             use_fast_mode = settings.CREWAI_FAST_MODE or os.getenv("USE_FAST_DISCOVERY_MODE", "false").lower() == "true"
             
@@ -138,7 +139,7 @@ class BasePhaseExecutor(ABC):
                     raise RuntimeError(f"CrewAI crew creation failed for {phase_name}. This needs to be fixed.")
             else:
                 # NO FALLBACK - CrewAI should always be available
-                logger.error(f"CrewAI not available or fast mode enabled - NO FALLBACK")
+                logger.error("CrewAI not available or fast mode enabled - NO FALLBACK")
                 raise RuntimeError(f"CrewAI is not available for {phase_name}. This is a critical dependency.")
             
             # Store results and update state

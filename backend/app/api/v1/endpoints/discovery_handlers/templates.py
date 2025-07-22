@@ -4,7 +4,7 @@ Handles CMDB templates and field mappings.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
 
 # Import field mapper for intelligent field mapping
 from app.services.field_mapper_modular import field_mapper

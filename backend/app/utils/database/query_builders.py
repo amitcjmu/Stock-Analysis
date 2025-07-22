@@ -4,14 +4,14 @@ Provides reusable query construction patterns and filters.
 """
 
 import logging
-from typing import Optional, List, Dict, Any, Union, Type
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List, Optional, Type, Union
 
-from sqlalchemy import and_, or_, select, func, text
-from sqlalchemy.sql import Select
+from sqlalchemy import and_, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Query
+from sqlalchemy.sql import Select
 
 logger = logging.getLogger(__name__)
 

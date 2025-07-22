@@ -2,10 +2,10 @@
 Confidence Scoring Algorithms - Advanced algorithms for calculating agent confidence
 """
 
+import logging
 import math
 import statistics
-from typing import Dict, Any, List, Optional, Tuple
-import logging
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

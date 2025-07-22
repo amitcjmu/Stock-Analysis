@@ -3,12 +3,12 @@ Agent Memory System for CrewAI agents.
 Provides persistent memory with learning capabilities and pattern recognition.
 """
 
-import pickle
-import logging
-from pathlib import Path
-from typing import Dict, List, Any, Optional
-from datetime import datetime, timedelta
 import json
+import logging
+import pickle
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

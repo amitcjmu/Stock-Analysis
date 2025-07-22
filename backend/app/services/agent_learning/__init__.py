@@ -11,9 +11,9 @@ Key Components:
 - ContextScopedAgentLearning: Main learning system with context isolation
 """
 
+from .core.context_scoped_learning import ContextScopedAgentLearning
 from .models.learning_context import LearningContext
 from .models.learning_pattern import LearningPattern, PerformanceLearningPattern
-from .core.context_scoped_learning import ContextScopedAgentLearning
 
 # Compatibility imports for backward compatibility
 AgentLearningSystem = ContextScopedAgentLearning

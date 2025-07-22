@@ -3,13 +3,14 @@ Rate Limiting Middleware
 Implements rate limiting for API endpoints to prevent abuse.
 """
 
+import logging
 import time
-from typing import Dict, Optional
 from collections import defaultdict, deque
-from fastapi import Request, HTTPException, status
+from typing import Dict, Optional
+
+from fastapi import HTTPException, Request, status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
-import logging
 
 logger = logging.getLogger(__name__)
 

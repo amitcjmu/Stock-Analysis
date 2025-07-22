@@ -6,11 +6,11 @@ This modularized version extracts large methods into separate utility classes
 for better maintainability and code organization.
 """
 
-import logging
 import asyncio
-from datetime import datetime
-from typing import Dict, Any, List, Optional
+import logging
 import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 # CrewAI Flow imports - REAL AGENTS ONLY
 logger = logging.getLogger(__name__)
@@ -31,28 +31,28 @@ if not CREWAI_FLOW_AVAILABLE:
     raise RuntimeError("❌ CRITICAL: Pseudo-agent fallback detected - real CrewAI required")
 
 # Import state and configuration
-from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 from app.core.context import RequestContext
-from .flow_config import FlowConfig, PhaseNames
-from .state_management import StateManager
-from .crew_coordination import CrewCoordinator
-from .flow_management import FlowManager
-from .flow_initialization import FlowInitializer
-from .flow_finalization import FlowFinalizer
-
-# Import modular utilities
-from .phase_handlers import PhaseHandlers
-from .data_utilities import DataUtilities
-from .notification_utilities import NotificationUtilities
-
-# Import handlers for flow management
-from ..handlers.unified_flow_management import UnifiedFlowManagement
+from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 
 # Import enhanced error handling and monitoring
 from ..handlers.enhanced_error_handler import enhanced_error_handler
-from ..persistence.checkpoint_manager import checkpoint_manager
+
+# Import handlers for flow management
+from ..handlers.unified_flow_management import UnifiedFlowManagement
 from ..monitoring.flow_health_monitor import flow_health_monitor
-from ..utils.retry_utils import retry_decorator, RetryConfig, retry_with_backoff
+from ..persistence.checkpoint_manager import checkpoint_manager
+from ..utils.retry_utils import RetryConfig, retry_decorator, retry_with_backoff
+from .crew_coordination import CrewCoordinator
+from .data_utilities import DataUtilities
+from .flow_config import FlowConfig, PhaseNames
+from .flow_finalization import FlowFinalizer
+from .flow_initialization import FlowInitializer
+from .flow_management import FlowManager
+from .notification_utilities import NotificationUtilities
+
+# Import modular utilities
+from .phase_handlers import PhaseHandlers
+from .state_management import StateManager
 
 
 class UnifiedDiscoveryFlow(Flow):

@@ -4,13 +4,25 @@ Daily aggregated performance metrics for each agent
 Part of the Agent Observability Enhancement
 """
 
-from sqlalchemy import Column, String, DateTime, ForeignKey, func, Integer, Date, DECIMAL, CheckConstraint, UniqueConstraint
+import uuid
+from datetime import date, datetime
+from typing import Any, Dict
+
+from sqlalchemy import (
+    DECIMAL,
+    CheckConstraint,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
-import uuid
-from datetime import datetime, date
-from typing import Dict, Any
 
 from app.core.database import Base
 

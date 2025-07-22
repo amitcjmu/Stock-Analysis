@@ -3,14 +3,15 @@ Security Monitoring Handler - Platform Admin Security Audit Dashboard
 """
 
 import logging
-from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel
+from typing import Any, Dict, List, Optional
 
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
-from app.core.context import get_current_context, RequestContext
 
 # Import security audit service
 try:
@@ -63,8 +64,9 @@ async def verify_platform_admin_access(
 ) -> None:
     """Verify that the current user is a platform administrator."""
     try:
+        from sqlalchemy import and_, select
+
         from app.models.rbac import UserRole
-        from sqlalchemy import select, and_
         
         # Check if user has platform_admin role
         query = select(UserRole).where(

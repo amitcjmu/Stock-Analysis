@@ -3,7 +3,8 @@ Tech Debt Executor
 Handles tech debt analysis phase execution for the Unified Discovery Flow.
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 from .base_phase_executor import BasePhaseExecutor
 
 

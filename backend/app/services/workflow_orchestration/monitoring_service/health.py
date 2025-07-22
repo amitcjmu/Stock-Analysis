@@ -6,12 +6,12 @@ Handles health checks, status monitoring, and health assessment.
 """
 
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from app.core.logging import get_logger
 
-from .types import HealthStatus
 from .models import Alert
+from .types import HealthStatus
 
 logger = get_logger(__name__)
 

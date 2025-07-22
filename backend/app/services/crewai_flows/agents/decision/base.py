@@ -5,10 +5,10 @@ Core abstractions for intelligent decision-making agents.
 """
 
 import logging
-from typing import Dict, Any, Optional
+from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
-from abc import ABC, abstractmethod
+from typing import Any, Dict, Optional
 
 from crewai import Agent
 

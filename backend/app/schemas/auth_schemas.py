@@ -3,10 +3,11 @@ Authentication and RBAC Schemas
 Pydantic schemas for user registration, approval, and access control.
 """
 
-from typing import Dict, List, Any, Optional
 from datetime import datetime
-from pydantic import BaseModel, Field, field_validator, ConfigDict, ValidationInfo
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
 # =========================
 # Enums for Type Safety

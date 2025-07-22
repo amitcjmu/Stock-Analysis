@@ -4,9 +4,11 @@ Test the field mapping data retrieval through the API
 """
 import asyncio
 import json
-from app.core.database import get_db
+
 from app.api.v1.discovery_handlers.flow_management import FlowManagementHandler
 from app.core.context import RequestContext
+from app.core.database import get_db
+
 
 async def test_field_mapping_api():
     async for db in get_db():
@@ -26,7 +28,7 @@ async def test_field_mapping_api():
             flow_id = "854f8360-cba4-4e7b-be3f-a0c1537f6eb0"
             status = await handler.get_flow_status(flow_id)
             
-            print(f"Flow Status Retrieved:")
+            print("Flow Status Retrieved:")
             print(f"  Status: {status.get('status')}")
             print(f"  Current Phase: {status.get('current_phase')}")
             print(f"  Progress: {status.get('progress_percentage')}%")
@@ -34,7 +36,7 @@ async def test_field_mapping_api():
             # Check field mapping data
             if 'field_mapping' in status:
                 fm = status['field_mapping']
-                print(f"\n✅ Field Mapping Data Found:")
+                print("\n✅ Field Mapping Data Found:")
                 print(f"  Type: {type(fm)}")
                 if isinstance(fm, dict):
                     print(f"  Keys: {list(fm.keys())}")

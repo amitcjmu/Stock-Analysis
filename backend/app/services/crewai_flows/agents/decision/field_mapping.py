@@ -6,11 +6,12 @@ validation and approval based on data analysis and business context.
 """
 
 import logging
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
-from .base import BaseDecisionAgent, AgentDecision, PhaseAction
-from .utils import DecisionUtils, ConfidenceCalculator
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
+
+from .base import AgentDecision, BaseDecisionAgent, PhaseAction
+from .utils import ConfidenceCalculator, DecisionUtils
 
 logger = logging.getLogger(__name__)
 

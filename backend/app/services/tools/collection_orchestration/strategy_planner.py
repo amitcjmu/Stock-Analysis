@@ -5,10 +5,11 @@ Plans optimal collection strategies based on automation tier and requirements.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from app.services.tools.base_tool import BaseDiscoveryTool
 from app.services.tools.registry import ToolMetadata
+
 from .base import BaseCollectionTool
 
 logger = logging.getLogger(__name__)

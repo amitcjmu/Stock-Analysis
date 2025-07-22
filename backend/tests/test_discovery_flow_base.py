@@ -8,34 +8,34 @@ helpers for testing the Discovery flow implementation.
 import asyncio
 import json
 import os
-import pytest
 import uuid
 from datetime import datetime
-from typing import Dict, List, Any, Optional, AsyncGenerator
-from unittest.mock import Mock, patch, AsyncMock
+from typing import Any, AsyncGenerator, Dict, List, Optional
+from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import Session
 
 # Import test fixtures
 from tests.fixtures.discovery_flow_fixtures import (
+    AGENT_DECISIONS,
+    ERROR_SCENARIOS,
+    FIELD_MAPPING_SUGGESTIONS,
+    FLOW_STATES,
+    MOCK_CMDB_DATA,
+    PERFORMANCE_TEST_DATA,
+    SSE_EVENT_SEQUENCE,
     TEST_CLIENT_ACCOUNT_ID,
     TEST_ENGAGEMENT_ID,
     TEST_USER_ID,
-    MOCK_CMDB_DATA,
-    FIELD_MAPPING_SUGGESTIONS,
-    AGENT_DECISIONS,
-    SSE_EVENT_SEQUENCE,
-    FLOW_STATES,
-    get_mock_file_content,
-    create_test_discovery_flow,
     create_test_data_import,
+    create_test_discovery_flow,
     create_test_field_mapping,
-    ERROR_SCENARIOS,
-    PERFORMANCE_TEST_DATA
+    get_mock_file_content,
 )
 
 # Base URL for API endpoints

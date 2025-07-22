@@ -1,9 +1,10 @@
+from typing import Any, Dict
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Dict, Any
 
+from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
-from app.core.context import get_current_context, RequestContext
 
 router = APIRouter()
 

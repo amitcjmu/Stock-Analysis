@@ -9,17 +9,18 @@ Handles all database storage operations including:
 """
 
 from __future__ import annotations
+
 import logging
 import uuid
-from typing import Dict, List, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, func
 
-from app.core.logging import get_logger
 from app.core.exceptions import DatabaseError
-from app.models.data_import import DataImport, RawImportRecord, ImportFieldMapping
+from app.core.logging import get_logger
+from app.models.data_import import DataImport, ImportFieldMapping, RawImportRecord
 
 logger = get_logger(__name__)
 
@@ -166,7 +167,10 @@ class ImportStorageManager:
                 sample_record = file_data[0]
                 
                 # Import the intelligent mapping helper
-                from app.api.v1.endpoints.data_import.field_mapping.utils.mapping_helpers import intelligent_field_mapping, calculate_mapping_confidence
+                from app.api.v1.endpoints.data_import.field_mapping.utils.mapping_helpers import (
+                    calculate_mapping_confidence,
+                    intelligent_field_mapping,
+                )
                 
                 logger.info(f"🔍 DEBUG: Sample record keys: {list(sample_record.keys())}")
                 logger.info(f"🔍 DEBUG: Sample record type: {type(sample_record)}")
@@ -365,8 +369,9 @@ class ImportStorageManager:
         try:
             # First, get the database record ID for the CrewAI flow_id
             # The foreign key constraint references crewai_flow_state_extensions.id, not flow_id
-            from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
             from sqlalchemy import select
+
+            from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
             
             result = await self.db.execute(
                 select(CrewAIFlowStateExtensions.id)

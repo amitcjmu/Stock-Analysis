@@ -23,31 +23,27 @@ This file now re-exports all public interfaces for backward compatibility.
 
 # Re-export all public interfaces from the modularized structure
 from .recommendation_engine import (
-    # Main engine
-    SmartWorkflowRecommendationEngine,
-    
-    # Enums
-    RecommendationType,
-    RecommendationConfidence,
-    RecommendationSource,
-    
-    # Models
-    RecommendationInsight,
-    WorkflowRecommendation,
-    RecommendationPackage,
-    LearningPattern,
-    
-    # Core components (for advanced usage)
-    RecommendationAnalyzers,
-    RecommendationEvaluator,
-    RecommendationOptimizer,
-    
-    # Generators (for advanced usage)
-    TierRecommendationGenerator,
     ConfigRecommendationGenerator,
+    LearningPattern,
+    PerformanceRecommendationGenerator,
     PhaseRecommendationGenerator,
     QualityRecommendationGenerator,
-    PerformanceRecommendationGenerator,
+    # Core components (for advanced usage)
+    RecommendationAnalyzers,
+    RecommendationConfidence,
+    RecommendationEvaluator,
+    # Models
+    RecommendationInsight,
+    RecommendationOptimizer,
+    RecommendationPackage,
+    RecommendationSource,
+    # Enums
+    RecommendationType,
+    # Main engine
+    SmartWorkflowRecommendationEngine,
+    # Generators (for advanced usage)
+    TierRecommendationGenerator,
+    WorkflowRecommendation,
 )
 
 # Maintain backward compatibility by exporting all symbols

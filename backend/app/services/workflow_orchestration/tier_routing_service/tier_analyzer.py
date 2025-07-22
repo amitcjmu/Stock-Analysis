@@ -7,7 +7,7 @@ Core tier analysis and scoring logic.
 
 import logging
 from datetime import datetime
-from typing import Dict, Any, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from app.core.logging import get_logger
 

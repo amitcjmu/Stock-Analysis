@@ -7,9 +7,7 @@ Contains all administration-related API handlers including user management, plat
 
 # Import admin routers
 try:
-    from . import client_management
-    from . import engagement_management
-    from . import session_comparison
+    from . import client_management, engagement_management, session_comparison
     CLIENT_MANAGEMENT_AVAILABLE = True
     ENGAGEMENT_MANAGEMENT_AVAILABLE = True
     SESSION_COMPARISON_AVAILABLE = True

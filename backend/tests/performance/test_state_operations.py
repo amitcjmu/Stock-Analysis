@@ -1,17 +1,18 @@
 """
 Performance tests for state operations
 """
-import pytest
-import time
 import asyncio
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 from app.services.crewai_flows.persistence.exceptions import ConcurrentModificationError
+from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
 
 
 @pytest.fixture
@@ -239,8 +240,9 @@ class TestStatePerformance:
     @pytest.mark.asyncio
     async def test_memory_usage_large_state(self, mock_db_session, test_context, large_state):
         """Test memory usage doesn't grow excessively with large states"""
-        import psutil
         import os
+
+        import psutil
         
         process = psutil.Process(os.getpid())
         initial_memory = process.memory_info().rss / 1024 / 1024  # MB

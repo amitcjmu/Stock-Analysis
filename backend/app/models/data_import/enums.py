@@ -3,6 +3,7 @@ Data Import Enumerations
 """
 import enum
 
+
 class ImportStatus(str, enum.Enum):
     """Enum for the status of a data import job."""
     PENDING = "pending"

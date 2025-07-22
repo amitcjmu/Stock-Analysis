@@ -4,15 +4,16 @@ Test to verify that thinking mode is disabled and LLM responds quickly.
 """
 
 import asyncio
-import time
-import sys
 import os
+import sys
+import time
 
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
 
-from app.services.deepinfra_llm import create_deepinfra_llm
 from app.core.config import settings
+from app.services.deepinfra_llm import create_deepinfra_llm
+
 
 async def test_no_thinking_mode():
     """Test that LLM responds quickly without thinking mode."""
@@ -51,7 +52,7 @@ async def test_no_thinking_mode():
             if duration > 10:
                 print(f"⚠️  Response took {duration:.2f}s - might still be using thinking mode")
             else:
-                print(f"🚀 Fast response - thinking mode likely disabled")
+                print("🚀 Fast response - thinking mode likely disabled")
                 
         except Exception as e:
             duration = time.time() - start_time

@@ -5,9 +5,9 @@ Manages application and tracking of UX optimizations.
 """
 
 import logging
-from typing import Dict, Any, List
-from uuid import UUID
 from datetime import datetime
+from typing import Any, Dict, List
+from uuid import UUID
 
 from .base import UXRecommendation
 

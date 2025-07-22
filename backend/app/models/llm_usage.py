@@ -3,14 +3,28 @@
 Models for tracking LLM API usage, costs, and performance metrics.
 """
 
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Numeric, BigInteger, ForeignKey, Index, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
-from app.core.database import Base
 import uuid
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+)
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
+from app.core.database import Base
 
 
 class LLMUsageLog(Base):

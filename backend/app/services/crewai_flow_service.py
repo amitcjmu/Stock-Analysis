@@ -5,29 +5,30 @@ This service bridges CrewAI flows with the V2 Discovery Flow architecture.
 Uses flow_id as single source of truth instead of session_id.
 """
 
-import logging
-from typing import Dict, Any, Optional, List, Union, TYPE_CHECKING
-from datetime import datetime
 import asyncio
 import json
+import logging
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 from uuid import UUID, uuid4
 
+from sqlalchemy import and_, desc, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_, desc
 from sqlalchemy.orm import selectinload
 
-from app.core.database import get_db
 from app.core.context import get_current_context
-from app.core.exceptions import InvalidFlowStateError, CrewAIExecutionError
+from app.core.database import get_db
+from app.core.exceptions import CrewAIExecutionError, InvalidFlowStateError
 
-# V2 Discovery Flow Models
-from app.models.discovery_flow import DiscoveryFlow
 # from app.models.discovery_asset import DiscoveryAsset  # Model removed - using Asset model instead
 from app.models.asset import Asset
 
+# V2 Discovery Flow Models
+from app.models.discovery_flow import DiscoveryFlow
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+
 # V2 Discovery Flow Services
 from app.services.discovery_flow_service import DiscoveryFlowService
-from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 
 # CrewAI Flow Integration (Conditional)
 if TYPE_CHECKING:
@@ -450,16 +451,18 @@ class CrewAIFlowService:
             
             # Ensure resume_context is not None - provide defaults
             if resume_context is None:
-                logger.info(f"🔍 resume_context is None, need to fetch flow context from database")
+                logger.info("🔍 resume_context is None, need to fetch flow context from database")
                 resume_context = {}
             
             # Try to resume the actual CrewAI Flow instance
             if CREWAI_FLOWS_AVAILABLE:
                 try:
-                    from app.services.crewai_flows.unified_discovery_flow.base_flow import UnifiedDiscoveryFlow
                     from app.core.context import RequestContext
                     from app.core.database import AsyncSessionLocal
-                    from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
+                    from app.repositories.crewai_flow_state_extensions_repository import (
+                        CrewAIFlowStateExtensionsRepository,
+                    )
+                    from app.services.crewai_flows.unified_discovery_flow.base_flow import UnifiedDiscoveryFlow
                     
                     # If context fields are missing, fetch from master flow record
                     if not resume_context.get('client_account_id'):
@@ -489,8 +492,9 @@ class CrewAIFlowService:
                     if not flow:
                         # Check if master flow exists and create missing discovery flow record
                         async with AsyncSessionLocal() as db:
-                            from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
                             from sqlalchemy import select
+
+                            from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
                             
                             master_flow_query = select(CrewAIFlowStateExtensions).where(
                                 CrewAIFlowStateExtensions.flow_id == flow_id,
@@ -500,7 +504,7 @@ class CrewAIFlowService:
                             master_flow = master_flow_result.scalar_one_or_none()
                             
                             if master_flow:
-                                logger.info(f"🔧 Master flow found but discovery flow missing, creating discovery flow record")
+                                logger.info("🔧 Master flow found but discovery flow missing, creating discovery flow record")
                                 # Create missing discovery flow record
                                 from app.models.discovery_flow import DiscoveryFlow
                                 discovery_flow = DiscoveryFlow(
@@ -551,8 +555,9 @@ class CrewAIFlowService:
                         # Get the flow's raw_data from the database
                         raw_data = []
                         if flow.data_import_id:
-                            from app.models.data_import import RawImportRecord
                             from sqlalchemy import select
+
+                            from app.models.data_import import RawImportRecord
                             
                             records_query = select(RawImportRecord).where(
                                 RawImportRecord.data_import_id == flow.data_import_id
@@ -569,7 +574,7 @@ class CrewAIFlowService:
                         
                         # Note: For resume functionality, we should use orchestrator.resume_flow
                         # instead of creating a new flow instance
-                        logger.info(f"Flow resume should be handled through MasterFlowOrchestrator")
+                        logger.info("Flow resume should be handled through MasterFlowOrchestrator")
                         
                         # Initialize actual CrewAI flow for resumption
                         try:
@@ -578,7 +583,7 @@ class CrewAIFlowService:
                                 crewai_service=self,  # Pass self as the crewai_service
                                 context=context       # Use the context we created above
                             )
-                            logger.info(f"✅ Created UnifiedDiscoveryFlow instance for resumption")
+                            logger.info("✅ Created UnifiedDiscoveryFlow instance for resumption")
                         except Exception as e:
                             logger.error(f"❌ Failed to create UnifiedDiscoveryFlow: {e}")
                             raise CrewAIExecutionError(f"Failed to initialize CrewAI flow for resumption: {e}")
@@ -631,7 +636,7 @@ class CrewAIFlowService:
                                 suggestion_result = await crewai_flow.generate_field_mapping_suggestions("data_validation_completed")
                                 logger.info(f"✅ Generated field mapping suggestions: {suggestion_result}")
                             else:
-                                logger.info(f"✅ Field mappings already exist: actual mappings found")
+                                logger.info("✅ Field mappings already exist: actual mappings found")
                             
                             # Now apply the approved field mappings
                             logger.info("🎯 Triggering apply_approved_field_mappings listener")

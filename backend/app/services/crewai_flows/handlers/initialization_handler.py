@@ -5,16 +5,16 @@ Handles flow initialization, shared memory, knowledge bases, and planning setup
 
 import logging
 import os
-from typing import Dict, List, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 # Initialize logger first before any usage
 logger = logging.getLogger(__name__)
 
 # CrewAI imports for advanced features
 try:
+    from crewai.knowledge import JSONKnowledgeSource, Knowledge, TextFileKnowledgeSource
     from crewai.memory import LongTermMemory
-    from crewai.knowledge import Knowledge, JSONKnowledgeSource, TextFileKnowledgeSource
     CREWAI_ADVANCED_AVAILABLE = True
     logger.info("✅ CrewAI advanced features available")
 except ImportError:

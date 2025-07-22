@@ -5,9 +5,10 @@ Part of the Agent Observability Enhancement Phase 2
 """
 
 import logging
-from typing import Optional, Dict, Any
-from app.services.crewai_flows.handlers.callback_handler import CallbackHandler
+from typing import Any, Dict, Optional
+
 from app.core.context import RequestContext
+from app.services.crewai_flows.handlers.callback_handler import CallbackHandler
 
 logger = logging.getLogger(__name__)
 

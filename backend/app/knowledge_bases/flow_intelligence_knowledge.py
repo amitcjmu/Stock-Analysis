@@ -10,8 +10,9 @@ This knowledge base provides the agent with:
 - Context requirements for multi-tenant operations
 """
 
-from typing import Dict, List, Any, Optional
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
 
 class FlowType(Enum):
     DISCOVERY = "discovery"

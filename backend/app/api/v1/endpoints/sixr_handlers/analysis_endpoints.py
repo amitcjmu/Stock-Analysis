@@ -4,11 +4,12 @@ Handles core analysis CRUD operations and bulk analysis.
 """
 
 import logging
-from typing import List, Dict, Any, Optional
 from datetime import datetime
-from fastapi import HTTPException, status, BackgroundTasks
+from typing import Any, Dict, List, Optional
+
+from fastapi import BackgroundTasks, HTTPException, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
 
 logger = logging.getLogger(__name__)
 
@@ -22,10 +23,16 @@ class AnalysisEndpointsHandler:
     def _initialize_dependencies(self):
         """Initialize dependencies with graceful fallbacks."""
         try:
-            from app.models.sixr_analysis import SixRAnalysis, SixRParameters as SixRParametersModel
+            from app.models.sixr_analysis import SixRAnalysis
+            from app.models.sixr_analysis import SixRParameters as SixRParametersModel
             from app.schemas.sixr_analysis import (
-                SixRAnalysisRequest, SixRAnalysisResponse, SixRAnalysisListResponse,
-                BulkAnalysisRequest, BulkAnalysisResponse, AnalysisStatus, SixRParameterBase
+                AnalysisStatus,
+                BulkAnalysisRequest,
+                BulkAnalysisResponse,
+                SixRAnalysisListResponse,
+                SixRAnalysisRequest,
+                SixRAnalysisResponse,
+                SixRParameterBase,
             )
             from app.services.sixr_engine_modular import SixRDecisionEngine
             

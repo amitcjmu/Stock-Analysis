@@ -1,7 +1,9 @@
 """Check collection flow details"""
 import asyncio
-import httpx
 import json
+
+import httpx
+
 
 async def check_flow_details():
     async with httpx.AsyncClient(base_url="http://localhost:8000") as client:

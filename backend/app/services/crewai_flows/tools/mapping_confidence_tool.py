@@ -3,9 +3,10 @@ Mapping Confidence Tools for Field Mapping Crew
 Provides confidence scoring and validation for field mappings
 """
 
-import logging
 import json
-from typing import Dict, List, Any, Optional
+import logging
+from typing import Any, Dict, List, Optional
+
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 

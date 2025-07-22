@@ -26,17 +26,22 @@ Usage:
 """
 
 # Import all public interfaces for backward compatibility
-from .types import MonitoringLevel, AlertSeverity, MetricType, HealthStatus
-from .models import (
-    MetricPoint, ProgressMilestone, WorkflowProgress, PerformanceMetrics,
-    AlertDefinition, Alert, MonitoringSession
-)
 from .alerts import AlertManager
-from .metrics import MetricsCollector
-from .progress import ProgressTracker
-from .health import HealthMonitor
 from .analytics import AnalyticsEngine
+from .health import HealthMonitor
+from .metrics import MetricsCollector
+from .models import (
+    Alert,
+    AlertDefinition,
+    MetricPoint,
+    MonitoringSession,
+    PerformanceMetrics,
+    ProgressMilestone,
+    WorkflowProgress,
+)
+from .progress import ProgressTracker
 from .service import WorkflowMonitoringService
+from .types import AlertSeverity, HealthStatus, MetricType, MonitoringLevel
 
 # Export all public interfaces
 __all__ = [

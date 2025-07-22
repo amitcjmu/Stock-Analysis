@@ -4,8 +4,9 @@ Handles demo user creation and demo functionality for development/testing.
 """
 
 import logging
-from typing import Dict, Any
-from fastapi import APIRouter, HTTPException, Depends
+from typing import Any, Dict
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db

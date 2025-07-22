@@ -5,16 +5,18 @@ Tests the database migration and model functionality.
 """
 
 import asyncio
-import sys
 import os
+import sys
 from pathlib import Path
 
 # Add the backend directory to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import AsyncSessionLocal
-from app.models.asset import Asset, AssetType, AssetStatus, SixRStrategy
+from app.models.asset import Asset, AssetStatus, AssetType, SixRStrategy
+
 
 async def create_test_migration():
     """Create a test migration record for the foreign key constraint."""
@@ -232,7 +234,7 @@ async def test_workflow_integration():
             await db.commit()
             await db.refresh(test_asset)
             
-            print(f"✅ Created asset with workflow progression:")
+            print("✅ Created asset with workflow progression:")
             print(f"   Discovery: {test_asset.discovery_status}")
             print(f"   Mapping: {test_asset.mapping_status}")
             print(f"   Cleanup: {test_asset.cleanup_status}")
@@ -246,7 +248,7 @@ async def test_workflow_integration():
             test_asset.assessment_readiness = "ready"
             await db.commit()
             
-            print(f"✅ Updated workflow progression:")
+            print("✅ Updated workflow progression:")
             print(f"   New Migration Readiness: {test_asset.get_migration_readiness_score():.1f}")
             
             # Clean up

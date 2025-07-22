@@ -4,18 +4,20 @@ User Routes
 API endpoints for user context operations.
 """
 
-from typing import Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from typing import Any, Dict, Optional
+
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.auth.auth_utils import get_current_user
 from app.core.database import get_db
 from app.models import User
-from app.api.v1.auth.auth_utils import get_current_user
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.schemas.context import UserContext
 from app.services.discovery_flow_service import DiscoveryFlowService
-from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-from ..services.user_service import UserService
+
 from ..models.context_schemas import UpdateUserDefaultsRequest, UpdateUserDefaultsResponse
+from ..services.user_service import UserService
 
 router = APIRouter()
 

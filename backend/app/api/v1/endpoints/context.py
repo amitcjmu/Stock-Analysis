@@ -17,20 +17,15 @@ from .context import router
 # Also export individual components if needed elsewhere
 from .context.models.context_schemas import (
     ClientResponse,
-    EngagementResponse,
     ClientsListResponse,
+    EngagementResponse,
     EngagementsListResponse,
     UpdateUserDefaultsRequest,
     UpdateUserDefaultsResponse,
     ValidateContextRequest,
-    ValidateContextResponse
+    ValidateContextResponse,
 )
-
-from .context.services import (
-    ClientService,
-    EngagementService,
-    ValidationService
-)
+from .context.services import ClientService, EngagementService, ValidationService
 
 __all__ = [
     'router',

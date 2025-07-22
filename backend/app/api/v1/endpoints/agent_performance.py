@@ -4,18 +4,19 @@ Provides comprehensive agent observability endpoints for individual agent metric
 Part of the Agent Observability Enhancement Phase 3
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query
-from typing import Dict, List, Any, Optional
-from datetime import datetime, timedelta, date
 import logging
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.dependencies import get_db
 from app.core.context import RequestContext, get_request_context
-from app.services.agent_task_history_service import AgentTaskHistoryService
-from app.services.agent_performance_aggregation_service import agent_performance_aggregation_service
-from app.services.agent_monitor import agent_monitor
 from app.core.logging import get_logger as enhanced_get_logger
+from app.services.agent_monitor import agent_monitor
+from app.services.agent_performance_aggregation_service import agent_performance_aggregation_service
+from app.services.agent_task_history_service import AgentTaskHistoryService
 
 logger = enhanced_get_logger(__name__)
 
@@ -348,7 +349,7 @@ async def get_agents_activity_feed(
             sync_db.close()
         
         logger.info(
-            f"Retrieved activity feed",
+            "Retrieved activity feed",
             extra={
                 "limit": limit,
                 "agent_filter": agent_filter,
@@ -419,7 +420,7 @@ async def get_discovered_patterns(
         patterns = patterns[:limit]
         
         logger.info(
-            f"Retrieved discovered patterns",
+            "Retrieved discovered patterns",
             extra={
                 "agent_name": agent_name,
                 "pattern_type": pattern_type,
@@ -491,7 +492,7 @@ async def get_all_agents_summary(
             summary["is_active"] = summary["agent_name"] in active_agents
         
         logger.info(
-            f"Retrieved summary for all agents",
+            "Retrieved summary for all agents",
             extra={
                 "days": days,
                 "agent_count": len(summaries)

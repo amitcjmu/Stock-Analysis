@@ -5,12 +5,14 @@ Provides monitoring capabilities for the legacy Phase 2 crew system including
 crew status, available crews, and flow information.
 """
 
-from fastapi import APIRouter, HTTPException, Depends
-from typing import Dict, Any
 import logging
 from datetime import datetime
+from typing import Any, Dict
+
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.logging import get_logger as enhanced_get_logger
+
 from .base import get_monitoring_context
 
 logger = enhanced_get_logger(__name__)

@@ -4,12 +4,13 @@ On-Premises Platform Adapter Package
 This package provides modular components for on-premises infrastructure discovery.
 """
 
-from .adapter import OnPremisesAdapter
-from .models import OnPremisesCredentials, DiscoveredHost
+from app.models.collection_flow import AutomationTier
 
 # Re-export metadata for backward compatibility
-from app.services.collection_flow.adapters import AdapterMetadata, AdapterCapability
-from app.models.collection_flow import AutomationTier
+from app.services.collection_flow.adapters import AdapterCapability, AdapterMetadata
+
+from .adapter import OnPremisesAdapter
+from .models import DiscoveredHost, OnPremisesCredentials
 
 # On-premises Adapter metadata for registration
 ONPREMISES_ADAPTER_METADATA = AdapterMetadata(

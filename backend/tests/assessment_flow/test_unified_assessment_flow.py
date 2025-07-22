@@ -5,18 +5,19 @@ This module tests the core assessment flow logic with mocked CrewAI agents
 to ensure fast, isolated unit testing.
 """
 
-import pytest
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 # Import assessment flow components (these will be created by other agents)
 try:
-    from app.services.crewai_flows.unified_assessment_flow import UnifiedAssessmentFlow
-    from app.models.assessment_flow import AssessmentFlowState, AssessmentPhase
     from app.core.flow_context import FlowContext
+    from app.models.assessment_flow import AssessmentFlowState, AssessmentPhase
     from app.repositories.assessment_flow_repository import AssessmentFlowRepository
+    from app.services.crewai_flows.unified_assessment_flow import UnifiedAssessmentFlow
     ASSESSMENT_AVAILABLE = True
 except ImportError:
     # Mock classes for when components don't exist yet
@@ -44,17 +45,17 @@ except ImportError:
     AssessmentFlowRepository = MagicMock
 
 from tests.fixtures.assessment_fixtures import (
-    sample_assessment_flow_state,
-    mock_crewai_service,
-    sample_applications,
-    sample_engagement_context,
-    sample_architecture_standards,
-    sample_component_analysis_result,
-    sample_sixr_strategy_result,
+    assert_flow_state_valid,
     flow_context,
-    mock_flow_context,
     mock_assessment_repository,
-    assert_flow_state_valid
+    mock_crewai_service,
+    mock_flow_context,
+    sample_applications,
+    sample_architecture_standards,
+    sample_assessment_flow_state,
+    sample_component_analysis_result,
+    sample_engagement_context,
+    sample_sixr_strategy_result,
 )
 
 

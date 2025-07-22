@@ -4,11 +4,11 @@ Learning handler for discovery agent.
 This module contains the learning-related endpoints for the discovery agent.
 """
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
@@ -128,7 +128,7 @@ async def handle_field_mapping_action(
                 
                 return {
                     "status": "success",
-                    "message": f"Field mapping approved and saved successfully",
+                    "message": "Field mapping approved and saved successfully",
                     "source_field": source_field,
                     "target_field": target_field,
                     "action": action,
@@ -141,7 +141,7 @@ async def handle_field_mapping_action(
                 logger.error(f"Failed to save mapping to database: {e}")
                 return {
                     "status": "success",
-                    "message": f"Field mapping approved (database save failed)",
+                    "message": "Field mapping approved (database save failed)",
                     "source_field": source_field,
                     "target_field": target_field,
                     "action": action,

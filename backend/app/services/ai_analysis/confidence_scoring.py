@@ -10,10 +10,10 @@ Built by: Agent Team B2 (AI Analysis & Intelligence)
 
 import logging
 import math
-from typing import Dict, List, Any, Optional, Union, Tuple
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
-from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 logger = logging.getLogger(__name__)
 

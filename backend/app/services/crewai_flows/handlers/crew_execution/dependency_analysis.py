@@ -4,12 +4,12 @@ Handles both App-Server and App-App dependency crews
 """
 
 import logging
-from typing import Dict, Any
 from datetime import datetime
+from typing import Any, Dict
 
 from .base import CrewExecutionBase
-from .parsers import CrewResultParser
 from .fallbacks import CrewFallbackHandler
+from .parsers import CrewResultParser
 
 logger = logging.getLogger(__name__)
 

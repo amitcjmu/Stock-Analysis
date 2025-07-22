@@ -3,12 +3,14 @@ Summary manager for discovery flow reporting and analytics.
 """
 
 import logging
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.discovery_flow import DiscoveryFlow
-from app.models.asset import Asset
 from app.core.context import RequestContext
+from app.models.asset import Asset
+from app.models.discovery_flow import DiscoveryFlow
+
 from .asset_manager import AssetManager
 
 logger = logging.getLogger(__name__)

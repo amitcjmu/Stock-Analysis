@@ -5,8 +5,9 @@ Handles asset inventory phase execution for the Unified Discovery Flow.
 
 import asyncio
 import logging
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 from .base_phase_executor import BasePhaseExecutor
 
 logger = logging.getLogger(__name__)
@@ -250,6 +251,7 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 
                 # Get existing asset identifiers to prevent duplicates
                 from sqlalchemy import select
+
                 from app.models.asset import Asset
                 existing_assets_query = select(Asset.name, Asset.hostname, Asset.ip_address).where(
                     Asset.client_account_id == context.client_account_id,
@@ -545,10 +547,12 @@ class AssetInventoryExecutor(BasePhaseExecutor):
     
     async def _link_assets_to_raw_records(self, created_assets: List, asset_data_list: List[Dict[str, Any]]):
         """Link created assets back to their raw import records for full traceability"""
+        from datetime import datetime
+
+        from sqlalchemy import update
+
         from app.core.database import AsyncSessionLocal
         from app.models.data_import.core import RawImportRecord
-        from sqlalchemy import update
-        from datetime import datetime
         
         try:
             async with AsyncSessionLocal() as session:

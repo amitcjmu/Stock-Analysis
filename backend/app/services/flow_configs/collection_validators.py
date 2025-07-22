@@ -7,8 +7,8 @@ gap analysis, manual collection, and synthesis phases.
 """
 
 import logging
-from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

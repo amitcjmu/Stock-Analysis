@@ -2,13 +2,13 @@
 Discovery Integration and Database Persistence Handler
 """
 
+import asyncio
+import hashlib
 import logging
 import threading
-import asyncio
 import uuid as uuid_pkg
-import hashlib
-from typing import Dict, Any
 from datetime import datetime
+from typing import Any, Dict
 
 from .base import CrewExecutionBase
 
@@ -86,11 +86,12 @@ class DiscoveryIntegrationExecutor(CrewExecutionBase):
 
     async def _async_persist_discovery_data(self, state) -> Dict[str, Any]:
         """Async method to persist discovery data to database"""
-        from app.core.database import AsyncSessionLocal
-        from app.models.data_import import DataImport, RawImportRecord, ImportStatus
-        from app.models.data_import_session import DataImportSession
-        from app.models.data_import.mapping import ImportFieldMapping
         from sqlalchemy.exc import SQLAlchemyError
+
+        from app.core.database import AsyncSessionLocal
+        from app.models.data_import import DataImport, ImportStatus, RawImportRecord
+        from app.models.data_import.mapping import ImportFieldMapping
+        from app.models.data_import_session import DataImportSession
         
         assets_created = 0
         imports_created = 0 
@@ -206,7 +207,7 @@ class DiscoveryIntegrationExecutor(CrewExecutionBase):
                 # 4. Commit all changes
                 await db_session.commit()
                 
-                logger.info(f"✅ Database persistence completed:")
+                logger.info("✅ Database persistence completed:")
                 logger.info(f"   - Imports created: {imports_created}")
                 logger.info(f"   - Records created: {records_created}")
                 logger.info(f"   - Field mappings created: {field_mappings_created}")

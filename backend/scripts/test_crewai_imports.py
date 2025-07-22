@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
 try:
-    from crewai.flow.flow import Flow, listen, start
     from crewai.flow import persist
+    from crewai.flow.flow import Flow, listen, start
     print("✅ CrewAI Flow imports successful")
 except ImportError as e:
     print(f"❌ CrewAI Flow import failed: {e}")
 
 try:
-    from crewai import Agent, Task, Crew
+    from crewai import Agent, Crew, Task
     print("✅ CrewAI core imports successful")
 except ImportError as e:
     print(f"❌ CrewAI core import failed: {e}")
@@ -34,5 +34,6 @@ except ImportError:
 
 # Check environment variables
 import os
+
 print(f"DEEPINFRA_API_KEY: {'set' if os.getenv('DEEPINFRA_API_KEY') else 'not set'}")
 print(f"OPENAI_API_KEY: {'set' if os.getenv('OPENAI_API_KEY') else 'not set'}") 

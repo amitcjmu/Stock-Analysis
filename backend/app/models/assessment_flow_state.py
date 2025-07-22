@@ -2,12 +2,13 @@
 Assessment Flow State Models - Pydantic v2 Models
 Complete Pydantic models for assessment flow state management with proper typing and validation.
 """
-from enum import Enum
 from datetime import datetime
-from typing import Optional, Dict, Any, List, Literal, Union
 from decimal import Decimal
-from pydantic import BaseModel, Field, ConfigDict, field_validator, computed_field
+from enum import Enum
+from typing import Any, Dict, List, Literal, Optional, Union
 from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 
 # === CORE ENUMS ===
 

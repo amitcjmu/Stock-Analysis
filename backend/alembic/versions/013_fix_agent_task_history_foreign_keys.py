@@ -5,9 +5,10 @@ Revises: 012_agent_observability_enhancement
 Create Date: 2025-01-21 04:20:00.000000
 
 """
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = '013_fix_agent_task_history_foreign_keys'

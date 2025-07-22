@@ -4,10 +4,11 @@ Run integration tests that simulate real browser interactions
 This ensures we catch runtime errors before deployment
 """
 
-import sys
-import pytest
 import asyncio
+import sys
 from pathlib import Path
+
+import pytest
 
 # Add backend to path
 backend_path = Path(__file__).parent.parent

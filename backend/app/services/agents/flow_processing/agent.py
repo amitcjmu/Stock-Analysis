@@ -6,10 +6,10 @@ interface while delegating to the new modular CrewAI implementation.
 """
 
 import asyncio
-from typing import Dict, Any
+from typing import Any, Dict
 
-from .models import FlowContinuationResult
 from .crew import UniversalFlowProcessingCrew
+from .models import FlowContinuationResult
 
 
 class FlowProcessingAgent:

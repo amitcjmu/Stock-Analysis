@@ -2,16 +2,18 @@
 Data Import Field Mapping Model
 """
 from __future__ import annotations
+
 from datetime import datetime
+
 from sqlalchemy import (
-    Column,
-    String,
-    DateTime,
-    Text,
     JSON,
     Boolean,
-    ForeignKey,
+    Column,
+    DateTime,
     Float,
+    ForeignKey,
+    String,
+    Text,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship

@@ -10,30 +10,28 @@ collection flow for all execution logic.
 """
 
 import asyncio
-import uuid
 import logging
-from datetime import datetime
-from typing import Dict, Any, List, Optional, Tuple
+import uuid
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.logging import get_logger
 from app.core.context import RequestContext
 from app.core.exceptions import FlowError, InvalidFlowStateError
+from app.core.logging import get_logger
+
+# Import models for backward compatibility
+from app.models.collection_flow import AutomationTier, CollectionFlowStatus, CollectionPhase
 
 # Import the new unified collection flow
 from app.services.crewai_flows.unified_collection_flow import (
+    CREWAI_FLOW_AVAILABLE,
     UnifiedCollectionFlow,
     create_unified_collection_flow,
-    CREWAI_FLOW_AVAILABLE
-)
-
-# Import models for backward compatibility
-from app.models.collection_flow import (
-    AutomationTier, CollectionFlowStatus, CollectionPhase
 )
 
 logger = get_logger(__name__)

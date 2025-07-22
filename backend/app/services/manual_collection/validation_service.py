@@ -8,15 +8,15 @@ and confidence scoring.
 Agent Team B3 - Task B3.3
 """
 
-from typing import Dict, List, Optional, Any, Union, Tuple
-from dataclasses import dataclass
-from enum import Enum
 import logging
 import re
+from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple, Union
 from uuid import UUID
 
-from .adaptive_form_service import FormField, AdaptiveForm, FieldType, ValidationRule, ConditionalDisplayRule
+from .adaptive_form_service import AdaptiveForm, ConditionalDisplayRule, FieldType, FormField, ValidationRule
 
 
 class ValidationResult(str, Enum):

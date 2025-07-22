@@ -9,11 +9,13 @@ This migration fixes field name mismatches in raw_import_records table:
 2. Renames processed_data to cleansed_data
 3. Drops deprecated record_id column
 """
-from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 import logging
+
+import sqlalchemy as sa
 from sqlalchemy import text
+from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = 'raw_records_fix_20250101'

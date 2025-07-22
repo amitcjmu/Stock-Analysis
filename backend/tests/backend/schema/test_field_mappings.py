@@ -4,10 +4,13 @@ Test script to check and generate field mappings for the latest discovery flow
 """
 import asyncio
 import json
+
+from sqlalchemy import func, select
+
 from app.core.database import get_db
-from app.models.discovery_flow import DiscoveryFlow
 from app.models.data_import import DataImport, ImportFieldMapping, RawImportRecord
-from sqlalchemy import select, func
+from app.models.discovery_flow import DiscoveryFlow
+
 
 async def test_field_mappings():
     async for db in get_db():

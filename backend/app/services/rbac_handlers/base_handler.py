@@ -3,16 +3,23 @@ Base handler for RBAC operations with common functionality.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
 
 # Import RBAC models with fallback
 try:
     from app.models.rbac import (
-        UserProfile, UserRole, ClientAccess, EngagementAccess, AccessAuditLog,
-        UserStatus, AccessLevel, RoleType
+        AccessAuditLog,
+        AccessLevel,
+        ClientAccess,
+        EngagementAccess,
+        RoleType,
+        UserProfile,
+        UserRole,
+        UserStatus,
     )
     RBAC_MODELS_AVAILABLE = True
 except ImportError:

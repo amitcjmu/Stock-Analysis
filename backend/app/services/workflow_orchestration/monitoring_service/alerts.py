@@ -6,14 +6,14 @@ Handles alert definitions, evaluation, management, and acknowledgment.
 """
 
 import uuid
-from datetime import datetime
-from typing import Dict, Any, List, Optional, Union
 from dataclasses import asdict
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
 
 from app.core.logging import get_logger
 
+from .models import Alert, AlertDefinition
 from .types import AlertSeverity
-from .models import AlertDefinition, Alert
 
 logger = get_logger(__name__)
 

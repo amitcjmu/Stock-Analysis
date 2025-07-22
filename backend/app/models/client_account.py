@@ -3,11 +3,11 @@ Client Account models for multi-tenant data segregation.
 """
 
 try:
-    from sqlalchemy import Column, String, Text, Boolean, DateTime, UUID, JSON, ForeignKey, UniqueConstraint, Integer
-    from sqlalchemy.orm import relationship
-    from sqlalchemy.ext.associationproxy import association_proxy
-    from sqlalchemy.sql import func
+    from sqlalchemy import JSON, UUID, Boolean, Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
     from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
+    from sqlalchemy.ext.associationproxy import association_proxy
+    from sqlalchemy.orm import relationship
+    from sqlalchemy.sql import func
     SQLALCHEMY_AVAILABLE = True
 except ImportError:
     SQLALCHEMY_AVAILABLE = False

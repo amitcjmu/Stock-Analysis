@@ -6,12 +6,13 @@ and routing across all flow types (Discovery, Assess, Plan, Execute, etc.).
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .crewai_imports import Agent, Task, Crew, Process, CREWAI_AVAILABLE, get_crewai_llm, LLM_AVAILABLE
-from .models import FlowAnalysisResult, RouteDecision, FlowContinuationResult
-from .tools import FlowStateAnalysisTool, PhaseValidationTool, FlowValidationTool, RouteDecisionTool
+from .crewai_imports import CREWAI_AVAILABLE, LLM_AVAILABLE, Agent, Crew, Process, Task, get_crewai_llm
+from .models import FlowAnalysisResult, FlowContinuationResult, RouteDecision
+from .tools import FlowStateAnalysisTool, FlowValidationTool, PhaseValidationTool, RouteDecisionTool
 
 logger = logging.getLogger(__name__)
 
@@ -325,7 +326,7 @@ class UniversalFlowProcessingCrew:
                 current_phase = flow_analysis.split("Phase=")[1].split(",")[0]
             
             routing_decision = RouteDecision(
-                target_page=f"/discovery/enhanced-dashboard",
+                target_page="/discovery/enhanced-dashboard",
                 flow_id=flow_id,
                 phase=current_phase,
                 flow_type=flow_type,

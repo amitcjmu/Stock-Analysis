@@ -8,13 +8,15 @@ Quick validation of seeded data that works with the actual database structure.
 import asyncio
 import sys
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
 
 sys.path.append('/app')
 
-from sqlalchemy import text, select, func
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import AsyncSessionLocal
+
 
 async def run_simple_validation() -> Dict[str, Any]:
     """Run simplified validation checks."""
@@ -235,23 +237,23 @@ async def main():
         print(f"📈 Demo Scenario Score: {assessment['demo_scenario_score']:.1f}%")
         
         if assessment['issues']:
-            print(f"\n❌ CRITICAL ISSUES:")
+            print("\n❌ CRITICAL ISSUES:")
             for issue in assessment['issues']:
                 print(f"  • {issue}")
         
         if assessment['warnings']:
-            print(f"\n⚠️ WARNINGS:")
+            print("\n⚠️ WARNINGS:")
             for warning in assessment['warnings']:
                 print(f"  • {warning}")
         
-        print(f"\n🎯 DEMO SCENARIOS:")
+        print("\n🎯 DEMO SCENARIOS:")
         for scenario, ready in assessment['demo_scenarios'].items():
             status = "✅" if ready else "❌"
             print(f"  {status} {scenario.replace('_', ' ').title()}")
         
         # Data summary
         counts = results['record_counts']
-        print(f"\n📊 DATA SUMMARY:")
+        print("\n📊 DATA SUMMARY:")
         print(f"  • Client Accounts: {counts['client_accounts']}")
         print(f"  • Users: {counts['users']} ({len(results['user_roles'])} roles)")
         print(f"  • Assets: {counts['assets']} ({len(results['asset_types'])} types)")
@@ -260,11 +262,11 @@ async def main():
         print(f"  • Assessments: {counts['assessments']}")
         
         if assessment['demo_ready']:
-            print(f"\n🎉 DATABASE VALIDATION SUCCESSFUL!")
+            print("\n🎉 DATABASE VALIDATION SUCCESSFUL!")
             print("The platform is ready for demonstration.")
             return 0
         else:
-            print(f"\n⚠️ VALIDATION ISSUES DETECTED")
+            print("\n⚠️ VALIDATION ISSUES DETECTED")
             print("Address critical issues before demo.")
             return 1
             

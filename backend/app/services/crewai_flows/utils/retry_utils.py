@@ -4,12 +4,12 @@ Implements exponential backoff, error classification, and retry logic
 """
 
 import asyncio
-import random
 import logging
-from typing import Any, Callable, Dict, Optional, TypeVar, Union
-from functools import wraps
+import random
 from datetime import datetime
 from enum import Enum
+from functools import wraps
+from typing import Any, Callable, Dict, Optional, TypeVar, Union
 
 logger = logging.getLogger(__name__)
 
@@ -296,6 +296,6 @@ async def retry_with_metrics(
                 if attempt >= (config or RetryConfig()).max_retries:
                     raise
     
-    except Exception as e:
+    except Exception:
         retry_metrics.record_call(func_name, False, retries, error_msg)
         raise

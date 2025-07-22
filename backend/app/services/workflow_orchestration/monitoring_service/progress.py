@@ -5,13 +5,13 @@ Team C1 - Task C1.6
 Handles workflow progress tracking, milestones, and completion estimation.
 """
 
-from datetime import datetime
-from typing import Dict, Any, List, Optional
 from dataclasses import asdict
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from app.core.logging import get_logger
 
-from .models import WorkflowProgress, ProgressMilestone
+from .models import ProgressMilestone, WorkflowProgress
 
 logger = get_logger(__name__)
 

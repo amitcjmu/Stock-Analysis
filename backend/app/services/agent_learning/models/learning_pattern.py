@@ -4,7 +4,7 @@ Learning Pattern Models - Patterns learned by the agent system
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 from .learning_context import LearningContext
 

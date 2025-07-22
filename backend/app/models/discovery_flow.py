@@ -4,12 +4,15 @@ CrewAI Flow ID as single source of truth, eliminating session_id dependencies
 """
 import uuid
 from datetime import datetime
-from typing import Optional, Dict, Any, List
-from sqlalchemy import Column, String, DateTime, JSON, ForeignKey, Float, Boolean, Integer, Text
-from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.sql import func
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import JSON, Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.core.database import Base
+
 
 class DiscoveryFlow(Base):
     """

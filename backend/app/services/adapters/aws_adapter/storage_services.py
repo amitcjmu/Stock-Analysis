@@ -2,8 +2,8 @@
 AWS Storage Services Collection (S3)
 """
 
-from typing import Dict, Any, List
 import logging
+from typing import Any, Dict, List
 
 try:
     import boto3

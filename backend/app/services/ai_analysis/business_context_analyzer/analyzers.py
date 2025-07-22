@@ -8,9 +8,9 @@ Built by: Agent Team B2 (AI Analysis & Intelligence)
 """
 
 import logging
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
-from .enums import BusinessDomain, OrganizationSize, StakeholderRole, MigrationDriverType
+from .enums import BusinessDomain, MigrationDriverType, OrganizationSize, StakeholderRole
 from .models import BusinessContext
 
 logger = logging.getLogger(__name__)

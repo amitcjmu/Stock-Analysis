@@ -6,12 +6,13 @@ Generates automation tier recommendations based on environment analysis and hist
 """
 
 import uuid
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from app.core.logging import get_logger
+
 from ...tier_routing_service.enums import AutomationTier
-from ..models import WorkflowRecommendation, RecommendationInsight, LearningPattern
-from ..enums import RecommendationType, RecommendationConfidence, RecommendationSource
+from ..enums import RecommendationConfidence, RecommendationSource, RecommendationType
+from ..models import LearningPattern, RecommendationInsight, WorkflowRecommendation
 
 logger = get_logger(__name__)
 

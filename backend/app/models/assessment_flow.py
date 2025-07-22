@@ -6,12 +6,26 @@ Includes both database models and in-memory state models for CrewAI flow compati
 """
 import uuid
 from datetime import datetime
-from typing import Optional, Dict, Any, List
 from enum import Enum
-from sqlalchemy import Column, String, DateTime, Integer, Boolean, Text, Float, ForeignKey, CheckConstraint, UniqueConstraint, Numeric
-from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.sql import func
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+)
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.core.database import Base
 
 

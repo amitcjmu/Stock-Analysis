@@ -4,14 +4,15 @@ Test script for DeepInfra Llama 4 Maverick LLM integration.
 """
 
 import asyncio
-import sys
 import os
+import sys
 
 # Add the backend directory to the Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app.services.deepinfra_llm import create_deepinfra_llm
 from app.core.config import settings
+from app.services.deepinfra_llm import create_deepinfra_llm
+
 
 async def test_deepinfra_llm():
     """Test the DeepInfra LLM integration."""

@@ -2,12 +2,14 @@
 Base classes for context-aware components
 """
 
-from abc import ABC
-from typing import Optional, Any, Dict
-from app.core.context import get_required_context, RequestContext, require_context
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_
 import logging
+from abc import ABC
+from typing import Any, Dict, Optional
+
+from sqlalchemy import and_, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.context import RequestContext, get_required_context, require_context
 
 logger = logging.getLogger(__name__)
 

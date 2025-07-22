@@ -7,10 +7,10 @@ Built by: Agent Team B2 (AI Analysis & Intelligence)
 
 import logging
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
-from .models import LearningEvent, LearningInsight, OptimizationRecommendation
 from .enums import LearningPattern, OptimizationStrategy
+from .models import LearningEvent, LearningInsight, OptimizationRecommendation
 
 logger = logging.getLogger(__name__)
 

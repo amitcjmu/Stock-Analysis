@@ -5,7 +5,7 @@ Extracted from unified_discovery_flow.py for better modularity.
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -63,10 +63,10 @@ class UnifiedFlowCrewManager:
             field_mapping_factory = create_fast_field_mapping_crew
             logger.info("✅ Using OPTIMIZED field mapping crew for performance")
             from app.services.crewai_flows.crews.data_cleansing_crew import create_data_cleansing_crew
-            from app.services.crewai_flows.crews.inventory_building_crew import create_inventory_building_crew
-            from app.services.crewai_flows.crews.dependency_analysis_crew import create_dependency_analysis_crew
-            from app.services.crewai_flows.crews.technical_debt_crew import create_technical_debt_crew
             from app.services.crewai_flows.crews.data_import_validation_crew import create_data_import_validation_crew
+            from app.services.crewai_flows.crews.dependency_analysis_crew import create_dependency_analysis_crew
+            from app.services.crewai_flows.crews.inventory_building_crew import create_inventory_building_crew
+            from app.services.crewai_flows.crews.technical_debt_crew import create_technical_debt_crew
             
             # Store factory functions
             self.crew_factories = {

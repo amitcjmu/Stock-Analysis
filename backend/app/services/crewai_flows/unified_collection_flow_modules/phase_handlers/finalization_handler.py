@@ -6,11 +6,9 @@ Handles the finalization phase of the collection flow.
 
 import logging
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
 
-from app.models.collection_flow import (
-    CollectionFlowState, CollectionPhase, CollectionStatus, CollectionFlowError
-)
+from app.models.collection_flow import CollectionFlowError, CollectionFlowState, CollectionPhase, CollectionStatus
 from app.services.crewai_flows.handlers.enhanced_error_handler import enhanced_error_handler
 
 logger = logging.getLogger(__name__)

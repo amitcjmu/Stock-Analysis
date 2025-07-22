@@ -5,19 +5,15 @@ Handles the orchestration of automated data collection in the collection flow.
 This manager coordinates with platform adapters to collect data from detected platforms.
 """
 
-import logging
-from typing import Dict, Any, List, Optional
-from datetime import datetime
 import asyncio
+import logging
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from app.models.collection_flow import (
-    CollectionPhase, CollectionStatus, DataDomain
-)
-from app.services.collection_flow import (
-    DataTransformationService, QualityAssessmentService
-)
-from app.services.crewai_flows.utils.retry_utils import retry_with_backoff
+from app.models.collection_flow import CollectionPhase, CollectionStatus, DataDomain
+from app.services.collection_flow import DataTransformationService, QualityAssessmentService
 from app.services.crewai_flows.handlers.enhanced_error_handler import enhanced_error_handler
+from app.services.crewai_flows.utils.retry_utils import retry_with_backoff
 
 logger = logging.getLogger(__name__)
 
@@ -169,7 +165,7 @@ class AutomatedCollectionManager:
         
         # Import crew creation function
         from app.services.crewai_flows.crews.collection.automated_collection_crew import (
-            create_automated_collection_crew
+            create_automated_collection_crew,
         )
         
         # Get available adapters

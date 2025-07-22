@@ -5,22 +5,23 @@ Provides real-time updates for all flow types through HTTP/2 SSE,
 connecting the Agent-UI Bridge to frontend clients.
 """
 
-from fastapi import APIRouter, Request, Depends, HTTPException, Header, Response
-from fastapi.responses import StreamingResponse
-from sse_starlette.sse import EventSourceResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import AsyncGenerator, Dict, Any, Optional
 import asyncio
+import hashlib
 import json
 import logging
-import hashlib
 from datetime import datetime
+from typing import Any, AsyncGenerator, Dict, Optional
 
-from app.core.database import get_db
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
+from fastapi.responses import StreamingResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+from sse_starlette.sse import EventSourceResponse
+
 from app.core.context import RequestContext, get_current_context
+from app.core.database import get_db
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.services.agent_ui_bridge import agent_ui_bridge
 from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 
 logger = logging.getLogger(__name__)
 

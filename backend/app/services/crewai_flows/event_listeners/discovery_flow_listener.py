@@ -11,43 +11,40 @@ The listener captures Flow, Crew, Agent, and Task events to provide:
 - Task completion and failure tracking
 """
 
-import logging
 import json
-from typing import Dict, Any, Optional, List
-from datetime import datetime
+import logging
 from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 # Import console manager to prevent Rich display conflicts
 from .console_manager import console_manager
 
 try:
     from crewai.utilities.events import (
-        # Flow Events - These are what we need for flow tracking
-        FlowCreatedEvent,
-        FlowStartedEvent, 
-        FlowFinishedEvent,
-        MethodExecutionStartedEvent,
-        MethodExecutionFinishedEvent,
-        MethodExecutionFailedEvent,
-        
-        # Crew Events - For crew-level progress
-        CrewKickoffStartedEvent,
-        CrewKickoffCompletedEvent,
-        CrewKickoffFailedEvent,
-        
-        # Agent and Task Events - For detailed progress
-        AgentExecutionStartedEvent,
         AgentExecutionCompletedEvent,
         AgentExecutionErrorEvent,
-        TaskStartedEvent,
+        # Agent and Task Events - For detailed progress
+        AgentExecutionStartedEvent,
+        CrewKickoffCompletedEvent,
+        CrewKickoffFailedEvent,
+        # Crew Events - For crew-level progress
+        CrewKickoffStartedEvent,
+        # Flow Events - These are what we need for flow tracking
+        FlowCreatedEvent,
+        FlowFinishedEvent,
+        FlowStartedEvent,
+        LLMCallCompletedEvent,
+        LLMCallStartedEvent,
+        MethodExecutionFailedEvent,
+        MethodExecutionFinishedEvent,
+        MethodExecutionStartedEvent,
         TaskCompletedEvent,
         TaskFailedEvent,
-        
+        TaskStartedEvent,
+        ToolUsageFinishedEvent,
         # Tool and LLM Events - For operational insights
         ToolUsageStartedEvent,
-        ToolUsageFinishedEvent,
-        LLMCallStartedEvent,
-        LLMCallCompletedEvent
     )
     from crewai.utilities.events.base_event_listener import BaseEventListener
     CREWAI_EVENTS_AVAILABLE = True
@@ -539,7 +536,7 @@ class DiscoveryFlowEventListener(BaseEventListener):
                 logger.warning(f"Could not query CrewAI Flow Service: {service_error}")
             
             # Method 7: Last resort - log comprehensive error and return None
-            logger.error(f"❌ Could not extract flow ID from any source:")
+            logger.error("❌ Could not extract flow ID from any source:")
             logger.error(f"   Source type: {type(source)}")
             logger.error(f"   Source attributes: {[attr for attr in dir(source) if not attr.startswith('_')]}")
             logger.error(f"   Event type: {type(event)}")

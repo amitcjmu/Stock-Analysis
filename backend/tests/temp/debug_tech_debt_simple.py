@@ -7,6 +7,7 @@ sys.path.append('/app')
 
 from app.services.tech_debt_analysis_agent import tech_debt_analysis_agent
 
+
 async def simple_test():
     print("=== SIMPLE TECH DEBT TEST ===")
     

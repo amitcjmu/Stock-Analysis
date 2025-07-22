@@ -8,15 +8,16 @@ data gaps identified by the gap analysis agent.
 Built by: Agent Team B2 (AI Analysis & Intelligence)
 """
 
-import logging
 import json
-from typing import List, Dict, Any, Optional, Union
+import logging
 from datetime import datetime, timezone
-from uuid import UUID
 from enum import Enum
+from typing import Any, Dict, List, Optional, Union
+from uuid import UUID
 
 try:
-    from crewai import Agent, Task, Process
+    from crewai import Agent, Process, Task
+
     from app.services.crews.base_crew import BaseDiscoveryCrew
     CREWAI_AVAILABLE = True
 except ImportError:
@@ -348,7 +349,7 @@ class AdaptiveQuestionnaireGenerator(BaseDiscoveryCrew):
         # Task 2: Business Context Validation
         if len(self.agents) > 1:
             business_context_task = Task(
-                description=f"""
+                description="""
                 BUSINESS CONTEXT VALIDATION AND OPTIMIZATION
                 
                 Review the questionnaire design for business context alignment:

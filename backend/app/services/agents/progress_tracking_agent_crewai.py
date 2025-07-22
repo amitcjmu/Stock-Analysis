@@ -2,11 +2,14 @@
 Progress Tracking Agent - Monitors manual data collection progress
 """
 
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 from crewai import Agent
+
 from app.services.agents.base_agent import BaseCrewAIAgent
 from app.services.agents.metadata import AgentMetadata
 from app.services.llm_config import get_crewai_llm
+
 
 class ProgressTrackingAgent(BaseCrewAIAgent):
     """

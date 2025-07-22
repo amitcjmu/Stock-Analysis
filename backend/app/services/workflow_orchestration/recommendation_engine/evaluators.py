@@ -6,13 +6,14 @@ Evaluation and learning methods for recommendation outcomes and pattern updates.
 """
 
 import statistics
-from datetime import datetime, timedelta
-from typing import Dict, Any, List
 from dataclasses import asdict
+from datetime import datetime, timedelta
+from typing import Any, Dict, List
 
-from app.core.logging import get_logger
 from app.core.exceptions import FlowError
-from .models import RecommendationPackage, WorkflowRecommendation, LearningPattern
+from app.core.logging import get_logger
+
+from .models import LearningPattern, RecommendationPackage, WorkflowRecommendation
 
 logger = get_logger(__name__)
 

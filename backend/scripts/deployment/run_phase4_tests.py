@@ -22,16 +22,16 @@ Usage:
     python scripts/deployment/run_phase4_tests.py --generate-report
 """
 
-import asyncio
 import argparse
-import logging
+import asyncio
 import json
+import logging
+import os
 import subprocess
 import sys
-import os
 from datetime import datetime
-from typing import Dict, Any, List, Optional
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 # Configure logging
 logging.basicConfig(

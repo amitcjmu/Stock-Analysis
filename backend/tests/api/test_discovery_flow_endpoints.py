@@ -9,14 +9,16 @@ Tests complete API workflows including:
 - Real-time WebSocket communication testing
 """
 
-import pytest
 import asyncio
 import json
-from typing import Dict, List, Any
-from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, Mock, patch
-import websockets
 from datetime import datetime, timedelta
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
+import websockets
+from fastapi.testclient import TestClient
+
 
 # API testing fixtures
 @pytest.fixture

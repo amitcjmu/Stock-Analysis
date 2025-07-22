@@ -2,8 +2,8 @@
 AWS Networking Services Collection (ELB, ELBv2)
 """
 
-from typing import Dict, Any, List
 import logging
+from typing import Any, Dict, List
 
 try:
     import boto3

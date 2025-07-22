@@ -6,10 +6,10 @@ Supports both local development and Railway.app deployment.
 """
 
 try:
-    from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+    from sqlalchemy import event, text
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
     from sqlalchemy.ext.declarative import declarative_base
     from sqlalchemy.pool import NullPool, QueuePool
-    from sqlalchemy import event, text
     SQLALCHEMY_AVAILABLE = True
 except ImportError:
     SQLALCHEMY_AVAILABLE = False
@@ -29,13 +29,13 @@ except ImportError:
     def text(*args, **kwargs):
         return None
 
-import logging
 import asyncio
+import logging
 import os
 from datetime import datetime, timedelta
 from typing import Optional
 
-from app.core.config import settings, get_database_url
+from app.core.config import get_database_url, settings
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

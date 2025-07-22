@@ -3,9 +3,10 @@ Server Classification Tools for Inventory Building Crew
 Provides specialized tools for server and infrastructure classification
 """
 
-import logging
 import json
-from typing import Dict, List, Any, Optional
+import logging
+from typing import Any, Dict, List, Optional
+
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 

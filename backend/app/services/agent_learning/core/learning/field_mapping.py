@@ -3,10 +3,10 @@ Field Mapping Learning Module - Handles field mapping patterns and suggestions
 """
 
 import logging
-from typing import Dict, List, Any, Optional
-from datetime import datetime
-from dataclasses import asdict
 import uuid
+from dataclasses import asdict
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from app.services.agent_learning.models import LearningContext, LearningPattern
 

@@ -5,19 +5,20 @@ MFO-057: Test all flow types
 Tests to ensure all flow configurations are properly set up and working.
 """
 
-import pytest
 import asyncio
-from typing import Dict, Any
+from typing import Any, Dict
+
+import pytest
 
 from app.services.flow_configs import (
+    flow_configuration_manager,
+    get_flow_summary,
     initialize_all_flows,
     verify_flow_configurations,
-    get_flow_summary,
-    flow_configuration_manager
 )
 from app.services.flow_type_registry import FlowTypeRegistry
-from app.services.validator_registry import ValidatorRegistry
 from app.services.handler_registry import HandlerRegistry
+from app.services.validator_registry import ValidatorRegistry
 
 
 class TestFlowConfigurations:
@@ -320,14 +321,14 @@ def test_flow_configurations_basic():
     
     # Verify configurations
     verification = verify_flow_configurations()
-    print(f"\nVerification results:")
+    print("\nVerification results:")
     print(f"Total flows: {verification['total_flows']}")
     print(f"Consistency check: {verification['consistency_check']}")
     print(f"Issues: {verification['issues']}")
     
     # Get summary
     summary = get_flow_summary()
-    print(f"\nFlow summary:")
+    print("\nFlow summary:")
     for flow in summary:
         print(f"- {flow['name']}: {flow['phase_count']} phases, v{flow['version']}")
     

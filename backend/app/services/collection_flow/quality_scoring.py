@@ -11,21 +11,18 @@ Please update imports to use the modular structure:
 
 # Re-export all public interfaces for backward compatibility
 from .quality_scoring import (
-    # Enums
-    QualityDimension,
-    ConfidenceLevel,
-    
-    # Models
-    QualityScore,
-    ConfidenceScore,
-    
-    # Services
-    QualityAssessmentService,
     ConfidenceAssessmentService,
-    
     # Note: Constants and validators are not re-exported here as they were
     # previously private to the module. If needed, they can be imported from
     # the quality_scoring package directly.
+    ConfidenceLevel,
+    ConfidenceScore,
+    # Services
+    QualityAssessmentService,
+    # Enums
+    QualityDimension,
+    # Models
+    QualityScore,
 )
 
 __all__ = [

@@ -3,7 +3,7 @@ Mock Performance Monitor to avoid psutil dependency
 """
 
 import uuid
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 
 class MockFlowPerformanceMonitor:

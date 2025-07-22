@@ -5,8 +5,8 @@ Common functionality for all collection orchestration tools.
 """
 
 import logging
-from typing import Dict, Any
 from datetime import datetime
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 

@@ -4,7 +4,8 @@ Handles data quality analysis, insights generation, and reporting operations.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
+
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -150,7 +151,7 @@ class AssetAnalysisHandler:
                                 "currentValue": memory_str,
                                 "suggestedValue": suggested_value,
                                 "confidence": 0.90,
-                                "reasoning": f"Memory should be numeric only. Remove units suffix for standardization."
+                                "reasoning": "Memory should be numeric only. Remove units suffix for standardization."
                             })
                             format_issues_count += 1
                 
@@ -168,7 +169,7 @@ class AssetAnalysisHandler:
                             "currentValue": ip_str,
                             "suggestedValue": suggested_value,
                             "confidence": 0.80,
-                            "reasoning": f"Invalid IP address format. Should follow IPv4 format (x.x.x.x)."
+                            "reasoning": "Invalid IP address format. Should follow IPv4 format (x.x.x.x)."
                         })
                         format_issues_count += 1
                         
@@ -361,10 +362,11 @@ class AssetAnalysisHandler:
         """
         Retrieves assets from the database, scoped by client_account_id and engagement_id.
         """
-        from app.models.asset import Asset
-        from app.core.database import AsyncSessionLocal
-        from sqlalchemy.future import select
         from sqlalchemy import and_
+        from sqlalchemy.future import select
+
+        from app.core.database import AsyncSessionLocal
+        from app.models.asset import Asset
 
         async with AsyncSessionLocal() as session:
             try:

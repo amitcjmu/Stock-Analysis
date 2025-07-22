@@ -11,22 +11,24 @@ This enhanced version adds:
 - Sensitive data protection
 """
 
-import json
-import pickle
-import gzip
 import base64
+import gzip
 import hashlib
-from typing import Dict, Any, Optional, List, Union, Type
+import json
+import logging
+import os
+import pickle
+from dataclasses import asdict, dataclass
 from datetime import datetime
-from dataclasses import dataclass, asdict
+from typing import Any, Dict, List, Optional, Type, Union
+
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-import os
-import logging
-
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext
+
 from .flow_state_manager import FlowStateManager
 
 logger = logging.getLogger(__name__)

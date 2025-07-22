@@ -7,12 +7,12 @@ Core routing decision making and execution path generation.
 
 import logging
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from app.core.logging import get_logger
 
-from .enums import AutomationTier, RoutingStrategy, EnvironmentComplexity
-from .models import TierAnalysis, RoutingDecision
+from .enums import AutomationTier, EnvironmentComplexity, RoutingStrategy
+from .models import RoutingDecision, TierAnalysis
 
 logger = get_logger(__name__)
 

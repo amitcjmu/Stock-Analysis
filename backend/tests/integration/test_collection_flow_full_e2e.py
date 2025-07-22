@@ -3,9 +3,10 @@ Full End-to-End Test for Collection Flow with Authentication
 Tests the complete collection flow through API with CrewAI execution
 """
 
-import pytest
 import asyncio
 import json
+
+import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 

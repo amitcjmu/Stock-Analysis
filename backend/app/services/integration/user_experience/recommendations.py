@@ -5,14 +5,9 @@ Generates UX improvement recommendations based on analysis.
 """
 
 import logging
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
-from .base import (
-    OptimizationContext, 
-    UserJourneyAnalytics, 
-    UXRecommendation, 
-    UXOptimizationArea
-)
+from .base import OptimizationContext, UserJourneyAnalytics, UXOptimizationArea, UXRecommendation
 
 logger = logging.getLogger(__name__)
 

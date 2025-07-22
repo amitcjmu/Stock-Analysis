@@ -4,7 +4,7 @@ Handles recommendation generation and next steps for 6R strategies.
 """
 
 import logging
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 

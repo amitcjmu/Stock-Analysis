@@ -2,12 +2,13 @@
 Crew Factory for dynamic crew composition
 """
 
-from typing import Dict, Any, Optional, Type, List
-from app.services.crews.base_crew import BaseDiscoveryCrew
-from app.services.crews.field_mapping_crew import FieldMappingCrew
-from app.services.crews.data_cleansing_crew import DataCleansingCrew
-from app.services.crews.asset_inventory_crew import AssetInventoryCrew
 import logging
+from typing import Any, Dict, List, Optional, Type
+
+from app.services.crews.asset_inventory_crew import AssetInventoryCrew
+from app.services.crews.base_crew import BaseDiscoveryCrew
+from app.services.crews.data_cleansing_crew import DataCleansingCrew
+from app.services.crews.field_mapping_crew import FieldMappingCrew
 
 logger = logging.getLogger(__name__)
 

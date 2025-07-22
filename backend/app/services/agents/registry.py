@@ -3,11 +3,11 @@ Central Agent Registry with auto-discovery
 Manages all CrewAI agents and their capabilities
 """
 
-import os
 import importlib
 import inspect
-from typing import Dict, List, Type, Optional, Any
 import logging
+import os
+from typing import Any, Dict, List, Optional, Type
 
 from app.services.agents.metadata import AgentMetadata
 

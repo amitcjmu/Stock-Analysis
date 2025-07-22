@@ -4,14 +4,14 @@ Provides consistent multi-tenant filtering and context management.
 """
 
 import logging
-from typing import Optional, Dict, Any, Type, List
-from dataclasses import dataclass
 from contextlib import contextmanager
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Type
 
 from sqlalchemy import and_, select
-from sqlalchemy.sql import Select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import Select
 
 logger = logging.getLogger(__name__)
 
@@ -183,7 +183,7 @@ class MultiTenantHelper:
         """
         try:
             # Import here to avoid circular imports
-            from app.models.rbac import UserRole, RoleType
+            from app.models.rbac import RoleType, UserRole
             
             query = select(UserRole).where(
                 and_(

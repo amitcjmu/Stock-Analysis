@@ -4,11 +4,12 @@ Decision Commands - 6R decision management
 import logging
 from datetime import datetime
 from typing import List
-from sqlalchemy import update, and_
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.dialects.postgresql import insert
 
-from app.models.assessment_flow import SixRDecision, AssessmentFlow
+from sqlalchemy import and_, update
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.assessment_flow import AssessmentFlow, SixRDecision
 from app.models.assessment_flow_state import SixRDecision as SixRDecisionState
 
 logger = logging.getLogger(__name__)

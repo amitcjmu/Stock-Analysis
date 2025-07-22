@@ -3,11 +3,13 @@ JWT Authentication Service
 Handles JWT token creation, validation, and management.
 """
 
-import jwt
-from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
-from app.core.config import settings
 import logging
+from datetime import datetime, timedelta
+from typing import Any, Dict, Optional
+
+import jwt
+
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 

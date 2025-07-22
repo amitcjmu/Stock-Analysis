@@ -2,10 +2,11 @@
 Tool Factory for dynamic tool creation and management
 """
 
-from typing import List, Dict, Any, Optional, Set
-from app.services.tools.registry import tool_registry
-from app.services.tools.categories import get_tools_for_phase
 import logging
+from typing import Any, Dict, List, Optional, Set
+
+from app.services.tools.categories import get_tools_for_phase
+from app.services.tools.registry import tool_registry
 
 logger = logging.getLogger(__name__)
 

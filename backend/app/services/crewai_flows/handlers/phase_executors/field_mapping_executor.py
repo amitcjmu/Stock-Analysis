@@ -4,11 +4,12 @@ Handles field mapping phase execution for the Unified Discovery Flow.
 Split from unified_flow_phase_executor.py for better modularity.
 """
 
-import logging
-from typing import Dict, Any, List
-from .base_phase_executor import BasePhaseExecutor
 import asyncio
+import logging
 from datetime import datetime
+from typing import Any, Dict, List
+
+from .base_phase_executor import BasePhaseExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 CREWAI_FLOW_AVAILABLE = False
 try:
     from crewai import Flow
+
     from app.services.llm_config import get_crewai_llm
     CREWAI_FLOW_AVAILABLE = True
     logger.info("✅ CrewAI Flow and LLM imports available")
@@ -178,7 +180,7 @@ class FieldMappingExecutor(BasePhaseExecutor):
                         source = re.sub(r'^\d+\.\s*', '', source).strip()
                     
                     # Skip if it looks like a sentence or instruction
-                    if source and target and not ' ' in source.strip() and len(source) < 50:
+                    if source and target and ' ' not in source.strip() and len(source) < 50:
                         mappings[source] = target
         
         # NO FALLBACK - If no mappings found from crew, that's an error
@@ -223,10 +225,12 @@ class FieldMappingExecutor(BasePhaseExecutor):
             # Create async task to update database
             async def update_mappings():
                 try:
+                    import uuid as uuid_pkg
+
+                    from sqlalchemy import select, update
+
                     from app.core.database import AsyncSessionLocal
                     from app.models.data_import import ImportFieldMapping
-                    from sqlalchemy import select, update
-                    import uuid as uuid_pkg
                     
                     async with AsyncSessionLocal() as db:
                         # Convert data_import_id to UUID if needed
@@ -588,9 +592,10 @@ class FieldMappingExecutor(BasePhaseExecutor):
     async def _fetch_raw_data_from_database(self, data_import_id: str) -> List[Dict[str, Any]]:
         """Fetch raw data directly from database using data_import_id"""
         try:
-            from app.models.data_import import RawImportRecord
-            from app.core.database import AsyncSessionLocal
             from sqlalchemy import select
+
+            from app.core.database import AsyncSessionLocal
+            from app.models.data_import import RawImportRecord
             
             async with AsyncSessionLocal() as db:
                 # Query raw import records

@@ -5,19 +5,20 @@ Tests to ensure that clients cannot access each other's data.
 This is a CRITICAL security requirement.
 """
 
-import pytest
 import uuid
 from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException
 
-from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
-from app.repositories.context_aware_repository import ContextAwareRepository
-from app.models.discovery_flow import DiscoveryFlow
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+import pytest
+from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext
 from app.core.database import AsyncSessionLocal
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.models.discovery_flow import DiscoveryFlow
+from app.repositories.context_aware_repository import ContextAwareRepository
+from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 
 
 @pytest.fixture
@@ -246,9 +247,10 @@ class TestAPISecurityEnforcement:
     
     async def test_api_requires_context_headers(self):
         """Test that API endpoints require context headers"""
-        from app.api.security_dependencies import get_verified_context, SecurityError
         from fastapi import Request
         from starlette.datastructures import Headers
+
+        from app.api.security_dependencies import SecurityError, get_verified_context
         
         # Mock request without headers
         request = Request(
@@ -263,8 +265,9 @@ class TestAPISecurityEnforcement:
     
     async def test_api_validates_uuid_format(self):
         """Test that API validates UUID format in context"""
-        from app.api.security_dependencies import get_verified_context, SecurityError
         from fastapi import Request
+
+        from app.api.security_dependencies import SecurityError, get_verified_context
         
         # Mock request with invalid UUID
         headers = [

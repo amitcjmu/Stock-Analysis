@@ -10,16 +10,18 @@ This module handles flow execution and control operations:
 
 import logging
 from datetime import datetime
-from typing import Dict, Any
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, func
+from typing import Any, Dict
 
-from app.core.database import get_db
-from app.core.context import RequestContext, get_current_context
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.v1.dependencies import get_crewai_flow_service
+from app.core.context import RequestContext, get_current_context
+from app.core.database import get_db
 from app.services.crewai_flow_service import CrewAIFlowService
-from .response_mappers import ResponseMappers, FlowOperationResponse
+
+from .response_mappers import FlowOperationResponse, ResponseMappers
 from .status_calculator import StatusCalculator
 
 logger = logging.getLogger(__name__)
@@ -64,9 +66,10 @@ async def resume_discovery_flow(
         }
         
         # Check if this is a master flow or a child flow
+        import uuid as uuid_lib
+
         from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
         from app.models.discovery_flow import DiscoveryFlow
-        import uuid as uuid_lib
         
         try:
             flow_uuid = uuid_lib.UUID(flow_id)
@@ -219,12 +222,13 @@ async def resume_flow_intelligent(
         force_restart = request.get("force_restart", False)
         
         # Import required modules
-        from app.models.discovery_flow import DiscoveryFlow
-        from app.models.data_import import DataImport
-        from app.models.raw_import_record import RawImportRecord
-        from app.services.crewai_flows.unified_discovery_flow.flow_management import UnifiedDiscoveryFlowManager
-        from app.services.crewai_flows.unified_discovery_flow.flow_finalization import UnifiedDiscoveryFlowFinalizer
         import uuid as uuid_lib
+
+        from app.models.data_import import DataImport
+        from app.models.discovery_flow import DiscoveryFlow
+        from app.models.raw_import_record import RawImportRecord
+        from app.services.crewai_flows.unified_discovery_flow.flow_finalization import UnifiedDiscoveryFlowFinalizer
+        from app.services.crewai_flows.unified_discovery_flow.flow_management import UnifiedDiscoveryFlowManager
         
         # Convert flow_id to UUID
         try:
@@ -462,8 +466,9 @@ async def execute_flow_phase(
         force_execution = request.get("force", False)
         
         # Import required models
-        from app.models.discovery_flow import DiscoveryFlow
         import uuid as uuid_lib
+
+        from app.models.discovery_flow import DiscoveryFlow
         
         # Convert flow_id to UUID if needed
         try:
@@ -504,11 +509,11 @@ async def execute_flow_phase(
             # Add more validation as needed
         
         # Import required modules for phase execution
-        from app.services.crewai_flows.handlers.phase_executors import PhaseExecutionManager
-        from app.services.crewai_flows.unified_discovery_flow.state_management import StateManager
-        from app.services.crewai_flows.flow_state_bridge import FlowStateBridge
-        from app.services.crewai_flows.handlers.unified_flow_crew_manager import UnifiedFlowCrewManager
         from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
+        from app.services.crewai_flows.flow_state_bridge import FlowStateBridge
+        from app.services.crewai_flows.handlers.phase_executors import PhaseExecutionManager
+        from app.services.crewai_flows.handlers.unified_flow_crew_manager import UnifiedFlowCrewManager
+        from app.services.crewai_flows.unified_discovery_flow.state_management import StateManager
         
         logger.info(f"📊 Executing phase: {execution_phase}")
         
@@ -727,8 +732,9 @@ async def retry_flow_execution(
         logger.info(f"🔄 Retrying flow execution for {flow_id}")
         
         # Import required models
-        from app.models.discovery_flow import DiscoveryFlow
         import uuid as uuid_lib
+
+        from app.models.discovery_flow import DiscoveryFlow
         
         # Convert flow_id to UUID if needed
         try:

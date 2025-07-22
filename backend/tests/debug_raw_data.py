@@ -1,7 +1,9 @@
 import asyncio
-import asyncpg
 import json
 import os
+
+import asyncpg
+
 
 async def check_raw_data():
     try:
@@ -25,7 +27,7 @@ async def check_raw_data():
                 raw_data = row['raw_data']
                 print(f"\nRecord {i+1}:")
                 print(f"Column names: {list(raw_data.keys())}")
-                print(f"Sample values:")
+                print("Sample values:")
                 for col, val in list(raw_data.items())[:6]:
                     print(f"  {col}: {val}")
         else:

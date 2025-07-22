@@ -3,9 +3,10 @@ Pydantic schemas for field mapping operations.
 """
 
 from datetime import datetime
-from typing import List, Dict, Any, Optional
-from pydantic import BaseModel, Field, validator
+from typing import Any, Dict, List, Optional
 from uuid import UUID
+
+from pydantic import BaseModel, Field, validator
 
 
 class FieldMappingCreate(BaseModel):

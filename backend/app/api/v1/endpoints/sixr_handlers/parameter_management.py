@@ -4,10 +4,11 @@ Handles parameter updates, validation, and parameter-related operations.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
+
 from fastapi import HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +22,13 @@ class ParameterManagementHandler:
     def _initialize_dependencies(self):
         """Initialize dependencies with graceful fallbacks."""
         try:
-            from app.models.sixr_analysis import SixRAnalysis, SixRParameters as SixRParametersModel
+            from app.models.sixr_analysis import SixRAnalysis
+            from app.models.sixr_analysis import SixRParameters as SixRParametersModel
             from app.schemas.sixr_analysis import (
-                SixRParameterUpdateRequest, SixRAnalysisResponse, 
-                AnalysisStatus, SixRParameterBase
+                AnalysisStatus,
+                SixRAnalysisResponse,
+                SixRParameterBase,
+                SixRParameterUpdateRequest,
             )
             from app.services.sixr_engine_modular import SixRDecisionEngine
             

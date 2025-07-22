@@ -7,7 +7,7 @@ Domain-specific configurations and stakeholder expertise profiles.
 Built by: Agent Team B2 (AI Analysis & Intelligence)
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
 
 from .enums import BusinessDomain, StakeholderRole
 

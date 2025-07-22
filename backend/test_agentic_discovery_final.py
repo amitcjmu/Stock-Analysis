@@ -20,8 +20,8 @@ Run with: docker exec migration_backend python test_agentic_discovery_final.py
 
 import asyncio
 import json
-import sys
 import os
+import sys
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -43,10 +43,10 @@ class AgenticFlowTestSuite:
         
         try:
             # Import field mapping phase
-            from app.services.crewai_flows.unified_discovery_flow.phases import field_mapping
-            
             # Read source to analyze threshold usage
             import inspect
+
+            from app.services.crewai_flows.unified_discovery_flow.phases import field_mapping
             source = inspect.getsource(field_mapping)
             
             # Look for agent integration patterns
@@ -227,7 +227,7 @@ class AgenticFlowTestSuite:
             import crewai
             print(f"✅ CrewAI version: {crewai.__version__}")
             
-            from crewai import Flow, Agent, Task, Crew
+            from crewai import Agent, Crew, Flow, Task
             print("✅ CrewAI core components imported")
             
             # Test UnifiedDiscoveryFlow
@@ -322,12 +322,12 @@ class AgenticFlowTestSuite:
         print("📋 TEAM DELTA AGENTIC DISCOVERY FLOW TEST REPORT")
         print("=" * 80)
         
-        print(f"\n📊 Test Summary:")
+        print("\n📊 Test Summary:")
         print(f"   ✅ Passed: {self.passed}")
         print(f"   ❌ Failed: {self.failed}")
         print(f"   ⚠️  Warnings: {self.warnings}")
         
-        print(f"\n🔍 Detailed Results:")
+        print("\n🔍 Detailed Results:")
         
         for test_name, result in self.results.items():
             status = result.get('status', 'UNKNOWN')
@@ -351,7 +351,7 @@ class AgenticFlowTestSuite:
                 print(f"   Total Routes: {len(result.get('routes', []))}")
                 print(f"   Key Endpoints: {len(result.get('key_endpoints', []))}")
         
-        print(f"\n🎯 Key Findings:")
+        print("\n🎯 Key Findings:")
         print("   • CrewAI 0.141.0 is properly installed and functional")
         print("   • UnifiedDiscoveryFlow inherits from CrewAI Flow")
         print("   • Agent/LLM integration is present in field mapping")
@@ -359,14 +359,14 @@ class AgenticFlowTestSuite:
         print("   • Database integration is working")
         print("   • Some threshold patterns exist but may be configurable")
         
-        print(f"\n🚀 Recommendations:")
+        print("\n🚀 Recommendations:")
         print("   1. Verify remaining threshold patterns are agent-configurable")
         print("   2. Complete CrewAI decorator implementation (@start/@listen)")
         print("   3. Test agent decision-making with real data")
         print("   4. Implement SSE streaming for real-time updates")
         print("   5. Add agent learning from user feedback")
         
-        print(f"\n✨ Overall Assessment:")
+        print("\n✨ Overall Assessment:")
         if self.failed == 0:
             print("   🎉 EXCELLENT: Agentic Discovery flow is properly implemented!")
         elif self.failed <= 2:

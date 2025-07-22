@@ -5,12 +5,12 @@ Uses exponential backoff and request queuing.
 """
 
 import asyncio
-import time
 import logging
-from typing import Any, Dict, Optional, Callable
+import random
+import time
 from collections import deque
 from datetime import datetime, timedelta
-import random
+from typing import Any, Callable, Dict, Optional
 
 logger = logging.getLogger(__name__)
 

@@ -3,9 +3,10 @@
 Simple CrewAI Flow Service Test
 """
 
-import sys
 import asyncio
-from unittest.mock import Mock, AsyncMock, patch
+import sys
+from unittest.mock import AsyncMock, Mock, patch
+
 
 def test_service_import():
     """Test that the service can be imported."""

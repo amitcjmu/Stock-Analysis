@@ -5,12 +5,13 @@ Provides backward compatibility with the original DiscoveryFlowService interface
 
 import logging
 import uuid
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.discovery_flow import DiscoveryFlow
-from app.models.asset import Asset
 from app.core.context import RequestContext
+from app.models.asset import Asset
+from app.models.discovery_flow import DiscoveryFlow
 
 from .core.flow_manager import FlowManager
 from .managers.asset_manager import AssetManager

@@ -2,11 +2,13 @@
 Effort Estimator Tool - Estimates effort required for gap resolution
 """
 
-from typing import Dict, Any, List
+import logging
+from typing import Any, Dict, List
+
 from app.services.tools.base_tool import AsyncBaseDiscoveryTool
 from app.services.tools.registry import ToolMetadata
-from .constants import EFFORT_MATRIX, BASE_EFFORT_HOURS
-import logging
+
+from .constants import BASE_EFFORT_HOURS, EFFORT_MATRIX
 
 logger = logging.getLogger(__name__)
 
