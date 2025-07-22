@@ -1,1 +1,15 @@
-/**\n * Platform Admin Dashboard Component Exports\n */\n\nexport { PlatformStats } from './PlatformStats';\nexport type { PlatformStatsProps, SoftDeletedItem } from './PlatformStats';\n\nexport { PendingItemsList } from './PendingItemsList';\nexport type { PendingItemsListProps } from './PendingItemsList';\n\nexport { PurgeActionDialog } from './PurgeActionDialog';\nexport type { PurgeActionDialogProps, PurgeAction } from './PurgeActionDialog';\n\nexport { ItemDetailsDialog } from './ItemDetailsDialog';\nexport type { ItemDetailsDialogProps } from './ItemDetailsDialog';
+/**
+ * Platform Admin Dashboard Component Exports
+ */
+
+export { PlatformStats } from './PlatformStats';
+export type { PlatformStatsProps, SoftDeletedItem } from './PlatformStats';
+
+export { PendingItemsList } from './PendingItemsList';
+export type { PendingItemsListProps } from './PendingItemsList';
+
+export { PurgeActionDialog } from './PurgeActionDialog';
+export type { PurgeActionDialogProps, PurgeAction } from './PurgeActionDialog';
+
+export { ItemDetailsDialog } from './ItemDetailsDialog';
+export type { ItemDetailsDialogProps } from './ItemDetailsDialog';
