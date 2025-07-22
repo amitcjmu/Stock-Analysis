@@ -42,7 +42,7 @@ export const useAgentMonitor = () => {
         });
         
         // Get discovery flows using master flow service
-        let discoveryFlows: any[] = [];
+        let discoveryFlows: DiscoveryFlow[] = [];
         try {
           if (client?.id) {
             const activeFlows = await masterFlowService.getActiveFlows(
