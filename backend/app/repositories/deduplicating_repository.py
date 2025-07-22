@@ -6,7 +6,7 @@ Extends ContextAwareRepository to add deduplication for engagement-level views.
 import logging
 from typing import Any, Dict, List, Optional, Type, TypeVar
 
-from sqlalchemy import desc, func
+from sqlalchemy import and_, desc, distinct, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.sql import Select

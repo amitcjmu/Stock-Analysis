@@ -5,6 +5,7 @@ This adapter provides comprehensive Azure resource discovery and data collection
 using Azure Resource Graph for resource discovery and Azure Monitor for metrics.
 """
 
+import logging
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -30,6 +31,9 @@ except ImportError:
     ComputeManagementClient = SqlManagementClient = WebSiteManagementClient = None
     StorageManagementClient = NetworkManagementClient = None
     ClientAuthenticationError = HttpResponseError = Exception
+
+logger = logging.getLogger(__name__)
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.collection_flow import AutomationTier

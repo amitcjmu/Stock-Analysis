@@ -8,14 +8,13 @@ deployment to ensure no data loss or corruption occurred during migration.
 """
 
 import asyncio
-import hashlib
 import json
 import logging
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine

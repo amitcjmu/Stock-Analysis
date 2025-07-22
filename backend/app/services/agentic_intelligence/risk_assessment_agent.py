@@ -25,6 +25,7 @@ from crewai import Agent, Crew, Process, Task
 
 # Internal imports
 from app.services.agentic_intelligence.agent_reasoning_patterns import (
+    AgentReasoning,
     AgentReasoningEngine,
 )
 from app.services.agentic_memory import ThreeTierMemoryManager

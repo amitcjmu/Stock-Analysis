@@ -30,6 +30,8 @@ from app.models import ClientAccount, Engagement, User
 from app.models.client_account import UserAccountAssociation
 from app.models.rbac import RoleType, UserProfile, UserRole, UserStatus
 
+logger = logging.getLogger(__name__)
+
 # Conditional import to handle migration scenarios
 try:
     from app.models.assessment_flow import EngagementArchitectureStandard
@@ -39,8 +41,6 @@ except Exception as e:
     logger.warning(f"Assessment models not available: {e}")
     ASSESSMENT_MODELS_AVAILABLE = False
     EngagementArchitectureStandard = None
-
-logger = logging.getLogger(__name__)
 
 
 class PlatformRequirements:

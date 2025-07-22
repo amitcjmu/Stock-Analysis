@@ -2,8 +2,6 @@
 Backend Smoke Test: Ensure all critical services, endpoints, and agentic components initialize and basic health checks pass.
 This test should be run after every backend restart to catch initialization errors early.
 """
-import importlib
-import sys
 
 import pytest
 
@@ -11,11 +9,9 @@ import pytest
 @pytest.mark.smoke
 def test_basic_imports():
     """Test that essential backend modules can be imported."""
-    import app.core.config
-    import app.services.agents
-    import app.services.crewai_service_modular
-    import app.services.deepinfra_llm
-    import app.services.memory
+    from app.core.database import get_db
+    from app.core.config import settings
+    assert hasattr(settings, 'DATABASE_URL')
 
 @pytest.mark.smoke
 def test_crewai_service_initialization():

@@ -280,7 +280,8 @@ async def perform_insight_action(
 @router.post("/think")
 async def agent_think(
     request: ThinkRequest,
-    context: RequestContext = Depends(get_request_context_dependency)
+    context: RequestContext = Depends(get_request_context_dependency),
+    master_orchestrator: MasterFlowOrchestrator = Depends(get_orchestrator)
 ):
     """Trigger 'Think' button functionality for progressive intelligence."""
     try:
@@ -320,7 +321,8 @@ async def agent_think(
 @router.post("/ponder-more")
 async def agent_ponder_more(
     request: PonderRequest,
-    context: RequestContext = Depends(get_request_context_dependency)
+    context: RequestContext = Depends(get_request_context_dependency),
+    master_orchestrator: MasterFlowOrchestrator = Depends(get_orchestrator)
 ):
     """Trigger 'Ponder More' button functionality for crew collaboration."""
     try:

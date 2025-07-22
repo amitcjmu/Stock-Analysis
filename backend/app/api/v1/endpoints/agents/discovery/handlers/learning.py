@@ -13,6 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 
+logger = logging.getLogger(__name__)
+
 # Import field mapping models if available
 try:
     from app.models.data_import.mapping import ImportFieldMapping
@@ -20,8 +22,6 @@ try:
 except ImportError as e:
     FIELD_MAPPING_AVAILABLE = False
     logger.warning(f"ImportFieldMapping not available: {e}")
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["learning"])
 
