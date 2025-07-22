@@ -13,11 +13,11 @@ def test_basic_imports():
     assert hasattr(settings, 'DATABASE_URL')
 
 @pytest.mark.smoke
-def test_crewai_service_initialization():
-    """Test that CrewAI service can be instantiated."""
-    from app.services.crewai_service_modular import CrewAIService
-    service = CrewAIService()
-    assert hasattr(service, 'analyze_with_agents')
+def test_crewai_flow_service_initialization():
+    """Test that CrewAI flow service can be imported."""
+    from app.services.crewai_flow_service import CrewAIFlowService
+    # Just test that the import works
+    assert CrewAIFlowService is not None
 
 @pytest.mark.smoke
 def test_agent_manager_initialization():

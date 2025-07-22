@@ -67,10 +67,11 @@ if SQLALCHEMY_AVAILABLE:
         pool_class = NullPool
         pool_config = {"poolclass": NullPool, "pool_pre_ping": True}
     else:
-        # Use optimized connection pooling for production
-        pool_class = QueuePool
+        # Use AsyncAdaptedQueuePool for async engine in production
+        from sqlalchemy.pool import AsyncAdaptedQueuePool
+        pool_class = AsyncAdaptedQueuePool
         pool_config = {
-            "poolclass": QueuePool,
+            "poolclass": AsyncAdaptedQueuePool,
             **OPTIMIZED_POOL_CONFIG
         }
         
