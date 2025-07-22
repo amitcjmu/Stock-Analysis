@@ -44,7 +44,7 @@ class SchemaAnalysisTool(BaseTool):
             semantic_analysis = self._analyze_semantics(fields_analysis, patterns, metadata or {})
             
             # Generate analysis report
-            {
+            analysis_report = {
                 "field_analysis": fields_analysis,
                 "data_patterns": patterns,
                 "semantic_insights": semantic_analysis,
