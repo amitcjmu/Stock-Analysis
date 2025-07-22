@@ -20,9 +20,9 @@ from app.services.crewai_flows.agents.decision import (
 from app.services.flow_type_registry import FlowTypeRegistry
 from app.services.handler_registry import HandlerRegistry
 from app.services.validator_registry import ValidatorRegistry
-from backend.app.services.crewai_flows.agents.decision.base import PhaseAction
-from backend.app.services.crewai_flows.agents.decision.field_mapping import FieldMappingDecisionAgent
-from backend.app.services.crewai_flows.agents.decision.phase_transition import PhaseTransitionAgent
+from app.services.crewai_flows.agents.decision.base import PhaseAction
+from app.services.crewai_flows.agents.decision.field_mapping import FieldMappingDecisionAgent
+from app.services.crewai_flows.agents.decision.phase_transition import PhaseTransitionAgent
 
 logger = get_logger(__name__)
 
