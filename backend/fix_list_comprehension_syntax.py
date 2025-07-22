@@ -8,7 +8,6 @@ And converts them to:
     for error in exc.errors():
 """
 
-import os
 import re
 from pathlib import Path
 

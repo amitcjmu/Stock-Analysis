@@ -6,7 +6,6 @@ These models provide detailed documentation and examples for all data import end
 
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
-from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 

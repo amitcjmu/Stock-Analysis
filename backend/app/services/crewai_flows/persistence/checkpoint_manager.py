@@ -4,14 +4,11 @@ Saves flow state at major steps to allow resuming from checkpoints
 """
 
 import base64
-import json
 import logging
 import pickle
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, delete, select, update
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 
@@ -213,7 +210,7 @@ class CheckpointManager:
             True if deleted, False otherwise
         """
         try:
-            async with AsyncSessionLocal() as db:
+            async with AsyncSessionLocal():
                 # For now, using in-memory storage
                 # In production, this would delete from database
                 for flow_id, checkpoints in self.checkpoints.items():

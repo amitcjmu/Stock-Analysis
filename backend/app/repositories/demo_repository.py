@@ -4,13 +4,10 @@ Context-aware repository for accessing mock/demo data with multi-tenant support.
 """
 
 import logging
-import uuid
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, desc, func, or_, select
+from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session, joinedload
 
 # Make client_account import conditional to avoid deployment failures
 try:
@@ -22,7 +19,7 @@ except ImportError:
 
 from app.models.asset import Asset, MigrationWave
 from app.models.sixr_analysis import SixRAnalysis
-from app.models.tags import AssetTag, Tag
+from app.models.tags import Tag
 from app.repositories.base import ContextAwareRepository
 
 logger = logging.getLogger(__name__)

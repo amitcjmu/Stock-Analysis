@@ -5,7 +5,6 @@ Handles login, password change, and token-related endpoints.
 
 import logging
 import uuid
-from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession

@@ -4,12 +4,10 @@ Provides AI-powered vector embeddings using DeepInfra's thenlper/gte-large model
 Supports learning pattern storage and similarity search for assets.
 """
 
-import asyncio
 import logging
 import random
-from typing import Any, Dict, List, Optional, Union
+from typing import List
 
-from sqlalchemy.orm import Session
 
 # Use the new LLM configuration instead of direct OpenAI import
 try:
@@ -358,7 +356,7 @@ class EmbeddingService:
     async def _ai_text_search(self, query_text: str, limit: int, is_mock_only: bool) -> List[Asset]:
         """AI-powered text search using embeddings."""
         # Generate embedding for query
-        query_embedding = await self.embed_text(query_text)
+        await self.embed_text(query_text)
         
         # TODO: Implement vector similarity search in database
         # For now, fall back to mock search

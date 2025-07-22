@@ -8,7 +8,7 @@ from typing import Any, Dict, List
 from app.services.tools.base_tool import AsyncBaseDiscoveryTool
 from app.services.tools.registry import ToolMetadata
 
-from .constants import BASE_EFFORT_HOURS, EFFORT_MATRIX
+from .constants import EFFORT_MATRIX
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +103,7 @@ class EffortEstimatorTool(AsyncBaseDiscoveryTool):
                                      total_hours: float) -> Dict[str, Any]:
         """Calculate optimal resource allocation"""
         available_resources = resources.get("available_team_members", 2)
-        hours_per_week = resources.get("hours_per_week", 40)
+        resources.get("hours_per_week", 40)
         
         # Categorize work by skill requirement
         skill_requirements = {

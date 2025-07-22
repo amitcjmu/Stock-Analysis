@@ -4,10 +4,9 @@ Implements the correct role hierarchy: Platform Admin > Client Admin > Engagemen
 """
 
 import logging
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
-from sqlalchemy import and_, not_, or_, select
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 

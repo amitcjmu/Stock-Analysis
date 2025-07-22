@@ -12,15 +12,13 @@ This shows the complete solution working end-to-end.
 import asyncio
 import os
 import sys
-from datetime import datetime
-from typing import Any, Dict
 
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 
 import uuid
 
-from sqlalchemy import and_, func, select, text
+from sqlalchemy import and_, func, select
 
 from app.core.context import RequestContext
 from app.core.database import AsyncSessionLocal

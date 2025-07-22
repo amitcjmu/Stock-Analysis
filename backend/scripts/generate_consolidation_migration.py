@@ -6,7 +6,6 @@ Generate the database consolidation migration with proper revision linking
 import os
 import subprocess
 import sys
-from datetime import datetime
 from pathlib import Path
 
 

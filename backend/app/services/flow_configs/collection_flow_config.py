@@ -6,7 +6,6 @@ Comprehensive data collection flow configuration for automated platform discover
 multi-tiered collection strategies, gap analysis, and manual collection.
 """
 
-from typing import Any, Dict, List
 
 from app.services.flow_type_registry import FlowCapabilities, FlowTypeConfig, PhaseConfig, RetryConfig
 

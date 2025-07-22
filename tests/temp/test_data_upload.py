@@ -4,7 +4,6 @@ Test Data Upload page specifically
 """
 import asyncio
 from playwright.async_api import async_playwright
-import json
 
 async def test_data_upload():
     async with async_playwright() as p:

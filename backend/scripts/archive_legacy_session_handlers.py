@@ -4,7 +4,6 @@ Archive Legacy Session Handlers Script
 Moves legacy session-based handlers to an archive directory for V2 migration cleanup.
 """
 
-import os
 import shutil
 from datetime import datetime
 from pathlib import Path

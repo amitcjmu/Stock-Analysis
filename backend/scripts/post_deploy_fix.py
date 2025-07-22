@@ -217,7 +217,7 @@ async def fix_railway_schema():
         # Verify fix
         logger.info("🔍 Verifying fix...")
         try:
-            test_query = await conn.fetch("""
+            await conn.fetch("""
                 SELECT id, name, headquarters_location, settings 
                 FROM client_accounts 
                 LIMIT 1
@@ -228,7 +228,7 @@ async def fix_railway_schema():
             return False
         
         try:
-            test_query = await conn.fetch("""
+            await conn.fetch("""
                 SELECT id, name, migration_scope 
                 FROM engagements 
                 LIMIT 1

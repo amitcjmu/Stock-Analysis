@@ -6,9 +6,8 @@ Tests the backend API endpoints with correct request format
 
 import requests
 import json
-import time
 import uuid
-from typing import Dict, Any, Optional
+from typing import Optional
 from datetime import datetime
 
 class DiscoveryFlowAPITester:

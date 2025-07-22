@@ -8,7 +8,6 @@ import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from sqlalchemy.ext.asyncio import AsyncSession
 
 sys.path.append(str(Path(__file__).parent.parent))
 

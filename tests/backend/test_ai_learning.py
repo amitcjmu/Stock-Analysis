@@ -5,7 +5,6 @@ This simulates the exact scenario described by the user.
 """
 
 import asyncio
-import json
 import sys
 import os
 

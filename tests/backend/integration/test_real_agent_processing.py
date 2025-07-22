@@ -10,14 +10,10 @@ Tests actual CrewAI agent execution (not mocked) to verify:
 """
 
 import pytest
-import asyncio
-import json
 import csv
 import tempfile
 import os
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
-from pathlib import Path
 
 # Import necessary modules
 import sys
@@ -175,7 +171,7 @@ class TestRealAgentProcessing:
                 await session.commit()
                 
                 # Initialize UnifiedDiscoveryFlow
-                flow_manager = FlowStateManager(session, TEST_CLIENT_ID)
+                FlowStateManager(session, TEST_CLIENT_ID)
                 discovery_flow = UnifiedDiscoveryFlow(
                     session=session,
                     client_account_id=TEST_CLIENT_ID,
@@ -335,7 +331,7 @@ class TestRealAgentProcessing:
         """Test agent processing performance characteristics"""
         print("⚡ Testing agent processing performance...")
         
-        start_time = datetime.now()
+        datetime.now()
         
         # Create larger test dataset
         large_test_data = []

@@ -6,7 +6,7 @@ Part of the Agent Observability Enhancement
 
 import uuid
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from sqlalchemy import (
     DECIMAL,

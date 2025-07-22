@@ -5,7 +5,6 @@ Handles flow initialization logic for different flow types.
 """
 
 import asyncio
-import logging
 from datetime import datetime
 from typing import Any, Dict, Optional
 
@@ -13,7 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 from app.core.logging import get_logger
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
 from app.services.flow_type_registry import FlowTypeRegistry

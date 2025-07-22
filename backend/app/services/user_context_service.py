@@ -16,9 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.context import RequestContext
-from app.models.client_account import ClientAccount, Engagement, User
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.models.client_account import Engagement, User
 from app.models.discovery_flow import DiscoveryFlow
 
 logger = logging.getLogger(__name__)

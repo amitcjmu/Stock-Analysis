@@ -71,7 +71,7 @@ class GCPMetricsCollector:
             # Extract instance details
             parts = asset_name.split("/")
             if len(parts) >= 6:
-                project_id = parts[2]
+                parts[2]
                 zone = parts[4]
                 instance_name = parts[6]
                 

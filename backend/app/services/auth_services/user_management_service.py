@@ -5,15 +5,11 @@ Handles user registration, profile management, approval workflows, and user stat
 
 import logging
 import uuid
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from fastapi import HTTPException
-from sqlalchemy import and_, desc, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.client_account import User
-from app.models.rbac import UserProfile, UserRole
 from app.schemas.auth_schemas import (
     AccessValidationRequest,
     AccessValidationResponse,
@@ -72,7 +68,7 @@ class UserManagementService:
     async def get_registration_status(self, user_id: str) -> Dict[str, Any]:
         """Get the registration/approval status of a user."""
         try:
-            rbac_service = create_rbac_service(self.db)
+            create_rbac_service(self.db)
             
             # For this endpoint, we'd typically check the user profile status
             # For now, return a basic status check

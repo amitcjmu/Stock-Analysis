@@ -8,7 +8,6 @@ Handles response formatting including:
 - Status message generation
 """
 
-import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 

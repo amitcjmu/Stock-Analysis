@@ -6,8 +6,7 @@ Handles CrewAI-based analysis, wave planning, and CMDB processing with AI-driven
 import logging
 import math
 import os
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 

@@ -5,7 +5,7 @@ Handles AI agent interfaces for field mapping operations.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +143,7 @@ class AgentInterfaceHandler:
                 return self._fallback_analyze_response(columns, asset_type)
             
             # Get current mappings
-            mappings = self.mapping_engine.get_field_mappings(asset_type)
+            self.mapping_engine.get_field_mappings(asset_type)
             
             # Analyze each column
             column_analysis = {}

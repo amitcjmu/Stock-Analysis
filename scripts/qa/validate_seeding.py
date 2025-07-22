@@ -14,14 +14,14 @@ import sys
 import argparse
 import json
 from datetime import datetime
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 from collections import defaultdict
 
 # Add app path
 sys.path.append('/app')
 
-from sqlalchemy import text, select, func, and_, or_
+from sqlalchemy import select, func, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import AsyncSessionLocal
 from app.models import *
@@ -609,7 +609,7 @@ class DatabaseValidator:
             .join(Engagement, Asset.engagement_id == Engagement.id)
             .limit(100)
         )
-        assets = result.fetchall()
+        result.fetchall()
         
         query_time = (datetime.now() - start_time).total_seconds()
         

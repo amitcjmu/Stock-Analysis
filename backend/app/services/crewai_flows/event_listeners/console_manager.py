@@ -6,7 +6,6 @@ Ensures only one Rich console/live display is active at a time to prevent confli
 import logging
 import threading
 from contextlib import contextmanager
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 

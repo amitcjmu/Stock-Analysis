@@ -11,7 +11,6 @@ from typing import Any, Dict
 
 from app.services.adapters import (
     AdapterConfiguration,
-    AdapterManager,
     EnhancedBaseAdapter,
     PerformanceThresholds,
     RetryConfig,

@@ -10,7 +10,7 @@ import json
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 try:
     from crewai.tools import tool
@@ -89,7 +89,7 @@ def create_pattern_search_tool(client_account_id: uuid.UUID, engagement_id: uuid
             # Search patterns - handle event loop properly
             try:
                 # Try to get current event loop
-                loop = asyncio.get_running_loop()
+                asyncio.get_running_loop()
                 # If we're in an event loop, create a task
                 import concurrent.futures
                 with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -166,7 +166,7 @@ def create_asset_query_tool(client_account_id: uuid.UUID, engagement_id: uuid.UU
             
             # Handle event loop properly
             try:
-                loop = asyncio.get_running_loop()
+                asyncio.get_running_loop()
                 import concurrent.futures
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     future = executor.submit(asyncio.run, _query_assets_async(
@@ -239,7 +239,7 @@ def create_pattern_recording_tool(client_account_id: uuid.UUID, engagement_id: u
             # Store pattern - handle event loop properly
             memory_manager = ThreeTierMemoryManager(client_account_id, engagement_id)
             try:
-                loop = asyncio.get_running_loop()
+                asyncio.get_running_loop()
                 import concurrent.futures
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     future = executor.submit(asyncio.run, memory_manager.store_pattern_discovery(
@@ -341,7 +341,7 @@ def create_asset_enrichment_tool(client_account_id: uuid.UUID, engagement_id: uu
             
             # Perform enrichment - handle event loop properly
             try:
-                loop = asyncio.get_running_loop()
+                asyncio.get_running_loop()
                 import concurrent.futures
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     future = executor.submit(asyncio.run, _enrich_asset_async(

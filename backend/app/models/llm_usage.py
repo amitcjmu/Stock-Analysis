@@ -4,8 +4,6 @@ Models for tracking LLM API usage, costs, and performance metrics.
 """
 
 import uuid
-from datetime import datetime
-from typing import Any, Dict, Optional
 
 from sqlalchemy import (
     BigInteger,

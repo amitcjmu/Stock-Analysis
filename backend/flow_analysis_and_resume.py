@@ -8,16 +8,13 @@ import asyncio
 import json
 import os
 import sys
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
-from rich import print as rprint
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
-from rich.tree import Tree
-from sqlalchemy import MetaData, inspect, select, text
+from sqlalchemy import inspect, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # Add the backend directory to the path

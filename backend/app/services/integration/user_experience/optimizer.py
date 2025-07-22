@@ -4,7 +4,6 @@ Main User Experience Optimizer
 Complete UX optimizer combining all modular components.
 """
 
-import logging
 from datetime import datetime
 from typing import Any, Dict, List, Tuple
 from uuid import UUID

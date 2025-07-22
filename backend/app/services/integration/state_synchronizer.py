@@ -8,15 +8,13 @@ Generated with CC for ADCS end-to-end integration.
 """
 
 import asyncio
-import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import and_, or_, select, update
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update
 from sqlalchemy.orm import selectinload
 
 from app.core.database import AsyncSessionLocal
@@ -308,7 +306,7 @@ class StateSynchronizer:
             
         # Asset count mismatches
         collection_asset_count = context.flows.get("collection", {}).metadata.get("asset_count", 0)
-        discovery_asset_count = context.flows.get("discovery", {}).metadata.get("asset_count", 0)
+        context.flows.get("discovery", {}).metadata.get("asset_count", 0)
         actual_asset_count = len(context.assets_snapshot)
         
         if abs(collection_asset_count - actual_asset_count) > 2:
@@ -446,7 +444,7 @@ class StateSynchronizer:
         asset_count = len(context.assets_snapshot)
         
         # Check readiness conditions
-        min_asset_count = self.sync_rules["collection_to_discovery"]["required_conditions"]
+        self.sync_rules["collection_to_discovery"]["required_conditions"]
         
         if asset_count >= 1:  # At least 1 asset required
             # Create discovery flow initialization event

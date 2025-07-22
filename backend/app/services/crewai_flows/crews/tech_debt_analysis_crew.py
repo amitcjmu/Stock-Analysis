@@ -6,11 +6,11 @@ Implements Task 3.3 of the Discovery Flow Redesign.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
-from crewai import Agent, Crew, Task
+from crewai import Agent, Crew
 from crewai.tools import BaseTool
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 

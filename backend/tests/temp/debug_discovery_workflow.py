@@ -20,8 +20,7 @@ import aiohttp
 # Add the backend directory to the path
 sys.path.append('/app')
 
-from sqlalchemy import and_, func, select, text
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func, select
 
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
@@ -350,10 +349,9 @@ class DiscoveryWorkflowDebugger:
                 raw_count = await session.execute(select(func.count(RawImportRecord.id)))
                 total_raw_after = raw_count.scalar()
                 
-                total_apps_after = 0
                 if APPLICATION_AVAILABLE:
                     app_count = await session.execute(select(func.count(Application.id)))
-                    total_apps_after = app_count.scalar()
+                    app_count.scalar()
                 
                 # Get assets created in the last 10 minutes
                 ten_minutes_ago = datetime.now() - timedelta(minutes=10)

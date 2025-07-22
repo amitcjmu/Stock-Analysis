@@ -8,9 +8,8 @@ Handles transaction management including:
 - Transaction state tracking
 """
 
-import logging
 from contextlib import asynccontextmanager
-from typing import Any, AsyncContextManager, Dict, Optional
+from typing import Any, AsyncContextManager, Dict
 
 from sqlalchemy.ext.asyncio import AsyncSession
 

@@ -11,7 +11,6 @@ import logging
 from typing import Any, Dict, List
 
 from .enums import BusinessDomain, MigrationDriverType, OrganizationSize, StakeholderRole
-from .models import BusinessContext
 
 logger = logging.getLogger(__name__)
 

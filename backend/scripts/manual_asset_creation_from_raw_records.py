@@ -13,14 +13,14 @@ import os
 import sys
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 # Add the backend directory to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 async def main():
     try:
-        from sqlalchemy import select, update
+        from sqlalchemy import select
 
         from app.core.database import AsyncSessionLocal
         from app.models.asset import Asset, AssetStatus

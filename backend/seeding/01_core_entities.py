@@ -16,12 +16,11 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from app.core.database import AsyncSessionLocal
 from app.models.client_account import ClientAccount, Engagement, User, UserAccountAssociation
-from app.models.rbac import AccessLevel, RoleType, UserRole, UserStatus
+from app.models.rbac import UserRole
 from seeding.constants import (
     BASE_TIMESTAMP,
     DEFAULT_PASSWORD,
     DEMO_CLIENT_ID,
-    DEMO_COMPANY_DOMAIN,
     DEMO_COMPANY_NAME,
     DEMO_ENGAGEMENT_ID,
     USER_IDS,

@@ -4,7 +4,6 @@ Simple Railway Migration Check
 Uses docker exec to check the Railway database state without complex imports
 """
 
-import os
 import subprocess
 import sys
 

@@ -4,9 +4,9 @@ Utility functions for discovery flow operations.
 
 import logging
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -273,7 +273,6 @@ def validate_asset_data_quality(asset_data: Dict[str, Any]) -> Dict[str, Any]:
     
     # Check completeness
     required_fields = ["asset_name", "asset_type"]
-    optional_fields = ["description", "location", "owner", "criticality"]
     
     present_required = sum(1 for field in required_fields if asset_data.get(field))
     quality_factors["completeness"] = present_required / len(required_fields)

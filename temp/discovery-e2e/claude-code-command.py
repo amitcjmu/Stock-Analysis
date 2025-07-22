@@ -15,15 +15,13 @@ import argparse
 import json
 import logging
 import os
-import sys
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
-import uuid
+from typing import Dict, List
 import base64
 import hashlib
 
 # Import the workflow enforcement system
-from workflow_enforcement_system import WorkflowEnforcementSystem, WorkflowState
+from workflow_enforcement_system import WorkflowEnforcementSystem
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -656,7 +654,7 @@ def main():
         
         # Launch agents if requested
         if args.launch:
-            execution_plan = system.launch_agents(issue_id)
+            system.launch_agents(issue_id)
             print("🚀 Launched multi-agent resolution")
             print(f"📁 Session directory: {system.session_dir}")
             

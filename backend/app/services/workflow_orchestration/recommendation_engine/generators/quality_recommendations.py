@@ -146,7 +146,7 @@ class QualityRecommendationGenerator:
         estimated_data_volume = environment_analysis.get("estimated_data_volume", 0)
         
         # Find quality-related patterns
-        quality_patterns = [p for p in historical_patterns if "quality" in p.pattern_type.lower()]
+        [p for p in historical_patterns if "quality" in p.pattern_type.lower()]
         
         # For environments with diverse platforms or large data volumes
         if platform_count > 4 or estimated_data_volume > 50000:

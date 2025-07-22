@@ -5,10 +5,8 @@ This model represents the collected data inventory for Collection Flows.
 """
 
 import uuid
-from datetime import datetime
-from typing import Any, Dict, Optional
 
-from sqlalchemy import UUID, Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import UUID, Column, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 

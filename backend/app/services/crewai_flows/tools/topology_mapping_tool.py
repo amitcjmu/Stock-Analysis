@@ -5,10 +5,9 @@ Provides specialized tools for mapping application and infrastructure topology
 
 import json
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from crewai.tools import BaseTool
-from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

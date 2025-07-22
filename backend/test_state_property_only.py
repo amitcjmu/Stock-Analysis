@@ -5,7 +5,6 @@ This bypasses service initialization to focus on the core state property issue
 """
 
 import asyncio
-import os
 import sys
 
 sys.path.append('/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend')

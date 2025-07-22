@@ -16,7 +16,6 @@ from app.api.v1.endpoints import (
     chat_router,
     context_router,
     data_import_router,
-    discovery_router,
     monitoring_router,
     sixr_router,
     test_discovery_router,

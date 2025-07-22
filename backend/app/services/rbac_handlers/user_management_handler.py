@@ -5,10 +5,9 @@ Handles user registration, approval, rejection, and basic user operations.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
-from sqlalchemy import and_, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import and_, select
 from sqlalchemy.orm import selectinload
 
 from .base_handler import BaseRBACHandler

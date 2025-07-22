@@ -7,13 +7,12 @@ and phase-specific operations in the Collection flow.
 """
 
 import asyncio
-import json
 import logging
 import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
@@ -1097,7 +1096,7 @@ async def _start_crewai_collection_flow_background(
             )
             
             # Execute the flow (this will run the CrewAI flow)
-            flow_result = await collection_flow.kickoff()
+            await collection_flow.kickoff()
             
             logger.info(f"✅ CrewAI collection flow completed: {flow_id}")
             

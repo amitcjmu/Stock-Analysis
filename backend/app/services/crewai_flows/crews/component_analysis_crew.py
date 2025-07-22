@@ -20,7 +20,7 @@ The crew consists of three specialized agents:
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 # CrewAI imports with fallback
 try:

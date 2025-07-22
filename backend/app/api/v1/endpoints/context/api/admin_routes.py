@@ -4,9 +4,8 @@ Admin Routes
 API endpoints for administrative context operations.
 """
 
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import get_current_context

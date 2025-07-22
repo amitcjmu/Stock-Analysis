@@ -4,8 +4,6 @@ Engagement Routes
 API endpoints for engagement-related operations.
 """
 
-from typing import Optional
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, status
 from sqlalchemy.ext.asyncio import AsyncSession

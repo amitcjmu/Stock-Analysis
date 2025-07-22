@@ -15,8 +15,7 @@ import random
 import statistics
 import sys
 import time
-from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -273,7 +272,7 @@ class LoadTestRunner:
         logger.info("📋 Phase 3: Ramp-up load test")
         
         try:
-            ramp_up_duration = self.config["ramp_up_duration"]
+            self.config["ramp_up_duration"]
             max_users = self.config["concurrent_users"]
             
             # Gradually increase load
@@ -606,7 +605,7 @@ class LoadTestRunner:
                     json={"reason": "load_test"},
                     headers=self.session_headers,
                     timeout=aiohttp.ClientTimeout(total=10)
-                ) as response:
+                ):
                     pass
                 
                 # Test resume
@@ -616,7 +615,7 @@ class LoadTestRunner:
                     json={"resume_context": {"test": True}},
                     headers=self.session_headers,
                     timeout=aiohttp.ClientTimeout(total=10)
-                ) as response:
+                ):
                     pass
                 
                 # Test status check
@@ -625,7 +624,7 @@ class LoadTestRunner:
                     f"{self.config['backend_url']}/api/v1/flows/{flow_id}/status",
                     headers=self.session_headers,
                     timeout=aiohttp.ClientTimeout(total=10)
-                ) as response:
+                ):
                     pass
                     
         except Exception as e:

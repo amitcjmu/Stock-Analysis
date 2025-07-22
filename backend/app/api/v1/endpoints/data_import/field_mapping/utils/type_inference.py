@@ -4,7 +4,7 @@ Type inference utilities for field mapping.
 
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List
 
 
 def infer_field_type(values: List[Any]) -> str:

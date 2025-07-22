@@ -5,7 +5,6 @@ Test script for the embedding service
 
 import asyncio
 import sys
-import os
 
 # Add the backend directory to the path
 sys.path.append('/app')

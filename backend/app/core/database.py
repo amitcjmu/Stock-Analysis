@@ -31,9 +31,7 @@ except ImportError:
 
 import asyncio
 import logging
-import os
-from datetime import datetime, timedelta
-from typing import Optional
+from datetime import datetime
 
 from app.core.config import get_database_url, settings
 

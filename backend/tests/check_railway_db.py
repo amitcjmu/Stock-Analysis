@@ -35,7 +35,7 @@ async def check_database_setup():
     # Test database connection
     try:
         from app.core.config import settings
-        from app.core.database import AsyncSessionLocal, engine
+        from app.core.database import engine
         
         print(f"🔗 Using database URL: {settings.database_url_async[:50]}...")
         

@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
 import asyncio
-import os
-import sys
 
 from sqlalchemy import select
 

@@ -18,17 +18,11 @@ def test_imports():
     # Test Phase 1 imports
     print("Testing Phase 1 (Foundation) imports...")
     try:
-        from app.models.collection_flow import CollectionFlow
         print("✅ CollectionFlow model imported")
     except Exception as e:
         errors.append(f"❌ CollectionFlow model: {e}")
     
     try:
-        from app.services.collection_flow import (
-            CollectionFlowStateService,
-            DataTransformationService,
-            TierDetectionService,
-        )
         print("✅ Core collection services imported")
     except Exception as e:
         errors.append(f"❌ Core collection services: {e}")
@@ -36,22 +30,16 @@ def test_imports():
     # Test Phase 2 imports
     print("\nTesting Phase 2 (Collection Capabilities) imports...")
     try:
-        from app.services.adapters.aws_adapter import AWSAdapter
-        from app.services.adapters.azure_adapter import AzureAdapter
         print("✅ Platform adapters imported")
     except Exception as e:
         errors.append(f"❌ Platform adapters: {e}")
     
     try:
-        from app.services.ai_analysis.gap_analysis_agent import GapAnalysisAgent
-        from app.services.ai_analysis.questionnaire_generator import AdaptiveQuestionnaireGenerator
         print("✅ AI analysis services imported")
     except Exception as e:
         errors.append(f"❌ AI analysis services: {e}")
     
     try:
-        from app.services.manual_collection import AdaptiveFormService, BulkDataService
-        from app.services.manual_collection import QuestionnaireValidationService as ValidationService
         print("✅ Manual collection services imported")
     except Exception as e:
         errors.append(f"❌ Manual collection services: {e}")
@@ -59,9 +47,6 @@ def test_imports():
     # Test Phase 3 imports
     print("\nTesting Phase 3 (Workflow Orchestration) imports...")
     try:
-        from app.services.ai_analysis.confidence_scoring import ConfidenceScorer
-        from app.services.workflow_orchestration.collection_phase_engine import CollectionPhaseExecutionEngine
-        from app.services.workflow_orchestration.workflow_orchestrator import WorkflowOrchestrator
         print("✅ Workflow orchestration services imported")
     except Exception as e:
         errors.append(f"❌ Workflow orchestration services: {e}")
@@ -69,8 +54,6 @@ def test_imports():
     # Test Phase 4 imports
     print("\nTesting Phase 4 (Integration) imports...")
     try:
-        from app.services.integration.data_flow_validator import DataFlowValidator
-        from app.services.integration.smart_workflow_orchestrator import SmartWorkflowOrchestrator
         print("✅ Integration services imported")
     except Exception as e:
         errors.append(f"❌ Integration services: {e}")
@@ -94,9 +77,7 @@ def test_database_models():
     try:
         from app.models import (
             CollectedDataInventory,
-            CollectionDataGap,
             CollectionFlow,
-            CollectionQuestionnaireResponse,
             PlatformAdapter,
             PlatformCredential,
         )

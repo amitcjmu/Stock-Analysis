@@ -11,7 +11,6 @@ The listener captures Flow, Crew, Agent, and Task events to provide:
 - Task completion and failure tracking
 """
 
-import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime

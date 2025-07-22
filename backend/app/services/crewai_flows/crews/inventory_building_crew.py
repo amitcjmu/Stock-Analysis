@@ -7,7 +7,6 @@ Enhanced implementation with CrewAI best practices:
 - Shared memory integration for classification insights
 """
 
-import json
 import logging
 from typing import Any, Dict, List, Optional
 

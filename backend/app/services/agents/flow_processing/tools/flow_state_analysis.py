@@ -6,7 +6,6 @@ to determine progress and completion status using API validation endpoints.
 """
 
 import logging
-from typing import Any, Dict
 
 from ..crewai_imports import BaseTool
 
@@ -44,9 +43,7 @@ class FlowStateAnalysisTool(BaseTool):
             # Call the actual flow management service to get real status
             import asyncio
 
-            from app.api.v1.discovery_handlers.flow_management import FlowManagementHandler
             from app.core.context import RequestContext
-            from app.core.database import AsyncSessionLocal
             
             # Create context for service calls
             context = RequestContext(
@@ -100,7 +97,7 @@ class FlowStateAnalysisTool(BaseTool):
                 if current_phase == "data_import" and progress == 0:
                     # Check if there's actual data
                     raw_data = flow_response.get("raw_data", [])
-                    field_mapping = flow_response.get("field_mapping", {})
+                    flow_response.get("field_mapping", {})
                     
                     if not raw_data:
                         specific_issues.append("No data has been imported yet")

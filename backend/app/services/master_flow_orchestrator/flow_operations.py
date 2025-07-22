@@ -5,10 +5,8 @@ Contains core flow operation methods including creation, execution, and lifecycl
 """
 
 import asyncio
-import logging
 import uuid
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -327,7 +325,7 @@ class FlowOperations:
                     
                     crewai_service = CrewAIFlowService(self.db)
                     
-                    async with AsyncSessionLocal() as db:
+                    async with AsyncSessionLocal():
                         if resume_context is None:
                             resume_context = {
                                 'client_account_id': str(master_flow.client_account_id),

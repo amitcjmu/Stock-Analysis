@@ -3,9 +3,8 @@ Credential Validation Agent - Credential scope and access validation
 Validates credentials and permissions for migration operations
 """
 
-from typing import Any, Dict, List
+from typing import Any, List
 
-from crewai import Agent
 
 from app.services.agents.base_agent import BaseCrewAIAgent
 from app.services.agents.metadata import AgentMetadata

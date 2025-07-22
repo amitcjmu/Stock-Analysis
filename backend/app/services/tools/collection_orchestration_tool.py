@@ -13,19 +13,10 @@ Generated with CC for modular backend architecture.
 """
 
 import logging
-from datetime import timedelta
 
 # For backward compatibility - re-export all classes
-from typing import Any, Dict, List, Optional
 
 # Import modular components
-from .collection_orchestration import (
-    CollectionStrategyPlanner,
-    ErrorRecoveryManager,
-    PlatformAdapterManager,
-    ProgressMonitor,
-    QualityValidator,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -39,4 +30,3 @@ logger = logging.getLogger(__name__)
 # from collection_orchestration_tool import ProgressMonitor, QualityValidator, ErrorRecoveryManager
 
 # Import timedelta for completion estimation compatibility
-from datetime import timedelta

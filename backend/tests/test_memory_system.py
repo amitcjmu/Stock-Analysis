@@ -5,7 +5,6 @@ Tests memory persistence, pattern learning, and experience tracking.
 """
 
 import os
-import pickle
 import shutil
 import sys
 import tempfile

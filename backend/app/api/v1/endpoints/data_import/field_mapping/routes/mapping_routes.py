@@ -9,7 +9,6 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth import get_current_user_id
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 
@@ -180,7 +179,7 @@ async def generate_field_mappings(
         if force_regenerate:
             logger.info(f"🔄 Force regenerating field mappings for import {import_id}")
             # Delete existing mappings to trigger CrewAI regeneration
-            from sqlalchemy import and_, delete, select
+            from sqlalchemy import and_, delete
 
             from app.models.data_import import ImportFieldMapping
             

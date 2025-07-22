@@ -4,21 +4,15 @@ Handles workflow progression for assets through discovery → mapping → cleanu
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.auth.auth_utils import get_current_active_user
 from app.core.database import get_db
-from app.models.asset import Asset, AssetStatus
-from app.models.client_account import User
-from app.repositories.asset_repository import AssetRepository
-from app.repositories.context_aware_repository import ContextAwareRepository
-from app.schemas.asset_schemas import AssetCreate, AssetOut, AssetUpdate, WorkflowStepUpdate
-from app.services.asset_service import AssetService
+from app.models.asset import Asset
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -88,7 +82,7 @@ async def advance_asset_workflow(
         )
     
     # Determine current phase and validate advancement
-    current_phase = _get_current_phase(asset)
+    _get_current_phase(asset)
     target_phase = request.phase.lower()
     
     # Validate advancement rules

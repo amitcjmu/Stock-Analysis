@@ -4,9 +4,8 @@ GCP Adapter Main Module
 Main GCP adapter class that orchestrates all modular components.
 """
 
-import asyncio
 import time
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Set
 
 from sqlalchemy.ext.asyncio import AsyncSession
 

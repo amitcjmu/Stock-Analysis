@@ -7,7 +7,6 @@ import logging
 import random
 import time
 from threading import Lock
-from typing import Any, Callable, Dict, Optional
 
 logger = logging.getLogger(__name__)
 

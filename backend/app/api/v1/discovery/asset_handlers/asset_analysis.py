@@ -4,7 +4,7 @@ Handles data quality analysis, insights generation, and reporting operations.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import pandas as pd
 
@@ -406,7 +406,7 @@ class AssetAnalysisHandler:
                 return self._fallback_get_discovery_metrics()
             
             # Convert to DataFrame for analysis
-            df = pd.DataFrame(all_assets)
+            pd.DataFrame(all_assets)
             
             # Count assets by type
             total_assets = len(all_assets)
@@ -483,7 +483,7 @@ class AssetAnalysisHandler:
                 logger.warning(f"No assets found for client {client_account_id}, engagement {engagement_id}. Returning default application landscape.")
                 return self._fallback_get_application_landscape()
 
-            df = pd.DataFrame(all_assets)
+            pd.DataFrame(all_assets)
             
             # Filter for assets that are applications
             applications = [a for a in all_assets if 'app' in str(a.get('asset_type', '')).lower()]
@@ -560,7 +560,7 @@ class AssetAnalysisHandler:
                 logger.warning(f"No assets found for client {client_account_id}, engagement {engagement_id}. Returning default infrastructure landscape.")
                 return self._fallback_get_infrastructure_landscape()
 
-            df = pd.DataFrame(all_assets)
+            pd.DataFrame(all_assets)
             
             # Count servers by type
             servers = [a for a in all_assets if 'server' in str(a.get('asset_type', '')).lower()]

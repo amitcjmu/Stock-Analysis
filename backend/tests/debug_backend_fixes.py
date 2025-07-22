@@ -4,8 +4,6 @@ Debug script to test backend fixes for admin interface issues.
 Tests user deactivation and engagement creation API endpoints.
 """
 
-import json
-import uuid
 
 import requests
 

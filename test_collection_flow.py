@@ -4,7 +4,6 @@ Test Collection Flow to verify CrewAI agents are invoked
 """
 
 import httpx
-import json
 import time
 
 # Configuration

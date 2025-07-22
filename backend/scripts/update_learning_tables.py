@@ -5,7 +5,6 @@ Updates vector dimensions and creates missing tables with proper schema.
 """
 
 import asyncio
-import os
 import sys
 
 # Add the backend directory to the path

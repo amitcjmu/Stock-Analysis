@@ -5,9 +5,8 @@ Reusable query specifications for discovery flows.
 """
 
 from datetime import datetime
-from typing import List, Optional
 
-from sqlalchemy import and_, or_
+from sqlalchemy import and_
 from sqlalchemy.sql import ColumnElement
 
 from app.models.discovery_flow import DiscoveryFlow

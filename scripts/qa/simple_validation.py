@@ -7,13 +7,11 @@ Quick validation of seeded data that works with the actual database structure.
 
 import asyncio
 import sys
-from datetime import datetime
 from typing import Dict, Any
 
 sys.path.append('/app')
 
-from sqlalchemy import text, select, func
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 from app.core.database import AsyncSessionLocal
 
 async def run_simple_validation() -> Dict[str, Any]:

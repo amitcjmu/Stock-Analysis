@@ -14,18 +14,14 @@ import asyncio
 import os
 import sys
 from datetime import datetime
-from typing import Any, Dict, List
 
 # Add the backend directory to Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from sqlalchemy import delete, select, text, update
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
-from app.models.asset import Asset
-from app.models.data_import import RawImportRecord
-from app.models.tags import AssetEmbedding, AssetTag
 
 
 class CMDBToAssetsDataMigrator:

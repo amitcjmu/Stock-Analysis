@@ -6,13 +6,13 @@ based on actual data patterns, not static heuristics.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.context import RequestContext, extract_context_from_request, get_current_context
+from app.core.context import RequestContext, extract_context_from_request
 from app.core.database import get_db
 from app.models.data_import import DataImport, ImportFieldMapping
 
@@ -135,7 +135,7 @@ async def _get_agentic_critical_attributes(
         from app.services.crewai_flow_service import CrewAIFlowService
         
         # Check if there are existing discovery flow results for this import
-        crewai_service = CrewAIFlowService()
+        CrewAIFlowService()
         
         # Look for existing discovery flow 
         from sqlalchemy import select
@@ -197,7 +197,7 @@ async def _get_agentic_critical_attributes(
             # Extract field mappings from discovery flow
             field_mapping_data = discovery_flow.field_mappings
             field_mappings = field_mapping_data.get("field_mappings", {}) if isinstance(field_mapping_data, dict) else {}
-            confidence_scores = field_mapping_data.get("confidence_scores", {}) if isinstance(field_mapping_data, dict) else {}
+            field_mapping_data.get("confidence_scores", {}) if isinstance(field_mapping_data, dict) else {}
             
             # Remove non-field entries from mappings
             if "confidence_scores" in field_mappings:
@@ -322,7 +322,7 @@ async def _trigger_discovery_flow_analysis(
     try:
         # Use the proper CrewAI Flow service for discovery analysis
         from app.services.crewai_flow_service import CrewAIFlowService
-        crewai_service = CrewAIFlowService()
+        CrewAIFlowService()
         
         # Prepare data for discovery flow
         flow_id = data_import.id  # Use data import ID directly as flow ID
@@ -345,7 +345,7 @@ async def _trigger_discovery_flow_analysis(
                 })
             
             # Trigger proper CrewAI Flow for agentic analysis
-            flow_context = type('FlowContext', (), {
+            type('FlowContext', (), {
                 'client_account_id': context.client_account_id,
                 'engagement_id': context.engagement_id,
                 'user_id': context.user_id or "system",
@@ -505,7 +505,6 @@ async def _update_field_mappings_from_reanalysis(
     Update existing field mappings with new mappings from re-analysis.
     """
     try:
-        from sqlalchemy import update
         
         # Get existing field mappings
         existing_query = select(ImportFieldMapping).where(

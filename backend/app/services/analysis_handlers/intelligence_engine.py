@@ -6,7 +6,7 @@ Handles CrewAI-based analysis, pattern recognition, and AI-driven insights.
 import logging
 import os
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ class IntelligenceEngineHandler:
             if not self.service_available:
                 return self._fallback_analysis(cmdb_data)
             
-            filename = cmdb_data.get('filename', '')
+            cmdb_data.get('filename', '')
             structure = cmdb_data.get('structure', {})
             sample_data = cmdb_data.get('sample_data', [])
             
@@ -112,7 +112,7 @@ class IntelligenceEngineHandler:
             
             # Migration readiness assessment
             quality_score = analysis_results.get('quality_score', 0.7)
-            asset_type = analysis_results.get('asset_type', 'generic')
+            analysis_results.get('asset_type', 'generic')
             
             if quality_score >= 0.8:
                 readiness = "ready"

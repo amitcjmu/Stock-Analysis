@@ -6,7 +6,7 @@ Analyzes user experience and journey through the ADCS workflow.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 from uuid import UUID
 
 from sqlalchemy import and_, select

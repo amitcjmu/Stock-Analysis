@@ -1,28 +1,19 @@
-import asyncio
 import os
 
 # Import the modules we're testing
 import sys
-from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../backend'))
 
-from app.models.sixr_analysis import SixRAnalysis
-from app.models.sixr_analysis import SixRParameters as SixRParametersModel
 from app.schemas.sixr_analysis import (
     ApplicationType,
-    QualifyingQuestion,
     QuestionResponse,
-    SixRAnalysisRequest,
     SixRParameters,
-    SixRRecommendationResponse,
-    SixRStrategy,
 )
-from app.services.crewai_flows.crews.technical_debt_crew import create_technical_debt_crew
 from app.services.sixr_engine_modular import SixRDecisionEngine
 from app.services.tools.sixr_tools import (
     CMDBAnalysisTool,
@@ -128,7 +119,7 @@ class TestSixRDecisionEngine:
     
     def test_confidence_calculation(self, decision_engine, sample_parameters):
         """Test confidence score calculation"""
-        scores = decision_engine.calculate_strategy_scores(sample_parameters)
+        decision_engine.calculate_strategy_scores(sample_parameters)
         recommendation = decision_engine.get_recommendation(sample_parameters)
         
         # Confidence should be between 0 and 1

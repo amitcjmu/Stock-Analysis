@@ -3,9 +3,9 @@ Schema Analyzer Tool for data structure analysis
 """
 
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict
 
-from sqlalchemy import inspect, select
+from sqlalchemy import select
 
 from app.core.database_context import get_context_db
 from app.models import RawImportRecord

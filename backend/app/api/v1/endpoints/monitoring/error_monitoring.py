@@ -5,7 +5,6 @@ Provides monitoring for background tasks and error tracking including active tas
 failed tasks, and error summaries.
 """
 
-import logging
 import os
 from datetime import datetime
 from typing import Any, Dict

@@ -6,7 +6,7 @@ import importlib
 import inspect
 import os
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set, Type
+from typing import List, Optional, Type
 
 # Optional CrewAI import
 try:

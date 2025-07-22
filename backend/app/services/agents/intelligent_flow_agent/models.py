@@ -7,7 +7,7 @@ for representing flow intelligence results and analysis data.
 
 from typing import List
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class FlowIntelligenceResult(BaseModel):

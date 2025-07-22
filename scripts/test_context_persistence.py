@@ -10,7 +10,6 @@ This script tests:
 
 import asyncio
 import aiohttp
-import json
 from datetime import datetime
 
 # Test contexts - Marathon should persist, not switch to Acme
@@ -134,7 +133,7 @@ async def test_context_persistence():
             ) as response:
                 
                 if response.status == 200:
-                    result = await response.json()
+                    await response.json()
                     print("✅ Context Persistence: Headers processed correctly")
                     print(f"   Expected Client: Marathon Petroleum ({context['client_id']})")
                     print("   Context Preserved: ✅")

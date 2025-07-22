@@ -5,9 +5,7 @@ This model represents platform adapters for data collection.
 """
 
 import uuid
-from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Optional
 
 from sqlalchemy import UUID, Column, String, UniqueConstraint
 from sqlalchemy import Enum as SQLEnum

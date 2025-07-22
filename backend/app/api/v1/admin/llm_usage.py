@@ -4,14 +4,14 @@ Endpoints for monitoring LLM usage, costs, and generating reports.
 """
 
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.models.llm_usage import LLMModelPricing, LLMUsageLog, LLMUsageSummary
+from app.models.llm_usage import LLMModelPricing, LLMUsageLog
 from app.services.llm_usage_tracker import llm_tracker
 
 router = APIRouter()
@@ -285,7 +285,7 @@ async def get_real_time_usage(
 ):
     """Get real-time usage statistics for monitoring."""
     try:
-        from sqlalchemy import and_, func, select
+        from sqlalchemy import func, select
         
         cutoff_time = datetime.utcnow() - timedelta(hours=hours)
         

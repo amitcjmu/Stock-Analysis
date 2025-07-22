@@ -6,7 +6,7 @@ Generates automation tier recommendations based on environment analysis and hist
 """
 
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from app.core.logging import get_logger
 

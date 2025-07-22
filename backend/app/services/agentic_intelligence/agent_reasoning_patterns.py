@@ -16,7 +16,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -257,7 +257,7 @@ class AgentReasoningEngine:
                 
                 if self._pattern_matches_asset(pattern_logic, asset_data):
                     applied_patterns.append(pattern_data['id'])
-                    confidence_boost = min(pattern_data['confidence'], 0.3)
+                    min(pattern_data['confidence'], 0.3)
                     
                     # Create evidence based on pattern match
                     evidence = ReasoningEvidence(
@@ -558,7 +558,7 @@ class AgentReasoningEngine:
         """Analyze architecture for modernization potential"""
         evidence = []
         
-        asset_type = asset_data.get('asset_type', '').lower()
+        asset_data.get('asset_type', '').lower()
         tech_stack = asset_data.get('technology_stack', '').lower()
         
         # Modern architecture indicators

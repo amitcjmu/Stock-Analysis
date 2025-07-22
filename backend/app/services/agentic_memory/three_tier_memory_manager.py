@@ -13,8 +13,8 @@ maintaining multi-tenant isolation and enabling true agentic learning.
 import logging
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Union
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 try:
     from crewai.memory import LongTermMemory
@@ -119,7 +119,7 @@ class ThreeTierMemoryManager:
         
         try:
             # Store with multi-tenant context
-            memory_entry = {
+            {
                 'agent': agent_name,
                 'conversation': conversation,
                 'client_account_id': str(self.client_account_id),

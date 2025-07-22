@@ -15,7 +15,6 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.core.database import AsyncSessionLocal, engine
 from app.models import ClientAccount, Engagement, User
 from app.models.base import Base
 

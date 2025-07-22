@@ -5,7 +5,6 @@ Middleware to track and handle errors in background tasks and async operations.
 """
 
 import asyncio
-import logging
 import uuid
 from datetime import datetime
 from typing import Any, Callable, Dict, Optional

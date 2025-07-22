@@ -4,7 +4,7 @@ Agent-7 Verification Test Suite
 """
 
 import json
-from typing import Any, Dict
+from typing import Dict
 
 import httpx
 import pytest
@@ -98,7 +98,7 @@ class TestDISC001UUIDSerialization:
                 assert response.headers.get("content-type", "").startswith("application/json"), \
                     "Response should be JSON"
                 
-                data = response.json()
+                response.json()
                 return True, "Stats endpoint working correctly"
                 
             except json.JSONDecodeError as e:

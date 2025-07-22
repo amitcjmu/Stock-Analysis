@@ -3,9 +3,8 @@ Platform Detection Agent - Main platform capability assessment
 Analyzes target platform capabilities and features for migration planning
 """
 
-from typing import Any, Dict, List
+from typing import Any, List
 
-from crewai import Agent
 
 from app.services.agents.base_agent import BaseCrewAIAgent
 from app.services.agents.metadata import AgentMetadata

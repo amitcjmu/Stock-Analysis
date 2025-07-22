@@ -6,20 +6,17 @@ Handles expired flows, orphaned state, and flow lifecycle management.
 """
 
 import logging
-import uuid
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict
 
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.context import RequestContext
 from app.models.collection_flow import (
-    AdaptiveQuestionnaire,
     CollectionFlow,
     CollectionFlowStatus,
-    CollectionGapAnalysis,
 )
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 

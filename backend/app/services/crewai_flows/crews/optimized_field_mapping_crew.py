@@ -11,7 +11,7 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from crewai import Agent, Crew, Process, Task
+from crewai import Agent, Process, Task
 
 from app.services.agent_learning_system import LearningContext, agent_learning_system
 from app.services.enhanced_agent_memory import enhanced_agent_memory

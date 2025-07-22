@@ -31,7 +31,7 @@ class FeedbackHandler:
         Submit feedback on CMDB analysis results.
         """
         feedback_type = request.get('type', 'general')
-        feedback_content = request.get('content', '')
+        request.get('content', '')
         
         logger.info(f"Processing feedback of type: {feedback_type}")
         

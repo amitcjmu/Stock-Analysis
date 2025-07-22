@@ -8,7 +8,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from .agent_learning_system import LearningContext, agent_learning_system
+from .agent_learning_system import LearningContext
 from .field_mapper_handlers import AgentInterfaceHandler, MappingEngineHandler, ValidationHandler
 
 logger = logging.getLogger(__name__)

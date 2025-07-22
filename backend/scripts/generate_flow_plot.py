@@ -4,7 +4,6 @@ Generate Discovery Flow Plot
 Creates an HTML visualization of the AI Modernize Migration Platform Discovery Flow
 """
 
-import os
 import sys
 from pathlib import Path
 

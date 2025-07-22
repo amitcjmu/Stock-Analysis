@@ -7,13 +7,12 @@ Enhanced implementation with CrewAI best practices:
 - Shared memory integration for dependency patterns
 """
 
-import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from crewai import Agent, Crew, Process, Task
 
-from .crew_config import MAX_DELEGATIONS, get_optimized_agent_config
+from .crew_config import get_optimized_agent_config
 
 # Import advanced CrewAI features with fallbacks
 try:

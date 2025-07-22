@@ -5,9 +5,7 @@ Provides comprehensive monitoring for CrewAI Flow executions including real-time
 agent task details, and performance metrics.
 """
 
-import logging
 from datetime import datetime
-from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 

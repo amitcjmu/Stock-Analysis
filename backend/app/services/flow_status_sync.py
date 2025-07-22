@@ -5,7 +5,6 @@ Implements ADR-012: Flow Status Management Separation
 Provides atomic updates for critical flow state changes and event-driven synchronization.
 """
 
-import asyncio
 import logging
 from datetime import datetime
 from enum import Enum

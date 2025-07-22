@@ -5,9 +5,8 @@ Team C1 - Task C1.3
 Core tier analysis and scoring logic.
 """
 
-import logging
 from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict
 
 from app.core.logging import get_logger
 
@@ -116,7 +115,7 @@ class TierAnalyzer:
         """Calculate score for a specific tier"""
         
         score = 0.0
-        weights = self.tier_weights[tier]
+        self.tier_weights[tier]
         
         # Platform compatibility score
         platform_score = 0.0

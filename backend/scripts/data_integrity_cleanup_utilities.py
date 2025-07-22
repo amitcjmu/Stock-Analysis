@@ -34,17 +34,16 @@ import argparse
 import asyncio
 import json
 import logging
-import shutil
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 # Add the backend directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from sqlalchemy import and_, func, or_, text
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.database import AsyncSessionLocal
@@ -570,7 +569,7 @@ async def main():
                 print(json.dumps(health_report, indent=2))
                 
             elif args.command == 'comprehensive-cleanup':
-                operations = await utilities.run_comprehensive_cleanup(session)
+                await utilities.run_comprehensive_cleanup(session)
                 report = utilities.generate_cleanup_report()
                 print("\nCOMPREHENSIVE CLEANUP REPORT")
                 print("=" * 50)

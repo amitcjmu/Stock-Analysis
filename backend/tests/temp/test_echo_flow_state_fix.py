@@ -4,7 +4,6 @@ Test script for ECHO team's flow state progression fix
 Tests the core issue without requiring database
 """
 
-import asyncio
 import os
 import sys
 

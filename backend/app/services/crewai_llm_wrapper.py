@@ -6,9 +6,8 @@ Wraps CrewAI LLM calls with rate limiting to prevent 429 errors.
 import asyncio
 import logging
 from functools import wraps
-from typing import Any, Dict, List, Optional
 
-from app.services.llm_config import LLM, get_crewai_llm
+from app.services.llm_config import LLM
 from app.services.llm_rate_limiter import llm_rate_limiter
 
 logger = logging.getLogger(__name__)
@@ -60,7 +59,7 @@ class RateLimitedLLM:
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 # If we're already in an async context, create a task
-                future = asyncio.create_task(self._make_rate_limited_call('__call__', *args, **kwargs))
+                asyncio.create_task(self._make_rate_limited_call('__call__', *args, **kwargs))
                 # For sync compatibility, we need to block until complete
                 # This is not ideal but necessary for CrewAI compatibility
                 import concurrent.futures

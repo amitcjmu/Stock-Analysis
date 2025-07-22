@@ -5,10 +5,9 @@ Provides specialized tools for application and service discovery and classificat
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from crewai.tools import BaseTool
-from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 

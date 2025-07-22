@@ -6,11 +6,9 @@ data handoff validation between crews, shared memory integration,
 and cross-crew collaboration patterns.
 """
 
-import asyncio
-import json
 import time
-from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from typing import Any, Dict, List
+from unittest.mock import Mock
 
 import pytest
 
@@ -425,9 +423,9 @@ class TestDataHandoffValidation:
         
         # Execute prerequisites through dependency analysis
         field_mapping_result = await service.execute_field_mapping_crew(session)
-        data_cleansing_result = await service.execute_data_cleansing_crew(session, field_mapping_result)
-        inventory_result = await service.execute_inventory_building_crew(session, {})
-        app_server_result = await service.execute_app_server_dependency_crew(session, {})
+        await service.execute_data_cleansing_crew(session, field_mapping_result)
+        await service.execute_inventory_building_crew(session, {})
+        await service.execute_app_server_dependency_crew(session, {})
         app_app_result = await service.execute_app_app_dependency_crew(session, {})
         
         # Verify handoff readiness
@@ -451,8 +449,8 @@ class TestSharedMemoryIntegration:
         
         # Execute first few phases
         field_mapping_result = await service.execute_field_mapping_crew(session)
-        data_cleansing_result = await service.execute_data_cleansing_crew(session, field_mapping_result)
-        inventory_result = await service.execute_inventory_building_crew(session, {})
+        await service.execute_data_cleansing_crew(session, field_mapping_result)
+        await service.execute_inventory_building_crew(session, {})
         
         # Verify all results are stored in memory
         stored_field_mapping = service.shared_memory.get("field_mapping_result")
@@ -472,7 +470,6 @@ class TestSharedMemoryIntegration:
     async def test_cross_crew_insight_building(self, mock_discovery_flow_service, mock_import_session):
         """Test cumulative insight building across crews"""
         service = mock_discovery_flow_service
-        session = mock_import_session
         
         # Add cross-crew insights during execution
         service.shared_memory.add_cross_crew_insight({
@@ -571,7 +568,7 @@ class TestSuccessCriteriaValidation:
         
         # Execute prerequisites
         field_mapping_result = await service.execute_field_mapping_crew(session)
-        data_cleansing_result = await service.execute_data_cleansing_crew(session, field_mapping_result)
+        await service.execute_data_cleansing_crew(session, field_mapping_result)
         result = await service.execute_inventory_building_crew(session, {})
         
         # Verify success criteria
@@ -614,7 +611,7 @@ class TestErrorHandlingAndRecovery:
         session = mock_import_session
         
         # Execute field mapping successfully
-        field_mapping_result = await service.execute_field_mapping_crew(session)
+        await service.execute_field_mapping_crew(session)
         
         # Remove handoff data to simulate failure
         service.shared_memory.memories.pop("field_mapping_to_data_cleansing_handoff", None)
@@ -655,8 +652,8 @@ class TestPerformanceOptimization:
         
         # Execute sequential phases first
         field_mapping_result = await service.execute_field_mapping_crew(session)
-        data_cleansing_result = await service.execute_data_cleansing_crew(session, field_mapping_result)
-        inventory_result = await service.execute_inventory_building_crew(session, {})
+        await service.execute_data_cleansing_crew(session, field_mapping_result)
+        await service.execute_inventory_building_crew(session, {})
         
         # Test concurrent execution of dependency analysis phases
         start_time = time.time()

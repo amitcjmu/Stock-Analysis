@@ -9,7 +9,7 @@ import logging
 import time
 from datetime import datetime
 from functools import wraps
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 try:
     from prometheus_client import Counter, Gauge, Histogram, Info

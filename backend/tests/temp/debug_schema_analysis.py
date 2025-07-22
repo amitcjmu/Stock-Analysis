@@ -1,9 +1,7 @@
 import asyncio
-import json
-import os
 import sys
 
-from sqlalchemy import inspect, text
+from sqlalchemy import text
 
 # Add the backend directory to the Python path
 sys.path.append('backend')

@@ -8,7 +8,6 @@ ensuring a smooth deployment process.
 
 import asyncio
 import os
-from typing import Dict, List
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import create_async_engine

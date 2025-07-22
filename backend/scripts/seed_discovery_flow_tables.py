@@ -10,15 +10,13 @@ This script:
 4. Eliminates session_id dependencies completely
 """
 
-import argparse
 import asyncio
 import json
 import logging
 import os
 import sys
 import uuid
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List
+from datetime import datetime, timezone
 
 # Add the parent directory to the path so we can import our app modules
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))

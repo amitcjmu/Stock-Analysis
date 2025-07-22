@@ -4,7 +4,7 @@ ADCS: Crew for synthesizing all collected data
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 

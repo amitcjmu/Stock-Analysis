@@ -83,7 +83,7 @@ class GCPConnectivityTester:
                 parent=parent,
                 page_size=1
             )
-            response = self.auth_manager.asset_client.list_assets(request=request)
+            self.auth_manager.asset_client.list_assets(request=request)
             return True
         except Exception:
             return False
@@ -97,7 +97,7 @@ class GCPConnectivityTester:
                 name=project_name,
                 page_size=1
             )
-            response = self.auth_manager.monitoring_client.list_metric_descriptors(request=request)
+            self.auth_manager.monitoring_client.list_metric_descriptors(request=request)
             return True
         except Exception:
             return False
@@ -110,7 +110,7 @@ class GCPConnectivityTester:
                 project=self.auth_manager.project_id,
                 max_results=1
             )
-            response = self.auth_manager.compute_client.aggregated_list(request=request)
+            self.auth_manager.compute_client.aggregated_list(request=request)
             return True
         except Exception:
             return False
@@ -119,7 +119,7 @@ class GCPConnectivityTester:
         """Test Cloud Storage API connectivity"""
         try:
             # Try to list buckets
-            buckets = list(self.auth_manager.storage_client.list_buckets(max_results=1))
+            list(self.auth_manager.storage_client.list_buckets(max_results=1))
             return True
         except Exception:
             return False

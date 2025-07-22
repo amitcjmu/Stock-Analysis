@@ -10,7 +10,6 @@ import os
 import sys
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
 
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

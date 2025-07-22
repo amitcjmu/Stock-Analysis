@@ -5,8 +5,7 @@ Agent 2 Task 2.3 - Discovery flows seeding
 import asyncio
 import json
 import sys
-import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +16,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 from app.core.database import AsyncSessionLocal
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.models.discovery_flow import DiscoveryFlow
-from seeding.constants import BASE_TIMESTAMP, DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, FLOW_IDS, FLOWS, USER_IDS
+from seeding.constants import BASE_TIMESTAMP, DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, FLOW_IDS, FLOWS
 
 
 async def create_discovery_flows(db: AsyncSession) -> list[DiscoveryFlow]:

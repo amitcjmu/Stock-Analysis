@@ -4,7 +4,7 @@ Asset manager for discovery flow asset operations.
 
 import logging
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 

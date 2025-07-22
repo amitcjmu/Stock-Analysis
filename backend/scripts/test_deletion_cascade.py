@@ -10,7 +10,6 @@ import logging
 from sqlalchemy import select
 
 from app.core.database import AsyncSessionLocal
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.models.discovery_flow import DiscoveryFlow
 
 logging.basicConfig(level=logging.INFO)

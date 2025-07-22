@@ -11,8 +11,8 @@ Tests error handling and recovery mechanisms including:
 
 import asyncio
 from contextlib import asynccontextmanager
-from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, Mock, patch
+from typing import Any, Dict, List
+from unittest.mock import patch
 
 import pytest
 import sqlalchemy.exc

@@ -8,7 +8,7 @@ and prevents the rate limiting issues caused by concurrent phase execution.
 
 import logging
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 

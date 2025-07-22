@@ -10,7 +10,6 @@ from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset import Asset
-from app.models.client_account import Engagement
 from app.models.discovery_flow import DiscoveryFlow
 
 logger = logging.getLogger(__name__)

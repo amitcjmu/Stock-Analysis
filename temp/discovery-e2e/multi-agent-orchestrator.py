@@ -11,14 +11,12 @@ import json
 import logging
 import os
 import sys
-import threading
 import time
 from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 import subprocess
-import uuid
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -172,7 +170,7 @@ class MultiAgentOrchestrator:
         """Create tasks based on the workflow and issue type"""
         
         issue_type = self.issue_data.get("analysis", {}).get("issue_type", "ui")
-        original_reporter = self.issue_data.get("analysis", {}).get("suggested_reporter", "agent-1")
+        self.issue_data.get("analysis", {}).get("suggested_reporter", "agent-1")
         
         # Task 1: Historical Review (Agent-5)
         historical_task = AgentTask(

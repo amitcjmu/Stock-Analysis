@@ -7,12 +7,10 @@ Tests basic CRUD operations with only essential fields.
 import asyncio
 import os
 import sys
-from pathlib import Path
 
 # Add the backend directory to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 from app.models.asset_minimal import AssetMinimal, AssetStatusEnum, AssetTypeEnum, SixRStrategyEnum

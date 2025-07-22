@@ -6,7 +6,7 @@ import asyncio
 import os
 from typing import Any, Dict
 
-from app.infrastructure import DeploymentMode, get_deployment_config, get_service_factory
+from app.infrastructure import get_deployment_config, get_service_factory
 from app.infrastructure.telemetry import MetricType
 
 

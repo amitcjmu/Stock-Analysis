@@ -13,7 +13,7 @@ import sys
 # Add the backend directory to Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from sqlalchemy import inspect, text
+from sqlalchemy import text
 
 from app.core.database import AsyncSessionLocal
 

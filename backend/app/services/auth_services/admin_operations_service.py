@@ -4,11 +4,10 @@ Handles admin dashboard stats, active users, access logs, admin user creation, a
 """
 
 import logging
-import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
-from fastapi import HTTPException, Query
+from fastapi import HTTPException
 from sqlalchemy import and_, desc, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 

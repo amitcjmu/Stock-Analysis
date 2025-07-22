@@ -25,10 +25,10 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from sqlalchemy import delete, select
+from sqlalchemy import select
 
 from app.core.database import AsyncSessionLocal
-from app.models import ClientAccount, DiscoveryFlow, Engagement, User, UserAccountAssociation, UserRole
+from app.models import ClientAccount, Engagement, User, UserAccountAssociation, UserRole
 from app.models.rbac import RoleType, UserProfile, UserStatus
 
 
@@ -188,7 +188,7 @@ async def create_platform_admin():
         client_result = await session.execute(
             select(ClientAccount).limit(1)
         )
-        any_client = client_result.scalar_one_or_none()
+        client_result.scalar_one_or_none()
         
         # If no client exists, we'll create one when demo data is created
         # For now, just commit what we have

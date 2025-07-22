@@ -4,13 +4,13 @@ Learning service for capturing and improving agent performance.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 
-from ..models.attribute_schemas import AgentFeedback, LearningPatternUpdate
+from ..models.attribute_schemas import AgentFeedback
 
 logger = logging.getLogger(__name__)
 

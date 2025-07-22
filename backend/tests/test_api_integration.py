@@ -3,12 +3,8 @@ API Integration tests for enhanced asset inventory functionality.
 Tests the full API endpoints with Docker container validation.
 """
 
-import asyncio
-import json
 import os
 import time
-from typing import Any, Dict
-from unittest.mock import Mock, patch
 
 import httpx
 import pytest
@@ -187,14 +183,6 @@ class TestCMDBProcessingAPI:
     @pytest.mark.asyncio
     async def test_process_cmdb_data(self, api_client, sample_mixed_assets, auth_headers):
         """Test CMDB data processing with mixed asset types."""
-        request_data = {
-            "filename": "mixed_assets.csv",
-            "data": sample_mixed_assets,
-            "projectInfo": {
-                "name": "Test Migration Project",
-                "target_cloud": "AWS"
-            }
-        }
         
         # For status check, we need a flow_id - using placeholder for now
         flow_id = "test-flow-123"
@@ -229,23 +217,7 @@ class TestCMDBProcessingAPI:
     @pytest.mark.asyncio
     async def test_device_processing_not_applicable(self, api_client, auth_headers):
         """Test that devices are properly marked as not applicable for 6R."""
-        device_assets = [
-            {
-                "Asset_Name": "core-switch-01",
-                "CI_Type": "Switch",
-                "Environment": "Production"
-            },
-            {
-                "Asset_Name": "storage-array",
-                "CI_Type": "Storage", 
-                "Environment": "Production"
-            }
-        ]
         
-        request_data = {
-            "filename": "devices_only.csv",
-            "data": device_assets
-        }
         
         # For status check, we need a flow_id - using placeholder for now
         flow_id = "test-flow-456"
@@ -314,7 +286,7 @@ class TestAssetInventoryAPI:
         
         # Check if any assets have 6R readiness data
         assets_with_readiness = [a for a in assets if "sixr_ready" in a]
-        assets_with_complexity = [a for a in assets if "migration_complexity" in a]
+        [a for a in assets if "migration_complexity" in a]
         
         # Note: This might be empty for test data, but structure should be correct
         if assets_with_readiness:
@@ -473,10 +445,6 @@ class TestErrorHandling:
     @pytest.mark.asyncio
     async def test_empty_processing_request(self, api_client, auth_headers):
         """Test handling of empty processing request."""
-        empty_data = {
-            "filename": "empty.csv",
-            "data": []
-        }
         
         # For status check, we need a flow_id - using placeholder for now
         flow_id = "empty-flow-789"
@@ -522,10 +490,6 @@ class TestPerformance:
                 "Memory_GB": str(8 + (i % 32))
             })
         
-        request_data = {
-            "filename": "large_dataset.csv",
-            "data": large_dataset
-        }
         
         start_time = time.time()
         # For status check, we need a flow_id - using placeholder for now
@@ -563,12 +527,8 @@ async def test_end_to_end_workflow(api_client, sample_cmdb_csv_content, auth_hea
     import csv
     import io
     csv_reader = csv.DictReader(io.StringIO(sample_cmdb_csv_content))
-    assets = list(csv_reader)
+    list(csv_reader)
     
-    process_request = {
-        "filename": "e2e_test.csv",
-        "data": assets
-    }
     
     # For status check, we need a flow_id - using placeholder for now
     flow_id = "e2e-flow-123"

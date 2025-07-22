@@ -112,7 +112,7 @@ async def test_asset_model_import():
     """Test importing the CMDBAsset model."""
     try:
         print("\n🔍 Testing CMDBAsset model import...")
-        from app.models.cmdb_asset import AssetStatus, AssetType, CMDBAsset, SixRStrategy
+        from app.models.cmdb_asset import AssetStatus, AssetType, SixRStrategy
         print("✅ Successfully imported CMDBAsset model")
         
         # Test enum values

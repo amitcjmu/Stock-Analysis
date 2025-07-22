@@ -4,7 +4,6 @@ Test context switching functionality
 """
 import asyncio
 from playwright.async_api import async_playwright
-import json
 
 async def test_context_switching():
     async with async_playwright() as p:
@@ -13,7 +12,6 @@ async def test_context_switching():
         page = await context.new_page()
         
         # Track errors
-        errors = []
         
         page.on("console", lambda msg: print(f"Console: {msg.text}") if "error" in msg.text.lower() else None)
         

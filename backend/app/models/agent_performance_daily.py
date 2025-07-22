@@ -5,7 +5,6 @@ Part of the Agent Observability Enhancement
 """
 
 import uuid
-from datetime import date, datetime
 from typing import Any, Dict
 
 from sqlalchemy import (
@@ -22,7 +21,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import text
 
 from app.core.database import Base
 

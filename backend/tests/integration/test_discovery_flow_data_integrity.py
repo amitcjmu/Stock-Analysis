@@ -13,16 +13,14 @@ Test Areas:
 5. Deployment: Production validation and monitoring
 """
 
-import asyncio
 import json
 import logging
 import uuid
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime
 
 import pytest
-from sqlalchemy import func, inspect, select, text
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy import func, select, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -31,7 +29,6 @@ from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.models.data_import.core import DataImport, RawImportRecord
-from app.models.data_import.mapping import ImportFieldMapping
 from app.models.discovery_flow import DiscoveryFlow
 from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
@@ -168,7 +165,7 @@ class TestDiscoveryFlowDataIntegrity:
                 logger.info(f"✅ Created {len(raw_records)} raw import records")
                 
                 # Step 3: Create master flow through orchestrator
-                orchestrator = MasterFlowOrchestrator(session, test_context)
+                MasterFlowOrchestrator(session, test_context)
                 
                 # Update data import to link to master flow
                 data_import.master_flow_id = str(uuid.uuid4())
@@ -591,7 +588,7 @@ class TestDiscoveryFlowDataIntegrity:
                 assert await session.get(DataImport, data_import.id) is None
                 
                 # Discovery flow should be deleted (handled by application logic)
-                discovery_flow_check = await session.get(DiscoveryFlow, discovery_flow.id)
+                await session.get(DiscoveryFlow, discovery_flow.id)
                 # Note: Discovery flow might still exist depending on cascade configuration
                 # This depends on whether master_flow_id has cascade delete or not
                 
@@ -1360,7 +1357,7 @@ class TestDiscoveryFlowDataIntegrity:
                 """)
                 
                 result = await session.execute(orphan_check_query)
-                orphan_stats = result.first()
+                result.first()
                 
                 orphan_query_time = (datetime.now() - start_time).total_seconds()
                 
@@ -1390,7 +1387,7 @@ class TestDiscoveryFlowDataIntegrity:
                 """)
                 
                 result = await session.execute(integrity_summary_query)
-                integrity_stats = result.first()
+                result.first()
                 
                 integrity_query_time = (datetime.now() - start_time).total_seconds()
                 
@@ -1414,7 +1411,7 @@ class TestDiscoveryFlowDataIntegrity:
                 """)
                 
                 result = await session.execute(performance_metrics_query)
-                performance_stats = result.all()
+                result.all()
                 
                 performance_query_time = (datetime.now() - start_time).total_seconds()
                 

@@ -3,7 +3,6 @@
 Test script to verify master flow authentication is working properly
 """
 
-import json
 import sys
 
 import requests

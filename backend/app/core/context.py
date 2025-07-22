@@ -10,7 +10,7 @@ from dataclasses import asdict, dataclass
 from functools import wraps
 from typing import Any, Callable, Dict, Optional, TypeVar
 
-from fastapi import Depends, HTTPException, Request
+from fastapi import HTTPException, Request
 from sqlalchemy import select
 
 logger = logging.getLogger(__name__)

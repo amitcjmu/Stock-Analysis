@@ -8,9 +8,6 @@ Provides centralized error handling for FastAPI endpoints with:
 - Request tracking and logging
 """
 
-import logging
-import traceback
-from typing import Union
 
 from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
@@ -270,7 +267,6 @@ def _get_status_code(exc: BaseApplicationError) -> int:
 
 def register_error_handlers(app):
     """Register all error handlers with the FastAPI app"""
-    from fastapi import FastAPI
     
     # Application errors
     app.add_exception_handler(BaseApplicationError, handle_application_error)

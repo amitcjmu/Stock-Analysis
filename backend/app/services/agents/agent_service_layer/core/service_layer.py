@@ -9,10 +9,8 @@ import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
-from app.core.database import AsyncSessionLocal
 
 from ..handlers.asset_handler import AssetHandler
 from ..handlers.data_handler import DataHandler

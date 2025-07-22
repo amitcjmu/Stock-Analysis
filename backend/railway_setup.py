@@ -62,7 +62,7 @@ async def test_database_connection():
             raise Exception("DATABASE_URL not found")
         
         # Parse the URL for psycopg2
-        parsed = urlparse(database_url)
+        urlparse(database_url)
         
         # Convert asyncpg URL to psycopg2 format if needed
         if 'asyncpg' in database_url:
@@ -242,8 +242,6 @@ async def create_database_tables():
         
         # Import all models to ensure they're registered
         logger.info("📦 Importing database models...")
-        from app.models.client_account import ClientAccount, Engagement, User
-        from app.models.feedback import Feedback, FeedbackSummary
         
         # Additional models
         try:
@@ -293,7 +291,7 @@ async def test_feedback_functionality():
     logger.info("🧪 Testing Feedback System...")
     
     try:
-        from sqlalchemy import select, text
+        from sqlalchemy import text
 
         from app.core.database import AsyncSessionLocal
         from app.models.feedback import Feedback

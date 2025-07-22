@@ -3,7 +3,7 @@ Agent metadata definitions to avoid circular imports
 """
 
 from dataclasses import dataclass
-from typing import Any, List, Type
+from typing import List, Type
 
 # Optional CrewAI import
 try:

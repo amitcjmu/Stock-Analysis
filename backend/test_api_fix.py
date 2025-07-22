@@ -7,7 +7,6 @@ This tests the endpoint directly from inside the backend container
 import asyncio
 import sys
 
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.master_flows import get_active_master_flows
 from app.core.database import AsyncSessionLocal

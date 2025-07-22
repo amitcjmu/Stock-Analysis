@@ -7,17 +7,16 @@ validation status, confidence scores, and user engagement metrics.
 Agent Team B3 - Task B3.5
 """
 
-import json
 import logging
 from collections import defaultdict
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
-from uuid import UUID, uuid4
+from typing import Any, Dict, List, Optional, Tuple
+from uuid import UUID
 
-from .adaptive_form_service import AdaptiveForm, FormField, FormSection
-from .validation_service import FieldValidationResult, FormValidationResult
+from .adaptive_form_service import AdaptiveForm, FormField
+from .validation_service import FieldValidationResult
 
 
 class ProgressStatus(str, Enum):

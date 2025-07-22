@@ -6,7 +6,6 @@ Run this to ensure Client 2 cannot access Client 1's data.
 
 import asyncio
 import uuid
-from datetime import datetime
 
 from app.core.context import RequestContext
 from app.core.database import AsyncSessionLocal
@@ -37,7 +36,7 @@ async def test_tenant_isolation():
         print("\n1. Testing repository context requirement...")
         try:
             # This should fail with new security enforcement
-            repo = DiscoveryFlowRepository(
+            DiscoveryFlowRepository(
                 db=db,
                 client_account_id=None,
                 engagement_id=None
@@ -83,7 +82,7 @@ async def test_tenant_isolation():
         # Create Client 1 flows
         flow1_id = str(uuid.uuid4())
         try:
-            client1_flow = await client1_discovery.create_discovery_flow(
+            await client1_discovery.create_discovery_flow(
                 flow_id=flow1_id,
                 flow_type="primary",
                 description="Client 1 Test Flow"
@@ -95,7 +94,7 @@ async def test_tenant_isolation():
         
         master1_id = str(uuid.uuid4())
         try:
-            client1_master_flow = await client1_master.create_master_flow(
+            await client1_master.create_master_flow(
                 flow_id=master1_id,
                 flow_type="discovery",
                 flow_name="Client 1 Master Flow"
@@ -108,7 +107,7 @@ async def test_tenant_isolation():
         # Create Client 2 flows
         flow2_id = str(uuid.uuid4())
         try:
-            client2_flow = await client2_discovery.create_discovery_flow(
+            await client2_discovery.create_discovery_flow(
                 flow_id=flow2_id,
                 flow_type="primary",
                 description="Client 2 Test Flow"

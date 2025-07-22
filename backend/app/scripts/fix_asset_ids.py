@@ -3,14 +3,13 @@ import os
 import sys
 import uuid
 
-from sqlalchemy import select, text, update
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 # Add the project root to the Python path
 sys.path.append('/app')
 
-from app.models.asset import Asset
 
 # No longer need settings, will get from environment
 # from app.core.config import settings

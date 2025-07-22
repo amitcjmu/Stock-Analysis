@@ -3,7 +3,7 @@ Security Monitoring Handler - Platform Admin Security Audit Dashboard
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query

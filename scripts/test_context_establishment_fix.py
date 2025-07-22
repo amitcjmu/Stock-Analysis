@@ -16,7 +16,6 @@ This maintains multi-tenant security while resolving the circular dependency.
 
 import asyncio
 import aiohttp
-import json
 from datetime import datetime
 
 # Test Marathon Petroleum context (the failing case from logs)

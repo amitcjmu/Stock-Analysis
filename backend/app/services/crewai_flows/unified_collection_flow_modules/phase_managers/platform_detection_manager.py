@@ -10,7 +10,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from app.models.collection_flow import AutomationTier, CollectionPhase, CollectionStatus, PlatformType
+from app.models.collection_flow import CollectionPhase, CollectionStatus
 from app.services.collection_flow import QualityAssessmentService, TierDetectionService
 from app.services.crewai_flows.handlers.enhanced_error_handler import enhanced_error_handler
 from app.services.crewai_flows.utils.retry_utils import retry_with_backoff

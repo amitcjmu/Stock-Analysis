@@ -465,7 +465,7 @@ class SixRQuestionResponse(Base):
         if not self.question:
             return ["Question not found"]
         
-        validation_rules = self.question.get_validation_rules()
+        self.question.get_validation_rules()
         errors = []
         
         # Add validation logic based on question type and rules

@@ -2,19 +2,15 @@
 Main On-Premises Platform Adapter implementing BaseAdapter interface
 """
 
-import asyncio
 import time
 from ipaddress import AddressValueError, IPv4Network
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.collection_flow import AutomationTier
 from app.services.collection_flow.adapters import (
-    AdapterCapability,
     AdapterMetadata,
     BaseAdapter,
-    CollectionMethod,
     CollectionRequest,
     CollectionResponse,
 )
@@ -353,7 +349,7 @@ class OnPremisesAdapter(BaseAdapter):
             valid_ranges = []
             for network_range in network_ranges:
                 try:
-                    network = IPv4Network(network_range, strict=False)
+                    IPv4Network(network_range, strict=False)
                     valid_ranges.append(network_range)
                 except AddressValueError:
                     continue

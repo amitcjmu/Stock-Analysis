@@ -6,10 +6,9 @@ Handles admin-specific operations like user creation and system management.
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
-from sqlalchemy import and_, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from .base_handler import BaseRBACHandler
 

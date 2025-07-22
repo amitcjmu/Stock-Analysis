@@ -5,7 +5,7 @@ import ast
 import os
 import re
 from pathlib import Path
-from typing import Set, List, Tuple, Dict
+from typing import Set, List, Tuple
 
 def get_imported_names_from_module(module_path: str, import_from: str) -> Set[str]:
     """Get all exported names from a module."""

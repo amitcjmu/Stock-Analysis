@@ -6,7 +6,6 @@ import logging
 from contextlib import asynccontextmanager
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import get_current_context
 from app.core.database import AsyncSessionLocal

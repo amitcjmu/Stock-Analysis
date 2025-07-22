@@ -1,7 +1,6 @@
 """
 RBAC utility functions for role-based access control
 """
-from typing import Optional
 
 from fastapi import HTTPException, status
 

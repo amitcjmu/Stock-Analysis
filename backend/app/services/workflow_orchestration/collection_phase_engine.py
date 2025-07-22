@@ -9,23 +9,19 @@ The engine maintains backward compatibility while leveraging the new CrewAI-base
 collection flow for all execution logic.
 """
 
-import asyncio
-import logging
-import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
-from app.core.exceptions import FlowError, InvalidFlowStateError
+from app.core.exceptions import FlowError
 from app.core.logging import get_logger
 
 # Import models for backward compatibility
-from app.models.collection_flow import AutomationTier, CollectionFlowStatus, CollectionPhase
+from app.models.collection_flow import AutomationTier
 
 # Import the new unified collection flow
 from app.services.crewai_flows.unified_collection_flow import (

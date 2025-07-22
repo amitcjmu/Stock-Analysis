@@ -19,11 +19,7 @@ Run with: docker exec migration_backend python test_agentic_discovery_final.py
 """
 
 import asyncio
-import json
-import os
 import sys
-from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
 
 # Add the app directory to the Python path
 sys.path.insert(0, '/app')
@@ -227,7 +223,7 @@ class AgenticFlowTestSuite:
             import crewai
             print(f"✅ CrewAI version: {crewai.__version__}")
             
-            from crewai import Agent, Crew, Flow, Task
+            from crewai import Flow
             print("✅ CrewAI core components imported")
             
             # Test UnifiedDiscoveryFlow

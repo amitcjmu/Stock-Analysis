@@ -4,13 +4,10 @@ Schema validation script for database consolidation
 Ensures the consolidated schema is correctly created
 """
 
-import asyncio
 import os
 import sys
-from typing import Dict, List, Set
 
 from sqlalchemy import create_engine, inspect
-from sqlalchemy.ext.asyncio import create_async_engine
 
 # Database connection from environment
 DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/migration_db')

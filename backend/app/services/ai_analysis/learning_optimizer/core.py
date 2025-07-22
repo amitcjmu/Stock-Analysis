@@ -19,7 +19,7 @@ from .analyzers import (
     analyze_stakeholder_engagement_pattern,
     analyze_temporal_optimization_pattern,
 )
-from .enums import LearningPattern, OptimizationStrategy
+from .enums import LearningPattern
 from .insights import (
     calculate_pattern_correlation,
     generate_adaptation_insights,

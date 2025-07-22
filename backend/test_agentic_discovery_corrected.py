@@ -5,11 +5,8 @@ Run with: docker exec migration_backend python test_agentic_discovery_corrected.
 """
 
 import asyncio
-import json
 import os
 import sys
-from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
 
 # Add the app directory to the Python path
 sys.path.insert(0, '/app')
@@ -103,7 +100,7 @@ async def test_database_integration():
             print("⚠️  MasterFlow not available")
         
         # Test database connection
-        async with AsyncSessionLocal() as session:
+        async with AsyncSessionLocal():
             print("✅ Database connection successful")
         
         return True
@@ -325,7 +322,6 @@ async def main():
     
     passed = 0
     failed = 0
-    warnings = 0
     
     for test_name, test_func in tests:
         print(f"\n{'=' * 60}")

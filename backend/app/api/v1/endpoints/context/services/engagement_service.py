@@ -5,15 +5,14 @@ Business logic for engagement-related operations.
 """
 
 import logging
-from datetime import datetime
-from typing import List, Optional
+from typing import List
 from uuid import UUID
 
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.client_account import Engagement
-from app.models.rbac import ClientAccess, UserRole
+from app.models.rbac import ClientAccess
 
 from ..models.context_schemas import EngagementResponse, EngagementsListResponse
 

@@ -5,15 +5,13 @@ Detects and prevents unauthorized demo/admin account creation.
 """
 
 import asyncio
-import os
 import sys
 from datetime import datetime
 from typing import Any, Dict, List
 
 sys.path.append('/app')
 
-from sqlalchemy import and_, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.core.database import AsyncSessionLocal
 from app.models.client_account import User

@@ -14,13 +14,9 @@ MODULAR STRUCTURE:
 Generated with CC for modular backend architecture.
 """
 
-import logging
-from typing import Any, Dict, List, Tuple
-from uuid import UUID
 
 # For backward compatibility - re-export all classes
 from app.core.logging import get_logger
-from app.monitoring.metrics import track_performance
 
 # Import modular components
 from .user_experience import (

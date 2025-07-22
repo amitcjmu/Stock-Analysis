@@ -42,7 +42,7 @@ class FlowStatusTool(BaseTool):
             
             # Check if we're in an async context
             try:
-                loop = asyncio.get_running_loop()
+                asyncio.get_running_loop()
                 # We're in an async context, we need to handle this differently
                 import concurrent.futures
                 with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -94,7 +94,7 @@ class FlowStatusTool(BaseTool):
             
             # Try to run the async call properly
             try:
-                loop = asyncio.get_running_loop()
+                asyncio.get_running_loop()
                 # We're in an async context, use thread executor
                 import concurrent.futures
                 with concurrent.futures.ThreadPoolExecutor() as executor:

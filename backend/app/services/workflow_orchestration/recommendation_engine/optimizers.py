@@ -12,7 +12,7 @@ from app.core.exceptions import FlowError
 from app.core.logging import get_logger
 
 from .enums import RecommendationType
-from .models import RecommendationPackage, WorkflowRecommendation
+from .models import WorkflowRecommendation
 
 logger = get_logger(__name__)
 

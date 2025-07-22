@@ -8,7 +8,7 @@ import os
 
 from sqlalchemy import String, cast, select
 
-from app.core.database import AsyncSessionLocal, get_db
+from app.core.database import AsyncSessionLocal
 from app.models import ClientAccount, Engagement, User
 from app.models.rbac import ClientAccess, EngagementAccess
 

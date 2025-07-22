@@ -5,18 +5,16 @@ This module provides comprehensive audit logging and monitoring capabilities
 for the Collection Flow system, tracking all activities, changes, and events.
 """
 
-import json
 import logging
 import statistics
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.core.context import RequestContext
 from app.models.collection_flow import CollectionFlow

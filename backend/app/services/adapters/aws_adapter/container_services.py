@@ -3,7 +3,7 @@ AWS Container Services Collection (ECS, EKS)
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 try:
     import boto3

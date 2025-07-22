@@ -5,7 +5,7 @@ Handles core analysis CRUD operations and bulk analysis.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from fastapi import BackgroundTasks, HTTPException, status
 from sqlalchemy import func, select

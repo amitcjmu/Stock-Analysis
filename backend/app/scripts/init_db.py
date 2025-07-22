@@ -12,7 +12,7 @@ import sys
 import uuid
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -545,7 +545,7 @@ async def create_mock_assets(session: AsyncSession, client_account_id: uuid.UUID
     mock_data_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'mock_cmdb_data.json')
     try:
         with open(mock_data_path, 'r') as f:
-            mock_assets = json.load(f)
+            json.load(f)
     except (FileNotFoundError, json.JSONDecodeError) as e:
         logger.warning(f"Could not load mock asset data from mock_cmdb_data.json: {e}")
 

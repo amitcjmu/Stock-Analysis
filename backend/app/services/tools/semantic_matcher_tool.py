@@ -135,7 +135,7 @@ class SemanticMatcherTool(AsyncBaseDiscoveryTool):
     def _simple_string_embeddings(self, fields: List[str]) -> np.ndarray:
         """Fallback simple string-based embeddings"""
         # Create simple character-based vectors as fallback
-        max_len = max(len(field) for field in fields) if fields else 0
+        max(len(field) for field in fields) if fields else 0
         embeddings = []
         
         for field in fields:

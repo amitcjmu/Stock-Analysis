@@ -20,7 +20,7 @@ The crew consists of three specialized agents:
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 # CrewAI imports with fallback
 try:
@@ -563,7 +563,7 @@ class SixRStrategyCrew:
         """Fallback implementation when CrewAI is not available"""
         app_id = context.get("application_id", "unknown")
         components = context.get("components", [])
-        tech_debt_analysis = context.get("tech_debt_analysis", [])
+        context.get("tech_debt_analysis", [])
         
         logger.info(f"Executing Six R Strategy analysis in fallback mode for {app_id}")
         

@@ -4,7 +4,6 @@ Test Admin Dashboard to verify platform admins can see all clients
 """
 import asyncio
 from playwright.async_api import async_playwright
-import json
 
 async def test_admin_dashboard():
     async with async_playwright() as p:

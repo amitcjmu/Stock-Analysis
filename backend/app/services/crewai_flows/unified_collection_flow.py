@@ -24,11 +24,10 @@ Flow Phases:
 Each phase includes pause points for user input and collaboration.
 """
 
-import asyncio
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 # CrewAI Flow imports - REQUIRED for real agent execution
 CREWAI_FLOW_AVAILABLE = False
@@ -47,23 +46,16 @@ except ImportError as e:
 # Import models and dependencies
 from app.core.context import RequestContext
 from app.models.collection_flow import (
-    AdaptiveQuestionnaire,
     AutomationTier,
     CollectionFlowError,
     CollectionFlowState,
     CollectionPhase,
     CollectionStatus,
-    DataDomain,
-    PlatformType,
 )
 from app.services.crewai_flows.flow_state_manager import FlowStateManager
-from app.services.crewai_flows.handlers.enhanced_error_handler import enhanced_error_handler
 
 # Import handlers and utilities
 from app.services.crewai_flows.handlers.unified_flow_management import UnifiedFlowManagement
-from app.services.crewai_flows.monitoring.flow_health_monitor import flow_health_monitor
-from app.services.crewai_flows.persistence.checkpoint_manager import checkpoint_manager
-from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
 
 # Import modularized components
 from app.services.crewai_flows.unified_collection_flow_modules import (
@@ -80,7 +72,6 @@ from app.services.crewai_flows.unified_collection_flow_modules import (
     ValidationHandler,
     get_previous_phase,
 )
-from app.services.crewai_flows.utils.retry_utils import RetryConfig, retry_decorator, retry_with_backoff
 
 
 class UnifiedCollectionFlow(Flow[CollectionFlowState]):

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Fix indentation in migration file."""
 
-import re
 
 
 def fix_migration_file():

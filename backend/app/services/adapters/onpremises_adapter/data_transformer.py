@@ -5,7 +5,6 @@ Data transformation for On-Premises Platform Adapter
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from .models import DiscoveredHost
 
 
 class DataTransformer:

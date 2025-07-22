@@ -3,7 +3,7 @@ AWS Database Services Collection (RDS, DynamoDB, Redshift, ElastiCache)
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 try:
     import boto3
@@ -257,7 +257,7 @@ class DatabaseServicesCollector:
     async def test_rds_connectivity(self) -> bool:
         """Test RDS service connectivity"""
         try:
-            response = self._rds_client.describe_db_instances(MaxRecords=1)
+            self._rds_client.describe_db_instances(MaxRecords=1)
             # Service is available even if no instances exist
             return True
         except Exception:

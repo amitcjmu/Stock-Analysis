@@ -6,7 +6,6 @@ Contains core RBAC utilities, role management, and system initialization functio
 import logging
 from typing import Any, Dict
 
-from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 

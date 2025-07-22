@@ -4,7 +4,6 @@ Tests actual CrewAI flow execution with mocked agents
 """
 
 import asyncio
-import uuid
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
@@ -16,9 +15,7 @@ from app.models.collection_flow import (
     CollectionFlowState,
     CollectionPhase,
     CollectionStatus,
-    PlatformType,
 )
-from app.services.agents.platform_detection_agent_crewai import PlatformDetectionAgent
 from app.services.crewai_flows.crews.collection.platform_detection_crew import PlatformDetectionCrew
 from app.services.crewai_flows.unified_collection_flow import UnifiedCollectionFlow
 

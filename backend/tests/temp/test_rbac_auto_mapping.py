@@ -7,7 +7,6 @@ the appropriate ClientAccess and EngagementAccess records are automatically crea
 
 import asyncio
 import json
-import uuid
 from datetime import datetime
 
 from sqlalchemy import select
@@ -18,7 +17,7 @@ from app.core.seed_data_config import DemoDataConfig
 
 # Import models and services
 from app.models import ClientAccount, Engagement, User
-from app.models.rbac import AccessLevel, ClientAccess, EngagementAccess, UserProfile
+from app.models.rbac import AccessLevel, ClientAccess, EngagementAccess
 from app.services.rbac_service import RBACService
 
 

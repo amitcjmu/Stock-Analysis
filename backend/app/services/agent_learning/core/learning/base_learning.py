@@ -3,7 +3,6 @@ Base Learning Module - Core functionality and utilities for the learning system
 """
 
 import logging
-from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional

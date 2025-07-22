@@ -7,10 +7,8 @@ Tests repository pattern enforcement, multi-tenant scoping, and data lifecycle v
 import asyncio
 import httpx
 import uuid
-import json
 import sys
 import logging
-from typing import Dict, Any
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

@@ -11,7 +11,6 @@ Issue: Data was uploaded to "Debug Test Engagement" instead of "Azure Transforma
 import asyncio
 import os
 import sys
-from datetime import datetime
 
 # Add the backend directory to sys.path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))

@@ -14,9 +14,6 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from .context import (
     RequestContext,
     clear_request_context,
-    extract_context_from_request,
-    is_demo_client,
-    set_request_context,
     validate_context,
 )
 

@@ -12,8 +12,7 @@ from pathlib import Path
 # Add the backend directory to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from sqlalchemy import and_, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.core.database import AsyncSessionLocal
 from app.models.assessment_flow import AssessmentFlow
@@ -83,7 +82,7 @@ async def migrate_assessment_flows():
                     if flow.completed_at:
                         flow_status = "completed"
                     
-                    master_flow = await extensions_repo.create_master_flow(
+                    await extensions_repo.create_master_flow(
                         flow_id=flow_id,
                         flow_type='assessment',
                         user_id="migration-script",

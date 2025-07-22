@@ -5,10 +5,9 @@ import logging
 from datetime import datetime
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter
 
-from app.core.database import db_manager, get_db
+from app.core.database import db_manager
 
 logger = logging.getLogger(__name__)
 

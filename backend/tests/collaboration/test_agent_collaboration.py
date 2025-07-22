@@ -7,12 +7,10 @@ bidirectional agent communication, collaboration effectiveness measurement,
 and real-time collaboration monitoring.
 """
 
-import asyncio
-import json
 import time
 import uuid
-from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from typing import Dict, List
+from unittest.mock import Mock
 
 import pytest
 

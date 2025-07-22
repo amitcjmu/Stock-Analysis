@@ -7,7 +7,7 @@ This module provides basic performance tracking functionality.
 import logging
 import time
 from functools import wraps
-from typing import Any, Callable, Optional
+from typing import Callable
 
 logger = logging.getLogger(__name__)
 

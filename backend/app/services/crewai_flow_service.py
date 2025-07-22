@@ -5,27 +5,18 @@ This service bridges CrewAI flows with the V2 Discovery Flow architecture.
 Uses flow_id as single source of truth instead of session_id.
 """
 
-import asyncio
-import json
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
-from uuid import UUID, uuid4
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from sqlalchemy import and_, desc, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
-from app.core.context import get_current_context
 from app.core.database import get_db
 from app.core.exceptions import CrewAIExecutionError, InvalidFlowStateError
 
 # from app.models.discovery_asset import DiscoveryAsset  # Model removed - using Asset model instead
-from app.models.asset import Asset
 
 # V2 Discovery Flow Models
-from app.models.discovery_flow import DiscoveryFlow
-from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 
 # V2 Discovery Flow Services
 from app.services.discovery_flow_service import DiscoveryFlowService
@@ -371,7 +362,6 @@ class CrewAIFlowService:
             # Try to get the actual CrewAI Flow instance
             if CREWAI_FLOWS_AVAILABLE:
                 try:
-                    from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow
                     
                     # Get flow instance (this would need to be managed in a flow registry)
                     # For now, we'll use the PostgreSQL state to track pause status
@@ -532,7 +522,7 @@ class CrewAIFlowService:
                     # Validate flow status - prevent resuming flows in terminal states
                     terminal_statuses = ['deleted', 'cancelled', 'completed']
                     # Allow resuming flows with 'error' or 'failed' status if they can be recovered
-                    non_resumable_statuses = terminal_statuses + ['failed']
+                    terminal_statuses + ['failed']
                     
                     if flow.status in terminal_statuses:
                         logger.warning(f"❌ Cannot resume flow {flow_id} with terminal status '{flow.status}'")
@@ -570,7 +560,7 @@ class CrewAIFlowService:
                         
                         # Initialize flow through MasterFlowOrchestrator
                         from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-                        orchestrator = MasterFlowOrchestrator(db, context)
+                        MasterFlowOrchestrator(db, context)
                         
                         # Note: For resume functionality, we should use orchestrator.resume_flow
                         # instead of creating a new flow instance
@@ -707,7 +697,6 @@ class CrewAIFlowService:
             # Try to resume the actual CrewAI Flow at specific phase
             if CREWAI_FLOWS_AVAILABLE:
                 try:
-                    from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow
                     
                     # Resume flow execution at specific phase
                     # This would call the appropriate CrewAI Flow node method

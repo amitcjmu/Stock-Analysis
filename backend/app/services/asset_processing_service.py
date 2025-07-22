@@ -3,7 +3,7 @@ Unified Asset Processing Service
 Consolidates asset intelligence, classification, and workflow management.
 """
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from .asset_processing_handlers import AssetValidationHandler, AssetWorkflowHandler
 

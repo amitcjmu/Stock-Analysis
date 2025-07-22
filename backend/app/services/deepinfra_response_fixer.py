@@ -4,7 +4,6 @@ Patches litellm's response parsing to handle DeepInfra's null top_logprobs
 """
 
 import logging
-from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +15,6 @@ def patch_litellm_response_parsing():
     """
     try:
         # Import the specific module that does response parsing
-        import litellm.litellm_core_utils.llm_response_utils.convert_dict_to_response as response_converter
         from litellm.types.utils import ChoiceLogprobs
         
         # Store the original ChoiceLogprobs class

@@ -10,7 +10,6 @@ except ImportError:
     from pydantic import BaseSettings
 
 import os
-from typing import Optional
 
 from pydantic import ConfigDict, Field, field_validator
 

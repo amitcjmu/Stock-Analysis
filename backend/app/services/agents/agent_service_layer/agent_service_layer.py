@@ -4,7 +4,7 @@ Provides backward compatibility with the original AgentServiceLayer interface.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 from .core.service_layer import AgentServiceLayer as CoreAgentServiceLayer
 

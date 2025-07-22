@@ -11,7 +11,6 @@ from typing import Any, Dict, List, Optional
 
 from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.models.platform_credentials import CredentialAccessLog
 from app.models.security_audit import SecurityAuditLog

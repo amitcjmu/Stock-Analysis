@@ -7,9 +7,9 @@ import logging
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
-from fastapi import Response, status
+from fastapi import status
 from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)

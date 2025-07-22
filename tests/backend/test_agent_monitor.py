@@ -5,9 +5,7 @@ Tests real-time monitoring, task tracking, and hanging detection.
 """
 
 import sys
-import os
 import asyncio
-import time
 from pathlib import Path
 
 # Add backend to path
@@ -287,7 +285,7 @@ class TestAgentMonitor:
         
         # Get initial status
         initial_status = agent_monitor.get_status_report()
-        initial_active = initial_status["active_tasks"]
+        initial_status["active_tasks"]
         
         try:
             # Start analysis (this should create monitored tasks)

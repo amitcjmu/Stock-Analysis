@@ -8,16 +8,13 @@ agent memory, database records, and associated data with proper audit trail.
 Migrating from WorkflowState to DiscoveryFlow V2 architecture.
 """
 
-import json
 import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, delete, select, text
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
-from app.core.context import RequestContext
 from app.core.database import AsyncSessionLocal
 
 # Legacy imports for backward compatibility

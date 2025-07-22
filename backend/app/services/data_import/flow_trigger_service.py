@@ -8,7 +8,6 @@ Handles flow creation and triggering including:
 - Flow configuration management
 """
 
-import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -101,7 +100,7 @@ class FlowTriggerService:
                     discovery_service = DiscoveryFlowService(self.db, context)
                     
                     # Create the discovery flow linked to the master flow
-                    discovery_flow = await discovery_service.create_discovery_flow(
+                    await discovery_service.create_discovery_flow(
                         flow_id=discovery_flow_id,
                         raw_data=file_data,
                         metadata={

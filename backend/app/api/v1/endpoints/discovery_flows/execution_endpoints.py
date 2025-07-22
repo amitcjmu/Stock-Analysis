@@ -21,7 +21,7 @@ from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.services.crewai_flow_service import CrewAIFlowService
 
-from .response_mappers import FlowOperationResponse, ResponseMappers
+from .response_mappers import FlowOperationResponse
 from .status_calculator import StatusCalculator
 
 logger = logging.getLogger(__name__)
@@ -513,7 +513,6 @@ async def execute_flow_phase(
         from app.services.crewai_flows.flow_state_bridge import FlowStateBridge
         from app.services.crewai_flows.handlers.phase_executors import PhaseExecutionManager
         from app.services.crewai_flows.handlers.unified_flow_crew_manager import UnifiedFlowCrewManager
-        from app.services.crewai_flows.unified_discovery_flow.state_management import StateManager
         
         logger.info(f"📊 Executing phase: {execution_phase}")
         

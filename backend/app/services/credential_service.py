@@ -23,7 +23,7 @@ from app.models.platform_credentials import (
     VaultProvider,
 )
 from app.models.security_audit import SecurityAuditLog
-from app.utils.encryption_utils import decrypt_credential, encrypt_credential, generate_secure_token
+from app.utils.encryption_utils import decrypt_credential, encrypt_credential
 from app.utils.security_utils import InputSanitizer
 
 logger = logging.getLogger(__name__)

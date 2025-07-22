@@ -5,7 +5,7 @@ import logging
 import uuid
 from typing import Any, Dict, List
 
-from sqlalchemy import join, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.assessment_flow import (

@@ -2,7 +2,6 @@
 Activate a paused flow so it can be properly resumed
 """
 import asyncio
-import json
 
 from sqlalchemy import select, update
 

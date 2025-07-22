@@ -19,7 +19,7 @@ import json
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from sqlalchemy import select, text
 
@@ -310,7 +310,6 @@ async def test_discovery_flow_with_db_tracking():
         from app.services.crewai_flow_service import CrewAIFlowService
         from app.services.crewai_flows.unified_discovery_flow import create_unified_discovery_flow
         from app.services.crewai_flows.unified_discovery_flow.phase_controller import PhaseController
-        from app.services.data_import.background_execution_service import BackgroundExecutionService
         
         # Test context
         test_context = RequestContext(

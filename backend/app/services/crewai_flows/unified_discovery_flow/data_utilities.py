@@ -7,7 +7,7 @@ to improve maintainability and code organization.
 
 import logging
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ class DataUtilities:
             flow_id_to_use = self.flow._flow_id
             self.logger.info(f"🔍 Loading raw data for flow {flow_id_to_use}")
             
-            from sqlalchemy import or_, select
+            from sqlalchemy import select
 
             from app.core.database import AsyncSessionLocal
             from app.models.data_import import DataImport, RawImportRecord

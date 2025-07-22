@@ -4,7 +4,6 @@ Production-ready test for CMDB analysis with CrewAI and LiteLLM.
 """
 
 import asyncio
-import json
 import os
 import sys
 import time

@@ -5,10 +5,8 @@ This module tests the Field Mapping Crew's coordination, agent collaboration,
 shared memory integration, and tool usage following CrewAI best practices.
 """
 
-import asyncio
-import json
-from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from typing import Any, Dict, List
+from unittest.mock import Mock
 
 import pytest
 

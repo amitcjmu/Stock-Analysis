@@ -6,7 +6,6 @@ Read operations for discovery flows.
 
 import logging
 import uuid
-from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy import and_, desc, select

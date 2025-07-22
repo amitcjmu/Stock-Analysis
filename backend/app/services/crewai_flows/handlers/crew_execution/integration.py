@@ -5,7 +5,6 @@ Discovery Integration and Database Persistence Handler
 import asyncio
 import hashlib
 import logging
-import threading
 import uuid as uuid_pkg
 from datetime import datetime
 from typing import Any, Dict
@@ -91,7 +90,6 @@ class DiscoveryIntegrationExecutor(CrewExecutionBase):
         from app.core.database import AsyncSessionLocal
         from app.models.data_import import DataImport, ImportStatus, RawImportRecord
         from app.models.data_import.mapping import ImportFieldMapping
-        from app.models.data_import_session import DataImportSession
         
         assets_created = 0
         imports_created = 0 

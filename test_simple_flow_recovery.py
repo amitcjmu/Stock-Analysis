@@ -5,8 +5,6 @@ Simple test to access an existing flow and test the recovery mechanism
 
 import asyncio
 from playwright.async_api import async_playwright
-import json
-import time
 import re
 
 async def test_simple_flow_recovery():

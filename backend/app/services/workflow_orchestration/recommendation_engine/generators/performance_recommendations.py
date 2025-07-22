@@ -60,7 +60,7 @@ class PerformanceRecommendationGenerator:
         estimated_data_volume = environment_analysis.get("estimated_data_volume", 0)
         
         # Find performance patterns related to repeated operations
-        performance_patterns = [p for p in historical_patterns if p.pattern_type == "performance"]
+        [p for p in historical_patterns if p.pattern_type == "performance"]
         
         # Recommend caching for environments with repeated operations or large data
         if platform_count > 3 or estimated_data_volume > 20000:

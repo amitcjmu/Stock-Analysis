@@ -10,12 +10,12 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from app.services.collection_flow.adapters import AdapterMetadata, BaseAdapter, CollectionRequest, CollectionResponse
 
 from .performance_monitor import MetricType, PerformanceMonitor, PerformanceThresholds, monitor_performance
-from .retry_handler import AdapterErrorHandler, RetryConfig, RetryHandler
+from .retry_handler import AdapterErrorHandler, RetryConfig
 
 
 @dataclass

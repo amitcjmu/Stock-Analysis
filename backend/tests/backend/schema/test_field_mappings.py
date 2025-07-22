@@ -3,7 +3,6 @@
 Test script to check and generate field mappings for the latest discovery flow
 """
 import asyncio
-import json
 
 from sqlalchemy import func, select
 

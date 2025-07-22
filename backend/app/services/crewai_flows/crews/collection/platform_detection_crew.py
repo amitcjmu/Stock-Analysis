@@ -4,7 +4,7 @@ ADCS: Crew for detecting and identifying target platforms using intelligent agen
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from crewai import Agent, Crew, Task
 

@@ -4,17 +4,12 @@ Tests the entire flow from data import to asset creation
 """
 
 import asyncio
-import json
-from datetime import datetime
 
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import AsyncSessionLocal
 from app.main import app
-from app.models.client_account import ClientAccount, Engagement, User
 
 # Configure pytest to use asyncio
 pytestmark = pytest.mark.asyncio

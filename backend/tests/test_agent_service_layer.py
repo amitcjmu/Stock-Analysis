@@ -4,7 +4,6 @@ Tests the synchronous service interface for AI agents
 """
 
 import concurrent.futures
-import json
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest

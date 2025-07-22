@@ -3,9 +3,7 @@ DeepInfra Completion Wrapper
 Provides a wrapper around litellm completion calls to handle DeepInfra's logprobs issues
 """
 
-import json
 import logging
-from typing import Any, Dict, List, Optional
 
 import litellm
 

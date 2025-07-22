@@ -3,7 +3,6 @@ Client Context Management Module - Handles client and engagement context learnin
 """
 
 import logging
-from dataclasses import asdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 

@@ -5,10 +5,7 @@ Demonstrates how new users get client access in the platform
 """
 
 import asyncio
-import uuid
-from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, text
+from sqlalchemy import text
 
 # Add the backend directory to Python path
 import sys

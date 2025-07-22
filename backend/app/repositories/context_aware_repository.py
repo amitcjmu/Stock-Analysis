@@ -6,10 +6,9 @@ Ensures all data operations are scoped to client account and engagement.
 import logging
 from typing import Any, Dict, Generic, List, Optional, Type, TypeVar
 
-from sqlalchemy import and_, or_
+from sqlalchemy import and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import Query
 from sqlalchemy.sql import Select
 
 logger = logging.getLogger(__name__)

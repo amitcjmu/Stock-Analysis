@@ -3,7 +3,6 @@ AI-powered Asset Intelligence endpoints leveraging CrewAI framework.
 """
 
 import logging
-from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -212,7 +211,7 @@ async def auto_classify_assets(
             }
         
         # Prepare data for Asset Intelligence Agent
-        classification_data = {
+        {
             "asset_ids": request.asset_ids,
             "assets": assets,
             "use_learned_patterns": request.use_learned_patterns,
@@ -230,7 +229,7 @@ async def auto_classify_assets(
         from app.services.crewai_flows.handlers.unified_flow_crew_manager import UnifiedFlowCrewManager
         
         # Create crew manager and inventory crew
-        crew_manager = UnifiedFlowCrewManager()
+        UnifiedFlowCrewManager()
         inventory_crew = InventoryBuildingCrew()
         
         # Prepare assets for reclassification

@@ -7,9 +7,8 @@ by checking the actual schema state vs expected migration state.
 """
 
 import asyncio
-import json
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import create_async_engine

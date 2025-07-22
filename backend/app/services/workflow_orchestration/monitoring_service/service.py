@@ -23,12 +23,8 @@ from app.services.collection_flow import AuditLoggingService, CollectionFlowStat
 # Import Master Flow Orchestrator for integration
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
-from ..collection_phase_engine import AutomationTier, CollectionPhaseExecutionEngine, CollectionPhaseStatus
-from ..handoff_protocol import CollectionDiscoveryHandoffProtocol, HandoffStatus
-from ..tier_routing_service.service import TierRoutingService
 
 # Import orchestration components for monitoring
-from ..workflow_orchestrator import WorkflowExecution, WorkflowOrchestrator, WorkflowPriority, WorkflowStatus
 from .alerts import AlertManager
 from .analytics import AnalyticsEngine
 from .health import HealthMonitor

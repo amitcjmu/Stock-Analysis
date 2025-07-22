@@ -5,7 +5,7 @@ Agent 2 Task 2.4 - Data imports seeding
 import asyncio
 import json
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,16 +15,13 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from app.core.database import AsyncSessionLocal
 from app.models.data_import.core import DataImport
-from app.models.data_import.enums import ImportStatus, ImportType
 from seeding.constants import (
     BASE_TIMESTAMP,
     DEMO_CLIENT_ID,
     DEMO_ENGAGEMENT_ID,
-    FLOW_IDS,
     FLOWS,
     IMPORT_IDS,
     IMPORTS,
-    USER_IDS,
     USERS,
 )
 
@@ -130,7 +127,7 @@ async def create_data_imports(db: AsyncSession) -> list[DataImport]:
         updated_at = created_at + timedelta(minutes=30)
         
         # Generate sample data
-        sample_data = generate_sample_data(
+        generate_sample_data(
             import_data["import_type"], 
             min(import_data["total_rows"], 10)
         )

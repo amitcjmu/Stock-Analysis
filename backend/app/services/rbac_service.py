@@ -4,7 +4,7 @@ This service coordinates between specialized handlers for different RBAC operati
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 

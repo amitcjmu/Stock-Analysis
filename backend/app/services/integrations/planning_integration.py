@@ -3,17 +3,15 @@ Planning Flow Integration Service for Assessment Flow.
 Handles integration points with Planning Flow for 6R decision handoff and re-assessment support.
 """
 
-import json
 import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, select, update
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.assessment_flow import AssessmentFlowState
 from app.models.asset import Asset
-from app.models.migration import Migration
 
 logger = logging.getLogger(__name__)
 

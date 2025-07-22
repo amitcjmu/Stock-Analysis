@@ -4,8 +4,6 @@ Security Validation Script
 Validates that all critical security fixes have been properly implemented.
 """
 
-import asyncio
-import os
 import re
 import sys
 from pathlib import Path

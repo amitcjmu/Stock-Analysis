@@ -173,7 +173,7 @@ class ProgressMonitor(AsyncBaseDiscoveryTool, BaseCollectionTool):
     def _calculate_efficiency(self, phase_metrics: List[Dict[str, Any]]) -> float:
         """Calculate collection efficiency"""
         total_expected = sum(p.get("items_total", 0) for p in phase_metrics)
-        total_collected = sum(p.get("items_collected", 0) for p in phase_metrics)
+        sum(p.get("items_collected", 0) for p in phase_metrics)
         
         if total_expected == 0:
             return 0.0

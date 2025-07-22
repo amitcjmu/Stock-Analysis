@@ -485,7 +485,6 @@ def analyze_complexity_adaptation_pattern(events: List[LearningEvent]) -> Dict[s
     
     for event in events:
         metrics = event.success_metrics
-        event_data = event.event_data
         
         complexity_match = metrics.get("complexity_match", 0)
         user_satisfaction = metrics.get("user_satisfaction", 0)

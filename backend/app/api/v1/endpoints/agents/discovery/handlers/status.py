@@ -3,19 +3,17 @@ Status handler for discovery agent.
 
 This module contains the status-related endpoints for the discovery agent.
 """
-import asyncio
 import logging
 from datetime import datetime
 from functools import lru_cache
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
-from app.models.client_account import ClientAccount, Engagement, User
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.services.discovery_flow_service import DiscoveryFlowService
 

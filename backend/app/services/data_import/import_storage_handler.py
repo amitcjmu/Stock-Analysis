@@ -6,14 +6,12 @@ to handle data import operations. It maintains all existing functionality
 while providing a clean, modular architecture.
 """
 
-import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
-from app.core.exceptions import DataImportError
 from app.core.exceptions import ValidationError as AppValidationError
 from app.core.logging import get_logger
 from app.schemas.data_import_schemas import StoreImportRequest
@@ -21,7 +19,7 @@ from app.schemas.data_import_schemas import StoreImportRequest
 from .background_execution_service import BackgroundExecutionService
 from .flow_trigger_service import FlowTriggerService
 from .import_validator import ImportValidator
-from .response_builder import ImportResponseBuilder, ImportStorageResponse
+from .response_builder import ImportResponseBuilder
 from .storage_manager import ImportStorageManager
 from .transaction_manager import ImportTransactionManager
 
@@ -70,7 +68,7 @@ class ImportStorageHandler:
         Returns:
             ImportStorageResponse: The response indicating success or failure
         """
-        start_time = datetime.utcnow()
+        datetime.utcnow()
         
         try:
             # Extract data from request

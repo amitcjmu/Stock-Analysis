@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 """Test minimal alembic functionality"""
-import os
-import sys
 
 from sqlalchemy import create_engine, text
 

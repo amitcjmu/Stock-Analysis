@@ -4,7 +4,6 @@ Flow Status Manager
 Handles status retrieval, flow information aggregation, and status calculation logic.
 """
 
-import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -629,7 +628,7 @@ class FlowStatusManager:
             from sqlalchemy import and_, or_, select
 
             from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-            from app.models.data_import import DataImport, RawImportRecord
+            from app.models.data_import import DataImport
             
             flow_id = master_flow.flow_id
             

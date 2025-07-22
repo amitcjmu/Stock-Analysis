@@ -4,11 +4,10 @@ Circuit Breaker Pattern Implementation
 Prevents cascading failures by stopping requests after consecutive failures.
 """
 
-import asyncio
 import logging
 import time
 from enum import Enum
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict
 
 logger = logging.getLogger(__name__)
 

@@ -4,7 +4,7 @@ ADCS: Crew for analyzing collected data gaps using intelligent agents
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from crewai import Agent, Crew, Task
 
@@ -101,8 +101,8 @@ def create_gap_analysis_crew(
         )
         
         # Extract context information
-        critical_attributes = context.get('critical_attributes_framework', {})
-        sixr_requirements = context.get('sixr_requirements', {})
+        context.get('critical_attributes_framework', {})
+        context.get('sixr_requirements', {})
         business_priorities = context.get('business_priorities', {})
         
         # Calculate collection statistics

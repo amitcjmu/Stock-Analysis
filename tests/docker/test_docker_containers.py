@@ -7,9 +7,7 @@ import pytest
 import docker
 import requests
 import time
-import json
 import os
-from typing import Dict, List
 import subprocess
 import logging
 

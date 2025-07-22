@@ -6,7 +6,7 @@ Pytest configuration and fixtures specific to assessment flow testing.
 
 import asyncio
 import os
-from typing import AsyncGenerator, Generator
+from typing import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -217,7 +217,7 @@ def pytest_configure(config):
 # Collection modifications for different test types
 def pytest_collection_modifyitems(config, items):
     """Modify test collection based on environment."""
-    test_env = os.getenv("ENVIRONMENT", "test")
+    os.getenv("ENVIRONMENT", "test")
     
     # Mark all tests in assessment_flow as unit tests by default
     for item in items:

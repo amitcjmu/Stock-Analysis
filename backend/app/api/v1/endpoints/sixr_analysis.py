@@ -3,28 +3,25 @@
 Provides REST API for 6R analysis, parameter updates, question handling, and recommendations.
 """
 
-import asyncio
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.endpoints.sixr_analysis_modular.services.analysis_service import analysis_service
-from app.core.database import AsyncSessionLocal, get_db
+from app.core.database import get_db
 from app.models.sixr_analysis import SixRAnalysis, SixRIteration, SixRQuestionResponse
 from app.models.sixr_analysis import SixRAnalysisParameters as SixRParametersModel
 from app.models.sixr_analysis import SixRRecommendation as SixRRecommendationModel
 from app.schemas.sixr_analysis import (
     AnalysisStatus,
-    ApplicationType,
     BulkAnalysisRequest,
     BulkAnalysisResponse,
     IterationRequest,
     QualifyingQuestionsRequest,
-    SixRAnalysisError,
     SixRAnalysisListResponse,
     SixRAnalysisRequest,
     SixRAnalysisResponse,
@@ -35,7 +32,6 @@ from app.schemas.sixr_analysis import (
     SixRRecommendationResponse,
 )
 from app.services.sixr_engine_modular import SixRDecisionEngine
-from app.services.tools.sixr_tools import get_sixr_tools
 
 # Conditional import for CrewAI technical debt crew
 try:
@@ -45,7 +41,6 @@ except ImportError:
     TECHNICAL_DEBT_CREW_AVAILABLE = False
     def create_technical_debt_crew(*args, **kwargs):
         return None
-from app.models.asset import Asset
 
 logger = logging.getLogger(__name__)
 

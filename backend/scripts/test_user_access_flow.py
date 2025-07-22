@@ -9,11 +9,8 @@ import os
 
 # Add the backend directory to Python path
 import sys
-import uuid
-from datetime import datetime
 
-from sqlalchemy import select, text
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
 

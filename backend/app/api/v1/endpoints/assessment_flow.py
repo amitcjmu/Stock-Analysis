@@ -29,7 +29,6 @@ from app.schemas.assessment_flow import (
     AssessmentFlowStatusResponse,
     AssessmentReport,
     ComponentUpdate,
-    NavigateToPhaseRequest,
     ResumeFlowRequest,
     SixRDecisionUpdate,
     TechDebtUpdates,

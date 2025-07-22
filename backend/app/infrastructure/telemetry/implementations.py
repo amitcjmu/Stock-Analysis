@@ -2,12 +2,10 @@
 Concrete implementations of the TelemetryService interface.
 """
 
-import asyncio
-import json
 import logging
 import os
 from collections import defaultdict, deque
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Deque, Dict, List, Optional
 from uuid import uuid4
 

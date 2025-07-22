@@ -4,7 +4,7 @@ External tool interface for dynamic field mapping learning and querying.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from app.services.field_mapper_modular import field_mapper
 

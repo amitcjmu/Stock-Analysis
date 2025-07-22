@@ -11,7 +11,7 @@ from typing import Any, Dict, List
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 
 from .base import AgentDecision, BaseDecisionAgent, PhaseAction
-from .utils import ConfidenceCalculator, DecisionUtils
+from .utils import DecisionUtils
 
 logger = logging.getLogger(__name__)
 

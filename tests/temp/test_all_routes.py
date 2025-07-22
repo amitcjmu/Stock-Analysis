@@ -4,7 +4,6 @@ Test all main navigation routes
 """
 import asyncio
 from playwright.async_api import async_playwright
-import json
 
 async def test_all_routes():
     async with async_playwright() as p:

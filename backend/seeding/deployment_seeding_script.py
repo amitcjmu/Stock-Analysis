@@ -9,7 +9,6 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import json
 from datetime import datetime, timezone
 
 from sqlalchemy import func, select, text
@@ -17,23 +16,19 @@ from sqlalchemy import func, select, text
 from app.core.database import AsyncSessionLocal
 from app.models import (
     Asset,
-    AssetDependency,
     ClientAccount,
     DataImport,
     DiscoveryFlow,
     Engagement,
     ImportFieldMapping,
-    RawImportRecord,
     User,
     UserAccountAssociation,
     UserRole,
 )
-from app.models.asset import MigrationWave
-from seeding.constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, DEMO_USER_IDS
+from seeding.constants import DEMO_USER_IDS
 
 # Import the individual seeding modules
 from seeding.demo_multi_tenant_setup import clean_demo_data, create_demo_multi_tenant_data
-from seeding.shared.seeding_utils import safe_json_serialize
 
 
 class DeploymentSeeder:

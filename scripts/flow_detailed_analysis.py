@@ -7,14 +7,13 @@ Provides deep inspection of flow data and manual intervention capabilities.
 import asyncio
 import json
 from datetime import datetime
-from typing import Dict, List, Any, Optional
-from sqlalchemy import select, text, inspect
+from typing import Dict, List, Any
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 from rich.syntax import Syntax
-from rich import print as rprint
 from rich.prompt import Prompt, Confirm
 import sys
 import os
@@ -25,7 +24,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bac
 from app.core.database import AsyncSessionLocal
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 from app.models.master_flow_extensions import CrewAIFlowStateExtensions
-from app.models.discovery_flow import DiscoveryFlow
 from app.models.field_mapping import FieldMapping
 
 console = Console()

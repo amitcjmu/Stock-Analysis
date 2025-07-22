@@ -14,7 +14,6 @@ import asyncio
 import logging
 import os
 import sys
-from datetime import datetime
 from typing import Dict
 
 from sqlalchemy import text
@@ -51,9 +50,6 @@ async def seed_analysis(session, force: bool):
         logger.info("Existing mock SixR analysis data removed.")
 
     # TODO: Look up client_account_id, engagement_id, and asset list
-    client_account_id = None  # Placeholder
-    engagement_id = None      # Placeholder
-    user_id = None            # Placeholder (admin user)
 
     # TODO: Insert analysis, iteration, responses, recommendations
     logger.info("TODO: Implement SixR analysis seeding once models & repo ready.")

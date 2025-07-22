@@ -4,7 +4,6 @@ Tests for the adaptive rate limiter implementation.
 
 import asyncio
 import time
-from unittest.mock import Mock, patch
 
 import pytest
 

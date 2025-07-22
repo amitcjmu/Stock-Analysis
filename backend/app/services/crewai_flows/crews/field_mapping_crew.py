@@ -10,11 +10,11 @@ Provides intelligent field mapping with full agent capabilities:
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from crewai import Agent, Crew, Process, Task
 from crewai.tools import BaseTool
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 logger = logging.getLogger(__name__)
 

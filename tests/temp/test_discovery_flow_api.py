@@ -5,10 +5,7 @@ Tests the backend API endpoints to verify Discovery flow creation
 """
 
 import requests
-import json
-import time
-import uuid
-from typing import Dict, Any, Optional
+from typing import Optional
 
 class DiscoveryFlowAPITester:
     def __init__(self, base_url: str = "http://localhost:8000"):

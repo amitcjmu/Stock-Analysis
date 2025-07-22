@@ -21,7 +21,6 @@ except ImportError:
 
 import enum
 import uuid
-from datetime import datetime
 
 try:
     from app.core.database import Base

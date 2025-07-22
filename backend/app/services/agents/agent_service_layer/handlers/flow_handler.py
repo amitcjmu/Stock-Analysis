@@ -3,9 +3,8 @@ Flow handler for agent service layer flow management operations.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 from app.core.database import AsyncSessionLocal

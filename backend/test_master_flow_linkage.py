@@ -7,8 +7,6 @@ Tests both Phase 1 (retroactive updates) and Phase 2 (smart discovery)
 import asyncio
 import os
 import sys
-from datetime import datetime
-from typing import Any, Dict
 
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
@@ -133,7 +131,7 @@ async def test_comprehensive_linkage():
     
     async with AsyncSessionLocal() as db:
         # Create test context
-        context = RequestContext(
+        RequestContext(
             client_account_id=TEST_CLIENT_ACCOUNT_ID,
             engagement_id=TEST_ENGAGEMENT_ID,
             user_id=TEST_USER_ID

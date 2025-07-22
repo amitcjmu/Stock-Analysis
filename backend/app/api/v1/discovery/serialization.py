@@ -3,7 +3,7 @@ JSON serialization utilities for the discovery module.
 Handles conversion of pandas/numpy data types to JSON-serializable types.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
 import pandas as pd

@@ -4,18 +4,15 @@ Provides real-time observability into agent task execution with database persist
 Enhanced for Agent Observability Enhancement Phase 2.
 """
 
-import asyncio
 import logging
 import threading
 import time
-from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -334,7 +331,7 @@ class AgentMonitor:
         while self.monitoring_active:
             try:
                 with self._lock:
-                    current_time = datetime.utcnow()
+                    datetime.utcnow()
                     
                     # Check for hanging tasks
                     for task in self.active_tasks.values():

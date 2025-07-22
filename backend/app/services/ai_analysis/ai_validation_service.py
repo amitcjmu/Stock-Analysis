@@ -7,17 +7,14 @@ content reliability and prevent hallucinations in the ADCS system.
 Agent Team B2 - Task B2.6: AI validation and hallucination protection
 """
 
-import asyncio
 import hashlib
 import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 try:
     from crewai import Agent, Crew, Process, Task

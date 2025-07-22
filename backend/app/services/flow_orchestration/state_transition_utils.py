@@ -7,7 +7,7 @@ Helps prevent "Cannot transition from initialized to active" type errors.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from app.core.exceptions import InvalidFlowStateError
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions

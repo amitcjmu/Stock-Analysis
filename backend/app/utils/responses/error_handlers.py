@@ -8,7 +8,7 @@ import traceback
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -16,7 +16,6 @@ from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.exc import IntegrityError, NoResultFound, SQLAlchemyError
 
 from .response_builders import ResponseBuilder
-from .status_codes import StatusCode
 
 logger = logging.getLogger(__name__)
 

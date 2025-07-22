@@ -10,14 +10,12 @@ complete audit trail and data integrity throughout the handoff process.
 """
 
 import asyncio
-import logging
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext

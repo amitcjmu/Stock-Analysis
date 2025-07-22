@@ -3,7 +3,6 @@
 Test direct DeepInfra API call with OpenAI format and reasoning_effort=none.
 """
 
-import json
 import os
 import sys
 import time

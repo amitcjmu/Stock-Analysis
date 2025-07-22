@@ -8,9 +8,7 @@ import asyncio
 import os
 import signal
 import sys
-import threading
 import time
-from datetime import datetime
 
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
@@ -24,7 +22,7 @@ except ImportError as e:
     print(f"❌ CrewAI import failed: {e}")
     CREWAI_AVAILABLE = False
 
-from app.services.agent_monitor import TaskStatus, agent_monitor
+from app.services.agent_monitor import agent_monitor
 from app.services.crewai_service_modular import crewai_service
 
 

@@ -16,12 +16,12 @@ import sys
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 # Add app path
 sys.path.append('/app')
 
-from sqlalchemy import and_, func, or_, select, text
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
@@ -611,7 +611,7 @@ class DatabaseValidator:
             .join(Engagement, Asset.engagement_id == Engagement.id)
             .limit(100)
         )
-        assets = result.fetchall()
+        result.fetchall()
         
         query_time = (datetime.now() - start_time).total_seconds()
         

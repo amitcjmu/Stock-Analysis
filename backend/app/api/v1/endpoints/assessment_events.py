@@ -4,12 +4,11 @@ Provides real-time updates during agent execution and flow progress.
 """
 
 import asyncio
-import json
 import logging
 from datetime import datetime
 from typing import Any, AsyncGenerator, Dict, List
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -268,7 +267,7 @@ async def broadcast_flow_event(
     Broadcast an event to all connected clients for a flow.
     In production, this would use a message queue or event system.
     """
-    event = AssessmentFlowEvent(
+    AssessmentFlowEvent(
         flow_id=flow_id,
         event_type=event_type,
         phase=phase,
@@ -293,7 +292,7 @@ async def broadcast_agent_progress(
     """
     Broadcast agent progress to all connected clients.
     """
-    event = AgentProgressEvent(
+    AgentProgressEvent(
         flow_id=flow_id,
         agent_name=agent_name,
         task_name=task_name,

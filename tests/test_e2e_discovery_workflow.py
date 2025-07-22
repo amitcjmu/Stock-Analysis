@@ -28,8 +28,7 @@ except ImportError:
     print("⚠️ Playwright not available - install with: pip install playwright")
 
 # Backend imports for database verification
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, text
+from sqlalchemy import select, func
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
 from app.models.data_import import DataImport, RawImportRecord, MappingLearningPattern
@@ -579,7 +578,6 @@ class DiscoveryWorkflowTester:
         print("\n🔌 Phase 3: Testing Backend APIs Directly")
         print("-" * 50)
         
-        import aiohttp
         
         base_url = "http://localhost:8000"
         

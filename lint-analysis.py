@@ -6,9 +6,7 @@ Analyzes ESLint output to categorize issues by priority and type
 
 import subprocess
 import re
-import json
 from collections import defaultdict, Counter
-from pathlib import Path
 
 def run_eslint():
     """Run ESLint and capture output"""

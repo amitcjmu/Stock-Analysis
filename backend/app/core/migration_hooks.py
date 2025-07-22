@@ -6,14 +6,11 @@ This module provides hooks that can be called from Alembic migrations
 to ensure database consistency and required data existence.
 """
 
-import asyncio
 import logging
-from typing import Optional
 
 from sqlalchemy import text
-from sqlalchemy.orm import Session
 
-from app.core.database_initialization import DatabaseInitializer, PlatformRequirements
+from app.core.database_initialization import PlatformRequirements
 
 logger = logging.getLogger(__name__)
 

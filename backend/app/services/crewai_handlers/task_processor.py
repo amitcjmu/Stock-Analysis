@@ -5,7 +5,7 @@ Handles task execution and processing operations.
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +99,7 @@ class TaskProcessor:
                     enhanced_mappings = enhanced_field_analysis.get("mapped_fields", {})
             
             # Enhanced analysis with field mapping intelligence
-            filename = cmdb_data.get('filename', 'unknown')
+            cmdb_data.get('filename', 'unknown')
             sample_data = cmdb_data.get('sample_data', [])
             
             if not sample_data:
@@ -144,7 +144,7 @@ class TaskProcessor:
                 return self._fallback_process_feedback(feedback_data)
             
             feedback_type = feedback_data.get('feedback_type', 'general')
-            content = feedback_data.get('content', '')
+            feedback_data.get('content', '')
             
             # Process feedback based on type
             if feedback_type == 'strategy_correction':
@@ -396,7 +396,7 @@ class TaskProcessor:
                     source_field = mapping.get('source_field')
                     target_field = mapping.get('target_field')
                     if source_field and target_field:
-                        learning_result = self.field_mapping_tool.agent_learn_field_mapping(
+                        self.field_mapping_tool.agent_learn_field_mapping(
                             source_field, target_field, f"asset_feedback_{feedback_type}"
                         )
                         logger.info(f"Applied field mapping learning: {source_field} -> {target_field}")

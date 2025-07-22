@@ -8,7 +8,6 @@ import sys
 import os
 import tempfile
 import shutil
-import pickle
 from pathlib import Path
 
 # Add backend to path

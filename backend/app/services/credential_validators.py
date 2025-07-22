@@ -3,10 +3,8 @@ Credential Validators
 Provides validation logic for different credential types
 """
 
-import base64
 import json
 import logging
-import re
 from datetime import datetime
 from typing import Any, Dict, Optional, Tuple
 
@@ -294,7 +292,7 @@ class CertificateValidator(CredentialValidator):
                 key_data = private_key
             
             # Try to load private key
-            key = serialization.load_pem_private_key(
+            serialization.load_pem_private_key(
                 key_data,
                 password=credential_data.get("password", b"").encode() if credential_data.get("password") else None,
                 backend=default_backend()
@@ -330,14 +328,14 @@ class SSHKeyValidator(CredentialValidator):
             # Try to load SSH private key
             if key_data.startswith(b"-----BEGIN"):
                 # PEM format
-                key = serialization.load_pem_private_key(
+                serialization.load_pem_private_key(
                     key_data,
                     password=passphrase.encode() if passphrase else None,
                     backend=default_backend()
                 )
             else:
                 # Try OpenSSH format
-                key = serialization.load_ssh_private_key(
+                serialization.load_ssh_private_key(
                     key_data,
                     password=passphrase.encode() if passphrase else None,
                     backend=default_backend()
@@ -353,7 +351,7 @@ class SSHKeyValidator(CredentialValidator):
                         pub_key_data = public_key
                     
                     # Load public key
-                    pub_key = serialization.load_ssh_public_key(
+                    serialization.load_ssh_public_key(
                         pub_key_data,
                         backend=default_backend()
                     )

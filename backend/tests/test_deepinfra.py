@@ -5,7 +5,6 @@ This script verifies that the AI configuration is working correctly.
 """
 
 import asyncio
-import json
 import os
 import sys
 

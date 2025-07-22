@@ -3,19 +3,16 @@ Auto-seed demo data with proper multi-tenancy relationships.
 This script runs automatically on startup if no demo data exists.
 """
 import asyncio
-import json
 import logging
 import random
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Assessment, Asset, AssetDependency, DataImport, DiscoveryFlow, ImportFieldMapping
+from app.models import Assessment, Asset, AssetDependency, DataImport, DiscoveryFlow
 from app.models.asset import AssetStatus, AssetType, MigrationWave
-from app.models.data_import import RawImportRecord
 
 logger = logging.getLogger(__name__)
 

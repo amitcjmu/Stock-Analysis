@@ -7,15 +7,13 @@ ensuring data consistency, completeness, and quality throughout the workflow.
 Generated with CC for ADCS end-to-end integration.
 """
 
-import asyncio
-import logging
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple
 from uuid import UUID
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -23,7 +21,6 @@ from app.core.database import AsyncSessionLocal
 from app.core.logging import get_logger
 from app.models.assessment_flow import AssessmentFlow
 from app.models.asset import Asset
-from app.models.asset import AssetDependency as Dependency
 from app.models.collection_flow import CollectionFlow
 from app.models.discovery_flow import DiscoveryFlow
 from app.monitoring.metrics import track_performance

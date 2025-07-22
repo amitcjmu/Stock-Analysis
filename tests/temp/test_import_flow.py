@@ -4,8 +4,6 @@ Test data import flow without waiting for validation
 """
 import asyncio
 from playwright.async_api import async_playwright
-import json
-import time
 
 async def test_data_import():
     async with async_playwright() as p:

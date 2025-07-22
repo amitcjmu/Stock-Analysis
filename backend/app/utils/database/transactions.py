@@ -186,7 +186,7 @@ class TransactionManager:
         Returns:
             Result of the operation
         """
-        async with TransactionManager.transaction(session, config) as tx:
+        async with TransactionManager.transaction(session, config):
             return await operation(session)
     
     @staticmethod
@@ -208,7 +208,7 @@ class TransactionManager:
         """
         results = []
         
-        async with TransactionManager.transaction(session, config) as tx:
+        async with TransactionManager.transaction(session, config):
             for operation in operations:
                 result = await operation(session)
                 results.append(result)
@@ -308,7 +308,7 @@ async def execute_batch(
         batch = operations[i:i + batch_size]
         
         try:
-            async with transaction_scope(session) as tx:
+            async with transaction_scope(session):
                 batch_results = []
                 
                 for operation in batch:

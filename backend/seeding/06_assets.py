@@ -10,14 +10,12 @@ Asset Distribution:
 """
 
 import asyncio
-import json
 from datetime import datetime, timedelta, timezone
 
 from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, FLOW_IDS, USER_IDS
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
-from app.models.asset import Asset, AssetStatus, AssetType, SixRStrategy
+from app.models.asset import Asset
 
 # Asset distribution across flows
 FLOW_ASSET_DISTRIBUTION = {

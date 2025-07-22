@@ -6,9 +6,8 @@ Handlers for discovery flow lifecycle events and asset creation.
 """
 
 import logging
-import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -245,7 +244,7 @@ async def asset_creation_completion(
         logger.info(f"Handling asset creation completion for flow {flow_id}")
         
         assets = phase_output.get("assets", [])
-        creation_report = phase_output.get("creation_report", {})
+        phase_output.get("creation_report", {})
         
         # Validate created assets
         validation_results = await _validate_created_assets(assets)

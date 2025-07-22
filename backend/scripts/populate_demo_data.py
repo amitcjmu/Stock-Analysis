@@ -5,7 +5,6 @@ This script uses the backend API to create demo data, ensuring consistency with 
 """
 
 import asyncio
-import os
 import sys
 
 sys.path.append('/app')
@@ -29,7 +28,7 @@ from app.core.demo_constants import (
 )
 from app.models.client_account import ClientAccount, Engagement, User
 from app.models.data_import_session import DataImportSession
-from app.models.rbac import RoleType, UserProfile, UserRole
+from app.models.rbac import UserProfile
 
 
 async def create_demo_users(db: AsyncSession):

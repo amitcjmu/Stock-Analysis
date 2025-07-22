@@ -13,8 +13,6 @@ import sys
 from datetime import datetime
 
 from sqlalchemy import select, text
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

@@ -5,7 +5,6 @@ Task 5.3: Comprehensive testing of master flow repositories and API endpoints
 """
 
 import asyncio
-import json
 import os
 import sys
 
@@ -244,7 +243,7 @@ async def test_error_handling_and_edge_cases():
             return False
         
         asset_repo = AssetRepository(session, str(test_context.client_account_id))
-        discovery_repo = DiscoveryFlowRepository(session, str(test_context.client_account_id))
+        DiscoveryFlowRepository(session, str(test_context.client_account_id))
         
         # Test 1: Invalid master flow ID
         print("\n   1️⃣ Testing invalid master flow ID...")

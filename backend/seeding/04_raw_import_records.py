@@ -4,12 +4,9 @@ Creating realistic asset inventory with raw import records for 3 data imports.
 """
 
 import asyncio
-import json
-from datetime import datetime, timezone
 
 from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, IMPORT_IDS
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 from app.models.data_import import DataImport

@@ -4,7 +4,6 @@ Test script to verify the UnifiedCollectionFlow state property fix
 """
 
 import asyncio
-import os
 import sys
 
 sys.path.append('/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend')

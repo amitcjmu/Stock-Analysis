@@ -7,7 +7,7 @@ including progress calculation, phase analysis, and status aggregation.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

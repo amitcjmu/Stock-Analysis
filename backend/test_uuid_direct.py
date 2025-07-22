@@ -60,7 +60,7 @@ def test_uuid_serialization():
         print(f"JSON length: {len(json_str)} characters")
         
         # Verify we can parse it back
-        parsed = json.loads(json_str)
+        json.loads(json_str)
         print("✅ JSON parsing successful!")
         
         return True

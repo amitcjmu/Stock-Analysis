@@ -5,7 +5,6 @@ based on performance patterns and learning data.
 """
 
 import asyncio
-import json
 import logging
 import statistics
 import time
@@ -253,7 +252,7 @@ class AgentPerformanceMonitor:
                 return {"status": "insufficient_data", "data_points": len(trends)}
             
             # Extract time series data
-            timestamps = [ts for ts, _ in trends]
+            [ts for ts, _ in trends]
             durations = [dur for _, dur in trends]
             
             # Calculate trend metrics

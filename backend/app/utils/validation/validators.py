@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -393,7 +393,7 @@ class JSONValidator(BaseValidator):
         """Validate JSON."""
         if isinstance(value, str):
             try:
-                json_data = json.loads(value)
+                json.loads(value)
             except json.JSONDecodeError as e:
                 return ValidationResult(
                     is_valid=False,
@@ -401,7 +401,7 @@ class JSONValidator(BaseValidator):
                     error_code="JSON_INVALID_FORMAT"
                 )
         elif isinstance(value, (dict, list)):
-            json_data = value
+            pass
         else:
             return ValidationResult(
                 is_valid=False,

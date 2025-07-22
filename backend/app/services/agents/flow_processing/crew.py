@@ -6,12 +6,12 @@ and routing across all flow types (Discovery, Assess, Plan, Execute, etc.).
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .crewai_imports import CREWAI_AVAILABLE, LLM_AVAILABLE, Agent, Crew, Process, Task, get_crewai_llm
-from .models import FlowAnalysisResult, FlowContinuationResult, RouteDecision
+from .models import FlowContinuationResult, RouteDecision
 from .tools import FlowStateAnalysisTool, FlowValidationTool, PhaseValidationTool, RouteDecisionTool
 
 logger = logging.getLogger(__name__)

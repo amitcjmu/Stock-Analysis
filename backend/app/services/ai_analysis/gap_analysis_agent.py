@@ -11,7 +11,7 @@ Built by: Agent Team B2 (AI Analysis & Intelligence)
 import json
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 try:
@@ -24,7 +24,6 @@ except ImportError:
     # Create dummy classes for type hints
     Agent = Task = Process = object
     BaseDiscoveryCrew = object
-from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 

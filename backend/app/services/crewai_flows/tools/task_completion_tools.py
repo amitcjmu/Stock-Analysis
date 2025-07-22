@@ -6,8 +6,7 @@ avoid redundant work, and deduplicate data.
 
 import asyncio
 import logging
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -107,8 +106,8 @@ if CREWAI_TOOLS_AVAILABLE:
                     asset_queries = AssetQueries(db, context['client_account_id'], context['engagement_id'])
                     existing_assets = await asset_queries.get_assets_by_client_engagement()
                     
-                    existing_hostnames = {asset.hostname.lower() for asset in existing_assets if asset.hostname}
-                    existing_names = {asset.name.lower() for asset in existing_assets if asset.name}
+                    {asset.hostname.lower() for asset in existing_assets if asset.hostname}
+                    {asset.name.lower() for asset in existing_assets if asset.name}
                     
                     # Filter out duplicates - check all fields dynamically
                     unique_assets = []
@@ -386,7 +385,7 @@ if CREWAI_TOOLS_AVAILABLE:
                 logger.info(f"🤝 Agent {agent_id} requesting coordination for {operation_name}")
                 
                 # Simple coordination - could be enhanced with proper locking
-                from datetime import datetime, timedelta
+                from datetime import datetime
                 
                 # Check if another agent is recently working on the same operation
                 coordination_result = {

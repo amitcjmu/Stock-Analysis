@@ -10,12 +10,11 @@ Handles all database storage operations including:
 
 from __future__ import annotations
 
-import logging
 import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import func, select, update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import DatabaseError

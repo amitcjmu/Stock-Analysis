@@ -6,13 +6,11 @@ while keeping the most recently created asset for each unique identifier.
 
 import asyncio
 import logging
-from datetime import datetime
-from typing import Dict, List, Set
+from typing import Dict, List
 
 from sqlalchemy import and_, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.context import RequestContext
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
 

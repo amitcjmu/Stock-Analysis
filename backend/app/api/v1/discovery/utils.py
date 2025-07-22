@@ -4,9 +4,8 @@ Helper functions for asset processing and analysis.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
-from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -171,7 +170,7 @@ def generate_suggested_headers(assets: List[Dict[str, Any]]) -> List[Dict[str, s
         return []
     
     # Analyze the data to determine which fields are most relevant
-    sample_asset = assets[0]
+    assets[0]
     headers = []
     
     # Always include basic identification fields
@@ -265,7 +264,7 @@ def assess_6r_readiness(asset_type: str, asset_data: Dict[str, Any]) -> str:
     elif asset_type == "Database":
         # Databases need version and host info
         has_version = bool(asset_data.get('Version') or asset_data.get('database_version'))
-        has_host = bool(asset_data.get('Host') or asset_data.get('hostname'))
+        bool(asset_data.get('Host') or asset_data.get('hostname'))
         
         if has_name and has_environment and has_version:
             return "Ready"
@@ -374,7 +373,7 @@ def analyze_data_source(data_source_id: str) -> dict:
     if not crewai_available():
         return {"error": "CrewAI service is not available"}, 503
     
-    task = crewai_flow_service.create_task(
+    crewai_flow_service.create_task(
         agent_name="data_source_intelligence_001",
         task_description=f"Analyze data source: {data_source_id}",
         context=f"Analyze the data source with ID {data_source_id} and determine its type and quality."

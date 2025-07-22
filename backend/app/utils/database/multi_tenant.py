@@ -6,11 +6,10 @@ Provides consistent multi-tenant filtering and context management.
 import logging
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, Optional, Type
 
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
 from sqlalchemy.sql import Select
 
 logger = logging.getLogger(__name__)

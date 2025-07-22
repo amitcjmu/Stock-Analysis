@@ -8,7 +8,6 @@ This migration adds the missing error_message and error_details columns to data_
 """
 import sqlalchemy as sa
 from sqlalchemy import text
-from sqlalchemy.dialects import postgresql
 
 from alembic import op
 

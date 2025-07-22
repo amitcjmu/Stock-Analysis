@@ -6,12 +6,10 @@ knowledge base loading and search functionality, cross-crew memory sharing,
 memory optimization strategies, and multi-tenant memory management.
 """
 
-import asyncio
-import json
 import time
 import uuid
-from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from typing import Any, Dict, List
+from unittest.mock import Mock
 
 import pytest
 

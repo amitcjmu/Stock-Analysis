@@ -25,7 +25,7 @@ def test_memory_initialization():
         print("✅ SQLite storage initialized")
         
         # Test memory
-        memory = LongTermMemory(storage=storage)
+        LongTermMemory(storage=storage)
         print("✅ LongTermMemory initialized")
         
         # Test agent creation (no LLM required)
@@ -45,7 +45,7 @@ def test_memory_initialization():
             expected_output="Test output"
         )
         
-        crew = Crew(
+        Crew(
             agents=[agent],
             tasks=[task],
             memory=True,

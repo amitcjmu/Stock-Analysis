@@ -8,12 +8,11 @@ patterns for all platform adapters to ensure resilient data collection.
 import asyncio
 import logging
 import random
-import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, TypeVar
 
 from app.services.collection_flow.adapters import CollectionResponse
 
@@ -241,7 +240,7 @@ class ErrorClassifier:
         """Classify an error and return appropriate handling pattern"""
         context = context or {}
         error_message = str(error).lower()
-        error_type = type(error)
+        type(error)
         
         # Try to match against known patterns
         for pattern in self._error_patterns:

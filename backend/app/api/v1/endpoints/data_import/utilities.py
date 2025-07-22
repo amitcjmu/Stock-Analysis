@@ -5,8 +5,7 @@ Common functions used across all data import modules.
 
 import math
 import re
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from app.models.data_import import DataImport
 

@@ -4,13 +4,11 @@ Provides intelligent deduplication logic for multi-session data with CrewAI agen
 """
 
 import logging
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
+from typing import Any, Dict, List, Optional, Type, TypeVar
 
-from sqlalchemy import and_, desc, func, or_, text
+from sqlalchemy import and_, desc, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.sql import Select
 
 logger = logging.getLogger(__name__)
 

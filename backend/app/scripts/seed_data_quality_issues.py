@@ -9,7 +9,6 @@ import asyncio
 import json
 import logging
 import os
-import random
 import sys
 import uuid
 from datetime import datetime

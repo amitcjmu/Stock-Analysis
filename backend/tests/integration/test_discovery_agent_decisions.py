@@ -7,16 +7,13 @@ including data validation, field mapping, and asset classification decisions.
 
 import asyncio
 import json
-from datetime import datetime
 from typing import Any, Dict, List
-from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
 from tests.fixtures.discovery_flow_fixtures import (
     AGENT_DECISIONS,
     MOCK_CMDB_DATA,
-    SSE_EVENT_SEQUENCE,
     get_mock_file_content,
 )
 from tests.test_discovery_flow_base import BaseDiscoveryFlowTest, integration_test, requires_llm
@@ -36,7 +33,7 @@ class TestDiscoveryAgentDecisions(BaseDiscoveryFlowTest):
         
         # Upload test CMDB data
         file_content = get_mock_file_content("csv")
-        upload_response = await self.upload_file(flow_id, file_content, "test_cmdb.csv")
+        await self.upload_file(flow_id, file_content, "test_cmdb.csv")
         
         # Wait for data validation phase to complete
         await self.wait_for_phase(flow_id, "data_import", timeout=10)

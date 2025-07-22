@@ -18,13 +18,12 @@ Run this module manually when:
 """
 
 import asyncio
-import hashlib
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Dict
 
-from sqlalchemy import delete, select, text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import ClientAccount, Engagement, User

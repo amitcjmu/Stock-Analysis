@@ -3,10 +3,8 @@ Base handler for RBAC operations with common functionality.
 """
 
 import logging
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Dict
 
-from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # Import RBAC models with fallback

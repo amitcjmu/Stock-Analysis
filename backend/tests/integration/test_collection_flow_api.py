@@ -8,10 +8,8 @@ import json
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
-from app.models import ClientAccount, Engagement, User
 from app.models.collection_flow import CollectionFlow
 
 
@@ -112,7 +110,7 @@ async def test_collection_flow_database_integration():
 @pytest.mark.asyncio  
 async def test_collection_flow_service_direct():
     """Test Collection Flow service directly without API"""
-    from unittest.mock import AsyncMock, Mock
+    from unittest.mock import Mock
 
     from app.core.context import RequestContext
     from app.services.crewai_flows.unified_collection_flow import UnifiedCollectionFlow

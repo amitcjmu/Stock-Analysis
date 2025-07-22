@@ -117,7 +117,7 @@ class DiscoveryFlowIntegrationService:
             actions_taken = []
             
             # Sync the state
-            updated_flow = await self.sync_crewai_state(
+            await self.sync_crewai_state(
                 flow_id=flow_id,
                 crewai_state=crewai_flow_state
             )

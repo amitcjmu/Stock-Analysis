@@ -10,11 +10,11 @@ Provides optimized settings and configurations for CrewAI agents based on:
 import logging
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from app.services.agent_learning_system import LearningContext, agent_learning_system
 from app.services.agent_performance_monitor import agent_performance_monitor
-from app.services.enhanced_agent_memory import MemoryConfiguration, enhanced_agent_memory
+from app.services.enhanced_agent_memory import enhanced_agent_memory
 from app.services.llm_config import get_crewai_llm
 
 logger = logging.getLogger(__name__)
@@ -151,7 +151,7 @@ class OptimizedAgentConfigurator:
         operation_type: str
     ) -> AgentOptimizationConfig:
         """Apply operation-specific optimizations"""
-        baseline = self.performance_baselines.get(operation_type, {})
+        self.performance_baselines.get(operation_type, {})
         
         # Adjust timeouts based on operation complexity
         if operation_type == "field_mapping":
@@ -360,9 +360,9 @@ class OptimizedAgentConfigurator:
     ) -> Dict[str, Any]:
         """Get optimized crew configuration"""
         # Determine best process type based on operation and configs
-        enable_parallel = any(config.enable_parallel_execution for config in agent_configs)
+        any(config.enable_parallel_execution for config in agent_configs)
         enable_collaboration = any(config.enable_collaboration for config in agent_configs)
-        allow_delegation = any(config.allow_delegation for config in agent_configs)
+        any(config.allow_delegation for config in agent_configs)
         
         # Calculate optimal crew settings
         max_rpm = self._calculate_optimal_rpm(operation_type, agent_configs)

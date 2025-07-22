@@ -7,9 +7,8 @@ Enhanced implementation with CrewAI best practices:
 - Shared memory integration for migration patterns
 """
 
-import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from crewai import Agent, Crew, Process, Task
 

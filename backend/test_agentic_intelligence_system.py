@@ -14,11 +14,9 @@ This demonstrates the complete replacement of rule-based systems with agentic in
 """
 
 import asyncio
-import json
 import sys
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List
 
 # Add the app directory to the Python path
 sys.path.append('/app')

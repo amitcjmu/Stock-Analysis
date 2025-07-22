@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 
-from ..models.attribute_schemas import AgentFeedback, LearningPatternUpdate
+from ..models.attribute_schemas import AgentFeedback
 from ..services.learning_service import LearningService
 
 logger = logging.getLogger(__name__)

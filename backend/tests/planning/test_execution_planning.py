@@ -13,12 +13,8 @@ Tests the planning and coordination functionality including:
 """
 
 import asyncio
-import json
-import time
-import uuid
-from datetime import datetime, timedelta
-from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from datetime import datetime
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 

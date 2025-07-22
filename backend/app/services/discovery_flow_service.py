@@ -103,7 +103,7 @@ class DiscoveryFlowService:
                 master_flow_id = str(uuid.uuid4())
                 
                 try:
-                    extensions_record = await self.master_flow_repo.create_master_flow(
+                    await self.master_flow_repo.create_master_flow(
                         flow_id=master_flow_id,  # Unique master flow ID
                         flow_type="discovery",
                         user_id=user_id or str(self.context.user_id),

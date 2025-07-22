@@ -5,9 +5,6 @@ This adapter provides comprehensive Azure resource discovery and data collection
 using Azure Resource Graph for resource discovery and Azure Monitor for metrics.
 """
 
-import asyncio
-import json
-import logging
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -40,7 +37,6 @@ from app.services.collection_flow.adapters import (
     AdapterCapability,
     AdapterMetadata,
     BaseAdapter,
-    CollectionMethod,
     CollectionRequest,
     CollectionResponse,
 )
@@ -235,7 +231,7 @@ class AzureAdapter(BaseAdapter):
         """Test Resource Management API connectivity"""
         try:
             # List resource groups (should work with basic permissions)
-            resource_groups = list(self._resource_client.resource_groups.list())
+            list(self._resource_client.resource_groups.list())
             return True
         except Exception:
             return False
@@ -250,7 +246,7 @@ class AzureAdapter(BaseAdapter):
                 subscriptions=[self._subscription_id],
                 query="Resources | take 1"
             )
-            response = self._resource_graph_client.resources(query)
+            self._resource_graph_client.resources(query)
             return True
         except Exception:
             return False
@@ -260,7 +256,7 @@ class AzureAdapter(BaseAdapter):
         try:
             # List metric definitions (basic monitor access)
             # This requires a resource, so we'll try with the subscription scope
-            metric_definitions = list(self._monitor_client.metric_definitions.list(
+            list(self._monitor_client.metric_definitions.list(
                 resource_uri=f"/subscriptions/{self._subscription_id}"
             ))
             return True
@@ -271,7 +267,7 @@ class AzureAdapter(BaseAdapter):
         """Test Compute API connectivity"""
         try:
             # List VM sizes in a region (basic compute access)
-            vm_sizes = list(self._compute_client.virtual_machine_sizes.list("eastus"))
+            list(self._compute_client.virtual_machine_sizes.list("eastus"))
             return True
         except Exception:
             return False

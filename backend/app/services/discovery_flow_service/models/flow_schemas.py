@@ -2,7 +2,6 @@
 Pydantic schemas for discovery flow service operations.
 """
 
-import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 

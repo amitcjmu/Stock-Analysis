@@ -5,7 +5,6 @@ import os
 import re
 import subprocess
 from collections import defaultdict
-from pathlib import Path
 
 # Additional import mappings for undefined names not caught in first pass
 ADDITIONAL_MAPPINGS = {

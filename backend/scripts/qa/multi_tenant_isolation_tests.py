@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 # Add app path
 sys.path.append('/app')
 
-from sqlalchemy import and_, distinct, func, or_, select, text
+from sqlalchemy import and_, distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal

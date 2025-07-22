@@ -3,7 +3,7 @@ Tool category definitions and management
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Set
+from typing import List, Set
 
 
 @dataclass

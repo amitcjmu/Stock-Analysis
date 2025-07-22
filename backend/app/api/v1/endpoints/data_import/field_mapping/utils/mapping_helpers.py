@@ -4,7 +4,7 @@ Helper functions for intelligent field mapping.
 
 import re
 from difflib import SequenceMatcher
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 
 def intelligent_field_mapping(source_field: str) -> str:

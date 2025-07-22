@@ -4,14 +4,13 @@ Agent monitoring endpoints.
 Provides real-time observability into agent status, task execution, and registry management.
 """
 
-import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.logging import get_logger as enhanced_get_logger
-from app.services.agent_monitor import TaskStatus, agent_monitor
+from app.services.agent_monitor import agent_monitor
 from app.services.agent_registry import AgentPhase, AgentStatus, agent_registry
 
 from .base import get_monitoring_context

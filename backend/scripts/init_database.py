@@ -26,25 +26,21 @@ import argparse
 import asyncio
 import logging
 import os
-import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import asyncpg
-from sqlalchemy import create_engine, inspect, text
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy import text
 
-import alembic
 from alembic import command
 from alembic.config import Config
 
 # Add the app directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.core.database import AsyncSessionLocal, Base
-from app.core.database_initialization import DatabaseInitializer, initialize_database
-from app.models import ClientAccount, Engagement, User
+from app.core.database import AsyncSessionLocal
+from app.core.database_initialization import initialize_database
 
 # Configure logging
 logging.basicConfig(

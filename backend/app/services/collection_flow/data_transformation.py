@@ -7,11 +7,10 @@ normalized formats and ensuring data consistency across different platforms.
 
 import logging
 import re
-import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 

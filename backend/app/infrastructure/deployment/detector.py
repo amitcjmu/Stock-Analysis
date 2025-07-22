@@ -6,7 +6,7 @@ import asyncio
 import logging
 import os
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +119,7 @@ class ServiceDetector:
         """Detect if telemetry service is available."""
         # Check for telemetry configuration
         telemetry_endpoint = os.getenv("TELEMETRY_ENDPOINT")
-        telemetry_api_key = os.getenv("TELEMETRY_API_KEY")
+        os.getenv("TELEMETRY_API_KEY")
         
         if not telemetry_endpoint:
             logger.debug("Telemetry service not configured")

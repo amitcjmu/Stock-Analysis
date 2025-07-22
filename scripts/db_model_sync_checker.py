@@ -16,21 +16,17 @@ Usage:
 import asyncio
 import sys
 import argparse
-from typing import Dict, List, Set, Any, Optional, Tuple
+from typing import Dict, List, Set, Any, Optional
 from datetime import datetime
 import json
 
 # Database imports
-import asyncpg
-from sqlalchemy import inspect, MetaData, create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.schema import CreateTable
-from sqlalchemy.dialects import postgresql
 
 # App imports
 sys.path.append('/app')
-from app.core.database import get_database_url, AsyncSessionLocal, Base
-from app.core.config import settings
+from app.core.database import get_database_url, Base
 
 # Import all models to ensure they're registered
 from app.models import *

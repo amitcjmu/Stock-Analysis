@@ -10,10 +10,9 @@ import subprocess
 import sys
 import time
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import List
 
 import psycopg2
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 
 class DatabaseConsolidationDeployment:

@@ -39,7 +39,7 @@ async def test_uuid_serialization():
         
         # Try to JSON encode it
         import json
-        json_str = json.dumps(serialized)
+        json.dumps(serialized)
         print("✅ JSON encoding successful!")
         
         return True

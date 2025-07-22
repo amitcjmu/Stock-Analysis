@@ -3,10 +3,8 @@
 Final test to verify all flow resume fixes are working
 """
 
-import asyncio
 import requests
 import json
-from datetime import datetime
 
 # Test configuration
 BASE_URL = "http://localhost:8000"

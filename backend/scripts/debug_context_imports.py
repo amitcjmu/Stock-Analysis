@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 from app.core.database import AsyncSessionLocal
 from app.models.data_import.core import DataImport

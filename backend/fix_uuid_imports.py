@@ -28,12 +28,10 @@ def fix_uuid_imports_in_file(filepath):
                 new_content = content
                 
                 # Find all imports at the top (before any class or function definitions)
-                import_section_end = 0
                 lines = content.split('\n')
                 for i, line in enumerate(lines):
                     if line.strip() and not line.startswith(('import ', 'from ', '#', '"""', "'''")) and not line.strip() == '':
                         if 'TYPE_CHECKING' not in line and 'if TYPE_CHECKING:' not in lines[i-1] if i > 0 else True:
-                            import_section_end = i
                             break
                 
                 # Add UUID import after datetime imports or before sqlalchemy imports

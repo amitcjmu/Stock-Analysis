@@ -3,11 +3,9 @@
 Test CrewAI with LiteLLM configuration for DeepInfra.
 """
 
-import asyncio
 import time
 import sys
 import os
-import gc
 
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
@@ -21,7 +19,6 @@ def test_crewai_with_litellm():
     
     try:
         # Import LiteLLM and CrewAI
-        import litellm
         from crewai import Agent, Task, Crew, Process, LLM
         
         # Configure LiteLLM for DeepInfra

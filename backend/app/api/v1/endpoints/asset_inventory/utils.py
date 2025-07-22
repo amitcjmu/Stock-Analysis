@@ -8,7 +8,6 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy.orm import Session
 
 from app.core.context import RequestContext
-from app.repositories.asset_repository import AssetRepository
 
 logger = logging.getLogger(__name__)
 

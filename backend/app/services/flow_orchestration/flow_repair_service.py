@@ -5,13 +5,11 @@ Handles orphaned data repair and flow reconciliation for the Master Flow Orchest
 Extracted from MasterFlowOrchestrator to follow single responsibility principle.
 """
 
-import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
@@ -168,7 +166,7 @@ class FlowRepairService:
                 "flow_persistence_data": {}
             }
             
-            created_flow = await self.master_repo.create(flow_data)
+            await self.master_repo.create(flow_data)
             logger.info(f"✅ Created master flow {flow_id} for repair")
             return True
             

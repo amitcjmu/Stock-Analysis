@@ -8,8 +8,7 @@ import json
 import sys
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Any
-import markdown2
+from typing import Dict, Any
 
 class SecurityReportGenerator:
     def __init__(self, artifacts_dir: str):

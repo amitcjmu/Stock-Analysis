@@ -6,8 +6,6 @@ CC generated for comprehensive codebase analysis.
 """
 
 import json
-import os
-import subprocess
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from pathlib import Path

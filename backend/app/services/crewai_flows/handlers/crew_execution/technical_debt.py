@@ -3,7 +3,6 @@ Technical Debt Crew Execution Handler
 """
 
 import logging
-from datetime import datetime
 from typing import Any, Dict
 
 from .base import CrewExecutionBase

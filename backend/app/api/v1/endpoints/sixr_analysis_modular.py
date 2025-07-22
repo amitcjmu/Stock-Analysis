@@ -4,7 +4,6 @@ Combines robust error handling with clean modular architecture.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession

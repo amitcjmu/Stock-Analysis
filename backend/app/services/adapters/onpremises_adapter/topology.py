@@ -2,7 +2,6 @@
 Network topology discovery for On-Premises Platform Adapter
 """
 
-from datetime import datetime
 from ipaddress import AddressValueError, IPv4Address, IPv4Network
 from typing import Any, Dict, List
 

@@ -11,10 +11,8 @@ Tests data flow and persistence between Discovery and Assessment flows to verify
 """
 
 import pytest
-import asyncio
-import json
-from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
+from datetime import datetime
+from typing import Dict, Any
 from uuid import uuid4
 
 # Import necessary modules
@@ -288,13 +286,13 @@ class TestCrossFlowPersistence:
         print("🏢 Testing multi-tenant isolation across flows...")
         
         # Create discovery flows for both clients
-        client1_discovery = await self.create_discovery_flow_with_assets(
+        await self.create_discovery_flow_with_assets(
             TEST_CLIENT_ID_1, 
             TEST_ENGAGEMENT_ID_1,
             asset_count=3
         )
         
-        client2_discovery = await self.create_discovery_flow_with_assets(
+        await self.create_discovery_flow_with_assets(
             TEST_CLIENT_ID_2,
             TEST_ENGAGEMENT_ID_2, 
             asset_count=3
@@ -499,7 +497,7 @@ class TestCrossFlowPersistence:
                 # Verify discovery metadata preserved
                 if asset.metadata_ and "discovery_metadata" in asset.metadata_:
                     discovery_meta = asset.metadata_["discovery_metadata"]
-                    original_discovery_meta = current_state["metadata"].get("discovery_metadata", {})
+                    current_state["metadata"].get("discovery_metadata", {})
                     
                     assert discovery_meta["flow_id"] == flow_id
                     assert "confidence_score" in discovery_meta

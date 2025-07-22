@@ -3,7 +3,6 @@
 import asyncio
 
 from sqlalchemy import and_, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 from app.models.user_profile import UserProfile

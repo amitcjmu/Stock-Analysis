@@ -5,9 +5,8 @@ Ensures all issues follow the proper workflow sequence
 """
 
 import json
-import os
 from datetime import datetime
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple
 
 class ComplianceChecker:
     def __init__(self, workflow_file: str):

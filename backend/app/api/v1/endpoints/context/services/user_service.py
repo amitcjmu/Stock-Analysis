@@ -325,7 +325,7 @@ class UserService:
         
         # Create a default session for this engagement
         session_type = "Admin Session" if is_admin else "Default Session"
-        session_base = SessionBase(
+        SessionBase(
             id=str(engagement.id),  # Use engagement ID as session ID for now
             name=f"{session_type} - {engagement.name}",
             description=f"{session_type.lower()} for {engagement.name}",
@@ -366,7 +366,7 @@ class UserService:
             updated_at=now
         )
         
-        demo_session = SessionBase(
+        SessionBase(
             id=DEMO_SESSION_ID,
             name="Demo Session",
             description="Demonstration Session",

@@ -4,9 +4,8 @@ Provides comprehensive agent observability endpoints for individual agent metric
 Part of the Agent Observability Enhancement Phase 3
 """
 
-import logging
 from datetime import date, datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession

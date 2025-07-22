@@ -3,14 +3,12 @@ Integration tests for database consolidation
 Verifies V3 tables are removed and schema is properly consolidated
 """
 
-import asyncio
 
 import pytest
-from sqlalchemy import inspect, text
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 
 from app.core.database import AsyncSessionLocal
-from app.models import Asset, DataImport, DiscoveryFlow, ImportFieldMapping
+from app.models import DataImport
 
 
 class TestDatabaseConsolidation:

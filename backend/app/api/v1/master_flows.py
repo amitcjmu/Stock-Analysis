@@ -13,7 +13,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth.auth_utils import get_current_user
 from app.api.v1.endpoints.context.services.user_service import UserService
-from app.core.auth import get_current_user_id
 from app.core.database import get_db
 from app.models import User
 from app.repositories.asset_repository import AssetRepository
@@ -120,7 +119,7 @@ async def get_active_master_flows(
         raise HTTPException(status_code=400, detail="Client account ID required")
     
     try:
-        from sqlalchemy import and_, or_, select
+        from sqlalchemy import and_, select
 
         from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
         

@@ -7,7 +7,7 @@ Handlers for assessment flow lifecycle events.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ async def assessment_initialization(
         logger.info(f"Initializing assessment flow {flow_id}")
         
         config = kwargs.get("configuration", {})
-        initial_state = kwargs.get("initial_state", {})
+        kwargs.get("initial_state", {})
         
         initialization_result = {
             "initialized": True,

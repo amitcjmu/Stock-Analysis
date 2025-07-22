@@ -3,7 +3,6 @@ Unified Discovery Flow with proper CrewAI patterns
 Phase 2: Event-driven flow using @start/@listen decorators
 """
 
-import asyncio
 import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional

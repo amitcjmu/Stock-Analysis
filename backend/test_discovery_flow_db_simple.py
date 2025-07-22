@@ -10,7 +10,6 @@ import json
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List
 
 # Configure logging
 logging.basicConfig(
@@ -82,7 +81,7 @@ async def test_discovery_flow_simple():
     logger.info("🚀 Starting Simplified Discovery Flow E2E Test")
     
     try:
-        from sqlalchemy import select, text
+        from sqlalchemy import text
 
         from app.core.context import RequestContext
         from app.core.database import AsyncSessionLocal
@@ -116,7 +115,7 @@ async def test_discovery_flow_simple():
                 test_context.user_id
             )
             
-            master_flow = await flow_repo.create_master_flow(
+            await flow_repo.create_master_flow(
                 flow_id=flow_id,
                 flow_type="discovery",
                 user_id=test_context.user_id,
@@ -380,7 +379,6 @@ async def test_discovery_flow_simple():
 
 if __name__ == "__main__":
     import sys
-    from datetime import timedelta
     
     # Add backend to path for imports
     sys.path.insert(0, '/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend')

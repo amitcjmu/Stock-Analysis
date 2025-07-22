@@ -54,7 +54,7 @@ class FlowCommands:
                 user_id=created_by
             )
             
-            master_flow = await extensions_repo.create_master_flow(
+            await extensions_repo.create_master_flow(
                 flow_id=str(flow_record.id),
                 flow_type='assessment',  # Using 'assessment' for consistency
                 user_id=created_by or 'system',

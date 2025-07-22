@@ -4,7 +4,7 @@ Analyzes data structure and field semantics using AI intelligence
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
@@ -44,7 +44,7 @@ class SchemaAnalysisTool(BaseTool):
             semantic_analysis = self._analyze_semantics(fields_analysis, patterns, metadata or {})
             
             # Generate analysis report
-            analysis_report = {
+            {
                 "field_analysis": fields_analysis,
                 "data_patterns": patterns,
                 "semantic_insights": semantic_analysis,

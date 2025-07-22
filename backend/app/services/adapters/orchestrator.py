@@ -10,19 +10,15 @@ import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.collection_flow import AutomationTier
 from app.services.collection_flow.adapters import (
-    AdapterCapability,
-    AdapterMetadata,
     AdapterRegistry,
     BaseAdapter,
-    CollectionMethod,
     CollectionRequest,
     CollectionResponse,
 )

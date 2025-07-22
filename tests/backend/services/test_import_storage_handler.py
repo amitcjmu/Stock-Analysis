@@ -10,11 +10,8 @@ Tests the modular data import services architecture including:
 """
 
 import pytest
-import asyncio
-import json
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from typing import Dict, List, Any, Optional
-from datetime import datetime, timedelta
+from unittest.mock import Mock, AsyncMock
+from datetime import datetime
 import uuid
 
 # Import modular services
@@ -28,7 +25,7 @@ try:
     from app.services.data_import.response_builder import ImportResponseBuilder
     from app.schemas.data_import_schemas import StoreImportRequest
     from app.core.exceptions import ValidationError, DatabaseError
-except ImportError as e:
+except ImportError:
     # Mock imports for testing environment
     ImportStorageHandler = Mock
     ImportValidator = Mock
@@ -215,7 +212,7 @@ class TestImportStorageHandlerModularIntegration:
         setattr(handler, 'validator', mock_modular_services["validator"])
         
         # Test validation success
-        store_request = StoreImportRequest(**sample_import_request)
+        StoreImportRequest(**sample_import_request)
         
         # Act
         is_valid = await handler.validator.validate_import_context(mock_import_context)
@@ -464,7 +461,7 @@ class TestMultiTenantModularIntegration:
         
         setattr(handler, 'storage_manager', mock_storage)
         
-        store_request = StoreImportRequest(**sample_import_request)
+        StoreImportRequest(**sample_import_request)
         
         # Act
         result = await handler.storage_manager.find_or_create_import(

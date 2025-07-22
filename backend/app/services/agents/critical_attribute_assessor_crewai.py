@@ -4,9 +4,8 @@ Evaluates collected data against the 22 critical attributes framework
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
-from crewai import Agent
 
 from app.services.agents.base_agent import BaseCrewAIAgent
 from app.services.agents.registry import AgentMetadata

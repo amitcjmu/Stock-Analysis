@@ -11,7 +11,6 @@ from typing import Any, Dict, List, Optional
 
 from sqlalchemy import and_, delete, desc, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.repositories.context_aware_repository import ContextAwareRepository
@@ -83,7 +82,7 @@ class CrewAIFlowStateExtensionsRepository(ContextAwareRepository):
         # Use demo constants as defaults
         demo_client_id = uuid.UUID("11111111-1111-1111-1111-111111111111")
         demo_engagement_id = uuid.UUID("22222222-2222-2222-2222-222222222222")
-        demo_user_id = uuid.UUID("33333333-3333-3333-3333-333333333333")
+        uuid.UUID("33333333-3333-3333-3333-333333333333")
         
         # Validate and parse flow_id
         try:

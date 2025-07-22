@@ -5,7 +5,7 @@ Provides memory-enhanced analysis and intelligent placeholders when CrewAI is un
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from .analysis_handlers import CoreAnalysisHandler, IntelligenceEngineHandler, PlaceholderHandler
 

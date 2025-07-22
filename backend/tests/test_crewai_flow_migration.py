@@ -4,10 +4,7 @@ Tests the migration from legacy discovery patterns to the new CrewAI Flow implem
 Validates compatibility, fallback behavior, and performance characteristics.
 """
 
-import asyncio
-from datetime import datetime
-from typing import Any, Dict
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock
 
 import pytest
 
@@ -117,7 +114,7 @@ class TestCrewAIFlowMigration:
     
     def test_native_format_structure(self, mock_db_session):
         """Test native format structure compatibility.""" 
-        service = CrewAIFlowService(mock_db_session)
+        CrewAIFlowService(mock_db_session)
         
         # Create state in native format
         native_state = {
@@ -180,7 +177,7 @@ class TestCrewAIFlowMigration:
         invalid_data = {"invalid": "data"}
         
         try:
-            result = await service.initiate_discovery_workflow(
+            await service.initiate_discovery_workflow(
                 data_source=invalid_data,
                 context=sample_context
             )
@@ -343,7 +340,7 @@ class TestNativeFormatValidation:
     
     def test_native_state_structure_complete(self, mock_db_session):
         """Test that native state structure contains all required fields."""
-        service = CrewAIFlowService(mock_db_session)
+        CrewAIFlowService(mock_db_session)
         
         # Create new state
         new_state = UnifiedDiscoveryFlowState(
@@ -400,7 +397,7 @@ class TestPerformanceAndScaling:
     
     def test_large_dataset_handling(self, mock_db_session):
         """Test handling of large CMDB datasets."""
-        service = CrewAIFlowService(mock_db_session)
+        CrewAIFlowService(mock_db_session)
         
         # Create large dataset
         large_dataset = []

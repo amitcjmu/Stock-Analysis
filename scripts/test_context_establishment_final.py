@@ -5,7 +5,6 @@ Tests the proper authentication flow and context establishment
 """
 
 import requests
-import json
 import sys
 
 # Configuration

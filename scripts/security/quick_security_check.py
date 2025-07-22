@@ -4,12 +4,11 @@ Quick Security Check - Minimal dependencies
 Runs basic security checks without external tools
 """
 
-import os
 import re
 import json
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 class QuickSecurityChecker:
     def __init__(self, backend_dir: str = "backend"):

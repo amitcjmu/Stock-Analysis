@@ -6,11 +6,10 @@ Provides reusable query construction patterns and filters.
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type
 
-from sqlalchemy import and_, func, or_, select, text
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Query
 from sqlalchemy.sql import Select
 
 logger = logging.getLogger(__name__)

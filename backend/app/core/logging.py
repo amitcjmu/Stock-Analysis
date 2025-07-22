@@ -14,7 +14,7 @@ import logging
 import sys
 from datetime import datetime
 from functools import wraps
-from typing import Any, Dict, Optional
+from typing import Optional
 
 # Context variables for request tracking
 request_context = contextvars.ContextVar('request_context', default={})

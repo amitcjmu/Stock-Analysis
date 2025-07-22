@@ -22,8 +22,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
-from app.models.assessment_flow import AssessmentFlowState, AssessmentPhase, AssessmentStatus
-from app.services.crewai_flows.flow_state_manager import FlowStateManager
+from app.models.assessment_flow import AssessmentStatus
 from app.services.crewai_flows.unified_assessment_flow import UnifiedAssessmentFlow, create_unified_assessment_flow
 
 # from app.services.crewai_flows.persistence.postgres_store import PostgresStore  # Handled by master orchestrator
@@ -101,7 +100,7 @@ class AssessmentFlowService:
                         await assessment_flow.postgres_store.save_flow_state(assessment_flow.state)
             
             # Create the task but don't await it - let it run in background
-            task = asyncio.create_task(run_assessment_flow())
+            asyncio.create_task(run_assessment_flow())
             logger.info(f"🚀 Assessment Flow {flow_id} task created and running in background")
             
             return {
@@ -158,7 +157,7 @@ class AssessmentFlowService:
             
             # Try to load from PostgreSQL persistence
             from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
-            postgres_store = PostgresFlowStateStore(self.db, context)
+            PostgresFlowStateStore(self.db, context)
             try:
                 # This would need to be implemented to load assessment flow state
                 # For now, return not found
@@ -225,7 +224,7 @@ class AssessmentFlowService:
                 
                 # Try to load state from persistence and recreate flow
                 from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
-                postgres_store = PostgresFlowStateStore(self.db, context)
+                PostgresFlowStateStore(self.db, context)
                 # This would need to be implemented to load assessment flow state
                 state = None
                 

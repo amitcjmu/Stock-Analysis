@@ -170,7 +170,7 @@ class StateManager:
                 user_id = str(getattr(self.state, 'user_id', '')) or ''
                 flow_id = str(getattr(self.state, 'flow_id', '')) or ''
                 
-                context = RequestContext(
+                RequestContext(
                     client_account_id=client_account_id,
                     engagement_id=engagement_id,
                     user_id=user_id,

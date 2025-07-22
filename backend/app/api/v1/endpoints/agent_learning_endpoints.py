@@ -4,7 +4,7 @@ Supports Tasks C.1 and C.2: Agent Memory/Learning System and Cross-Page Communic
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 
@@ -312,8 +312,8 @@ async def get_learning_statistics():
 async def set_cross_page_context(
     context_data: Dict[str, Any]
 ):
-    value = context_data.get("value")
-    page_source = context_data.get("page_source", "unknown")
+    context_data.get("value")
+    context_data.get("page_source", "unknown")
 
     # This functionality is now part of the UIInteractionHandler within the flow service
     # The new model requires a flow_state object, so direct context setting is not supported in the same way.

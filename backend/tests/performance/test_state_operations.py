@@ -4,13 +4,11 @@ Performance tests for state operations
 import asyncio
 import json
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 from app.services.crewai_flows.persistence.exceptions import ConcurrentModificationError
 from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
 

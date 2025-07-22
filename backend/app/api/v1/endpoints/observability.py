@@ -3,7 +3,7 @@ Observability endpoints for monitoring and controlling system behavior.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel

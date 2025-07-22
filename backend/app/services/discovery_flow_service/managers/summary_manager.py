@@ -8,7 +8,6 @@ from typing import Any, Dict, List
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
-from app.models.asset import Asset
 from app.models.discovery_flow import DiscoveryFlow
 
 from .asset_manager import AssetManager
@@ -29,7 +28,7 @@ class SummaryManager:
         try:
             logger.info(f"📊 Generating flow summary for: {flow.flow_id}")
             
-            assets = await self.asset_manager.get_flow_assets(flow.flow_id, flow.id)
+            await self.asset_manager.get_flow_assets(flow.flow_id, flow.id)
             
             # Generate asset statistics
             asset_statistics = await self.asset_manager.get_asset_summary_statistics(flow.flow_id, flow.id)

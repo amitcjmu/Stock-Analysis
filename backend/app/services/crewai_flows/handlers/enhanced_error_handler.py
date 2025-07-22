@@ -7,7 +7,7 @@ import logging
 import traceback
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List
 
 from ..monitoring.flow_health_monitor import flow_health_monitor
 from ..persistence.checkpoint_manager import checkpoint_manager
@@ -66,7 +66,7 @@ class EnhancedErrorHandler:
         """
         try:
             # Log error
-            error_info = self._log_error(phase_name, error, state)
+            self._log_error(phase_name, error, state)
             
             # Classify error
             error_category = classify_error(error)

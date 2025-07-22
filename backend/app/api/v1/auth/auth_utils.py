@@ -7,13 +7,10 @@ from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
-from pydantic import ValidationError
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.client_account import User
-from app.schemas.auth_schemas import TokenPayload
 from app.services.auth_services.jwt_service import JWTService
 
 logger = logging.getLogger(__name__)

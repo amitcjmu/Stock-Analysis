@@ -5,7 +5,6 @@ This shows how the system learns from feedback and improves over time.
 """
 
 import asyncio
-import json
 
 from app.services.crewai_service_modular import CrewAIService
 

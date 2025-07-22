@@ -3,9 +3,8 @@ Enhanced startup module with deployment flexibility support.
 """
 
 import logging
-from typing import Optional
 
-from app.infrastructure import ServiceDetector, get_deployment_config, get_service_factory
+from app.infrastructure import get_deployment_config, get_service_factory
 from app.infrastructure.deployment.detector import service_detector
 
 logger = logging.getLogger(__name__)
@@ -29,13 +28,13 @@ async def initialize_infrastructure() -> None:
     
     # Initialize core services
     logger.info("🔐 Initializing credential manager...")
-    credential_manager = await factory.get_credential_manager()
+    await factory.get_credential_manager()
     
     logger.info("📊 Initializing telemetry service...")
-    telemetry_service = await factory.get_telemetry_service()
+    await factory.get_telemetry_service()
     
     logger.info("🔑 Initializing authentication backend...")
-    auth_backend = await factory.get_auth_backend()
+    await factory.get_auth_backend()
     
     # Log feature flags
     logger.info("📌 Feature flags:")

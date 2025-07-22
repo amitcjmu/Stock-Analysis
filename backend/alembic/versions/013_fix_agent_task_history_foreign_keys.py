@@ -5,8 +5,6 @@ Revises: 012_agent_observability_enhancement
 Create Date: 2025-01-21 04:20:00.000000
 
 """
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 from alembic import op
 

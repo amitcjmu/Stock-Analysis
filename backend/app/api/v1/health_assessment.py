@@ -4,10 +4,8 @@ Enhanced Health Check for Assessment Flow
 Extends the existing health check to include assessment flow services.
 """
 
-import asyncio
 import logging
 from datetime import datetime
-from typing import Any, Dict
 
 try:
     from fastapi import APIRouter, Response

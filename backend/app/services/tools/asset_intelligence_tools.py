@@ -60,9 +60,8 @@ if CREWAI_TOOLS_AVAILABLE:
                     return '{"patterns": [], "insights": [], "confidence": 0.0}'
                 
                 # Use field mapping intelligence to understand asset data structure
-                asset_fields = []
                 if assets:
-                    asset_fields = list(assets[0].keys())
+                    list(assets[0].keys())
                 
                 # Get field mapping context for intelligent analysis
                 field_context = {}

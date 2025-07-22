@@ -116,7 +116,6 @@ class CrewFactory:
         if crew_type == "field_mapping":
             # Validate field mapping inputs
             required_fields = ["raw_data"]
-            optional_fields = ["source_schema", "target_fields", "sample_data"]
             
             validation_result["required_fields"] = required_fields
             
@@ -145,7 +144,6 @@ class CrewFactory:
         elif crew_type == "data_cleansing":
             # Validate data cleansing inputs
             required_fields = ["raw_data"]
-            optional_fields = ["field_mappings", "quality_rules"]
             
             validation_result["required_fields"] = required_fields
             
@@ -165,7 +163,6 @@ class CrewFactory:
         elif crew_type == "asset_inventory":
             # Validate asset inventory inputs
             required_fields = ["raw_data"]
-            optional_fields = ["classification_rules", "criticality_criteria"]
             
             validation_result["required_fields"] = required_fields
             

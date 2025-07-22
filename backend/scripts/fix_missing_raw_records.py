@@ -15,8 +15,7 @@ import os
 import sys
 from datetime import datetime
 
-from sqlalchemy import and_, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func, select
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

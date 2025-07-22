@@ -4,7 +4,6 @@ Test script for the embedding service
 """
 
 import asyncio
-import os
 import sys
 
 # Add the backend directory to the path

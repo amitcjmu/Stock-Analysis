@@ -1,8 +1,6 @@
 """
 Test model consolidation changes
 """
-import pytest
-from sqlalchemy import inspect
 
 from app.models import Asset, AssetDependency, DataImport, DiscoveryFlow, ImportFieldMapping, RawImportRecord
 

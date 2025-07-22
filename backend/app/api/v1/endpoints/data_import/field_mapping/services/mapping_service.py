@@ -6,7 +6,7 @@ Enhanced to use CrewAI agents for intelligent field mapping.
 import logging
 import os
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession

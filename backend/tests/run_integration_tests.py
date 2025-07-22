@@ -4,7 +4,6 @@ Run integration tests that simulate real browser interactions
 This ensures we catch runtime errors before deployment
 """
 
-import asyncio
 import sys
 from pathlib import Path
 

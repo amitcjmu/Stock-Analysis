@@ -5,9 +5,8 @@ Validates flow state integrity and structure
 import json
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List
 
-from pydantic import BaseModel, validator
 
 logger = logging.getLogger(__name__)
 

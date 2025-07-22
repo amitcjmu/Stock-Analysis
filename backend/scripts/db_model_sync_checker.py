@@ -18,19 +18,15 @@ import asyncio
 import json
 import sys
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set
 
 # Database imports
-import asyncpg
-from sqlalchemy import MetaData, create_engine, inspect, text
-from sqlalchemy.dialects import postgresql
+from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.schema import CreateTable
 
 # App imports
 sys.path.append('/app')
-from app.core.config import settings
-from app.core.database import AsyncSessionLocal, Base, get_database_url
+from app.core.database import Base, get_database_url
 
 # Import all models to ensure they're registered
 from app.models import *

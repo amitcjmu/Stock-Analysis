@@ -9,10 +9,7 @@ backward compatibility for all existing functionality.
 """
 
 import logging
-from datetime import datetime
-from typing import Any, Dict, List, Optional
 
-from app.services.agent_learning.models import LearningContext, LearningPattern, PerformanceLearningPattern
 
 # Import all learning modules
 from .learning import (

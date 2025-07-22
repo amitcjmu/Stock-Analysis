@@ -3,8 +3,6 @@
 Test CrewAI with LiteLLM configuration for DeepInfra.
 """
 
-import asyncio
-import gc
 import os
 import sys
 import time
@@ -22,7 +20,6 @@ def test_crewai_with_litellm():
     
     try:
         # Import LiteLLM and CrewAI
-        import litellm
         from crewai import LLM, Agent, Crew, Process, Task
         
         # Configure LiteLLM for DeepInfra

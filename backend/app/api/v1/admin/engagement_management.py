@@ -5,7 +5,7 @@ Admin endpoints for managing engagements.
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,7 +23,7 @@ from app.schemas.admin_schemas import (
     EngagementUpdate,
     PaginatedResponse,
 )
-from app.schemas.engagement import Engagement, EngagementSession
+from app.schemas.engagement import EngagementSession
 
 logger = logging.getLogger(__name__)
 

@@ -11,15 +11,12 @@ Models (USER SPECIFIED - DO NOT CHANGE):
 - google/gemma-3-4b-it: Chat conversations and multi-modal transactions
 """
 
-import asyncio
-import json
 import logging
 import os
-from functools import lru_cache, wraps
-from typing import Any, Callable, Dict, List, Optional, Union
+from functools import lru_cache
+from typing import Any, Dict
 
 import litellm
-from litellm import ModelResponse
 from litellm.caching import Cache
 
 # Configure logging
@@ -219,7 +216,6 @@ logging.info("Enabled litellm.drop_params to skip unsupported parameters")
 
 # Import the DeepInfra response fixer to handle logprobs issues
 try:
-    import app.services.deepinfra_response_fixer
     logging.info("DeepInfra response fixer loaded successfully")
 except Exception as e:
     logging.warning(f"Could not load DeepInfra response fixer: {e}")

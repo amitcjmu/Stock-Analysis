@@ -4,11 +4,8 @@ Data Import Validation API - Secure File Upload with Agent Analysis
 
 import asyncio
 import hashlib
-import json
-import mimetypes
-import os
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,12 +13,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.auth.auth_utils import get_current_user
 from app.core.database import get_db as get_async_db
 from app.models.client_account import User
-from app.schemas.data_import_schemas import (
-    DataImportValidationRequest,
-    DataImportValidationResponse,
-    SecurityAnalysisResult,
-    ValidationAgentResult,
-)
 
 router = APIRouter()
 

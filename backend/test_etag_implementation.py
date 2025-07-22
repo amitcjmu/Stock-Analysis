@@ -5,7 +5,6 @@ This script demonstrates the efficient polling behavior with ETags.
 """
 
 import asyncio
-import json
 import logging
 from datetime import datetime
 

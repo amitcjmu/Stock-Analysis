@@ -5,7 +5,7 @@ All discovery agents must inherit from this class
 
 import logging
 from abc import abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from app.core.context import get_current_context
 from app.services.agents.metadata import AgentMetadata

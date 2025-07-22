@@ -4,9 +4,7 @@ Simple flow analysis script - shows all database locations where flow data is st
 """
 
 import asyncio
-import json
 from sqlalchemy import text
-from datetime import datetime
 import os
 import sys
 
@@ -68,7 +66,7 @@ async def analyze_flow():
                         # Get sample data
                         sample_query = f"SELECT * FROM {table_name} WHERE {' OR '.join(where_clauses)} LIMIT 1"
                         sample_result = await db.execute(text(sample_query), params)
-                        sample = sample_result.fetchone()
+                        sample_result.fetchone()
                         
                         tables_found.append({
                             "table": table_name,
@@ -79,7 +77,7 @@ async def analyze_flow():
                         print(f"✅ Found in {table_name}: {count} records")
                         print(f"   Columns: {', '.join(columns[:5])}{'...' if len(columns) > 5 else ''}")
                         
-            except Exception as e:
+            except Exception:
                 pass  # Skip tables that can't be queried
         
         print(f"\n📊 Flow data found in {len(tables_found)} tables\n")

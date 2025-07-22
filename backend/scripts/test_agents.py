@@ -4,7 +4,6 @@ Test script for the new agentic Discovery Flow implementation
 """
 
 import asyncio
-import os
 import sys
 
 # Add the backend directory to the Python path

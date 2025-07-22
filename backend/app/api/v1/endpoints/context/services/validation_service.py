@@ -5,7 +5,7 @@ Business logic for context validation.
 """
 
 import logging
-from typing import List, Optional
+from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import and_, select

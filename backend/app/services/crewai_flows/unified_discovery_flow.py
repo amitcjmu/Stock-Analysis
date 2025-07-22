@@ -17,9 +17,6 @@ For backward compatibility, all exports are maintained.
 from .unified_discovery_flow.base_flow import CREWAI_FLOW_AVAILABLE, UnifiedDiscoveryFlow, create_unified_discovery_flow
 from .unified_discovery_flow.crew_coordination import CrewCoordinator
 from .unified_discovery_flow.flow_config import (
-    ASSET_TYPE_KEYWORDS,
-    PHASE_ORDER,
-    USER_APPROVAL_PHASES,
     FlowConfig,
     PhaseNames,
 )

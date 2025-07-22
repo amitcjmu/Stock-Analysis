@@ -22,14 +22,8 @@ from .business_context_analyzer import (
     BusinessContext,
     BusinessContextUtilities,
     # Enums
-    BusinessDomain,
-    # Components
     DomainConfigurationManager,
-    MigrationDriverType,
-    OrganizationSize,
     QuestionnaireOptimizer,
-    QuestionnaireTarget,
-    StakeholderRole,
 )
 
 logger = logging.getLogger(__name__)

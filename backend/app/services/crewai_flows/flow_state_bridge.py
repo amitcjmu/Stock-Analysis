@@ -4,8 +4,6 @@ PostgreSQL-only persistence for CrewAI flows.
 Single source of truth implementation replacing dual SQLite/PostgreSQL system.
 """
 
-import asyncio
-import json
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime

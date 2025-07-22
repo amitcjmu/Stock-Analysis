@@ -4,12 +4,11 @@ Implements proper data filtering based on user roles and hierarchical access con
 """
 
 import logging
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar
+from typing import Any, Generic, List, Optional, Type, TypeVar
 
 from sqlalchemy import and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import Query
 from sqlalchemy.sql import Select
 
 logger = logging.getLogger(__name__)

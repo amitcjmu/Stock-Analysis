@@ -13,9 +13,8 @@ honoring the principle: "ALL intelligence comes from CrewAI agents"
 
 import logging
 import uuid
-from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import List, Optional
 
 try:
     from crewai.tools import BaseTool

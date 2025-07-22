@@ -4,7 +4,6 @@ Test script for CMDB analysis endpoint.
 """
 
 import requests
-import json
 import time
 
 def test_cmdb_analysis():

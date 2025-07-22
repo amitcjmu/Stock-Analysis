@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, delete, func, update
+from sqlalchemy import and_, delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.discovery_flow import DiscoveryFlow

@@ -5,9 +5,8 @@ Team C1 - Task C1.3
 Core routing decision making and execution path generation.
 """
 
-import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from app.core.logging import get_logger
 

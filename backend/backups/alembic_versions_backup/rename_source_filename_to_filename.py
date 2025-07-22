@@ -6,7 +6,6 @@ Create Date: 2025-06-30 23:45:00.000000
 
 This migration renames source_filename to filename to match the model definition.
 """
-import sqlalchemy as sa
 from sqlalchemy import text
 
 from alembic import op

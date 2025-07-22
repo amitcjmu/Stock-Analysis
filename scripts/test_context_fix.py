@@ -8,8 +8,6 @@ Specifically tests that /api/v1/clients/{id}/engagements endpoints work without 
 
 import asyncio
 import aiohttp
-import json
-from datetime import datetime
 
 # Test Marathon Petroleum context (the failing case from logs)
 MARATHON_CONTEXT = {

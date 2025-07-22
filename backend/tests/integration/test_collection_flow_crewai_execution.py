@@ -5,7 +5,7 @@ This test triggers real CrewAI agent calls to verify the integration
 
 import asyncio
 import logging
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
 

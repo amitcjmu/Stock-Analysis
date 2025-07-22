@@ -6,7 +6,6 @@ This module contains helper functions used across the collection flow.
 
 import logging
 import uuid
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from app.models.collection_flow import AdaptiveQuestionnaire, AutomationTier, CollectionPhase

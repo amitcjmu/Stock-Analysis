@@ -5,13 +5,11 @@ Team C1 - Task C1.3
 Quality-based routing optimization and adaptive insights.
 """
 
-import logging
 from typing import Any, Dict, List, Optional
 
 from app.core.logging import get_logger
 
-from .enums import AutomationTier, RoutingStrategy
-from .models import TierAnalysis
+from .enums import AutomationTier
 
 logger = get_logger(__name__)
 

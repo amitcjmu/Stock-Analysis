@@ -6,13 +6,12 @@ Handles AI chat interactions with context awareness.
 import logging
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, WebSocket
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.discovery.persistence import get_processed_assets
 from app.core.context import get_user_id
 from app.core.database import get_db
-from app.models.client_account import User
 from app.services.crewai_flow_service import CrewAIFlowService
 from app.services.multi_model_service import multi_model_service
 
@@ -47,14 +46,6 @@ async def chat_test(
         context = _build_asset_context(all_assets)
         
         # Enhanced system prompt with real asset context
-        system_prompt = f"""You are an AI assistant for a cloud migration platform. You have access to the current asset inventory data.
-
-Current Asset Inventory Status:
-{context}
-
-Please provide helpful, specific answers about migration planning, asset analysis, and cloud strategy based on the actual data available. If asked about the current state, reference the specific numbers above.
-
-User Question: {user_message}"""
 
         try:
             # Use multi-model service for proper chat with Gemma-3-4b

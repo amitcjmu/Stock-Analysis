@@ -3,7 +3,6 @@
 Test script to upload a file and monitor backend logs for errors
 """
 import requests
-import json
 import time
 import subprocess
 import threading

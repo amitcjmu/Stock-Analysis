@@ -227,7 +227,7 @@ class FieldMappingExecutor(BasePhaseExecutor):
                 try:
                     import uuid as uuid_pkg
 
-                    from sqlalchemy import select, update
+                    from sqlalchemy import select
 
                     from app.core.database import AsyncSessionLocal
                     from app.models.data_import import ImportFieldMapping

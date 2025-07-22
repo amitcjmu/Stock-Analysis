@@ -7,12 +7,10 @@ Tests the database migration and model functionality.
 import asyncio
 import os
 import sys
-from pathlib import Path
 
 # Add the backend directory to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset, AssetStatus, AssetType, SixRStrategy

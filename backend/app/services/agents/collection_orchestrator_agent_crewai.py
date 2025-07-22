@@ -3,7 +3,7 @@ Collection Orchestrator Agent - Coordinates automated collection strategy
 Manages the entire automated collection phase based on tier determined in platform detection
 """
 
-from typing import Any, Dict, List
+from typing import Any, List
 
 from app.services.agents.base_agent import BaseCrewAIAgent
 from app.services.agents.metadata import AgentMetadata

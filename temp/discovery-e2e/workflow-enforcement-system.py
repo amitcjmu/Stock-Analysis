@@ -11,9 +11,8 @@ import logging
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple, Any
 from enum import Enum
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 import os
-import re
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -134,7 +133,7 @@ class WorkflowEnforcementSystem:
         try:
             if os.path.exists(self.config_path):
                 with open(self.config_path, 'r') as f:
-                    config = json.load(f)
+                    json.load(f)
                     logger.info(f"✅ Loaded workflow configuration from {self.config_path}")
             else:
                 logger.info("📝 Creating default workflow configuration")

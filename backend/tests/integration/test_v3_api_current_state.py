@@ -5,12 +5,10 @@ These tests work with the existing database schema before consolidation
 
 import asyncio
 import uuid
-from datetime import datetime
 
 import pytest
 import pytest_asyncio
 from sqlalchemy import select, text
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset

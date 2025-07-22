@@ -3,7 +3,7 @@ Agent Factory for dynamic agent creation
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
 from app.services.agents.registry import agent_registry
 from app.services.llm_config import get_crewai_llm

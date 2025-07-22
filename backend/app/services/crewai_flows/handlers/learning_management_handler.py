@@ -5,10 +5,8 @@ Handles all learning, memory management, analytics, and knowledge validation fun
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
-from app.services.crewai_flows.memory import LearningScope, MemoryIsolationLevel, TenantMemoryManager
-from app.services.crewai_flows.monitoring import CollaborationMonitor, CollaborationStatus, CollaborationType
 
 logger = logging.getLogger(__name__)
 

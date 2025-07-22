@@ -7,7 +7,7 @@ Validators for data validation, field mapping validation, and asset validation.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from ..validator_registry import ValidationResult
 
@@ -473,7 +473,7 @@ async def cleansing_validation(
         
         # Check cleansing metrics
         if cleansing_report:
-            duplicates_removed = cleansing_report.get("duplicates_removed", 0)
+            cleansing_report.get("duplicates_removed", 0)
             invalid_records = cleansing_report.get("invalid_records", 0)
             data_quality_score = cleansing_report.get("data_quality_score", 0)
             

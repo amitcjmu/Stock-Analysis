@@ -7,7 +7,7 @@ Enhanced for Agent Observability Enhancement Phase 2.
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 

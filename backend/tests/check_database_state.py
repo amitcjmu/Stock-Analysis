@@ -9,7 +9,6 @@ import sys
 sys.path.append('/app')
 
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset

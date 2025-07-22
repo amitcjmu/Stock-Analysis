@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.auth.auth_utils import get_current_user
 from app.core.context import get_request_context
 from app.core.database import get_db
-from app.core.rbac_utils import COLLECTION_CREATE_ROLES, COLLECTION_DELETE_ROLES, COLLECTION_VIEW_ROLES, require_role
+from app.core.rbac_utils import COLLECTION_CREATE_ROLES, COLLECTION_DELETE_ROLES, require_role
 from app.models import User
 from app.models.collection_flow import (
     AdaptiveQuestionnaire,

@@ -14,9 +14,7 @@ import asyncio
 import time
 import psutil
 import gc
-from typing import Dict, List, Any
-from unittest.mock import AsyncMock, Mock, patch
-from concurrent.futures import ThreadPoolExecutor
+from typing import Dict, Any
 
 # Performance testing fixtures
 @pytest.fixture
@@ -293,7 +291,7 @@ class TestDiscoveryFlowPerformance:
         result = await crew.execute_async(large_data)
         
         await monitor_task
-        metrics = performance_monitor.stop_monitoring()
+        performance_monitor.stop_monitoring()
         
         # Assert
         avg_cpu = sum(cpu_samples) / len(cpu_samples)
@@ -327,7 +325,7 @@ class TestDiscoveryFlowPerformance:
             start_time = time.time()
             start_memory = psutil.Process().memory_info().rss / 1024 / 1024
             
-            result = await crew.execute_async(data)
+            await crew.execute_async(data)
             
             execution_time = time.time() - start_time
             end_memory = psutil.Process().memory_info().rss / 1024 / 1024

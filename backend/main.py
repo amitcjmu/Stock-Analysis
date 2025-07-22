@@ -19,17 +19,13 @@ configure_rich_for_backend()
 
 import logging
 import os
-import sys
-import traceback
 import uuid
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
 from app.core.context import RequestContext, get_current_context_dependency
 
@@ -245,7 +241,7 @@ except Exception as e:
         return settings.DATABASE_URL
 
 try:
-    from version import API_DESCRIPTION, API_TITLE, BUILD_INFO, __version__
+    from version import API_DESCRIPTION, API_TITLE, __version__
     # Update app metadata
     app.title = API_TITLE
     app.description = API_DESCRIPTION
@@ -257,7 +253,6 @@ except Exception as e:
 # Try to import database components
 try:
     from app.core.database import SQLALCHEMY_AVAILABLE, Base, engine
-    from app.models.client_account import ClientAccount
     from app.models.data_import import *
     DATABASE_ENABLED = SQLALCHEMY_AVAILABLE
     logger.info("✅ Database components loaded")

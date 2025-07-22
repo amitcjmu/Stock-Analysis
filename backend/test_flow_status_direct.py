@@ -4,7 +4,6 @@ Direct test of flow status to bypass all caching and complexity
 """
 
 import asyncio
-import json
 
 from app.services.agents.intelligent_flow_agent import IntelligentFlowAgent
 

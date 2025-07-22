@@ -12,9 +12,8 @@ The script creates master flow records for all existing orphaned flows.
 
 import asyncio
 import logging
-import uuid
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,7 +21,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import AsyncSessionLocal
 from app.models.discovery_flow import DiscoveryFlow
 from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
-from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 
 logger = logging.getLogger(__name__)
 

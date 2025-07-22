@@ -2,7 +2,6 @@
 """Fix common indentation patterns that are causing syntax errors."""
 
 import os
-import re
 
 
 def fix_file(filepath):

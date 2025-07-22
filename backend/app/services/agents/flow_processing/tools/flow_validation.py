@@ -6,7 +6,6 @@ incomplete phase that needs attention.
 """
 
 import logging
-from typing import Any, Dict
 
 from ..crewai_imports import BaseTool
 
@@ -43,9 +42,7 @@ class FlowValidationTool(BaseTool):
             # Call the actual flow validation endpoint
             import asyncio
 
-            from app.api.v1.endpoints.flow_processing import validate_flow_phases
             from app.core.context import RequestContext
-            from app.core.database import AsyncSessionLocal
             
             # Create context for service calls
             context = RequestContext(

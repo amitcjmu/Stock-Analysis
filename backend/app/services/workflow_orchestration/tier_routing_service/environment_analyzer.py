@@ -5,7 +5,6 @@ Team C1 - Task C1.3
 Environment complexity analysis and platform coverage assessment.
 """
 
-import logging
 from typing import Any, Dict
 
 from app.core.logging import get_logger

@@ -16,7 +16,6 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
-import asyncpg
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 

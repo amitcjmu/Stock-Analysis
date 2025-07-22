@@ -5,8 +5,6 @@ Tests flow creation, execution, and event handling
 
 import asyncio
 import logging
-from datetime import datetime
-from typing import Any, Dict
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -46,7 +44,7 @@ async def test_flow_creation():
             logger.info("✅ Database session created")
             
             # Create flow instance
-            flow = UnifiedDiscoveryFlow(db, context)
+            UnifiedDiscoveryFlow(db, context)
             logger.info("✅ Flow instance created")
             
             # Test state initialization

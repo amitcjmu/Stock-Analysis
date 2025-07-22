@@ -22,13 +22,10 @@ from typing import Any, Dict, List, Optional
 
 # CrewAI imports
 from crewai import Agent, Crew, Process, Task
-from crewai.tools import tool
 
 # Internal imports
 from app.services.agentic_intelligence.agent_reasoning_patterns import (
     AgentReasoningEngine,
-    AssetReasoningPatterns,
-    ReasoningDimension,
 )
 from app.services.agentic_memory import ThreeTierMemoryManager
 from app.services.agentic_memory.agent_tools_functional import create_functional_agent_tools

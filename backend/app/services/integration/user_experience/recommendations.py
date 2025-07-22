@@ -5,7 +5,7 @@ Generates UX improvement recommendations based on analysis.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import List
 
 from .base import OptimizationContext, UserJourneyAnalytics, UXOptimizationArea, UXRecommendation
 
@@ -208,7 +208,6 @@ class UXRecommendationEngine:
         recommendations = []
         
         # Check for slow processing times
-        performance_metrics = context.performance_metrics
         historical_data = context.historical_data
         
         current_collection_time = journey.time_per_phase.get("collection", 0)

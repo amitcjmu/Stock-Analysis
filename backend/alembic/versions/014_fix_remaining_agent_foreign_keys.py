@@ -5,8 +5,6 @@ Revises: 013_fix_agent_task_history_foreign_keys
 Create Date: 2025-01-21 04:26:00.000000
 
 """
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 from alembic import op
 

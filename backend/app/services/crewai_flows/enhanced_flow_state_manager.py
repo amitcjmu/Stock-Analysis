@@ -13,14 +13,13 @@ This enhanced version adds:
 
 import base64
 import gzip
-import hashlib
 import json
 import logging
 import os
 import pickle
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Union
 
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes

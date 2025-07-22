@@ -4,15 +4,13 @@ Analysis handler for discovery agent.
 This module contains the analysis-related endpoints for the discovery agent.
 """
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
-from app.models.client_account import User
 
 logger = logging.getLogger(__name__)
 

@@ -5,10 +5,8 @@ Provides confidence scoring and validation for field mappings
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
 
 from crewai.tools import BaseTool
-from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +125,7 @@ class ValidationTool(BaseTool):
             }
             
             mapped_targets = list(data.get("mappings", {}).values())
-            source_fields = list(data.get("mappings", {}).keys())
+            list(data.get("mappings", {}).keys())
             
             # Check required fields
             for field in required_fields:

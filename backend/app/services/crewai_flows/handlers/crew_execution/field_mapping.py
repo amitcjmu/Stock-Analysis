@@ -4,7 +4,6 @@ Field Mapping Crew Execution Handler
 
 import logging
 import os
-from datetime import datetime
 from typing import Any, Dict, List
 
 from .base import CrewExecutionBase

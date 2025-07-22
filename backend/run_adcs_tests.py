@@ -4,7 +4,6 @@ ADCS Test Runner
 Runs available tests for the ADCS implementation
 """
 
-import os
 import subprocess
 import sys
 

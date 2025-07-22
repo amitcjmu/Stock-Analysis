@@ -20,11 +20,8 @@ from .agent_ui_bridge_handlers import (
     StorageManager,
 )
 from .models.agent_communication import (
-    AgentInsight,
-    AgentQuestion,
     ConfidenceLevel,
     DataClassification,
-    DataItem,
     QuestionType,
 )
 
@@ -484,7 +481,7 @@ class AgentUIBridge:
             context_data = self.storage_manager.load_context()
             self.context_handler.load_context_data(context_data)
             
-            learning_data = self.storage_manager.load_learning_experiences()
+            self.storage_manager.load_learning_experiences()
             # Learning experiences are loaded into context handler
             
         except Exception as e:

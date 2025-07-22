@@ -5,7 +5,6 @@ THE SINGLE ORCHESTRATOR - Refactored with modular components
 Centralized orchestration for all CrewAI flows using composition pattern.
 """
 
-import logging
 import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple

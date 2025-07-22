@@ -8,7 +8,7 @@ import json
 import uuid
 from datetime import datetime, timezone
 
-from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID
+from constants import DEMO_CLIENT_ID
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 

@@ -22,11 +22,10 @@ from pathlib import Path
 # Add the backend directory to the path
 sys.path.append('/app')
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
-from app.models.data_import import DataImport, RawImportRecord
+from app.models.data_import import DataImport
 from app.models.client_account import ClientAccount
 
 class MultiTenantWorkflowTester:

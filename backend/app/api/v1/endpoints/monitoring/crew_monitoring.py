@@ -5,7 +5,6 @@ Provides monitoring capabilities for the legacy Phase 2 crew system including
 crew status, available crews, and flow information.
 """
 
-import logging
 from datetime import datetime
 from typing import Any, Dict
 

@@ -7,10 +7,8 @@ memory optimization strategies, and multi-tenant memory management.
 """
 
 import pytest
-import asyncio
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from typing import Dict, List, Any, Optional
-import json
+from unittest.mock import Mock
+from typing import Dict, List, Any
 import time
 import uuid
 

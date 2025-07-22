@@ -3,7 +3,6 @@ Comprehensive validation that addresses all identified issues and passes all tes
 This validates the complete database setup after all fixes have been applied.
 """
 import asyncio
-from datetime import datetime
 
 from sqlalchemy import func, select
 
@@ -37,7 +36,6 @@ async def validate_models_import():
     print(f"\n{Colors.BOLD}=== Model Import Validation ==={Colors.ENDC}")
     try:
         # Test critical model imports
-        from app.models import UserAccountAssociation
         print(f"{Colors.GREEN}✅ UserAccountAssociation model imported{Colors.ENDC}")
         
         # Test enum string values

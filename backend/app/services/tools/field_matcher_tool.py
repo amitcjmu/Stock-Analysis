@@ -4,7 +4,7 @@ Field Matcher Tool for intelligent field mapping
 
 import re
 from difflib import SequenceMatcher
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 from app.services.tools.base_tool import BaseDiscoveryTool
 from app.services.tools.registry import ToolMetadata

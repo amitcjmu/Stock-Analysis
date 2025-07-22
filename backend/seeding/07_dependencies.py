@@ -9,15 +9,13 @@ Creating realistic dependencies between assets including:
 """
 
 import asyncio
-import json
-from datetime import datetime, timezone
 
-from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID
+from constants import DEMO_CLIENT_ID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
-from app.models.asset import Asset, AssetDependency, AssetType
+from app.models.asset import Asset, AssetDependency
 
 # Dependency patterns for realistic relationships
 DEPENDENCY_PATTERNS = {

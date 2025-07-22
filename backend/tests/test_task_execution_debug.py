@@ -1,7 +1,6 @@
 import asyncio
 import signal
 import sys
-import time
 
 from app.services.crewai_service_modular import crewai_service
 

@@ -6,9 +6,9 @@ Provides API endpoints for performance monitoring and optimization metrics.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException
 
 try:
     from app.services.monitoring.performance_monitor import get_performance_dashboard
@@ -116,7 +116,7 @@ async def get_performance_health() -> Dict[str, Any]:
         
         if PERFORMANCE_SERVICES_AVAILABLE:
             try:
-                optimizer_metrics = get_performance_metrics()
+                get_performance_metrics()
                 monitor_dashboard = get_performance_dashboard()
                 
                 health_status["services"]["response_optimizer"] = "active"
@@ -184,7 +184,7 @@ async def get_performance_insights() -> Dict[str, Any]:
         
         # Get current metrics
         optimizer_metrics = get_performance_metrics()
-        monitor_dashboard = get_performance_dashboard()
+        get_performance_dashboard()
         
         insights = {
             "timestamp": datetime.utcnow().isoformat(),

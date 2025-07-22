@@ -7,10 +7,9 @@ Part of the Agent Observability Enhancement Phase 2
 import logging
 from datetime import date, datetime, timedelta
 from decimal import Decimal
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, desc, func, or_
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db

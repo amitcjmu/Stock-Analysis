@@ -8,7 +8,7 @@ import re
 import socket
 import time
 from datetime import datetime
-from ipaddress import AddressValueError, IPv4Address, IPv4Network
+from ipaddress import IPv4Network
 from typing import Any, Dict, List, Optional
 
 from .models import DiscoveredHost, OnPremisesCredentials

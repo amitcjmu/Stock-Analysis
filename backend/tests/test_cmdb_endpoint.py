@@ -3,7 +3,6 @@
 Test script for CMDB analysis endpoint.
 """
 
-import json
 import time
 
 import requests

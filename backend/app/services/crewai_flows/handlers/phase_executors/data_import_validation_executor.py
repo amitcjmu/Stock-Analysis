@@ -7,7 +7,7 @@ Performs PII detection, malicious payload scanning, and data type validation.
 import logging
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from .base_phase_executor import BasePhaseExecutor
 

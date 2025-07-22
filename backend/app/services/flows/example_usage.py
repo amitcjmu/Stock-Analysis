@@ -6,8 +6,6 @@ This demonstrates how to use the new flow framework with proper @start/@listen d
 
 import asyncio
 import logging
-from datetime import datetime
-from typing import Any, Dict
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -19,7 +17,7 @@ async def example_flow_creation():
     try:
         from app.core.context import RequestContext
         from app.core.database import AsyncSessionLocal
-        from app.services.flows import UnifiedDiscoveryFlow, flow_manager
+        from app.services.flows import flow_manager
         
         logger.info("📝 Example: Creating a discovery flow")
         

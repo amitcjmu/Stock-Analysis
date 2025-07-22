@@ -7,9 +7,9 @@ Implements Phase 2 of the Discovery Flow redesign.
 import logging
 from dataclasses import asdict
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -124,7 +124,7 @@ async def get_agent_questions(
         # If no questions, create sample questions for testing
         if not questions and page == "dependencies":
             # Add sample dependency mapping question
-            question_id = agent_ui_bridge.add_agent_question(
+            agent_ui_bridge.add_agent_question(
                 agent_id="dependency_analysis_agent",
                 agent_name="Dependency Analysis Agent",
                 question_type="dependency_validation",
@@ -208,7 +208,7 @@ async def get_agent_insights(
         # If no insights, create sample insights for testing
         if not insights and page == "dependencies":
             # Add sample dependency insight
-            insight_id = agent_ui_bridge.add_agent_insight(
+            agent_ui_bridge.add_agent_insight(
                 agent_id="dependency_analysis_agent",
                 agent_name="Dependency Analysis Agent",
                 insight_type="dependency_analysis",

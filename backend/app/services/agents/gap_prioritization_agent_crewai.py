@@ -5,9 +5,8 @@ Prioritizes missing critical attributes by business impact and migration strateg
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
-from crewai import Agent
 
 from app.services.agents.base_agent import BaseCrewAIAgent
 from app.services.agents.metadata import AgentMetadata
@@ -222,7 +221,7 @@ class GapPrioritizationAgent(BaseCrewAIAgent):
     
     def _recommend_collection_method(self, gap: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
         """Recommend collection method for a gap"""
-        attribute = gap.get("attribute", "unknown")
+        gap.get("attribute", "unknown")
         category = gap.get("category", "unknown")
         automation_tier = context.get("automation_tier", "tier_2")
         
@@ -339,7 +338,7 @@ class GapPrioritizationAgent(BaseCrewAIAgent):
         critical_gaps = [g for g in prioritized_gaps if g["priority_level"] == 1]
         high_gaps = [g for g in prioritized_gaps if g["priority_level"] == 2]
         
-        total_effort = sum(g["estimated_effort"]["average"] for g in prioritized_gaps)
+        sum(g["estimated_effort"]["average"] for g in prioritized_gaps)
         critical_effort = sum(g["estimated_effort"]["average"] for g in critical_gaps)
         
         strategy = {

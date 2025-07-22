@@ -4,7 +4,6 @@ Test direct DeepInfra API call with OpenAI format and reasoning_effort=none.
 """
 
 import requests
-import json
 import time
 import sys
 import os

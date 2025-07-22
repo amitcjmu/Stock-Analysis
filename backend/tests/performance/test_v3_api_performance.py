@@ -4,11 +4,9 @@ Tests response times, throughput, and resource usage
 """
 
 import asyncio
-import json
 import statistics
 import time
 import uuid
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, List
 
 import httpx
@@ -18,7 +16,6 @@ import pytest_asyncio
 from sqlalchemy import text
 
 from app.core.database import AsyncSessionLocal
-from app.models.client_account import ClientAccount, Engagement, User
 from app.services.v3.asset_service import V3AssetService
 
 # Configure pytest to use asyncio

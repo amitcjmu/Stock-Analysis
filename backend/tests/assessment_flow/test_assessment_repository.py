@@ -6,8 +6,6 @@ and multi-tenant isolation.
 """
 
 from datetime import datetime, timezone
-from typing import List
-from uuid import uuid4
 
 import pytest
 
@@ -38,13 +36,6 @@ except ImportError:
     
     AsyncSession = object
 
-from tests.fixtures.assessment_fixtures import (
-    assert_multi_tenant_isolation,
-    async_db_session,
-    sample_applications,
-    sample_architecture_standards,
-    sample_assessment_flow_state,
-)
 
 
 class TestAssessmentFlowRepository:
@@ -528,7 +519,7 @@ class TestRepositoryQueries:
             created_by="user1@example.com"
         )
         
-        flow_id_2 = await assessment_repository.create_assessment_flow(
+        await assessment_repository.create_assessment_flow(
             engagement_id=1,
             selected_application_ids=["app-3"],
             created_by="user2@example.com"

@@ -9,7 +9,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.context import RequestContext, extract_context_from_request, get_current_context
+from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 
 from ..models.attribute_schemas import (

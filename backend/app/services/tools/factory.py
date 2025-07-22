@@ -3,7 +3,7 @@ Tool Factory for dynamic tool creation and management
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 from app.services.tools.categories import get_tools_for_phase
 from app.services.tools.registry import tool_registry

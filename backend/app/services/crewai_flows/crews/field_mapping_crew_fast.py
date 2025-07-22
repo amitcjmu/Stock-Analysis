@@ -11,8 +11,7 @@ PERFORMANCE OPTIMIZATIONS:
 """
 
 import logging
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 # CrewAI imports with graceful fallback
 try:

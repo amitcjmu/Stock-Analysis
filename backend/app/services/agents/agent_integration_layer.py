@@ -3,14 +3,13 @@ Agent Integration Layer - Seamless integration between agents and Discovery Flow
 Provides compatibility layer for existing systems while enabling agent-first architecture
 """
 
-import asyncio
 import logging
 import time
 import uuid
 from datetime import datetime
 
 # Temporary type definitions to replace archived imports
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 

@@ -30,8 +30,7 @@ async def run_migration():
     try:
         # Import after path setup
         from app.core.database import AsyncSessionLocal, Base, engine
-        from app.models.client_account import ClientAccount, Engagement, User
-        from app.models.feedback import Feedback, FeedbackSummary
+        from app.models.feedback import Feedback
         print("✅ Database modules imported successfully")
         
         # Test connection
@@ -52,7 +51,6 @@ async def run_migration():
         # Test feedback table specifically
         print("\n🧪 Testing feedback table...")
         async with AsyncSessionLocal() as session:
-            from sqlalchemy import func, select
             
             # Check if feedback table exists and is accessible
             result = await session.execute(text("SELECT COUNT(*) FROM feedback"))

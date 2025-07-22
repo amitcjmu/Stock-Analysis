@@ -11,7 +11,6 @@ def fix_uuid_in_file(filepath):
         with open(filepath, 'r', encoding='utf-8') as f:
             content = f.read()
         
-        modified = False
         
         # Skip if file already has proper UUID import at module level
         if re.search(r'^from uuid import UUID$', content, re.MULTILINE):

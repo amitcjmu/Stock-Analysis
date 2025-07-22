@@ -2,8 +2,6 @@
 """Fix indentation in all migration files."""
 
 import glob
-import os
-import re
 
 
 def fix_migration_file(filepath):

@@ -244,7 +244,7 @@ class MetricsCollector:
     async def test_cloudwatch_connectivity(self) -> bool:
         """Test CloudWatch service connectivity"""
         try:
-            response = self._cloudwatch_client.list_metrics(MaxRecords=1)
+            self._cloudwatch_client.list_metrics(MaxRecords=1)
             return True
         except Exception:
             return False

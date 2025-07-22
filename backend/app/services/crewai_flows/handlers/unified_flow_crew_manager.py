@@ -5,7 +5,7 @@ Extracted from unified_discovery_flow.py for better modularity.
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 

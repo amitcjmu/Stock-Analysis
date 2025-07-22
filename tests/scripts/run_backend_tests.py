@@ -5,7 +5,6 @@ Runs comprehensive backend tests for the CrewAI Flow migration validation.
 """
 
 import sys
-import os
 import subprocess
 import argparse
 import time

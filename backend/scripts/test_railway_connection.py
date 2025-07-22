@@ -8,7 +8,6 @@ import asyncio
 import logging
 import os
 import sys
-from typing import Any, Dict, List
 
 # Add backend to path
 sys.path.append('/app')

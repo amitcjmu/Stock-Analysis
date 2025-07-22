@@ -5,7 +5,6 @@ Test script for Gap Analysis agents and tools
 
 import asyncio
 import logging
-from typing import Any, Dict, List
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

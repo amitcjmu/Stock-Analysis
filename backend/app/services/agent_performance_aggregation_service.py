@@ -11,14 +11,12 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from sqlalchemy import and_, desc, func, or_
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.models.agent_performance_daily import AgentPerformanceDaily
 from app.models.agent_task_history import AgentTaskHistory
-from app.models.client_account import ClientAccount, Engagement
 
 logger = logging.getLogger(__name__)
 

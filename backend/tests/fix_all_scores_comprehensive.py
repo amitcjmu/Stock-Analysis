@@ -54,7 +54,7 @@ async def comprehensive_score_fix():
             # Check strategy_scores
             if rec.strategy_scores:
                 print("  📋 Checking strategy_scores...")
-                original_data = json.loads(json.dumps(rec.strategy_scores))
+                json.loads(json.dumps(rec.strategy_scores))
                 changes = fix_scores_recursively(rec.strategy_scores, "strategy_scores")
                 
                 if changes:

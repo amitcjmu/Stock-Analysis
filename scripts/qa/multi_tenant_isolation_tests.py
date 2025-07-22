@@ -20,7 +20,7 @@ from dataclasses import dataclass
 # Add app path
 sys.path.append('/app')
 
-from sqlalchemy import text, select, func, and_, or_, distinct
+from sqlalchemy import select, func, and_, distinct
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import AsyncSessionLocal
 from app.models import *

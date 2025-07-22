@@ -3,17 +3,15 @@ Credential Lifecycle Management Service
 Handles automatic rotation, expiration, and lifecycle policies
 """
 
-import asyncio
 import logging
 import uuid
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, or_, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import ValidationException
 from app.models.platform_credentials import (
     CredentialRotationHistory,
     CredentialStatus,
@@ -358,7 +356,7 @@ class CredentialLifecycleService:
         credentials = result.scalars().all()
         
         for credential in credentials:
-            policy = self.get_policy(credential.credential_type)
+            self.get_policy(credential.credential_type)
             recommendation = None
             priority = "LOW"
             

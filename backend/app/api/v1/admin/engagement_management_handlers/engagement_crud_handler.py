@@ -529,7 +529,7 @@ class EngagementCRUDHandler:
             # Extract budget information from settings
             settings = engagement.settings or {}
             estimated_budget = settings.get('estimated_budget', 0.0)
-            budget_currency = settings.get('budget_currency', 'USD')
+            settings.get('budget_currency', 'USD')
 
             return EngagementResponse(
                 id=str(engagement.id),

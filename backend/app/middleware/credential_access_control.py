@@ -5,14 +5,12 @@ Enforces role-based and permission-based access control for credentials
 
 import logging
 import uuid
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 from fastapi import HTTPException, Request, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
-from app.models.platform_credentials import CredentialPermission
 from app.services.credential_service import CredentialService
 
 logger = logging.getLogger(__name__)
@@ -294,7 +292,7 @@ class CredentialRateLimiter:
         Returns:
             True if within rate limit
         """
-        limit = self.RATE_LIMITS.get(operation, 60)
+        self.RATE_LIMITS.get(operation, 60)
         
         # TODO: Implement actual rate limiting logic
         # This is a placeholder implementation
@@ -337,7 +335,7 @@ async def credential_access_middleware(request: Request, call_next):
         return await call_next(request)
     
     # Extract operation from path
-    path_parts = request.url.path.split("/")
+    request.url.path.split("/")
     operation = "read"  # Default
     
     if request.method == "POST":

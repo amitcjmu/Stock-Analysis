@@ -5,7 +5,6 @@ This script tests memory functionality in isolation to diagnose the APIStatusErr
 """
 
 import asyncio
-import os
 import sys
 import traceback
 from datetime import datetime
@@ -69,17 +68,16 @@ async def test_memory_components():
     print("\n4️⃣ Testing Default LongTermMemory...")
     try:
         if storage_available:
-            memory = LongTermMemory(storage=sqlite_storage)
+            LongTermMemory(storage=sqlite_storage)
             print("✅ LongTermMemory with SQLite storage successful")
         else:
             # Try with default configuration
-            memory = LongTermMemory()
+            LongTermMemory()
             print("✅ LongTermMemory with default configuration successful")
     except Exception as e:
         print(f"❌ LongTermMemory initialization failed: {e}")
         traceback.print_exc()
         print("ℹ️  Trying without explicit memory configuration...")
-        memory = None
     
     # Test 5: Simple agent with memory (the critical test)
     print("\n5️⃣ Testing Agent with Memory...")

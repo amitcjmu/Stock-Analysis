@@ -24,12 +24,11 @@ import aiohttp
 sys.path.append('/app')
 
 from sqlalchemy import and_, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
 from app.models.client_account import ClientAccount
-from app.models.data_import import DataImport, RawImportRecord
+from app.models.data_import import DataImport
 
 
 class MultiTenantWorkflowTester:

@@ -5,13 +5,12 @@ Manages CrewAI flow state with PostgreSQL as single source of truth
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
-from app.core.flow_state_validator import FlowStateValidator, ValidationError
-from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
+from app.core.flow_state_validator import FlowStateValidator
 
 from .persistence.postgres_store import ConcurrentModificationError, PostgresFlowStateStore, StateValidationError
 from .persistence.state_recovery import FlowStateRecovery, StateRecoveryError

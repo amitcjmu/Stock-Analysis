@@ -7,7 +7,7 @@ import logging
 import uuid
 from dataclasses import asdict
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from ..models.agent_communication import AgentInsight, ConfidenceLevel
 

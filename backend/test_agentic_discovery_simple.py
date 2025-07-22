@@ -159,10 +159,10 @@ async def test_agent_learning():
     print("\n🧪 Testing agent learning from feedback...")
     
     # Initial decision
-    initial_client = create_mock_openai_client(decision="review", confidence=0.72)
+    create_mock_openai_client(decision="review", confidence=0.72)
     
     # Improved decision after feedback
-    improved_client = create_mock_openai_client(decision="approve", confidence=0.94)
+    create_mock_openai_client(decision="approve", confidence=0.94)
     
     print("  Initial agent decision: review (0.72 confidence)")
     print("  User provides feedback confirming mappings...")

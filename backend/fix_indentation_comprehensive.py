@@ -24,7 +24,6 @@ def fix_indentation_in_file(filepath):
         
         # Track the expected indentation level
         expected_indent = 0
-        inside_multiline = False
         
         for i, line in enumerate(lines):
             stripped = line.lstrip()

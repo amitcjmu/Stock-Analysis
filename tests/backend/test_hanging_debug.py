@@ -9,8 +9,6 @@ import time
 import signal
 import sys
 import os
-import threading
-from datetime import datetime
 
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
@@ -25,7 +23,7 @@ except ImportError as e:
     CREWAI_AVAILABLE = False
 
 from app.services.crewai_flow_service import crewai_service
-from app.services.agent_monitor import agent_monitor, TaskStatus
+from app.services.agent_monitor import agent_monitor
 
 class HangingDebugger:
     def __init__(self):

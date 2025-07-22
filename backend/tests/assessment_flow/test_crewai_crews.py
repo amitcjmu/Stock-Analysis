@@ -5,9 +5,7 @@ This module tests the CrewAI crew implementations for assessment flow
 with mocked agents for fast, isolated testing.
 """
 
-from datetime import datetime
-from typing import Any, Dict
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -41,14 +39,6 @@ except ImportError:
             self.flow_context = flow_context
             self.crew = MagicMock()
 
-from tests.fixtures.assessment_fixtures import (
-    mock_flow_context,
-    sample_application_metadata,
-    sample_architecture_standards,
-    sample_component_analysis_result,
-    sample_engagement_context,
-    sample_sixr_strategy_result,
-)
 
 
 class TestArchitectureStandardsCrew:

@@ -203,7 +203,7 @@ async def main():
         # Verify fix
         print("\n🔍 Verifying fix...")
         try:
-            test_query = await conn.fetch("""
+            await conn.fetch("""
                 SELECT id, name, headquarters_location, settings 
                 FROM client_accounts 
                 LIMIT 1
@@ -213,7 +213,7 @@ async def main():
             print(f"  ❌ Client accounts still failing: {e}")
         
         try:
-            test_query = await conn.fetch("""
+            await conn.fetch("""
                 SELECT id, name, migration_scope 
                 FROM engagements 
                 LIMIT 1

@@ -4,8 +4,6 @@ Provides standardized communication between agents and the UI layer.
 Implements Phase 2 of the Discovery Flow redesign.
 """
 
-import asyncio
-import json
 import logging
 import uuid
 from collections import defaultdict, deque

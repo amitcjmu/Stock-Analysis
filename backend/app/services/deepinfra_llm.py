@@ -5,8 +5,7 @@ Implements the DeepInfra OpenAI-compatible API format for Llama 4 Maverick model
 
 import json
 import logging
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import requests
 

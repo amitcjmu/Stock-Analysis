@@ -3,12 +3,10 @@ Concrete implementations of the AuthenticationBackend interface.
 """
 
 import hashlib
-import json
 import logging
 import os
 import secrets
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .interface import AuthenticationBackend

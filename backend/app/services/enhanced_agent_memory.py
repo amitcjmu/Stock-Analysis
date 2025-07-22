@@ -8,7 +8,6 @@ Implements optimized memory management for CrewAI agents with:
 - Integration with existing agent learning system
 """
 
-import asyncio
 import hashlib
 import json
 import logging
@@ -16,7 +15,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -31,7 +30,6 @@ except ImportError:
 
 from app.services.agent_learning_system import LearningContext, agent_learning_system
 from app.services.embedding_service import EmbeddingService
-from app.services.performance.response_optimizer import response_optimizer
 
 logger = logging.getLogger(__name__)
 

@@ -4,7 +4,6 @@ Migration script to transition from simple rate limiting to adaptive rate limiti
 This script helps configure and test the new adaptive rate limiting system.
 """
 
-import asyncio
 import logging
 import sys
 from pathlib import Path
@@ -12,7 +11,6 @@ from pathlib import Path
 # Add backend to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.core.config import settings
 from app.middleware.adaptive_rate_limiter import AdaptiveRateLimiter
 
 # Configure logging

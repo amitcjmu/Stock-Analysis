@@ -103,7 +103,7 @@ class ConfigurationCollector:
     async def test_config_connectivity(self) -> bool:
         """Test AWS Config service connectivity"""
         try:
-            response = self._config_client.describe_configuration_recorders()
+            self._config_client.describe_configuration_recorders()
             return True
         except Exception:
             return False

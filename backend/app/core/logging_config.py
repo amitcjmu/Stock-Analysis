@@ -4,7 +4,6 @@ Suppresses verbose LLM library logs while keeping application logs visible.
 """
 
 import logging
-import os
 
 
 def configure_logging():

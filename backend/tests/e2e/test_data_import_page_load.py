@@ -3,9 +3,7 @@ End-to-end test for Data Import page load
 Simulates the exact API calls made when loading the Data Import page
 """
 
-import json
 import uuid
-from datetime import datetime
 
 import pytest
 from httpx import AsyncClient

@@ -4,7 +4,7 @@ Creating migration waves and updating 6R strategies using raw SQL.
 """
 
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, USER_IDS
 from sqlalchemy import text

@@ -2,13 +2,12 @@
 Tests for Phase 2 Tool System Implementation
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
 
-from app.services.tools.categories import TOOL_CATEGORIES, get_tools_for_phase
+from app.services.tools.categories import get_tools_for_phase
 from app.services.tools.factory import ToolFactory
-from app.services.tools.registry import ToolMetadata, ToolRegistry
+from app.services.tools.registry import ToolRegistry
 
 
 class TestPhase2ToolSystem:

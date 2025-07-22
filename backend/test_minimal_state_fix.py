@@ -4,7 +4,6 @@ Minimal test to verify the core CrewAI Flow state property fix
 """
 
 import asyncio
-import os
 import sys
 
 sys.path.append('/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend')

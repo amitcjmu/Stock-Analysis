@@ -7,7 +7,7 @@ import importlib
 import inspect
 import logging
 import os
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional
 
 from app.services.agents.metadata import AgentMetadata
 

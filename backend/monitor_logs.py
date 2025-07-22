@@ -2,11 +2,8 @@
 """
 Backend Log Monitor - Real-time error detection and analysis
 """
-import json
 import re
 import subprocess
-import time
-from datetime import datetime
 
 # Error patterns to monitor
 ERROR_PATTERNS = {

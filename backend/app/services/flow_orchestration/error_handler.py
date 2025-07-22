@@ -4,8 +4,6 @@ Flow Error Handler
 Handles error patterns, retry logic, recovery mechanisms, and error classification.
 """
 
-import asyncio
-import logging
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
@@ -154,7 +152,7 @@ class FlowErrorHandler:
         Returns:
             Error classification information
         """
-        error_type = type(error).__name__
+        type(error).__name__
         error_message = str(error).lower()
         
         # Database errors

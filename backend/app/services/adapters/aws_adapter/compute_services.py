@@ -3,7 +3,7 @@ AWS Compute Services Collection (EC2, Lambda)
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +105,7 @@ class ComputeServicesCollector:
     async def test_lambda_connectivity(self) -> bool:
         """Test Lambda service connectivity"""
         try:
-            response = self._lambda_client.list_functions(MaxItems=1)
+            self._lambda_client.list_functions(MaxItems=1)
             return True
         except Exception:
             return False

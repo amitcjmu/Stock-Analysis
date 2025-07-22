@@ -4,7 +4,7 @@ Crew Monitoring API endpoints for the Agent Monitoring dashboard
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException
 

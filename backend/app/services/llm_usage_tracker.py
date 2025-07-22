@@ -11,14 +11,13 @@ import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import Request
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
-from app.models.llm_usage import LLMModelPricing, LLMUsageLog, LLMUsageSummary
+from app.models.llm_usage import LLMModelPricing, LLMUsageLog
 
 logger = logging.getLogger(__name__)
 

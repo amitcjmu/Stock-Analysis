@@ -5,10 +5,9 @@ Provides specialized tools for assessing legacy technology and modernization nee
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from crewai.tools import BaseTool
-from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -291,7 +290,7 @@ class LegacyAssessmentTool(BaseTool):
         # Define modernization strategies for each asset
         for asset in assets:
             asset_name = asset.get("name", "unknown")
-            asset_info = str(asset).lower()
+            str(asset).lower()
             
             strategy = self._recommend_modernization_strategy(asset)
             roadmap["modernization_strategies"][asset_name] = strategy

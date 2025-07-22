@@ -4,13 +4,12 @@ Test script for Asset Classification Learning
 """
 
 import asyncio
-import os
 import sys
 
 # Add the backend directory to the path
 sys.path.append('/app')
 
-from app.services.asset_classification_learner import AssetClassification, AssetClassificationLearner
+from app.services.asset_classification_learner import AssetClassificationLearner
 
 
 async def test_classification_learning():

@@ -6,13 +6,10 @@ Handles terminal state synchronization (completed, failed, deleted) based on
 child flow status and database state validation.
 """
 
-import asyncio
 import logging
 from datetime import datetime
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext

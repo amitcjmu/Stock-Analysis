@@ -6,7 +6,6 @@ This script tests if discovery flows are properly linked to master flows.
 
 import asyncio
 import logging
-from datetime import datetime
 
 from sqlalchemy import select
 

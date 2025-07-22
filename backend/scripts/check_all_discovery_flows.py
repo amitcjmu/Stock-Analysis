@@ -4,7 +4,6 @@ Check all discovery flows in the database to understand what's there.
 """
 
 import asyncio
-import json
 import os
 
 # Add parent directory to Python path
@@ -12,7 +11,6 @@ import sys
 from datetime import datetime
 
 from sqlalchemy import select, text
-from sqlalchemy.ext.asyncio import AsyncSession
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

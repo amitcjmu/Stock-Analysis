@@ -6,7 +6,6 @@ that check actual data presence and quality.
 """
 
 import logging
-from typing import Any, Dict
 
 from ..crewai_imports import BaseTool
 
@@ -43,9 +42,7 @@ class PhaseValidationTool(BaseTool):
             # Call the actual phase validation endpoint
             import asyncio
 
-            from app.api.v1.endpoints.flow_processing import validate_phase_data
             from app.core.context import RequestContext
-            from app.core.database import AsyncSessionLocal
             
             # Create context for service calls
             context = RequestContext(
@@ -87,7 +84,7 @@ class PhaseValidationTool(BaseTool):
                 if phase == "data_import" and not complete:
                     import_sessions = data.get("import_sessions", 0)
                     raw_records = data.get("raw_records", 0)
-                    threshold_met = data.get("threshold_met", False)
+                    data.get("threshold_met", False)
                     
                     if import_sessions == 0:
                         actionable_guidance.append("No data files have been uploaded yet")
@@ -104,7 +101,7 @@ class PhaseValidationTool(BaseTool):
                 
                 elif phase == "attribute_mapping" and not complete:
                     approved_mappings = data.get("approved_mappings", 0)
-                    high_confidence = data.get("high_confidence_mappings", 0)
+                    data.get("high_confidence_mappings", 0)
                     
                     if approved_mappings == 0:
                         actionable_guidance.append("No field mappings have been configured")

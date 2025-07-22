@@ -27,9 +27,8 @@ class IterationHandler:
             from app.schemas.sixr_analysis import AnalysisStatus, SixRParameterBase
             try:
                 from app.services.sixr_engine_modular import SixRDecisionEngine
-                SIXR_ENGINE_AVAILABLE = True
             except ImportError:
-                SIXR_ENGINE_AVAILABLE = False
+                pass
             
             self.SixRAnalysis = SixRAnalysis
             self.SixRParametersModel = SixRParametersModel
@@ -126,7 +125,7 @@ class IterationHandler:
             
             # Run analysis for new iteration in background
             from .background_tasks import BackgroundTasksHandler
-            bg_handler = BackgroundTasksHandler()
+            BackgroundTasksHandler()
             
             # This would typically be done in background
             try:

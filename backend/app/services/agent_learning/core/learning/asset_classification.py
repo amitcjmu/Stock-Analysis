@@ -4,8 +4,6 @@ Asset Classification Learning Module - Handles asset classification patterns
 
 import logging
 import time
-import uuid
-from datetime import datetime
 from typing import Any, Dict, Optional
 
 from app.services.agent_learning.models import LearningContext

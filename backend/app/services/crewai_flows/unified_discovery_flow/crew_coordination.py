@@ -7,7 +7,7 @@ Handles agent orchestration and crew management for the Unified Discovery Flow.
 import asyncio
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from .flow_config import FlowConfig, PhaseNames
 

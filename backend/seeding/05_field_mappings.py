@@ -7,7 +7,6 @@ import asyncio
 from datetime import datetime, timezone
 
 from constants import DEMO_CLIENT_ID, IMPORT_IDS
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 from app.models.data_import.mapping import ImportFieldMapping

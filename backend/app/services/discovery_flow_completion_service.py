@@ -12,7 +12,6 @@ from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
-from app.models.asset import Asset
 from app.models.asset import Asset as DiscoveryAsset
 from app.models.discovery_flow import DiscoveryFlow
 from app.repositories.asset_repository import AssetRepository

@@ -83,7 +83,7 @@ class AssetInventoryCrew(BaseDiscoveryCrew):
     def create_tasks(self, inputs: Dict[str, Any]) -> List[Task]:
         """Create asset inventory tasks"""
         raw_data = inputs.get("raw_data", [])
-        classification_rules = inputs.get("classification_rules", self._get_default_classification_rules())
+        inputs.get("classification_rules", self._get_default_classification_rules())
         criticality_criteria = inputs.get("criticality_criteria", self._get_default_criticality_criteria())
         
         tasks = []
@@ -295,7 +295,7 @@ class AssetInventoryCrew(BaseDiscoveryCrew):
                 final_result = {"error": "Unexpected result format"}
             
             asset_criticality = final_result.get("asset_criticality", [])
-            summary = final_result.get("summary", {})
+            final_result.get("summary", {})
             
             # Calculate additional metrics
             total_assets = len(asset_criticality)

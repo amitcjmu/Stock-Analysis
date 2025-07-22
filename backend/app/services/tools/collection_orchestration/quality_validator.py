@@ -66,8 +66,8 @@ class QualityValidator(AsyncBaseDiscoveryTool, BaseCollectionTool):
         Returns:
             Validation results with quality scores
         """
-        context = get_current_context()
-        quality_service = QualityAssessmentService()
+        get_current_context()
+        QualityAssessmentService()
         
         validation_results = self._create_base_result("validate_quality") | {
             "validation_type": validation_type,

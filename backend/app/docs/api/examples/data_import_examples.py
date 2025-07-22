@@ -4,13 +4,11 @@ Data Import API Examples - Python Client Implementation.
 This file provides complete working examples for all data import API endpoints.
 """
 
-import base64
 import csv
-import io
 import json
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import requests
 

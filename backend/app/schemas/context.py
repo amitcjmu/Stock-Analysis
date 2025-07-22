@@ -6,7 +6,6 @@ Pydantic models for user context data.
 
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
