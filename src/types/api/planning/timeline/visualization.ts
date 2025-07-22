@@ -17,11 +17,11 @@ export interface TimelineVisualization {
 }
 
 export interface VisualizationData {
-  tasks: any[];
-  phases: any[];
-  milestones: any[];
-  dependencies: any[];
-  resources: any[];
+  tasks: unknown[];
+  phases: unknown[];
+  milestones: unknown[];
+  dependencies: unknown[];
+  resources: unknown[];
 }
 
 export interface VisualizationLayout {
@@ -41,7 +41,7 @@ export interface VisualizationStyling {
 export interface VisualizationInteraction {
   type: 'zoom' | 'pan' | 'filter' | 'drill_down' | 'tooltip';
   enabled: boolean;
-  config: any;
+  config: unknown;
 }
 
 export interface ColorScheme {

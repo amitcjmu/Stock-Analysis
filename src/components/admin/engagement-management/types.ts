@@ -1,3 +1,99 @@
+// Team Preferences Interface
+export interface TeamPreferences {
+  preferred_communication_channels?: ('email' | 'slack' | 'teams' | 'jira')[];
+  meeting_frequency?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly';
+  reporting_frequency?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly';
+  escalation_matrix?: Array<{
+    level: number;
+    role: string;
+    contact_name: string;
+    contact_email: string;
+  }>;
+  working_hours?: {
+    timezone: string;
+    start_time: string;
+    end_time: string;
+    working_days: string[];
+  };
+  team_size?: number;
+  skill_requirements?: string[];
+  tool_preferences?: string[];
+}
+
+// Agent Configuration Interface
+export interface AgentConfiguration {
+  enabled_agents?: string[];
+  agent_priorities?: Record<string, number>; // agent_name -> priority (1-10)
+  automation_rules?: Array<{
+    condition: string;
+    action: string;
+    agent: string;
+    parameters?: Record<string, string | number | boolean>;
+  }>;
+  performance_settings?: {
+    parallel_execution?: boolean;
+    max_concurrent_agents?: number;
+    timeout_seconds?: number;
+    retry_attempts?: number;
+  };
+  custom_configurations?: Record<string, {
+    enabled: boolean;
+    settings: Record<string, string | number | boolean>;
+  }>;
+}
+
+// Discovery Preferences Interface
+export interface DiscoveryPreferences {
+  discovery_methods?: ('automated' | 'manual' | 'hybrid')[];
+  data_sources?: Array<{
+    type: string;
+    connection_string?: string;
+    credentials_reference?: string;
+    enabled: boolean;
+  }>;
+  scan_frequency?: 'real-time' | 'hourly' | 'daily' | 'weekly' | 'on-demand';
+  discovery_scope?: {
+    include_patterns?: string[];
+    exclude_patterns?: string[];
+    depth_limit?: number;
+    follow_symlinks?: boolean;
+  };
+  data_collection_preferences?: {
+    collect_performance_metrics?: boolean;
+    collect_dependency_data?: boolean;
+    collect_configuration_data?: boolean;
+    collect_security_data?: boolean;
+  };
+}
+
+// Assessment Criteria Interface
+export interface AssessmentCriteria {
+  migration_readiness_weights?: {
+    technical_debt?: number; // 0-100
+    complexity?: number; // 0-100
+    dependencies?: number; // 0-100
+    business_criticality?: number; // 0-100
+    security_compliance?: number; // 0-100
+  };
+  risk_thresholds?: {
+    low_risk_max?: number;
+    medium_risk_max?: number;
+    high_risk_min?: number;
+  };
+  assessment_categories?: Array<{
+    name: string;
+    weight: number;
+    criteria: string[];
+  }>;
+  custom_scoring_rules?: Array<{
+    rule_name: string;
+    condition: string;
+    score_adjustment: number;
+  }>;
+  minimum_assessment_score?: number;
+  required_assessments?: string[];
+}
+
 export interface Engagement {
   id: string;
   engagement_name: string;
@@ -23,10 +119,32 @@ export interface Engagement {
   is_active: boolean;
   total_sessions: number;
   active_sessions: number;
-  team_preferences?: Record<string, any>;
-  agent_configuration?: Record<string, any>;
-  discovery_preferences?: Record<string, any>;
-  assessment_criteria?: Record<string, any>;
+  team_preferences?: TeamPreferences;
+  agent_configuration?: AgentConfiguration;
+  discovery_preferences?: DiscoveryPreferences;
+  assessment_criteria?: AssessmentCriteria;
+}
+
+// Stakeholder Preferences Interface
+export interface StakeholderPreferences {
+  primary_stakeholders?: Array<{
+    name: string;
+    role: string;
+    email: string;
+    involvement_level: 'high' | 'medium' | 'low';
+  }>;
+  communication_preferences?: {
+    preferred_channels?: ('email' | 'phone' | 'video' | 'in-person')[];
+    update_frequency?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly';
+    report_format?: 'detailed' | 'summary' | 'executive';
+  };
+  approval_requirements?: Array<{
+    decision_type: string;
+    approver_roles: string[];
+    sla_hours?: number;
+  }>;
+  stakeholder_concerns?: string[];
+  success_criteria?: string[];
 }
 
 export interface EngagementFormData {
@@ -47,8 +165,8 @@ export interface EngagementFormData {
   actual_budget?: number;
   estimated_asset_count?: number;
   completion_percentage?: number;
-  team_preferences: Record<string, any>;
-  stakeholder_preferences: Record<string, any>;
+  team_preferences: TeamPreferences;
+  stakeholder_preferences: StakeholderPreferences;
 }
 
 export interface Client {

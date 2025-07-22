@@ -13,6 +13,7 @@
 
 import { ApiClient } from './ApiClient';
 import { FlowStatus, FlowType, CreateFlowRequest, ExecutePhaseRequest, FlowAnalytics } from '../types/flow';
+import { ApiError } from '../types/shared/api-types';
 
 export interface FlowListOptions {
   flow_type?: FlowType;
@@ -100,7 +101,7 @@ export class FlowService {
   /**
    * Execute flow phase (MFO-076)
    */
-  async executePhase(flowId: string, request: ExecutePhaseRequest): Promise<any> {
+  async executePhase(flowId: string, request: ExecutePhaseRequest): Promise<{ success: boolean; message?: string; data?: Record<string, unknown> }> {
     try {
       const response = await this.apiClient.post(`/flows/${flowId}/execute`, request);
       return response;
@@ -289,7 +290,7 @@ export class FlowService {
   /**
    * Error handling
    */
-  private handleError(error: any, message: string): Error {
+  private handleError(error: ApiError | Error, message: string): Error {
     console.error(`FlowService Error: ${message}`, error);
     
     if (error.response) {
@@ -316,7 +317,7 @@ export class LegacyDiscoveryService {
     this.flowService = FlowService.getInstance();
   }
 
-  async createFlow(config: any): Promise<FlowStatus> {
+  async createFlow(config: Omit<CreateFlowRequest, 'flow_type'>): Promise<FlowStatus> {
     console.warn('LegacyDiscoveryService.createFlow is deprecated. Use FlowService.createDiscoveryFlow instead.');
     return this.flowService.createDiscoveryFlow(config);
   }
@@ -326,7 +327,7 @@ export class LegacyDiscoveryService {
     return this.flowService.getFlowStatus(flowId);
   }
 
-  async executePhase(flowId: string, phase: string, data: any): Promise<any> {
+  async executePhase(flowId: string, phase: string, data: Record<string, unknown>): Promise<{ success: boolean; message?: string; data?: Record<string, unknown> }> {
     console.warn('LegacyDiscoveryService.executePhase is deprecated. Use FlowService.executePhase instead.');
     return this.flowService.executePhase(flowId, {
       phase_name: phase,
@@ -342,7 +343,7 @@ export class LegacyAssessmentService {
     this.flowService = FlowService.getInstance();
   }
 
-  async createFlow(config: any): Promise<FlowStatus> {
+  async createFlow(config: Omit<CreateFlowRequest, 'flow_type'>): Promise<FlowStatus> {
     console.warn('LegacyAssessmentService.createFlow is deprecated. Use FlowService.createAssessmentFlow instead.');
     return this.flowService.createAssessmentFlow(config);
   }

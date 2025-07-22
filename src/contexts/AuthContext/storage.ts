@@ -1,4 +1,15 @@
-import { TokenStorage, User, ContextData } from './types';
+import { TokenStorage, User, ContextData, Client, Engagement, Flow } from './types';
+
+/**
+ * External session data interface for third-party integrations
+ */
+export interface ExternalSessionData {
+  sessionId?: string;
+  provider?: string;
+  expiresAt?: string;
+  metadata?: Record<string, unknown>;
+  refreshToken?: string;
+}
 
 // Token storage - using localStorage for now (httpOnly cookies not yet implemented)
 export const tokenStorage: TokenStorage = {
@@ -102,24 +113,24 @@ export const contextStorage = {
   }
 };
 
-export const persistClientData = (client: any) => {
+export const persistClientData = (client: Client) => {
   localStorage.setItem('auth_client', JSON.stringify(client));
   localStorage.setItem('auth_client_id', client.id);
 };
 
-export const persistEngagementData = (engagement: any) => {
+export const persistEngagementData = (engagement: Engagement) => {
   localStorage.setItem('auth_engagement', JSON.stringify(engagement));
 };
 
-export const persistSessionData = (session: any) => {
+export const persistSessionData = (session: ExternalSessionData) => {
   localStorage.setItem('auth_session', JSON.stringify(session));
 };
 
-export const getStoredClientData = () => {
+export const getStoredClientData = (): Client | null => {
   const storedClient = localStorage.getItem('auth_client');
   if (storedClient) {
     try {
-      return JSON.parse(storedClient);
+      return JSON.parse(storedClient) as Client;
     } catch (error) {
       console.warn('Failed to parse stored client data:', error);
       return null;
@@ -128,11 +139,11 @@ export const getStoredClientData = () => {
   return null;
 };
 
-export const getStoredEngagementData = () => {
+export const getStoredEngagementData = (): Engagement | null => {
   const storedEngagement = localStorage.getItem('auth_engagement');
   if (storedEngagement) {
     try {
-      return JSON.parse(storedEngagement);
+      return JSON.parse(storedEngagement) as Engagement;
     } catch (error) {
       console.warn('Failed to parse stored engagement data:', error);
       return null;
@@ -141,11 +152,11 @@ export const getStoredEngagementData = () => {
   return null;
 };
 
-export const getStoredSessionData = () => {
+export const getStoredSessionData = (): ExternalSessionData | null => {
   const storedSession = localStorage.getItem('auth_session');
   if (storedSession) {
     try {
-      return JSON.parse(storedSession);
+      return JSON.parse(storedSession) as ExternalSessionData;
     } catch (error) {
       console.warn('Failed to parse stored session data:', error);
       return null;

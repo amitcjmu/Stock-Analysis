@@ -71,9 +71,35 @@ export const EnhancedFlowManagementDashboard: React.FC<EnhancedFlowManagementDas
   const flowHealthMonitor = useFlowHealthMonitor(flowIds, showHealthMonitor && flowIds.length > 0);
 
   // State for validation results
-  const [validationResult, setValidationResult] = useState<any>(null);
-  const [recoveryResult, setRecoveryResult] = useState<any>(null);
-  const [cleanupResult, setCleanupResult] = useState<any>(null);
+  const [validationResult, setValidationResult] = useState<{
+    status: string;
+    flow_id: string;
+    overall_valid: boolean;
+    crewai_validation: Record<string, unknown>;
+    postgresql_validation: Record<string, unknown>;
+    phase_executors?: Record<string, unknown>;
+    validation_timestamp: string;
+    recommendations?: string[];
+    warningCount?: number;
+    criticalIssues?: boolean;
+  } | null>(null);
+  const [recoveryResult, setRecoveryResult] = useState<{
+    status: string;
+    flow_id: string;
+    recovery_successful: boolean;
+    recovered_state?: Record<string, unknown>;
+    recovery_strategy_used: string;
+    recovery_timestamp: string;
+    next_steps?: string[];
+  } | null>(null);
+  const [cleanupResult, setCleanupResult] = useState<{
+    status: string;
+    flows_cleaned: number;
+    flow_ids_cleaned: string[];
+    dry_run: boolean;
+    cleanup_timestamp: string;
+    space_recovered?: string;
+  } | null>(null);
 
   // Handlers
   const handleValidateFlow = async () => {

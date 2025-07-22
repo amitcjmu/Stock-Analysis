@@ -185,7 +185,7 @@ export interface WidgetConfiguration {
   type: WidgetType;
   position: WidgetPosition;
   size: WidgetSize;
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
   visible: boolean;
   minimized: boolean;
 }

@@ -45,7 +45,7 @@ export interface SsoConfig {
 
 export interface ExternalIntegrationConfig {
   enabled: boolean;
-  providers: Record<string, any>;
+  providers: Record<string, string | number | boolean | null>;
   timeout: number;
 }
 

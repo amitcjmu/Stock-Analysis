@@ -4,6 +4,14 @@
  * Type definitions for the assessment flow hook and related interfaces.
  */
 
+// User input interface for flow resumption
+export interface UserInput {
+  phase?: string;
+  data?: Record<string, string | number | boolean>;
+  action?: 'continue' | 'skip' | 'retry';
+  timestamp?: string;
+}
+
 // Types for Assessment Flow
 export type AssessmentFlowStatus = 
   | 'initialized' 
@@ -26,7 +34,7 @@ export interface ArchitectureStandard {
   description: string;
   mandatory: boolean;
   supported_versions?: Record<string, string>;
-  requirement_details?: Record<string, any>;
+  requirement_details?: Record<string, string | number | boolean>;
   verification_status?: string;
   modified_by?: string;
 }
@@ -34,7 +42,7 @@ export interface ArchitectureStandard {
 export interface ApplicationComponent {
   component_name: string;
   component_type: string;
-  technology_stack?: Record<string, any>;
+  technology_stack?: Record<string, string>;
   dependencies?: string[];
 }
 
@@ -67,8 +75,8 @@ export interface SixRDecision {
   tech_debt_score?: number;
   risk_factors: string[];
   move_group_hints: string[];
-  user_modifications?: Record<string, any>;
-  app_on_page_data?: Record<string, any>;
+  user_modifications?: Record<string, string | number | boolean>;
+  app_on_page_data?: Record<string, string | number | boolean>;
 }
 
 export interface AssessmentFlowState {
@@ -82,7 +90,7 @@ export interface AssessmentFlowState {
   
   // Phase-specific data
   engagementStandards: ArchitectureStandard[];
-  applicationOverrides: Record<string, any>;
+  applicationOverrides: Record<string, ArchitectureStandard>;
   applicationComponents: Record<string, ApplicationComponent[]>;
   techDebtAnalysis: Record<string, TechDebtItem[]>;
   sixrDecisions: Record<string, SixRDecision>;
@@ -108,14 +116,14 @@ export interface UseAssessmentFlowReturn {
   
   // Flow control
   initializeFlow: (selectedAppIds: string[]) => Promise<void>;
-  resumeFlow: (userInput: any) => Promise<void>;
+  resumeFlow: (userInput: UserInput) => Promise<void>;
   navigateToPhase: (phase: AssessmentPhase) => Promise<void>;
   finalizeAssessment: () => Promise<void>;
   
   // Data operations
   updateArchitectureStandards: (
     standards: ArchitectureStandard[], 
-    overrides: Record<string, any>
+    overrides: Record<string, ArchitectureStandard>
   ) => Promise<void>;
   updateApplicationComponents: (
     appId: string, 

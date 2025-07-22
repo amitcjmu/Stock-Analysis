@@ -8,6 +8,8 @@ export interface FieldMapping {
   status: 'pending' | 'approved' | 'rejected' | 'ignored' | 'deleted';
   ai_reasoning?: string;
   action?: 'ignore' | 'delete';
+  is_placeholder?: boolean;
+  is_fallback?: boolean;
 }
 
 // Import TargetField type from the context to ensure consistency

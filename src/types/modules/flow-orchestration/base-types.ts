@@ -35,8 +35,8 @@ export interface FlowExecutionContext {
   userId: string;
   executionId: string;
   startTime: string;
-  parameters: Record<string, any>;
-  metadata: Record<string, any>;
+  parameters: Record<string, string | number | boolean | null>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 // Time range and metric types
@@ -48,14 +48,14 @@ export interface TimeRange {
 export interface MetricSample {
   timestamp: string;
   value: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 // Common error and validation types
 export interface ExecutionError {
   code: string;
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, string | number | boolean | null>;
   timestamp: string;
   source?: string;
   stack?: string;
@@ -64,7 +64,7 @@ export interface ExecutionError {
 export interface ExecutionWarning {
   code: string;
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, string | number | boolean | null>;
   timestamp: string;
   source?: string;
 }
@@ -73,7 +73,7 @@ export interface ValidationResult {
   isValid: boolean;
   errors: string[];
   warnings: string[];
-  details?: Record<string, any>;
+  details?: Record<string, string | number | boolean | null>;
 }
 
 export interface BackupResult {
@@ -133,5 +133,5 @@ export interface ExecutionConstraints {
   maxMemory: number;
   maxCpuUsage: number;
   allowedResources: string[];
-  restrictions: Record<string, any>;
+  restrictions: Record<string, string | number | boolean | null>;
 }

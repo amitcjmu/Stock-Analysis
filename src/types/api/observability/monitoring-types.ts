@@ -13,6 +13,8 @@ import {
   GetResponse,
   MultiTenantContext
 } from '../shared';
+import { FilterValue, PrimitiveValue } from '../shared/value-types';
+import { GenericMetadata } from '../shared/metadata-types';
 import { CostBreakdown, MetricThreshold, RetryPolicy, DeploymentStatus } from './core-types';
 
 // Monitoring Configuration
@@ -131,7 +133,7 @@ export interface AlertingConfiguration {
   escalationPolicy: EscalationPolicy;
   notifications: NotificationConfig[];
   suppressionRules: SuppressionRule[];
-  customFields: Record<string, any>;
+  customFields: Record<string, string | number | boolean | null>;
 }
 
 export interface MonitoringConfiguration {
@@ -165,7 +167,7 @@ export interface ConfigurationValidation {
   rule: string;
   status: 'passed' | 'failed' | 'warning';
   message: string;
-  details?: any;
+  details?: Record<string, PrimitiveValue> | string;
 }
 
 export interface MonitoringCost {
@@ -338,13 +340,13 @@ export interface EscalationLevel {
 export interface NotificationCondition {
   field: string;
   operator: string;
-  value: any;
+  value: FilterValue;
 }
 
 export interface SuppressionCondition {
   field: string;
   operator: string;
-  value: any;
+  value: FilterValue;
 }
 
 export interface DeploymentTask {
@@ -352,7 +354,7 @@ export interface DeploymentTask {
   type: string;
   timeout: string;
   dependencies: string[];
-  parameters: Record<string, any>;
+  parameters: Record<string, PrimitiveValue>;
 }
 
 export interface RollbackCondition {
@@ -365,7 +367,7 @@ export interface RollbackStep {
   name: string;
   action: string;
   timeout: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, PrimitiveValue>;
 }
 
 // RetryPolicy imported from core-types

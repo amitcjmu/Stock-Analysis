@@ -26,7 +26,7 @@ Status: COMPLETE - All 6 core services implemented
 from .gap_analysis_agent import GapAnalysisAgent
 from .questionnaire_generator import AdaptiveQuestionnaireGenerator
 from .confidence_scoring import ConfidenceScorer
-from .business_context_analyzer import BusinessContextAnalyzer
+from .business_context_analyzer_compat import BusinessContextAnalyzer
 from .learning_optimizer import LearningOptimizer
 from .ai_validation_service import AIValidationService
 

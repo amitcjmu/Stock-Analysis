@@ -57,7 +57,7 @@ export interface RightsizingCriteria {
 
 export interface RightsizingConstraint {
   type: 'minimum_size' | 'family_restriction' | 'feature_requirement';
-  value: any;
+  value: unknown;
   description: string;
 }
 

@@ -132,21 +132,21 @@ export const ReadinessTabs = ({
                   <h4 className="font-medium capitalize">
                     {key.replace('_', ' ')}
                     <span className="ml-2 text-sm text-gray-500">
-                      ({Math.round((value as any).score * 100)}%)
+                      ({Math.round(value.score * 100)}%)
                     </span>
                   </h4>
                   <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
                     <div 
-                      className={`h-full ${getReadinessColor((value as any).score)}`}
-                      style={{ width: `${(value as any).score * 100}%` }}
+                      className={`h-full ${getReadinessColor(value.score)}`}
+                      style={{ width: `${value.score * 100}%` }}
                     />
                   </div>
                   
-                  {(value as any).gaps?.length > 0 && (
+                  {value.gaps && value.gaps.length > 0 && (
                     <div className="mt-2 text-sm text-gray-600">
                       <p className="font-medium">Areas for Improvement:</p>
                       <ul className="list-disc pl-5 mt-1 space-y-1">
-                        {(value as any).gaps.slice(0, 3).map((gap: string, i: number) => (
+                        {value.gaps!.slice(0, 3).map((gap: string, i: number) => (
                           <li key={i}>{gap}</li>
                         ))}
                       </ul>

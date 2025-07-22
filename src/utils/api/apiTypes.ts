@@ -3,50 +3,63 @@
  * Provides type safety for API operations and configurations.
  */
 
-// API Response Types
-export interface ApiResponse<T = any> {
+// Import shared types
+import type { 
+  ApiResponse as SharedApiResponse, 
+  ApiError as SharedApiError, 
+  ResponseMetadata 
+} from '../../types/shared/api-types';
+import type { AuditableMetadata } from '../../types/shared/metadata-types';
+
+// API Response Types - Use shared types
+export type ApiResponse<T = unknown> = SharedApiResponse<T, ApiError>;
+
+// Legacy compatibility - keeping old structure for backward compatibility
+export interface LegacyApiResponse<T = unknown> {
   status: 'success' | 'error' | 'warning' | 'info';
   message: string;
   data?: T;
   errors?: ApiError[];
-  meta?: Record<string, any>;
+  meta?: Record<string, unknown>;
   timestamp: string;
 }
 
-export interface PaginatedResponse<T = any> extends ApiResponse<T[]> {
+export interface PaginatedResponse<T = unknown> extends ApiResponse<T[]> {
   data: T[];
-  pagination: {
-    total_items: number;
-    page: number;
-    page_size: number;
-    total_pages: number;
-    has_previous: boolean;
-    has_next: boolean;
-    previous_page?: number;
-    next_page?: number;
+  meta: ResponseMetadata & {
+    pagination: {
+      total_items: number;
+      page: number;
+      page_size: number;
+      total_pages: number;
+      has_previous: boolean;
+      has_next: boolean;
+      previous_page?: number;
+      next_page?: number;
+    };
   };
 }
 
-export interface ApiError {
-  code: string;
-  message: string;
+// API Error Types - Enhanced with shared structure
+export interface ApiError extends SharedApiError {
   field?: string;
-  value?: any;
+  value?: string | number | boolean | null;
   constraint?: string;
-  additional_info?: Record<string, any>;
+  additional_info?: Record<string, unknown>;
 }
 
 // Request Configuration Types
 export interface RequestConfig {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   headers?: Record<string, string>;
-  params?: Record<string, any>;
-  data?: any;
+  params?: Record<string, unknown>;
+  data?: unknown;
   timeout?: number;
   retries?: number;
   cache?: boolean;
   cacheKey?: string;
   cacheTtl?: number;
+  url?: string;
 }
 
 export interface ApiClientConfig {
@@ -78,53 +91,38 @@ export interface MultiTenantHeaders {
   'Authorization'?: string;
 }
 
-// Error Types
-export interface NetworkError {
+// Specialized Error Types - Built on shared ApiError
+export interface NetworkError extends ApiError {
   type: 'network';
-  message: string;
-  code: string;
   url: string;
   method: string;
   status?: number;
-  response?: any;
-  timestamp: string;
+  response?: unknown;
 }
 
-export interface ValidationError {
+export interface ValidationError extends ApiError {
   type: 'validation';
-  message: string;
-  code: string;
   field?: string;
-  value?: any;
+  value?: string | number | boolean | null;
   errors: ApiError[];
-  timestamp: string;
 }
 
-export interface AuthenticationError {
+export interface AuthenticationError extends ApiError {
   type: 'authentication';
-  message: string;
-  code: string;
   reason: 'token_expired' | 'invalid_credentials' | 'missing_token';
-  timestamp: string;
 }
 
-export interface AuthorizationError {
+export interface AuthorizationError extends ApiError {
   type: 'authorization';
-  message: string;
-  code: string;
   requiredPermissions?: string[];
   userPermissions?: string[];
   resource?: string;
-  timestamp: string;
 }
 
-export interface ServerError {
+export interface ServerError extends ApiError {
   type: 'server';
-  message: string;
-  code: string;
   status: number;
   errorId?: string;
-  timestamp: string;
 }
 
 export type ApiErrorType = NetworkError | ValidationError | AuthenticationError | AuthorizationError | ServerError;
@@ -152,7 +150,7 @@ export interface RequestInterceptor {
   name: string;
   priority: number;
   onRequest: (config: RequestConfig) => Promise<RequestConfig> | RequestConfig;
-  onError?: (error: any) => Promise<any> | any;
+  onError?: (error: ApiErrorType) => Promise<ApiErrorType> | ApiErrorType;
 }
 
 export interface ResponseInterceptor {
@@ -171,10 +169,12 @@ export interface FlowContext {
   sessionId?: string;
 }
 
-export interface FlowApiResponse<T = any> extends ApiResponse<T> {
-  flowContext?: FlowContext;
-  flowStatus?: string;
-  flowProgress?: number;
+export interface FlowApiResponse<T = unknown> extends ApiResponse<T> {
+  meta?: ResponseMetadata & {
+    flowContext?: FlowContext;
+    flowStatus?: string;
+    flowProgress?: number;
+  };
 }
 
 // Upload Types
@@ -188,7 +188,7 @@ export interface UploadProgress {
 
 export interface UploadConfig extends RequestConfig {
   file: File;
-  fieldName: string;
+  fieldName?: string;
   onProgress?: (progress: UploadProgress) => void;
   chunkSize?: number;
   resumable?: boolean;
@@ -204,9 +204,9 @@ export interface WebSocketConfig {
   headers?: Record<string, string>;
 }
 
-export interface WebSocketMessage {
+export interface WebSocketMessage<T = unknown> {
   type: string;
-  data: any;
+  data: T;
   timestamp: string;
   id?: string;
 }
@@ -224,14 +224,14 @@ export interface BatchRequest {
   id: string;
   method: string;
   url: string;
-  data?: any;
+  data?: unknown;
   headers?: Record<string, string>;
 }
 
-export interface BatchResponse {
+export interface BatchResponse<T = unknown> {
   id: string;
   status: number;
-  data: any;
+  data: T;
   error?: ApiErrorType;
 }
 
@@ -241,7 +241,7 @@ export interface HealthCheckResult {
   status: 'healthy' | 'unhealthy' | 'degraded';
   latency: number;
   timestamp: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 // Metrics Types
@@ -261,7 +261,7 @@ export interface QueryParams {
   page_size?: number;
   sort?: string;
   order?: 'asc' | 'desc';
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
   search?: string;
   fields?: string[];
   include?: string[];
@@ -272,8 +272,8 @@ export interface QueryBuilder {
   page(page: number): QueryBuilder;
   pageSize(size: number): QueryBuilder;
   sort(field: string, order?: 'asc' | 'desc'): QueryBuilder;
-  filter(field: string, value: any): QueryBuilder;
-  filters(filters: Record<string, any>): QueryBuilder;
+  filter(field: string, value: string | number | boolean | null): QueryBuilder;
+  filters(filters: Record<string, string | number | boolean | null>): QueryBuilder;
   search(query: string): QueryBuilder;
   fields(fields: string[]): QueryBuilder;
   include(fields: string[]): QueryBuilder;
@@ -284,14 +284,14 @@ export interface QueryBuilder {
 
 // Client Instance Types
 export interface ApiClient {
-  get<T = any>(url: string, config?: RequestConfig): Promise<ApiResponse<T>>;
-  post<T = any>(url: string, data?: any, config?: RequestConfig): Promise<ApiResponse<T>>;
-  put<T = any>(url: string, data?: any, config?: RequestConfig): Promise<ApiResponse<T>>;
-  delete<T = any>(url: string, config?: RequestConfig): Promise<ApiResponse<T>>;
-  patch<T = any>(url: string, data?: any, config?: RequestConfig): Promise<ApiResponse<T>>;
-  upload<T = any>(url: string, config: UploadConfig): Promise<ApiResponse<T>>;
-  batch(requests: BatchRequest[]): Promise<BatchResponse[]>;
-  poll<T = any>(url: string, config: PollingConfig): Promise<ApiResponse<T>>;
+  get<T = unknown>(url: string, config?: RequestConfig): Promise<ApiResponse<T>>;
+  post<T = unknown>(url: string, data?: unknown, config?: RequestConfig): Promise<ApiResponse<T>>;
+  put<T = unknown>(url: string, data?: unknown, config?: RequestConfig): Promise<ApiResponse<T>>;
+  delete<T = unknown>(url: string, config?: RequestConfig): Promise<ApiResponse<T>>;
+  patch<T = unknown>(url: string, data?: unknown, config?: RequestConfig): Promise<ApiResponse<T>>;
+  upload<T = unknown>(url: string, config: UploadConfig): Promise<ApiResponse<T>>;
+  batch<T = unknown>(requests: BatchRequest[]): Promise<BatchResponse<T>[]>;
+  poll<T = unknown>(url: string, config: PollingConfig): Promise<ApiResponse<T>>;
   healthCheck(): Promise<HealthCheckResult[]>;
   getMetrics(): ApiMetrics;
   clearCache(pattern?: string): void;

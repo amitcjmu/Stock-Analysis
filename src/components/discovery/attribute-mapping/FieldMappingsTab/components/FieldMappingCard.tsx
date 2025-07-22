@@ -3,9 +3,19 @@ import { ArrowRight, CheckCircle, X, Tag, RefreshCw } from 'lucide-react';
 import { FieldMapping } from '../types';
 import { EnhancedFieldDropdown } from './EnhancedFieldDropdown';
 
+// Available field interface
+interface AvailableField {
+  id: string;
+  name: string;
+  type: string;
+  description?: string;
+  isRequired?: boolean;
+  metadata?: Record<string, unknown>;
+}
+
 interface FieldMappingCardProps {
   mapping: FieldMapping;
-  availableFields: any[];
+  availableFields: AvailableField[];
   onMappingAction: (mappingId: string, action: 'approve' | 'reject') => void;
   onMappingChange?: (mappingId: string, newTarget: string) => void;
   onReject: (mappingId: string, sourceField: string, targetField: string) => void;

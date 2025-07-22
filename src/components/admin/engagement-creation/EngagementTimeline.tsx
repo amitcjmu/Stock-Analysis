@@ -9,7 +9,7 @@ import { CreateEngagementData, Currencies } from './types';
 interface EngagementTimelineProps {
   formData: CreateEngagementData;
   errors: Record<string, string>;
-  onFormChange: (field: keyof CreateEngagementData, value: any) => void;
+  onFormChange: (field: keyof CreateEngagementData, value: unknown) => void;
 }
 
 export const EngagementTimeline: React.FC<EngagementTimelineProps> = ({

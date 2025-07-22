@@ -24,7 +24,7 @@ export interface ButtonProps extends InteractiveComponentProps {
   target?: string;
   rel?: string;
   download?: boolean | string;
-  as?: keyof JSX.IntrinsicElements | React.ComponentType<any>;
+  as?: keyof JSX.IntrinsicElements | React.ComponentType<ButtonProps>;
   form?: string;
   formAction?: string;
   formEncType?: string;

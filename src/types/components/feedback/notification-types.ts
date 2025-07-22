@@ -90,7 +90,7 @@ export interface NotificationProps extends BaseComponentProps {
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   category?: string;
   tags?: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
   sound?: boolean;
   soundUrl?: string;
   vibrate?: boolean;
@@ -103,7 +103,7 @@ export interface NotificationProps extends BaseComponentProps {
   silent?: boolean;
   renotify?: boolean;
   tag?: string;
-  data?: any;
+  data?: unknown;
   onShow?: () => void;
   onHide?: () => void;
   onClick?: () => void;
@@ -187,7 +187,7 @@ export interface ToastProps extends Omit<BaseComponentProps, 'id'> {
   role?: 'alert' | 'status';
   toastId?: string | number;
   updateId?: string | number;
-  data?: any;
+  data?: unknown;
   containerId?: string;
   onOpen?: () => void;
   onUpdate?: () => void;

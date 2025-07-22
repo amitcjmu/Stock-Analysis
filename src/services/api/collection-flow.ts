@@ -1,15 +1,40 @@
 import { apiCall } from '@/config/api';
 import type { CollectionFlow, CleanupResult, FlowContinueResult } from '@/hooks/collection/useCollectionFlowManagement';
+import { BaseMetadata } from '../../types/shared/metadata-types';
+
+export interface CollectionFlowConfiguration extends BaseMetadata {
+  automation_tier?: 'basic' | 'standard' | 'advanced' | 'enterprise';
+  platform_scope?: string[];
+  collection_methods?: string[];
+  validation_rules?: ValidationRuleConfig[];
+  notification_settings?: NotificationConfig;
+}
+
+export interface ValidationRuleConfig {
+  rule_id: string;
+  rule_type: 'required' | 'format' | 'range' | 'dependency';
+  field_path: string;
+  validation_criteria: Record<string, unknown>;
+  error_message: string;
+  severity: 'error' | 'warning' | 'info';
+}
+
+export interface NotificationConfig {
+  email_notifications: boolean;
+  slack_notifications: boolean;
+  webhook_notifications: boolean;
+  notification_levels: ('error' | 'warning' | 'info' | 'success')[];
+}
 
 export interface CollectionFlowCreateRequest {
   automation_tier?: string;
-  collection_config?: any;
+  collection_config?: CollectionFlowConfiguration;
 }
 
 export interface CollectionFlowResponse extends CollectionFlow {
   client_account_id: string;
   engagement_id: string;
-  collection_config: any;
+  collection_config: CollectionFlowConfiguration;
   gaps_identified?: number;
   collection_metrics?: {
     platforms_detected: number;
@@ -33,16 +58,61 @@ export interface CollectionGapAnalysisResponse {
   created_at: string;
 }
 
+export interface GapTargetInfo {
+  gap_id: string;
+  attribute_name: string;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  collection_difficulty: 'easy' | 'medium' | 'hard';
+  business_impact: 'low' | 'medium' | 'high' | 'critical';
+  resolution_method: string;
+}
+
+export interface QuestionnaireQuestion {
+  question_id: string;
+  question_text: string;
+  question_type: 'text' | 'number' | 'boolean' | 'select' | 'multiselect' | 'date';
+  required: boolean;
+  options?: string[];
+  validation_rules?: ValidationRuleConfig[];
+  conditional_logic?: ConditionalLogic;
+  help_text?: string;
+}
+
+export interface ConditionalLogic {
+  show_if: {
+    question_id: string;
+    operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than';
+    value: string | number | boolean;
+  }[];
+}
+
+export interface QuestionnaireResponse {
+  question_id: string;
+  response_value: string | number | boolean | string[];
+  confidence_level?: number;
+  notes?: string;
+  validation_passed: boolean;
+  validation_errors?: string[];
+}
+
+export interface FlowUpdateData extends BaseMetadata {
+  status?: string;
+  progress?: number;
+  configuration_updates?: Partial<CollectionFlowConfiguration>;
+  phase_data?: Record<string, unknown>;
+  error_details?: string[];
+}
+
 export interface AdaptiveQuestionnaireResponse {
   id: string;
   collection_flow_id: string;
   title: string;
   description: string;
-  target_gaps: any[];
-  questions: any[];
-  validation_rules: any;
+  target_gaps: GapTargetInfo[];
+  questions: QuestionnaireQuestion[];
+  validation_rules: ValidationRuleConfig[];
   completion_status: string;
-  responses_collected?: any;
+  responses_collected?: QuestionnaireResponse[];
   created_at: string;
   completed_at?: string;
 }
@@ -76,7 +146,7 @@ class CollectionFlowApi {
     return await apiCall(`${this.baseUrl}/flows/${flowId}`, { method: 'GET' });
   }
 
-  async updateFlow(flowId: string, data: any): Promise<CollectionFlowResponse> {
+  async updateFlow(flowId: string, data: FlowUpdateData): Promise<CollectionFlowResponse> {
     return await apiCall(`${this.baseUrl}/flows/${flowId}`, { 
       method: 'PUT', 
       body: JSON.stringify(data)
@@ -94,7 +164,7 @@ class CollectionFlowApi {
   async submitQuestionnaireResponse(
     flowId: string, 
     questionnaireId: string, 
-    responses: any
+    responses: QuestionnaireResponse[]
   ): Promise<{ status: string; message: string; questionnaire_id: string }> {
     return await apiCall(
       `${this.baseUrl}/flows/${flowId}/questionnaires/${questionnaireId}/submit`,
@@ -110,7 +180,7 @@ class CollectionFlowApi {
     return await apiCall(`${this.baseUrl}/incomplete`, { method: 'GET' });
   }
 
-  async continueFlow(flowId: string, resumeContext?: any): Promise<FlowContinueResult> {
+  async continueFlow(flowId: string, resumeContext?: Record<string, unknown>): Promise<FlowContinueResult> {
     return await apiCall(`${this.baseUrl}/flows/${flowId}/continue`, {
       method: 'POST',
       body: JSON.stringify({ resume_context: resumeContext })

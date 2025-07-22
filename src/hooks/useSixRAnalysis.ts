@@ -50,7 +50,7 @@ export interface AnalysisState {
   // UI state
   isLoading: boolean;
   error: string | null;
-  optimisticUpdates: Map<string, any>;
+  optimisticUpdates: Map<string, unknown>;
 }
 
 export interface IterationHistoryItem {
@@ -83,7 +83,7 @@ export interface AnalysisActions {
   
   // Question handling
   loadQualifyingQuestions: (analysisId: number) => Promise<void>;
-  submitQuestionResponse: (questionId: string, response: any) => void;
+  submitQuestionResponse: (questionId: string, response: unknown) => void;
   submitAllQuestions: (isPartial?: boolean) => Promise<void>;
   
   // Analysis control
@@ -93,7 +93,7 @@ export interface AnalysisActions {
   rejectRecommendation: () => Promise<void>;
   
   // History management
-  loadAnalysisHistory: (filters?: any) => Promise<void>;
+  loadAnalysisHistory: (filters?: unknown) => Promise<void>;
   deleteAnalysis: (analysisId: number) => Promise<void>;
   archiveAnalysis: (analysisId: number) => Promise<void>;
   exportAnalyses: (analysisIds: number[], format: 'csv' | 'pdf' | 'json') => Promise<void>;
@@ -330,7 +330,7 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
     });
   }, []);
 
-  const submitQuestionResponse = useCallback((questionId: string, response: any) => {
+  const submitQuestionResponse = useCallback((questionId: string, response: unknown) => {
     const newResponse: QuestionResponse = {
       question_id: questionId,
       response,
@@ -349,7 +349,7 @@ export const useSixRAnalysis = (options: UseSixRAnalysisOptions = {}): [Analysis
   }, []);
 
   // Load analysis history from API
-  const loadAnalysisHistory = useCallback(async (filters?: any) => {
+  const loadAnalysisHistory = useCallback(async (filters?: unknown) => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
       

@@ -59,14 +59,14 @@ export interface PreloadStrategy {
   delay?: number;
 }
 
-export interface LazyHookModule<T = any> {
+export interface LazyHookModule<T = unknown> {
   [key: string]: T;
 }
 
-export interface LazyUtilityModule<T = any> {
+export interface LazyUtilityModule<T = unknown> {
   [key: string]: T;
 }
 
-export type LazyComponentImport = () => Promise<{ default: React.ComponentType<any> }>;
-export type LazyHookImport<T = any> = () => Promise<LazyHookModule<T>>;
-export type LazyUtilityImport<T = any> = () => Promise<LazyUtilityModule<T>>;
+export type LazyComponentImport<P = {}> = () => Promise<{ default: React.ComponentType<P> }>;
+export type LazyHookImport<T = unknown> = () => Promise<LazyHookModule<T>>;
+export type LazyUtilityImport<T = unknown> = () => Promise<LazyUtilityModule<T>>;

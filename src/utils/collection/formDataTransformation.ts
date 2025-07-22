@@ -6,10 +6,11 @@
  */
 
 import type { AdaptiveFormData, FormSection, FormField, FieldOption } from '@/components/collection/types';
+import type { ConfigurationValue, ConfigurationObject } from '@/types/shared/config-types';
 
 export interface QuestionnaireData {
   id?: string;
-  questions?: any[];
+  questions?: QuestionData[];
   estimated_completion_time?: number;
   confidence_impact_score?: number;
 }
@@ -23,9 +24,9 @@ export interface QuestionData {
   category?: string;
   critical_attribute?: string;
   required?: boolean;
-  validation?: any;
+  validation?: ConfigurationObject;
   business_impact_score?: number;
-  options?: any[];
+  options?: FieldOption[];
   help_text?: string;
   description?: string;
 }

@@ -3,4 +3,116 @@
  * Dialog for approving or rejecting purge requests
  */
 
-import React from 'react';\nimport { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';\nimport { Button } from '@/components/ui/button';\nimport { Badge } from '@/components/ui/badge';\nimport { Textarea } from '@/components/ui/textarea';\nimport { Trash2, RotateCcw } from 'lucide-react';\nimport { formatDate, getItemTypeColor, getItemTypeLabel } from '@/components/admin/shared/utils/adminFormatters';\nimport { SoftDeletedItem } from './PlatformStats';\n\nexport interface PurgeAction {\n  action: 'approve' | 'reject';\n  item: SoftDeletedItem;\n  notes: string;\n}\n\nexport interface PurgeActionDialogProps {\n  isOpen: boolean;\n  purgeAction: PurgeAction | null;\n  onClose: () => void;\n  onExecute: () => void;\n  onNotesChange: (notes: string) => void;\n}\n\nexport const PurgeActionDialog: React.FC<PurgeActionDialogProps> = ({\n  isOpen,\n  purgeAction,\n  onClose,\n  onExecute,\n  onNotesChange\n}) => {\n  if (!purgeAction) return null;\n\n  const isApprove = purgeAction.action === 'approve';\n  const isReject = purgeAction.action === 'reject';\n\n  return (\n    <Dialog open={isOpen} onOpenChange={onClose}>\n      <DialogContent>\n        <DialogHeader>\n          <DialogTitle>\n            {isApprove ? 'Approve Permanent Deletion' : 'Reject Deletion and Restore'}\n          </DialogTitle>\n          <DialogDescription>\n            {isApprove \n              ? `You are about to permanently delete \"${purgeAction.item.item_name}\". This action cannot be undone.`\n              : `You are about to restore \"${purgeAction.item.item_name}\" and reject the deletion request.`\n            }\n          </DialogDescription>\n        </DialogHeader>\n        \n        <div className=\"space-y-4\">\n          {/* Item Summary */}\n          <div className=\"bg-gray-50 rounded p-3 space-y-2\">\n            <div className=\"flex items-center gap-2\">\n              <Badge className={getItemTypeColor(purgeAction.item.item_type)}>\n                {getItemTypeLabel(purgeAction.item.item_type)}\n              </Badge>\n              <span className=\"font-medium\">{purgeAction.item.item_name}</span>\n            </div>\n            <p className=\"text-sm text-muted-foreground\">\n              Deleted by {purgeAction.item.deleted_by_name} on {formatDate(purgeAction.item.deleted_at)}\n            </p>\n            {purgeAction.item.delete_reason && (\n              <p className=\"text-sm\">\n                <strong>Original reason:</strong> {purgeAction.item.delete_reason}\n              </p>\n            )}\n          </div>\n          \n          {/* Admin Notes */}\n          <div>\n            <label htmlFor=\"admin-notes\" className=\"block text-sm font-medium mb-2\">\n              Admin Notes {isApprove ? '(Optional)' : '(Required)'}\n            </label>\n            <Textarea\n              id=\"admin-notes\"\n              placeholder={isApprove \n                ? \"Add any notes about this approval...\"\n                : \"Explain why this deletion is being rejected...\"\n              }\n              value={purgeAction.notes}\n              onChange={(e) => onNotesChange(e.target.value)}\n              required={isReject}\n            />\n          </div>\n        </div>\n        \n        <DialogFooter>\n          <Button variant=\"outline\" onClick={onClose}>\n            Cancel\n          </Button>\n          <Button \n            variant={isApprove ? \"destructive\" : \"default\"}\n            onClick={onExecute}\n            disabled={isReject && !purgeAction.notes?.trim()}\n          >\n            {isApprove ? (\n              <>\n                <Trash2 className=\"w-4 h-4 mr-2\" />\n                Permanently Delete\n              </>\n            ) : (\n              <>\n                <RotateCcw className=\"w-4 h-4 mr-2\" />\n                Restore Item\n              </>\n            )}\n          </Button>\n        </DialogFooter>\n      </DialogContent>\n    </Dialog>\n  );\n};
+import React from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Trash2, RotateCcw } from 'lucide-react';
+import { formatDate, getItemTypeColor, getItemTypeLabel } from '@/components/admin/shared/utils/adminFormatters';
+import { SoftDeletedItem } from './PlatformStats';
+
+export interface PurgeAction {
+  action: 'approve' | 'reject';
+  item: SoftDeletedItem;
+  notes: string;
+}
+
+export interface PurgeActionDialogProps {
+  isOpen: boolean;
+  purgeAction: PurgeAction | null;
+  onClose: () => void;
+  onExecute: () => void;
+  onNotesChange: (notes: string) => void;
+}
+
+export const PurgeActionDialog: React.FC<PurgeActionDialogProps> = ({
+  isOpen,
+  purgeAction,
+  onClose,
+  onExecute,
+  onNotesChange
+}) => {
+  if (!purgeAction) return null;
+
+  const isApprove = purgeAction.action === 'approve';
+  const isReject = purgeAction.action === 'reject';
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {isApprove ? 'Approve Permanent Deletion' : 'Reject Deletion and Restore'}
+          </DialogTitle>
+          <DialogDescription>
+            {isApprove 
+              ? `You are about to permanently delete "${purgeAction.item.item_name}". This action cannot be undone.`
+              : `You are about to restore "${purgeAction.item.item_name}" and reject the deletion request.`
+            }
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          {/* Item Summary */}
+          <div className="bg-gray-50 rounded p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <Badge className={getItemTypeColor(purgeAction.item.item_type)}>
+                {getItemTypeLabel(purgeAction.item.item_type)}
+              </Badge>
+              <span className="font-medium">{purgeAction.item.item_name}</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Deleted by {purgeAction.item.deleted_by_name} on {formatDate(purgeAction.item.deleted_at)}
+            </p>
+            {purgeAction.item.delete_reason && (
+              <p className="text-sm">
+                <strong>Original reason:</strong> {purgeAction.item.delete_reason}
+              </p>
+            )}
+          </div>
+          
+          {/* Admin Notes */}
+          <div>
+            <label htmlFor="admin-notes" className="block text-sm font-medium mb-2">
+              Admin Notes {isApprove ? '(Optional)' : '(Required)'}
+            </label>
+            <Textarea
+              id="admin-notes"
+              placeholder={isApprove 
+                ? "Add any notes about this approval..."
+                : "Explain why this deletion is being rejected..."
+              }
+              value={purgeAction.notes}
+              onChange={(e) => onNotesChange(e.target.value)}
+              required={isReject}
+            />
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button 
+            variant={isApprove ? "destructive" : "default"}
+            onClick={onExecute}
+            disabled={isReject && !purgeAction.notes?.trim()}
+          >
+            {isApprove ? (
+              <>
+                <Trash2 className="w-4 h-4 mr-2" />
+                Permanently Delete
+              </>
+            ) : (
+              <>
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Restore Item
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};

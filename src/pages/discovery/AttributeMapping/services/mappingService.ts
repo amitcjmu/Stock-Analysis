@@ -31,7 +31,7 @@ export class MappingService {
     }
   }
 
-  static async updateMapping(mappingId: string, updates: any, flowId: string) {
+  static async updateMapping(mappingId: string, updates: unknown, flowId: string) {
     try {
       const response = await apiCall(`/field-mapping/update/${mappingId}`, {
         method: 'PUT',
@@ -45,7 +45,7 @@ export class MappingService {
     }
   }
 
-  static async updateAttribute(attributeId: string, updates: any, flowId: string) {
+  static async updateAttribute(attributeId: string, updates: unknown, flowId: string) {
     try {
       const response = await apiCall(`/attribute-mapping/update/${attributeId}`, {
         method: 'PUT',

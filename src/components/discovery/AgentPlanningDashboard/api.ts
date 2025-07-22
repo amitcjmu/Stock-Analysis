@@ -5,7 +5,7 @@
  */
 
 import { apiCall, API_CONFIG } from '@/config/api';
-import { AgentPlan, FeedbackType } from './types';
+import { AgentPlan, FeedbackType, TaskInput } from './types';
 import { generateDemoPlan } from './demo-data';
 
 export const fetchAgentPlan = async (pageContext: string): Promise<AgentPlan> => {
@@ -71,7 +71,7 @@ export const submitTaskApproval = async (
 
 export const submitHumanInput = async (
   taskId: string, 
-  input: any, 
+  input: TaskInput, 
   pageContext: string
 ): Promise<void> => {
   try {

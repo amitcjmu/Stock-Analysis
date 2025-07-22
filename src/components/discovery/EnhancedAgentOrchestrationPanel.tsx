@@ -18,12 +18,12 @@ interface CrewProgress {
   agents: AgentInfo[];
   description: string;
   icon: React.ReactNode;
-  key_metrics?: any;
+  key_metrics?: unknown;
 }
 
 interface EnhancedAgentOrchestrationPanelProps {
   flowId: string;
-  flowState?: any;
+  flowState?: unknown;
 }
 
 const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelProps> = ({

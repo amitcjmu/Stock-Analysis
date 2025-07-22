@@ -1,17 +1,17 @@
 export interface SixRParameters {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface SixRRecommendation {
   id: string;
   recommendation: string;
   confidence: number;
-  parameters: Record<string, any>;
+  parameters: Record<string, string | number | boolean | null>;
 }
 
 export interface QuestionResponse {
   questionId: string;
-  response: any;
+  response: unknown;
 }
 
 export interface AnalysisProgress {

@@ -33,7 +33,7 @@ export interface SessionComparisonProps extends BaseComponentProps {
   maxComparisons?: number;
   columns?: SessionComparisonColumn[];
   filters?: SessionFilter[];
-  onFiltersChange?: (filters: Record<string, any>) => void;
+  onFiltersChange?: (filters: Record<string, string | number | boolean | null>) => void;
   showDifferences?: boolean;
   showSimilarities?: boolean;
   showMetrics?: boolean;
@@ -74,15 +74,15 @@ export interface ComparisonDifference {
 export interface ComparisonSimilarity {
   field: string;
   label: string;
-  value: any;
+  value: unknown;
   confidence: number;
   category: SimilarityCategory;
 }
 
 export interface ComparisonValue {
   sessionId: string;
-  value: any;
-  normalized?: any;
+  value: unknown;
+  normalized?: unknown;
   deviation?: number;
 }
 
@@ -124,5 +124,5 @@ export interface RecommendedAction {
   action: string;
   description: string;
   automated: boolean;
-  parameters?: Record<string, any>;
+  parameters?: Record<string, string | number | boolean | null>;
 }

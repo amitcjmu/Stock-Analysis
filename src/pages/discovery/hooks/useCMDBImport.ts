@@ -17,7 +17,11 @@ export interface UploadedFile {
     route?: string;
     description?: string;
     isExternal?: boolean;
-    dataQualityIssues?: any[];
+    dataQualityIssues?: Array<{
+      issue: string;
+      severity: 'high' | 'medium' | 'low';
+      count?: number;
+    }>;
   }>;
   confidence?: number;
   detectedFileType?: string;
@@ -29,9 +33,9 @@ export interface UploadedFile {
 
 export interface DiscoveryFlowRequest {
   headers: string[];
-  sample_data: Record<string, any>[];
+  sample_data: Record<string, unknown>[];
   filename: string;
-  options?: Record<string, any>;
+  options?: Record<string, unknown>;
 }
 
 export interface DiscoveryFlowResponse {
@@ -40,7 +44,7 @@ export interface DiscoveryFlowResponse {
   flow_id: string;
   workflow_status: string;
   current_phase: string;
-  flow_result: any;
+  flow_result: Record<string, unknown>;
   next_steps: {
     ready_for_assessment: boolean;
     recommended_actions: string[];
@@ -55,13 +59,18 @@ interface AnalysisStatusResponse {
   progress_percentage?: number;
   message?: string;
   // Raw agent data (pass through what CrewAI agents actually produce)
-  flow_status?: any;
-  agent_insights?: any[];
-  agent_results?: Record<string, any>;
-  clarification_questions?: any[];
-  data_quality_assessment?: any;
-  field_mappings?: Record<string, any>;
-  classified_assets?: any[];
+  flow_status?: Record<string, unknown>;
+  agent_insights?: Array<string | Record<string, unknown>>;
+  agent_results?: Record<string, unknown>;
+  clarification_questions?: Array<string | Record<string, unknown>>;
+  data_quality_assessment?: Record<string, unknown>;
+  field_mappings?: Record<string, unknown>;
+  classified_assets?: Array<{
+    id: string;
+    name: string;
+    type: string;
+    [key: string]: unknown;
+  }>;
   processing_summary?: {
     total_records_processed?: number;
     records_found?: number;
@@ -69,11 +78,11 @@ interface AnalysisStatusResponse {
     workflow_phase?: string;
     agent_status?: string;
   };
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // Helper function to parse CSV file into structured data
-const parseCSVFile = (file: File): Promise<{ headers: string[]; sample_data: Record<string, any>[] }> => {
+const parseCSVFile = (file: File): Promise<{ headers: string[]; sample_data: Record<string, unknown>[] }> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -90,10 +99,10 @@ const parseCSVFile = (file: File): Promise<{ headers: string[]; sample_data: Rec
         const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
         
         // Parse data rows
-        const sample_data: Record<string, any>[] = [];
+        const sample_data: Record<string, unknown>[] = [];
         for (let i = 1; i < Math.min(lines.length, 11); i++) { // Take first 10 data rows
           const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-          const row: Record<string, any> = {};
+          const row: Record<string, unknown> = {};
           headers.forEach((header, index) => {
             row[header] = values[index] || '';
           });
@@ -184,7 +193,7 @@ export const useDiscoveryFlowStatus = (flowId: string | null) => {
       // Use the public status endpoint that doesn't require authentication
       const response = await apiCall(
         `/api/v1/discovery/flow/agentic-analysis/status-public?flow_id=${flowId}`
-      ) as any;
+      ) as AnalysisStatusResponse;
       
       // Extract the actual workflow status from the backend response
       const flowStatus = response.flow_status || {};
@@ -316,7 +325,7 @@ export const useAuthenticatedDiscoveryStatus = (flowId: string | null) => {
             },
             credentials: 'include' // Ensure cookies are sent with the request
           }
-        ) as any;
+        ) as AnalysisStatusResponse;
         
         // Transform response to match AnalysisStatusResponse
         const flowStatus = response.flow_status || {};

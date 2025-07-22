@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { agentObservabilityService } from '../../../services/api/agentObservabilityService';
-import type { AgentCardData } from '../../../types/api/observability/agent-performance';
+import type { AgentCardData, AgentMetricsData } from '../../../types/api/observability/agent-performance';
 
 export interface UseAgentDataOptions {
   agentName?: string;
@@ -100,7 +100,7 @@ export const useAgentData = (options: UseAgentDataOptions = {}): UseAgentDataRet
 };
 
 export const useAgentPerformance = (agentName: string, period: number = 7) => {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<AgentMetricsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -134,7 +134,7 @@ export const useAgentPerformance = (agentName: string, period: number = 7) => {
 };
 
 export const useAgentAnalytics = (agentName: string, period: number = 7) => {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<AgentMetricsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

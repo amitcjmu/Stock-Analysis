@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 
 interface DependencyModalProps {
-  selectedDependency: any;
+  selectedDependency: unknown;
   showModal: boolean;
   onClose: () => void;
-  onSave: (dependency: any) => void;
-  onDelete?: (dependency: any) => void;
+  onSave: (dependency: unknown) => void;
+  onDelete?: (dependency: unknown) => void;
 }
 
 export const DependencyModal: React.FC<DependencyModalProps> = ({

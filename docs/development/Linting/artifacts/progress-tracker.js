@@ -12,15 +12,19 @@
  * @date 2025-01-21
  */
 
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+import { execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Configuration
 const CONFIG = {
   projectRoot: path.resolve(__dirname, '../../../..'),
   trackerPath: path.resolve(__dirname, '../tracking/PROGRESS-TRACKER.md'),
-  eslintCommand: 'npm run lint -- --format json',
+  eslintCommand: 'npx eslint . --ext ts,tsx --format json',
   
   // Agent file mappings
   agentDomains: {
@@ -400,11 +404,11 @@ function main() {
 }
 
 // Run if called directly
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main();
 }
 
-module.exports = {
+export {
   runESLint,
   analyzeResults,
   generateReport,

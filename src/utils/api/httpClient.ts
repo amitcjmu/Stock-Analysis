@@ -3,7 +3,7 @@
  * Provides a robust API client with retry, caching, and multi-tenant support.
  */
 
-import {
+import type {
   ApiClient,
   ApiClientConfig,
   ApiResponse,
@@ -116,15 +116,15 @@ class HttpClient implements ApiClient {
   private async executeRequest<T>(
     method: string,
     url: string,
-    data?: any,
+    data?: unknown,
     config: RequestConfig = {}
   ): Promise<ApiResponse<T>> {
     const startTime = Date.now();
     const fullUrl = this.buildUrl(url);
     
     // Apply request interceptors
-    let requestConfig = {
-      method: method as any,
+    let requestConfig: RequestConfig = {
+      method: method as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
       url: fullUrl,
       data,
       headers: { ...this.config.headers, ...config.headers },
@@ -145,7 +145,7 @@ class HttpClient implements ApiClient {
     // Check cache for GET requests
     if (method === 'GET' && this.config.enableCache && config.cache !== false) {
       const cacheKey = this.buildCacheKey(fullUrl, config.params);
-      const cached = await this.cache.get(cacheKey);
+      const cached = await this.cache.get(cacheKey) as ApiResponse<T> | null;
       if (cached) {
         this.updateMetrics(Date.now() - startTime, true, true);
         return cached;
@@ -160,10 +160,10 @@ class HttpClient implements ApiClient {
       let processedResponse = response;
       for (const interceptor of this.getSortedInterceptors(this.responseInterceptors)) {
         try {
-          processedResponse = await interceptor.onResponse(processedResponse);
+          processedResponse = await interceptor.onResponse(processedResponse) as ApiResponse<T>;
         } catch (error) {
           if (interceptor.onError) {
-            await interceptor.onError(error);
+            await interceptor.onError(error as ApiErrorType);
           }
         }
       }
@@ -201,6 +201,10 @@ class HttpClient implements ApiClient {
   private async makeRequest<T>(config: RequestConfig): Promise<ApiResponse<T>> {
     const { method = 'GET', url, data, headers, timeout, params } = config;
     
+    if (!url) {
+      throw new Error('URL is required for request');
+    }
+    
     // Build query string for GET requests
     const queryString = params ? this.buildQueryString(params) : '';
     const fullUrl = queryString ? `${url}?${queryString}` : url;
@@ -224,7 +228,7 @@ class HttpClient implements ApiClient {
     const response = await fetch(fullUrl, requestInit);
     
     // Handle different response types
-    let responseData: any;
+    let responseData: unknown;
     const contentType = response.headers.get('Content-Type');
     
     if (contentType?.includes('application/json')) {
@@ -245,7 +249,16 @@ class HttpClient implements ApiClient {
       throw error;
     }
 
-    return responseData;
+    // Transform response data to match SharedApiResponse structure
+    return {
+      data: responseData as T,
+      success: true,
+      meta: {
+        timestamp: new Date().toISOString(),
+        duration: 0,
+        version: '1.0.0'
+      }
+    } as ApiResponse<T>;
   }
 
   private buildUrl(url: string): string {
@@ -255,7 +268,7 @@ class HttpClient implements ApiClient {
     return `${this.config.baseURL}${url.startsWith('/') ? '' : '/'}${url}`;
   }
 
-  private buildQueryString(params: Record<string, any>): string {
+  private buildQueryString(params: Record<string, unknown>): string {
     const searchParams = new URLSearchParams();
     
     Object.entries(params).forEach(([key, value]) => {
@@ -271,7 +284,7 @@ class HttpClient implements ApiClient {
     return searchParams.toString();
   }
 
-  private buildCacheKey(url: string, params?: Record<string, any>): string {
+  private buildCacheKey(url: string, params?: Record<string, unknown>): string {
     const baseKey = url;
     const paramKey = params ? JSON.stringify(params) : '';
     return `${baseKey}${paramKey}`;
@@ -305,42 +318,42 @@ class HttpClient implements ApiClient {
   }
 
   // Public API methods
-  async get<T = any>(url: string, config?: RequestConfig): Promise<ApiResponse<T>> {
+  async get<T = unknown>(url: string, config?: RequestConfig): Promise<ApiResponse<T>> {
     return applyRetryPolicy(
       () => this.executeRequest<T>('GET', url, undefined, config),
-      this.config.retries
+      { maxRetries: this.config.retries }
     );
   }
 
-  async post<T = any>(url: string, data?: any, config?: RequestConfig): Promise<ApiResponse<T>> {
+  async post<T = unknown>(url: string, data?: unknown, config?: RequestConfig): Promise<ApiResponse<T>> {
     return applyRetryPolicy(
       () => this.executeRequest<T>('POST', url, data, config),
-      this.config.retries
+      { maxRetries: this.config.retries }
     );
   }
 
-  async put<T = any>(url: string, data?: any, config?: RequestConfig): Promise<ApiResponse<T>> {
+  async put<T = unknown>(url: string, data?: unknown, config?: RequestConfig): Promise<ApiResponse<T>> {
     return applyRetryPolicy(
       () => this.executeRequest<T>('PUT', url, data, config),
-      this.config.retries
+      { maxRetries: this.config.retries }
     );
   }
 
-  async delete<T = any>(url: string, config?: RequestConfig): Promise<ApiResponse<T>> {
+  async delete<T = unknown>(url: string, config?: RequestConfig): Promise<ApiResponse<T>> {
     return applyRetryPolicy(
       () => this.executeRequest<T>('DELETE', url, undefined, config),
-      this.config.retries
+      { maxRetries: this.config.retries }
     );
   }
 
-  async patch<T = any>(url: string, data?: any, config?: RequestConfig): Promise<ApiResponse<T>> {
+  async patch<T = unknown>(url: string, data?: unknown, config?: RequestConfig): Promise<ApiResponse<T>> {
     return applyRetryPolicy(
       () => this.executeRequest<T>('PATCH', url, data, config),
-      this.config.retries
+      { maxRetries: this.config.retries }
     );
   }
 
-  async upload<T = any>(url: string, config: UploadConfig): Promise<ApiResponse<T>> {
+  async upload<T = unknown>(url: string, config: UploadConfig): Promise<ApiResponse<T>> {
     const formData = new FormData();
     formData.append(config.fieldName || 'file', config.file);
     
@@ -360,10 +373,10 @@ class HttpClient implements ApiClient {
     });
   }
 
-  async batch(requests: BatchRequest[]): Promise<BatchResponse[]> {
+  async batch<T = unknown>(requests: BatchRequest[]): Promise<BatchResponse<T>[]> {
     const batchPromises = requests.map(async (request) => {
       try {
-        const response = await this.executeRequest(
+        const response = await this.executeRequest<T>(
           request.method,
           request.url,
           request.data,
@@ -372,22 +385,22 @@ class HttpClient implements ApiClient {
         return {
           id: request.id,
           status: 200,
-          data: response
-        };
+          data: response.data
+        } as BatchResponse<T>;
       } catch (error) {
         return {
           id: request.id,
           status: 500,
-          data: null,
+          data: null as T,
           error: error as ApiErrorType
-        };
+        } as BatchResponse<T>;
       }
     });
 
     return Promise.all(batchPromises);
   }
 
-  async poll<T = any>(url: string, config: PollingConfig): Promise<ApiResponse<T>> {
+  async poll<T = unknown>(url: string, config: PollingConfig): Promise<ApiResponse<T>> {
     let attempt = 0;
     
     while (attempt < config.maxAttempts) {
@@ -432,7 +445,7 @@ class HttpClient implements ApiClient {
         status: 'healthy',
         latency,
         timestamp: new Date().toISOString(),
-        details: response.data
+        details: response.data as Record<string, unknown>
       }];
     } catch (error) {
       const latency = Date.now() - startTime;
@@ -441,7 +454,7 @@ class HttpClient implements ApiClient {
         status: 'unhealthy',
         latency,
         timestamp: new Date().toISOString(),
-        details: { error: error.message }
+        details: { error: (error as Error).message }
       }];
     }
   }
@@ -497,10 +510,10 @@ export function getApiClient(): HttpClient {
 
 // Convenience functions
 // handleApiError is already exported from errorHandling.ts
-export const setDefaultHeaders = (headers: Record<string, string>) => getApiClient().setDefaultHeaders(headers);
-export const setMultiTenantHeaders = (context: MultiTenantContext) => getApiClient().setMultiTenantContext(context);
-export const retryRequest = <T>(fn: () => Promise<T>, retries: number = 3) => applyRetryPolicy(fn, retries);
-export const clearApiCache = (pattern?: string) => getApiClient().clearCache(pattern);
+export const setDefaultHeaders = (headers: Record<string, string>): void => getApiClient().setDefaultHeaders(headers);
+export const setMultiTenantHeaders = (context: MultiTenantContext): void => getApiClient().setMultiTenantContext(context);
+export const retryRequest = <T>(fn: () => Promise<T>, retries: number = 3): Promise<T> => applyRetryPolicy(fn, { maxRetries: retries });
+export const clearApiCache = (pattern?: string): void => getApiClient().clearCache(pattern);
 
 // Default export
 export default HttpClient;

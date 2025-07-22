@@ -34,7 +34,7 @@ export interface AdaptiveFormContainerProps {
   milestones: ProgressMilestone[];
   isSaving?: boolean;
   isSubmitting?: boolean;
-  onFieldChange: (fieldId: string, value: any) => void;
+  onFieldChange: (fieldId: string, value: unknown) => void;
   onValidationChange: (validation: FormValidationResult) => void;
   onSave: () => void;
   onSubmit: (data: CollectionFormData) => void;
@@ -78,18 +78,7 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
 
       {/* Main Content */}
       <div className="lg:col-span-3 space-y-6">
-        {/* Validation Display */}
-        {validation && validation.fieldResults && Object.keys(validation.fieldResults).length > 0 && (
-          <ValidationDisplay 
-            validation={validation}
-            showWarnings={true}
-            onErrorClick={(fieldId) => {
-              // Focus the field with error
-              const element = document.getElementById(fieldId);
-              element?.focus();
-            }}
-          />
-        )}
+        {/* Validation Display is now handled inside AdaptiveForm component */}
 
         {/* Form Tabs */}
         <Tabs defaultValue="single" className="w-full">

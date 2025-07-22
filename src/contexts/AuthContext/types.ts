@@ -41,6 +41,29 @@ export interface User {
   role: string;
 }
 
+/**
+ * User registration data for external integrations
+ */
+export interface UserRegistrationData {
+  email: string;
+  password: string;
+  full_name: string;
+  role?: string;
+  organization?: string;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Registration response from external authentication providers
+ */
+export interface UserRegistrationResponse {
+  user: User;
+  token?: string;
+  requiresVerification?: boolean;
+  verificationUrl?: string;
+  metadata?: Record<string, unknown>;
+}
+
 export interface AuthContextType {
   user: User | null;
   client: Client | null;
@@ -52,7 +75,7 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   login: (email: string, password: string) => Promise<User>;
-  register: (userData: any) => Promise<any>;
+  register: (userData: UserRegistrationData) => Promise<UserRegistrationResponse>;
   logout: () => void;
   switchClient: (clientId: string, clientData?: Client) => Promise<void>;
   switchEngagement: (engagementId: string, engagementData?: Engagement) => Promise<void>;

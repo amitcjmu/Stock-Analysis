@@ -3,7 +3,7 @@
  * Provides consistent multi-tenant context management for API requests.
  */
 
-import { MultiTenantContext, MultiTenantHeaders } from './apiTypes';
+import type { MultiTenantContext, MultiTenantHeaders } from './apiTypes';
 
 export function createMultiTenantHeaders(context: MultiTenantContext): MultiTenantHeaders {
   const headers: MultiTenantHeaders = {};

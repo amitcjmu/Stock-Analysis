@@ -76,11 +76,11 @@ export interface AgentMessage {
   fromAgentId: string;
   toAgentId?: string; // null for broadcast
   messageType: string;
-  content: any;
+  content: unknown;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   timestamp: string;
   deliveryStatus: 'sent' | 'delivered' | 'acknowledged' | 'failed';
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface AgentCommunication {
@@ -99,8 +99,8 @@ export interface AgentState {
   agentId: string;
   status: string;
   currentTask?: string;
-  memory: Record<string, any>;
-  context: Record<string, any>;
+  memory: Record<string, string | number | boolean | null>;
+  context: Record<string, string | number | boolean | null>;
   performance: AgentPerformance;
   lastUpdate: string;
 }
@@ -130,7 +130,7 @@ export interface AgentDependency {
 
 export interface AgentResult {
   agentId: string;
-  result: any;
+  result: unknown;
   status: 'success' | 'failure' | 'partial';
   error?: ExecutionError;
   metrics: AgentMetrics;
@@ -159,12 +159,12 @@ export interface CoordinationMetrics {
 
 export interface AgentContribution {
   agentId: string;
-  contribution: any;
+  contribution: unknown;
   weight: number;
   confidence: number;
   quality: number;
   relevance: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface AgentResourceUsage {

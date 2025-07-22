@@ -44,9 +44,9 @@ export interface CrewInstance {
 export interface CrewExecutionContext {
   flowId: string;
   executionId: string;
-  inputs: Record<string, any>;
-  parameters: Record<string, any>;
-  context: Record<string, any>;
+  inputs: Record<string, string | number | boolean | null>;
+  parameters: Record<string, string | number | boolean | null>;
+  context: Record<string, string | number | boolean | null>;
   constraints: ExecutionConstraints;
   callbacks: CrewCallback[];
 }
@@ -55,7 +55,7 @@ export interface CrewExecutionResult {
   crewId: string;
   executionId: string;
   status: 'completed' | 'failed' | 'cancelled';
-  result: any;
+  result: unknown;
   taskResults: CrewTaskResult[];
   agentResults: AgentResult[];
   metrics: CrewMetrics;
@@ -81,14 +81,14 @@ export interface CrewStatus {
 export interface CrewResults {
   crewId: string;
   executionId: string;
-  finalResult: any;
+  finalResult: unknown;
   taskResults: CrewTaskResult[];
   agentContributions: AgentContribution[];
   consensusReached: boolean;
   qualityScore: number;
   confidence: number;
   recommendations: string[];
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface CrewMetrics {
@@ -109,7 +109,7 @@ export interface CrewState {
   completedTasks: number;
   totalTasks: number;
   agents: string[];
-  sharedMemory: Record<string, any>;
+  sharedMemory: Record<string, string | number | boolean | null>;
   lastUpdate: string;
 }
 
@@ -119,8 +119,8 @@ export interface CrewTask {
   description: string;
   agentId: string;
   dependencies: string[];
-  inputs: Record<string, any>;
-  outputs: Record<string, any>;
+  inputs: Record<string, string | number | boolean | null>;
+  outputs: Record<string, string | number | boolean | null>;
   timeout: number;
   retryPolicy: RetryPolicy;
   priority: number;
@@ -134,7 +134,7 @@ export interface CrewTaskInstance {
   startTime?: string;
   endTime?: string;
   duration?: number;
-  result?: any;
+  result?: unknown;
   error?: ExecutionError;
   retryCount: number;
 }
@@ -142,12 +142,12 @@ export interface CrewTaskInstance {
 export interface CrewCallback {
   event: string;
   handler: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, string | number | boolean | null>;
 }
 
 export interface CrewTaskResult {
   taskId: string;
-  result: any;
+  result: unknown;
   status: 'success' | 'failure' | 'partial';
   agentId: string;
   error?: ExecutionError;
@@ -206,10 +206,10 @@ export interface TaskMetrics {
 
 export interface AgentContribution {
   agentId: string;
-  contribution: any;
+  contribution: unknown;
   weight: number;
   confidence: number;
   quality: number;
   relevance: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }

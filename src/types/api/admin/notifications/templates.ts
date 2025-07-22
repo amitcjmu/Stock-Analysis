@@ -51,10 +51,10 @@ export interface TemplateVariable {
   name: string;
   type: VariableType;
   required: boolean;
-  default_value?: any;
+  default_value?: unknown;
   validation?: VariableValidation;
   description?: string;
-  examples?: any[];
+  examples?: unknown[];
 }
 
 // Channel-specific template configuration
@@ -75,7 +75,7 @@ export interface PushTemplateContent {
   badge?: string;
   sound?: string;
   actions?: PushAction[];
-  data?: Record<string, any>;
+  data?: Record<string, string | number | boolean | null>;
 }
 
 // In-app notification template content
@@ -102,7 +102,7 @@ export interface VariableValidation {
   min_length?: number;
   max_length?: number;
   pattern?: string;
-  allowed_values?: any[];
+  allowed_values?: unknown[];
   required_format?: string;
 }
 

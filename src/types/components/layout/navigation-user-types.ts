@@ -32,7 +32,7 @@ export interface NavigationItem {
   disabled?: boolean;
   badge?: string | number;
   children?: NavigationItem[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface BreadcrumbItem {
@@ -43,7 +43,7 @@ export interface BreadcrumbItem {
   active?: boolean;
   disabled?: boolean;
   icon?: ReactNode;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface NotificationItem {
@@ -57,7 +57,7 @@ export interface NotificationItem {
     label: string;
     onClick: () => void;
   };
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface UserMenuItem {
@@ -68,7 +68,7 @@ export interface UserMenuItem {
   onClick?: () => void;
   disabled?: boolean;
   divider?: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface QuickAction {
@@ -79,5 +79,5 @@ export interface QuickAction {
   disabled?: boolean;
   tooltip?: string;
   shortcut?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }

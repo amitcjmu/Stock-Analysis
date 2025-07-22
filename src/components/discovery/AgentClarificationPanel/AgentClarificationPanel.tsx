@@ -62,7 +62,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
       // Fetch asset details for application boundary questions
       await fetchAssetDetailsForQuestions(fetchedQuestions);
       setError(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message);
     } finally {
       setIsLoading(false);
@@ -114,7 +114,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
         // Notify parent component
         onQuestionAnswered?.(questionId, response);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message);
     } finally {
       setIsSubmitting(prev => ({ ...prev, [questionId]: false }));
@@ -136,7 +136,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
         
         onQuestionAnswered?.(questionId, selectedOption);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message);
     } finally {
       setIsSubmitting(prev => ({ ...prev, [questionId]: false }));

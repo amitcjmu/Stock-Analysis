@@ -37,7 +37,7 @@ export interface GetSessionDetailsRequest extends BaseApiRequest {
 export interface GetSessionDetailsResponse extends BaseApiResponse<UserSession> {
   data: UserSession;
   activities: SessionActivity[];
-  securityEvents: any[];
+  securityEvents: unknown[];
   riskScore: number;
 }
 
@@ -47,8 +47,8 @@ export interface RevokeSessionRequest extends BaseApiRequest {
   context: MultiTenantContext;
 }
 
-export interface RevokeSessionResponse extends BaseApiResponse<any> {
-  data: any;
+export interface RevokeSessionResponse extends BaseApiResponse<unknown> {
+  data: unknown;
   revoked: boolean;
   revokedAt: string;
   notificationSent: boolean;
@@ -60,8 +60,8 @@ export interface RevokeAllSessionsRequest extends BaseApiRequest {
   context: MultiTenantContext;
 }
 
-export interface RevokeAllSessionsResponse extends BaseApiResponse<any> {
-  data: any;
+export interface RevokeAllSessionsResponse extends BaseApiResponse<unknown> {
+  data: unknown;
   sessionsRevoked: number;
   tokensRevoked: number;
   devicesUntrusted: number;

@@ -87,5 +87,5 @@ export interface CdnSettings {
   enabled: boolean;
   url: string;
   provider: string;
-  configuration?: Record<string, any>;
+  configuration?: Record<string, string | number | boolean | null>;
 }

@@ -59,7 +59,7 @@ export interface CutoverRollback {
 
 export interface RollbackTrigger {
   condition: string;
-  threshold: any;
+  threshold: unknown;
   automatic: boolean;
   approver?: string;
   timeframe: string;

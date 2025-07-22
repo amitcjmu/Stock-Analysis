@@ -6,6 +6,7 @@
  * Generated with CC for modular admin type organization.
  */
 
+import type { BaseMetadata, AuditableMetadata } from '../../../shared/metadata-types';
 import { ChannelType, TrackingEventType } from './enums';
 import { UtmParameters } from './notification';
 
@@ -15,7 +16,7 @@ export interface NotificationTracking {
   trackClicks: boolean;
   trackConversions: boolean;
   utm_parameters?: UtmParameters;
-  custom_properties?: Record<string, any>;
+  custom_properties?: Record<string, string | number | boolean | null>;
   events: TrackingEvent[];
 }
 
@@ -25,5 +26,5 @@ export interface TrackingEvent {
   timestamp: string;
   recipient_id: string;
   channel: ChannelType;
-  metadata: Record<string, any>;
+  metadata: AuditableMetadata;
 }

@@ -26,8 +26,8 @@ export interface UseIsomorphicLayoutEffectReturn {
   // No return value - this is just useLayoutEffect in browser, useEffect in SSR
 }
 
-export interface UseComposedRefsReturn {
-  composedRef: React.RefCallback<any>;
+export interface UseComposedRefsReturn<T = unknown> {
+  composedRef: React.RefCallback<T>;
 }
 
 export interface UseControllableStateParams<T> {

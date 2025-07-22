@@ -53,6 +53,17 @@ interface SessionSnapshot {
   errors_encountered: number;
 }
 
+interface ComparisonHistoryItem {
+  comparison_id: string;
+  source_session: string;
+  target_session: string;
+  generated_at: string;
+  overall_improvement: number;
+  comparison_type?: string;
+  performed_by?: string;
+  notes?: string;
+}
+
 interface MetricDiff {
   source_value: number;
   target_value: number;
@@ -126,7 +137,7 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
   const [selectedTargetSession, setSelectedTargetSession] = useState<string>('');
   const [comparisonType, setComparisonType] = useState<string>('full_comparison');
   const [comparison, setComparison] = useState<SessionComparison | null>(null);
-  const [comparisonHistory, setComparisonHistory] = useState<any[]>([]);
+  const [comparisonHistory, setComparisonHistory] = useState<ComparisonHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);

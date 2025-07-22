@@ -158,7 +158,7 @@ export const useLazyAssessmentFlow = (immediate = false) => {
  */
 
 // Progressive hook loading - load basic functionality first, then enhanced features
-export const useProgressiveLazyHook = <T extends Record<string, any>>(
+export const useProgressiveLazyHook = <T extends Record<string, unknown>>(
   baseHookId: string,
   baseImport: () => Promise<{ default: T }>,
   enhancedHookId: string,
@@ -199,7 +199,7 @@ export const useProgressiveLazyHook = <T extends Record<string, any>>(
 export const useBatchLazyHooks = (
   hooks: Array<{
     id: string;
-    import: () => Promise<any>;
+    import: () => Promise<{ default: unknown }>;
     priority?: LoadingPriority;
   }>,
   immediate = false

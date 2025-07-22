@@ -5,6 +5,7 @@
 
 import { ApiClient } from '../ApiClient';
 import { masterFlowService } from './masterFlowService';
+import { ApiResponse } from '../../types/shared/api-types';
 
 const apiClient = ApiClient.getInstance();
 
@@ -19,12 +20,12 @@ export const masterFlowServiceExtended = {
   async executePhase(
     flowId: string,
     phase: string,
-    phaseData: Record<string, any>,
+    phaseData: Record<string, unknown>,
     clientAccountId: string,
     engagementId?: string
-  ): Promise<any> {
+  ): Promise<ApiResponse<{ success: boolean; message?: string; data?: Record<string, unknown> }>> {
     const token = localStorage.getItem('auth_token');
-    return apiClient.post(
+    return apiClient.post<ApiResponse<{ success: boolean; message?: string; data?: Record<string, unknown> }>>(
       `/flows/${flowId}/execute`,
       { 
         phase_input: { 
@@ -51,9 +52,9 @@ export const masterFlowServiceExtended = {
     flowId: string,
     clientAccountId: string,
     engagementId?: string
-  ): Promise<any> {
+  ): Promise<ApiResponse<{ success: boolean; message?: string; data?: Record<string, unknown> }>> {
     const token = localStorage.getItem('auth_token');
-    return apiClient.post(
+    return apiClient.post<ApiResponse<{ valid: boolean; errors?: string[]; warnings?: string[] }>>(
       `/flows/${flowId}/validate`,
       {},
       {
@@ -74,9 +75,9 @@ export const masterFlowServiceExtended = {
     flowId: string,
     clientAccountId: string,
     engagementId?: string
-  ): Promise<any> {
+  ): Promise<ApiResponse<{ success: boolean; message?: string; data?: Record<string, unknown> }>> {
     const token = localStorage.getItem('auth_token');
-    return apiClient.post(
+    return apiClient.post<ApiResponse<{ success: boolean; message?: string }>>(
       `/flows/${flowId}/retry`,
       {},
       {
@@ -97,9 +98,9 @@ export const masterFlowServiceExtended = {
     flowId: string,
     clientAccountId: string,
     engagementId?: string
-  ): Promise<any> {
+  ): Promise<ApiResponse<{ success: boolean; message?: string; data?: Record<string, unknown> }>> {
     const token = localStorage.getItem('auth_token');
-    return apiClient.get(
+    return apiClient.get<ApiResponse<{ status: string; errors?: string[]; warnings?: string[]; last_validated?: string }>>(
       `/flows/${flowId}/validation-status`,
       {
         headers: {
@@ -118,9 +119,9 @@ export const masterFlowServiceExtended = {
     flowId: string,
     clientAccountId: string,
     engagementId?: string
-  ): Promise<any> {
+  ): Promise<ApiResponse<{ success: boolean; message?: string; data?: Record<string, unknown> }>> {
     const token = localStorage.getItem('auth_token');
-    return apiClient.get(
+    return apiClient.get<ApiResponse<{ insights: Array<{ agent: string; insight: string; confidence: number; timestamp: string }> }>>(
       `/flows/${flowId}/agent-insights`,
       {
         headers: {
@@ -140,9 +141,9 @@ export const masterFlowServiceExtended = {
     flowId: string,
     clientAccountId: string,
     engagementId?: string
-  ): Promise<any> {
+  ): Promise<ApiResponse<{ success: boolean; message?: string; data?: Record<string, unknown> }>> {
     const token = localStorage.getItem('auth_token');
-    return apiClient.post(
+    return apiClient.post<ApiResponse<{ success: boolean; completed_at: string; message?: string }>>(
       `/flows/${flowId}/complete`,
       {},
       {
@@ -163,9 +164,9 @@ export const masterFlowServiceExtended = {
   async getDiscoveryMetrics(
     clientAccountId: string,
     engagementId?: string
-  ): Promise<any> {
+  ): Promise<ApiResponse<{ success: boolean; message?: string; data?: Record<string, unknown> }>> {
     const token = localStorage.getItem('auth_token');
-    return apiClient.get(
+    return apiClient.get<ApiResponse<{ total_flows: number; completed_flows: number; active_flows: number; failed_flows: number; metrics: Record<string, unknown> }>>(
       `/flows/metrics?flowType=discovery`,
       {
         headers: {
@@ -184,9 +185,9 @@ export const masterFlowServiceExtended = {
   async getApplicationLandscape(
     clientAccountId: string,
     engagementId?: string
-  ): Promise<any> {
+  ): Promise<ApiResponse<{ success: boolean; message?: string; data?: Record<string, unknown> }>> {
     const token = localStorage.getItem('auth_token');
-    return apiClient.get(
+    return apiClient.get<ApiResponse<{ applications: Array<Record<string, unknown>>; total_count: number; categories: Record<string, number> }>>(
       `/flows/analytics/application-landscape`,
       {
         headers: {
@@ -205,9 +206,9 @@ export const masterFlowServiceExtended = {
   async getInfrastructureLandscape(
     clientAccountId: string,
     engagementId?: string
-  ): Promise<any> {
+  ): Promise<ApiResponse<{ success: boolean; message?: string; data?: Record<string, unknown> }>> {
     const token = localStorage.getItem('auth_token');
-    return apiClient.get(
+    return apiClient.get<ApiResponse<{ infrastructure: Array<Record<string, unknown>>; total_count: number; types: Record<string, number> }>>(
       `/flows/analytics/infrastructure-landscape`,
       {
         headers: {

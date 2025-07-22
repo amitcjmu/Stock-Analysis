@@ -97,5 +97,5 @@ export interface BreadcrumbItem {
 export interface LoadingState {
   isLoading: boolean;
   error: Error | string | null;
-  data?: any;
+  data?: unknown;
 }

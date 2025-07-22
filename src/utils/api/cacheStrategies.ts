@@ -11,7 +11,7 @@ export interface CacheOptions {
 }
 
 interface CacheEntry {
-  data: any;
+  data: unknown;
   expiry: number;
   lastAccessed: number;
 }
@@ -32,7 +32,7 @@ export class CacheManager {
     this.startCleanupTimer();
   }
 
-  async get(key: string): Promise<any> {
+  async get(key: string): Promise<unknown> {
     const fullKey = this.buildKey(key);
     const entry = this.cache.get(fullKey);
 
@@ -49,7 +49,7 @@ export class CacheManager {
     return entry.data;
   }
 
-  async set(key: string, data: any, ttl?: number): Promise<void> {
+  async set(key: string, data: unknown, ttl?: number): Promise<void> {
     const fullKey = this.buildKey(key);
     const expiry = Date.now() + (ttl || this.options.defaultTtl);
 
@@ -79,11 +79,11 @@ export class CacheManager {
     const regex = new RegExp(pattern);
     const keysToDelete: string[] = [];
 
-    for (const key of this.cache.keys()) {
+    this.cache.forEach((_, key) => {
       if (regex.test(key)) {
         keysToDelete.push(key);
       }
-    }
+    });
 
     keysToDelete.forEach(key => this.cache.delete(key));
   }
@@ -101,11 +101,11 @@ export class CacheManager {
     const now = Date.now();
     let expiredEntries = 0;
 
-    for (const entry of this.cache.values()) {
+    this.cache.forEach((entry) => {
       if (now > entry.expiry) {
         expiredEntries++;
       }
-    }
+    });
 
     return {
       size: this.cache.size,
@@ -123,12 +123,12 @@ export class CacheManager {
     let oldestKey: string | null = null;
     let oldestTime = Infinity;
 
-    for (const [key, entry] of this.cache.entries()) {
+    this.cache.forEach((entry, key) => {
       if (entry.lastAccessed < oldestTime) {
         oldestTime = entry.lastAccessed;
         oldestKey = key;
       }
-    }
+    });
 
     if (oldestKey) {
       this.cache.delete(oldestKey);
@@ -145,11 +145,11 @@ export class CacheManager {
     const now = Date.now();
     const expiredKeys: string[] = [];
 
-    for (const [key, entry] of this.cache.entries()) {
+    this.cache.forEach((entry, key) => {
       if (now > entry.expiry) {
         expiredKeys.push(key);
       }
-    }
+    });
 
     expiredKeys.forEach(key => this.cache.delete(key));
   }

@@ -11,7 +11,7 @@
 export interface IntegrationConfig {
   type: 'ci_cd' | 'monitoring' | 'ticketing' | 'approval' | 'reporting';
   name: string;
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
   enabled: boolean;
   endpoints: IntegrationEndpoint[];
 }
@@ -26,7 +26,7 @@ export interface IntegrationEndpoint {
 
 export interface EndpointAuth {
   type: 'none' | 'basic' | 'bearer' | 'api_key' | 'oauth';
-  credentials: Record<string, any>;
+  credentials: Record<string, string | number | boolean | null>;
 }
 
 // Custom Rules and Validation
@@ -36,6 +36,6 @@ export interface CustomRule {
   type: 'validation' | 'approval' | 'routing' | 'escalation';
   condition: string;
   action: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, string | number | boolean | null>;
   enabled: boolean;
 }

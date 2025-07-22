@@ -39,7 +39,7 @@ export interface PushNotificationSettings {
   enabled: boolean;
   provider: string;
   apiKey: string;
-  configuration?: Record<string, any>;
+  configuration?: Record<string, string | number | boolean | null>;
 }
 
 export interface SmsNotificationSettings {
@@ -47,7 +47,7 @@ export interface SmsNotificationSettings {
   provider: string;
   apiKey: string;
   fromNumber: string;
-  configuration?: Record<string, any>;
+  configuration?: Record<string, string | number | boolean | null>;
 }
 
 export interface InAppNotificationSettings {

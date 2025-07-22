@@ -48,7 +48,7 @@ export interface ActivityEvent {
     userId?: string;
     previousStatus?: string;
     newStatus?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 

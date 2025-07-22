@@ -122,7 +122,7 @@ const CollectionIndex: React.FC = () => {
       
       // Determine automation tier and collection config based on workflow type
       let automationTier = 'tier_2'; // Default to mixed environment
-      let collectionConfig: any = {
+      const collectionConfig: unknown = {
         workflow_type: workflowId,
         initiated_from: 'collection_overview'
       };
@@ -186,7 +186,7 @@ const CollectionIndex: React.FC = () => {
         navigate(`${workflowPath}?flowId=${flowResponse.id}`);
       }, 1500);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`❌ Failed to start collection workflow ${workflowId}:`, error);
       
       const errorMessage = error?.response?.data?.detail || 

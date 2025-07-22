@@ -51,20 +51,20 @@ export interface EnforcementAutomation {
 export interface AutomationTrigger {
   event: string;
   condition: string;
-  threshold?: any;
+  threshold?: unknown;
   frequency?: string;
 }
 
 export interface AutomationAction {
   type: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, string | number | boolean | null>;
   prerequisites: string[];
   validation: string[];
 }
 
 export interface AutomationSafeguard {
   type: 'rate_limiting' | 'approval_required' | 'testing_required' | 'rollback_plan';
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
   override: boolean;
 }
 
@@ -91,7 +91,7 @@ export interface NotificationRecipient {
 
 export interface NotificationChannel {
   type: 'email' | 'slack' | 'webhook' | 'dashboard' | 'ticket';
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
   priority: number;
 }
 
@@ -145,7 +145,7 @@ export interface EnforcementAction {
   automated: boolean;
   status: 'success' | 'failure' | 'pending';
   timestamp: string;
-  details: Record<string, any>;
+  details: Record<string, string | number | boolean | null>;
 }
 
 export interface EnforcementException {

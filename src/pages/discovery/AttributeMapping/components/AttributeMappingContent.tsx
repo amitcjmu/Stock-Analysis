@@ -14,13 +14,13 @@ interface AttributeMappingContentProps {
   navigation: NavigationState;
   onApproveMapping: (mappingId: string) => void;
   onRejectMapping: (mappingId: string) => void;
-  onMappingChange: (mappingId: string, updates: any) => void;
-  onAttributeUpdate: (attributeId: string, updates: any) => void;
+  onMappingChange: (mappingId: string, updates: unknown) => void;
+  onAttributeUpdate: (attributeId: string, updates: unknown) => void;
   onDataImportSelection: (importId: string) => void;
   refetchAgentic?: () => void;
   refetchCriticalAttributes?: () => void;
   // NEW AGENTIC PROPS: SSE integration
-  flowUpdates?: any;
+  flowUpdates?: unknown;
   sseLastUpdate?: Date | null;
 }
 

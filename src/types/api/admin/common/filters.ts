@@ -15,7 +15,7 @@ import { FilterOperator, ConditionOperator } from './enums';
 export interface BaseFilter {
   field: string;
   operator: FilterOperator;
-  value: any;
+  value: unknown;
   label?: string;
 }
 
@@ -25,8 +25,8 @@ export interface BaseFilter {
 export interface Condition {
   type: ConditionType;
   operator: ConditionOperator;
-  value: any;
-  metadata?: Record<string, any>;
+  value: unknown;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 /**
@@ -94,5 +94,5 @@ export type ThresholdOperator = 'greater_than' | 'less_than' | 'equals' | 'not_e
 export interface ThresholdCondition {
   field?: string;
   operator?: FilterOperator;
-  value?: any;
+  value?: unknown;
 }

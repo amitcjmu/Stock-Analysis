@@ -12,13 +12,23 @@ import { flowToast } from '../utils/toast';
 import { FlowStatus, PhaseInfo } from '../types/flow';
 
 interface UseUnifiedDiscoveryFlowReturn {
-  flowState: any | null;
+  flowState: unknown | null;
   isLoading: boolean;
   error: Error | null;
   isHealthy: boolean;
-  initializeFlow: (data: any) => Promise<any>;
-  executeFlowPhase: (phase: string) => Promise<any>;
-  getPhaseData: (phase: string) => any;
+  initializeFlow: (data: unknown) => Promise<{
+    flow_id: string;
+    status: string;
+    message?: string;
+  }>;
+  executeFlowPhase: (phase: string) => Promise<{
+    success: boolean;
+    phase: string;
+    status: 'started' | 'completed' | 'failed';
+    message?: string;
+    data?: Record<string, unknown>;
+  }>;
+  getPhaseData: (phase: string) => Record<string, unknown> | null;
   isPhaseComplete: (phase: string) => boolean;
   canProceedToPhase: (phase: string) => boolean;
   refreshFlow: () => Promise<void>;
@@ -73,7 +83,7 @@ export function useUnifiedDiscoveryFlow(): UseUnifiedDiscoveryFlowReturn {
   }, [state.flow]);
 
   // Initialize flow adapter
-  const initializeFlow = useCallback(async (data: any) => {
+  const initializeFlow = useCallback(async (data: unknown) => {
     try {
       const flow = await actions.createDiscoveryFlow({
         flow_name: data.flow_name || 'Discovery Flow',

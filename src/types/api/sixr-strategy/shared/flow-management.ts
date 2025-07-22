@@ -46,7 +46,7 @@ export interface InitializeStrategyFlowRequest extends BaseApiRequest {
   scope: StrategyScope;
   configuration?: StrategyFlowConfiguration;
   parentFlowId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface InitializeStrategyFlowResponse extends BaseApiResponse<StrategyFlowData> {
@@ -79,7 +79,7 @@ export interface NotificationSettings {
 
 export interface NotificationChannel {
   type: 'email' | 'slack' | 'teams' | 'webhook' | 'sms';
-  configuration: Record<string, any>;
+  configuration: Record<string, unknown>;
   enabled: boolean;
   fallback?: string;
 }
@@ -126,7 +126,7 @@ export interface NotificationTemplate {
 export interface IntegrationConfig {
   type: 'ci_cd' | 'monitoring' | 'ticketing' | 'approval' | 'reporting';
   name: string;
-  configuration: Record<string, any>;
+  configuration: Record<string, unknown>;
   enabled: boolean;
   endpoints: IntegrationEndpoint[];
 }
@@ -141,7 +141,7 @@ export interface IntegrationEndpoint {
 
 export interface EndpointAuth {
   type: 'none' | 'basic' | 'bearer' | 'api_key' | 'oauth';
-  credentials: Record<string, any>;
+  credentials: Record<string, unknown>;
 }
 
 export interface CustomRule {
@@ -150,7 +150,7 @@ export interface CustomRule {
   type: 'validation' | 'approval' | 'routing' | 'escalation';
   condition: string;
   action: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   enabled: boolean;
 }
 
@@ -160,8 +160,8 @@ export interface StrategyFlowState {
   currentPhase: string;
   nextPhase?: string;
   phaseCompletion: Record<string, boolean>;
-  phaseResults: Record<string, any>;
-  strategyResults: Record<string, any>;
+  phaseResults: Record<string, unknown>;
+  strategyResults: Record<string, unknown>;
   riskProfile: RiskAssessment;
   approvalStatus: ApprovalStatus;
   blockers: StrategyBlocker[];
@@ -583,7 +583,7 @@ export interface StrategyValidationResult {
   rule: string;
   status: 'passed' | 'failed' | 'warning';
   message: string;
-  data?: any;
+  data?: unknown;
 }
 
 export interface NotificationResult {

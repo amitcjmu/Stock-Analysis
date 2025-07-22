@@ -4,8 +4,8 @@ import { Button } from '../../ui/button';
 
 interface DependencyTableProps {
   type: 'app-server' | 'app-app';
-  dependencies: any[];
-  onReviewDependency: (dependency: any) => void;
+  dependencies: unknown[];
+  onReviewDependency: (dependency: unknown) => void;
   onAddDependency: () => void;
 }
 

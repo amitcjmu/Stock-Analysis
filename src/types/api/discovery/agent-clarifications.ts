@@ -75,7 +75,7 @@ export interface AgentClarification {
   respondedAt?: string;
   resolvedAt?: string;
   escalationLevel: EscalationLevel;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface ClarificationInput {
@@ -87,7 +87,7 @@ export interface ClarificationInput {
   suggestedActions?: string[];
   attachments?: string[];
   escalationLevel?: EscalationLevel;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface FollowUpAction {

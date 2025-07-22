@@ -40,13 +40,13 @@ export interface TracingConfig {
 export interface AlertingConfig {
   enabled: boolean;
   channels: string[];
-  thresholds: Record<string, any>;
+  thresholds: Record<string, string | number | boolean | null>;
 }
 
 export interface DashboardConfig {
   id: string;
   name: string;
-  widgets: Record<string, any>;
+  widgets: Record<string, string | number | boolean | null>;
 }
 
 export interface HealthCheckConfig {
@@ -58,7 +58,7 @@ export interface HealthCheckConfig {
 export interface PerformanceMonitoringConfig {
   enabled: boolean;
   metrics: string[];
-  thresholds: Record<string, any>;
+  thresholds: Record<string, string | number | boolean | null>;
 }
 
 export interface SecurityMonitoringConfig {

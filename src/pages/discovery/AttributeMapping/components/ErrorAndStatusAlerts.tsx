@@ -9,7 +9,7 @@ interface ErrorAndStatusAlertsProps {
   isLoading: boolean;
   hasData: boolean;
   flowId: string | null;
-  flowList: any[];
+  flowList: unknown[];
   effectiveFlowId: string | null;
   isAnalyzing: boolean;
   onTriggerFieldMappingCrew: () => void;

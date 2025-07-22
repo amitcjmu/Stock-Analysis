@@ -4,6 +4,22 @@
  * Type definitions for agent questions, responses, and asset details.
  */
 
+// Agent clarification context interface
+export interface AgentQuestionContext {
+  assetId?: string;
+  sessionId?: string;
+  flowId?: string;
+  metadata: Record<string, unknown>;
+}
+
+// User response interface
+export interface UserResponse {
+  answer: string | string[] | boolean | number;
+  confidence?: number;
+  notes?: string;
+  metadata?: Record<string, unknown>;
+}
+
 export interface AgentQuestion {
   id: string;
   agent_id: string;
@@ -12,13 +28,13 @@ export interface AgentQuestion {
   page: string;
   title: string;
   question: string;
-  context: any;
+  context: AgentQuestionContext;
   options?: string[];
   confidence: string;
   priority: string;
   created_at: string;
   answered_at?: string;
-  user_response?: any;
+  user_response?: UserResponse;
   is_resolved: boolean;
 }
 
@@ -44,7 +60,7 @@ export interface AssetDetails {
 
 export interface AgentClarificationPanelProps {
   pageContext: string;
-  onQuestionAnswered?: (questionId: string, response: any) => void;
+  onQuestionAnswered?: (questionId: string, response: UserResponse) => void;
   className?: string;
   refreshTrigger?: number; // Increment this to trigger a refresh
   isProcessing?: boolean; // Set to true when background processing is happening

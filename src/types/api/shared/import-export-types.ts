@@ -51,7 +51,7 @@ export interface ImportResponse extends BaseApiResponse<ImportResult> {
 // Supporting types
 export interface ExportDataSpec {
   type: 'query' | 'ids' | 'all';
-  query?: any;
+  query?: unknown;
   ids?: string[];
   fields?: string[];
   relations?: string[];
@@ -85,7 +85,7 @@ export interface ImportResult {
 
 export interface ImportPreview {
   headers: string[];
-  sample: any[][];
+  sample: unknown[][];
   totalRows: number;
   detectedFormat: ImportFormat;
   encoding: string;
@@ -100,7 +100,7 @@ export interface ImportError {
   field?: string;
   code: string;
   message: string;
-  value?: any;
+  value?: unknown;
 }
 
 export interface ImportWarning {
@@ -109,7 +109,7 @@ export interface ImportWarning {
   field?: string;
   code: string;
   message: string;
-  value?: any;
+  value?: unknown;
   suggestion?: string;
 }
 
@@ -117,14 +117,14 @@ export interface FieldMapping {
   source: string;
   target: string;
   transformation?: string;
-  defaultValue?: any;
+  defaultValue?: unknown;
   required?: boolean;
   validation?: ImportValidationRule[];
 }
 
 export interface ImportValidationRule {
   type: string;
-  parameters?: Record<string, any>;
+  parameters?: Record<string, string | number | boolean | null>;
   message?: string;
 }
 

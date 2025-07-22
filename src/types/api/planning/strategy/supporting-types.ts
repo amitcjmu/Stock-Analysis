@@ -35,7 +35,7 @@ export interface ToolRequirement {
 export interface InfrastructureRequirement {
   component: string;
   type: string;
-  specifications: Record<string, any>;
+  specifications: Record<string, string | number | boolean | null>;
   duration: number;
   cost: number;
 }

@@ -143,7 +143,7 @@ export interface PhaseTimeline { phaseId: string; name: string; }
 export interface DecommissionMilestone { id: string; name: string; }
 export interface TimelineDependency { id: string; }
 export interface FreezePeriod { name: string; }
-export interface DecommissionResources { team: any[]; }
+export interface DecommissionResources { team: unknown[]; }
 export interface DecommissionRisk { id: string; name: string; }
 export interface ComplianceRequirement { regulation: string; }
 export interface DecommissionApprovalRequirement { type: string; }

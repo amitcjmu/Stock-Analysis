@@ -68,9 +68,9 @@ export interface FlowState {
   nextPhase?: string;
   previousPhase?: string;
   phaseCompletion: Record<string, boolean>;
-  phaseData: Record<string, any>;
+  phaseData: Record<string, string | number | boolean | null>;
   agentStates: Record<string, AgentState>;
-  sharedData: Record<string, any>;
+  sharedData: Record<string, string | number | boolean | null>;
   checkpoints: StateCheckpoint[];
   version: number;
   createdAt: string;
@@ -89,7 +89,7 @@ export interface FlowStateHistory {
   phase: string;
   action: string;
   actor: string;
-  changes: Record<string, any>;
+  changes: Record<string, string | number | boolean | null>;
   reason?: string;
 }
 
@@ -100,7 +100,7 @@ export interface AgentState {
   taskQueue: string[];
   configuration: AgentConfiguration;
   lastActivity: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface AgentStateDetail extends AgentState {
@@ -112,8 +112,8 @@ export interface AgentStateDetail extends AgentState {
 
 export interface AgentConfiguration {
   capabilities: string[];
-  preferences: Record<string, any>;
-  constraints: Record<string, any>;
+  preferences: Record<string, string | number | boolean | null>;
+  constraints: Record<string, string | number | boolean | null>;
   learningEnabled: boolean;
 }
 
@@ -130,7 +130,7 @@ export interface AgentStateHistory {
   timestamp: string;
   status: string;
   task?: string;
-  changes: Record<string, any>;
+  changes: Record<string, string | number | boolean | null>;
   performance?: AgentPerformance;
 }
 
@@ -142,7 +142,7 @@ export interface AgentInsight {
   confidence: number;
   description: string;
   recommendations?: string[];
-  evidence?: Record<string, any>;
+  evidence?: Record<string, string | number | boolean | null>;
   createdAt: string;
 }
 
@@ -162,7 +162,7 @@ export interface StateCheckpoint {
   id: string;
   timestamp: string;
   phase: string;
-  data: Record<string, any>;
+  data: Record<string, string | number | boolean | null>;
   description?: string;
   createdBy: string;
   restoreAvailable: boolean;
@@ -190,7 +190,7 @@ export interface TransitionCondition {
   description: string;
   required: boolean;
   currentStatus: 'met' | 'not_met' | 'pending';
-  details?: Record<string, any>;
+  details?: Record<string, string | number | boolean | null>;
 }
 
 export interface StateTransitionResult {
@@ -238,7 +238,7 @@ export interface StateChangeNotification {
 export interface ValidationRule {
   id: string;
   type: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, string | number | boolean | null>;
   errorMessage: string;
   severity: 'info' | 'warning' | 'error' | 'critical';
 }

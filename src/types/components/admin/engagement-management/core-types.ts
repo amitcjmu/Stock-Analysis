@@ -49,7 +49,7 @@ export interface Engagement {
   updatedAt: string;
   createdBy: string;
   tags?: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 // Client Management Types
@@ -68,7 +68,7 @@ export interface Client {
   createdAt: string;
   updatedAt: string;
   tags?: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface ClientContact {
@@ -168,7 +168,7 @@ export interface EngagementPhase {
   artifacts: Artifact[];
   createdAt: string;
   updatedAt: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 // Deliverable Management Types
@@ -196,7 +196,7 @@ export interface Deliverable {
   reviewComments: ReviewComment[];
   createdAt: string;
   updatedAt: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface ReviewComment {
@@ -233,7 +233,7 @@ export interface Milestone {
   weight: number; // Relative importance
   createdAt: string;
   updatedAt: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface MilestoneCriteria {
@@ -313,7 +313,7 @@ export interface Issue {
   comments: IssueComment[];
   workLog: IssueWorkLog[];
   labels: string[];
-  customFields: Record<string, any>;
+  customFields: Record<string, string | number | boolean | null>;
   createdAt: string;
   updatedAt: string;
 }
@@ -378,7 +378,7 @@ export interface Artifact {
   access: 'public' | 'team' | 'restricted' | 'confidential';
   permissions: ArtifactPermission[];
   tags: string[];
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
   versionHistory: ArtifactVersion[];
 }
 
@@ -421,7 +421,7 @@ export interface EngagementTemplate {
   updatedAt: string;
   usageCount: number;
   tags: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface EngagementPhaseTemplate {
@@ -437,7 +437,7 @@ export interface EngagementPhaseTemplate {
   dependencies: string[];
   prerequisites: string[];
   isOptional: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface DeliverableTemplate {
@@ -453,7 +453,7 @@ export interface DeliverableTemplate {
   approvalRequired: boolean;
   isOptional: boolean;
   qualityGates: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface MilestoneTemplate {
@@ -468,7 +468,7 @@ export interface MilestoneTemplate {
   isCritical: boolean;
   weight: number;
   estimatedDaysFromStart: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface MilestoneCriteriaTemplate {
@@ -501,19 +501,19 @@ export interface EngagementField {
   label: string;
   type: 'text' | 'number' | 'date' | 'boolean' | 'select' | 'multiselect' | 'textarea' | 'file';
   required: boolean;
-  defaultValue?: any;
+  defaultValue?: unknown;
   options?: FieldOption[];
   validation?: ValidationRule;
   dependencies?: FieldDependency[];
   section: string;
   order: number;
   isActive: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface FieldOption {
   label: string;
-  value: any;
+  value: unknown;
   isDefault?: boolean;
   isActive?: boolean;
   order?: number;
@@ -527,7 +527,7 @@ export interface FieldDependency {
 
 export interface ValidationRule {
   type: 'required' | 'minLength' | 'maxLength' | 'pattern' | 'range' | 'custom';
-  value?: any;
+  value?: unknown;
   message?: string;
   customValidator?: string;
 }
@@ -542,13 +542,13 @@ export interface EngagementAuditLog {
   changes: FieldChange[];
   user: User;
   timestamp: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface FieldChange {
   field: string;
-  oldValue: any;
-  newValue: any;
+  oldValue: unknown;
+  newValue: unknown;
   dataType: string;
 }
 

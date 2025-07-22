@@ -1,4 +1,4 @@
-import { AuthContextType } from '../contexts/AuthContext';
+import type { AuthContextType } from '../contexts/AuthContext';
 
 interface ContextWithIds {
   client?: { id: string };

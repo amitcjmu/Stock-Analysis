@@ -9,9 +9,9 @@ export interface FlowDetectionResult {
   emergencyFlowId: string | null;
   finalFlowId: string | null;
   hasEffectiveFlow: boolean;
-  flowList: any[];
+  flowList: unknown[];
   isFlowListLoading: boolean;
-  flowListError: any;
+  flowListError: unknown;
   pathname: string;
   navigate: (path: string) => void;
 }

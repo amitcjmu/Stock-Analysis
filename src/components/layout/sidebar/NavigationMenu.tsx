@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavigationMenuProps } from './types';
+import { NavigationMenuProps, NavigationItem as NavigationItemType } from './types';
 import NavigationItem from './NavigationItem';
 import ExpandableMenuSection from './ExpandableMenuSection';
 
@@ -9,10 +9,10 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({
   expandedStates,
   onToggleExpanded
 }) => {
-  const checkIfParentActive = (item: any) => {
+  const checkIfParentActive = (item: NavigationItemType) => {
     if (currentPath === item.path) return true;
     if (item.submenu) {
-      return item.submenu.some((subItem: any) => currentPath === subItem.path);
+      return item.submenu.some((subItem: NavigationItemType) => currentPath === subItem.path);
     }
     return false;
   };

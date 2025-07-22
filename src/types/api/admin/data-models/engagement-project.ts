@@ -148,7 +148,7 @@ export interface Expense {
   approvedBy?: string;
   status: ExpenseStatus;
   receipts: ExpenseReceipt[];
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface BudgetForecast {

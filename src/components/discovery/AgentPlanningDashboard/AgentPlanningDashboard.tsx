@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Brain, RefreshCw, AlertCircle, X } from 'lucide-react';
 
-import { AgentPlan, AgentPlanningDashboardProps, FeedbackType } from './types';
+import { AgentPlan, AgentPlanningDashboardProps, FeedbackType, TaskInput } from './types';
 import * as api from './api';
 import PlanOverview from './PlanOverview';
 import FeedbackForm from './FeedbackForm';
@@ -81,7 +81,7 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
     }
   };
 
-  const handleHumanInputSubmission = async (taskId: string, input: any) => {
+  const handleHumanInputSubmission = async (taskId: string, input: TaskInput) => {
     try {
       await api.submitHumanInput(taskId, input, pageContext);
       

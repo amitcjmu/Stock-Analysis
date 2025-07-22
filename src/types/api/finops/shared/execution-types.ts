@@ -17,6 +17,7 @@ import {
   ValidationStatus,
   RiskLevel 
 } from './base-types';
+import type { ConfigurationValue, TypedConstraint } from '../../../shared/config-types';
 
 // Execution Plan Types
 export interface ExecutionPlan {
@@ -118,7 +119,7 @@ export interface ValidationCheck {
 export interface ValidationCriteria {
   metric: string;
   operator: string;
-  value: any;
+  value: ConfigurationValue;
   tolerance?: number;
   unit?: string;
   critical: boolean;
@@ -157,7 +158,7 @@ export interface RollbackTrigger {
   id: string;
   type: 'performance_degradation' | 'cost_increase' | 'availability_impact' | 'manual' | 'quality_gate_failure';
   condition: string;
-  threshold?: any;
+  threshold?: unknown;
   automated: boolean;
   description: string;
   priority: 'low' | 'medium' | 'high' | 'critical';
@@ -272,14 +273,14 @@ export interface DashboardPanel {
 
 export interface PanelQuery {
   metric: string;
-  filters: Record<string, any>;
+  filters: Record<string, string | number | boolean | null>;
   aggregation: string;
   timeRange?: string;
 }
 
 export interface PanelVisualization {
   type: string;
-  options: Record<string, any>;
+  options: Record<string, string | number | boolean | null>;
   thresholds?: VisualizationThreshold[];
 }
 
@@ -316,14 +317,14 @@ export interface LoggingConfiguration {
 
 export interface LoggingDestination {
   type: 'file' | 'console' | 'syslog' | 'elasticsearch' | 'cloudwatch';
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
   filters: LoggingFilter[];
 }
 
 export interface LoggingFilter {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
   action: 'include' | 'exclude';
 }
 
@@ -343,13 +344,13 @@ export interface MonitoringReporting {
 
 export interface ReportContent {
   type: 'summary' | 'metrics' | 'alerts' | 'trends';
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
 }
 
 export interface ReportCondition {
   metric: string;
   operator: string;
-  value: any;
+  value: unknown;
   action: 'include' | 'highlight' | 'escalate';
 }
 
@@ -372,10 +373,8 @@ export interface ResourceAvailability {
   exclusions?: string[];
 }
 
-export interface ResourceConstraint {
+export interface ResourceConstraint extends Omit<TypedConstraint, 'type' | 'impact'> {
   type: 'capacity' | 'performance' | 'location' | 'compliance' | 'cost';
-  description: string;
-  value: any;
   mandatory: boolean;
 }
 
@@ -439,7 +438,7 @@ export interface WorkflowRouting {
 export interface WorkflowCondition {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
   action: string;
 }
 
@@ -533,7 +532,7 @@ export interface QuietHours {
 
 export interface CommunicationChannel {
   type: 'email' | 'slack' | 'webhook' | 'sms' | 'phone';
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
   rateLimiting: RateLimiting;
   failover: ChannelFailover[];
 }
@@ -564,7 +563,7 @@ export interface TemplateVariable {
   name: string;
   type: 'string' | 'number' | 'date' | 'object';
   required: boolean;
-  default?: any;
+  default?: unknown;
 }
 
 export interface CommunicationSchedule {

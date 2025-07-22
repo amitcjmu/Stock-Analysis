@@ -4,12 +4,14 @@
  * Core interfaces and base types for discovery components.
  */
 
-import { ReactNode } from 'react';
+import type { ReactNode, HTMLAttributes } from 'react';
 
 // Base discovery component types
-export interface BaseDiscoveryProps {
+export interface BaseDiscoveryProps extends Omit<HTMLAttributes<HTMLDivElement>, 'className'> {
   className?: string;
   children?: ReactNode;
+  testId?: string;
+  'data-testid'?: string;
 }
 
 export interface FieldMapping {
@@ -26,7 +28,7 @@ export interface FieldMapping {
   createdBy: string;
   reviewedBy?: string;
   rejectionReason?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface CriticalAttribute {
@@ -35,7 +37,7 @@ export interface CriticalAttribute {
   description: string;
   dataType: string;
   isRequired: boolean;
-  defaultValue?: any;
+  defaultValue?: unknown;
   validationRules: ValidationRule[];
   mappingStatus: 'mapped' | 'unmapped' | 'partially_mapped';
   sourceFields: string[];
@@ -44,7 +46,7 @@ export interface CriticalAttribute {
   priority: 'critical' | 'high' | 'medium' | 'low';
   category: string;
   tags: string[];
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface DataImport {
@@ -62,12 +64,12 @@ export interface DataImport {
   uploadedAt: string;
   processedAt?: string;
   uploadedBy: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface ValidationRule {
   type: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, string | number | boolean | null>;
   message: string;
   severity?: 'error' | 'warning' | 'info';
 }
@@ -81,7 +83,7 @@ export interface BusinessRule {
   enabled: boolean;
   conditions: RuleCondition[];
   actions: RuleAction[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface ValidationError {
@@ -89,8 +91,8 @@ export interface ValidationError {
   message: string;
   code: string;
   severity: 'error' | 'warning' | 'info';
-  value?: any;
-  metadata?: Record<string, any>;
+  value?: unknown;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface ImportError {
@@ -105,13 +107,13 @@ export interface ImportError {
 export interface RuleCondition {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
   logicalOperator?: 'and' | 'or';
 }
 
 export interface RuleAction {
   type: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, string | number | boolean | null>;
   description?: string;
 }
 

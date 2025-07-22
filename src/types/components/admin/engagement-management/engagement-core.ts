@@ -47,7 +47,7 @@ export interface Engagement {
   updatedAt: string;
   createdBy: string;
   tags?: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 // Phase Management Types
@@ -74,7 +74,7 @@ export interface EngagementPhase {
   artifacts: Artifact[];
   createdAt: string;
   updatedAt: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 // Deliverable Management Types
@@ -102,7 +102,7 @@ export interface Deliverable {
   reviewComments: ReviewComment[];
   createdAt: string;
   updatedAt: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface ReviewComment {
@@ -139,7 +139,7 @@ export interface Milestone {
   weight: number; // Relative importance
   createdAt: string;
   updatedAt: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface MilestoneCriteria {

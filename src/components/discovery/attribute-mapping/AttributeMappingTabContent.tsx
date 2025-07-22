@@ -3,25 +3,28 @@ import FieldMappingsTab from './FieldMappingsTab/index';
 import CriticalAttributesTab from './CriticalAttributesTab';
 import ImportedDataTab from './ImportedDataTab';
 import { FieldMappingErrorBoundary } from './FieldMappingErrorBoundary';
+import type {
+  FieldMapping,
+  CriticalAttribute
+} from '../../../types/hooks/discovery/attribute-mapping-hooks';
+import type {
+  AgenticData,
+  SessionInfo
+} from '../../../pages/discovery/AttributeMapping/types';
 
 interface AttributeMappingTabContentProps {
   activeTab: 'mappings' | 'data' | 'critical';
-  fieldMappings: any[];
-  criticalAttributes: any[];
-  agenticData: any;
+  fieldMappings: FieldMapping[];
+  criticalAttributes: CriticalAttribute[];
+  agenticData: AgenticData | null;
   onApproveMapping: (mappingId: string) => void;
   onRejectMapping: (mappingId: string, rejectionReason?: string) => void;
   onMappingChange?: (mappingId: string, newTarget: string) => void;
   refetchAgentic?: () => void;
   refetchCriticalAttributes?: () => void;
-  onAttributeUpdate?: (attributeName: string, updates: Partial<any>) => void;
+  onAttributeUpdate?: (attributeName: string, updates: Partial<CriticalAttribute>) => void;
   isLoading?: boolean;
-  sessionInfo?: {
-    flowId: string | null;
-    availableDataImports: any[];
-    selectedDataImportId: string | null;
-    hasMultipleSessions: boolean;
-  };
+  sessionInfo?: SessionInfo;
 }
 
 const AttributeMappingTabContent: React.FC<AttributeMappingTabContentProps> = ({

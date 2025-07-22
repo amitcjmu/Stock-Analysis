@@ -221,7 +221,7 @@ export interface ModelStructure {
 export interface ModelParameter {
   parameter: string;
   type: string;
-  value: any;
+  value: unknown;
   uncertainty: number;
 }
 

@@ -13,7 +13,7 @@ export interface AssetInventory {
   last_updated?: string;
   confidence_score?: number;
   criticality?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface InventoryProgress {
@@ -47,6 +47,6 @@ export interface ClassificationCard {
   type: string;
   label: string;
   count: number;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   color: string;
 }

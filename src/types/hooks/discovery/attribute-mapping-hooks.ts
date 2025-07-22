@@ -43,7 +43,7 @@ export interface UseAttributeMappingReturn {
   isError: boolean;
   error: Error | null;
   isSuccess: boolean;
-  refetch: () => Promise<any>;
+  refetch: () => Promise<unknown>;
   applyMapping: (mapping: FieldMapping) => Promise<void>;
   rejectMapping: (mappingId: string, reason?: string) => Promise<void>;
   batchApplyMappings: (mappings: FieldMapping[]) => Promise<void>;
@@ -64,7 +64,7 @@ export interface UseAttributeMappingReturn {
   getMappingDependencies: (mappingId: string) => Promise<MappingDependency[]>;
   validateMappingSet: (mappingIds: string[]) => Promise<SetValidation>;
   previewMapping: (mapping: FieldMapping) => Promise<MappingPreview>;
-  testMapping: (mapping: FieldMapping, sampleData: any[]) => Promise<MappingTestResult>;
+  testMapping: (mapping: FieldMapping, sampleData: Record<string, unknown>[]) => Promise<MappingTestResult>;
   compareMappings: (mappingId1: string, mappingId2: string) => Promise<MappingComparison>;
   optimizeMappings: () => Promise<OptimizationResult>;
   scheduleMapping: (mapping: FieldMapping, schedule: MappingSchedule) => Promise<void>;
@@ -82,7 +82,7 @@ export interface AttributeMappingActions {
   suggest: (sourceField: string, options?: SuggestionOptions) => Promise<MappingSuggestion[]>;
   validate: (mapping: FieldMapping) => Promise<MappingValidation>;
   preview: (mapping: FieldMapping) => Promise<MappingPreview>;
-  test: (mapping: FieldMapping, sampleData: any[]) => Promise<MappingTestResult>;
+  test: (mapping: FieldMapping, sampleData: Record<string, unknown>[]) => Promise<MappingTestResult>;
   save: (mapping: FieldMapping) => Promise<void>;
   delete: (mappingId: string) => Promise<void>;
   duplicate: (mappingId: string) => Promise<FieldMapping>;
@@ -275,7 +275,7 @@ export interface FieldMapping {
   version: number;
   dependencies: string[];
   conflicts: string[];
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface CriticalAttribute {
@@ -285,7 +285,7 @@ export interface CriticalAttribute {
   type: AttributeType;
   dataType: string;
   isRequired: boolean;
-  defaultValue?: any;
+  defaultValue?: unknown;
   constraints: AttributeConstraint[];
   validationRules: ValidationRule[];
   businessRules: BusinessRule[];
@@ -299,7 +299,7 @@ export interface CriticalAttribute {
   dependencies: string[];
   derivedFrom: string[];
   usedBy: string[];
-  examples: any[];
+  examples: unknown[];
   notes: string;
   status: AttributeStatus;
   visibility: AttributeVisibility;
@@ -316,7 +316,7 @@ export interface CriticalAttribute {
   createdBy: string;
   updatedBy: string;
   version: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 // Enum types
@@ -343,7 +343,7 @@ export interface MappingSuggestion {
   reasoning: string;
   similarityScore: number;
   algorithm: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface MappingConfidence {
@@ -366,11 +366,11 @@ export interface MappingHistory {
   id: string;
   mappingId: string;
   action: HistoryAction;
-  changes: Record<string, any>;
+  changes: Record<string, unknown>;
   timestamp: string;
   userId: string;
   reason?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface MappingAnalytics {
@@ -419,7 +419,7 @@ export interface TransformationRule {
   name: string;
   type: TransformationType;
   expression: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   isActive: boolean;
 }
 
@@ -428,7 +428,7 @@ export interface ValidationRule {
   name: string;
   type: ValidationType;
   expression: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   severity: ValidationSeverity;
   isActive: boolean;
 }
@@ -445,7 +445,7 @@ export interface BusinessRule {
 
 export interface AttributeConstraint {
   type: ConstraintType;
-  value: any;
+  value: unknown;
   message: string;
 }
 
@@ -462,7 +462,7 @@ export interface AuditTrail {
   action: AuditAction;
   timestamp: string;
   userId: string;
-  changes: Record<string, any>;
+  changes: Record<string, unknown>;
   reason?: string;
 }
 
@@ -490,7 +490,7 @@ export interface PageInfo {
 export interface FieldMappingFilter {
   field: string;
   operator: FilterOperator;
-  value: any;
+  value: unknown;
 }
 
 export interface FieldMappingSort {

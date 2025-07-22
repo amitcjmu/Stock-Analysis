@@ -21,9 +21,9 @@ interface UseLazyComponentReturn {
   loadingState: LoadingState | null;
 }
 
-export const useLazyComponent = (
+export const useLazyComponent = <P extends {} = {}>(
   componentId: string,
-  importFn: () => Promise<{ default: React.ComponentType<any> }>,
+  importFn: () => Promise<{ default: React.ComponentType<P> }>,
   options: UseLazyComponentOptions = {}
 ): UseLazyComponentReturn => {
   const {
@@ -102,9 +102,9 @@ export const useLazyComponent = (
 /**
  * Hook for viewport-based lazy loading
  */
-export const useViewportLazyComponent = (
+export const useViewportLazyComponent = <P extends {} = {}>(
   componentId: string,
-  importFn: () => Promise<{ default: React.ComponentType<any> }>,
+  importFn: () => Promise<{ default: React.ComponentType<P> }>,
   targetRef: React.RefObject<HTMLElement>,
   options: UseLazyComponentOptions = {}
 ): UseLazyComponentReturn => {
@@ -140,11 +140,11 @@ export const useViewportLazyComponent = (
 /**
  * Hook for hover-based preloading
  */
-export const useHoverPreload = (
+export const useHoverPreload = <P extends {} = {}>(
   componentId: string,
-  importFn: () => Promise<{ default: React.ComponentType<any> }>,
+  importFn: () => Promise<{ default: React.ComponentType<P> }>,
   options: LazyComponentOptions = {}
-): void => {
+): (() => void) => {
   const preloaded = useRef(false);
 
   const handleMouseEnter = useCallback(() => {
@@ -164,6 +164,5 @@ export const useHoverPreload = (
   }, []);
 
   // Return the event handler for the component to use
-  (handleMouseEnter as any).componentId = componentId;
-  return handleMouseEnter as any;
+  return handleMouseEnter;
 };

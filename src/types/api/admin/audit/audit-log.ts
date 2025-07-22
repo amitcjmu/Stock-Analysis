@@ -57,7 +57,7 @@ export interface AuditLogData {
   engagementId?: string;
   outcome: AuditOutcome;
   details: AuditDetails;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
   context?: AuditContext;
 }
 
@@ -88,8 +88,8 @@ export interface AuditContext {
 // Field change tracking
 export interface FieldChange {
   field: string;
-  old_value: any;
-  new_value: any;
+  old_value: unknown;
+  new_value: unknown;
   change_type: ChangeType;
   sensitive: boolean;
 }

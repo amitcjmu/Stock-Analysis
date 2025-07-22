@@ -29,10 +29,10 @@ export interface CrossApplicationMapping {
   cross_app_dependencies: CrossAppDependency[];
   application_clusters: ApplicationCluster[];
   dependency_graph: {
-    nodes: any[];
-    edges: any[];
+    nodes: unknown[];
+    edges: unknown[];
   };
-  suggested_patterns: any[];
+  suggested_patterns: unknown[];
   confidence_scores: Record<string, number>;
 }
 

@@ -14,6 +14,8 @@ import {
   ListResponse,
   MultiTenantContext
 } from '../shared';
+import { FilterValue, PrimitiveValue, ThresholdValue } from '../shared/value-types';
+import { GenericMetadata } from '../shared/metadata-types';
 
 // Alert Rule Management
 export interface CreateAlertRuleRequest extends CreateRequest<AlertRuleData> {
@@ -97,7 +99,7 @@ export interface AlertRuleData {
   enabled: boolean;
   labels: Record<string, string>;
   annotations: Record<string, string>;
-  metadata: Record<string, any>;
+  metadata: Record<string, PrimitiveValue | GenericMetadata>;
 }
 
 export interface AlertCondition {
@@ -182,7 +184,7 @@ export interface AlertTestResult {
   message: string;
   duration: number;
   fired: boolean;
-  mockData?: any;
+  mockData?: Record<string, PrimitiveValue> | Array<PrimitiveValue>;
 }
 
 export interface Alert {
@@ -318,7 +320,7 @@ export interface NotificationTemplate {
 export interface NotificationFilter {
   field: string;
   operator: 'eq' | 'neq' | 'contains' | 'regex' | 'in' | 'nin';
-  value: any;
+  value: FilterValue;
   enabled: boolean;
 }
 
@@ -337,7 +339,7 @@ export interface ActionConfiguration {
   body?: string;
   script?: string;
   command?: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, PrimitiveValue | string[]>;
   timeout: string;
   authentication?: ActionAuthentication;
 }
@@ -345,7 +347,7 @@ export interface ActionConfiguration {
 export interface ActionCondition {
   field: string;
   operator: string;
-  value: any;
+  value: FilterValue;
   required: boolean;
 }
 
@@ -391,7 +393,7 @@ export interface AlertContext {
   node?: string;
   pod?: string;
   container?: string;
-  customContext: Record<string, any>;
+  customContext: Record<string, string | number | boolean | null>;
 }
 
 export interface AlertActionResult {
@@ -400,7 +402,12 @@ export interface AlertActionResult {
   status: 'success' | 'failed' | 'timeout' | 'skipped';
   executedAt: string;
   duration: number;
-  result?: any;
+  result?: {
+    fired?: boolean;
+    timestamp?: string;
+    value?: PrimitiveValue;
+    message?: string;
+  };
   error?: string;
 }
 

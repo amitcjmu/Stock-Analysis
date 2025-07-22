@@ -16,9 +16,9 @@ interface FlowStateValidationResponse {
   status: string;
   flow_id: string;
   overall_valid: boolean;
-  crewai_validation: Record<string, any>;
-  postgresql_validation: Record<string, any>;
-  phase_executors?: Record<string, any>;
+  crewai_validation: Record<string, unknown>;
+  postgresql_validation: Record<string, unknown>;
+  phase_executors?: Record<string, unknown>;
   validation_timestamp: string;
   recommendations?: string[];
 }
@@ -27,7 +27,7 @@ interface FlowRecoveryResponse {
   status: string;
   flow_id: string;
   recovery_successful: boolean;
-  recovered_state?: Record<string, any>;
+  recovered_state?: Record<string, unknown>;
   recovery_strategy_used: string;
   recovery_timestamp: string;
   next_steps?: string[];
@@ -44,9 +44,9 @@ interface FlowCleanupResponse {
 
 interface FlowPersistenceStatusResponse {
   flow_id: string;
-  crewai_persistence: Record<string, any>;
-  postgresql_persistence: Record<string, any>;
-  bridge_status: Record<string, any>;
+  crewai_persistence: Record<string, unknown>;
+  postgresql_persistence: Record<string, unknown>;
+  bridge_status: Record<string, unknown>;
   sync_enabled: boolean;
   last_sync_timestamp?: string;
 }
@@ -60,7 +60,7 @@ interface BulkValidationResponse {
     flow_id: string;
     status: string;
     valid?: boolean;
-    summary?: Record<string, any>;
+    summary?: Record<string, unknown>;
     error?: string;
   }>;
   validation_timestamp: string;
@@ -114,7 +114,7 @@ const bulkValidateFlows = async (flowIds: string[]): Promise<BulkValidationRespo
   return response.data;
 };
 
-const checkPersistenceHealth = async (): Promise<Record<string, any>> => {
+const checkPersistenceHealth = async (): Promise<Record<string, unknown>> => {
   const response = await apiClient.get('/discovery/enhanced/health/persistence');
   return response.data;
 };

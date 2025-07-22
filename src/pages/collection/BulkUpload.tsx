@@ -207,7 +207,7 @@ const BulkUpload: React.FC = () => {
     }
   };
 
-  const handleDataChange = (applicationId: string, fieldId: string, value: any) => {
+  const handleDataChange = (applicationId: string, fieldId: string, value: unknown) => {
     setApplications(prev => prev.map(app => 
       app.id === applicationId 
         ? { ...app, [fieldId]: value }

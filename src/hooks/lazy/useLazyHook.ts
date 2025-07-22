@@ -24,7 +24,7 @@ interface UseLazyHookReturn<T> {
 /**
  * Core lazy hook loader
  */
-export const useLazyHook = <T = any>(
+export const useLazyHook = <T = unknown>(
   hookId: string,
   importFn: () => Promise<LazyHookModule<T>>,
   options: UseLazyHookOptions = {}
@@ -112,7 +112,7 @@ export const useLazyHook = <T = any>(
 /**
  * Lazy hook with automatic dependency resolution
  */
-export const useLazyHookWithDependencies = <T = any>(
+export const useLazyHookWithDependencies = <T = unknown>(
   hookId: string,
   importFn: () => Promise<LazyHookModule<T>>,
   dependencies: string[],
@@ -143,7 +143,7 @@ export const useLazyHookWithDependencies = <T = any>(
 /**
  * Conditional lazy hook loading based on feature flags or user permissions
  */
-export const useConditionalLazyHook = <T = any>(
+export const useConditionalLazyHook = <T = unknown>(
   hookId: string,
   importFn: () => Promise<LazyHookModule<T>>,
   condition: boolean | (() => boolean),
@@ -165,7 +165,7 @@ export const useConditionalLazyHook = <T = any>(
 /**
  * Lazy hook with cache invalidation
  */
-export const useLazyHookWithCache = <T = any>(
+export const useLazyHookWithCache = <T = unknown>(
   hookId: string,
   importFn: () => Promise<LazyHookModule<T>>,
   cacheKey: string,

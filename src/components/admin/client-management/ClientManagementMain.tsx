@@ -68,7 +68,7 @@ const ClientManagementMain: React.FC = () => {
   const { actionLoading, createClient, updateClient, deleteClient } = useClientOperations();
 
   // Form handlers
-  const handleFormChange = useCallback((field: keyof ClientFormData, value: any) => {
+  const handleFormChange = useCallback((field: keyof ClientFormData, value: string | string[]) => {
     setFormData(prev => ({
       ...prev,
       [field]: value

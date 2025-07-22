@@ -36,7 +36,7 @@ export const useWavePlanning = () => {
       try {
         const response = await apiCall('/api/v1/wave-planning');
         return response;
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Handle 404 and 403 errors gracefully - endpoint may not exist yet
         if (error.status === 404 || error.response?.status === 404 || error.status === 403) {
           console.log('Wave planning endpoint not available yet');

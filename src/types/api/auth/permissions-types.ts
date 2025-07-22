@@ -35,12 +35,12 @@ export interface CheckPermissionRequest extends BaseApiRequest {
   context: MultiTenantContext;
 }
 
-export interface CheckPermissionResponse extends BaseApiResponse<any> {
-  data: any;
+export interface CheckPermissionResponse extends BaseApiResponse<unknown> {
+  data: unknown;
   hasPermission: boolean;
   reason?: string;
   inheritedFrom?: string;
-  conditions?: Record<string, any>;
+  conditions?: Record<string, unknown>;
 }
 
 export interface GetUserRolesRequest extends BaseApiRequest {
@@ -65,8 +65,8 @@ export interface AssignRoleRequest extends BaseApiRequest {
   context: MultiTenantContext;
 }
 
-export interface AssignRoleResponse extends BaseApiResponse<any> {
-  data: any;
+export interface AssignRoleResponse extends BaseApiResponse<unknown> {
+  data: unknown;
   assigned: boolean;
   roleApplied: boolean;
   permissionsUpdated: string[];
@@ -80,8 +80,8 @@ export interface RevokeRoleRequest extends BaseApiRequest {
   context: MultiTenantContext;
 }
 
-export interface RevokeRoleResponse extends BaseApiResponse<any> {
-  data: any;
+export interface RevokeRoleResponse extends BaseApiResponse<unknown> {
+  data: unknown;
   revoked: boolean;
   permissionsRemoved: string[];
   effectivePermissions: string[];

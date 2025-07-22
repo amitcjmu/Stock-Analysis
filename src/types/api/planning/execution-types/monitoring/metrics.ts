@@ -41,7 +41,7 @@ export interface MetricInput {
 
 export interface MetricParameter {
   parameter: string;
-  value: any;
+  value: unknown;
   type: string;
   source: string;
   update_frequency: string;

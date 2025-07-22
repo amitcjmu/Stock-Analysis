@@ -4,6 +4,9 @@
  * Supports local development, Vercel frontend + Railway backend deployment
  */
 
+import { ApiResponse, ApiError } from '../types/shared/api-types';
+import { tokenStorage } from '../contexts/AuthContext/storage';
+
 // Define types for the API context
 interface AppContextType {
   user: { id: string } | null;
@@ -179,12 +182,27 @@ export const API_CONFIG = {
   }
 };
 
+// CC: External API request payload types for integration layer
+export type ExternalApiRequestPayload = 
+  | Record<string, unknown>
+  | FormData
+  | string
+  | number
+  | boolean
+  | null
+  | undefined;
+
+/**
+ * Enhanced API response for external integrations 
+ */
+export type ExternalApiResponse<TData = unknown> = ApiResponse<TData, ApiError>;
+
 // Track in-flight requests to prevent duplicates
-const pendingRequests = new Map<string, Promise<any>>();
+const pendingRequests = new Map<string, Promise<ExternalApiResponse>>();
 
 // Enhanced rate limiting and caching system
-interface CacheEntry {
-  data: any;
+interface CacheEntry<T = unknown> {
+  data: T;
   timestamp: number;
   expiry: number;
 }
@@ -195,7 +213,7 @@ interface RateLimitEntry {
 }
 
 // Cache for API responses (5 minute default expiry)
-const responseCache = new Map<string, CacheEntry>();
+const responseCache = new Map<string, CacheEntry<ExternalApiResponse>>();
 // Rate limiting tracker per endpoint
 const rateLimitTracker = new Map<string, RateLimitEntry>();
 
@@ -237,7 +255,7 @@ function isRateLimited(method: string, normalizedEndpoint: string): boolean {
   return false;
 }
 
-function getCachedResponse(method: string, normalizedEndpoint: string): any | null {
+function getCachedResponse<T = unknown>(method: string, normalizedEndpoint: string): T | null {
   const key = `${method}:${normalizedEndpoint}`;
   const entry = responseCache.get(key);
   
@@ -253,7 +271,7 @@ function getCachedResponse(method: string, normalizedEndpoint: string): any | nu
   return entry.data;
 }
 
-function setCachedResponse(method: string, normalizedEndpoint: string, data: any): void {
+function setCachedResponse<T = unknown>(method: string, normalizedEndpoint: string, data: T): void {
   const key = `${method}:${normalizedEndpoint}`;
   const config = CACHE_CONFIG[key] || CACHE_CONFIG.default;
   const expiry = Date.now() + config;
@@ -262,10 +280,10 @@ function setCachedResponse(method: string, normalizedEndpoint: string, data: any
   console.log(`💾 Cached response for ${key}, expires at ${new Date(expiry).toISOString()}`);
 }
 
-interface ApiError extends Error {
+interface EnhancedApiError extends ApiError {
   status?: number;
   statusText?: string;
-  response?: any;
+  response?: ExternalApiResponse;
   requestId?: string;
   isApiError: boolean;
   isRateLimited?: boolean;
@@ -275,9 +293,10 @@ interface ApiError extends Error {
   isTimeout?: boolean;
 }
 
-// Extend RequestInit to include timeout
+// Extend RequestInit to include timeout and typed body
 interface ApiRequestInit extends RequestInit {
   timeout?: number;
+  body?: ExternalApiRequestPayload | string;
 }
 
 /**
@@ -290,7 +309,7 @@ export const apiCall = async (
   endpoint: string, 
   options: ApiRequestInit = {}, 
   includeContext: boolean = true
-): Promise<any> => {
+): Promise<ExternalApiResponse> => {
   const requestId = Math.random().toString(36).substring(2, 8);
   const startTime = performance.now();
   
@@ -337,10 +356,11 @@ export const apiCall = async (
     
     // Check rate limiting
     if (isRateLimited(method, normalizedEndpoint)) {
-      const rateLimitError = new Error('Rate limit exceeded') as ApiError;
+      const rateLimitError = new Error('Rate limit exceeded') as EnhancedApiError;
       rateLimitError.status = 429;
       rateLimitError.isRateLimited = true;
       rateLimitError.isApiError = true;
+      rateLimitError.code = 'RATE_LIMIT_EXCEEDED';
       throw rateLimitError;
     }
   }
@@ -498,12 +518,14 @@ export const apiCall = async (
       console.log('Response:', data);
       
       if (!response.ok) {
-        const error = new Error(data?.message || response.statusText || 'Request failed') as ApiError;
+        const error = new Error(data?.message || response.statusText || 'Request failed') as EnhancedApiError;
         error.status = response.status;
         error.statusText = response.statusText;
         error.response = data;
         error.requestId = requestId;
         error.isApiError = true;
+        error.code = `HTTP_${response.status}`;
+        error.message = data?.message || response.statusText || 'Request failed';
         
         // Special handling for different status codes
         if (response.status === 404) {
@@ -522,6 +544,18 @@ export const apiCall = async (
         } else if (response.status === 401) {
           console.warn(`[${requestId}] Authentication failed: ${url}`);
           error.isAuthError = true;
+          
+          // Handle token expiration by logging out
+          console.warn('🔐 Token expired, logging out user');
+          tokenStorage.removeToken();
+          tokenStorage.setUser(null);
+          localStorage.removeItem('auth_client');
+          localStorage.removeItem('auth_engagement');
+          localStorage.removeItem('auth_flow');
+          sessionStorage.removeItem('auth_initialization_complete');
+          
+          // Redirect to login
+          window.location.href = '/login';
         } else if (response.status === 403) {
           console.warn(`[${requestId}] Authorization failed: ${url}`);
           error.isForbidden = true;
@@ -540,22 +574,29 @@ export const apiCall = async (
       const endTime = performance.now();
       const duration = (endTime - startTime).toFixed(2);
       
-      let apiError: ApiError;
+      let apiError: EnhancedApiError;
       
       // Handle timeout errors specifically
       if (error.name === 'AbortError') {
-        apiError = new Error(`Request timed out after ${duration}ms. The server may be processing a large dataset.`) as ApiError;
+        apiError = new Error(`Request timed out after ${duration}ms. The server may be processing a large dataset.`) as EnhancedApiError;
         apiError.status = 408; // Request Timeout
         apiError.statusText = 'Request Timeout';
         apiError.requestId = requestId;
         apiError.isApiError = true;
         apiError.isTimeout = true;
+        apiError.code = 'REQUEST_TIMEOUT';
+        apiError.message = `Request timed out after ${duration}ms. The server may be processing a large dataset.`;
       } else if (error instanceof Error) {
-        apiError = error as ApiError;
+        apiError = error as EnhancedApiError;
         apiError.isApiError = true;
+        if (!apiError.code) {
+          apiError.code = 'API_ERROR';
+        }
       } else {
-        apiError = new Error('Unknown API error') as ApiError;
+        apiError = new Error('Unknown API error') as EnhancedApiError;
         apiError.isApiError = true;
+        apiError.code = 'UNKNOWN_ERROR';
+        apiError.message = 'Unknown API error';
       }
       
       apiError.requestId = requestId;
@@ -589,9 +630,9 @@ export const apiCall = async (
  */
 export const apiCallWithFallback = async (
   endpoint: string, 
-  options: RequestInit = {}, 
+  options: ApiRequestInit = {}, 
   includeContext: boolean = true
-): Promise<{ ok: boolean; status: string; data?: any; message?: string; json?: () => Promise<any> }> => {
+): Promise<{ ok: boolean; status: string; data?: ExternalApiResponse; message?: string; json?: () => Promise<ExternalApiResponse> }> => {
   try {
     const data = await apiCall(endpoint, options, includeContext);
     
@@ -605,12 +646,18 @@ export const apiCallWithFallback = async (
   } catch (error) {
     console.error('API call failed, using fallback behavior:', error);
     
-    const apiError = error as ApiError;
+    const apiError = error as EnhancedApiError;
     return {
       ok: false,
       status: 'error',
       message: apiError.message || 'Request failed',
-      json: async () => ({ error: apiError.message || 'Request failed' })
+      json: async () => ({ 
+        error: {
+          code: apiError.code || 'UNKNOWN_ERROR',
+          message: apiError.message || 'Request failed',
+          details: apiError.details
+        } as ApiError
+      })
     };
   }
 };

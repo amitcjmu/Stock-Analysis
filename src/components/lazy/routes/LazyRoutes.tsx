@@ -8,14 +8,14 @@ import { LoadingPriority } from '@/types/lazy';
 import { ErrorBoundary } from 'react-error-boundary';
 
 // Define lazy loading strategies for different route categories
-const createLazyRoute = (
-  importFn: () => Promise<{ default: React.ComponentType<any> }>,
+const createLazyRoute = <P extends {} = {}>(
+  importFn: () => Promise<{ default: React.ComponentType<P> }>,
   componentName: string,
   priority: LoadingPriority = LoadingPriority.NORMAL
 ) => {
   const LazyComponent = lazy(importFn);
   
-  return React.forwardRef<any, any>((props, ref) => (
+  return React.forwardRef<HTMLElement, P>((props, ref) => (
     <ErrorBoundary
       FallbackComponent={({ error, resetErrorBoundary }) => (
         <ErrorFallback

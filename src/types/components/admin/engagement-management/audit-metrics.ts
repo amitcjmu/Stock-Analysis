@@ -21,13 +21,13 @@ export interface EngagementAuditLog {
   changes: FieldChange[];
   user: User;
   timestamp: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface FieldChange {
   field: string;
-  oldValue: any;
-  newValue: any;
+  oldValue: unknown;
+  newValue: unknown;
   dataType: string;
 }
 

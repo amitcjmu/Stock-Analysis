@@ -2,45 +2,68 @@
  * Form Hook Types
  * 
  * Hook interfaces for form management including form control, field management, and validation.
+ * Integrates with React Hook Form for proper TypeScript support.
  */
 
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import type { 
+  FieldValues, 
+  Control, 
+  FieldPath, 
+  FieldErrors,
+  UseFormHandleSubmit,
+  UseFormReset,
+  UseFormSetError,
+  UseFormClearErrors,
+  UseFormSetValue,
+  UseFormGetValues,
+  UseFormTrigger,
+  UseFormUnregister,
+  UseFormWatch,
+  UseFormRegister,
+  Resolver,
+  FieldError,
+  RegisterOptions,
+  ControllerFieldState,
+  ControllerRenderProps
+} from 'react-hook-form';
+import type { FormHookConfig } from '../../shared/form-types';
 
 // Form hooks
-export interface UseFormParams<TFieldValues = any> {
+export interface UseFormParams<TFieldValues extends FieldValues = FieldValues> {
   mode?: 'onSubmit' | 'onBlur' | 'onChange' | 'onTouched' | 'all';
   reValidateMode?: 'onSubmit' | 'onBlur' | 'onChange';
   defaultValues?: Partial<TFieldValues>;
-  resolver?: any;
-  context?: any;
+  resolver?: Resolver<TFieldValues>;
+  context?: unknown;
   criteriaMode?: 'firstError' | 'all';
   shouldFocusError?: boolean;
   shouldUnregister?: boolean;
   shouldUseNativeValidation?: boolean;
   delayError?: number;
-  onSubmit?: (data: TFieldValues, event?: any) => void | Promise<void>;
-  onError?: (errors: any, event?: any) => void;
-  onReset?: (data?: TFieldValues) => void;
-  onInvalid?: (errors: any, event?: any) => void;
+  onSubmit?: (data: TFieldValues, event?: React.BaseSyntheticEvent) => void | Promise<void>;
+  onError?: (errors: FieldErrors<TFieldValues>, event?: React.BaseSyntheticEvent) => void;
+  onReset?: (data?: Partial<TFieldValues>) => void;
+  onInvalid?: (errors: FieldErrors<TFieldValues>, event?: React.BaseSyntheticEvent) => void;
 }
 
-export interface UseFormReturn<TFieldValues = any> {
-  control: any;
-  handleSubmit: (onValid: (data: TFieldValues, event?: any) => void | Promise<void>, onInvalid?: (errors: any, event?: any) => void) => (event?: any) => Promise<void>;
-  reset: (values?: Partial<TFieldValues>, options?: any) => void;
-  setError: (name: string, error: any, options?: any) => void;
-  clearErrors: (name?: string | string[]) => void;
-  setValue: (name: string, value: any, options?: any) => void;
-  getValue: (name: string) => any;
-  getValues: (names?: string | string[]) => any;
-  trigger: (name?: string | string[]) => Promise<boolean>;
-  unregister: (name?: string | string[], options?: any) => void;
-  watch: (name?: string | string[] | ((data: any, options: any) => any), defaultValue?: any) => any;
+export interface UseFormReturn<TFieldValues extends FieldValues = FieldValues> {
+  control: Control<TFieldValues>;
+  handleSubmit: UseFormHandleSubmit<TFieldValues>;
+  reset: UseFormReset<TFieldValues>;
+  setError: UseFormSetError<TFieldValues>;
+  clearErrors: UseFormClearErrors<TFieldValues>;
+  setValue: UseFormSetValue<TFieldValues>;
+  getValue: (name: FieldPath<TFieldValues>) => TFieldValues[FieldPath<TFieldValues>];
+  getValues: UseFormGetValues<TFieldValues>;
+  trigger: UseFormTrigger<TFieldValues>;
+  unregister: UseFormUnregister<TFieldValues>;
+  watch: UseFormWatch<TFieldValues>;
   formState: FormState<TFieldValues>;
-  register: (name: string, options?: any) => any;
+  register: UseFormRegister<TFieldValues>;
 }
 
-export interface FormState<TFieldValues = any> {
+export interface FormState<TFieldValues extends FieldValues = FieldValues> {
   isDirty: boolean;
   isLoading: boolean;
   isSubmitted: boolean;
@@ -49,33 +72,22 @@ export interface FormState<TFieldValues = any> {
   isValidating: boolean;
   isValid: boolean;
   submitCount: number;
-  dirtyFields: Partial<Record<string, boolean>>;
-  touchedFields: Partial<Record<string, boolean>>;
-  errors: any;
+  dirtyFields: Partial<Record<FieldPath<TFieldValues>, boolean>>;
+  touchedFields: Partial<Record<FieldPath<TFieldValues>, boolean>>;
+  errors: FieldErrors<TFieldValues>;
   defaultValues?: Partial<TFieldValues>;
 }
 
-export interface UseFieldParams {
-  name: string;
-  defaultValue?: any;
-  rules?: any;
+export interface UseFieldParams<TFieldValues extends FieldValues = FieldValues> {
+  name: FieldPath<TFieldValues>;
+  defaultValue?: TFieldValues[FieldPath<TFieldValues>];
+  rules?: RegisterOptions<TFieldValues, FieldPath<TFieldValues>>;
   shouldUnregister?: boolean;
   disabled?: boolean;
 }
 
-export interface UseFieldReturn {
-  field: {
-    name: string;
-    value: any;
-    onChange: (value: any) => void;
-    onBlur: () => void;
-    ref: any;
-  };
-  fieldState: {
-    invalid: boolean;
-    isTouched: boolean;
-    isDirty: boolean;
-    error?: any;
-  };
-  formState: FormState;
+export interface UseFieldReturn<TFieldValues extends FieldValues = FieldValues> {
+  field: ControllerRenderProps<TFieldValues, FieldPath<TFieldValues>>;
+  fieldState: ControllerFieldState;
+  formState: FormState<TFieldValues>;
 }

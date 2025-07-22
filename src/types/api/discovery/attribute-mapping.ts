@@ -123,7 +123,7 @@ export interface FieldMapping {
   reviewedBy?: string;
   rejectionReason?: string;
   analysisResult?: MappingAnalysis;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface FieldMappingInput {
@@ -132,7 +132,7 @@ export interface FieldMappingInput {
   mappingType: MappingType;
   transformationLogic?: string;
   validationRules?: ValidationRule[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface MappingStatistics {
@@ -177,7 +177,7 @@ export interface MappingAnalysis {
   consistency: number;
   recommendations: string[];
   warnings: string[];
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface MappingOperation {
@@ -217,7 +217,7 @@ export interface AlternativeMapping {
 export interface ValidationRule {
   id: string;
   type: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, string | number | boolean | null>;
   errorMessage: string;
   severity: 'info' | 'warning' | 'error' | 'critical';
 }

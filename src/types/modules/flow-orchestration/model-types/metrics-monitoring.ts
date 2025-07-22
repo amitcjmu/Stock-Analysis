@@ -93,7 +93,7 @@ export interface Alert {
   resolvedAt?: string;
   acknowledgedBy?: string;
   resolvedBy?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface PerformanceBenchmark {
@@ -186,7 +186,7 @@ export interface HealthCheck {
   message: string;
   duration: number;
   lastRun: string;
-  details: Record<string, any>;
+  details: Record<string, string | number | boolean | null>;
 }
 
 export interface AlertConfiguration {
@@ -211,7 +211,7 @@ export interface AlertCondition {
 export interface AlertAction {
   type: 'email' | 'slack' | 'webhook' | 'sms' | 'ticket';
   target: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, string | number | boolean | null>;
   enabled: boolean;
 }
 

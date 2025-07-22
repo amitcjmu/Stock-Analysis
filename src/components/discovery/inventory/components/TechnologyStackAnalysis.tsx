@@ -38,7 +38,7 @@ export const TechnologyStackAnalysis: React.FC<TechnologyStackAnalysisProps> = (
         <div>
           <span className="text-gray-600">Integration Complexity:</span>
           <Badge 
-            variant={getComplexityColor(analysis.integration_complexity) as any}
+            variant={getComplexityColor(analysis.integration_complexity) as 'default' | 'secondary' | 'destructive' | 'outline'}
             className="ml-2 capitalize"
           >
             {analysis.integration_complexity}

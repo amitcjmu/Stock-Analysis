@@ -38,7 +38,12 @@
     "test:backend:agents": "cd backend && python -m pytest tests/backend/integration/test_real_agent_processing.py -v",
     "test:backend:persistence": "cd backend && python -m pytest tests/backend/integration/test_cross_flow_persistence.py -v",
     "test:backend:integration": "cd backend && python -m pytest tests/backend/integration/ -v",
-    "test:complete": "npm run test:backend:integration && npm run test:e2e:journey"
+    "test:complete": "npm run test:backend:integration && npm run test:e2e:journey",
+    "lint:progress": "node docs/development/Linting/artifacts/simple-progress-tracker.js",
+    "lint:tolerant": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 200",
+    "lint:agent-ready": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 50",
+    "lint:strict": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "types:validate": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

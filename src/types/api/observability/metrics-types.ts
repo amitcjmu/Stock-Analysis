@@ -85,7 +85,7 @@ export interface MetricDefinitionData {
   namespace: string;
   help: string;
   labels: Record<string, string>;
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface MetricSource {
@@ -212,7 +212,7 @@ export interface MetricAnomaly {
 export interface MetricFilter {
   field: string;
   operator: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'nin' | 'regex' | 'exists';
-  value: any;
+  value: unknown;
   caseSensitive?: boolean;
 }
 
@@ -253,7 +253,7 @@ export interface HealthCheckConfig {
 
 export interface AggregationFunction {
   name: 'sum' | 'avg' | 'min' | 'max' | 'count' | 'stddev' | 'percentile' | 'rate' | 'increase';
-  parameters?: Record<string, any>;
+  parameters?: Record<string, string | number | boolean | null>;
   alias?: string;
 }
 
@@ -366,7 +366,7 @@ export interface SSLConfig {
 export interface NotificationCondition {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
 }
 
 export interface SuppressionRule {

@@ -19,6 +19,43 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { performanceMonitor } from '@/utils/lazy/performanceMonitor';
+import { BundleAnalysis } from '@/types/lazy';
+
+interface PerformanceInsight {
+  type: 'optimization' | 'warning' | 'error' | 'info';
+  category: 'bundle-size' | 'load-time' | 'cache-efficiency' | 'error-rate';
+  message: string;
+  impact: 'high' | 'medium' | 'low';
+  suggestion: string;
+  metrics?: {
+    averageLoadTime?: number;
+    cacheHitRate?: number;
+    errorRate?: number;
+    bundleSize?: number;
+  };
+}
+
+interface LoadingPattern {
+  route: string;
+  component: string;
+  frequency: number;
+  averageLoadTime: number;
+  cacheHitRate: number;
+  errorRate: number;
+}
+
+interface PerformanceData {
+  summary: {
+    totalLoads: number;
+    averageLoadTime: number;
+    cacheHitRate: number;
+    errorRate: number;
+    performanceScore: number;
+  };
+  bundleAnalysis: BundleAnalysis;
+  insights: PerformanceInsight[];
+  patterns: LoadingPattern[];
+}
 
 interface PerformanceDashboardProps {
   autoRefresh?: boolean;
@@ -29,7 +66,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
   autoRefresh = true,
   refreshInterval = 5000
 }) => {
-  const [performanceData, setPerformanceData] = useState<any>(null);
+  const [performanceData, setPerformanceData] = useState<PerformanceData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refreshData = async () => {

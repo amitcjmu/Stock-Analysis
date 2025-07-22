@@ -6,14 +6,14 @@ export const useCMDBAnalysis = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const parseCSVData = useCallback((csvContent: string): any[] => {
+  const parseCSVData = useCallback((csvContent: string): Record<string, string>[] => {
     const lines = csvContent.trim().split('\n');
     if (lines.length < 2) return [];
     
     const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
     const data = lines.slice(1).map(line => {
       const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
-      const row: any = {};
+      const row: Record<string, string> = {};
       headers.forEach((header, index) => {
         row[header] = values[index] || '';
       });
@@ -136,7 +136,7 @@ export const useCMDBAnalysis = () => {
 
   const processData = useCallback(async (
     selectedFile: FileUpload,
-    projectInfo: any
+    projectInfo: Record<string, unknown>
   ) => {
     if (!selectedFile || !selectedFile.editableData) {
       throw new Error('No file selected or no data to process');

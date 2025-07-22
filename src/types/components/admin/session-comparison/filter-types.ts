@@ -15,8 +15,8 @@ export interface SessionComparisonColumn {
   width?: number | string;
   sortable?: boolean;
   filterable?: boolean;
-  render?: (value: any, sessions: UserSession[], index: number) => ReactNode;
-  compareRender?: (values: any[], sessions: UserSession[]) => ReactNode;
+  render?: (value: unknown, sessions: UserSession[], index: number) => ReactNode;
+  compareRender?: (values: unknown[], sessions: UserSession[]) => ReactNode;
   showDifferences?: boolean;
   type: ColumnType;
 }
@@ -28,23 +28,23 @@ export interface SessionFilter {
   field: string;
   operator?: FilterOperator;
   options?: FilterOption[];
-  value?: any;
+  value?: unknown;
   placeholder?: string;
   validation?: ValidationRule[];
 }
 
 export interface FilterOption {
   label: string;
-  value: any;
+  value: unknown;
   disabled?: boolean;
   description?: string;
 }
 
 export interface ValidationRule {
   type: 'required' | 'min' | 'max' | 'pattern' | 'custom';
-  value?: any;
+  value?: unknown;
   message: string;
-  validator?: (value: any) => boolean | Promise<boolean>;
+  validator?: (value: unknown) => boolean | Promise<boolean>;
 }
 
 export interface ExportFormat {

@@ -90,7 +90,7 @@ export interface FeatureConfig {
   name: string;
   enabled: boolean;
   rollout: number;
-  conditions?: Record<string, any>;
+  conditions?: Record<string, unknown>;
 }
 
 export interface SystemLimits {
@@ -183,7 +183,7 @@ export interface ExportFormat {
 export interface ExportOptions {
   sheets?: ExportSheet[];
   columns?: string[];
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
   formatting?: ExportFormatting;
   compression?: CompressionOptions;
   encryption?: EncryptionOptions;
@@ -191,7 +191,7 @@ export interface ExportOptions {
 
 export interface ExportSheet {
   name: string;
-  data: any[];
+  data: unknown[];
   columns?: TableColumn[];
 }
 
@@ -232,8 +232,8 @@ export interface ImportFormat {
 
 export interface ImportValidation {
   required: string[];
-  schema?: any;
-  customValidators?: Record<string, (value: any) => boolean | string>;
+  schema?: unknown;
+  customValidators?: Record<string, (value: unknown) => boolean | string>;
 }
 
 export interface ImportMapping {
@@ -247,7 +247,7 @@ export interface FieldMapping {
   source: string;
   target: string;
   transform?: string;
-  defaultValue?: any;
+  defaultValue?: unknown;
   required?: boolean;
 }
 
@@ -273,7 +273,7 @@ export interface TableColumn {
   resizable?: boolean;
   fixed?: 'left' | 'right';
   align?: 'left' | 'center' | 'right';
-  render?: (value: any, record: any, index: number) => React.ReactNode;
+  render?: (value: unknown, record: unknown, index: number) => React.ReactNode;
   headerRender?: (column: TableColumn) => React.ReactNode;
   filterRender?: (column: TableColumn) => React.ReactNode;
   sorterRender?: (column: TableColumn) => React.ReactNode;
@@ -287,9 +287,9 @@ export interface TableColumn {
 // Forward declaration for ValidationRule (defined in form-types)
 export interface ValidationRule {
   type: ValidationType;
-  value?: any;
+  value?: unknown;
   message: string;
-  validator?: (value: any) => boolean | Promise<boolean>;
+  validator?: (value: unknown) => boolean | Promise<boolean>;
 }
 
 // Enum and union types

@@ -9,7 +9,7 @@ import { Plus } from 'lucide-react';
 interface DependencyMappingPanelProps {
   data: DependencyData | null;
   activeView: 'app-server' | 'app-app';
-  onCreateDependency: (dependency: any) => void;
+  onCreateDependency: (dependency: unknown) => void;
 }
 
 const DependencyMappingPanel: React.FC<DependencyMappingPanelProps> = ({

@@ -18,7 +18,7 @@ export interface NotificationSettings {
 
 export interface NotificationChannel {
   type: 'email' | 'slack' | 'teams' | 'webhook' | 'sms';
-  configuration: Record<string, any>;
+  configuration: Record<string, unknown>;
   enabled: boolean;
   fallback?: string;
 }

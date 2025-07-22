@@ -103,10 +103,10 @@ export interface ViolationImpact {
 }
 
 export interface ViolationEvidence {
-  metrics: Record<string, any>;
+  metrics: Record<string, unknown>;
   logs: string[];
   screenshots?: string[];
-  configurations: Record<string, any>;
+  configurations: Record<string, unknown>;
 }
 
 export interface ViolationContext {
@@ -150,7 +150,7 @@ export interface ComplianceCheck {
 
 export interface CheckCriteria {
   rule: string;
-  threshold: any;
+  threshold: unknown;
   operator: string;
   tolerance: number;
 }

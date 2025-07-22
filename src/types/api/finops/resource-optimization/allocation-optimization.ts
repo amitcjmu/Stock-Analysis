@@ -23,6 +23,7 @@ import {
   ResourceState,
   ChangeImpact
 } from '../shared';
+import type { ConfigurationValue, TypedConstraint } from '../../../shared/config-types';
 
 // Resource Allocation Optimization APIs
 export interface OptimizeResourceAllocationRequest extends BaseApiRequest {
@@ -58,10 +59,8 @@ export interface OptimizationPriority {
   direction: 'minimize' | 'maximize';
 }
 
-export interface ResourceConstraint {
+export interface ResourceConstraint extends Omit<TypedConstraint, 'type' | 'impact'> {
   type: 'capacity' | 'performance' | 'location' | 'compliance' | 'budget';
-  description: string;
-  value: any;
   flexibility: 'none' | 'low' | 'medium' | 'high';
 }
 
@@ -123,8 +122,8 @@ export interface AllocationDetail {
 export interface ConstraintStatus {
   constraint: string;
   status: 'satisfied' | 'violated' | 'at_risk';
-  value: any;
-  limit: any;
+  value: ConfigurationValue;
+  limit: ConfigurationValue;
 }
 
 // Implementation Planning Types

@@ -26,6 +26,7 @@ export {
 // Export handleApiError from errorHandling
 export { handleApiError } from './errorHandling';
 
+// Export types with proper type imports
 export type {
   ApiClientConfig,
   ApiResponse,
@@ -33,5 +34,31 @@ export type {
   RequestConfig,
   RetryConfig,
   CacheConfig,
-  MultiTenantContext
+  MultiTenantContext,
+  LegacyApiResponse,
+  PaginatedResponse,
+  FlowApiResponse,
+  NetworkError,
+  ValidationError,
+  AuthenticationError,
+  AuthorizationError,
+  ServerError,
+  ApiErrorType,
+  UploadConfig,
+  BatchRequest,
+  BatchResponse,
+  HealthCheckResult,
+  ApiMetrics
 } from './apiTypes';
+
+// Re-export shared types for convenience
+export type {
+  ApiResponse as SharedApiResponse,
+  ApiError as SharedApiError,
+  ResponseMetadata
+} from '../../types/shared/api-types';
+export type { 
+  BaseMetadata, 
+  AuditableMetadata, 
+  DomainMetadata 
+} from '../../types/shared/metadata-types';

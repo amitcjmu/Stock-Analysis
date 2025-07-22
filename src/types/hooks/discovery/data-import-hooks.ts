@@ -11,7 +11,7 @@ import { BaseHookParams, BaseHookReturn } from './base-hooks';
 export interface MappingFilter {
   field: string;
   operator: 'eq' | 'ne' | 'contains' | 'startsWith' | 'endsWith' | 'gt' | 'lt' | 'gte' | 'lte' | 'in' | 'not_in';
-  value: any;
+  value: unknown;
   label?: string;
   enabled?: boolean;
 }
@@ -25,7 +25,7 @@ export interface MappingSortConfig {
 export interface AttributeFilter {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
   label?: string;
   enabled?: boolean;
 }
@@ -39,7 +39,7 @@ export interface AttributeSortConfig {
 export interface ImportFilter {
   field: string;
   operator: string;
-  value: any;
+  value: unknown;
   label?: string;
   enabled?: boolean;
 }
@@ -62,7 +62,7 @@ export interface ImportError {
 
 export interface PreviewData {
   headers: string[];
-  rows: any[][];
+  rows: unknown[][];
   totalRows: number;
   sampleSize: number;
   schema: ColumnSchema[];
@@ -73,7 +73,7 @@ export interface ColumnSchema {
   type: string;
   nullable: boolean;
   unique: boolean;
-  examples: any[];
+  examples: unknown[];
   statistics?: ColumnStatistics;
 }
 
@@ -81,9 +81,9 @@ export interface ColumnStatistics {
   count: number;
   nullCount: number;
   uniqueCount: number;
-  minValue?: any;
-  maxValue?: any;
-  avgValue?: any;
+  minValue?: unknown;
+  maxValue?: unknown;
+  avgValue?: unknown;
   distribution?: Record<string, number>;
 }
 
@@ -113,5 +113,5 @@ export interface ExportFormat {
   extension: string;
   mimeType: string;
   description?: string;
-  options?: Record<string, any>;
+  options?: Record<string, unknown>;
 }

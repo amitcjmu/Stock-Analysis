@@ -8,6 +8,7 @@ import { BaseApiRequest, BaseApiResponse, PaginationInfo } from './base-types';
 import { MultiTenantContext } from './tenant-types';
 import { SortParameter, FilterParameter, SearchParameter, AppliedFilter, AppliedSort, Aggregation } from './query-types';
 import { ValidationResult, ValidationError, ValidationWarning } from './validation-types';
+import { PrimitiveValue } from './value-types';
 
 // Request/Response patterns
 export interface ListRequest extends BaseApiRequest {
@@ -100,8 +101,8 @@ export interface DeleteResponse extends BaseApiResponse<void> {
 
 export interface ConflictInfo {
   field: string;
-  currentValue: any;
-  attemptedValue: any;
+  currentValue: PrimitiveValue | Record<string, PrimitiveValue>;
+  attemptedValue: PrimitiveValue | Record<string, PrimitiveValue>;
   resolution: string;
 }
 

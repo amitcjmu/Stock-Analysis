@@ -1,6 +1,20 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
+interface Analytics {
+  track: (event: string, properties: {
+    error: string;
+    stack?: string;
+    componentStack: string;
+  }) => void;
+}
+
+declare global {
+  interface Window {
+    analytics?: Analytics;
+  }
+}
+
 interface Props {
   children: ReactNode;
 }
@@ -26,8 +40,8 @@ export class FieldMappingErrorBoundary extends Component<Props, State> {
     console.error('Field mapping error:', error, errorInfo);
     
     // Log to monitoring service if available
-    if (typeof window !== 'undefined' && (window as any).analytics) {
-      (window as any).analytics.track('Field Mapping Error', {
+    if (typeof window !== 'undefined' && window.analytics) {
+      window.analytics.track('Field Mapping Error', {
         error: error.message,
         stack: error.stack,
         componentStack: errorInfo.componentStack

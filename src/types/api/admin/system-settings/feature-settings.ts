@@ -21,31 +21,31 @@ export interface FeatureFlag {
   name: string;
   enabled: boolean;
   percentage: number;
-  conditions: Record<string, any>;
+  conditions: Record<string, string | number | boolean | null>;
 }
 
 export interface ExperimentConfig {
   id: string;
   name: string;
-  variants: Record<string, any>;
+  variants: Record<string, string | number | boolean | null>;
 }
 
 export interface RolloutConfig {
   strategy: string;
   percentage: number;
-  criteria: Record<string, any>;
+  criteria: Record<string, string | number | boolean | null>;
 }
 
 export interface ToggleConfig {
   id: string;
   enabled: boolean;
-  conditions: Record<string, any>;
+  conditions: Record<string, string | number | boolean | null>;
 }
 
 export interface BetaFeatureConfig {
   id: string;
   enabled: boolean;
-  eligibility: Record<string, any>;
+  eligibility: Record<string, string | number | boolean | null>;
 }
 
 export interface DeprecatedFeature {

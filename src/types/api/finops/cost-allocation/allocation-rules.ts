@@ -98,7 +98,7 @@ export interface AllocationConstraint {
 // Allocation Logic and Distribution
 export interface AllocationLogic {
   method: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, string | number | boolean | null>;
   distribution: DistributionLogic;
   rounding: RoundingLogic;
   residual: ResidualHandling;
@@ -133,7 +133,7 @@ export interface ResidualHandling {
 export interface AllocationCondition {
   type: 'time_based' | 'value_based' | 'tag_based' | 'dependency_based';
   condition: string;
-  value?: any;
+  value?: unknown;
   operator: string;
   action: 'apply' | 'skip' | 'modify' | 'escalate';
 }

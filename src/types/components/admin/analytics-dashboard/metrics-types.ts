@@ -20,9 +20,9 @@ export interface MetricsOverviewProps extends BaseComponentProps {
   groupBy?: string;
   onGroupByChange?: (groupBy: string) => void;
   filters?: MetricFilter[];
-  onFiltersChange?: (filters: Record<string, any>) => void;
+  onFiltersChange?: (filters: Record<string, string | number | boolean | null>) => void;
   onMetricClick?: (metric: Metric) => void;
-  onDrillDown?: (metric: Metric, filters?: Record<string, any>) => void;
+  onDrillDown?: (metric: Metric, filters?: Record<string, string | number | boolean | null>) => void;
   refreshInterval?: number;
   onRefresh?: () => void;
   showTrends?: boolean;
@@ -75,7 +75,7 @@ export interface MetricFilter {
   type: FilterType;
   field: string;
   options?: FilterOption[];
-  value?: any;
+  value?: unknown;
   required?: boolean;
 }
 
@@ -133,7 +133,7 @@ export interface MetricCalculation {
 export interface TrendDataPoint {
   timestamp: string;
   value: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface TrendForecast {
@@ -146,14 +146,14 @@ export interface TrendForecast {
 export interface AlertCondition {
   field: string;
   operator: AlertOperator;
-  value: any;
+  value: unknown;
   duration?: number;
   consecutive?: boolean;
 }
 
 export interface FilterOption {
   label: string;
-  value: any;
+  value: unknown;
   description?: string;
   count?: number;
 }

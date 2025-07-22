@@ -83,7 +83,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
       
       if (response && response.fields) {
         // Ensure all fields have category property and deduplicate by name
-        const fieldsWithCategories = response.fields.map((field: any) => ({
+        const fieldsWithCategories = response.fields.map((field: TargetField) => ({
           ...field,
           category: field.category || 'uncategorized'
         }));
@@ -113,7 +113,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
       console.error('Failed to load available target fields:', error);
       
       // If it's a rate limit error, just log it and don't throw
-      if (error && typeof error === 'object' && 'status' in error && (error as any).status === 429) {
+      if (error && typeof error === 'object' && 'status' in error && (error as {status: number}).status === 429) {
         console.warn('Rate limited on available fields - will use cached data if available');
         return;
       }
@@ -172,13 +172,13 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   }
 
   // Force field mappings to be editable if they're in "suggested" status
-  const editableFieldMappings = fieldMappings.map((mapping: any) => ({
+  const editableFieldMappings = fieldMappings.map((mapping: FieldMapping) => ({
     ...mapping,
     status: mapping.status === 'suggested' ? 'pending' : mapping.status || 'pending'
   }));
   
   // Apply filters
-  const filteredMappings = editableFieldMappings.filter((mapping: any) => {
+  const filteredMappings = editableFieldMappings.filter((mapping: FieldMapping) => {
     if (mapping.status === 'approved' && !filterOptions.showApproved) return false;
     if (mapping.status === 'rejected' && !filterOptions.showRejected) return false;
     if ((mapping.status === 'pending' || mapping.status === 'suggested' || !mapping.status) && !filterOptions.showPending) return false;

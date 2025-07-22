@@ -27,7 +27,7 @@ export interface UserListProps extends BaseComponentProps {
   onUserSelect?: (selectedUsers: User[]) => void;
   onUserAction?: (action: string, user: User) => void;
   onBulkAction?: (action: string, users: User[]) => void;
-  onFiltersChange?: (filters: Record<string, any>) => void;
+  onFiltersChange?: (filters: Record<string, unknown>) => void;
   onSortChange?: (sort: UserSortConfig) => void;
   onPageChange?: (page: number, pageSize: number) => void;
   onRefresh?: () => void;
@@ -125,7 +125,7 @@ export interface UserStatsProps extends BaseComponentProps {
   error?: string | null;
   refreshInterval?: number;
   onRefresh?: () => void;
-  onDrillDown?: (stat: string, filters?: Record<string, any>) => void;
+  onDrillDown?: (stat: string, filters?: Record<string, unknown>) => void;
   showTrends?: boolean;
   showComparisons?: boolean;
   showBreakdowns?: boolean;
@@ -135,7 +135,7 @@ export interface UserStatsProps extends BaseComponentProps {
   onComparisonPeriodChange?: (timeRange: TimeRange) => void;
   charts?: UserStatsChart[];
   customMetrics?: CustomMetric[];
-  onChartClick?: (chart: UserStatsChart, data: any) => void;
+  onChartClick?: (chart: UserStatsChart, data: unknown) => void;
   renderStat?: (stat: UserStatCard) => ReactNode;
   renderChart?: (chart: UserStatsChart) => ReactNode;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -159,7 +159,7 @@ export interface User {
   lastLogin?: string;
   createdAt: string;
   updatedAt: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UserListPaginationConfig {
@@ -204,7 +204,7 @@ export interface UserTableColumn {
   sortable?: boolean;
   filterable?: boolean;
   searchable?: boolean;
-  render?: (value: any, user: User, index: number) => ReactNode;
+  render?: (value: unknown, user: User, index: number) => ReactNode;
   filterType?: 'text' | 'select' | 'date' | 'number' | 'boolean';
   filterOptions?: FilterOption[];
 }
@@ -214,7 +214,7 @@ export interface UserFilter {
   label: string;
   type: 'text' | 'select' | 'date' | 'number' | 'boolean' | 'multiselect';
   options?: FilterOption[];
-  value?: any;
+  value?: unknown;
   placeholder?: string;
   validation?: ValidationRule[];
 }
@@ -238,7 +238,7 @@ export interface UserApprovalData {
   role?: string;
   permissions?: string[];
   notes?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ApprovalFormField {
@@ -278,7 +278,7 @@ export interface UserStatsChart {
   id: string;
   title: string;
   type: 'line' | 'bar' | 'pie' | 'area' | 'scatter';
-  data: any[];
+  data: unknown[];
   config?: ChartConfig;
   loading?: boolean;
   error?: string;
@@ -318,7 +318,7 @@ export interface AuditLog {
   timestamp: string;
   ipAddress?: string;
   userAgent?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface Permission {
@@ -356,7 +356,7 @@ export interface UserActivity {
   action: string;
   details: string;
   timestamp: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UserPreferences {
@@ -389,22 +389,22 @@ export interface DisplayPreferences {
 // Common supporting types
 export interface FilterOption {
   label: string;
-  value: any;
+  value: unknown;
   disabled?: boolean;
   description?: string;
 }
 
 export interface FieldOption {
   label: string;
-  value: any;
+  value: unknown;
   disabled?: boolean;
 }
 
 export interface ValidationRule {
   type: 'required' | 'email' | 'min' | 'max' | 'pattern' | 'custom';
-  value?: any;
+  value?: unknown;
   message: string;
-  validator?: (value: any) => boolean | Promise<boolean>;
+  validator?: (value: unknown) => boolean | Promise<boolean>;
 }
 
 export interface ExportFormat {
@@ -421,10 +421,10 @@ export interface ExportOptions {
 }
 
 export interface ChartConfig {
-  xAxis?: any;
-  yAxis?: any;
-  legend?: any;
-  tooltip?: any;
+  xAxis?: unknown;
+  yAxis?: unknown;
+  legend?: unknown;
+  tooltip?: unknown;
   colors?: string[];
   responsive?: boolean;
 }

@@ -15,7 +15,7 @@ export interface BaseEntity {
   createdBy: string;
   updatedBy?: string;
   version: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface AuditableEntity extends BaseEntity {
@@ -107,7 +107,7 @@ export interface AuditTrailEntry {
   resource: string;
   resourceId?: string;
   changes: FieldChange[];
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
   ipAddress?: string;
   userAgent?: string;
   sessionId?: string;
@@ -115,8 +115,8 @@ export interface AuditTrailEntry {
 
 export interface FieldChange {
   field: string;
-  oldValue: any;
-  newValue: any;
+  oldValue: unknown;
+  newValue: unknown;
   changeType: ChangeType;
   sensitive: boolean;
   encrypted: boolean;

@@ -20,7 +20,7 @@ export interface SystemConfiguration {
 
 export interface ConfigurationSetting {
   key: string;
-  value: any;
+  value: unknown;
   type: SettingType;
   required: boolean;
   sensitive: boolean;
@@ -36,7 +36,7 @@ export interface IntegrationConfiguration {
   type: IntegrationType;
   provider: string;
   status: IntegrationStatus;
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
   credentials: IntegrationCredentials;
   endpoints: IntegrationEndpoint[];
   healthCheck: HealthCheckConfiguration;
@@ -85,7 +85,7 @@ export interface SettingValidation {
   min?: number;
   max?: number;
   pattern?: string;
-  allowed_values?: any[];
+  allowed_values?: unknown[];
   custom_validator?: string;
 }
 
@@ -101,7 +101,7 @@ export interface ValidationError {
   code: string;
   message: string;
   severity: ValidationSeverity;
-  context?: Record<string, any>;
+  context?: Record<string, string | number | boolean | null>;
 }
 
 export interface ValidationWarning {
@@ -109,7 +109,7 @@ export interface ValidationWarning {
   code: string;
   message: string;
   recommendation?: string;
-  context?: Record<string, any>;
+  context?: Record<string, string | number | boolean | null>;
 }
 
 // Supporting configuration interfaces
@@ -124,7 +124,7 @@ export interface CredentialField {
 
 export interface EndpointAuthentication {
   type: AuthenticationType;
-  credentials: Record<string, any>;
+  credentials: Record<string, string | number | boolean | null>;
   headers?: Record<string, string>;
   refresh_token?: RefreshTokenConfig;
 }
@@ -209,13 +209,13 @@ export interface AlertCondition {
 
 export interface NotificationChannel {
   type: ChannelType;
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
   enabled: boolean;
 }
 
 export interface LogDestination {
   type: LogDestinationType;
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
   enabled: boolean;
 }
 
@@ -229,7 +229,7 @@ export interface LogRotationPolicy {
 export interface TracingExporter {
   type: TracingExporterType;
   endpoint: string;
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
   enabled: boolean;
 }
 

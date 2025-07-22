@@ -27,7 +27,7 @@ export const useInventoryNavigation = (flowId?: string) => {
 
   const handleContinueToAppServerDependencies = useCallback(async (options?: {
     flow_id?: string;
-    inventory_progress?: any;
+    inventory_progress?: unknown;
     client_account_id?: number;
     engagement_id?: number;
   }) => {

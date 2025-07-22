@@ -37,7 +37,16 @@ export const useFlowManagement = () => {
   const bulkFlowOperations = useBulkFlowOperationsV2();
   
   const [showFlowManager, setShowFlowManager] = useState(false);
-  const [conflictFlows, setConflictFlows] = useState<any[]>([]);
+  interface ConflictFlow {
+    flow_id: string;
+    phase: string;
+    status: string;
+    created_at: string;
+    updated_at: string;
+    [key: string]: unknown;
+  }
+
+  const [conflictFlows, setConflictFlows] = useState<ConflictFlow[]>([]);
   
   const incompleteFlows = incompleteFlowsData?.flows || [];
   const hasIncompleteFlows = incompleteFlows.length > 0;

@@ -1,3 +1,55 @@
+// CC: Client configuration interfaces for type safety
+interface ClientSettings {
+  notifications_enabled?: boolean;
+  auto_backup?: boolean;
+  data_retention_days?: number;
+  [key: string]: unknown;
+}
+
+interface ClientBranding {
+  logo_url?: string;
+  primary_color?: string;
+  secondary_color?: string;
+  custom_css?: string;
+  [key: string]: unknown;
+}
+
+interface ITGuidelines {
+  security_level?: string;
+  compliance_frameworks?: string[];
+  data_governance_rules?: string[];
+  [key: string]: unknown;
+}
+
+interface DecisionCriteria {
+  cost_weight?: number;
+  performance_weight?: number;
+  security_weight?: number;
+  timeline_weight?: number;
+  [key: string]: unknown;
+}
+
+interface AgentPreferences {
+  automation_level?: string;
+  human_approval_required?: boolean;
+  preferred_communication_style?: string;
+  [key: string]: unknown;
+}
+
+interface BudgetConstraints {
+  max_monthly_spend?: number;
+  currency?: string;
+  cost_center?: string;
+  [key: string]: unknown;
+}
+
+interface TimelineConstraints {
+  target_completion_date?: string;
+  critical_milestones?: string[];
+  business_deadlines?: string[];
+  [key: string]: unknown;
+}
+
 export interface Client {
   id: string;
   account_name: string;
@@ -10,19 +62,19 @@ export interface Client {
   description?: string;
   subscription_tier?: string;
   billing_contact_email?: string;
-  settings?: Record<string, any>;
-  branding?: Record<string, any>;
+  settings?: ClientSettings;
+  branding?: ClientBranding;
   slug?: string;
   created_by?: string;
   business_objectives: string[];
   target_cloud_providers: string[];
   business_priorities: string[];
   compliance_requirements: string[];
-  it_guidelines?: Record<string, any>;
-  decision_criteria?: Record<string, any>;
-  agent_preferences?: Record<string, any>;
-  budget_constraints?: Record<string, any>;
-  timeline_constraints?: Record<string, any>;
+  it_guidelines?: ITGuidelines;
+  decision_criteria?: DecisionCriteria;
+  agent_preferences?: AgentPreferences;
+  budget_constraints?: BudgetConstraints;
+  timeline_constraints?: TimelineConstraints;
   created_at: string;
   updated_at?: string;
   is_active: boolean;

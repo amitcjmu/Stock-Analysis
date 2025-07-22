@@ -21,7 +21,7 @@ interface SimpleFlow {
   created_at: string;
   updated_at: string;
   flow_name?: string;
-  agent_insights?: any[];
+  agent_insights?: unknown[];
   deletion_impact?: {
     data_to_delete: Record<string, number>;
     estimated_cleanup_time: string;

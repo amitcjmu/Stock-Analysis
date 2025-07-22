@@ -17,7 +17,7 @@ export class APIError extends Error {
     message: string,
     public status: number,
     public type: 'network' | 'server' | 'client' | 'unknown',
-    public details?: any
+    public details?: Record<string, unknown>
   ) {
     super(message);
     this.name = 'APIError';
@@ -133,7 +133,7 @@ class WebSocketManager {
 
   connect(
     endpoint: string,
-    onMessage?: (data: any) => void,
+    onMessage?: (data: Record<string, unknown>) => void,
     onError?: (error: Event) => void,
     onOpen?: () => void,
     onClose?: () => void
@@ -152,7 +152,7 @@ class WebSocketManager {
         onMessage?.(data);
       } catch (error) {
         console.error('WebSocket message parse error:', error);
-        onError?.(error);
+        onError?.(error as Event);
       }
     };
     
@@ -199,7 +199,7 @@ class WebSocketManager {
     }
   }
   
-  send(endpoint: string, data: any): boolean {
+  send(endpoint: string, data: Record<string, unknown>): boolean {
     const ws = this.connections.get(endpoint);
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(data));
@@ -488,7 +488,7 @@ export class SixRApiClient {
   // WebSocket Methods
   connectToAnalysis(
     analysisId: number,
-    onMessage?: (data: any) => void,
+    onMessage?: (data: Record<string, unknown>) => void,
     onError?: (error: Event) => void,
     onOpen?: () => void,
     onClose?: () => void
@@ -504,7 +504,7 @@ export class SixRApiClient {
   
   connectToBulkJob(
     jobId: string,
-    onMessage?: (data: any) => void,
+    onMessage?: (data: Record<string, unknown>) => void,
     onError?: (error: Event) => void,
     onOpen?: () => void,
     onClose?: () => void
@@ -522,7 +522,7 @@ export class SixRApiClient {
     this.ws.disconnect(endpoint);
   }
   
-  sendWebSocketMessage(endpoint: string, data: any): boolean {
+  sendWebSocketMessage(endpoint: string, data: Record<string, unknown>): boolean {
     return this.ws.send(endpoint, data);
   }
   

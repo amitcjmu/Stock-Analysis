@@ -92,7 +92,7 @@ export interface CrewAnalysisResult {
   parameters: AnalysisParameters;
   scope: AnalysisScope;
   metrics: AnalysisMetrics;
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface CrewAnalysisSummary {
@@ -129,7 +129,7 @@ export interface AnalysisParameters {
   includeAnomalies?: boolean;
   confidenceThreshold?: number;
   sampleSize?: number;
-  customParameters?: Record<string, any>;
+  customParameters?: Record<string, string | number | boolean | string[] | number[]>;
 }
 
 export interface AnalysisScope {
@@ -154,7 +154,7 @@ export interface AnalysisFinding {
   severity: 'info' | 'warning' | 'error' | 'critical';
   title: string;
   description: string;
-  details: Record<string, any>;
+  details: Record<string, string | number | boolean | null | unknown[]>;
   evidence: Evidence[];
   confidence: number;
   impact: string;
@@ -165,9 +165,9 @@ export interface AnalysisFinding {
 export interface Evidence {
   type: 'data' | 'statistic' | 'pattern' | 'rule' | 'comparison';
   description: string;
-  value?: any;
+  value?: unknown;
   source?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface AnalysisRecommendation {
@@ -267,7 +267,7 @@ export interface AnalysisTrend {
 export interface TrendDataPoint {
   timestamp: string;
   value: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface AnalysisPerformanceMetrics {

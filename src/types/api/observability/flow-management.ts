@@ -34,7 +34,7 @@ export interface InitializeObservabilityFlowRequest extends BaseApiRequest {
   requirements: ObservabilityRequirement[];
   parentFlowId?: string;
   configuration?: ObservabilityFlowConfiguration;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface InitializeObservabilityFlowResponse extends BaseApiResponse<ObservabilityFlowData> {

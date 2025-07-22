@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 
-interface FlowUpdate {
+export interface FlowUpdate {
   flow_id: string;
   status: string;
   phase: string;
@@ -38,7 +38,7 @@ const DEFAULT_OPTIONS: UseFlowUpdatesOptions = {
 };
 
 export function useFlowUpdates(
-  flowId: string | null,
+  flowId: string | null | undefined,
   options: UseFlowUpdatesOptions = {}
 ): UseFlowUpdatesState & {
   refetch: () => void;

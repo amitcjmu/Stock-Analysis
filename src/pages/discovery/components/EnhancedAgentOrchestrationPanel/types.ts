@@ -21,7 +21,7 @@ export interface CrewProgress {
   agents: AgentInfo[];
   description: string;
   icon: ReactNode;
-  results?: any;
+  results?: unknown;
   currentTask?: string;
   manager?: string;
   collaboration_status?: {
@@ -72,6 +72,6 @@ export interface MemoryAnalytics {
 
 export interface EnhancedAgentOrchestrationPanelProps {
   flowId: string;
-  flowState: any;
-  onStatusUpdate?: (status: any) => void;
+  flowState: unknown;
+  onStatusUpdate?: (status: unknown) => void;
 }

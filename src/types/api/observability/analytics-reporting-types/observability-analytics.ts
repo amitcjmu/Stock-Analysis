@@ -159,7 +159,7 @@ export interface InsightRecommendation {
 export interface InsightEvidence {
   type: 'metric' | 'trend' | 'anomaly' | 'pattern' | 'correlation';
   source: string;
-  value: any;
+  value: unknown;
   confidence: number;
   timestamp: string;
 }
@@ -175,7 +175,7 @@ export interface ObservabilityForecast {
 export interface AnomalyContext {
   related: string[];
   contributing: string[];
-  environmental: Record<string, any>;
+  environmental: Record<string, string | number | boolean | undefined>;
   temporal: string;
 }
 

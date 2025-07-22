@@ -79,7 +79,7 @@ export interface Issue {
   comments: IssueComment[];
   workLog: IssueWorkLog[];
   labels: string[];
-  customFields: Record<string, any>;
+  customFields: Record<string, string | number | boolean | null>;
   createdAt: string;
   updatedAt: string;
 }

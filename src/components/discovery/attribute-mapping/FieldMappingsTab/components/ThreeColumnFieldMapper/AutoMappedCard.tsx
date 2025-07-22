@@ -26,7 +26,7 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
   expandedReasonings,
   onToggleReasoning
 }) => {
-  const isPlaceholder = (mapping as any).is_placeholder || (mapping as any).is_fallback;
+  const isPlaceholder = mapping.is_placeholder || mapping.is_fallback;
   const agentType = getAgentTypeForMapping(mapping);
   const confidence = getConfidenceDisplay(mapping.confidence || 0);
   const reasoning = getAgentReasoningForMapping(mapping);

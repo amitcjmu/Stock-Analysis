@@ -66,13 +66,13 @@ const FeedbackView: React.FC = () => {
       const allFeedback = response.feedback || [];
       
       // Filter for page feedback only (exclude CMDB analysis feedback)
-      const pageFeedback = allFeedback.filter((item: any) => 
+      const pageFeedback = allFeedback.filter((item: unknown) => 
         item.feedback_type === 'page_feedback' || 
         (!item.feedback_type && item.page && item.rating && item.comment)
       );
       
       // Transform the data to match our expected format
-      const transformedFeedback: FeedbackItem[] = pageFeedback.map((item: any) => ({
+      const transformedFeedback: FeedbackItem[] = pageFeedback.map((item: unknown) => ({
         id: item.id || Math.random().toString(),
         page: item.page || 'Unknown',
         rating: item.rating || 0,
@@ -89,15 +89,15 @@ const FeedbackView: React.FC = () => {
       if (transformedFeedback.length > 0) {
         const total = transformedFeedback.length;
         const avgRating = transformedFeedback.reduce((sum: number, f: FeedbackItem) => sum + f.rating, 0) / total;
-        const byStatus = transformedFeedback.reduce((acc: any, f: FeedbackItem) => {
+        const byStatus = transformedFeedback.reduce((acc: unknown, f: FeedbackItem) => {
           acc[f.status] = (acc[f.status] || 0) + 1;
           return acc;
         }, {} as Record<string, number>);
-        const byPage = transformedFeedback.reduce((acc: any, f: FeedbackItem) => {
+        const byPage = transformedFeedback.reduce((acc: unknown, f: FeedbackItem) => {
           acc[f.page] = (acc[f.page] || 0) + 1;
           return acc;
         }, {} as Record<string, number>);
-        const byRating = transformedFeedback.reduce((acc: any, f: FeedbackItem) => {
+        const byRating = transformedFeedback.reduce((acc: unknown, f: FeedbackItem) => {
           const rating = f.rating.toString();
           acc[rating] = (acc[rating] || 0) + 1;
           return acc;

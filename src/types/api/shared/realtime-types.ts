@@ -9,7 +9,7 @@ import { MultiTenantContext } from './tenant-types';
 import { FilterParameter } from './query-types';
 
 // Real-time updates
-export interface WebSocketMessage<T = any> {
+export interface WebSocketMessage<T = unknown> {
   id: string;
   type: string;
   event: string;

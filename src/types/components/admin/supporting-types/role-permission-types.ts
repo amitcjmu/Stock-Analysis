@@ -17,7 +17,7 @@ export interface Role {
   isSystem: boolean;
   isActive: boolean;
   conditions?: RoleCondition[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
   createdAt: string;
   updatedAt: string;
   createdBy?: string;
@@ -36,14 +36,14 @@ export interface Permission {
   granted: boolean;
   inherited?: boolean;
   source?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface RoleCondition {
   type: ConditionType;
   field: string;
   operator: ConditionOperator;
-  value: any;
+  value: unknown;
   description?: string;
 }
 
@@ -51,7 +51,7 @@ export interface PermissionCondition {
   type: ConditionType;
   field: string;
   operator: ConditionOperator;
-  value: any;
+  value: unknown;
   description?: string;
 }
 

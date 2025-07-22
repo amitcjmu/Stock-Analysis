@@ -5,6 +5,12 @@
  * Unified type definitions for all flow types and operations
  */
 
+// Common value types
+export type FlowValue = string | number | boolean | Date | null | undefined;
+export type FlowData = Record<string, FlowValue | FlowValue[] | FlowData | FlowData[]>;
+export type FlowMetadata = Record<string, string | number | boolean>;
+export type FlowState = Record<string, FlowValue | FlowValue[] | FlowData>;
+
 // Core Flow Types
 export type FlowType = 
   | 'discovery'
@@ -34,7 +40,7 @@ export type PhaseStatusType =
 
 // Flow Configuration
 export interface FlowConfiguration {
-  [key: string]: any;
+  [key: string]: unknown;
   // Common configuration options
   auto_retry?: boolean;
   max_retries?: number;
@@ -125,8 +131,8 @@ export interface PhaseInfo {
   completed_at?: string;
   duration_seconds?: number;
   progress_percentage?: number;
-  inputs?: Record<string, any>;
-  outputs?: Record<string, any>;
+  inputs?: FlowData;
+  outputs?: FlowData;
   errors?: string[];
   warnings?: string[];
 }
@@ -149,7 +155,7 @@ export interface FlowStatus {
   
   // Configuration and metadata
   configuration: FlowConfiguration;
-  metadata: Record<string, any>;
+  metadata: FlowMetadata;
   
   // Multi-tenant information
   client_account_id: number;
@@ -163,7 +169,7 @@ export interface FlowStatus {
   
   // Agent and crew information
   agent_collaboration_log?: AgentCollaboration[];
-  crew_status?: Record<string, any>;
+  crew_status?: Record<string, string | number | boolean>;
   
   // State information
   state_version?: number;
@@ -192,7 +198,7 @@ export interface FlowError {
   phase: string;
   error_type: string;
   error_message: string;
-  error_details?: Record<string, any>;
+  error_details?: FlowData;
   recovery_action?: string;
   is_recoverable: boolean;
 }
@@ -202,7 +208,7 @@ export interface FlowWarning {
   phase: string;
   warning_type: string;
   warning_message: string;
-  warning_details?: Record<string, any>;
+  warning_details?: FlowData;
   severity: 'low' | 'medium' | 'high';
 }
 
@@ -213,8 +219,8 @@ export interface AgentCollaboration {
   agent_type: string;
   agent_name: string;
   action: string;
-  input_data?: Record<string, any>;
-  output_data?: Record<string, any>;
+  input_data?: FlowData;
+  output_data?: FlowData;
   confidence_score?: number;
   processing_time_ms?: number;
 }
@@ -224,15 +230,15 @@ export interface CreateFlowRequest {
   flow_type: FlowType;
   flow_name?: string;
   configuration?: FlowConfiguration;
-  initial_state?: Record<string, any>;
-  metadata?: Record<string, any>;
+  initial_state?: FlowState;
+  metadata?: FlowMetadata;
 }
 
 export interface ExecutePhaseRequest {
   phase_name: string;
-  phase_input?: Record<string, any>;
-  validation_overrides?: Record<string, any>;
-  agent_config?: Record<string, any>;
+  phase_input?: FlowData;
+  validation_overrides?: Record<string, boolean>;
+  agent_config?: Record<string, string | number | boolean>;
 }
 
 // Analytics and reporting
@@ -328,7 +334,7 @@ export interface FlowListProps {
   loading?: boolean;
   error?: string;
   onFlowSelect?: (flow: FlowStatus) => void;
-  onFlowAction?: (action: string, flowId: string, data?: any) => void;
+  onFlowAction?: (action: string, flowId: string, data?: unknown) => void;
   filters?: FlowFilters;
   onFiltersChange?: (filters: FlowFilters) => void;
   pagination?: FlowPagination;
@@ -338,8 +344,8 @@ export interface FlowListProps {
 export interface FlowDetailsProps {
   flowId: string;
   flow?: FlowStatus;
-  onPhaseExecute?: (phase: string, input?: Record<string, any>) => void;
-  onFlowAction?: (action: string, data?: any) => void;
+  onPhaseExecute?: (phase: string, input?: FlowData) => void;
+  onFlowAction?: (action: string, data?: unknown) => void;
   showLogs?: boolean;
   showPerformance?: boolean;
   showAgent?: boolean;
@@ -359,7 +365,7 @@ export interface FlowTemplate {
   description: string;
   flow_type: FlowType;
   configuration: FlowConfiguration;
-  metadata: Record<string, any>;
+  metadata: FlowMetadata;
   is_default?: boolean;
   tags: string[];
 }
@@ -370,7 +376,7 @@ export interface UseFlowReturn {
   isLoading: boolean;
   error: string | null;
   createFlow: (request: CreateFlowRequest) => Promise<FlowStatus>;
-  executePhase: (flowId: string, request: ExecutePhaseRequest) => Promise<any>;
+  executePhase: (flowId: string, request: ExecutePhaseRequest) => Promise<{ success: boolean; message?: string; data?: Record<string, unknown> }>;
   pauseFlow: (flowId: string, reason?: string) => Promise<void>;
   resumeFlow: (flowId: string) => Promise<void>;
   deleteFlow: (flowId: string, reason?: string) => Promise<void>;
@@ -416,7 +422,7 @@ export interface FlowEvent {
   type: 'flow_created' | 'flow_updated' | 'phase_started' | 'phase_completed' | 'flow_completed' | 'flow_failed';
   flow_id: string;
   flow_type: FlowType;
-  data: Record<string, any>;
+  data: FlowData;
   timestamp: string;
 }
 
@@ -438,7 +444,7 @@ export interface PhaseValidation {
 export interface ValidationRule {
   field: string;
   rule_type: 'required' | 'type' | 'range' | 'pattern' | 'custom';
-  rule_config: Record<string, any>;
+  rule_config: Record<string, FlowValue | FlowValue[]>;
   error_message: string;
 }
 

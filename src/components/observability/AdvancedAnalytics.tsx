@@ -4,5 +4,5 @@
  * Part of the Agent Observability Enhancement Phase 4B - Advanced Features
  */
 
-export { default } from './AdvancedAnalytics';
+export { default } from './AdvancedAnalytics/AdvancedAnalytics';
 export * from './AdvancedAnalytics';

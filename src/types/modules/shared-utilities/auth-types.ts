@@ -194,7 +194,7 @@ export interface PasswordResetRequest {
 export interface PermissionCondition {
   field: string;
   operator: 'eq' | 'ne' | 'in' | 'not_in' | 'gt' | 'lt' | 'gte' | 'lte';
-  value: unknown;
+  value: string | number | boolean | string[] | number[];
 }
 
 export interface TenantLimits {

@@ -124,7 +124,7 @@ export interface Engagement {
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface TeamMember {
@@ -335,8 +335,8 @@ export interface TimelineAnalysis {
 
 export interface EngagementChange {
   field: string;
-  oldValue: any;
-  newValue: any;
+  oldValue: unknown;
+  newValue: unknown;
   changedAt: string;
   changedBy: string;
   reason?: string;

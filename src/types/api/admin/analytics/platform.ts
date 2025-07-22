@@ -144,7 +144,7 @@ export interface ForecastModel {
   version: string;
   training_period: AnalyticsPeriod;
   features_used: string[];
-  hyperparameters: Record<string, any>;
+  hyperparameters: Record<string, string | number | boolean | string[] | number[]>;
   performance_metrics: ModelPerformanceMetric[];
 }
 
@@ -224,7 +224,7 @@ export type RecommendationPriority = 'low' | 'medium' | 'high' | 'critical';
 export interface RevenueMetrics { total: number; recurring: number; growth: number; }
 export interface CustomerMetrics { total: number; new: number; churn: number; }
 export interface GrowthMetrics { rate: number; new_users: number; expansion: number; }
-export interface RetentionMetrics { rate: number; cohort_analysis: any[]; }
+export interface RetentionMetrics { rate: number; cohort_analysis: unknown[]; }
 export interface SatisfactionMetrics { score: number; nps: number; feedback: string[]; }
 export interface PerformanceMetrics { score: number; latency: number; throughput: number; }
 export interface ReliabilityMetrics { uptime: number; mtbf: number; mttr: number; }

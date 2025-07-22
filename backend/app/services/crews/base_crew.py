@@ -4,6 +4,7 @@ Base Crew implementation with context awareness and standard patterns
 
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
+import asyncio
 from crewai import Crew, Task, Process
 from app.core.context import get_current_context
 from app.services.llm_config import get_crewai_llm
@@ -132,3 +133,30 @@ class BaseDiscoveryCrew(ABC):
                 "engagement_id": self.context.engagement_id if self.context else None
             }
         }
+    
+    async def kickoff_async(self, inputs: Dict[str, Any]) -> Any:
+        """Execute the crew asynchronously with given inputs"""
+        try:
+            # Ensure context is available for execution
+            if not self.context:
+                try:
+                    self.context = get_current_context()
+                except:
+                    raise ValueError("No context available for multi-tenant execution")
+            
+            logger.info(f"Executing crew {self.name} asynchronously for client {self.context.client_account_id}")
+            
+            # Initialize crew if not already done
+            if not self.crew:
+                self.initialize_crew(inputs)
+            
+            # Execute crew in thread pool to avoid blocking
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(None, self.crew.kickoff, inputs)
+            
+            logger.info(f"Crew {self.name} completed successfully (async)")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Crew {self.name} async execution failed: {e}")
+            raise

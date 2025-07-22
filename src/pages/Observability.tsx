@@ -5,10 +5,33 @@ import Sidebar from '../components/Sidebar';
 import { Activity, Clock, AlertCircle, CheckCircle, Brain, BarChart3, ExternalLink, RefreshCw } from 'lucide-react';
 import { apiCall } from '../config/api';
 
+interface Task {
+  start_time: string;
+  agent: string;
+  task: string;
+  duration: number;
+}
+
 const Observability = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [monitoringData, setMonitoringData] = useState<any>(null);
+  const [monitoringData, setMonitoringData] = useState<{
+    success?: boolean;
+    monitoring?: {
+      active_tasks?: number;
+      completed_tasks?: number;
+      hanging_tasks?: number;
+    };
+    agents?: {
+      active_agents?: number;
+      total_registered?: number;
+      learning_enabled?: number;
+    };
+    tasks?: {
+      active?: Task[];
+      hanging?: Task[];
+    };
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -191,7 +214,7 @@ const Observability = () => {
     const now = new Date();
 
     // Add active tasks as events
-    monitoringData.tasks.active.forEach((task: any, index: number) => {
+    monitoringData.tasks.active.forEach((task: Task, index: number) => {
       const startTime = new Date(task.start_time);
       const timeStr = `${startTime.getHours().toString().padStart(2, '0')}:${startTime.getMinutes().toString().padStart(2, '0')}`;
       
@@ -205,7 +228,7 @@ const Observability = () => {
 
     // Add hanging tasks as warnings
     if (monitoringData.tasks?.hanging) {
-      monitoringData.tasks.hanging.forEach((task: any) => {
+      monitoringData.tasks.hanging.forEach((task: Task) => {
         events.push({
           time: 'Alert',
           event: `${task.agent} task hanging`,

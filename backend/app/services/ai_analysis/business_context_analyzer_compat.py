@@ -15,24 +15,22 @@ import logging
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timezone
 
-# Import all components from the modularized package
-from .business_context_analyzer import (
-    # Enums
+# Import all components from the modularized package subdirectory
+# Use relative import to avoid circular import issue
+from .business_context_analyzer.enums import (
     BusinessDomain,
     OrganizationSize,
     StakeholderRole,
-    MigrationDriverType,
-    
-    # Models
-    BusinessContext,
-    QuestionnaireTarget,
-    
-    # Components
-    DomainConfigurationManager,
-    BusinessAnalyzers,
-    QuestionnaireOptimizer,
-    BusinessContextUtilities
+    MigrationDriverType
 )
+from .business_context_analyzer.models import (
+    BusinessContext,
+    QuestionnaireTarget
+)
+from .business_context_analyzer.domain_configurations import DomainConfigurationManager
+from .business_context_analyzer.analyzers import BusinessAnalyzers
+from .business_context_analyzer.optimization import QuestionnaireOptimizer
+from .business_context_analyzer.utilities import BusinessContextUtilities
 
 logger = logging.getLogger(__name__)
 

@@ -62,8 +62,8 @@ export interface ReportDelivery {
 // Section content wrapper
 export interface SectionContent {
   type: string;
-  data: any;
-  configuration: Record<string, any>;
+  data: unknown;
+  configuration: Record<string, string | number | boolean | null>;
 }
 
 // Section customization
@@ -71,9 +71,9 @@ export interface SectionCustomization {
   id?: string;
   title?: string;
   visible?: boolean;
-  styling?: Record<string, any>;
-  layout?: Record<string, any>;
-  filters?: Record<string, any>;
+  styling?: Record<string, string | number | boolean | null>;
+  layout?: Record<string, string | number | boolean | null>;
+  filters?: Record<string, string | number | boolean | null>;
 }
 
 // Branding options
@@ -233,7 +233,7 @@ export interface AxisConfig {
 export interface DataSettings {
   aggregation?: string;
   grouping?: string[];
-  filtering?: Record<string, any>;
+  filtering?: Record<string, string | number | boolean | null>;
   sorting?: SortConfig;
 }
 
@@ -266,7 +266,7 @@ export interface FilteringOptions {
   enabled: boolean;
   quick_filter: boolean;
   advanced_filter: boolean;
-  default_filters?: Record<string, any>;
+  default_filters?: Record<string, string | number | boolean | null>;
 }
 
 export interface PaginationOptions {

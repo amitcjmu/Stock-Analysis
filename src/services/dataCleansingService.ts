@@ -2,6 +2,29 @@ import { apiCall, API_CONFIG } from '../config/api';
 import { getAuthHeaders } from '../utils/contextUtils';
 
 /**
+ * Asset data structure for external data cleansing integrations
+ */
+export interface AssetData {
+  id?: string;
+  name: string;
+  type: string;
+  status?: string;
+  attributes?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Fix data structure for quality issue resolution
+ */
+export interface QualityFixData {
+  action: 'merge' | 'update' | 'delete' | 'validate';
+  targetId?: string;
+  updates?: Record<string, unknown>;
+  reason?: string;
+  metadata?: Record<string, unknown>;
+}
+
+/**
  * Fetches the latest import data for data cleansing
  */
 export const fetchLatestImport = async () => {
@@ -45,7 +68,7 @@ export const fetchAssets = async (page = 1, pageSize = 1000) => {
 /**
  * Performs agent quality analysis on the provided data
  */
-export const performAgentAnalysis = async (data: any[]) => {
+export const performAgentAnalysis = async (data: AssetData[]) => {
   try {
     const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.ANALYZE_QUALITY, {
       method: 'POST',
@@ -70,7 +93,7 @@ export const performAgentAnalysis = async (data: any[]) => {
 /**
  * Applies a fix to a specific issue
  */
-export const applyFix = async (issueId: string, fixData: any) => {
+export const applyFix = async (issueId: string, fixData: QualityFixData) => {
   try {
     const response = await apiCall(`${API_CONFIG.ENDPOINTS.DISCOVERY.APPLY_FIX}/${issueId}`, {
       method: 'POST',

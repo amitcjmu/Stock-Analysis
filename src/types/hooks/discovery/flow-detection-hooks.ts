@@ -33,10 +33,10 @@ export interface UseFlowDetectionReturn {
   isError: boolean;
   error: Error | null;
   isSuccess: boolean;
-  refetch: () => Promise<any>;
+  refetch: () => Promise<unknown>;
   detectFlows: (dataImportId: string) => Promise<DetectedFlow[]>;
   selectFlow: (flowId: string) => Promise<void>;
-  createFlowFromTemplate: (templateId: string, data: any) => Promise<DetectedFlow>;
+  createFlowFromTemplate: (templateId: string, data: unknown) => Promise<DetectedFlow>;
   customizeFlow: (flowId: string, customizations: FlowCustomization) => Promise<DetectedFlow>;
   validateFlow: (flowId: string) => Promise<FlowValidation>;
   previewFlow: (flowId: string) => Promise<FlowPreview>;
@@ -145,7 +145,7 @@ export interface DetectedFlow {
   notifications: FlowNotification[];
   permissions: FlowPermission[];
   audit: FlowAudit[];
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
   createdAt: string;
   updatedAt: string;
   createdBy: string;
@@ -267,7 +267,7 @@ export interface FlowDetectionAnalytics {
 export interface FlowDetectionActions {
   detect: (dataImportId: string, options?: DetectionOptions) => Promise<DetectedFlow[]>;
   select: (flowId: string) => Promise<void>;
-  create: (template: FlowTemplate, data: any) => Promise<DetectedFlow>;
+  create: (template: FlowTemplate, data: unknown) => Promise<DetectedFlow>;
   customize: (flowId: string, customizations: FlowCustomization) => Promise<DetectedFlow>;
   validate: (flowId: string) => Promise<FlowValidation>;
   preview: (flowId: string) => Promise<FlowPreview>;
@@ -379,7 +379,7 @@ export interface FlowCustomization {
   id: string;
   type: CustomizationType;
   target: string;
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
   isActive: boolean;
   priority: number;
 }
@@ -442,13 +442,13 @@ export type CustomizationType = 'parameter' | 'phase' | 'validation' | 'transfor
 export interface FlowDetectionFilter {
   field: string;
   operator: FilterOperator;
-  value: any;
+  value: unknown;
 }
 
 export interface ImportDataFilter {
   field: string;
   operator: FilterOperator;
-  value: any;
+  value: unknown;
 }
 
 export type FilterOperator = 'equals' | 'not_equals' | 'contains' | 'not_contains' | 'in' | 'not_in' | 'greater_than' | 'less_than';
@@ -503,7 +503,7 @@ export interface AnalyticsRecommendation {
 export interface RecommendationAction {
   type: string;
   description: string;
-  parameters?: Record<string, any>;
+  parameters?: Record<string, string | number | boolean | null>;
 }
 
 export interface PerformanceMetrics {

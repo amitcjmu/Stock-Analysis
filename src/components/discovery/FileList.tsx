@@ -31,7 +31,7 @@ export interface AnalysisResult {
   missingFields: string[];
   requiredProcessing: string[];
   readyForImport: boolean;
-  rawData?: any[];
+  rawData?: unknown[];
 }
 
 export interface FileUpload {
@@ -39,8 +39,8 @@ export interface FileUpload {
   id: string;
   status: 'uploaded' | 'analyzing' | 'processed' | 'error';
   analysis?: AnalysisResult;
-  preview?: any[];
-  editableData?: any[];
+  preview?: unknown[];
+  editableData?: unknown[];
 }
 
 interface FileListProps {

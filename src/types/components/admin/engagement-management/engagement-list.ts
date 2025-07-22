@@ -30,7 +30,7 @@ export interface EngagementListProps extends BaseComponentProps {
   onEngagementSelect?: (selectedEngagements: Engagement[]) => void;
   onEngagementAction?: (action: string, engagement: Engagement) => void;
   onBulkAction?: (action: string, engagements: Engagement[]) => void;
-  onFiltersChange?: (filters: Record<string, any>) => void;
+  onFiltersChange?: (filters: Record<string, unknown>) => void;
   onSortChange?: (sort: EngagementSortConfig) => void;
   onPageChange?: (page: number, pageSize: number) => void;
   onRefresh?: () => void;
@@ -128,12 +128,12 @@ export interface EngagementTableColumn {
   formatter?: ColumnFormatter;
   renderer?: ColumnRenderer;
   headerRenderer?: ColumnHeaderRenderer;
-  cellProps?: Record<string, any>;
-  headerProps?: Record<string, any>;
+  cellProps?: Record<string, unknown>;
+  headerProps?: Record<string, unknown>;
 }
 
-export type ColumnFormatter = (value: any, engagement: Engagement) => string | number | ReactNode;
-export type ColumnRenderer = (value: any, engagement: Engagement, column: EngagementTableColumn) => ReactNode;
+export type ColumnFormatter = (value: unknown, engagement: Engagement) => string | number | ReactNode;
+export type ColumnRenderer = (value: unknown, engagement: Engagement, column: EngagementTableColumn) => ReactNode;
 export type ColumnHeaderRenderer = (column: EngagementTableColumn) => ReactNode;
 
 // Filter Configuration
@@ -147,7 +147,7 @@ export interface EngagementFilter {
   searchable?: boolean;
   clearable?: boolean;
   placeholder?: string;
-  defaultValue?: any;
+  defaultValue?: unknown;
   validation?: FilterValidation;
   dependency?: FilterDependency;
   renderer?: FilterRenderer;
@@ -159,7 +159,7 @@ export type FilterType =
 
 export interface FilterOption {
   label: string;
-  value: any;
+  value: unknown;
   description?: string;
   icon?: string;
   disabled?: boolean;
@@ -171,19 +171,19 @@ export interface FilterValidation {
   min?: number;
   max?: number;
   pattern?: string;
-  custom?: (value: any) => boolean | string;
+  custom?: (value: unknown) => boolean | string;
 }
 
 export interface FilterDependency {
   field: string;
-  condition: (value: any) => boolean;
+  condition: (value: unknown) => boolean;
   action: 'show' | 'hide' | 'enable' | 'disable' | 'reset';
 }
 
 export type FilterRenderer = (
   filter: EngagementFilter, 
-  value: any, 
-  onChange: (value: any) => void
+  value: unknown, 
+  onChange: (value: unknown) => void
 ) => ReactNode;
 
 // Sort Configuration
@@ -221,7 +221,7 @@ export interface SavedFilter {
   id: string;
   name: string;
   description?: string;
-  filters: Record<string, any>;
+  filters: Record<string, unknown>;
   sorting?: EngagementSortConfig[];
   columns?: string[];
   isDefault?: boolean;
@@ -256,7 +256,7 @@ export interface SearchOperator {
 // View State Management
 export interface EngagementListViewState {
   selectedEngagements: string[];
-  filters: Record<string, any>;
+  filters: Record<string, unknown>;
   sorting: EngagementSortConfig[];
   pagination: PaginationState;
   columns: ColumnState[];
@@ -389,7 +389,7 @@ export interface EngagementTeamProps {
   showRoles?: boolean;
   showAvatars?: boolean;
   showNames?: boolean;
-  onClick?: (member: any) => void;
+  onClick?: (member: unknown) => void;
 }
 
 // Timeline display
@@ -399,5 +399,5 @@ export interface EngagementTimelineProps {
   showMilestones?: boolean;
   showPhases?: boolean;
   interactive?: boolean;
-  onClick?: (item: any) => void;
+  onClick?: (item: unknown) => void;
 }

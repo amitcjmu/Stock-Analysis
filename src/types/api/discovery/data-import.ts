@@ -14,6 +14,8 @@ import {
   ValidationResult,
   PaginationInfo
 } from '../shared';
+import { PrimitiveValue, ExtendedValue, ParameterValue } from '../shared/value-types';
+import { GenericMetadata } from '../shared/metadata-types';
 
 // Data Import APIs
 export interface InitiateDataImportRequest extends FileUploadRequest {
@@ -93,7 +95,7 @@ export interface DataImportData {
   updatedAt: string;
   completedAt?: string;
   createdBy: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface ImportSchema {
@@ -109,8 +111,8 @@ export interface SchemaField {
   required: boolean;
   description?: string;
   constraints?: FieldConstraint[];
-  defaultValue?: any;
-  examples?: any[];
+  defaultValue?: PrimitiveValue;
+  examples?: PrimitiveValue[];
 }
 
 export interface SchemaConstraint {
@@ -132,7 +134,7 @@ export interface ValidationRule {
   name: string;
   description: string;
   type: ValidationType;
-  parameters: Record<string, any>;
+  parameters: Record<string, ParameterValue>;
   severity: ValidationSeverity;
   enabled: boolean;
 }
@@ -205,7 +207,7 @@ export interface ValidationStatus {
 
 export interface DataPreview {
   headers: string[];
-  rows: any[][];
+  rows: Array<Array<PrimitiveValue | null>>;
   totalRows: number;
   sampleSize: number;
   statistics: ColumnStatistics[];
@@ -226,8 +228,8 @@ export interface ValidationIssue {
   message: string;
   field?: string;
   row?: number;
-  value?: any;
-  context?: Record<string, any>;
+  value?: PrimitiveValue;
+  context?: GenericMetadata;
 }
 
 export interface ValidationOverride {
@@ -274,10 +276,10 @@ export interface ColumnStatistics {
   type: string;
   nullCount: number;
   uniqueCount: number;
-  minValue?: any;
-  maxValue?: any;
-  averageValue?: any;
-  topValues?: Array<{ value: any; count: number }>;
+  minValue?: number | string;
+  maxValue?: number | string;
+  averageValue?: number;
+  topValues?: Array<{ value: PrimitiveValue; count: number }>;
 }
 
 export interface ProcessingSummary {
@@ -295,7 +297,7 @@ export interface ProcessingOutput {
   location: string;
   size: number;
   recordCount: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface ProcessingArtifact {
@@ -309,7 +311,7 @@ export interface ProcessingArtifact {
 
 export interface FieldConstraint {
   type: ConstraintType;
-  value: any;
+  value: unknown;
   message: string;
 }
 
@@ -326,7 +328,7 @@ export interface DataTransformation {
   type: TransformationType;
   sourceField: string;
   targetField: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, ParameterValue>;
 }
 
 export interface DataFilter {
@@ -334,7 +336,7 @@ export interface DataFilter {
   name: string;
   field: string;
   operator: FilterOperator;
-  value: any;
+  value: unknown;
   inverse?: boolean;
 }
 
@@ -352,7 +354,7 @@ export interface ProcessingError {
   details?: string;
   row?: number;
   field?: string;
-  value?: any;
+  value?: PrimitiveValue;
   timestamp: string;
 }
 

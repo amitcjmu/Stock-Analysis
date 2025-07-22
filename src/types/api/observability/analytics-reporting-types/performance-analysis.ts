@@ -202,7 +202,7 @@ export interface FindingImpact {
 export interface FindingEvidence {
   type: 'metric' | 'log' | 'trace' | 'event' | 'alert';
   source: string;
-  value: any;
+  value: number | string | Record<string, unknown> | unknown[];
   timestamp: string;
   confidence: number;
 }

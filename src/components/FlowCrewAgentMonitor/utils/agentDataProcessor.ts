@@ -1,11 +1,56 @@
 import type { Crew, Agent, DiscoveryFlow, CrewStatus, AgentStatus } from '../types';
 
-export const transformCrewData = (crewData: any): Crew[] => {
+// CC: Raw data interfaces for transforming external data
+interface RawCrewData {
+  crews?: RawCrew[];
+}
+
+interface RawCrew {
+  id?: string;
+  name?: string;
+  manager?: string;
+  status?: string;
+  progress?: number;
+  current_phase?: string;
+  started_at?: string;
+  estimated_completion?: string;
+  agents?: RawAgent[];
+  collaboration_metrics?: {
+    internal_effectiveness?: number;
+    cross_crew_sharing?: number;
+    memory_utilization?: number;
+  };
+}
+
+interface RawAgent {
+  id?: string;
+  name?: string;
+  role?: string;
+  status?: string;
+  current_task?: string;
+  performance?: {
+    success_rate?: number;
+    tasks_completed?: number;
+    avg_response_time?: number;
+  };
+  collaboration?: {
+    is_collaborating?: boolean;
+    collaboration_partner?: string;
+    shared_memory_access?: boolean;
+  };
+  last_activity?: string;
+}
+
+interface AgentRegistryData {
+  [key: string]: unknown;
+}
+
+export const transformCrewData = (crewData: RawCrewData): Crew[] => {
   if (!crewData || !crewData.crews) {
     return [];
   }
 
-  return crewData.crews.map((crew: any): Crew => ({
+  return crewData.crews.map((crew: RawCrew): Crew => ({
     id: crew.id || `crew_${Date.now()}_${Math.random()}`,
     name: crew.name || 'Unknown Crew',
     manager: crew.manager || 'AI Crew Manager',
@@ -14,7 +59,7 @@ export const transformCrewData = (crewData: any): Crew[] => {
     current_phase: crew.current_phase || 'initialization',
     started_at: crew.started_at || new Date().toISOString(),
     estimated_completion: crew.estimated_completion,
-    agents: crew.agents?.map((agent: any): Agent => ({
+    agents: crew.agents?.map((agent: RawAgent): Agent => ({
       id: agent.id || `agent_${Date.now()}_${Math.random()}`,
       name: agent.name || 'Unknown Agent',
       role: agent.role || 'AI Agent',
@@ -40,7 +85,7 @@ export const transformCrewData = (crewData: any): Crew[] => {
   }));
 };
 
-export const createAllAvailableCrews = (agentRegistryData: any): Crew[] => {
+export const createAllAvailableCrews = (agentRegistryData: AgentRegistryData): Crew[] => {
   // Create standardized crews for Discovery Flow
   const standardCrews = [
     {
@@ -138,7 +183,7 @@ export const createAllAvailableCrews = (agentRegistryData: any): Crew[] => {
   }));
 };
 
-export const createCompleteFlowView = (activeFlows: DiscoveryFlow[], agentRegistryData: any): DiscoveryFlow[] => {
+export const createCompleteFlowView = (activeFlows: DiscoveryFlow[], agentRegistryData: AgentRegistryData): DiscoveryFlow[] => {
   // If we have active flows, return them
   if (activeFlows.length > 0) {
     return activeFlows;

@@ -94,7 +94,7 @@ export const useDiscoveryFlowList = () => {
     refetchInterval: false, // No auto-refresh
     refetchOnMount: false, // Don't refetch on mount if data is stale but within cache time
     refetchOnWindowFocus: false, // Don't refetch on window focus to reduce calls
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error: unknown) => {
       // Prevent infinite retries - max 2 attempts total
       if (failureCount >= 2) {
         console.log(`❌ Max retries reached for discovery flows (${failureCount}), stopping`);

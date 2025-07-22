@@ -95,7 +95,7 @@ export interface BillingFormat {
   currency: string;
   precision: number;
   language: string;
-  customizations: Record<string, any>;
+  customizations: Record<string, string | number | boolean | null>;
 }
 
 export interface BillingDelivery {
@@ -109,7 +109,7 @@ export interface BillingRecipient {
   type: 'primary' | 'cc' | 'approver' | 'finance';
   contact: string;
   format: string;
-  customizations: Record<string, any>;
+  customizations: Record<string, string | number | boolean | null>;
 }
 
 export interface BillingSchedule {

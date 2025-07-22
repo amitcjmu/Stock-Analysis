@@ -52,7 +52,7 @@ export const useTimeline = () => {
       try {
         const response = await apiCall('/api/v1/plan/timeline');
         return response;
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Handle errors gracefully - return mock data for development
         if (error.status === 404 || error.status === 403) {
           console.log('Timeline endpoint not available, returning mock data');

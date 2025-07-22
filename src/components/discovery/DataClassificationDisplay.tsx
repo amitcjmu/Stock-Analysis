@@ -22,8 +22,8 @@ interface DataItem {
   id: string;
   data_type: string;
   classification: 'good_data' | 'needs_clarification' | 'unusable';
-  content: any;
-  agent_analysis: any;
+  content: unknown;
+  agent_analysis: unknown;
   confidence: 'high' | 'medium' | 'low' | 'uncertain';
   issues: string[];
   recommendations: string[];
@@ -79,7 +79,7 @@ const DataClassificationDisplay: React.FC<DataClassificationDisplayProps> = ({
           unusable: result.classifications.unusable || []
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Handle 404 errors gracefully - these endpoints may not exist yet
       if (err.status === 404 || err.response?.status === 404) {
         console.log('Data classifications endpoint not available yet');

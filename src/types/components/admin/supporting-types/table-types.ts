@@ -21,7 +21,7 @@ export interface TableColumn {
   resizable?: boolean;
   fixed?: 'left' | 'right';
   align?: 'left' | 'center' | 'right';
-  render?: (value: any, record: any, index: number) => ReactNode;
+  render?: (value: unknown, record: unknown, index: number) => ReactNode;
   headerRender?: (column: TableColumn) => ReactNode;
   filterRender?: (column: TableColumn) => ReactNode;
   sorterRender?: (column: TableColumn) => ReactNode;

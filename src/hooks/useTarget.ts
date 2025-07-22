@@ -51,7 +51,7 @@ export const useTarget = () => {
       try {
         const response = await apiCall('/api/v1/plan/target');
         return response;
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Handle errors gracefully - return mock data for development
         if (error.status === 404 || error.status === 403) {
           console.log('Target endpoint not available, returning mock data');

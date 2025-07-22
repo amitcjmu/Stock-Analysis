@@ -9,7 +9,7 @@ export interface Client {
   type: 'enterprise' | 'mid-market' | 'startup';
   created_at: string;
   updated_at: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export const useClients = () => {

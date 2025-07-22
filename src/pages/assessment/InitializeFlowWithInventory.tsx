@@ -58,8 +58,8 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
         if (response?.assets) {
           // Filter for applications and format them
           return response.assets
-            .filter((asset: any) => asset.type === 'Application')
-            .map((asset: any) => ({
+            .filter((asset: unknown) => asset.type === 'Application')
+            .map((asset: unknown) => ({
               id: asset.id,
               name: asset.name || asset.hostname || `App-${asset.id}`,
               type: 'Application',
@@ -80,7 +80,7 @@ const InitializeAssessmentFlowWithInventory: React.FC = () => {
         try {
           const discoveryResponse = await apiCall('discovery/applications', { headers });
           if (discoveryResponse?.applications) {
-            return discoveryResponse.applications.map((app: any) => ({
+            return discoveryResponse.applications.map((app: unknown) => ({
               id: app.id,
               name: app.name || app.application_name,
               type: 'Application',

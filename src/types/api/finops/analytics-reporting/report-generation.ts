@@ -13,6 +13,7 @@ import {
   MultiTenantContext
 } from '../../shared';
 import { CostAmount } from '../shared';
+import type { ConfigurationValue } from '../../../shared/config-types';
 
 // Report Generation API
 export interface GenerateFinOpsReportRequest extends BaseApiRequest {
@@ -76,7 +77,7 @@ export interface ReportContent {
 
 export interface ReportVisualization {
   type: 'chart' | 'table' | 'dashboard' | 'infographic';
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
   interactive: boolean;
   exportable: boolean;
 }
@@ -84,9 +85,9 @@ export interface ReportVisualization {
 export interface ReportData {
   source: string;
   freshness: string;
-  filters: Record<string, any>;
-  aggregations: Record<string, any>;
-  calculations: Record<string, any>;
+  filters: Record<string, string | number | boolean | null>;
+  aggregations: Record<string, string | number | boolean | null>;
+  calculations: Record<string, string | number | boolean | null>;
 }
 
 // Report Metadata and Management
@@ -119,7 +120,7 @@ export interface ReportRecipient {
   type: 'user' | 'group' | 'role' | 'external';
   identifier: string;
   format: string[];
-  customizations: Record<string, any>;
+  customizations: Record<string, string | number | boolean | null>;
 }
 
 export interface ReportSchedule {
@@ -171,8 +172,8 @@ export interface BrandingCustomization {
 export interface ContentCustomization {
   sections: string[];
   metrics: string[];
-  filters: Record<string, any>;
-  aggregations: Record<string, any>;
+  filters: Record<string, string | number | boolean | null>;
+  aggregations: Record<string, string | number | boolean | null>;
 }
 
 export interface FormatCustomization {
@@ -184,7 +185,7 @@ export interface FormatCustomization {
 
 export interface ChartCustomization {
   type: string;
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
   position: string;
   size: string;
 }
@@ -220,7 +221,7 @@ export interface TemplateSectionConfig {
   required: boolean;
   order: number;
   dependencies: string[];
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
   dataBindings: DataBinding[];
 }
 
@@ -229,7 +230,7 @@ export interface DataBinding {
   source: string;
   transformation: string[];
   validation: string[];
-  fallback: any;
+  fallback: unknown;
 }
 
 export interface TemplateStyleConfig {
@@ -277,7 +278,7 @@ export interface TemplateVariable {
   type: 'string' | 'number' | 'date' | 'boolean' | 'array' | 'object';
   description: string;
   required: boolean;
-  defaultValue: any;
+  defaultValue: ConfigurationValue;
   validation: VariableValidation;
   options?: VariableOption[];
 }
@@ -292,7 +293,7 @@ export interface VariableValidation {
 
 export interface VariableOption {
   label: string;
-  value: any;
+  value: unknown;
   description?: string;
 }
 
@@ -306,7 +307,7 @@ export interface TemplateValidation {
 export interface TemplatePreview {
   thumbnail: string;
   screenshots: string[];
-  sampleData: Record<string, any>;
+  sampleData: Record<string, string | number | boolean | null>;
   description: string;
 }
 
@@ -314,7 +315,7 @@ export interface TemplateUsage {
   usageCount: number;
   lastUsed: string;
   popularSections: string[];
-  commonCustomizations: Record<string, any>;
+  commonCustomizations: Record<string, string | number | boolean | null>;
 }
 
 export interface TemplateLifecycle {

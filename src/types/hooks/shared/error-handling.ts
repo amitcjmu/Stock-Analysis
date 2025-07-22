@@ -9,7 +9,7 @@ export interface UseErrorBoundaryParams {
   onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
   fallback?: React.ComponentType<{ error: Error; resetError: () => void }>;
   resetOnPropsChange?: boolean;
-  resetKeys?: any[];
+  resetKeys?: unknown[];
   onReset?: () => void;
 }
 

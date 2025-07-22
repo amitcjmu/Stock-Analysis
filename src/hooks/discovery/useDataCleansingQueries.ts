@@ -37,7 +37,7 @@ export const useAssets = (page = 1, pageSize = 1000) => {
 };
 
 // Custom hook to perform agent analysis
-export const useAgentAnalysis = (data: any[] | null) => {
+export const useAgentAnalysis = (data: unknown[] | null) => {
   const queryClient = useQueryClient();
   const dataHash = data ? JSON.stringify(data) : '';
   
@@ -56,7 +56,7 @@ export const useApplyFix = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ issueId, fixData }: { issueId: string; fixData: any }) =>
+    mutationFn: ({ issueId, fixData }: { issueId: string; fixData: unknown }) =>
       dataCleansingService.applyFix(issueId, fixData),
     onSuccess: () => {
       // Invalidate relevant queries
@@ -68,7 +68,7 @@ export const useApplyFix = () => {
 // Custom hook to get agent analysis result
 // This would be used to cache the analysis result
 // and avoid re-running the analysis unnecessarily
-export const useCachedAgentAnalysis = (data: any[] | null) => {
+export const useCachedAgentAnalysis = (data: unknown[] | null) => {
   const dataHash = data ? JSON.stringify(data) : '';
   const { data: analysis, isLoading } = useQuery({
     queryKey: queryKeys.agentAnalysis(dataHash),

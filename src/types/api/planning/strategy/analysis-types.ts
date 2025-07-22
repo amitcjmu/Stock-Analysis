@@ -106,7 +106,7 @@ export interface Scenario {
 
 export interface ScenarioOutcome {
   scenario: string;
-  outcomes: Record<string, any>;
+  outcomes: Record<string, string | number | boolean | null>;
   probability: number;
   impact: string;
 }

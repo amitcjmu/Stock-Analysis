@@ -14,8 +14,8 @@ interface LazyUtilityOptions {
 
 class LazyUtilityManager {
   private static instance: LazyUtilityManager;
-  private utilityCache = new Map<string, any>();
-  private loadingPromises = new Map<string, Promise<any>>();
+  private utilityCache = new Map<string, unknown>();
+  private loadingPromises = new Map<string, Promise<unknown>>();
 
   private constructor() {}
 
@@ -26,7 +26,7 @@ class LazyUtilityManager {
     return LazyUtilityManager.instance;
   }
 
-  async loadUtility<T = any>(
+  async loadUtility<T = unknown>(
     utilityId: string,
     importFn: () => Promise<LazyUtilityModule<T>>,
     options: LazyUtilityOptions = {}
@@ -352,9 +352,9 @@ export const getUtilityCacheSize = () => {
 export const getUtilityCacheStats = () => {
   return {
     cacheSize: lazyUtilityManager.getCacheSize(),
-    memoryUsage: performance.memory ? {
-      used: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024),
-      total: Math.round(performance.memory.totalJSHeapSize / 1024 / 1024)
+    memoryUsage: (performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory ? {
+      used: Math.round((performance as Performance & { memory: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory.usedJSHeapSize / 1024 / 1024),
+      total: Math.round((performance as Performance & { memory: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory.totalJSHeapSize / 1024 / 1024)
     } : null
   };
 };

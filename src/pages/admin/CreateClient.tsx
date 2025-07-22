@@ -72,7 +72,7 @@ const CreateClient: React.FC = () => {
       });
       navigate('/admin/clients');
     },
-    onError: (error: any) => {
+    onError: (error: Error & { response?: { data?: { detail?: string | object } }; message?: string }) => {
       console.error('Create client error:', error);
       let errorMessage = "Failed to create client. Please try again.";
       
@@ -112,7 +112,7 @@ const CreateClient: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Simple form handler - no useCallback to prevent re-renders
-  const handleFormChange = (field: keyof CreateClientData, value: any) => {
+  const handleFormChange = (field: keyof CreateClientData, value: CreateClientData[keyof CreateClientData]) => {
     // Debug logging
     console.log(`handleFormChange: field=${field}, value=`, value, `type=${typeof value}`);
     

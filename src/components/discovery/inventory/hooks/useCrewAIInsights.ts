@@ -12,7 +12,7 @@ import { CrewAIInsight, ProcessedInsights } from '../types/InventoryInsightsType
 interface UseCrewAIInsightsResult {
   processedInsights: ProcessedInsights | null;
   isLoading: boolean;
-  error: any;
+  error: unknown;
 }
 
 export const useCrewAIInsights = (): UseCrewAIInsightsResult => {
@@ -82,7 +82,7 @@ export const useCrewAIInsights = (): UseCrewAIInsightsResult => {
       };
 
       // Process insights into structured format
-      let infrastructure_patterns = {
+      const infrastructure_patterns = {
         os_distribution: {} as Record<string, number>,
         virtualization_level: 0,
         cloud_readiness_score: 0,
@@ -176,7 +176,7 @@ export const useCrewAIInsights = (): UseCrewAIInsightsResult => {
         const flowAssets = flowData?.cleaned_data || flowData?.raw_data || [];
         if (flowAssets.length > 0) {
           const osCount = {} as Record<string, number>;
-          flowAssets.forEach((asset: any) => {
+          flowAssets.forEach((asset: unknown) => {
             const os = asset.operating_system || asset.os || asset.platform || 'Unknown';
             osCount[os] = (osCount[os] || 0) + 1;
           });

@@ -68,20 +68,20 @@ export const calculateProgress = (buckets: MappingBuckets, totalMappings: number
   };
 };
 
-export const formatFieldValue = (field: any): string => {
+export const formatFieldValue = (field: unknown): string => {
   if (typeof field === 'string') {
     return field;
-  } else if (typeof field === 'object') {
+  } else if (typeof field === 'object' && field !== null) {
     return JSON.stringify(field);
   } else {
     return String(field || 'Unknown Field');
   }
 };
 
-export const formatTargetAttribute = (targetAttribute: any): string => {
+export const formatTargetAttribute = (targetAttribute: unknown): string => {
   if (typeof targetAttribute === 'string') {
     return targetAttribute || 'No target mapping';
-  } else if (typeof targetAttribute === 'object') {
+  } else if (typeof targetAttribute === 'object' && targetAttribute !== null) {
     return JSON.stringify(targetAttribute);
   } else {
     return String(targetAttribute || 'No target mapping');

@@ -257,7 +257,7 @@ export interface ParticipantProfile {
   size: string;
   geography: string;
   maturity: 'beginner' | 'intermediate' | 'advanced' | 'expert';
-  characteristics: Record<string, any>;
+  characteristics: Record<string, string | number | boolean | null>;
 }
 
 export interface BenchmarkMethodology {
@@ -314,7 +314,7 @@ export interface BenchmarkSegment {
 export interface SegmentCriteria {
   dimension: string;
   operator: 'equals' | 'greater_than' | 'less_than' | 'in_range' | 'contains';
-  value: any;
+  value: unknown;
 }
 
 export interface SegmentPerformance {

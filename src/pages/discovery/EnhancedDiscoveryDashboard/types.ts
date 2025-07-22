@@ -52,9 +52,9 @@ export interface PlatformAlert {
 }
 
 export interface DashboardState {
-  currentFlow: any;
+  currentFlow: unknown;
   flowLoading: boolean;
-  flowError: any;
+  flowError: unknown;
   isHealthy: boolean;
   activeFlows: FlowSummary[];
   systemMetrics: SystemMetrics | null;

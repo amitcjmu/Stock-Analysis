@@ -57,7 +57,7 @@ export interface HealthCheck {
   message?: string;
   time: string;
   duration: number;
-  details?: Record<string, any>;
+  details?: Record<string, string | number | boolean | null | undefined>;
 }
 
 export interface DependencyHealth {

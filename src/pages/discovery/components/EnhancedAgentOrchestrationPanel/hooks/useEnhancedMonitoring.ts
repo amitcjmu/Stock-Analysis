@@ -3,20 +3,20 @@ import { apiCall } from '@/config/api';
 import { CrewProgress, CollaborationData, PlanningData, MemoryAnalytics } from '../types';
 import { INITIAL_CREWS } from '../constants';
 
-export const useEnhancedMonitoring = (flowId: string, flowState: any) => {
+export const useEnhancedMonitoring = (flowId: string, flowState: unknown) => {
   const [crews, setCrews] = useState<CrewProgress[]>(INITIAL_CREWS);
   const [collaborationData, setCollaborationData] = useState<CollaborationData | null>(null);
   const [planningData, setPlanningData] = useState<PlanningData | null>(null);
   const [memoryAnalytics, setMemoryAnalytics] = useState<MemoryAnalytics | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const updateCrewsWithMonitoringData = useCallback((monitoringData: any) => {
+  const updateCrewsWithMonitoringData = useCallback((monitoringData: unknown) => {
     if (!monitoringData?.crews) return;
 
     setCrews(prevCrews => 
       prevCrews.map(crew => {
         const monitoringCrew = monitoringData.crews.find(
-          (mc: any) => mc.name === crew.name
+          (mc: unknown) => mc.name === crew.name
         );
         
         if (monitoringCrew) {
@@ -27,7 +27,7 @@ export const useEnhancedMonitoring = (flowId: string, flowState: any) => {
             currentTask: monitoringCrew.current_task || crew.currentTask,
             agents: crew.agents.map(agent => {
               const monitoringAgent = monitoringCrew.agents?.find(
-                (ma: any) => ma.name === agent.name
+                (ma: unknown) => ma.name === agent.name
               );
               
               if (monitoringAgent) {

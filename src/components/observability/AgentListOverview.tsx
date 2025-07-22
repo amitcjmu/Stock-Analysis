@@ -64,18 +64,12 @@ const filterAgents = (agents: AgentCardData[], filters: AgentListFilters): Agent
   // Sort
   if (filters.sortBy) {
     filtered.sort((a, b) => {
-      let aValue: any = a[filters.sortBy!];
-      let bValue: any = b[filters.sortBy!];
+      let aValue: string | number = a[filters.sortBy!];
+      let bValue: string | number = b[filters.sortBy!];
 
-      if (filters.sortBy === 'name') {
-        aValue = aValue.toLowerCase();
-        bValue = bValue.toLowerCase();
-      }
-
-      if (filters.sortBy === 'lastActive') {
-        // For now, we'll sort alphabetically since we don't have proper date format
-        aValue = aValue.toLowerCase();
-        bValue = bValue.toLowerCase();
+      if (filters.sortBy === 'name' || filters.sortBy === 'lastActive') {
+        aValue = String(aValue).toLowerCase();
+        bValue = String(bValue).toLowerCase();
       }
 
       if (aValue < bValue) return filters.sortOrder === 'asc' ? -1 : 1;
@@ -359,7 +353,7 @@ export const AgentListOverview: React.FC<AgentListOverviewProps> = ({
                 value={filters.status?.[0] || 'all'}
                 onValueChange={(value) => 
                   updateFilters({ 
-                    status: value === 'all' ? undefined : [value as any]
+                    status: value === 'all' ? undefined : [value as ('active' | 'idle' | 'error' | 'offline')]
                   })
                 }
               >
@@ -378,7 +372,7 @@ export const AgentListOverview: React.FC<AgentListOverviewProps> = ({
               {/* Sort By */}
               <Select
                 value={filters.sortBy || 'name'}
-                onValueChange={(value) => updateFilters({ sortBy: value as any })}
+                onValueChange={(value) => updateFilters({ sortBy: value as 'name' | 'successRate' | 'lastActive' | 'totalTasks' })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Sort by" />

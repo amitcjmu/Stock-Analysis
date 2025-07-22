@@ -41,9 +41,13 @@ interface Application {
   };
 }
 
+interface ApplicationValidation {
+  type: string;
+}
+
 interface ApplicationDiscoveryPanelProps {
   onApplicationSelect?: (application: Application) => void;
-  onValidationSubmit?: (applicationId: string, validation: any) => void;
+  onValidationSubmit?: (applicationId: string, validation: ApplicationValidation) => void;
 }
 
 const ApplicationDiscoveryPanel: React.FC<ApplicationDiscoveryPanelProps> = ({

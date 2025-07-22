@@ -3,6 +3,8 @@
  * Unified API client with authentication and error handling
  */
 
+import { ApiResponse, ApiError } from '../types/shared/api-types';
+
 export interface ApiClientConfig {
   baseURL: string;
   timeout: number;
@@ -15,6 +17,18 @@ export interface RequestConfig {
   timeout?: number;
   retries?: number;
 }
+
+/**
+ * Generic request payload type for external API data
+ */
+export type RequestPayload = 
+  | Record<string, unknown>
+  | FormData
+  | string
+  | number
+  | boolean
+  | null
+  | undefined;
 
 export class ApiClient {
   private static instance: ApiClient;
@@ -41,7 +55,7 @@ export class ApiClient {
   private async request<T>(
     method: string,
     endpoint: string,
-    data?: any,
+    data?: RequestPayload,
     config?: RequestConfig
   ): Promise<T> {
     const url = `${this.config.baseURL}${endpoint}`;
@@ -79,19 +93,19 @@ export class ApiClient {
     return this.request<T>('GET', endpoint, undefined, config);
   }
 
-  async post<T>(endpoint: string, data?: any, config?: RequestConfig): Promise<T> {
+  async post<T>(endpoint: string, data?: RequestPayload, config?: RequestConfig): Promise<T> {
     return this.request<T>('POST', endpoint, data, config);
   }
 
-  async put<T>(endpoint: string, data?: any, config?: RequestConfig): Promise<T> {
+  async put<T>(endpoint: string, data?: RequestPayload, config?: RequestConfig): Promise<T> {
     return this.request<T>('PUT', endpoint, data, config);
   }
 
-  async patch<T>(endpoint: string, data?: any, config?: RequestConfig): Promise<T> {
+  async patch<T>(endpoint: string, data?: RequestPayload, config?: RequestConfig): Promise<T> {
     return this.request<T>('PATCH', endpoint, data, config);
   }
 
-  async delete<T>(endpoint: string, data?: any, config?: RequestConfig): Promise<T> {
+  async delete<T>(endpoint: string, data?: RequestPayload, config?: RequestConfig): Promise<T> {
     return this.request<T>('DELETE', endpoint, data, config);
   }
 }

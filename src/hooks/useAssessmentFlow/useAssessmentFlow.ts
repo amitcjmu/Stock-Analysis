@@ -17,7 +17,8 @@ import type {
   ArchitectureStandard,
   ApplicationComponent,
   TechDebtItem,
-  SixRDecision
+  SixRDecision,
+  UserInput
 } from './types';
 
 export const useAssessmentFlow = (
@@ -96,7 +97,7 @@ export const useAssessmentFlow = (
   }, [clientAccountId, engagementId, navigate, getAuthHeaders]);
   
   // Resume flow from current phase
-  const resumeFlow = useCallback(async (userInput: any) => {
+  const resumeFlow = useCallback(async (userInput: UserInput) => {
     if (!state.flowId) {
       throw new Error('No active flow to resume');
     }
@@ -171,7 +172,7 @@ export const useAssessmentFlow = (
   // Update architecture standards
   const updateArchitectureStandards = useCallback(async (
     standards: ArchitectureStandard[], 
-    overrides: Record<string, any>
+    overrides: Record<string, ArchitectureStandard>
   ) => {
     if (!state.flowId) {
       throw new Error('No active flow');

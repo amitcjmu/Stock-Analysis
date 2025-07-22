@@ -74,7 +74,7 @@ export const JobCreationDialog: React.FC<JobCreationDialogProps> = ({
               <Label htmlFor="job-priority">Priority</Label>
               <Select
                 value={formData.priority}
-                onValueChange={(value: any) => updateFormData({ priority: value })}
+                onValueChange={(value: unknown) => updateFormData({ priority: value })}
               >
                 <SelectTrigger>
                   <SelectValue />

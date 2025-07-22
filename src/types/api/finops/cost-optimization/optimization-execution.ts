@@ -265,7 +265,7 @@ export interface DashboardWidget {
   type: 'chart' | 'metric' | 'table' | 'alert';
   title: string;
   dataSource: string;
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
 }
 
 export interface MonitoringReport {
@@ -350,7 +350,7 @@ export interface ExecutionAuditLog {
   executionId: string;
   action: string;
   user: string;
-  details: Record<string, any>;
+  details: Record<string, string | number | boolean | null>;
   impact: 'none' | 'low' | 'medium' | 'high';
   category: 'security' | 'data' | 'system' | 'business';
 }

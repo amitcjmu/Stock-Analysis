@@ -115,7 +115,7 @@ export interface ClientAccount {
   createdAt: string;
   updatedAt: string;
   lastActivityAt?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface AdminUserData {
@@ -264,8 +264,8 @@ export interface RevenueSummary {
 
 export interface AccountChange {
   field: string;
-  oldValue: any;
-  newValue: any;
+  oldValue: unknown;
+  newValue: unknown;
   changedAt: string;
   changedBy: string;
   reason?: string;
@@ -273,16 +273,16 @@ export interface AccountChange {
 
 export interface SubscriptionChange {
   type: 'plan_change' | 'feature_change' | 'limit_change' | 'billing_change';
-  oldValue: any;
-  newValue: any;
+  oldValue: unknown;
+  newValue: unknown;
   effectiveDate: string;
   prorationAmount?: number;
 }
 
 export interface BillingChange {
   type: 'payment_method' | 'billing_address' | 'billing_cycle' | 'discount';
-  oldValue: any;
-  newValue: any;
+  oldValue: unknown;
+  newValue: unknown;
   effectiveDate: string;
 }
 
@@ -356,7 +356,7 @@ export interface SubscriptionLimits {
 
 export interface PaymentMethod {
   type: 'credit_card' | 'bank_transfer' | 'invoice' | 'other';
-  details: Record<string, any>;
+  details: Record<string, string | number | boolean | null>;
   isDefault: boolean;
   expiresAt?: string;
 }
@@ -402,12 +402,12 @@ export interface ContactInfo {
 export interface IntegrationConfig {
   type: string;
   enabled: boolean;
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
 }
 
 export interface AccountCustomization {
   type: string;
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
 }
 
 export interface OnboardingStep {
@@ -441,7 +441,7 @@ export interface SecuritySettings {
 
 export interface IntegrationSettings {
   enabled: string[];
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
 }
 
 export interface DataRetentionSettings {
@@ -458,10 +458,10 @@ export interface ComplianceSettings {
 
 export interface FeatureSettings {
   enabled: string[];
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
 }
 
 export interface LoginRestriction {
   type: 'time_based' | 'location_based' | 'device_based';
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
 }

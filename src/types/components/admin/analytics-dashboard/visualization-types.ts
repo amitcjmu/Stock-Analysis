@@ -64,7 +64,7 @@ export interface AxisConfig {
 export interface SeriesConfig {
   name: string;
   type?: SeriesType;
-  data: any[];
+  data: unknown[];
   color?: string;
   yAxisIndex?: number;
   stack?: string;
@@ -87,7 +87,7 @@ export interface TooltipConfig {
   formatter?: string;
   backgroundColor?: string;
   borderColor?: string;
-  textStyle?: any;
+  textStyle?: unknown;
 }
 
 export interface TableColumn {
@@ -207,7 +207,7 @@ export interface MapMarker {
   size?: number;
   color?: string;
   popup?: string;
-  data?: any;
+  data?: unknown;
 }
 
 export interface MapRegion {
@@ -216,7 +216,7 @@ export interface MapRegion {
   color?: string;
   opacity?: number;
   popup?: string;
-  data?: any;
+  data?: unknown;
 }
 
 export interface TickConfig {
@@ -252,7 +252,7 @@ export interface TrendData {
 
 export interface FilterOption {
   label: string;
-  value: any;
+  value: unknown;
   count?: number;
 }
 

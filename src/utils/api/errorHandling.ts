@@ -3,7 +3,7 @@
  * Provides consistent error handling patterns and error transformations.
  */
 
-import {
+import type {
   ApiErrorType,
   NetworkError,
   ValidationError,
@@ -15,68 +15,70 @@ import {
 
 export function createApiError(
   status: number,
-  response: any,
-  context: { url: string; method: string; response?: any }
+  response: unknown,
+  context: { url: string; method: string; response?: unknown }
 ): ApiErrorType {
-  const timestamp = new Date().toISOString();
+  const responseObj = response as Record<string, unknown>;
   
   if (status >= 500) {
     return {
       type: 'server',
-      message: response?.message || 'Internal server error',
-      code: response?.error_code || `HTTP_${status}`,
+      message: (responseObj?.message as string) || 'Internal server error',
+      code: (responseObj?.error_code as string) || `HTTP_${status}`,
       status,
-      errorId: response?.meta?.error_id,
-      timestamp
+      errorId: (responseObj?.meta as Record<string, unknown>)?.error_id as string,
+      correlationId: (responseObj?.correlationId as string)
     } as ServerError;
   }
   
   if (status === 401) {
     return {
       type: 'authentication',
-      message: response?.message || 'Authentication required',
-      code: response?.error_code || 'UNAUTHORIZED',
-      reason: determineAuthReason(response),
-      timestamp
+      message: (responseObj?.message as string) || 'Authentication required',
+      code: (responseObj?.error_code as string) || 'UNAUTHORIZED',
+      reason: determineAuthReason(responseObj),
+      correlationId: (responseObj?.correlationId as string)
     } as AuthenticationError;
   }
   
   if (status === 403) {
     return {
       type: 'authorization',
-      message: response?.message || 'Access forbidden',
-      code: response?.error_code || 'FORBIDDEN',
-      requiredPermissions: response?.required_permissions,
-      userPermissions: response?.user_permissions,
-      resource: response?.resource,
-      timestamp
+      message: (responseObj?.message as string) || 'Access forbidden',
+      code: (responseObj?.error_code as string) || 'FORBIDDEN',
+      requiredPermissions: responseObj?.required_permissions as string[],
+      userPermissions: responseObj?.user_permissions as string[],
+      resource: responseObj?.resource as string,
+      correlationId: (responseObj?.correlationId as string)
     } as AuthorizationError;
   }
   
   if (status === 422) {
     return {
       type: 'validation',
-      message: response?.message || 'Validation failed',
-      code: response?.error_code || 'VALIDATION_ERROR',
-      errors: response?.errors || [],
-      timestamp
+      message: (responseObj?.message as string) || 'Validation failed',
+      code: (responseObj?.error_code as string) || 'VALIDATION_ERROR',
+      field: responseObj?.field as string,
+      value: responseObj?.value,
+      errors: (responseObj?.errors as ApiError[]) || [],
+      correlationId: (responseObj?.correlationId as string)
     } as ValidationError;
   }
   
   return {
     type: 'network',
-    message: response?.message || `HTTP ${status} error`,
-    code: response?.error_code || `HTTP_${status}`,
+    message: (responseObj?.message as string) || `HTTP ${status} error`,
+    code: (responseObj?.error_code as string) || `HTTP_${status}`,
     url: context.url,
     method: context.method,
     status,
     response: context.response,
-    timestamp
+    correlationId: (responseObj?.correlationId as string)
   } as NetworkError;
 }
 
-function determineAuthReason(response: any): 'token_expired' | 'invalid_credentials' | 'missing_token' {
-  const code = response?.error_code?.toLowerCase();
+function determineAuthReason(response: Record<string, unknown> | undefined): 'token_expired' | 'invalid_credentials' | 'missing_token' {
+  const code = (response?.error_code as string)?.toLowerCase();
   
   if (code?.includes('expired')) return 'token_expired';
   if (code?.includes('invalid')) return 'invalid_credentials';

@@ -87,7 +87,7 @@ export const calculateImprovement = (current: number, projected: number): string
   return `${sign}${improvement.toFixed(1)}%`;
 };
 
-export const exportToJSON = (data: any, filename: string): void => {
+export const exportToJSON = (data: Record<string, unknown>, filename: string): void => {
   const dataStr = JSON.stringify(data, null, 2);
   const dataBlob = new Blob([dataStr], { type: 'application/json' });
   const url = URL.createObjectURL(dataBlob);

@@ -127,14 +127,14 @@ export interface StructureRelationship {
 export interface StructureConstraint {
   constraint: string;
   type: string;
-  value: any;
+  value: unknown;
   enforcement: string;
 }
 
 // Parameter and Algorithm Types
 export interface ParameterDistribution {
   type: string;
-  parameters: any[];
+  parameters: unknown[];
   bounds: ParameterBounds;
 }
 
@@ -145,7 +145,7 @@ export interface ParameterBounds {
 
 export interface AlgorithmParameter {
   parameter: string;
-  value: any;
+  value: unknown;
   description: string;
 }
 

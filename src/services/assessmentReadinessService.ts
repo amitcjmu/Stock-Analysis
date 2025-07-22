@@ -56,7 +56,12 @@ export interface ReadinessAssessment {
     application_name: string;
     readiness_score: number;
     readiness_level: string;
-    readiness_factors: any;
+    readiness_factors: {
+      technical_readiness: number;
+      business_readiness: number;
+      operational_readiness: number;
+      metadata?: Record<string, unknown>;
+    };
     blocking_issues: string[];
     assessment_priority: number;
   }>;
@@ -125,7 +130,18 @@ const generateSignoffPackage = async (clientAccountId: string, engagementId: str
   return response.data;
 };
 
-const submitForApproval = async (clientAccountId: string, engagementId: string, signoffData: any) => {
+/**
+ * Stakeholder signoff data for external approval systems
+ */
+export interface StakeholderSignoffData {
+  approval_type: 'assessment_readiness' | 'stakeholder_review' | 'final_signoff';
+  approver_role: string;
+  comments?: string;
+  approval_status: 'approved' | 'rejected' | 'pending';
+  metadata?: Record<string, unknown>;
+}
+
+const submitForApproval = async (clientAccountId: string, engagementId: string, signoffData: StakeholderSignoffData) => {
   const response = await api.post(`/api/v1/assess/submit-approval/${clientAccountId}/${engagementId}`, signoffData);
   return response.data;
 };
@@ -157,7 +173,7 @@ export const useSubmitForApproval = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (signoffData: any) => submitForApproval(clientAccountId, engagementId, signoffData),
+    mutationFn: (signoffData: StakeholderSignoffData) => submitForApproval(clientAccountId, engagementId, signoffData),
     onSuccess: () => {
       // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: ['readinessAssessment', clientAccountId, engagementId] });

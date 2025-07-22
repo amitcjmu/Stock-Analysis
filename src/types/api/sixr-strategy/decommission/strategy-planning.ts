@@ -271,9 +271,9 @@ export interface DataHandlingStrategy { approach: string; }
 export interface DataMigrationStrategy { approach: string; }
 export interface CutoverStrategy { type: string; }
 export interface DecommissionRollbackStrategy { capability: string; }
-export interface DecommissionExecutionPlan { phases: any[]; }
-export interface DataMappingPlan { mappings: any[]; }
-export interface DecommissionValidationPlan { phases: any[]; }
-export interface DecommissionApprovalWorkflow { steps: any[]; }
+export interface DecommissionExecutionPlan { phases: unknown[]; }
+export interface DataMappingPlan { mappings: unknown[]; }
+export interface DecommissionValidationPlan { phases: unknown[]; }
+export interface DecommissionApprovalWorkflow { steps: unknown[]; }
 export interface DecommissionStakeholder { id: string; name: string; }
 export interface DecommissionDependency { id: string; name: string; }

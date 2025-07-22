@@ -30,7 +30,7 @@ export interface UploadFile {
     errors: number;
     warnings: number;
     phases_completed: string[];
-    agent_insights?: any[];
+    agent_insights?: unknown[];
   };
 }
 
@@ -38,7 +38,7 @@ export interface UploadCategory {
   id: string;
   title: string;
   description: string;
-  icon: any;
+  icon: unknown;
   color: string;
   acceptedTypes: string[];
   examples: string[];
@@ -48,7 +48,7 @@ export interface UploadCategory {
 
 export interface FlowManagementState {
   showFlowManager: boolean;
-  conflictFlows: any[];
+  conflictFlows: unknown[];
   isLoadingFlowDetails: boolean;
 }
 

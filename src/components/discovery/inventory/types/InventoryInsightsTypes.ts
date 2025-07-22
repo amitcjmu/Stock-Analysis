@@ -3,6 +3,16 @@
  * Extracted from EnhancedInventoryInsights.tsx for modularization
  */
 
+// Asset dependency interface
+export interface AssetDependency {
+  id: string;
+  name: string;
+  type: 'application' | 'database' | 'service' | 'network' | 'storage';
+  relationship: 'depends_on' | 'supports' | 'connects_to';
+  criticality: 'low' | 'medium' | 'high' | 'critical';
+  metadata?: Record<string, unknown>;
+}
+
 export interface AssetInventory {
   id?: string;
   asset_name?: string;
@@ -14,7 +24,7 @@ export interface AssetInventory {
   operating_system?: string;
   location?: string;
   status?: string;
-  dependencies?: any[];
+  dependencies?: AssetDependency[];
 }
 
 export interface InventoryProgress {
@@ -40,7 +50,7 @@ export interface CrewAIInsight {
   category?: string;
   confidence?: number;
   timestamp: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ProcessedInsights {

@@ -4,19 +4,21 @@
  * Common validation interfaces used across CRUD operations and import/export.
  */
 
+import { PrimitiveValue, DynamicValue, ConditionValue } from './value-types';
+
 export interface ValidationError {
   field: string;
   code: string;
   message: string;
-  value?: any;
-  constraint?: any;
+  value?: DynamicValue;
+  constraint?: ConditionValue;
 }
 
 export interface ValidationWarning {
   field: string;
   code: string;
   message: string;
-  value?: any;
+  value?: DynamicValue;
 }
 
 export interface ValidationResult {
@@ -38,9 +40,13 @@ export interface ValidationOptions {
   warningsAsErrors?: boolean;
 }
 
+export interface ValidationRuleParams {
+  [key: string]: string | number | boolean | string[] | number[];
+}
+
 export interface ValidationRule {
   field: string;
   validator: string;
-  params?: Record<string, any>;
+  params?: ValidationRuleParams;
   message?: string;
 }

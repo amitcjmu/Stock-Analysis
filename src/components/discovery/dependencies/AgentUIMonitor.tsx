@@ -150,7 +150,7 @@ const AgentUIMonitor: React.FC<AgentUIMonitorProps> = ({
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
               <div className="text-2xl font-bold text-green-600">
-                {Object.values(agents).filter((a: any) => a.status === 'idle').length}
+                {Object.values(agents).filter((a: unknown) => a.status === 'idle').length}
               </div>
               <div className="text-xs text-gray-600">Ready</div>
             </div>
@@ -380,7 +380,7 @@ const AgentUIMonitor: React.FC<AgentUIMonitorProps> = ({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {insights.map((insight: any, index: number) => (
+                  {insights.map((insight: unknown, index: number) => (
                     <div key={index} className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                       <div className="flex items-start space-x-2">
                         <Lightbulb className="w-4 h-4 text-yellow-600 mt-0.5" />

@@ -131,7 +131,7 @@ export interface ComponentMetrics {
   errorRate: PerformanceMetric;
   throughput: PerformanceMetric;
   resources: ResourceUsage;
-  custom: Record<string, any>;
+  custom: Record<string, string | number | boolean | null>;
 }
 
 export interface ComponentDependency {

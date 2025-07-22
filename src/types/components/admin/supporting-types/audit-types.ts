@@ -13,15 +13,15 @@ export interface AuditLog {
   action: AuditAction;
   resource: string;
   resourceId?: string;
-  oldValue?: any;
-  newValue?: any;
+  oldValue?: unknown;
+  newValue?: unknown;
   result: AuditResult;
   reason?: string;
   ipAddress?: string;
   userAgent?: string;
   location?: string;
   timestamp: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface UserActivity {
@@ -32,12 +32,12 @@ export interface UserActivity {
   action: string;
   resource?: string;
   details?: string;
-  data?: Record<string, any>;
+  data?: Record<string, string | number | boolean | null>;
   duration?: number;
   ipAddress?: string;
   userAgent?: string;
   timestamp: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 // Enum and union types

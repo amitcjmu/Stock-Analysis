@@ -25,11 +25,16 @@ import { cn } from '@/lib/utils';
 import { ConflictResolver } from './components/ConflictResolver';
 import type { DataConflict, ConflictResolution } from './types';
 
+interface DataRecord {
+  id?: string;
+  [key: string]: unknown;
+}
+
 interface DataIntegrationViewProps {
   applicationId: string;
-  integratedData: Record<string, any>;
+  integratedData: Record<string, unknown>;
   conflicts: DataConflict[];
-  dataSources: Record<string, any[]>;
+  dataSources: Record<string, DataRecord[]>;
   qualityScore: number;
   confidenceScore: number;
   completenessScore: number;

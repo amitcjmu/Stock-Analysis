@@ -164,7 +164,7 @@ const FeedbackWidget = () => {
               <div>
                 <Select
                   value={newFeedback.type}
-                  onValueChange={(value) => setNewFeedback({ ...newFeedback, type: value as any })}
+                  onValueChange={(value) => setNewFeedback({ ...newFeedback, type: value as 'Feature' | 'Bug' | 'Improvement' | 'Other' })}
                 >
                   <option value="Feature">Feature Request</option>
                   <option value="Bug">Bug Report</option>

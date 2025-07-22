@@ -32,7 +32,7 @@ export interface Artifact {
   access: 'public' | 'team' | 'restricted' | 'confidential';
   permissions: ArtifactPermission[];
   tags: string[];
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
   versionHistory: ArtifactVersion[];
 }
 

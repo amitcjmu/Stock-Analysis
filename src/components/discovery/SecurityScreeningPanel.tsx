@@ -27,7 +27,7 @@ interface SecurityScreeningData {
   };
   security_assessment: {
     confidence: number;
-    security_risks: Record<string, Record<string, any>>;
+    security_risks: Record<string, Record<string, string | number | boolean | null>>;
     risk_level: 'low' | 'medium' | 'high';
     flagged_columns: string[];
   };

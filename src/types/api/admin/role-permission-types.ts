@@ -90,7 +90,7 @@ export interface RoleData {
   category?: RoleCategory;
   level?: RoleLevel;
   scope?: RoleScope;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface Role {
@@ -108,7 +108,7 @@ export interface Role {
   createdAt: string;
   updatedAt: string;
   createdBy: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface Permission {
@@ -123,7 +123,7 @@ export interface Permission {
   isSystem: boolean;
   dependencies?: string[];
   conflicts?: string[];
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface RoleUser {
@@ -172,7 +172,7 @@ export interface RoleAssignment {
   conditions?: RoleCondition[];
   status: RoleAssignmentStatus;
   effectivePermissions: string[];
-  metadata: Record<string, any>;
+  metadata: Record<string, string | number | boolean | null>;
 }
 
 export interface RoleRevocation {
@@ -199,14 +199,14 @@ export interface RoleScope {
 export interface RoleCondition {
   type: RoleConditionType;
   operator: ConditionOperator;
-  value: any;
+  value: unknown;
   description?: string;
 }
 
 export interface ScopeLimitation {
   resource: string;
   actions: string[];
-  restrictions: Record<string, any>;
+  restrictions: Record<string, string | number | boolean | null>;
 }
 
 // Role and Permission Enums and Types
@@ -322,7 +322,7 @@ export interface PermissionCheck {
   resource: string;
   action: string;
   scope?: RoleScope;
-  context?: Record<string, any>;
+  context?: Record<string, string | number | boolean | null>;
 }
 
 export interface PermissionResult {
@@ -331,5 +331,5 @@ export interface PermissionResult {
   conditions?: RoleCondition[];
   limitations?: ScopeLimitation[];
   effectiveRole?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }

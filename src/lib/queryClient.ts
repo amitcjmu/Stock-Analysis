@@ -1,4 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
+import type { ApiError } from '@/types/shared/api-types';
 
 // Create a basic query client without error handling
 // The error handling will be added in the App component where we have access to navigation
@@ -7,7 +8,7 @@ export const queryClient = new QueryClient({
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
       refetchOnWindowFocus: false, // Optional: disable refetching on window focus
-      retry: (failureCount: number, error: any) => {
+      retry: (failureCount: number, error: ApiError & { status?: number; isAuthError?: boolean }) => {
         // Don't retry on authentication errors
         if (error?.status === 401 || error?.isAuthError) {
           return false;

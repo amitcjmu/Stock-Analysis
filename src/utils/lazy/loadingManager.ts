@@ -283,7 +283,7 @@ class LoadingManager {
       retryCount,
       priority,
       userAgent: navigator.userAgent,
-      connectionType: (navigator as any).connection?.effectiveType
+      connectionType: (navigator as Navigator & { connection?: { effectiveType: string } }).connection?.effectiveType
     };
 
     this.metrics.push(metric);

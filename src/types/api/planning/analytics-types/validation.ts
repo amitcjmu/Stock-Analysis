@@ -220,8 +220,8 @@ export interface WarningLocation {
 }
 
 export interface ViolationDetail {
-  expected: any;
-  actual: any;
+  expected: unknown;
+  actual: unknown;
   variance: number;
   threshold: number;
   context: string;
@@ -307,7 +307,7 @@ export interface RuleLogic {
 export interface RuleParameter {
   name: string;
   type: string;
-  value: any;
+  value: unknown;
   description: string;
   required: boolean;
 }
@@ -337,7 +337,7 @@ export interface CriteriaDetails {
 export interface CriteriaEvidence {
   type: string;
   source: string;
-  value: any;
+  value: unknown;
   confidence: number;
   timestamp: string;
 }

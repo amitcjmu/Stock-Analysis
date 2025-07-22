@@ -51,7 +51,7 @@ export interface QuietHours {
 
 export interface CommunicationChannel {
   type: 'email' | 'slack' | 'webhook' | 'sms' | 'phone';
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
   rateLimiting: RateLimiting;
   failover: ChannelFailover[];
 }
@@ -82,7 +82,7 @@ export interface TemplateVariable {
   name: string;
   type: 'string' | 'number' | 'date' | 'object';
   required: boolean;
-  default?: any;
+  default?: unknown;
 }
 
 export interface CommunicationSchedule {

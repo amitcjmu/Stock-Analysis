@@ -42,7 +42,7 @@ export interface UserSession {
   network: NetworkInfo;
   browser: BrowserInfo;
   flags: SessionFlags;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
   createdAt: string;
   updatedAt: string;
 }
@@ -79,7 +79,7 @@ export interface SessionActivity {
   action: string;
   resource?: string;
   details?: string;
-  data?: Record<string, any>;
+  data?: Record<string, string | number | boolean | null>;
   ipAddress: string;
   userAgent: string;
   status: ActivityStatus;

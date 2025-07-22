@@ -34,7 +34,7 @@ const renderCustomizedLabel = ({
   percent,
   name,
   value,
-}: any) => {
+}: unknown) => {
   const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
   const x = cx + radius * Math.cos(-midAngle * RADIAN) * 1.2;
   const y = cy + radius * Math.sin(-midAngle * RADIAN) * 1.2;
@@ -53,7 +53,7 @@ const renderCustomizedLabel = ({
   );
 };
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: unknown) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-white p-3 border border-gray-200 rounded shadow-lg">
@@ -102,7 +102,7 @@ const AssetDistribution: React.FC<AssetDistributionProps> = ({
     [metrics.by_status, totalAssets]
   );
 
-  const renderPieChart = (data: any[], title: string) => (
+  const renderPieChart = (data: unknown[], title: string) => (
     <div className="flex flex-col items-center">
       <h3 className="text-sm font-medium text-gray-700 mb-2">{title}</h3>
       <div className="h-48 w-full">
@@ -143,7 +143,7 @@ const AssetDistribution: React.FC<AssetDistributionProps> = ({
     </div>
   );
 
-  const renderBarChart = (data: any[], title: string) => (
+  const renderBarChart = (data: unknown[], title: string) => (
     <div className="h-64 w-full">
       <h3 className="text-sm font-medium text-gray-700 mb-2">{title}</h3>
       <ResponsiveContainer width="100%" height="90%">

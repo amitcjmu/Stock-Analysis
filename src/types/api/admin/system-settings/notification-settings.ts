@@ -22,19 +22,19 @@ export interface NotificationSettings {
 export interface EmailConfig {
   provider: string;
   fromAddress: string;
-  templates: Record<string, any>;
+  templates: Record<string, string | number | boolean | null>;
 }
 
 export interface SmsConfig {
   provider: string;
   fromNumber: string;
-  templates: Record<string, any>;
+  templates: Record<string, string | number | boolean | null>;
 }
 
 export interface PushConfig {
   enabled: boolean;
   providers: string[];
-  certificates: Record<string, any>;
+  certificates: Record<string, string | number | boolean | null>;
 }
 
 export interface InAppNotificationConfig {
@@ -52,13 +52,13 @@ export interface WebhookNotificationConfig {
 export interface NotificationChannelConfig {
   type: string;
   enabled: boolean;
-  configuration: Record<string, any>;
+  configuration: Record<string, string | number | boolean | null>;
 }
 
 export interface NotificationTemplateConfig {
   id: string;
   name: string;
-  content: Record<string, any>;
+  content: Record<string, string | number | boolean | null>;
 }
 
 export interface DeliveryConfig {

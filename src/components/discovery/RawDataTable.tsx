@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Database } from 'lucide-react';
 
 interface RawDataTableProps {
-  data: any[];
+  data: unknown[];
   title?: string;
   getFieldHighlight?: (fieldName: string, assetId: string) => string;
   pageSize?: number;
@@ -50,7 +50,7 @@ const RawDataTable: React.FC<RawDataTableProps> = ({
       .trim();
   };
 
-  const getCellValue = (row: any, column: string) => {
+  const getCellValue = (row: unknown, column: string) => {
     const value = row[column];
     if (value === null || value === undefined || value === '') {
       return '<empty>';
@@ -65,12 +65,12 @@ const RawDataTable: React.FC<RawDataTableProps> = ({
   };
 
   // Get asset identifier for highlighting
-  const getAssetIdentifier = (row: any) => {
+  const getAssetIdentifier = (row: unknown) => {
     return row.id || row.ID || row.asset_name || row.hostname || row.name || row.NAME || 'unknown';
   };
 
   // Get unique row key that combines asset identifier with row index to prevent duplicates
-  const getRowKey = (row: any, index: number) => {
+  const getRowKey = (row: unknown, index: number) => {
     const assetId = getAssetIdentifier(row);
     // Ensure uniqueness even if multiple rows have 'unknown' identifier
     return assetId === 'unknown' ? `unknown-${index}` : assetId;

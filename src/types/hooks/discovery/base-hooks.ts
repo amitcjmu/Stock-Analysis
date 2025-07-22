@@ -15,12 +15,12 @@ export interface BaseHookParams {
   refetchOnMount?: boolean;
   refetchOnWindowFocus?: boolean;
   refetchInterval?: number;
-  onSuccess?: (data: any) => void;
+  onSuccess?: (data: unknown) => void;
   onError?: (error: Error) => void;
-  onSettled?: (data: any, error: Error | null) => void;
+  onSettled?: (data: unknown, error: Error | null) => void;
 }
 
-export interface BaseHookReturn<T = any> {
+export interface BaseHookReturn<T = unknown> {
   data: T | undefined;
   isLoading: boolean;
   isError: boolean;
@@ -29,7 +29,7 @@ export interface BaseHookReturn<T = any> {
   isIdle: boolean;
   isFetching: boolean;
   isStale: boolean;
-  refetch: () => Promise<any>;
+  refetch: () => Promise<unknown>;
   remove: () => void;
   status: 'idle' | 'loading' | 'error' | 'success';
   fetchStatus: 'idle' | 'fetching' | 'paused';

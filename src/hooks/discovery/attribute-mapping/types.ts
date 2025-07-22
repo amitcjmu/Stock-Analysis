@@ -6,21 +6,84 @@ export type { CriticalAttribute, CriticalAttributesResult } from './useCriticalA
 export type { AttributeMappingActionsResult } from './useAttributeMappingActions';
 export type { MappingProgress, AttributeMappingStateResult } from './useAttributeMappingState';
 
+// Additional types for attribute mapping
+interface AttributeMappingAttribute {
+  id: string;
+  name: string;
+  type: string;
+  required: boolean;
+  mapping_status?: 'pending' | 'mapped' | 'approved' | 'rejected';
+  target_field?: string;
+  confidence?: number;
+}
+
+interface CrewAnalysisItem {
+  id: string;
+  attribute_id: string;
+  analysis_type: string;
+  result: Record<string, unknown>;
+  confidence: number;
+  timestamp: string;
+}
+
+interface FlowState {
+  flow_id: string;
+  status: string;
+  current_phase: string;
+  progress: number;
+  metadata?: Record<string, unknown>;
+}
+
+interface Flow {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface DataImport {
+  id: string;
+  name: string;
+  status: string;
+  created_at: string;
+  row_count: number;
+  error_count?: number;
+}
+
+interface AttributeUpdate {
+  name?: string;
+  type?: string;
+  required?: boolean;
+  mapping_status?: string;
+  target_field?: string;
+}
+
+interface AgentClarification {
+  id: string;
+  question: string;
+  context: string;
+  status: 'pending' | 'resolved' | 'dismissed';
+  timestamp: string;
+  resolution?: string;
+}
+
 // Main composition type that matches the original hook's return type
 export interface AttributeMappingLogicResult {
   // Data
-  agenticData: { attributes: any[] };
+  agenticData: { attributes: AttributeMappingAttribute[] };
   fieldMappings: FieldMapping[];
-  crewAnalysis: any[];
+  crewAnalysis: CrewAnalysisItem[];
   mappingProgress: MappingProgress;
   criticalAttributes: CriticalAttribute[];
   
   // Flow state
-  flowState: any;
-  flow: any;
+  flowState: FlowState | null;
+  flow: Flow | null;
   flowId: string | null;
   dataImportId: string | null;
-  availableDataImports: any[];
+  availableDataImports: DataImport[];
   selectedDataImportId: string | null;
   
   // Auto-detection info
@@ -28,7 +91,7 @@ export interface AttributeMappingLogicResult {
   autoDetectedFlowId: string | null;
   effectiveFlowId: string | null;
   hasEffectiveFlow: boolean;
-  flowList: any[];
+  flowList: Flow[];
   
   // Loading states
   isAgenticLoading: boolean;
@@ -36,20 +99,20 @@ export interface AttributeMappingLogicResult {
   isAnalyzing: boolean;
   
   // Error states
-  agenticError: any;
-  flowStateError: any;
+  agenticError: Error | null;
+  flowStateError: Error | null;
   
   // Action handlers
   handleTriggerFieldMappingCrew: () => Promise<void>;
   handleApproveMapping: (mappingId: string) => Promise<void>;
   handleRejectMapping: (mappingId: string, rejectionReason?: string) => Promise<void>;
   handleMappingChange: (mappingId: string, newTarget: string) => Promise<void>;
-  handleAttributeUpdate: (attributeId: string, updates: any) => Promise<void>;
+  handleAttributeUpdate: (attributeId: string, updates: AttributeUpdate) => Promise<void>;
   handleDataImportSelection: (importId: string) => Promise<void>;
-  refetchAgentic: () => Promise<any>;
-  refetchCriticalAttributes: () => Promise<any>;
+  refetchAgentic: () => Promise<unknown>;
+  refetchCriticalAttributes: () => Promise<unknown>;
   canContinueToDataCleansing: () => boolean;
-  checkMappingApprovalStatus: (dataImportId: string) => Promise<any>;
+  checkMappingApprovalStatus: (dataImportId: string) => Promise<{ approved: boolean; total: number; pending: number }>;
   
   // Flow status
   hasActiveFlow: boolean;
@@ -57,8 +120,8 @@ export interface AttributeMappingLogicResult {
   flowProgress: number;
   
   // Agent clarifications
-  agentClarifications: any[];
+  agentClarifications: AgentClarification[];
   isClarificationsLoading: boolean;
-  clarificationsError: any;
+  clarificationsError: Error | null;
   refetchClarifications: () => Promise<void>;
 }

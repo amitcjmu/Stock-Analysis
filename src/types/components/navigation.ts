@@ -23,7 +23,7 @@ export interface NavigationItem {
   disabled?: boolean;
   badge?: string | number;
   children?: NavigationItem[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface RouteConfig {
@@ -34,7 +34,7 @@ export interface RouteConfig {
   permissions?: string[];
   roles?: string[];
   redirect?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 // Sidebar component types
@@ -83,7 +83,7 @@ export interface BreadcrumbItem {
   disabled?: boolean;
   icon?: string | ReactNode;
   tooltip?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface FlowBreadcrumbsProps extends BaseNavigationProps {
@@ -132,7 +132,7 @@ export interface TabDefinition {
   hidden?: boolean;
   loading?: boolean;
   error?: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface NavigationTabsProps extends BaseNavigationProps {
@@ -193,7 +193,7 @@ export interface MenuItem {
   badge?: string | number;
   tooltip?: string;
   danger?: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface DropdownMenuProps extends BaseNavigationProps {
@@ -356,7 +356,7 @@ export interface PhaseDefinition {
   status: 'not_started' | 'in_progress' | 'completed' | 'failed';
   icon?: string | ReactNode;
   color?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 // Navigation hooks types
@@ -447,9 +447,9 @@ export interface UseMenuParams {
 // Event types
 export interface NavigationEvent {
   type: 'navigate' | 'back' | 'forward' | 'sidebar_toggle' | 'tab_change' | 'menu_open' | 'menu_close';
-  payload: any;
+  payload: unknown;
   timestamp: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface NavigationEventHandler {
