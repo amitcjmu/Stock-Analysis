@@ -68,7 +68,7 @@ class AnalyticsQueries:
                 and_(
                     DiscoveryFlow.client_account_id == self.client_account_id,
                     DiscoveryFlow.engagement_id == self.engagement_id,
-                    DiscoveryFlow.master_flow_id != None
+                    DiscoveryFlow.master_flow_id is not None
                 )
             )
             master_ref_result = await self.db.execute(master_ref_stmt)
@@ -79,7 +79,7 @@ class AnalyticsQueries:
                 and_(
                     DiscoveryFlow.client_account_id == self.client_account_id,
                     DiscoveryFlow.engagement_id == self.engagement_id,
-                    DiscoveryFlow.assessment_ready == True
+                    DiscoveryFlow.assessment_ready is True
                 )
             )
             assessment_ready_result = await self.db.execute(assessment_ready_stmt)

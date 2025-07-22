@@ -14,15 +14,15 @@ from app.core.exceptions import FlowNotFoundError
 from app.core.logging import get_logger
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
-from app.services.crewai_flows.agents.decision_agents import (
+from app.services.crewai_flows.agents.decision import (
     AgentDecision,
-    FieldMappingDecisionAgent,
-    PhaseAction,
-    PhaseTransitionAgent,
 )
 from app.services.flow_type_registry import FlowTypeRegistry
 from app.services.handler_registry import HandlerRegistry
 from app.services.validator_registry import ValidatorRegistry
+from backend.app.services.crewai_flows.agents.decision.base import PhaseAction
+from backend.app.services.crewai_flows.agents.decision.field_mapping import FieldMappingDecisionAgent
+from backend.app.services.crewai_flows.agents.decision.phase_transition import PhaseTransitionAgent
 
 logger = get_logger(__name__)
 

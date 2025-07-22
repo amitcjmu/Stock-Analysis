@@ -30,6 +30,7 @@ def get_crewai_flow_service(db: AsyncSession = Depends(get_db)) -> CrewAIFlowSer
 @router.post("/chat-test")
 async def chat_test(
     request: Dict[str, Any],
+    user_id: str = Depends(get_user_id),
     crewai_service: CrewAIFlowService = Depends(get_crewai_flow_service)
 ):
     """
@@ -63,27 +64,23 @@ async def chat_test(
                 "assistant"
             )
             
-            # Send response to WebSocket
-            await websocket.send_text(json.dumps(response))
+            # Return response for POST endpoint
+            return response
             
         except Exception as e:
             logger.error(f"Chat processing error: {e}")
-            await websocket.send_text(json.dumps({
-                "error": "Failed to process chat message",
-                "details": str(e)
-            }))
-        
-        # Fallback response with context awareness
-        fallback_response = _generate_fallback_response(user_message, context)
-        
-        return {
-            "status": "success",
-            "chat_response": fallback_response,
-            "model_used": "fallback",
-            "timestamp": None,
-            "context_used": context,
-            "multi_model_service_available": False
-        }
+            # Fallback response with context awareness
+            fallback_response = _generate_fallback_response(user_message, context)
+            
+            return {
+                "status": "success",
+                "chat_response": fallback_response,
+                "model_used": "fallback",
+                "timestamp": None,
+                "context_used": context,
+                "multi_model_service_available": False,
+                "error": str(e)
+            }
         
     except Exception as e:
         logger.error(f"Chat test error: {e}")

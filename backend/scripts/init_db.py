@@ -1,12 +1,24 @@
-"users": [
-    {
-        "email": "demo@democorp.com",
-        "password": "password123",  # Will be hashed
-        "first_name": "Demo",
-        "last_name": "User",
-        "is_verified": True
-    }
-    # SECURITY: ALL ADMIN DEMO ACCOUNTS REMOVED
-    # No admin@democorp.com, admin@aiforce.com, or any other admin demo accounts
-    # Only legitimate demo user with analyst privileges allowed
-], 
+#!/usr/bin/env python3
+"""Database initialization script."""
+
+import asyncio
+import logging
+
+from app.core.database import AsyncSessionLocal
+from app.scripts.seed_sixr_analysis_demo import seed_demo_data
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+async def init_database():
+    """Initialize database with demo data."""
+    try:
+        async with AsyncSessionLocal() as db:
+            await seed_demo_data(db)
+            logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize database: {e}")
+        raise
+
+if __name__ == "__main__":
+    asyncio.run(init_database())

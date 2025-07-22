@@ -6,7 +6,6 @@ Evaluates collected data against the 22 critical attributes framework
 import logging
 from typing import Any, Dict, List
 
-
 from app.services.agents.base_agent import BaseCrewAIAgent
 from app.services.agents.registry import AgentMetadata
 from app.services.llm_config import get_crewai_llm

@@ -9,7 +9,6 @@ import json
 import pytest
 from httpx import AsyncClient
 
-
 # Test credentials
 TEST_EMAIL = "demo@demo-corp.com"
 TEST_PASSWORD = "Demo123!"

@@ -245,7 +245,7 @@ class TestDiscoveryFlowPerformance:
         metrics = performance_monitor.stop_monitoring()
         
         # Assert
-        assert result['memory_optimized'] == True, "Memory optimization should be applied"
+        assert result['memory_optimized'] is True, "Memory optimization should be applied"
         assert metrics['memory_delta'] < 200, "Memory delta should be controlled with optimization"
         assert result['processed_assets'] == 10000, "All assets should be processed"
         

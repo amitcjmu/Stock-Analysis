@@ -9,22 +9,24 @@ Usage:
     python scripts/qa/validate_seeding.py [--verbose] [--fix-issues] [--export-report]
 """
 
-import asyncio
-import sys
 import argparse
+import asyncio
 import json
-from datetime import datetime
-from typing import Dict, List, Any, Optional
-from dataclasses import dataclass
+import sys
 from collections import defaultdict
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 # Add app path
 sys.path.append('/app')
 
-from sqlalchemy import select, func, and_, or_
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import AsyncSessionLocal
 from app.models import *
+
 
 @dataclass
 class ValidationResult:

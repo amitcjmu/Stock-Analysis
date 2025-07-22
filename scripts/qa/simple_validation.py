@@ -7,12 +7,14 @@ Quick validation of seeded data that works with the actual database structure.
 
 import asyncio
 import sys
-from typing import Dict, Any
+from typing import Any, Dict
 
 sys.path.append('/app')
 
 from sqlalchemy import text
+
 from app.core.database import AsyncSessionLocal
+
 
 async def run_simple_validation() -> Dict[str, Any]:
     """Run simplified validation checks."""

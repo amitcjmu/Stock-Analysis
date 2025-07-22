@@ -2,13 +2,15 @@
 Flow Manager for lifecycle management
 """
 
-from typing import Dict, Any, Optional, List
-from app.services.flows.base_flow import BaseDiscoveryFlow
-# Direct UnifiedDiscoveryFlow imports removed - use MasterFlowOrchestrator instead
-from app.core.context import RequestContext
-from sqlalchemy.ext.asyncio import AsyncSession
 import asyncio
 import logging
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+# Direct UnifiedDiscoveryFlow imports removed - use MasterFlowOrchestrator instead
+from app.core.context import RequestContext
+from app.services.flows.base_flow import BaseDiscoveryFlow
 
 logger = logging.getLogger(__name__)
 
@@ -56,9 +58,9 @@ class FlowManager:
     
     async def get_flow_status(self, flow_id: str) -> Optional[Dict[str, Any]]:
         """Get current status of a flow through MasterFlowOrchestrator"""
-        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-        from app.core.database import AsyncSessionLocal
         from app.core.context import RequestContext
+        from app.core.database import AsyncSessionLocal
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
         
         # Create a new session for status check
         async with AsyncSessionLocal() as db:
@@ -137,9 +139,9 @@ class FlowManager:
     
     async def force_complete_flow(self, flow_id: str, reason: str = "forced") -> bool:
         """Force complete a flow (for emergency situations) - delegated to MasterFlowOrchestrator"""
-        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-        from app.core.database import AsyncSessionLocal
         from app.core.context import RequestContext
+        from app.core.database import AsyncSessionLocal
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
         
         async with AsyncSessionLocal() as db:
             context = RequestContext()

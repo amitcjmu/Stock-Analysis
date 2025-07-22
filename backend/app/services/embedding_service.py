@@ -8,7 +8,6 @@ import logging
 import random
 from typing import List
 
-
 # Use the new LLM configuration instead of direct OpenAI import
 try:
     from app.services.llm_config import get_embedding_llm
@@ -208,7 +207,7 @@ class EmbeddingService:
             query = db.query(Asset)
             
             if is_mock_only:
-                query = query.filter(Asset.is_mock == True)
+                query = query.filter(Asset.is_mock is True)
             
             # Simple text matching against asset name, hostname, and description
             search_terms = query_text.lower().split()
@@ -255,7 +254,7 @@ class EmbeddingService:
             query = db.query(Asset).filter(Asset.id != asset_id)
             
             if is_mock_only:
-                query = query.filter(Asset.is_mock == True)
+                query = query.filter(Asset.is_mock is True)
             
             assets = query.all()
             
@@ -313,7 +312,7 @@ class EmbeddingService:
             # Get available tags
             tag_query = db.query(Tag)
             if is_mock_only:
-                tag_query = tag_query.filter(Tag.is_mock == True)
+                tag_query = tag_query.filter(Tag.is_mock is True)
             
             available_tags = tag_query.all()
             

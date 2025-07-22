@@ -442,7 +442,7 @@ async def get_processing_status(
         processed_query = await db.execute(
             select(func.count(RawImportRecord.id)).where(
                 RawImportRecord.data_import_id == flow_id,
-                RawImportRecord.is_processed == True
+                RawImportRecord.is_processed is True
             )
         )
         processed_records = processed_query.scalar()

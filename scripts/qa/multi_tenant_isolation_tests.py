@@ -9,21 +9,33 @@ Usage:
     python scripts/qa/multi_tenant_isolation_tests.py [--verbose] [--client-id ID]
 """
 
-import asyncio
-import sys
 import argparse
+import asyncio
 import json
-from datetime import datetime
-from typing import Dict, List, Any, Optional, Tuple
+import sys
 from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
 # Add app path
 sys.path.append('/app')
 
-from sqlalchemy import select, func, and_, distinct
+from sqlalchemy import and_, distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import AsyncSessionLocal
-from app.models import *
+from app.models import (
+    Asset,
+    ClientAccount,
+    DataImport,
+    DiscoveryFlow,
+    Engagement,
+    RawImportRecord,
+    User,
+    UserAccountAssociation,
+    UserRole,
+)
+
 
 @dataclass
 class IsolationTestResult:

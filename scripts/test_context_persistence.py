@@ -9,8 +9,9 @@ This script tests:
 """
 
 import asyncio
-import aiohttp
 from datetime import datetime
+
+import aiohttp
 
 # Test contexts - Marathon should persist, not switch to Acme
 TEST_CONTEXTS = {

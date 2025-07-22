@@ -6,6 +6,13 @@ Helper functions for asset processing and analysis.
 import logging
 from typing import Any, Dict, List
 
+try:
+    from app.services.crewai_flow_service import CrewAIFlowService
+    CREWAI_AVAILABLE = True
+except ImportError:
+    CREWAI_AVAILABLE = False
+    CrewAIFlowService = None
+
 
 logger = logging.getLogger(__name__)
 
@@ -365,13 +372,21 @@ def assess_migration_complexity(asset_type: str, asset_data: Dict[str, Any]) -> 
 
 def crewai_available() -> bool:
     """Check if the CrewAI service is available."""
-    return True  # This is a placeholder implementation. In a real application, you would check the actual service status.
+    return CREWAI_AVAILABLE
 
 
-def analyze_data_source(data_source_id: str) -> dict:
+def analyze_data_source(data_source_id: str, crewai_flow_service: CrewAIFlowService = None) -> dict:
     """Analyze a data source and return its type and quality."""
     if not crewai_available():
         return {"error": "CrewAI service is not available"}, 503
+    
+    if crewai_flow_service is None:
+        # Initialize service if not provided
+        try:
+            crewai_flow_service = CrewAIFlowService()
+        except Exception as e:
+            logger.error(f"Failed to initialize CrewAI service: {e}")
+            return {"error": "Failed to initialize CrewAI service"}, 503
     
     crewai_flow_service.create_task(
         agent_name="data_source_intelligence_001",

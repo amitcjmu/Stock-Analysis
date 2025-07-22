@@ -82,7 +82,7 @@ async def fix_user_roles_and_security():
                 existing_role_query = select(UserRole).where(
                     and_(
                         UserRole.user_id == user.id,
-                        UserRole.is_active == True
+                        UserRole.is_active is True
                     )
                 )
                 existing_role_result = await db.execute(existing_role_query)

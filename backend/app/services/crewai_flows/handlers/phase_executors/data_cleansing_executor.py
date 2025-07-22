@@ -186,7 +186,7 @@ class DataCleansingExecutor(BasePhaseExecutor):
                 query = select(RawImportRecord).where(
                     RawImportRecord.data_import_id == data_import_id
                 ).where(
-                    RawImportRecord.is_valid == True
+                    RawImportRecord.is_valid is True
                 )
                 
                 result = await session.execute(query)

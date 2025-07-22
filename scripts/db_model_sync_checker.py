@@ -13,12 +13,12 @@ Usage:
     --table: Check specific table only
 """
 
-import asyncio
-import sys
 import argparse
-from typing import Dict, List, Set, Any, Optional
-from datetime import datetime
+import asyncio
 import json
+import sys
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Set
 
 # Database imports
 from sqlalchemy import create_engine
@@ -26,10 +26,11 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 # App imports
 sys.path.append('/app')
-from app.core.database import get_database_url, Base
+from app.core.database import Base, get_database_url
 
 # Import all models to ensure they're registered
 from app.models import *
+
 
 class DatabaseModelChecker:
     """Compare SQLAlchemy models with actual database schema."""

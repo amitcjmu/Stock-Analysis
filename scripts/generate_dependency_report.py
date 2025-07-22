@@ -1,7 +1,8 @@
-import xml.etree.ElementTree as ET
 import csv
-from collections import defaultdict
 import operator
+import xml.etree.ElementTree as ET
+from collections import defaultdict
+
 
 def analyze_dependencies(svg_file, output_csv_file):
     """

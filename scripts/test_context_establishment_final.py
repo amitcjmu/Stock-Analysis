@@ -4,8 +4,9 @@ Test script for context establishment endpoints
 Tests the proper authentication flow and context establishment
 """
 
-import requests
 import sys
+
+import requests
 
 # Configuration
 BASE_URL = "http://localhost:8000"

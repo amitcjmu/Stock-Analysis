@@ -12,13 +12,14 @@ Usage:
     python scripts/modularization_test.py --detailed
 """
 
-import os
 import argparse
-from pathlib import Path
-from typing import List, Tuple
+import json
+import os
 from dataclasses import dataclass
 from enum import Enum
-import json
+from pathlib import Path
+from typing import List, Tuple
+
 
 class FileCategory(Enum):
     BACKEND_PYTHON = "Backend Python"

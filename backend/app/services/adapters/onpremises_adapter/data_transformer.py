@@ -6,7 +6,6 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 
-
 class DataTransformer:
     """Handles data transformation to normalized format"""
     

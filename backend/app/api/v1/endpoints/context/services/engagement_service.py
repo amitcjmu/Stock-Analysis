@@ -77,7 +77,7 @@ class EngagementService:
                 and_(
                     ClientAccess.user_profile_id == str(user_id),
                     ClientAccess.client_account_id == client_uuid,
-                    ClientAccess.is_active == True
+                    ClientAccess.is_active is True
                 )
             )
             result = await self.db.execute(query)
@@ -109,7 +109,7 @@ class EngagementService:
             query = select(Engagement).where(
                 and_(
                     Engagement.client_account_id == client_uuid,
-                    Engagement.is_active == True
+                    Engagement.is_active is True
                 )
             )
             result = await self.db.execute(query)

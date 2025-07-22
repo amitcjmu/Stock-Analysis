@@ -73,7 +73,7 @@ async def verify_platform_admin_access(
             and_(
                 UserRole.user_id == context.user_id,
                 UserRole.role_type == 'platform_admin',
-                UserRole.is_active == True
+                UserRole.is_active is True
             )
         )
         result = await db.execute(query)

@@ -182,7 +182,7 @@ async def get_model_pricing(
         if provider:
             conditions.append(LLMModelPricing.provider == provider)
         if active_only:
-            conditions.append(LLMModelPricing.is_active == True)
+            conditions.append(LLMModelPricing.is_active is True)
             conditions.append(LLMModelPricing.effective_from <= datetime.utcnow())
             conditions.append(
                 or_(
@@ -292,8 +292,8 @@ async def get_real_time_usage(
         # Query for recent usage
         query = select(
             func.count(LLMUsageLog.id).label('total_requests'),
-            func.count(LLMUsageLog.id).filter(LLMUsageLog.success == True).label('successful_requests'),
-            func.count(LLMUsageLog.id).filter(LLMUsageLog.success == False).label('failed_requests'),
+            func.count(LLMUsageLog.id).filter(LLMUsageLog.success is True).label('successful_requests'),
+            func.count(LLMUsageLog.id).filter(LLMUsageLog.success is False).label('failed_requests'),
             func.coalesce(func.sum(LLMUsageLog.total_tokens), 0).label('total_tokens'),
             func.coalesce(func.sum(LLMUsageLog.total_cost), 0).label('total_cost'),
             func.coalesce(func.avg(LLMUsageLog.response_time_ms), 0).label('avg_response_time')

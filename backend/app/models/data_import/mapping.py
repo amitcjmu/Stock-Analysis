@@ -3,7 +3,6 @@ Data Import Field Mapping Model
 """
 from __future__ import annotations
 
-
 from sqlalchemy import (
     JSON,
     Column,

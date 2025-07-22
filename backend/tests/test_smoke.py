@@ -2,18 +2,20 @@
 Backend Smoke Test: Ensure all critical services, endpoints, and agentic components initialize and basic health checks pass.
 This test should be run after every backend restart to catch initialization errors early.
 """
-import pytest
 import importlib
 import sys
+
+import pytest
+
 
 @pytest.mark.smoke
 def test_basic_imports():
     """Test that essential backend modules can be imported."""
     import app.core.config
-    import app.services.memory
     import app.services.agents
     import app.services.crewai_service_modular
     import app.services.deepinfra_llm
+    import app.services.memory
 
 @pytest.mark.smoke
 def test_crewai_service_initialization():
@@ -25,9 +27,9 @@ def test_crewai_service_initialization():
 @pytest.mark.smoke
 def test_agent_manager_initialization():
     """Test that AgentManager can be instantiated and has agents."""
+    from app.core.config import settings
     from app.services.agents import AgentManager
     from app.services.deepinfra_llm import create_deepinfra_llm
-    from app.core.config import settings
     llm = create_deepinfra_llm(
         api_token=settings.DEEPINFRA_API_KEY,
         model_id=settings.DEEPINFRA_MODEL
@@ -53,7 +55,7 @@ def test_discovery_endpoint_available(client):
 # If not already present, ensure a pytest fixture for `client` is available in conftest.py:
 #
 # @pytest.fixture
-def client():
+# def client():
 #     from app.main import app
 #     from fastapi.testclient import TestClient
 #     return TestClient(app)

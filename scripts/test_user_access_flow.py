@@ -5,14 +5,17 @@ Demonstrates how new users get client access in the platform
 """
 
 import asyncio
-from sqlalchemy import text
+import os
 
 # Add the backend directory to Python path
 import sys
-import os
+
+from sqlalchemy import text
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
 from app.core.database import AsyncSessionLocal
+
 
 async def test_user_access_flow():
     """Test the complete user access flow"""

@@ -9,23 +9,25 @@ Usage:
     python scripts/qa/performance_validation.py [--verbose] [--benchmark]
 """
 
-import asyncio
-import sys
 import argparse
+import asyncio
 import json
+import sys
 import time
-from datetime import datetime
-from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
+from datetime import datetime
 from statistics import mean, median
+from typing import Any, Dict, List, Optional
 
 # Add app path
 sys.path.append('/app')
 
-from sqlalchemy import text, select, func, and_, or_, distinct
+from sqlalchemy import and_, distinct, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import AsyncSessionLocal
 from app.models import *
+
 
 @dataclass
 class PerformanceResult:

@@ -120,12 +120,12 @@ class FlowQueries:
                 DiscoveryFlow.status != "completed",
                 # Check if any phase is not completed
                 ~and_(
-                    DiscoveryFlow.data_import_completed == True,
-                    DiscoveryFlow.attribute_mapping_completed == True,
-                    DiscoveryFlow.data_cleansing_completed == True,
-                    DiscoveryFlow.inventory_completed == True,
-                    DiscoveryFlow.dependencies_completed == True,
-                    DiscoveryFlow.tech_debt_completed == True
+                    DiscoveryFlow.data_import_completed is True,
+                    DiscoveryFlow.attribute_mapping_completed is True,
+                    DiscoveryFlow.data_cleansing_completed is True,
+                    DiscoveryFlow.inventory_completed is True,
+                    DiscoveryFlow.dependencies_completed is True,
+                    DiscoveryFlow.tech_debt_completed is True
                 )
             )
         ).order_by(desc(DiscoveryFlow.updated_at))

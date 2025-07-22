@@ -10,9 +10,10 @@ This script tests that:
 """
 
 import asyncio
-import aiohttp
 import json
 from datetime import datetime
+
+import aiohttp
 
 BASE_URL = "http://localhost:8000/api/v1"
 

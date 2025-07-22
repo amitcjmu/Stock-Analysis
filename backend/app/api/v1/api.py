@@ -7,6 +7,8 @@ import logging
 
 from fastapi import APIRouter, Depends
 
+logger = logging.getLogger(__name__)
+
 from app.api.v1.endpoints import (
     agent_learning_router,
     agents_router,

@@ -9,7 +9,6 @@ import pickle
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-
 from app.core.database import AsyncSessionLocal
 
 logger = logging.getLogger(__name__)

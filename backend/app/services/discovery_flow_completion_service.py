@@ -253,7 +253,7 @@ class DiscoveryFlowCompletionService:
             # Apply filters
             if filters:
                 if filters.get("migration_ready") is True:
-                    query = query.where(DiscoveryAsset.migration_ready == True)
+                    query = query.where(DiscoveryAsset.migration_ready is True)
                 
                 if filters.get("asset_type"):
                     query = query.where(DiscoveryAsset.asset_type == filters["asset_type"])
@@ -368,7 +368,7 @@ class DiscoveryFlowCompletionService:
                 asset_query = select(DiscoveryAsset).where(
                     and_(
                         DiscoveryAsset.discovery_flow_id == flow.id,
-                        DiscoveryAsset.migration_ready == True,
+                        DiscoveryAsset.migration_ready is True,
                         DiscoveryAsset.client_account_id == self.context.client_account_id
                     )
                 )

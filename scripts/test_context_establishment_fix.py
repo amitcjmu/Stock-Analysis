@@ -15,8 +15,9 @@ This maintains multi-tenant security while resolving the circular dependency.
 """
 
 import asyncio
-import aiohttp
 from datetime import datetime
+
+import aiohttp
 
 # Test Marathon Petroleum context (the failing case from logs)
 MARATHON_CONTEXT = {

@@ -530,7 +530,7 @@ async def delete_flow(
     try:
         result = await orchestrator.delete_flow(flow_id)
         
-        if result.get("deleted") != True:
+        if result.get("deleted") is not True:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=result.get("error", "Failed to delete flow")

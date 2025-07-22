@@ -55,7 +55,7 @@ class EnhancedRBACService:
             query = select(EnhancedUserProfile).where(
                 and_(
                     EnhancedUserProfile.user_id == user_id,
-                    EnhancedUserProfile.is_deleted == False
+                    EnhancedUserProfile.is_deleted is False
                 )
             ).options(
                 selectinload(EnhancedUserProfile.scope_client),
@@ -624,7 +624,7 @@ class EnhancedRBACService:
             query = select(ClientAccount).where(
                 and_(
                     ClientAccount.id == client_account_id,
-                    ClientAccount.is_mock == True
+                    ClientAccount.is_mock is True
                 )
             )
             result = await self.db.execute(query)

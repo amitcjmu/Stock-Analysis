@@ -298,7 +298,7 @@ class TestCrewAIFlowMigration:
         
         assert "mappings" in mapping_result
         assert "validation_results" in mapping_result
-        assert mapping_result["validation_results"]["fallback_used"] == True
+        assert mapping_result["validation_results"]["fallback_used"] is True
     
     def test_fallback_asset_classification(self, sample_context, sample_cmdb_data):
         """Test fallback asset classification logic.""" 
@@ -328,7 +328,7 @@ class TestCrewAIFlowMigration:
         assert "servers" in classification_result
         assert "total_assets" in classification_result
         assert classification_result["total_assets"] == 2
-        assert classification_result["classification_metadata"]["fallback_used"] == True
+        assert classification_result["classification_metadata"]["fallback_used"] is True
 
 
 class TestNativeFormatValidation:

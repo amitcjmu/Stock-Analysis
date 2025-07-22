@@ -7,7 +7,6 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Tuple
 
-
 from app.services.agents.base_agent import BaseCrewAIAgent
 from app.services.agents.metadata import AgentMetadata
 from app.services.llm_config import get_crewai_llm

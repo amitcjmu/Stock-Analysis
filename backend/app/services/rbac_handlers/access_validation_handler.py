@@ -92,7 +92,7 @@ class AccessValidationHandler(BaseRBACHandler):
                 and_(
                     ClientAccess.user_profile_id == user_id,
                     ClientAccess.client_account_id == client_id,
-                    ClientAccess.is_active == True
+                    ClientAccess.is_active is True
                 )
             )
             result = await self.db.execute(query)
@@ -132,7 +132,7 @@ class AccessValidationHandler(BaseRBACHandler):
                 and_(
                     EngagementAccess.user_profile_id == user_id,
                     EngagementAccess.engagement_id == engagement_id,
-                    EngagementAccess.is_active == True
+                    EngagementAccess.is_active is True
                 )
             )
             result = await self.db.execute(query)
@@ -177,7 +177,7 @@ class AccessValidationHandler(BaseRBACHandler):
                 and_(
                     UserRole.user_id == user_id,
                     UserRole.role_type == RoleType.ADMIN,
-                    UserRole.is_active == True
+                    UserRole.is_active is True
                 )
             )
             result = await self.db.execute(query)
@@ -198,7 +198,7 @@ class AccessValidationHandler(BaseRBACHandler):
                 .where(
                     and_(
                         UserRole.user_id == user_id,
-                        UserRole.is_active == True
+                        UserRole.is_active is True
                     )
                 )
                 .order_by(UserRole.created_at.desc())

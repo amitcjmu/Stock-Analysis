@@ -245,7 +245,7 @@ async def validate_demo_scenarios():
         # Scenario 1: Complete discovery flow exists
         result = await session.execute(
             select(DiscoveryFlow).where(
-                DiscoveryFlow.assessment_ready == True,
+                DiscoveryFlow.assessment_ready is True,
                 DiscoveryFlow.status == 'complete'
             )
         )

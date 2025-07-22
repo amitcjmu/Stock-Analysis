@@ -5,7 +5,6 @@ Utilities Module - Shared utilities for the learning system
 import logging
 from datetime import datetime, timedelta
 
-
 logger = logging.getLogger(__name__)
 
 

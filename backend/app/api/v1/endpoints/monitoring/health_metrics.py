@@ -13,7 +13,6 @@ from app.services.agent_monitor import agent_monitor
 from app.services.agent_registry import agent_registry
 from app.services.crewai_flow_service import CrewAIFlowService
 
-
 logger = enhanced_get_logger(__name__)
 
 router = APIRouter()

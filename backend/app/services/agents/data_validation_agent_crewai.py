@@ -4,7 +4,6 @@ Data Import Validation Agent - Converted to proper CrewAI pattern
 
 from typing import Any, List
 
-
 from app.services.agents.base_agent import BaseCrewAIAgent
 from app.services.agents.metadata import AgentMetadata
 from app.services.llm_config import get_crewai_llm

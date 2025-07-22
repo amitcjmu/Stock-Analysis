@@ -319,7 +319,7 @@ class ContextMiddleware(BaseHTTPMiddleware):
                     and_(
                         UserRole.user_id == user_uuid,
                         UserRole.role_type == 'platform_admin',
-                        UserRole.is_active == True
+                        UserRole.is_active is True
                     )
                 )
                 result = await db.execute(query)

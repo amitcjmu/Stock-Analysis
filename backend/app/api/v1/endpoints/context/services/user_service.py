@@ -154,7 +154,7 @@ class UserService:
         role_query = select(UserRole).where(
             and_(
                 UserRole.user_id == str(user_id),
-                UserRole.is_active == True
+                UserRole.is_active is True
             )
         ).limit(1)
         
@@ -226,8 +226,8 @@ class UserService:
         ).where(
             and_(
                 ClientAccess.user_profile_id == str(current_user.id),
-                ClientAccess.is_active == True,
-                ClientAccount.is_active == True
+                ClientAccess.is_active is True,
+                ClientAccount.is_active is True
             )
         ).limit(1)
         
@@ -253,7 +253,7 @@ class UserService:
         query = select(ClientAccount).where(
             and_(
                 ClientAccount.id == client_id,
-                ClientAccount.is_active == True
+                ClientAccount.is_active is True
             )
         )
         result = await self.db.execute(query)
@@ -262,7 +262,7 @@ class UserService:
     async def _get_first_active_client(self) -> Optional[ClientAccount]:
         """Get first active client"""
         query = select(ClientAccount).where(
-            ClientAccount.is_active == True
+            ClientAccount.is_active is True
         ).order_by(ClientAccount.name).limit(1)
         
         result = await self.db.execute(query)
@@ -278,7 +278,7 @@ class UserService:
             and_(
                 Engagement.id == engagement_id,
                 Engagement.client_account_id == client_id,
-                Engagement.is_active == True
+                Engagement.is_active is True
             )
         )
         result = await self.db.execute(query)
@@ -289,7 +289,7 @@ class UserService:
         query = select(Engagement).where(
             and_(
                 Engagement.client_account_id == client_id,
-                Engagement.is_active == True
+                Engagement.is_active is True
             )
         ).order_by(Engagement.name).limit(1)
         

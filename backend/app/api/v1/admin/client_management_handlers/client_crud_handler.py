@@ -287,7 +287,7 @@ class ClientCRUDHandler:
                 # Check if there are active engagements for this client
                 engagement_count_query = select(func.count()).select_from(Engagement).where(
                     Engagement.client_account_id == client_id,
-                    Engagement.is_active == True
+                    Engagement.is_active is True
                 )
                 active_engagements = (await db.execute(engagement_count_query)).scalar_one()
                 
@@ -396,7 +396,7 @@ class ClientCRUDHandler:
                             and_(
                                 UserRole.user_id == user_id,
                                 UserRole.role_type == RoleType.ADMIN,
-                                UserRole.is_active == True
+                                UserRole.is_active is True
                             )
                         )
                     )
@@ -543,7 +543,7 @@ class ClientCRUDHandler:
         active_engagement_query = select(func.count()).select_from(Engagement).where(
             and_(
                 Engagement.client_account_id == client.id,
-                Engagement.is_active == True
+                Engagement.is_active is True
             )
         )
         active_engagement_result = await db.execute(active_engagement_query)

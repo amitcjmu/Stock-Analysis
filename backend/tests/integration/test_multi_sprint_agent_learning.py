@@ -137,7 +137,7 @@ class TestMultiSprintAgentLearning:
         )
         
         # Verify Sprint 1 processing
-        assert sprint_1_analysis["success"] == True
+        assert sprint_1_analysis["success"] is True
         assert sprint_1_analysis["assets_processed"] == 2
         assert len(sprint_1_analysis["agent_questions"]) > 0
         
@@ -150,7 +150,7 @@ class TestMultiSprintAgentLearning:
         )
         
         # Verify Sprint 2 processing and learning application
-        assert sprint_2_analysis["success"] == True
+        assert sprint_2_analysis["success"] is True
         assert sprint_2_analysis["field_mappings_applied"] > 0  # Should apply learned mappings
         
         # Sprint 3: Documentation Import
@@ -162,7 +162,7 @@ class TestMultiSprintAgentLearning:
         )
         
         # Verify Sprint 3 application discovery
-        assert sprint_3_analysis["success"] == True
+        assert sprint_3_analysis["success"] is True
         assert sprint_3_analysis["applications_discovered"] >= 2
         
         # Sprint 4: Network Discovery
@@ -174,7 +174,7 @@ class TestMultiSprintAgentLearning:
         )
         
         # Verify Sprint 4 dependency enhancement
-        assert sprint_4_analysis["success"] == True
+        assert sprint_4_analysis["success"] is True
         assert sprint_4_analysis["dependencies_mapped"] > 0
         
         print("✅ Multi-sprint data import handling test passed")
@@ -262,7 +262,7 @@ class TestMultiSprintAgentLearning:
         )
         
         # Verify collaboration results
-        assert app_context["collaboration_effective"] == True
+        assert app_context["collaboration_effective"] is True
         assert app_context["context_utilization"] > 0.7
         assert len(app_context["discovered_applications"]) >= 2
         
@@ -458,7 +458,7 @@ class TestMultiSprintAgentLearning:
         
         # Verify enhancement
         assert sprint_3_lineage["enhancements_applied"] > 0
-        assert sprint_3_lineage["application_context_added"] == True
+        assert sprint_3_lineage["application_context_added"] is True
         
         # Sprint 4: Network discovery - should validate and complete lineage
         sprint_4_lineage = await self._process_data_with_lineage_tracking(

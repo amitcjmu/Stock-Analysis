@@ -92,7 +92,7 @@ async def get_context_clients(
             and_(
                 UserRole.user_id == str(current_user.id),
                 UserRole.role_type == 'platform_admin',
-                UserRole.is_active == True
+                UserRole.is_active is True
             )
         )
         role_result = await db.execute(role_query)
@@ -101,7 +101,7 @@ async def get_context_clients(
         if is_platform_admin:
             # Platform admins: Get all active clients
             clients_query = select(ClientAccount).where(
-                ClientAccount.is_active == True
+                ClientAccount.is_active is True
             ).order_by(ClientAccount.name)
             
             result = await db.execute(clients_query)
@@ -126,8 +126,8 @@ async def get_context_clients(
             ).where(
                 and_(
                     ClientAccess.user_profile_id == str(current_user.id),
-                    ClientAccess.is_active == True,
-                    ClientAccount.is_active == True
+                    ClientAccess.is_active is True,
+                    ClientAccount.is_active is True
                 )
             )
             
@@ -149,7 +149,7 @@ async def get_context_clients(
                 demo_client_query = select(ClientAccount).where(
                     and_(
                         ClientAccount.id == "11111111-1111-1111-1111-111111111111",
-                        ClientAccount.is_active == True
+                        ClientAccount.is_active is True
                     )
                 )
                 demo_result = await db.execute(demo_client_query)
@@ -223,7 +223,7 @@ async def get_context_engagements(
             and_(
                 UserRole.user_id == str(current_user.id),
                 UserRole.role_type == 'platform_admin',
-                UserRole.is_active == True
+                UserRole.is_active is True
             )
         )
         role_result = await db.execute(role_query)
@@ -233,7 +233,7 @@ async def get_context_engagements(
         client_query = select(ClientAccount).where(
             and_(
                 ClientAccount.id == client_id,
-                ClientAccount.is_active == True
+                ClientAccount.is_active is True
             )
         )
         client_result = await db.execute(client_query)
@@ -248,7 +248,7 @@ async def get_context_engagements(
                 and_(
                     ClientAccess.user_profile_id == str(current_user.id),
                     ClientAccess.client_account_id == client_id,
-                    ClientAccess.is_active == True
+                    ClientAccess.is_active is True
                 )
             )
             access_result = await db.execute(access_check_query)
@@ -267,7 +267,7 @@ async def get_context_engagements(
         query = select(Engagement).where(
             and_(
                 Engagement.client_account_id == client_id,
-                Engagement.is_active == True
+                Engagement.is_active is True
             )
         ).order_by(Engagement.name)
         

@@ -15,7 +15,6 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID, uuid4
 
-
 from ..collection_flow.quality_scoring import QualityAssessmentService
 from .adaptive_form_service import AdaptiveForm, FormField, FormSection
 

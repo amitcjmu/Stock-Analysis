@@ -4,7 +4,6 @@ Tests for Phase 2 Tool System Implementation
 
 from unittest.mock import patch
 
-
 from app.services.tools.categories import get_tools_for_phase
 from app.services.tools.factory import ToolFactory
 from app.services.tools.registry import ToolRegistry

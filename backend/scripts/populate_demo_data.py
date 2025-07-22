@@ -291,7 +291,7 @@ async def create_user_roles(db: AsyncSession, demo_user):
     # SECURITY: Only create demo user role - no admin@democorp role
     # Demo user role (Analyst - SECURE)
     existing_demo_role = await db.execute(select(UserRole).where(
-        and_(UserRole.user_id == demo_user.id, UserRole.is_active == True)
+        and_(UserRole.user_id == demo_user.id, UserRole.is_active is True)
     ))
     if not existing_demo_role.scalar_one_or_none():
         demo_role = UserRole(

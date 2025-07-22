@@ -104,7 +104,7 @@ class AssessmentRepository:
                 and_(
                     DiscoveryAsset.discovery_flow_id == flow.id,
                     DiscoveryAsset.client_account_id == self.context.client_account_id,
-                    DiscoveryAsset.migration_ready == True,
+                    DiscoveryAsset.migration_ready is True,
                     DiscoveryAsset.validation_status == "approved"
                 )
             ).order_by(desc(DiscoveryAsset.updated_at))
@@ -285,7 +285,7 @@ class AssessmentRepository:
             
             # Migration ready assets
             ready_result = await self.db.execute(
-                base_query.where(DiscoveryAsset.migration_ready == True)
+                base_query.where(DiscoveryAsset.migration_ready is True)
             )
             migration_ready = ready_result.scalar()
             

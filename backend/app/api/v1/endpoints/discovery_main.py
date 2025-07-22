@@ -197,7 +197,7 @@ async def get_active_discovery_flows(
                 client_access_query = select(ClientAccess.client_account_id).where(
                     and_(
                         ClientAccess.user_profile_id == context.user_id,
-                        ClientAccess.is_active == True
+                        ClientAccess.is_active is True
                     )
                 )
                 client_access_result = await db.execute(client_access_query)

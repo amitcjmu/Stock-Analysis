@@ -88,7 +88,7 @@ class MultiTenantHelper:
             # Show universal mock data for users without specific context
             filters.append(
                 and_(
-                    model_class.is_mock == True,
+                    model_class.is_mock is True,
                     model_class.client_account_id.is_(None) if hasattr(model_class, 'client_account_id') else True
                 )
             )
@@ -188,7 +188,7 @@ class MultiTenantHelper:
                 and_(
                     UserRole.user_id == user_id,
                     UserRole.role_type == RoleType.ADMIN,
-                    UserRole.is_active == True
+                    UserRole.is_active is True
                 )
             )
             

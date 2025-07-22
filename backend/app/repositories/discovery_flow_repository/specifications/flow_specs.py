@@ -36,18 +36,18 @@ class FlowSpecifications:
     def incomplete_phases_spec() -> ColumnElement:
         """Specification for flows with incomplete phases"""
         return ~and_(
-            DiscoveryFlow.data_import_completed == True,
-            DiscoveryFlow.attribute_mapping_completed == True,
-            DiscoveryFlow.data_cleansing_completed == True,
-            DiscoveryFlow.inventory_completed == True,
-            DiscoveryFlow.dependencies_completed == True,
-            DiscoveryFlow.tech_debt_completed == True
+            DiscoveryFlow.data_import_completed is True,
+            DiscoveryFlow.attribute_mapping_completed is True,
+            DiscoveryFlow.data_cleansing_completed is True,
+            DiscoveryFlow.inventory_completed is True,
+            DiscoveryFlow.dependencies_completed is True,
+            DiscoveryFlow.tech_debt_completed is True
         )
     
     @staticmethod
     def assessment_ready_spec() -> ColumnElement:
         """Specification for assessment-ready flows"""
-        return DiscoveryFlow.assessment_ready == True
+        return DiscoveryFlow.assessment_ready is True
     
     @staticmethod
     def by_flow_type_spec(flow_type: str) -> ColumnElement:
@@ -57,7 +57,7 @@ class FlowSpecifications:
     @staticmethod
     def has_master_flow_spec() -> ColumnElement:
         """Specification for flows with master flow reference"""
-        return DiscoveryFlow.master_flow_id != None
+        return DiscoveryFlow.master_flow_id is not None
     
     @staticmethod
     def date_range_spec(start_date: datetime, end_date: datetime) -> ColumnElement:
@@ -89,7 +89,7 @@ class FlowSpecifications:
         }
         
         if phase in phase_map:
-            return phase_map[phase] == True
+            return phase_map[phase] is True
         
         raise ValueError(f"Unknown phase: {phase}")
     

@@ -131,7 +131,7 @@ class EngagementCRUDHandler:
                             and_(
                                 UserRole.user_id == user_id,
                                 UserRole.role_type == RoleType.PLATFORM_ADMIN,
-                                UserRole.is_active == True
+                                UserRole.is_active is True
                             )
                         )
                     )
@@ -143,13 +143,13 @@ class EngagementCRUDHandler:
                 except Exception as e:
                     logger.warning(f"Could not check admin status: {e}")
 
-            query = select(Engagement).where(Engagement.is_active == True)  # Filter out soft-deleted
+            query = select(Engagement).where(Engagement.is_active is True)  # Filter out soft-deleted
             # Only filter by client_account_id if it's provided (not None) AND user is not platform admin
             if client_account_id is not None and not is_platform_admin:
                  query = query.where(Engagement.client_account_id == client_account_id)
             
             # Build the count query with the same conditions
-            count_query = select(func.count()).select_from(Engagement).where(Engagement.is_active == True)
+            count_query = select(func.count()).select_from(Engagement).where(Engagement.is_active is True)
             if client_account_id is not None and not is_platform_admin:
                 count_query = count_query.where(Engagement.client_account_id == client_account_id)
             
@@ -185,21 +185,21 @@ class EngagementCRUDHandler:
         """Get dashboard statistics for engagements."""
         try:
             # Total engagements (only active ones)
-            total_query = select(func.count()).where(Engagement.is_active == True)
+            total_query = select(func.count()).where(Engagement.is_active is True)
             total_engagements = (await db.execute(total_query)).scalar_one()
 
             # Active engagements (redundant now since we only count active ones)
-            active_query = select(func.count()).where(Engagement.is_active == True)
+            active_query = select(func.count()).where(Engagement.is_active is True)
             active_engagements = (await db.execute(active_query)).scalar_one()
 
             # Engagements by type (only active ones)
-            type_query = select(Engagement.engagement_type, func.count()).where(Engagement.is_active == True).group_by(Engagement.engagement_type)
+            type_query = select(Engagement.engagement_type, func.count()).where(Engagement.is_active is True).group_by(Engagement.engagement_type)
             engagements_by_type = {
                 row[0]: row[1] for row in (await db.execute(type_query)).all() if row[0]
             }
 
             # Engagements by status (only active ones)
-            status_query = select(Engagement.status, func.count()).where(Engagement.is_active == True).group_by(Engagement.status)
+            status_query = select(Engagement.status, func.count()).where(Engagement.is_active is True).group_by(Engagement.status)
             engagements_by_status = {
                 row[0]: row[1] for row in (await db.execute(status_query)).all() if row[0]
             }
@@ -210,7 +210,7 @@ class EngagementCRUDHandler:
                     func.extract('epoch', Engagement.actual_completion_date - Engagement.start_date) / (60*60*24)
                 )
             ).where(
-                Engagement.is_active == True,
+                Engagement.is_active is True,
                 Engagement.actual_completion_date.isnot(None),
                 Engagement.start_date.isnot(None)
             )
@@ -220,7 +220,7 @@ class EngagementCRUDHandler:
             # Recent engagements (last 30 days, only active ones)
             thirty_days_ago = datetime.utcnow() - timedelta(days=30)
             recent_query = select(Engagement).where(
-                Engagement.is_active == True,
+                Engagement.is_active is True,
                 Engagement.created_at >= thirty_days_ago
             ).order_by(Engagement.created_at.desc()).limit(5)
             recent_engagements = (await db.execute(recent_query)).scalars().all()
@@ -248,7 +248,7 @@ class EngagementCRUDHandler:
         try:
             query = select(Engagement).where(
                 Engagement.id == engagement_id,
-                Engagement.is_active == True  # Only return active engagements
+                Engagement.is_active is True  # Only return active engagements
             )
             result = await db.execute(query)
             engagement = result.scalar_one_or_none()
@@ -276,7 +276,7 @@ class EngagementCRUDHandler:
             
             query = select(Engagement).where(
                 Engagement.id == engagement_id,
-                Engagement.is_active == True  # Only allow updating active engagements
+                Engagement.is_active is True  # Only allow updating active engagements
             )
             result = await db.execute(query)
             engagement = result.scalar_one_or_none()

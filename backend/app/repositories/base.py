@@ -46,7 +46,7 @@ class ContextAwareRepository:
                     and_(
                         UserRole.user_id == self.user_id,
                         UserRole.role_type == RoleType.ADMIN,
-                        UserRole.is_active == True
+                        UserRole.is_active is True
                     )
                 )
                 result = await self.db.execute(query)
@@ -57,7 +57,7 @@ class ContextAwareRepository:
                     and_(
                         UserRole.user_id == self.user_id,
                         UserRole.role_type == RoleType.PLATFORM_ADMIN,
-                        UserRole.is_active == True
+                        UserRole.is_active is True
                     )
                 ).first()
                 
@@ -82,7 +82,7 @@ class ContextAwareRepository:
                     and_(
                         UserRole.user_id == self.user_id,
                         UserRole.role_type == RoleType.PLATFORM_ADMIN,
-                        UserRole.is_active == True
+                        UserRole.is_active is True
                     )
                 ).first()
                 
@@ -109,7 +109,7 @@ class ContextAwareRepository:
             # Show mock data that is either universal (no account/engagement) or specifically marked as demo
             filters.append(
                 and_(
-                    model_class.is_mock == True,
+                    model_class.is_mock is True,
                     # Show universal mock data (no specific client/engagement)
                     model_class.client_account_id.is_(None) if hasattr(model_class, 'client_account_id') else True
                 )

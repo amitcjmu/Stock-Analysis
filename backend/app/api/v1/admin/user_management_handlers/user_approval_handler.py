@@ -45,7 +45,7 @@ class UserApprovalHandler:
         actor_roles_query = select(UserRole).where(
             and_(
                 UserRole.user_id == actor_user_id,
-                UserRole.is_active == True
+                UserRole.is_active is True
             )
         )
         actor_roles_result = await self.db.execute(actor_roles_query)

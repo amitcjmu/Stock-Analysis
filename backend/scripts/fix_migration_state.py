@@ -32,7 +32,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Expected migration version (the current comprehensive schema)
-EXPECTED_MIGRATION_VERSION = "001_comprehensive_initial_schema"
+EXPECTED_MIGRATION_VERSION = "014_fix_remaining_agent_foreign_keys"
 
 # Expected core tables that should exist in a properly migrated database
 EXPECTED_CORE_TABLES = {
@@ -135,7 +135,7 @@ class MigrationStateFixer:
             async with self.engine.connect() as conn:
                 await conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS alembic_version (
-                        version_num VARCHAR(32) NOT NULL,
+                        version_num VARCHAR(50) NOT NULL,
                         CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
                     )
                 """))
@@ -213,6 +213,7 @@ class MigrationStateFixer:
         if not alembic_table_exists:
             logger.info("Creating missing alembic_version table...")
             await self.create_alembic_version_table()
+        await self.alter_version_num_length()
         
         # Get current migration version
         current_version = await self.get_alembic_version()
@@ -255,6 +256,15 @@ class MigrationStateFixer:
             # Case 5: Fresh database
             logger.info("Database appears to be fresh - migration system should handle initialization")
             return True
+
+    async def alter_version_num_length(self):
+        try:
+            async with self.engine.connect() as conn:
+                await conn.execute(text("ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(50)"))
+                await conn.commit()
+                logger.info("✅ Altered version_num to VARCHAR(50)")
+        except Exception as e:
+            logger.warning(f"Failed to alter version_num length: {e}")
 
 
 async def main():

@@ -7,6 +7,7 @@ Specifically tests that /api/v1/clients/{id}/engagements endpoints work without 
 """
 
 import asyncio
+
 import aiohttp
 
 # Test Marathon Petroleum context (the failing case from logs)

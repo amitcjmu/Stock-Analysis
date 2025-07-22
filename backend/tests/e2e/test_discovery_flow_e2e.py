@@ -146,7 +146,7 @@ db-server-01,10.0.3.100,Ubuntu 20.04,32,128,2000,production,datacenter-1"""
         
         assert response.status_code == 200
         validation_data = response.json()
-        assert validation_data["is_valid"] == True
+        assert validation_data["is_valid"] is True
         assert validation_data["total_records"] == 5
         assert validation_data["valid_records"] == 5
         
@@ -316,7 +316,7 @@ db-server-01,10.0.3.100,Ubuntu 20.04,32,128,2000,production,datacenter-1"""
         
         status = response.json()
         assert status["status"] == "paused"
-        assert status["can_resume"] == True
+        assert status["can_resume"] is True
         
         # Resume the flow
         response = await test_client.post(
@@ -389,7 +389,7 @@ db-server-01,10.0.3.100,Ubuntu 20.04,32,128,2000,production,datacenter-1"""
         
         assert response.status_code == 200
         validation = response.json()
-        assert validation["is_valid"] == False
+        assert validation["is_valid"] is False
         assert len(validation["validation_errors"]) >= 3
         assert "Fix validation errors before proceeding" in validation["recommendations"]
     

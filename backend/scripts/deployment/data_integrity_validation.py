@@ -7,17 +7,18 @@ This script validates data integrity across the Master Flow Orchestrator
 deployment to ensure no data loss or corruption occurred during migration.
 """
 
+import asyncio
+import hashlib
+import json
+import logging
 import os
 import sys
-import asyncio
-import logging
-import json
-import hashlib
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional, Tuple, Set
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Set, Tuple
+
 import sqlalchemy as sa
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 # Configure logging
@@ -995,7 +996,7 @@ class DataIntegrityValidator:
                             WHERE {check['field']} IS NOT NULL
                             AND NOT (
                                 {check['field']}::text ~ '^[\\s]*[\\[\\{{].*[\\]\\}}][\\s]*$'
-                                OR {check['field']}::text IN ('null', '{}', '[]')
+                                OR {check['field']}::text IN ('null', '{{}}', '[]')
                             )
                         """))
                         
@@ -1259,7 +1260,7 @@ class DataIntegrityValidator:
             logger.info("✅ No critical data integrity issues found")
             logger.info("✅ Ready for rollback procedure testing (MFO-099)")
         else:
-            logger.error(f"\n❌ DATA INTEGRITY VALIDATION FAILED!")
+            logger.error("\n❌ DATA INTEGRITY VALIDATION FAILED!")
             logger.error(f"🚨 {critical_issues} critical issues must be resolved")
             logger.error("🔧 Data integrity issues must be fixed before production")
         

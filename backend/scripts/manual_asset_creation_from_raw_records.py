@@ -33,7 +33,7 @@ async def main():
             # 1. Get unprocessed raw records
             raw_query = select(RawImportRecord).where(
                 RawImportRecord.client_account_id == "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990",
-                RawImportRecord.is_processed == False
+                RawImportRecord.is_processed is False
             )
             
             result = await session.execute(raw_query)

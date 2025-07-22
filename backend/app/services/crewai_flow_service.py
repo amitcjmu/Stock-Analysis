@@ -15,9 +15,7 @@ from app.core.database import get_db
 from app.core.exceptions import CrewAIExecutionError, InvalidFlowStateError
 
 # from app.models.discovery_asset import DiscoveryAsset  # Model removed - using Asset model instead
-
 # V2 Discovery Flow Models
-
 # V2 Discovery Flow Services
 from app.services.discovery_flow_service import DiscoveryFlowService
 
@@ -591,7 +589,7 @@ class CrewAIFlowService:
                         # Note: The phase might be stored as either 'field_mapping' or 'attribute_mapping'
                         if (flow.status in ['waiting_for_approval', 'processing'] and 
                             flow.current_phase in ['field_mapping', 'attribute_mapping'] and 
-                            resume_context.get('user_approval') == True):
+                            resume_context.get('user_approval') is True):
                             logger.info(f"🔄 Resuming CrewAI Flow from field mapping approval: {flow_id}")
                             
                             # Validate crewai_flow before accessing state

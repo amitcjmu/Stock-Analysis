@@ -254,12 +254,12 @@ class AdminOperationsHandler(BaseRBACHandler):
             status_counts = dict(status_result.fetchall())
             
             # Count total client accesses
-            access_query = select(func.count(ClientAccess.id)).where(ClientAccess.is_active == True)
+            access_query = select(func.count(ClientAccess.id)).where(ClientAccess.is_active is True)
             access_result = await self.db.execute(access_query)
             total_accesses = access_result.scalar() or 0
             
             # Count total roles
-            role_query = select(func.count(UserRole.id)).where(UserRole.is_active == True)
+            role_query = select(func.count(UserRole.id)).where(UserRole.is_active is True)
             role_result = await self.db.execute(role_query)
             total_roles = role_result.scalar() or 0
             

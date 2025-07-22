@@ -15,7 +15,6 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-
 try:
     from crewai import Agent, Crew, Process, Task
     CREWAI_AVAILABLE = True
