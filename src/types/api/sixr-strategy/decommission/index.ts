@@ -19,7 +19,7 @@ import type { ThresholdValue, ParameterValue } from '../../shared/value-types';
 import type { GenericConfiguration } from '../../shared/configuration-types';
 
 import type { InitializeStrategyFlowRequest, InitializeStrategyFlowResponse, GetStrategyFlowStatusRequest, GetStrategyFlowStatusResponse, ListStrategyFlowsRequest, ListStrategyFlowsResponse, StrategyFlowData, StrategyFlowState, StrategyFlowStatus, TimeRange, PriorityLevel, CommunicationPlan } from '../shared'
-import { StrategyScope, Stakeholder, Dependency, ApprovalRequirement, RiskAssessment, ExecutionPlan, RollbackPlan } from '../shared'
+import type { StrategyScope, Stakeholder, Dependency, ApprovalRequirement, RiskAssessment, ExecutionPlan, RollbackPlan } from '../shared'
 
 // Decommission-Specific Flow Management
 export interface InitializeDecommissionFlowRequest extends InitializeStrategyFlowRequest {

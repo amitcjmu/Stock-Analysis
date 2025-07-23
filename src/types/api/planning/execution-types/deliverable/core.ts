@@ -14,18 +14,18 @@ export interface Deliverable {
   category: 'planning' | 'design' | 'development' | 'testing' | 'deployment' | 'support';
   priority: 'low' | 'medium' | 'high' | 'critical';
   scope: DeliverableScope;
-  requirements: import('./requirements').DeliverableRequirement[];
-  specifications: import('./specifications').DeliverableSpecification[];
-  acceptance: import('./acceptance').AcceptanceCriteria[];
+  requirements: Array<import('./requirements').DeliverableRequirement>;
+  specifications: Array<import('./specifications').DeliverableSpecification>;
+  acceptance: Array<import('./acceptance').AcceptanceCriteria>;
   quality: import('./quality').DeliverableQuality;
   timeline: import('./timeline').DeliverableTimeline;
   dependencies: DeliverableDependency[];
-  resources: import('./management').DeliverableResource[];
+  resources: Array<import('./management').DeliverableResource>;
   ownership: import('./management').DeliverableOwnership;
   approval: import('./approval').DeliverableApproval;
-  risks: import('./risk').DeliverableRisk[];
+  risks: Array<import('./risk').DeliverableRisk>;
   status: import('./status').DeliverableStatusDetail;
-  artifacts: import('./management').DeliverableArtifact[];
+  artifacts: Array<import('./management').DeliverableArtifact>;
 }
 
 export interface DeliverableScope {

@@ -8,22 +8,22 @@
  */
 
 // User and activity types
-export * from './user-types';
+export type * from './user-types';
 
 // Role and permission types
-export * from './role-permission-types';
+export type * from './role-permission-types';
 
 // Audit and activity types
-export * from './audit-types';
+export type * from './audit-types';
 
 // System and configuration types
-export * from './system-types';
+export type * from './system-types';
 
 // Form and input types
-export * from './form-types';
+export type * from './form-types';
 
 // Filter and search types
-export * from './filter-types';
+export type * from './filter-types';
 
 // Table and list types
-export * from './table-types';
+export type * from './table-types';

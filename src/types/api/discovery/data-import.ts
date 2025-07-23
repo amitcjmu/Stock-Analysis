@@ -15,7 +15,7 @@ import type {
   PaginationInfo
 } from '../shared';
 import type { ExtendedValue, ParameterValue } from '../shared/value-types'
-import { PrimitiveValue } from '../shared/value-types'
+import type { PrimitiveValue } from '../shared/value-types'
 import type { GenericMetadata } from '../shared/metadata-types';
 
 // Data Import APIs

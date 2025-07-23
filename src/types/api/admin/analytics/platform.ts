@@ -8,7 +8,7 @@
 
 import type { AnalyticsMetadata, AnalyticsPeriod, ConfidenceLevel, TrendDirection } from '../common';
 import type { ForecastType } from './insights'
-import { TrendPrediction, ContributingFactor } from './insights'
+import type { TrendPrediction, ContributingFactor } from './insights'
 
 // Platform analytics summary
 export interface PlatformAnalytics {

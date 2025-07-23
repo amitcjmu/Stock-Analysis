@@ -9,8 +9,8 @@
 
 import type { ReactNode } from 'react';
 import type { BaseComponentProps } from '../../shared';
-import type { EngagementType } from './core-types'
-import { Engagement, Client, Team, User, EngagementTemplate, EngagementField, ValidationRule } from './core-types'
+import type { EngagementType , Engagement, Client, Team, User, EngagementTemplate, EngagementField} from './core-types'
+import { ValidationRule } from './core-types'
 
 // Main Engagement Creation Component
 export interface EngagementCreationProps extends BaseComponentProps {

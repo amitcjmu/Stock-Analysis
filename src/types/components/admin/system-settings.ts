@@ -8,4 +8,4 @@
  */
 
 // Re-export all types from the modular structure
-export * from './system-settings/index';
+export type * from './system-settings/index';

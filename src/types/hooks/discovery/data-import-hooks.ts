@@ -62,7 +62,7 @@ export interface ImportError {
 
 export interface PreviewData {
   headers: string[];
-  rows: Array<unknown[]>;
+  rows: unknown[][];
   totalRows: number;
   sampleSize: number;
   schema: ColumnSchema[];

@@ -10,7 +10,7 @@
 import type { ReactNode } from 'react';
 import type { FlowStatus, PhaseCompletion } from './base-types';
 import type { ValidationResult, ImportError } from './validation-types'
-import { ValidationRule, BusinessRule, AgentInsight } from './validation-types'
+import type { ValidationRule, BusinessRule, AgentInsight } from './validation-types'
 
 /**
  * Field mapping entity

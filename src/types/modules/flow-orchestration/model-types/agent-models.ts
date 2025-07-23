@@ -5,7 +5,7 @@
  */
 
 import type { AgentConfiguration, TimeRange, ExecutionError, RetryPolicy } from '../base-types'
-import { MetricSample } from '../base-types'
+import type { MetricSample } from '../base-types'
 
 // Agent Models
 export interface AgentInstance {

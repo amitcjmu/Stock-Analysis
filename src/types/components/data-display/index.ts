@@ -5,16 +5,16 @@
  */
 
 // Basic chart types
-export * from './chart-types';
+export type * from './chart-types';
 
 // Chart configuration types
-export * from './chart-config-types';
+export type * from './chart-config-types';
 
 // Table types
-export * from './table-types';
+export type * from './table-types';
 
 // List types
-export * from './list-types';
+export type * from './list-types';
 
 // Tree types
-export * from './tree-types';
+export type * from './tree-types';

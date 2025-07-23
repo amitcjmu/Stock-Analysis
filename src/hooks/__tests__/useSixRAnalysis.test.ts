@@ -42,7 +42,7 @@ vi.mock('../../lib/api/sixr', () => ({
 }));
 
 // Type for WebSocket hook return value
-type WebSocketHookReturn = {
+interface WebSocketHookReturn {
   isConnected: boolean;
   isConnecting: boolean;
   error: string | null;
@@ -54,7 +54,7 @@ type WebSocketHookReturn = {
   subscribe: (targetAnalysisId?: number, targetJobId?: string) => boolean;
   unsubscribe: (targetAnalysisId?: number, targetJobId?: string) => boolean;
   canReconnect: boolean;
-};
+}
 
 // Mock the WebSocket hook
 vi.mock('../useSixRWebSocket', () => ({

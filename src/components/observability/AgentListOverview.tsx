@@ -43,7 +43,7 @@ const filterAgents = (agents: AgentCardData[], filters: AgentListFilters): Agent
 
   // Filter by status
   if (filters.status && filters.status.length > 0) {
-    filtered = filtered.filter(agent => filters.status!.includes(agent.status));
+    filtered = filtered.filter(agent => filters.status.includes(agent.status));
   }
 
   // Filter by search query
@@ -57,8 +57,8 @@ const filterAgents = (agents: AgentCardData[], filters: AgentListFilters): Agent
   // Sort
   if (filters.sortBy) {
     filtered.sort((a, b) => {
-      let aValue: string | number = a[filters.sortBy!];
-      let bValue: string | number = b[filters.sortBy!];
+      let aValue: string | number = a[filters.sortBy];
+      let bValue: string | number = b[filters.sortBy];
 
       if (filters.sortBy === 'name' || filters.sortBy === 'lastActive') {
         aValue = String(aValue).toLowerCase();

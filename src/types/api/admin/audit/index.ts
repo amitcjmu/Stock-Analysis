@@ -9,16 +9,16 @@
  */
 
 // API request/response types
-export * from './api-types';
+export type * from './api-types';
 
 // Core audit log types
-export * from './audit-log';
+export type * from './audit-log';
 
 // Security event types
-export * from './security-events';
+export type * from './security-events';
 
 // User activity types
-export * from './activity';
+export type * from './activity';
 
 // Audit and security enums
-export * from './enums';
+export type * from './enums';

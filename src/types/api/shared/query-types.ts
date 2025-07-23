@@ -5,7 +5,7 @@
  */
 
 import type { PrimitiveValue } from './value-types'
-import { FilterValue } from './value-types'
+import type { FilterValue } from './value-types'
 
 // Query parameters
 export interface SortParameter {

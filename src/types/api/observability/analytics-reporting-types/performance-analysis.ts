@@ -11,7 +11,7 @@ import type {
   MultiTenantContext
 } from '../../shared';
 import type { ImpactMeasure, BenefitMeasure, BusinessImpact, TechnicalImpact, MetricStatistics, MetricTrend, ThresholdAnalysis, CausalityAnalysis } from './shared-types'
-import { CauseEvidence, BaselineMetric, BaselineCondition, MetricValue, MetricAnomaly } from './shared-types'
+import type { CauseEvidence, BaselineMetric, BaselineCondition, MetricValue, MetricAnomaly } from './shared-types'
 
 // Performance Analysis Requests and Responses
 export interface AnalyzePerformanceRequest extends BaseApiRequest {

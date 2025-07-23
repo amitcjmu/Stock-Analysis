@@ -16,13 +16,13 @@
  */
 
 // Flow Management Types
-export * from './flow-management';
+export type * from './flow-management';
 
 // Cost Analysis Types
-export * from './cost-analysis';
+export type * from './cost-analysis';
 
 // Budget Management Types
-export {
+export type {
   // API interfaces
   CreateBudgetRequest,
   CreateBudgetResponse,
@@ -153,10 +153,10 @@ export {
 } from './cost-optimization';
 
 // Resource Optimization Types
-export * from './resource-optimization';
+export type * from './resource-optimization';
 
 // Governance Types
-export * from './governance-types';
+export type * from './governance-types';
 
 // Analytics and Reporting Types
 export {

@@ -9,7 +9,7 @@
  */
 
 // Re-export everything from the modularized structure
-export * from './flow-orchestration';
+export type * from './flow-orchestration';
 
 // For backward compatibility, also provide direct access to key types
 export type {

@@ -128,7 +128,7 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
   useEffect(() => {
     if (progress.estimatedCompletion && progress.status === 'in_progress') {
       const updateTimeRemaining = () => {
-        setTimeRemaining(formatTimeRemaining(progress.estimatedCompletion!));
+        setTimeRemaining(formatTimeRemaining(progress.estimatedCompletion));
       };
 
       updateTimeRemaining();

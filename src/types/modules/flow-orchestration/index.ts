@@ -5,18 +5,18 @@
  */
 
 // Re-export all base types
-export * from './base-types';
+export type * from './base-types';
 
 // Re-export all service interfaces
-export * from './service-interfaces';
+export type * from './service-interfaces';
 
 // Re-export all model types
-export * from './model-types';
+export type * from './model-types';
 
 // Create namespace for backward compatibility
-import * as BaseTypes from './base-types';
-import * as ServiceInterfaces from './service-interfaces';
-import * as ModelTypes from './model-types';
+import type * as BaseTypes from './base-types';
+import type * as ServiceInterfaces from './service-interfaces';
+import type * as ModelTypes from './model-types';
 
 export namespace FlowOrchestration {
   export namespace Services {

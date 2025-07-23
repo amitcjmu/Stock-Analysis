@@ -8,18 +8,18 @@
  */
 
 // Core timeline types and APIs
-export * from './core-types';
+export type * from './core-types';
 
 // Planning and scheduling
-export * from './planning-scheduling';
+export type * from './planning-scheduling';
 
 // Analysis modules
-export * from './critical-path-analysis';
-export * from './slack-analysis';
-export * from './resource-utilization';
-export * from './feasibility-analysis';
-export * from './impact-analysis';
+export type * from './critical-path-analysis';
+export type * from './slack-analysis';
+export type * from './resource-utilization';
+export type * from './feasibility-analysis';
+export type * from './impact-analysis';
 
 // Optimization and visualization
-export * from './optimization';
-export * from './visualization';
+export type * from './optimization';
+export type * from './visualization';

@@ -129,7 +129,7 @@ export const SparklineChart: React.FC<MetricsChartProps> = ({
 
 // Performance Distribution Chart (Simple Bar Chart)
 export const PerformanceDistributionChart: React.FC<{
-  data: { label: string; value: number; color: string }[];
+  data: Array<{ label: string; value: number; color: string }>;
   title: string;
   className?: string;
 }> = ({ data, title, className }) => {

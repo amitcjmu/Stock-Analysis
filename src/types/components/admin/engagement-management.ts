@@ -16,4 +16,4 @@
  */
 
 // Re-export all types for backward compatibility
-export * from './engagement-management';
+export type * from './engagement-management';

@@ -9,7 +9,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCallWithFallback } from '@/config/api';
 import type { ClientFormData } from './types'
-import { Client } from './types'
+import type { Client } from './types'
 
 export const useClient = (clientId: string | undefined) => {
   const { toast } = useToast();

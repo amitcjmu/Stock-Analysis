@@ -109,7 +109,7 @@ class LazyUtilityManager {
       }
     }
 
-    throw lastError!;
+    throw lastError;
   }
 
   private delay(ms: number): Promise<void> {

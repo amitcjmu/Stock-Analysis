@@ -5,7 +5,7 @@
  */
 
 import type { FlowExecutionContext, TimeRange, ExecutionError, ValidationResult, RetryPolicy, ExecutionConstraints } from '../base-types'
-import { ExecutionWarning } from '../base-types'
+import type { ExecutionWarning } from '../base-types'
 
 // Flow Configuration and Execution Models
 export interface FlowInitializationConfig {

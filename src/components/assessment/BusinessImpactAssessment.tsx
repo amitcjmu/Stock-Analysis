@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import type { Progress } from '@/components/ui/progress';
 import type { SixRDecision } from '@/hooks/useAssessmentFlow'
-import { TechDebtItem } from '@/hooks/useAssessmentFlow'
+import type { TechDebtItem } from '@/hooks/useAssessmentFlow'
 import { TrendingUp, DollarSign, Clock, Users } from 'lucide-react';
 
 interface BusinessImpactAssessmentProps {

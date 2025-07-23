@@ -7,7 +7,7 @@
 import type { BaseApiRequest, BaseApiResponse } from './base-types';
 import type { MultiTenantContext } from './tenant-types';
 import type { TimeRange } from './query-types'
-import { FilterParameter } from './query-types'
+import type { FilterParameter } from './query-types'
 
 // Health and monitoring
 export interface HealthCheckRequest extends BaseApiRequest {

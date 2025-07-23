@@ -5,7 +5,7 @@
  */
 
 import type { TimeRange } from '../base-types';
-import { AgentResourceUsage, CrewResourceUsage } from './crew-models';
+import type { AgentResourceUsage, CrewResourceUsage } from './crew-models';
 
 // Metrics and Monitoring Models
 export interface FlowMetrics {

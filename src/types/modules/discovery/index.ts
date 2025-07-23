@@ -8,22 +8,22 @@
  */
 
 // Base types and foundational interfaces
-export * from './base-types';
+export type * from './base-types';
 
 // React component prop interfaces
-export * from './component-types';
+export type * from './component-types';
 
 // React hook interfaces and return types
-export * from './hook-types';
+export type * from './hook-types';
 
 // API request and response interfaces
-export * from './api-types';
+export type * from './api-types';
 
 // Core business data models
-export * from './data-models';
+export type * from './data-models';
 
 // Validation and business rule types
-export * from './validation-types';
+export type * from './validation-types';
 
 // Create the Discovery Flow namespace for backwards compatibility
 import { Components } from './component-types';

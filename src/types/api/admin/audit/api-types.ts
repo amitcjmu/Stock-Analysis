@@ -17,11 +17,11 @@ import type {
 
 import type { TimeRange } from '../common';
 import type { AuditLogData, ActionSummary, UserActivitySummary } from './audit-log'
-import { AuditLog } from './audit-log'
+import type { AuditLog } from './audit-log'
 import type { SecurityEvent, IncidentSummary } from './security-events'
-import { SecurityRecommendation } from './security-events'
+import type { SecurityRecommendation } from './security-events'
 import type { SecurityEventType, ThreatLevel } from './enums'
-import { AuditSeverity, SecuritySeverity } from './enums'
+import type { AuditSeverity, SecuritySeverity } from './enums'
 
 // Audit Log APIs
 export interface GetAuditLogsRequest extends ListRequest {

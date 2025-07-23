@@ -6,8 +6,8 @@
 
 import type { useState } from 'react'
 import { useCallback } from 'react'
-import type { FlowDeletionRequest, FlowDeletionResult } from '@/services/flowDeletionService'
-import { flowDeletionService, FlowDeletionCandidate } from '@/services/flowDeletionService'
+import type { FlowDeletionRequest, FlowDeletionResult , FlowDeletionCandidate } from '@/services/flowDeletionService'
+import { flowDeletionService } from '@/services/flowDeletionService'
 
 export interface UseFlowDeletionState {
   isModalOpen: boolean;

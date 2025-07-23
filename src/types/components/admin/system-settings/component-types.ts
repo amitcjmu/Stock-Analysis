@@ -9,14 +9,14 @@
 
 import type { ReactNode } from 'react';
 import type { BaseComponentProps } from '../../shared';
-import { SecuritySettings } from './security-types';
+import type { SecuritySettings } from './security-types';
 import type { NotificationSettings } from './notification-types';
 import type { ApiSettings, StorageSettings } from './api-storage-types';
 import type { PerformanceSettings, FeatureSettings } from './performance-feature-types';
 import type { BrandingSettings, MaintenanceSettings, BackupSettings } from './branding-maintenance-types';
 import type { SettingsValidationConfig } from './validation-audit-types'
-import { SettingsSection, SettingsAuditLog } from './validation-audit-types'
-import { SecurityPolicy, SecurityAuditLog } from './security-types';
+import type { SettingsSection, SettingsAuditLog } from './validation-audit-types'
+import type { SecurityPolicy, SecurityAuditLog } from './security-types';
 
 // System Settings component types
 export interface SystemSettingsProps extends BaseComponentProps {

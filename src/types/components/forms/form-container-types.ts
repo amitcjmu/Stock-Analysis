@@ -7,7 +7,7 @@
 import type { ReactNode } from 'react';
 import type { BaseComponentProps } from '../shared';
 import type { BaseFormProps, FormSchema, FormErrorInfo, ScrollToFirstErrorOptions, ColProps, FormInstance, FormFieldControl } from './base-types'
-import { FormField } from './base-types'
+import type { FormField } from './base-types'
 
 // Form container types
 export interface FormProps extends BaseComponentProps {
@@ -66,7 +66,7 @@ export interface FormProps extends BaseComponentProps {
 
 export interface FormFieldProps extends BaseFormProps {
   fieldKey?: string | number | Array<string | number>;
-  dependencies?: Array<string[]>;
+  dependencies?: string[][];
   getValueFromEvent?: (...args: unknown[]) => unknown;
   getValueProps?: (value: unknown) => unknown;
   normalize?: (value: unknown, prevValue: unknown, allValues: Record<string, unknown>) => unknown;

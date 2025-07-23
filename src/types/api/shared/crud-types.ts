@@ -7,7 +7,7 @@
 import type { BaseApiRequest, BaseApiResponse, PaginationInfo } from './base-types';
 import type { MultiTenantContext } from './tenant-types';
 import type { SearchParameter, AppliedFilter, AppliedSort } from './query-types'
-import { SortParameter, FilterParameter, Aggregation } from './query-types'
+import type { SortParameter, FilterParameter, Aggregation } from './query-types'
 import type { ValidationResult, ValidationError, ValidationWarning } from './validation-types';
 import type { PrimitiveValue } from './value-types';
 

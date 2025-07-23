@@ -144,7 +144,7 @@ export interface ListFilter {
   key: string;
   label: string;
   type: 'select' | 'multiselect' | 'range' | 'text' | 'date';
-  options?: { label: string; value: unknown }[];
+  options?: Array<{ label: string; value: unknown }>;
   value?: unknown;
 }
 

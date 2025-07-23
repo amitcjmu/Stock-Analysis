@@ -14,4 +14,4 @@
  */
 
 // Re-export all types for backward compatibility
-export * from './resource-optimization';
+export type * from './resource-optimization';

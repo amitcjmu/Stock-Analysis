@@ -8,4 +8,4 @@
  */
 
 // Re-export all types from the modularized structure
-export * from './cost-allocation';
+export type * from './cost-allocation';

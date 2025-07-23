@@ -7,14 +7,14 @@
  */
 
 // Core WBS types
-export * from './core';
-export * from './level';
-export * from './structure';
-export * from './elements';
-export * from './relationships';
-export * from './hierarchy';
-export * from './decomposition';
-export * from './integration';
-export * from './validation';
-export * from './governance';
-export * from './evolution';
+export type * from './core';
+export type * from './level';
+export type * from './structure';
+export type * from './elements';
+export type * from './relationships';
+export type * from './hierarchy';
+export type * from './decomposition';
+export type * from './integration';
+export type * from './validation';
+export type * from './governance';
+export type * from './evolution';

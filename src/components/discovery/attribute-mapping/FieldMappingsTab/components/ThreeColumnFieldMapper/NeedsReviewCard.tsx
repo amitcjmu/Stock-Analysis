@@ -10,7 +10,7 @@ import { useCallback } from 'react'
 import { CheckCircle } from 'lucide-react';
 import { EnhancedFieldDropdown } from '../EnhancedFieldDropdown';
 import type { CardProps } from './types';
-import { TargetField } from '../../types';
+import type { TargetField } from '../../types';
 import { formatFieldValue } from './mappingUtils';
 
 interface NeedsReviewCardProps extends CardProps {

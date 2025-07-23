@@ -12,7 +12,7 @@ import type {
   MultiTenantContext
 } from '../../shared';
 import type { UsageFactor } from './shared-types'
-import { ProjectedUsage, RequiredCapacity, UtilizationForecast, BottleneckPrediction } from './shared-types'
+import type { ProjectedUsage, RequiredCapacity, UtilizationForecast, BottleneckPrediction } from './shared-types'
 
 // Capacity Planning Requests and Responses
 export interface CreateCapacityPlanRequest extends CreateRequest<CapacityPlanData> {

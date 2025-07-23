@@ -9,7 +9,7 @@
 
 import type { CostAmount } from '../cost-analysis';
 import type { TrendDirection } from './base-types'
-import { PerformanceMetric } from './base-types'
+import type { PerformanceMetric } from './base-types'
 
 // Utilization Core Types
 export interface UtilizationMetric {

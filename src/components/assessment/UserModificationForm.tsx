@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Badge } from '@/components/ui/badge';
-import { ApplicationComponent, TechDebtItem } from '@/hooks/useAssessmentFlow';
+import type { ApplicationComponent, TechDebtItem } from '@/hooks/useAssessmentFlow';
 import { Save, X, Edit3 } from 'lucide-react';
 
 interface UserModificationFormProps {

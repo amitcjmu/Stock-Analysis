@@ -11,4 +11,4 @@
  */
 
 // Re-export all types from the modular structure
-export * from './strategy';
+export type * from './strategy';

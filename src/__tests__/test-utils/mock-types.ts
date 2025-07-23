@@ -120,7 +120,7 @@ export interface TestFieldMapping {
 }
 
 // Helper function type definitions
-export type MockAssertionMatcher<T = unknown> = {
+export interface MockAssertionMatcher<T = unknown> {
   toBe(expected: T): void;
   toEqual(expected: T): void;
   toBeNull(): void;
@@ -131,4 +131,4 @@ export type MockAssertionMatcher<T = unknown> = {
   toHaveBeenCalled(): void;
   toHaveBeenCalledWith(...args: unknown[]): void;
   toHaveBeenCalledTimes(times: number): void;
-};
+}

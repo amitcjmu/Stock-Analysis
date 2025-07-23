@@ -6,7 +6,7 @@
  */
 
 import type { BaseAsyncHookParams } from './shared'
-import { BaseAsyncHookReturn } from './shared'
+import type { BaseAsyncHookReturn } from './shared'
 
 // Flow Management Hook Types
 export interface UseFlowManagementParams extends BaseAsyncHookParams {

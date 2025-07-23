@@ -4,7 +4,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useDialog } from '@/hooks/useDialog';
 import { apiCall } from '@/config/api';
 import type { ClientFormData } from '../types'
-import { Client } from '../types'
+import type { Client } from '../types'
 
 export const useClientOperations = () => {
   const { toast } = useToast();
@@ -50,7 +50,7 @@ export const useClientOperations = () => {
     } catch (error) {
       console.error('Error creating client:', error);
       
-      const errorObj = error as { message?: string; response?: { detail?: string | { loc?: string[]; msg?: string; message?: string }[] } };
+      const errorObj = error as { message?: string; response?: { detail?: string | Array<{ loc?: string[]; msg?: string; message?: string }> } };
       let errorMessage = errorObj.message || "Failed to create client. Please try again.";
       if (errorObj.response && errorObj.response.detail) {
         if (Array.isArray(errorObj.response.detail)) {
@@ -114,7 +114,7 @@ export const useClientOperations = () => {
     } catch (error) {
       console.error('Error updating client:', error);
       
-      const errorObj = error as { message?: string; response?: { detail?: string | { msg?: string; message?: string }[] } };
+      const errorObj = error as { message?: string; response?: { detail?: string | Array<{ msg?: string; message?: string }> } };
       let errorMessage = errorObj.message || "Failed to update client. Please try again.";
       if (errorObj.response && errorObj.response.detail) {
         if (Array.isArray(errorObj.response.detail)) {
@@ -167,7 +167,7 @@ export const useClientOperations = () => {
     } catch (error) {
       console.error('Error deleting client:', error);
       
-      const errorObj = error as { message?: string; response?: { detail?: string | { msg?: string; message?: string }[] } };
+      const errorObj = error as { message?: string; response?: { detail?: string | Array<{ msg?: string; message?: string }> } };
       let errorMessage = errorObj.message || "Failed to delete client. Please try again.";
       if (errorObj.response && errorObj.response.detail) {
         errorMessage = String(errorObj.response.detail);

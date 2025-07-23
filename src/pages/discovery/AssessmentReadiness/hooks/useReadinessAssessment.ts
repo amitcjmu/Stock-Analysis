@@ -2,7 +2,7 @@ import type { useQuery, useMutation } from '@tanstack/react-query'
 import { useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api';
 import type { UseReadinessAssessmentOptions, GenerateSignoffPackageParams, SubmitForApprovalParams } from '../types'
-import { ReadinessAssessment,  } from '../types'
+import type { ReadinessAssessment,  } from '../types'
 
 export const useReadinessAssessment = ({
   clientAccountId,

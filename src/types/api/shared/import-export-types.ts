@@ -6,7 +6,7 @@
 
 import type { BaseApiRequest, BaseApiResponse } from './base-types';
 import type { MultiTenantContext } from './tenant-types';
-import { FilterParameter } from './query-types';
+import type { FilterParameter } from './query-types';
 import type { ValidationResult, ValidationError, ValidationWarning } from './validation-types';
 import type { CompressionOptions, EncryptionOptions } from './file-processing-types';
 
@@ -85,7 +85,7 @@ export interface ImportResult {
 
 export interface ImportPreview {
   headers: string[];
-  sample: Array<unknown[]>;
+  sample: unknown[][];
   totalRows: number;
   detectedFormat: ImportFormat;
   encoding: string;

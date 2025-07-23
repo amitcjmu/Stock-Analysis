@@ -18,7 +18,7 @@ export { default as NextActionsTab } from './NextActionsTab';
 export { default as StatusIcon } from './StatusIcon';
 
 // Types
-export * from './types';
+export type * from './types';
 
 // Utilities
 export * from './utils';

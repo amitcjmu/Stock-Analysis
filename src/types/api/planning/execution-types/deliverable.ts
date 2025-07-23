@@ -8,4 +8,4 @@
  */
 
 // Re-export all types from the modular deliverable structure
-export * from './deliverable/index';
+export type * from './deliverable/index';

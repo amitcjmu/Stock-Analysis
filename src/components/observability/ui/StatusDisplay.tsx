@@ -78,11 +78,11 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 };
 
 export interface StatusGroupProps {
-  statuses: {
+  statuses: Array<{
     status: StatusType;
     count: number;
     label: string;
-  }[];
+  }>;
   size?: 'sm' | 'md' | 'lg';
   variant?: 'badge' | 'horizontal' | 'vertical';
   className?: string;

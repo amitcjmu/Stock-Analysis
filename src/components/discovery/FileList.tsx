@@ -1,6 +1,6 @@
 import React from 'react';
-import type { FileSpreadsheet, Download, Clock, Database } from 'lucide-react'
-import { CheckCircle, AlertTriangle, X, Loader, Eye, Edit3, Brain, FileText, File } from 'lucide-react'
+import type { FileSpreadsheet, Download, Clock, Database , File } from 'lucide-react'
+import { CheckCircle, AlertTriangle, X, Loader, Eye, Edit3, Brain, FileText } from 'lucide-react'
 
 export interface AnalysisResult {
   status: 'analyzing' | 'completed' | 'error';

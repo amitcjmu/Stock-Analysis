@@ -52,7 +52,7 @@ const EngagementDetails: React.FC = () => {
     error
   } = useQuery({
     queryKey: ['engagement-details', engagementId],
-    queryFn: () => fetchEngagementDetails(engagementId!),
+    queryFn: () => fetchEngagementDetails(engagementId),
     enabled: !!engagementId,
     retry: 1
   });

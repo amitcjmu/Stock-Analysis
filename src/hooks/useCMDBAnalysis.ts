@@ -2,7 +2,7 @@ import type { useState } from 'react'
 import { useCallback } from 'react'
 import { apiCall, API_CONFIG } from '../config/api';
 import type { AnalysisResult } from '../components/discovery/FileList'
-import { FileUpload } from '../components/discovery/FileList'
+import type { FileUpload } from '../components/discovery/FileList'
 
 export const useCMDBAnalysis = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);

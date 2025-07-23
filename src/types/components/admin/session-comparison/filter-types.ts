@@ -5,7 +5,7 @@
  */
 
 import type { ReactNode } from 'react';
-import { UserSession } from './session-types';
+import type { UserSession } from './session-types';
 import type { ColumnType, FilterType, FilterOperator } from './enum-types';
 
 export interface SessionComparisonColumn {

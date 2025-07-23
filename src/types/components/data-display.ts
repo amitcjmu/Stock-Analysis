@@ -12,4 +12,4 @@
  */
 
 // Re-export all types from modular files
-export * from './data-display/index';
+export type * from './data-display/index';

@@ -11,7 +11,7 @@ import type {
 } from '../shared';
 
 import type { TokenValidationResult } from './core-types'
-import { ApiToken } from './core-types'
+import type { ApiToken } from './core-types'
 
 // API Token Management APIs
 export interface CreateApiTokenRequest extends BaseApiRequest {

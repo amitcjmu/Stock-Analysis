@@ -5,19 +5,19 @@
  */
 
 // Base types and utilities
-export * from './base-types';
+export type * from './base-types';
 
 // Form container types
-export * from './form-container-types';
+export type * from './form-container-types';
 
 // Input component types
-export * from './input-types';
+export type * from './input-types';
 
 // Select component types
-export * from './select-types';
+export type * from './select-types';
 
 // Choice component types (checkbox, radio, switch)
-export * from './choice-types';
+export type * from './choice-types';
 
 // Advanced component types (slider, file upload)
-export * from './advanced-types';
+export type * from './advanced-types';

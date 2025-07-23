@@ -3,7 +3,7 @@
  */
 
 import type { BundleAnalysis, LoadingPriority } from '@/types/lazy'
-import { LazyLoadingMetrics } from '@/types/lazy'
+import type { LazyLoadingMetrics } from '@/types/lazy'
 
 interface PerformanceThresholds {
   excellentLoadTime: number;

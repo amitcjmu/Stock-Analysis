@@ -5,7 +5,7 @@
  */
 
 import type { BaseApiRequest, BaseApiResponse, ApiError } from './base-types'
-import { ApiWarning } from './base-types'
+import type { ApiWarning } from './base-types'
 import type { MultiTenantContext } from './tenant-types';
 
 export interface BulkRequest<T> extends BaseApiRequest {

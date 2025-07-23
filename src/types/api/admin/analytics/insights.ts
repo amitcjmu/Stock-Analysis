@@ -9,7 +9,7 @@
 import type { BaseMetadata } from '../../../shared/metadata-types';
 import type { ConfigurationValue } from '../../../shared/config-types';
 import type { ConfidenceLevel, ImpactLevel, EffortLevel, ThresholdDefinition } from '../common'
-import { Priority } from '../common'
+import type { Priority } from '../common'
 import type {
   InsightType, 
   AlertType, 

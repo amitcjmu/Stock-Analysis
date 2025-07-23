@@ -6,7 +6,7 @@
  */
 
 import type { UseApiParams } from './core'
-import { UseApiReturn } from './core'
+import type { UseApiReturn } from './core'
 
 // Query Hook Types
 export interface UseQueryParams<TParams = unknown> extends UseApiParams<TParams> {

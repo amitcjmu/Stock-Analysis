@@ -11,7 +11,7 @@ import type {
 } from '../shared';
 
 import type { DeviceInfo } from './core-types'
-import { UserSession, SessionActivity } from './core-types'
+import type { UserSession, SessionActivity } from './core-types'
 
 // Session Management APIs
 export interface GetSessionsRequest extends BaseApiRequest {

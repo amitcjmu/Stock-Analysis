@@ -184,7 +184,7 @@ const CMDBImportContainer: React.FC = () => {
                     </div>
                   </div>
                   <SimplifiedFlowStatus
-                    flow_id={file.flow_id!}
+                    flow_id={file.flow_id}
                     onNavigateToMapping={() => {
                       // Use consistent navigation logic - get the route and navigate properly
                       const flowId = file.flow_id;

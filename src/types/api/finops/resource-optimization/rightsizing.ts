@@ -13,7 +13,7 @@ import type {
   MultiTenantContext
 } from '../../shared';
 import type { CostAmount } from '../cost-analysis';
-import {
+import type {
   PerformanceRequirement,
   CostThreshold,
   UtilizationPattern

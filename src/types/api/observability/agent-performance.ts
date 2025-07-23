@@ -7,7 +7,7 @@
 import type { PrimitiveValue } from '../shared/value-types';
 
 // Re-export existing agent performance types
-export * from '../../agent-performance';
+export type * from '../../agent-performance';
 
 // Additional UI-specific types for components
 export interface AgentCardData {

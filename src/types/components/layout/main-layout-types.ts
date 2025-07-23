@@ -10,7 +10,7 @@
 import type { ReactNode } from 'react';
 import type { BaseComponentProps } from '../shared';
 import type { UserInfo } from './navigation-user-types'
-import { NavigationItem, BreadcrumbItem, NotificationItem, UserMenuItem, QuickAction } from './navigation-user-types'
+import type { NavigationItem, BreadcrumbItem, NotificationItem, UserMenuItem, QuickAction } from './navigation-user-types'
 
 // Main layout component types
 export interface MainLayoutProps extends BaseComponentProps {

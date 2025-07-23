@@ -3,7 +3,7 @@ import { authApi } from '@/lib/api/auth';
 import type { updateApiContext } from '@/config/api'
 import { apiCall } from '@/config/api'
 import { updateUserDefaults } from '@/lib/api/context';
-import { User, Client, Engagement, Flow } from '../types';
+import type { User, Client, Engagement, Flow } from '../types';
 
 // CC: Registration and API response interfaces
 interface UserRegistrationData {

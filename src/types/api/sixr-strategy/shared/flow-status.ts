@@ -9,7 +9,7 @@
 
 import type { StrategyFlowStatus, StrategyType, PhaseStatus } from './base-types';
 import type { StrategyMetrics } from './flow-state'
-import { StrategyBlocker, StrategyWarning, StrategyRecommendation, ApprovalStatusDetail } from './flow-state'
+import type { StrategyBlocker, StrategyWarning, StrategyRecommendation, ApprovalStatusDetail } from './flow-state'
 
 // Status Detail Types
 export interface StrategyStatusDetail {

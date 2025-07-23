@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
 import { API_CONFIG, apiCall } from '../../../config/api';
-import { FieldMapping } from './useFieldMappings';
+import type { FieldMapping } from './useFieldMappings';
 
 export interface CriticalAttribute {
   name: string;

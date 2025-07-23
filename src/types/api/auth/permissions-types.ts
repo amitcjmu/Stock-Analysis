@@ -10,7 +10,8 @@ import type {
   MultiTenantContext
 } from '../shared';
 
-import { UserPermissions, Permission, Role, ResourceAccess } from './core-types';
+import type { UserPermissions, Role, ResourceAccess } from './core-types';
+import { Permission } from './core-types';
 
 // Permission and Authorization APIs
 export interface GetUserPermissionsRequest extends BaseApiRequest {

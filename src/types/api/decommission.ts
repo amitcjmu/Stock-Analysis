@@ -13,7 +13,7 @@
  */
 
 // Re-export all decommission types for backward compatibility
-export * from './sixr-strategy/decommission';
+export type * from './sixr-strategy/decommission';
 
 // Re-export shared types commonly used in decommission flows
 export type {

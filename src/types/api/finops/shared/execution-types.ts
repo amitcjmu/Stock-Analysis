@@ -9,7 +9,7 @@
 
 import type { CostAmount } from '../cost-analysis';
 import type { ValidationResult, ExecutionStatus, ValidationStatus, RiskLevel } from './base-types'
-import { ImplementationTask, Dependency, MonitoringAlert } from './base-types'
+import type { ImplementationTask, Dependency, MonitoringAlert } from './base-types'
 import type { ConfigurationValue, TypedConstraint } from '../../../shared/config-types';
 
 // Execution Plan Types

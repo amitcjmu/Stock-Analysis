@@ -3,8 +3,8 @@
  * Handles component loading, caching, and performance monitoring
  */
 
-import type { LazyComponentOptions, LoadingState, LazyComponentImport } from '@/types/lazy'
-import { LoadingPriority, LazyLoadingMetrics } from '@/types/lazy'
+import type { LazyComponentOptions, LoadingState, LazyComponentImport , LazyLoadingMetrics } from '@/types/lazy'
+import { LoadingPriority } from '@/types/lazy'
 
 class LoadingManager {
   private static instance: LoadingManager;
@@ -91,7 +91,7 @@ class LoadingManager {
     } catch (error) {
       const loadingState = this.loadingStates.get(componentId);
       this.setLoadingState(componentId, {
-        ...loadingState!,
+        ...loadingState,
         isLoading: false,
         error: error as Error,
         retryCount: loadingState?.retryCount || 0
@@ -151,7 +151,7 @@ class LoadingManager {
       }
     }
 
-    throw lastError!;
+    throw lastError;
   }
 
   /**

@@ -6,7 +6,7 @@
  */
 
 import { apiCall } from '@/lib/api';
-import { BaseMetadata } from '../types/shared/metadata-types';
+import type { BaseMetadata } from '../types/shared/metadata-types';
 
 export interface TaskResult {
   task_id: string;

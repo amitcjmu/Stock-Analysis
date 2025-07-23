@@ -3,7 +3,7 @@ import { useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { apiCall } from '@/config/api';
-import { UploadFile } from '../CMDBImport.types';
+import type { UploadFile } from '../CMDBImport.types';
 
 export const useFileUpload = () => {
   const { toast } = useToast();

@@ -8,17 +8,17 @@
  */
 
 // Core types and APIs
-export * from './core-types';
+export type * from './core-types';
 
 // Health and monitoring
-export * from './health-monitoring';
+export type * from './health-monitoring';
 
 // Configuration settings
-export * from './security-settings';
-export * from './integration-settings';
-export * from './notification-settings';
-export * from './performance-settings';
-export * from './compliance-settings';
-export * from './feature-settings';
-export * from './maintenance-settings';
-export * from './monitoring-settings';
+export type * from './security-settings';
+export type * from './integration-settings';
+export type * from './notification-settings';
+export type * from './performance-settings';
+export type * from './compliance-settings';
+export type * from './feature-settings';
+export type * from './maintenance-settings';
+export type * from './monitoring-settings';

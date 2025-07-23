@@ -1,6 +1,6 @@
 import { apiCall } from '@/config/api';
 import type { CollectionFlow, CleanupResult, FlowContinueResult } from '@/hooks/collection/useCollectionFlowManagement';
-import { BaseMetadata } from '../../types/shared/metadata-types';
+import type { BaseMetadata } from '../../types/shared/metadata-types';
 
 export interface CollectionFlowConfiguration extends BaseMetadata {
   automation_tier?: 'basic' | 'standard' | 'advanced' | 'enterprise';
@@ -79,16 +79,16 @@ export interface QuestionnaireQuestion {
 }
 
 export interface ConditionalLogic {
-  show_if: {
+  show_if: Array<{
     question_id: string;
     operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than';
     value: string | number | boolean;
-  }[];
+  }>;
 }
 
 export interface QuestionnaireResponse {
   question_id: string;
-  response_value: string | number | boolean | Array<string>;
+  response_value: string | number | boolean | string[];
   confidence_level?: number;
   notes?: string;
   validation_passed: boolean;
@@ -164,7 +164,7 @@ class CollectionFlowApi {
   async submitQuestionnaireResponse(
     flowId: string, 
     questionnaireId: string, 
-    responses: Array<QuestionnaireResponse>
+    responses: QuestionnaireResponse[]
   ): Promise<{ status: string; message: string; questionnaire_id: string }> {
     return await apiCall(
       `${this.baseUrl}/flows/${flowId}/questionnaires/${questionnaireId}/submit`,
@@ -191,7 +191,7 @@ class CollectionFlowApi {
     return await apiCall(`${this.baseUrl}/flows/${flowId}?force=${force}`, { method: 'DELETE' });
   }
 
-  async batchDeleteFlows(flowIds: Array<string>, force: boolean = false): Promise<{
+  async batchDeleteFlows(flowIds: string[], force: boolean = false): Promise<{
     status: string;
     deleted_count: number;
     failed_count: number;

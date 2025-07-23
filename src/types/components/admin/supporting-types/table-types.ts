@@ -6,7 +6,7 @@
  */
 
 import type { ReactNode } from 'react';
-import { ValidationRule } from './form-types';
+import type { ValidationRule } from './form-types';
 
 export interface TableColumn {
   key: string;

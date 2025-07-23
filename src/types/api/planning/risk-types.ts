@@ -12,4 +12,4 @@
  */
 
 // Re-export all types from the modularized structure
-export * from './risk-types/index';
+export type * from './risk-types/index';

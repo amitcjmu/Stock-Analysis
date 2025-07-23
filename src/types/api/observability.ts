@@ -8,4 +8,4 @@
  */
 
 // Re-export all types from the modular structure
-export * from './observability';
+export type * from './observability';

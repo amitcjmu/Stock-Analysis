@@ -2,7 +2,7 @@ import type { useRef } from 'react'
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom';
 import type { getUserContext } from '@/lib/api/context';
-import { User, Client, Engagement, Flow } from '../types';
+import type { User, Client, Engagement, Flow } from '../types';
 import { tokenStorage } from '../storage';
 
 interface UseAuthInitializationProps {

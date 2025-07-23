@@ -1,5 +1,5 @@
-import { QualityIssue } from '../components/discovery/data-cleansing/QualityIssuesSummary';
-import { AgentRecommendation } from '../components/discovery/data-cleansing/RecommendationsSummary';
+import type { QualityIssue } from '../components/discovery/data-cleansing/QualityIssuesSummary';
+import type { AgentRecommendation } from '../components/discovery/data-cleansing/RecommendationsSummary';
 
 /**
  * Fixed field highlighting function that properly matches assets and fields

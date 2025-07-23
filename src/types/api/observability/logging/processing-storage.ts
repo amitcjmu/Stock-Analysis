@@ -8,7 +8,7 @@
  */
 
 import type { ProcessingConfiguration, GenericConfiguration } from '../../shared/configuration-types'
-import { StorageConfiguration } from '../../shared/configuration-types'
+import type { StorageConfiguration } from '../../shared/configuration-types'
 import type { ConditionValue, RolloverValue, FilterValue, ConfigValue, CredentialValue } from '../../shared/value-types';
 
 // Processing Configuration

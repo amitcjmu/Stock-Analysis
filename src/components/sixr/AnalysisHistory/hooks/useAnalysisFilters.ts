@@ -1,7 +1,7 @@
 import type { useState } from 'react'
 import { useMemo } from 'react'
 import type { FilterState } from '../types'
-import { AnalysisHistoryItem } from '../types'
+import type { AnalysisHistoryItem } from '../types'
 import { matchesDateRange } from '../utils/dateUtils';
 
 export const useAnalysisFilters = (analyses: AnalysisHistoryItem[]) => {

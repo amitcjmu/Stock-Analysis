@@ -6,7 +6,7 @@
 
 import type { BaseApiRequest, BaseApiResponse } from './base-types';
 import type { MultiTenantContext } from './tenant-types';
-import { FilterParameter } from './query-types';
+import type { FilterParameter } from './query-types';
 
 // Real-time updates
 export interface WebSocketMessage<T = unknown> {

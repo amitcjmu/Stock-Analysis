@@ -8,7 +8,7 @@
  */
 
 // Import shared 6R strategy types
-export * from '../shared';
+export type * from '../shared';
 
 // Assessment-specific API endpoints (extending shared flow management)
 export interface InitializeAssessmentFlowRequest extends InitializeStrategyFlowRequest {

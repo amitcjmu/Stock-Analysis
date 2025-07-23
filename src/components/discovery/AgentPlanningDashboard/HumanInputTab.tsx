@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle } from 'lucide-react';
 import type { TaskInput } from './types'
-import { AgentTask } from './types'
+import type { AgentTask } from './types'
 import type { getPriorityColor } from './utils';
 
 interface HumanInputTabProps {

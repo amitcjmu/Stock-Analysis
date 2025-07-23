@@ -4,7 +4,7 @@
  * Generates demo agent plans for different page contexts.
  */
 
-import { AgentPlan } from './types';
+import type { AgentPlan } from './types';
 
 export const generateDemoPlan = (context: string): AgentPlan => {
   const baseId = `plan_${context}_${Date.now()}`;

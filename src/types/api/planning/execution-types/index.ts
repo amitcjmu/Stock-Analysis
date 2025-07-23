@@ -8,31 +8,31 @@
  */
 
 // Core execution planning types
-export * from './core';
+export type * from './core';
 
 // Workstream management types
-export * from './workstream';
+export type * from './workstream';
 
 // Deliverable management types
-export * from './deliverable';
+export type * from './deliverable';
 
 // Governance framework types
-export * from './governance';
+export type * from './governance';
 
 // Quality management and gates types
-export * from './quality';
+export type * from './quality';
 
 // Communication planning types
-export * from './communication';
+export type * from './communication';
 
 // Work breakdown structure types
-export * from './wbs';
+export type * from './wbs';
 
 // Resource assignment and management types
-export * from './resource';
+export type * from './resource';
 
 // Execution monitoring and assessment types
-export * from './monitoring';
+export type * from './monitoring';
 
 // Supporting utility types
-export * from './supporting';
+export type * from './supporting';

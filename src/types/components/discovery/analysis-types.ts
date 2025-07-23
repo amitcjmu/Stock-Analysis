@@ -6,7 +6,7 @@
 
 import type { ReactNode } from 'react';
 import type { BaseDiscoveryProps, LogLevel } from './base-types';
-import { ExportFormat } from './data-import-types';
+import type { ExportFormat } from './data-import-types';
 
 // Analysis component types
 export interface CrewAnalysisPanelProps extends BaseDiscoveryProps {
@@ -137,7 +137,7 @@ export interface AnalysisParameter {
   description?: string;
   required?: boolean;
   defaultValue?: unknown;
-  options?: { value: unknown; label: string }[];
+  options?: Array<{ value: unknown; label: string }>;
   min?: number;
   max?: number;
   step?: number;

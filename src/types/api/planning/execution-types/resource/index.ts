@@ -7,14 +7,14 @@
  */
 
 // Core resource assignment types
-export * from './assignment';
-export * from './role';
-export * from './responsibility';
-export * from './allocation';
-export * from './timeline';
-export * from './skills';
-export * from './performance';
-export * from './cost';
-export * from './status';
-export * from './optimization';
-export * from './governance';
+export type * from './assignment';
+export type * from './role';
+export type * from './responsibility';
+export type * from './allocation';
+export type * from './timeline';
+export type * from './skills';
+export type * from './performance';
+export type * from './cost';
+export type * from './status';
+export type * from './optimization';
+export type * from './governance';

@@ -17,10 +17,10 @@
  */
 
 // Re-export all analytics types for backward compatibility
-export * from './analytics';
+export type * from './analytics';
 
 // Re-export common types that might have been used from this file
-export { 
+export type { 
   AnalyticsTimeRange,
   AnalyticsPeriod,
   AnalyticsMetadata,

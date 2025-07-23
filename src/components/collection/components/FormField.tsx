@@ -121,7 +121,7 @@ export const FormField: React.FC<FormFieldProps> = ({
           </Select>
         );
 
-      case 'multiselect':
+      case 'multiselect': {
         const selectedValues = Array.isArray(value) ? value : [];
         return (
           <div className="space-y-2">
@@ -149,6 +149,7 @@ export const FormField: React.FC<FormFieldProps> = ({
             ))}
           </div>
         );
+      }
 
       case 'radio':
         return (

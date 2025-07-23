@@ -1,5 +1,5 @@
 import type { User, ContextData, Flow } from './types'
-import { TokenStorage, Client, Engagement } from './types'
+import type { TokenStorage, Client, Engagement } from './types'
 
 /**
  * External session data interface for third-party integrations

@@ -7,7 +7,7 @@ import { ApiClient } from '../ApiClient';
 import type { ApiResponse, ApiError } from '../../types/shared/api-types';
 import type { EnhancedApiError } from '../../config/api';
 import type { AuditableMetadata } from '../../types/shared/metadata-types'
-import { BaseMetadata } from '../../types/shared/metadata-types'
+import type { BaseMetadata } from '../../types/shared/metadata-types'
 
 const apiClient = ApiClient.getInstance();
 import type { AuthService } from '../../contexts/AuthContext/services/authService';

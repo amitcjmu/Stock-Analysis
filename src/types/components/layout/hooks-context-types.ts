@@ -9,7 +9,7 @@
  */
 
 import type { UserInfo } from './navigation-user-types'
-import { NotificationItem } from './navigation-user-types'
+import type { NotificationItem } from './navigation-user-types'
 import type { GridLayout } from './grid-types';
 import type { MasonryLayout } from './stack-masonry-types';
 

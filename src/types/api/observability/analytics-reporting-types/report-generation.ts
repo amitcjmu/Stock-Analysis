@@ -105,7 +105,7 @@ export interface ReportTable {
   id: string;
   title: string;
   headers: string[];
-  rows: Array<unknown[]>;
+  rows: unknown[][];
   formatting?: TableFormatting;
 }
 

@@ -7,12 +7,14 @@ import type { useState } from 'react'
 import { useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '@/config/api';
-import { 
-  RoleLevel, 
-  DataScope, 
+import type { 
   EnhancedUserProfile, 
   UserAccessScope,
   RolePermissions 
+} from '@/types/rbac';
+import { 
+  RoleLevel, 
+  DataScope 
 } from '@/types/rbac';
 
 interface UseEnhancedRBACReturn {

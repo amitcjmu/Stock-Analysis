@@ -82,7 +82,7 @@ export const useAgentDetail = (agentName: string | undefined, taskHistoryPage: n
             startedAt: task.started_at,
             completedAt: task.completed_at,
             duration: task.duration_seconds,
-            status: task.status as 'completed' | 'failed' | 'timeout',
+            status: task.status,
             success: task.success,
             confidenceScore: task.confidence_score,
             resultPreview: task.result_preview,

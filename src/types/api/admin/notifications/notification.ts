@@ -251,7 +251,7 @@ export interface ChannelConfiguration {
   provider?: string;
   credentials?: BaseMetadata;
   settings: BaseMetadata;
-  rate_limits?: import('../common').RateLimit[];
+  rate_limits?: Array<import('../common').RateLimit>;
   retry_policy?: import('../common').RetryPolicy;
   fallback_channel?: ChannelType;
 }

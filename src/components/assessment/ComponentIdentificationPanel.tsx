@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ApplicationComponent } from '@/hooks/useAssessmentFlow';
+import type { ApplicationComponent } from '@/hooks/useAssessmentFlow';
 import type { Database, Globe, Cpu } from 'lucide-react'
 import { Plus, Edit3, Trash2, Server } from 'lucide-react'
 import { cn } from '@/lib/utils';
@@ -303,7 +303,7 @@ const ComponentCard: React.FC<ComponentCardProps> = ({
                 <div className="flex flex-wrap gap-1">
                   {Object.entries(component.technology_stack).map(([key, value]) => (
                     <Badge key={key} variant="outline" className="text-xs">
-                      {key}: {value as string}
+                      {key}: {value}
                     </Badge>
                   ))}
                 </div>

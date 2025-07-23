@@ -14,7 +14,7 @@ import type {
 } from '../../shared';
 import type { CostAmount } from '../cost-analysis';
 import type { ResourceType, ResourceAnalysisScope, ResourceEfficiency, ResourceConfiguration } from './resource-discovery'
-import { UtilizationMetric, UtilizationThreshold, ResourceUtilization, UnderutilizedResource, OverutilizedResource, UtilizationTrend, UtilizationAnomaly } from './resource-discovery'
+import type { UtilizationMetric, UtilizationThreshold, ResourceUtilization, UnderutilizedResource, OverutilizedResource, UtilizationTrend, UtilizationAnomaly } from './resource-discovery'
 
 // Resource Optimization Analysis APIs
 export interface AnalyzeResourceUtilizationRequest extends BaseApiRequest {

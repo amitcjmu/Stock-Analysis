@@ -9,7 +9,7 @@ import { Badge } from '../../ui/badge';
 import { Checkbox } from '../../ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/table';
 import type { ApplicationTableProps } from '../types/ApplicationSelectorTypes'
-import { Application } from '../types/ApplicationSelectorTypes'
+import type { Application } from '../types/ApplicationSelectorTypes'
 
 const criticalityColors = {
   low: 'bg-green-100 text-green-800',

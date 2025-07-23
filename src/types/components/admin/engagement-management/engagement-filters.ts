@@ -10,7 +10,7 @@
 import type { ReactNode } from 'react';
 import type { BaseComponentProps } from '../../shared';
 import type { EngagementStatus, EngagementType } from './core-types'
-import { Client, Team, User } from './core-types'
+import type { Client, Team, User } from './core-types'
 
 // Main Engagement Filters Component
 export interface EngagementFiltersProps extends BaseComponentProps {

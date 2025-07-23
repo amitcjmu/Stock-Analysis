@@ -13,7 +13,7 @@
 
 import { ApiClient } from './ApiClient';
 import type { FlowStatus, FlowType, CreateFlowRequest, ExecutePhaseRequest } from '../types/flow'
-import { FlowAnalytics } from '../types/flow'
+import type { FlowAnalytics } from '../types/flow'
 import type { ApiError } from '../types/shared/api-types';
 
 export interface FlowListOptions {

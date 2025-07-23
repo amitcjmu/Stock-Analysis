@@ -6,7 +6,7 @@
  */
 
 import type { BaseHookParams } from './base-hooks'
-import { BaseHookReturn } from './base-hooks'
+import type { BaseHookReturn } from './base-hooks'
 
 // Flow Detection hook types
 export interface UseFlowDetectionParams extends BaseHookParams {

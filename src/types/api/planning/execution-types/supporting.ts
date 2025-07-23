@@ -11,4 +11,4 @@
  */
 
 // Re-export all types from the modular structure for backward compatibility
-export * from './supporting/index';
+export type * from './supporting/index';

@@ -38,7 +38,7 @@ export interface FormFieldEntity {
   name: string | string[];
   validateTrigger?: string | string[];
   rules?: ValidationRule[];
-  dependencies?: Array<string[]>;
+  dependencies?: string[][];
   initialValue?: unknown;
 }
 

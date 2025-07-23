@@ -106,7 +106,7 @@ export const useAgentMonitor = () => {
               
               activeFlows.push({
                 flow_id: flow.flow_id || `discovery_flow_${Date.now()}`,
-                status: flow.status as FlowStatus,
+                status: flow.status,
                 current_phase: flow.current_phase || 'initialization',
                 progress: flow.progress || 0,
                 crews,

@@ -43,7 +43,7 @@ import type {
   Cloud
 } from 'lucide-react';
 import type { SidebarProps } from './types'
-import { NavigationItem, ExpandedStates } from './types'
+import type { NavigationItem, ExpandedStates } from './types'
 import SidebarHeader from './SidebarHeader';
 import NavigationMenu from './NavigationMenu';
 import AuthenticationIndicator from './AuthenticationIndicator';

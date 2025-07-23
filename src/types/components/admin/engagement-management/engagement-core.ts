@@ -8,9 +8,9 @@
  */
 
 import type { Client } from './client-management';
-import { User, TeamMember } from './team-management';
-import { Risk, Issue } from './risk-issue-management';
-import { Artifact } from './artifact-management';
+import type { User, TeamMember } from './team-management';
+import type { Risk, Issue } from './risk-issue-management';
+import type { Artifact } from './artifact-management';
 
 // Core Type Definitions
 export type EngagementStatus = 'draft' | 'active' | 'on_hold' | 'completed' | 'cancelled';

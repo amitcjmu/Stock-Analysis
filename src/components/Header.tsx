@@ -13,7 +13,7 @@ import type { ChevronsUpDown } from 'lucide-react'
 import { LogOut } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext';
 import type { User } from '@/types';
-import { Client } from '@/contexts/ClientContext';
+import type { Client } from '@/contexts/ClientContext';
 import {
   Select,
   SelectContent,

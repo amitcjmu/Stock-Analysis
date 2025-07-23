@@ -23,7 +23,7 @@ import type {
 } from './shared';
 import type { ExecutionMetadata, FlowMetadata } from './shared/metadata-types';
 import type { ParameterValue } from './shared/value-types'
-import { PrimitiveValue } from './shared/value-types'
+import type { PrimitiveValue } from './shared/value-types'
 
 // Execution Flow Management APIs
 export interface InitializeExecutionFlowRequest extends BaseApiRequest {
@@ -261,7 +261,7 @@ export interface ExecuteTaskResponse extends BaseApiResponse<TaskExecutionResult
   data: TaskExecutionResult;
   executionId: string;
   status: TaskExecutionStatus;
-  output?: PrimitiveValue | Record<string, PrimitiveValue> | Array<PrimitiveValue>;
+  output?: PrimitiveValue | Record<string, PrimitiveValue> | PrimitiveValue[];
   logs: TaskExecutionLog[];
 }
 

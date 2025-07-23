@@ -8,10 +8,10 @@
  */
 
 import type { BaseComponentProps } from './base-types'
-import { ColumnDefinition, TabDefinition, PhaseDefinition } from './base-types'
+import type { ColumnDefinition, TabDefinition, PhaseDefinition } from './base-types'
 
 import type { MappingFilter } from './data-models'
-import { FieldMapping, CriticalAttribute, CrewAnalysis, TrainingProgress, DataImport } from './data-models'
+import type { FieldMapping, CriticalAttribute, CrewAnalysis, TrainingProgress, DataImport } from './data-models'
 
 /**
  * Component Types Namespace

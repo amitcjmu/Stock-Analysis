@@ -126,11 +126,11 @@ export const MetricBadge: React.FC<MetricBadgeProps> = ({
 };
 
 export interface MetricComparisonProps {
-  items: {
+  items: Array<{
     name: string;
     value: number;
     color?: string;
-  }[];
+  }>;
   format?: 'number' | 'percentage' | 'duration' | 'memory';
   showRanking?: boolean;
 }

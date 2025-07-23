@@ -14,9 +14,9 @@ import type {
 
 import type { AnalyticsTimeRange, BaseFilter } from '../common';
 import type { UsageAnalytics, PerformanceAnalytics, AdoptionAnalytics } from './platform'
-import { PlatformAnalytics, AnalyticsTrend, AnalyticsForecast } from './platform'
+import type { PlatformAnalytics, AnalyticsTrend, AnalyticsForecast } from './platform'
 import type { ReportCustomization } from './reports'
-import { AdminReport } from './reports'
+import type { AdminReport } from './reports'
 import type { ReportType, ReportFormat, AggregationType } from './enums';
 
 // Platform Analytics APIs

@@ -7,7 +7,7 @@
 import type { ReactNode } from 'react';
 import type { BaseComponentProps } from '../../shared';
 import type { TimeRange } from './widget-types'
-import { ExportFormat } from './widget-types'
+import type { ExportFormat } from './widget-types'
 
 export interface MetricsOverviewProps extends BaseComponentProps {
   metrics: Metric[];

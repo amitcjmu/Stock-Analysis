@@ -317,7 +317,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
                   {bundleAnalysis?.chunkSizes && Object.entries(bundleAnalysis.chunkSizes).map(([chunk, size]) => (
                     <div key={chunk} className="flex justify-between text-sm">
                       <span className="truncate mr-2">{chunk}</span>
-                      <span className="font-mono">{Math.round((size as number) / 1024)}KB</span>
+                      <span className="font-mono">{Math.round((size) / 1024)}KB</span>
                     </div>
                   ))}
                 </div>

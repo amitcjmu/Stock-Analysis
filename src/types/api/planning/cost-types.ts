@@ -13,4 +13,4 @@
  */
 
 // Re-export all types from the modular structure
-export * from './cost-types/index';
+export type * from './cost-types/index';

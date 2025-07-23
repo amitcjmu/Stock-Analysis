@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { TechDebtItem } from '@/hooks/useAssessmentFlow';
+import type { TechDebtItem } from '@/hooks/useAssessmentFlow';
 import type { Clock, Zap } from 'lucide-react'
 import { Plus, Edit3, Trash2, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils';
@@ -60,7 +60,7 @@ export const TechDebtAnalysisGrid: React.FC<TechDebtAnalysisGridProps> = ({
 
     const item: TechDebtItem = {
       category: newItem.category,
-      severity: newItem.severity as 'critical' | 'high' | 'medium' | 'low',
+      severity: newItem.severity,
       description: newItem.description,
       remediation_effort_hours: newItem.remediation_effort_hours || 0,
       impact_on_migration: newItem.impact_on_migration || '',

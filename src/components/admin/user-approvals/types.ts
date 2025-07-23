@@ -45,6 +45,7 @@ export interface RejectionData {
 
 export interface UserApprovalsProps {
   // Main component props if needed
+  className?: string;
 }
 
 export interface UserListProps {

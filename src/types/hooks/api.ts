@@ -13,4 +13,4 @@
  */
 
 // Re-export everything from the modularized structure for backward compatibility
-export * from './api';
+export type * from './api';

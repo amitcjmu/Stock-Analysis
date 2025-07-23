@@ -8,7 +8,7 @@
  */
 
 import type { MappingProgress, FlowState, DiscoveryFlowData, MappingApprovalStatus } from './data-models'
-import { FieldMapping, CriticalAttribute, CrewAnalysis, DataImport, AgentClarification, BulkMappingUpdate } from './data-models'
+import type { FieldMapping, CriticalAttribute, CrewAnalysis, DataImport, AgentClarification, BulkMappingUpdate } from './data-models'
 
 import type { ValidationResult } from './validation-types';
 

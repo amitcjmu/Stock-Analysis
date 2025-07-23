@@ -6,12 +6,12 @@
  */
 
 // Re-export all types from modular files to maintain backward compatibility
-export * from './admin/user-management';
-export * from './admin/engagement-management';
-export * from './admin/system-settings';
-export * from './admin/analytics-dashboard';
-export * from './admin/session-comparison';
-export * from './admin/supporting-types';
+export type * from './admin/user-management';
+export type * from './admin/engagement-management';
+export type * from './admin/system-settings';
+export type * from './admin/analytics-dashboard';
+export type * from './admin/session-comparison';
+export type * from './admin/supporting-types';
 
 // Legacy re-exports for backward compatibility
 // These ensure that existing imports continue to work

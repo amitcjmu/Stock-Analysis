@@ -24,7 +24,7 @@ export interface AnalysisParameter {
   description?: string;
   required?: boolean;
   defaultValue?: unknown;
-  options?: { value: unknown; label: string }[];
+  options?: Array<{ value: unknown; label: string }>;
   min?: number;
   max?: number;
   step?: number;

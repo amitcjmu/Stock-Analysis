@@ -89,7 +89,7 @@ export interface TrainingMetrics {
   loss: number;
   validationAccuracy: number;
   validationLoss: number;
-  confusionMatrix: Array<number[]>;
+  confusionMatrix: number[][];
   learningCurve: LearningCurvePoint[];
   performanceByClass: Record<string, ClassMetrics>;
   convergenceStatus: ConvergenceStatus;
@@ -102,7 +102,7 @@ export interface ValidationMetrics {
   recall: number;
   f1Score: number;
   auc: number;
-  confusionMatrix: Array<number[]>;
+  confusionMatrix: number[][];
 }
 
 export interface EarlyStoppingCriteria {
@@ -418,7 +418,7 @@ export interface PolynomialConfig {
 export interface InteractionConfig {
   maxDegree: number;
   includeOriginal: boolean;
-  specificPairs?: Array<string[]>;
+  specificPairs?: string[][];
 }
 
 export interface TransformationConfig {

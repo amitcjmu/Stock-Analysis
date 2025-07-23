@@ -7,7 +7,7 @@
 import type { ReactNode } from 'react';
 import type { BaseComponentProps } from '../../shared';
 import type { DashboardLayout, DashboardFilter, TimeRange, ExportFormat } from './widget-types'
-import { DashboardWidget, DashboardTemplate } from './widget-types'
+import type { DashboardWidget, DashboardTemplate } from './widget-types'
 
 export interface AnalyticsDashboardProps extends BaseComponentProps {
   widgets: DashboardWidget[];

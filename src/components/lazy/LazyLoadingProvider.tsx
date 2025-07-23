@@ -9,12 +9,12 @@ import type { LoadingPriority, LazyComponentOptions, LoadingState } from '@/type
 import { loadingManager } from '@/utils/lazy/loadingManager';
 
 interface LazyLoadingContextType {
-  loadComponent: <P extends {} = {}>(
+  loadComponent: <P extends Record<string, any> = Record<string, any>>(
     componentId: string,
     importFn: () => Promise<{ default: React.ComponentType<P> }>,
     options?: LazyComponentOptions
   ) => Promise<React.ComponentType<P>>;
-  preloadComponent: <P extends {} = {}>(
+  preloadComponent: <P extends Record<string, any> = Record<string, any>>(
     componentId: string,
     importFn: () => Promise<{ default: React.ComponentType<P> }>,
     options?: LazyComponentOptions
@@ -59,7 +59,7 @@ export const LazyLoadingProvider: React.FC<LazyLoadingProviderProps> = ({
     }
   }, []);
 
-  const loadComponent = useCallback(async <P extends {} = {}>(
+  const loadComponent = useCallback(async <P extends Record<string, any> = Record<string, any>>(
     componentId: string,
     importFn: () => Promise<{ default: React.ComponentType<P> }>,
     options: LazyComponentOptions = {}
@@ -69,7 +69,7 @@ export const LazyLoadingProvider: React.FC<LazyLoadingProviderProps> = ({
     return loadingManager.loadComponent(componentId, importFn, mergedOptions);
   }, [globalOptions, triggerUpdate]);
 
-  const preloadComponent = useCallback(<P extends {} = {}>(
+  const preloadComponent = useCallback(<P extends Record<string, any> = Record<string, any>>(
     componentId: string,
     importFn: () => Promise<{ default: React.ComponentType<P> }>,
     options: LazyComponentOptions = {}

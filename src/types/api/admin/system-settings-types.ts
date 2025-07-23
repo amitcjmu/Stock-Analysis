@@ -10,4 +10,4 @@
  */
 
 // Re-export all types from the modular structure
-export * from './system-settings';
+export type * from './system-settings';

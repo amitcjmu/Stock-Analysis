@@ -4,7 +4,7 @@ import { UserCheck, UserX, Mail, Building2, User, CheckCircle, XCircle, Eye, Edi
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PendingUser, ActiveUser } from './types';
+import type { PendingUser, ActiveUser } from './types';
 
 interface UserListProps {
   activeTab: 'pending' | 'active';

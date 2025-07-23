@@ -14,7 +14,7 @@ import type {
   GetRequest
 } from '../shared';
 import type { ObservabilityScope, MonitoringStrategy, ObservabilityStatus, ObservabilityFlowData, PerformanceMetrics } from './core-types'
-import { ObservabilityObjective, ObservabilityRequirement } from './core-types'
+import type { ObservabilityObjective, ObservabilityRequirement } from './core-types'
 
 // Flow Initialization
 export interface InitializeObservabilityFlowRequest extends BaseApiRequest {

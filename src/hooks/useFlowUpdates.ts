@@ -148,9 +148,9 @@ export function useFlowUpdates(
         eventSourceRef.current = null;
 
         // Retry SSE connection or fall back to polling
-        if (retryCountRef.current < mergedOptions.maxRetries!) {
+        if (retryCountRef.current < mergedOptions.maxRetries) {
           retryCountRef.current++;
-          const delay = mergedOptions.retryDelay! * Math.pow(2, retryCountRef.current - 1);
+          const delay = mergedOptions.retryDelay * Math.pow(2, retryCountRef.current - 1);
           
           console.log(`Retrying SSE connection in ${delay}ms (attempt ${retryCountRef.current})`);
           

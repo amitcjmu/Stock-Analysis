@@ -10,4 +10,4 @@
  */
 
 // Re-export all governance types from modular structure
-export * from './governance/index';
+export type * from './governance/index';

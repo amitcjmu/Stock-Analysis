@@ -1,7 +1,7 @@
 import type { useState } from 'react'
 import { useCallback, useEffect } from 'react'
 import { apiCall } from '@/config/api';
-import { Client } from '../types';
+import type { Client } from '../types';
 
 interface UseClientDataProps {
   searchTerm?: string;

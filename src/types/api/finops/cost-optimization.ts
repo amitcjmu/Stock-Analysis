@@ -13,4 +13,4 @@
  */
 
 // Re-export all types for backward compatibility
-export * from './cost-optimization';
+export type * from './cost-optimization';

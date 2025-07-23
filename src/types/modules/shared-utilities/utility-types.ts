@@ -48,7 +48,7 @@ export interface NumberUtilityService {
 }
 
 export interface ArrayUtilityService {
-  chunk: <T>(array: T[], size: number) => Array<T[]>;
+  chunk: <T>(array: T[], size: number) => T[][];
   flatten: <T>(array: Array<T | T[]>, depth?: number) => T[];
   unique: <T>(array: T[], key?: keyof T) => T[];
   groupBy: <T>(array: T[], key: keyof T) => Record<string, T[]>;
@@ -74,7 +74,7 @@ export interface ObjectUtilityService {
   isEqual: (obj1: unknown, obj2: unknown) => boolean;
   keys: (obj: unknown) => string[];
   values: (obj: unknown) => unknown[];
-  entries: (obj: unknown) => [string, unknown][];
+  entries: (obj: unknown) => Array<[string, unknown]>;
   invert: (obj: Record<string, unknown>) => Record<string, string>;
 }
 

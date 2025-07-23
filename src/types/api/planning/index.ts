@@ -9,28 +9,28 @@
  */
 
 // Flow Management - Core planning flow APIs and data types
-export * from './flow-management';
+export type * from './flow-management';
 
 // Strategy Types - Migration strategy development and analysis
-export * from './strategy-types';
+export type * from './strategy-types';
 
 // Timeline Types - Timeline planning and scheduling
-export * from './timeline-types';
+export type * from './timeline-types';
 
 // Resource Types - Resource planning and optimization
-export * from './resource-types';
+export type * from './resource-types';
 
 // Risk Types - Risk planning and mitigation
-export * from './risk-types';
+export type * from './risk-types';
 
 // Cost Types - Cost planning and optimization
-export * from './cost-types';
+export type * from './cost-types';
 
 // Execution Types - Execution planning and governance
-export * from './execution-types';
+export type * from './execution-types';
 
 // Analytics Types - Validation, approval, analytics and reporting
-export * from './analytics-types';
+export type * from './analytics-types';
 
 // Re-export key types for convenience and backward compatibility
 export type {

@@ -11,7 +11,7 @@ import type {
 } from '../shared';
 
 import type { MFASetupResult, MFAVerificationResult, MFADisableResult, BackupCodesResult } from './core-types'
-import { MFAMethod } from './core-types'
+import type { MFAMethod } from './core-types'
 
 // Multi-Factor Authentication APIs
 export interface SetupMFARequest extends BaseApiRequest {

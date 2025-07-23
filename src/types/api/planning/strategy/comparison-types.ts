@@ -59,7 +59,7 @@ export interface ScoredComparison {
 export interface ComparisonMatrix {
   strategies: string[];
   criteria: string[];
-  scores: Array<number[]>;
+  scores: number[][];
   weights: number[];
 }
 

@@ -160,7 +160,7 @@ export type GenericListComponent = <TItem = unknown>(props: GenericListProps<TIt
 export type DataTableComponent = <TData = Record<string, unknown>>(props: DataTableProps<TData>) => ReactNode;
 
 // Export the patterns for documentation
-export type ComponentPropsPatterns = {
+export interface ComponentPropsPatterns {
   // Always extend BaseDiscoveryProps for consistency
   BasePattern: BaseDiscoveryProps;
   
@@ -201,4 +201,4 @@ export type ComponentPropsPatterns = {
     'aria-label'?: string;
     'data-testid'?: string;
   };
-};
+}

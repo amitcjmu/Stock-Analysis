@@ -12,4 +12,4 @@
  */
 
 // Re-export all types from modular files
-export * from './discovery/index';
+export type * from './discovery/index';

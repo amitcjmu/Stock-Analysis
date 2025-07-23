@@ -1,6 +1,6 @@
 import type { useState } from 'react'
 import { useEffect } from 'react'
-import { SixRDecision, ComponentTreatment } from '@/hooks/useAssessmentFlow';
+import type { SixRDecision, ComponentTreatment } from '@/hooks/useAssessmentFlow';
 
 interface UseSixRReviewStateProps {
   selectedApplicationIds: string[];

@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type { Client, Engagement } from '../types'
-import { User } from '../types'
+import type { User } from '../types'
 import { tokenStorage } from '../storage';
 
 export const useAuthHeaders = (

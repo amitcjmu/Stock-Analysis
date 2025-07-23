@@ -146,7 +146,7 @@ export const ReadinessTabs = ({
                     <div className="mt-2 text-sm text-gray-600">
                       <p className="font-medium">Areas for Improvement:</p>
                       <ul className="list-disc pl-5 mt-1 space-y-1">
-                        {value.gaps!.slice(0, 3).map((gap: string, i: number) => (
+                        {value.gaps.slice(0, 3).map((gap: string, i: number) => (
                           <li key={i}>{gap}</li>
                         ))}
                       </ul>

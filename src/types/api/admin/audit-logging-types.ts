@@ -15,10 +15,10 @@
  */
 
 // Re-export all audit types for backward compatibility
-export * from './audit';
+export type * from './audit';
 
 // Re-export common types that were previously defined here
-export { 
+export type { 
   GeoLocation, 
   DeviceInfo,
   AuditMetadata,

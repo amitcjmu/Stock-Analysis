@@ -166,7 +166,7 @@ export interface ConstraintStatus {
 
 export interface OptimizationValidation {
   status: 'passed' | 'failed' | 'partial';
-  checks: import('./implementation-planning').ValidationResult[];
+  checks: Array<import('./implementation-planning').ValidationResult>;
   score: number;
   issues: string[];
 }

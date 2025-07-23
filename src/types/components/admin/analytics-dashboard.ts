@@ -9,4 +9,4 @@
  */
 
 // Re-export everything from the modularized structure
-export * from './analytics-dashboard';
+export type * from './analytics-dashboard';

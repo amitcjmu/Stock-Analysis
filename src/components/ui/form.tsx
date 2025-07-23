@@ -1,18 +1,18 @@
 import * as React from "react"
-import * as LabelPrimitive from "@radix-ui/react-label"
+import type * as LabelPrimitive from "@radix-ui/react-label"
 import { Slot } from "@radix-ui/react-slot"
-import type { ControllerProps, FieldPath, useFormContext } from 'react-hook-form'
-import { Controller, FieldValues, FormProvider,  } from 'react-hook-form'
+import type { ControllerProps, FieldPath, useFormContext , FieldValues} from 'react-hook-form'
+import { Controller, FormProvider,  } from 'react-hook-form'
 
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
 
 const Form = FormProvider
 
-type FormFieldContextValue<
+interface FormFieldContextValue<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
-> = {
+> {
   name: TName
 }
 
@@ -56,7 +56,7 @@ const useFormField = () => {
   }
 }
 
-type FormItemContextValue = {
+interface FormItemContextValue {
   id: string
 }
 

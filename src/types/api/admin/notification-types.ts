@@ -16,10 +16,10 @@
  */
 
 // Re-export all notification types for backward compatibility
-export * from './notifications';
+export type * from './notifications';
 
 // Re-export common types that were previously defined here
-export { 
+export type { 
   GeoLocation, 
   DeviceInfo 
 } from './common';

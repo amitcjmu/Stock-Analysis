@@ -11,4 +11,4 @@
  */
 
 // Re-export all types from the modular structure
-export * from './resource-types/index';
+export type * from './resource-types/index';

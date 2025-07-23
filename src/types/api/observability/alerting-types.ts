@@ -15,7 +15,7 @@ import type {
   MultiTenantContext
 } from '../shared';
 import type { FilterValue, ThresholdValue } from '../shared/value-types'
-import { PrimitiveValue } from '../shared/value-types'
+import type { PrimitiveValue } from '../shared/value-types'
 import type { GenericMetadata } from '../shared/metadata-types';
 
 // Alert Rule Management
@@ -185,7 +185,7 @@ export interface AlertTestResult {
   message: string;
   duration: number;
   fired: boolean;
-  mockData?: Record<string, PrimitiveValue> | Array<PrimitiveValue>;
+  mockData?: Record<string, PrimitiveValue> | PrimitiveValue[];
 }
 
 export interface Alert {

@@ -9,13 +9,13 @@
  */
 
 // Re-export all validation types
-export * from './validation';
+export type * from './validation';
 
 // Re-export all approval workflow types  
-export * from './approval';
+export type * from './approval';
 
 // Re-export all analytics core types
-export * from './analytics';
+export type * from './analytics';
 
 // Re-export all reporting types
-export * from './reporting';
+export type * from './reporting';

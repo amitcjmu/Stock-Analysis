@@ -13,11 +13,11 @@
  */
 
 // Re-export all types from modular files
-export * from './shared-utilities/index';
+export type * from './shared-utilities/index';
 
 // Export grouped modules for organized access
-export * as Auth from './shared-utilities/auth-types';
-export * as API from './shared-utilities/api-types';
-export * as Validation from './shared-utilities/validation-types';
-export * as ErrorHandling from './shared-utilities/error-handling-types';
-export * as Utils from './shared-utilities/utility-types';
+export type * as Auth from './shared-utilities/auth-types';
+export type * as API from './shared-utilities/api-types';
+export type * as Validation from './shared-utilities/validation-types';
+export type * as ErrorHandling from './shared-utilities/error-handling-types';
+export type * as Utils from './shared-utilities/utility-types';

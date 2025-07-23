@@ -6,7 +6,7 @@
  */
 
 import type { BaseAsyncHookParams } from './shared'
-import { BaseAsyncHookReturn } from './shared'
+import type { BaseAsyncHookReturn } from './shared'
 
 // Common types for admin data
 export type AdminValue = string | number | boolean | Date | null | undefined;

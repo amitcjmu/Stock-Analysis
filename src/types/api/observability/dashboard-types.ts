@@ -15,7 +15,7 @@ import type {
   UpdateResponse
 } from '../shared';
 import type { FilterValue } from '../shared/value-types'
-import { PrimitiveValue, DynamicValue } from '../shared/value-types'
+import type { PrimitiveValue, DynamicValue } from '../shared/value-types'
 import type { GenericMetadata } from '../shared/metadata-types';
 
 // Dashboard Management
@@ -161,7 +161,7 @@ export interface DashboardValidation {
 
 export interface WidgetData {
   widgetId: string;
-  data: DynamicValue | Array<DynamicValue>;
+  data: DynamicValue | DynamicValue[];
   metadata: WidgetMetadata;
   status: 'loading' | 'success' | 'error' | 'empty';
   error?: string;

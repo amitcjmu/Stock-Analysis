@@ -3,7 +3,7 @@
  * Extracted from ApplicationSelector.tsx for modularization
  */
 
-import { Application } from '../types/ApplicationSelectorTypes';
+import type { Application } from '../types/ApplicationSelectorTypes';
 
 interface UseApplicationSelectionResult {
   handleSelectAll: (filteredApplications: Application[]) => void;

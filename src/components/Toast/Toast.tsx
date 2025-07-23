@@ -6,7 +6,8 @@
 import React from 'react'
 import type { useState } from 'react'
 import { useEffect } from 'react'
-import { Toast as ToastType, toastStore } from '../../utils/toast';
+import type { Toast as ToastType} from '../../utils/toast';
+import { toastStore } from '../../utils/toast';
 import styles from './Toast.module.css';
 
 export const ToastContainer: React.FC = () => {

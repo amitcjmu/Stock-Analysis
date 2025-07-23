@@ -11,4 +11,4 @@
  */
 
 // Re-export all types from the modular structure for backward compatibility
-export * from './workstream/index';
+export type * from './workstream/index';

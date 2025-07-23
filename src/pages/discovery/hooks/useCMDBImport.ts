@@ -384,7 +384,7 @@ export const useFileUpload = () => {
   const discoveryFlow = useDiscoveryFlow();
   
   return useMutation({
-    mutationFn: async (files: { file: File; type: string; id: string }[]) => {
+    mutationFn: async (files: Array<{ file: File; type: string; id: string }>) => {
       const uploadPromises = files.map(async ({ file, type, id }) => {
         try {
           // Update file status to analyzing

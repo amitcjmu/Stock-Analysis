@@ -8,22 +8,22 @@
  */
 
 // Component and core types
-export * from './component-types';
+export type * from './component-types';
 
 // Security-related types
-export * from './security-types';
+export type * from './security-types';
 
 // Notification types
-export * from './notification-types';
+export type * from './notification-types';
 
 // API and storage types
-export * from './api-storage-types';
+export type * from './api-storage-types';
 
 // Performance and feature types
-export * from './performance-feature-types';
+export type * from './performance-feature-types';
 
 // Branding, maintenance, and backup types
-export * from './branding-maintenance-types';
+export type * from './branding-maintenance-types';
 
 // Validation and audit types
-export * from './validation-audit-types';
+export type * from './validation-audit-types';

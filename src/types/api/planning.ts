@@ -12,4 +12,4 @@
  */
 
 // Re-export all types from the modular planning structure
-export * from './planning';
+export type * from './planning';

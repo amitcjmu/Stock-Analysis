@@ -412,7 +412,7 @@ export interface ContextEvent {
 
 export interface MatrixResult {
   metric: Record<string, string>;
-  values: [number, string][];
+  values: Array<[number, string]>;
 }
 
 export interface VectorResult {

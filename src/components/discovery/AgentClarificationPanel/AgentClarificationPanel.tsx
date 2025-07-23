@@ -8,7 +8,7 @@ import React from 'react'
 import type { useState } from 'react'
 import { useEffect } from 'react'
 import type { AssetDetails, AgentClarificationPanelProps } from './types'
-import { AgentQuestion } from './types'
+import type { AgentQuestion } from './types'
 import * as api from './api';
 import type LoadingState from './LoadingState';
 import type ErrorState from './ErrorState';

@@ -25,10 +25,10 @@
 export * from './modules';
 
 // Component Type Libraries
-export * from './components';
+export type * from './components';
 
 // Hook Type Definitions
-export * from './hooks';
+export type * from './hooks';
 
 // API Type Boundaries
 export * from './api';
@@ -131,7 +131,7 @@ export const validateModuleBoundary = <T extends ModuleBoundaryType>(
 
 export const getAvailableModules = <T extends ModuleBoundaryType>(
   boundaryType: T
-): readonly ModuleName<T>[] => {
+): ReadonlyArray<ModuleName<T>> => {
   return MODULE_BOUNDARIES[boundaryType];
 };
 
@@ -142,7 +142,7 @@ export const createModuleImporter = <T extends ModuleBoundaryType>(
   return {
     validate: (moduleName: string): moduleName is ModuleName<T> => 
       validateModuleBoundary(boundaryType, moduleName),
-    getAvailable: (): readonly ModuleName<T>[] => 
+    getAvailable: (): ReadonlyArray<ModuleName<T>> => 
       getAvailableModules(boundaryType),
     importModule: async (moduleName: ModuleName<T>) => {
       switch (boundaryType) {

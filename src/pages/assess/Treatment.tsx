@@ -15,8 +15,8 @@ import { useSixRAnalysis } from '@/hooks/useSixRAnalysis';
 import { useAnalysisQueue } from '@/hooks/useAnalysisQueue';
 
 // Types
-import type { SixRParameters, SixRRecommendation, QuestionResponse, AnalysisProgress as AnalysisProgressType, AnalysisQueueItem } from '@/types/assessment'
-import { Application, Analysis } from '@/types/assessment'
+import type { SixRParameters, SixRRecommendation, QuestionResponse, AnalysisProgress as AnalysisProgressType, AnalysisQueueItem , Application} from '@/types/assessment'
+import { Analysis } from '@/types/assessment'
 
 // Components
 import type { AnalysisProgress as AnalysisProgressComponent } from '@/components/assessment'

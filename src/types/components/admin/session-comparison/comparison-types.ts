@@ -6,7 +6,7 @@
 
 import type { ReactNode } from 'react';
 import type { BaseComponentProps } from '../../shared';
-import { UserSession } from './session-types';
+import type { UserSession } from './session-types';
 import type {
   SignificanceLevel, 
   DifferenceCategory, 
@@ -19,7 +19,7 @@ import type {
   EffortLevel 
 } from './enum-types';
 import type { SessionFilter } from './filter-types'
-import { SessionComparisonColumn, ExportFormat } from './filter-types'
+import type { SessionComparisonColumn, ExportFormat } from './filter-types'
 
 export interface SessionComparisonProps extends BaseComponentProps {
   sessions: UserSession[];

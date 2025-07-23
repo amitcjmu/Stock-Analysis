@@ -12,8 +12,8 @@ import { ClientForm } from './components/ClientForm';
 import { ClientTable } from './components/ClientTable';
 import type { useClientData } from './hooks/useClientData';
 import { useClientOperations } from './hooks/useClientOperations';
-import type { ClientFormData } from './types'
-import { Client, Industries } from './types'
+import type { ClientFormData , Client} from './types'
+import { Industries } from './types'
 
 const initialFormData: ClientFormData = {
   account_name: '',

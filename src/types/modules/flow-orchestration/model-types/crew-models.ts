@@ -5,10 +5,10 @@
  */
 
 import type { ExecutionError, ExecutionConstraints, RetryPolicy, TimeRange } from '../base-types'
-import { AgentConfiguration } from '../base-types'
+import type { AgentConfiguration } from '../base-types'
 
 import type { AgentStatus, AgentResult } from './agent-models'
-import { AgentInstance, AgentResourceUsage } from './agent-models'
+import type { AgentInstance, AgentResourceUsage } from './agent-models'
 
 // Crew Models
 export interface CrewConfiguration {

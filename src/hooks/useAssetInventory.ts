@@ -63,7 +63,7 @@ export interface DependencyAnalysis {
   application_dependencies: number;
   server_dependencies: number;
   database_dependencies: number;
-  complex_dependency_chains: Array<DependencyChain>;
+  complex_dependency_chains: DependencyChain[];
   orphaned_assets: string[];
 }
 

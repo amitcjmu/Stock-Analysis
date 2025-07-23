@@ -17,11 +17,11 @@ import type {
 } from '../../shared';
 
 import type { NotificationData, NotificationScheduling } from './notification'
-import { Notification, NotificationRecipient, NotificationChannel, NotificationRead, DeliveryChannel, PriorityCount, ChannelStats } from './notification'
+import type { Notification, NotificationRecipient, NotificationChannel, NotificationRead, DeliveryChannel, PriorityCount, ChannelStats } from './notification'
 
 import type { NotificationStatus, ChannelType } from './enums'
-import { NotificationPriority } from './enums'
-import { TimeRange } from '../common';
+import type { NotificationPriority } from './enums'
+import type { TimeRange } from '../common';
 
 // Notification Creation APIs
 export interface CreateNotificationRequest extends CreateRequest<NotificationData> {

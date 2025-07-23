@@ -8,7 +8,7 @@
  */
 
 import type { BaseMetadata, AuditableMetadata } from '../../../shared/metadata-types';
-import { ConfigurationValue } from '../../../shared/config-types';
+import type { ConfigurationValue } from '../../../shared/config-types';
 import type {
   BaseApiRequest,
   BaseApiResponse,
@@ -17,8 +17,8 @@ import type {
   CreateResponse
 } from '../../shared';
 import type { CostAmount } from '../cost-analysis';
-import type { FinOpsScope, TimeRange } from '../shared'
-import { OptimizationConstraint, OptimizationTarget, RiskAssessment } from '../shared'
+import type { FinOpsScope, TimeRange , OptimizationConstraint, OptimizationTarget} from '../shared'
+import { RiskAssessment } from '../shared'
 import type { ConfigurationValue } from '../../../shared/config-types';
 
 // Cost Optimization Planning APIs

@@ -9,7 +9,7 @@
 
 import type { CostAmount } from '../shared';
 import type { TrendProjection, TrendDriver, ForecastPrediction, ForecastConfidence, ForecastAccuracy, ForecastAssumption, ScenarioImpact } from './analytics-core'
-import { AnalyticsTrend, AnalyticsForecast, SeasonalityPattern, ForecastScenario } from './analytics-core'
+import type { AnalyticsTrend, AnalyticsForecast, SeasonalityPattern, ForecastScenario } from './analytics-core'
 
 // Enhanced Trend Analysis
 export interface FinOpsTrend extends AnalyticsTrend {

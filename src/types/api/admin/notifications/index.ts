@@ -9,19 +9,19 @@
  */
 
 // API request/response types
-export * from './api-types';
+export type * from './api-types';
 
 // Core notification types
-export * from './notification';
+export type * from './notification';
 
 // Delivery and channel types
-export * from './delivery';
+export type * from './delivery';
 
 // Template management types
-export * from './templates';
+export type * from './templates';
 
 // Tracking and analytics types
-export * from './tracking';
+export type * from './tracking';
 
 // Notification-specific enums
-export * from './enums';
+export type * from './enums';

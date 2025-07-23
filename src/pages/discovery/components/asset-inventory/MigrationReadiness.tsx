@@ -61,7 +61,7 @@ const MigrationReadiness: React.FC<MigrationReadinessProps> = ({
     }
   };
 
-  const readinessCriteria: { label: string; count: number; color: string }[] = [
+  const readinessCriteria: Array<{ label: string; count: number; color: string }> = [
     {
       label: 'Ready for Assessment',
       count: readiness.ready_for_assessment,

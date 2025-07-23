@@ -13,13 +13,15 @@ import { AdminHeader } from '@/components/admin/shared/components'
 import { 
   useAdminToasts
 } from '@/components/admin/shared';
+import type {
+  SoftDeletedItem,
+  PurgeAction
+} from './components';
 import {
   PlatformStats,
   PendingItemsList,
   PurgeActionDialog,
-  ItemDetailsDialog,
-  SoftDeletedItem,
-  PurgeAction
+  ItemDetailsDialog
 } from './components';
 
 // Interfaces moved to components folder

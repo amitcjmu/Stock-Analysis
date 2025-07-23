@@ -5,16 +5,16 @@
  */
 
 // Base types
-export * from './base-hooks';
+export type * from './base-hooks';
 
 // Attribute mapping types
-export * from './attribute-mapping-hooks';
+export type * from './attribute-mapping-hooks';
 
 // Flow detection types  
-export * from './flow-detection-hooks';
+export type * from './flow-detection-hooks';
 
 // Analysis and training types
-export * from './analysis-hooks';
+export type * from './analysis-hooks';
 
 // Data import types
-export * from './data-import-hooks';
+export type * from './data-import-hooks';

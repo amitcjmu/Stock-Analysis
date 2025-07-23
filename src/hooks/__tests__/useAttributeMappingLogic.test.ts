@@ -129,7 +129,7 @@ describe('useAttributeMappingLogic', () => {
     vi.clearAllMocks();
 
     // Use imported mocked modules
-    mockUseDiscoveryFlowV2 = useDiscoveryFlowV2 as MockedFunction<typeof useDiscoveryFlowV2>;
+    mockUseDiscoveryFlowV2 = useDiscoveryFlowV2;
     mockUseAttributeMappingFlowDetection = useAttributeMappingFlowDetection as MockedFunction<typeof useAttributeMappingFlowDetection>;
     mockUseAuth = useAuth as MockedFunction<typeof useAuth>;
     mockApiCall = apiCall as MockedFunction<typeof apiCall>;

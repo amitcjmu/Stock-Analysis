@@ -21,7 +21,7 @@ import type {
 } from '../../shared';
 
 import type { StrategyFlowData, StrategyType, StrategyFlowStatus, StrategyScope, StrategyPhases, PhaseDefinition, PhaseStatus, TimeRange, Stakeholder, Dependency, ApprovalRequirement, RiskAssessment, ExecutionPlan } from './base-types'
-import { PriorityLevel } from './base-types'
+import type { PriorityLevel } from './base-types'
 
 // Base Flow Initialization Types
 export interface InitializeStrategyFlowRequest extends BaseApiRequest {

@@ -6,7 +6,7 @@
 
 import React from 'react';
 import type { Brain, Target, BarChart3, CheckCircle, TrendingUp, AlertCircle, XCircle } from 'lucide-react';
-import { FieldMapping } from '../../types';
+import type { FieldMapping } from '../../types';
 import type { AgentTypeInfo, ConfidenceDisplayInfo } from './types';
 
 // AGENTIC UI HELPERS: Agent reasoning and confidence display functions

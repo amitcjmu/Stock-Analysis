@@ -10,7 +10,7 @@
 import type { ReactNode } from 'react';
 import type { BaseComponentProps } from '../../shared';
 import type { EngagementStatus, EngagementType } from './core-types'
-import { Engagement } from './core-types'
+import type { Engagement } from './core-types'
 
 // Main Engagement List Component
 export interface EngagementListProps extends BaseComponentProps {

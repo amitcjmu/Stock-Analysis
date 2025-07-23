@@ -11,7 +11,7 @@ import type {
   MultiTenantContext
 } from '../../shared';
 import type { ImpactMeasure, TrendData } from './shared-types'
-import { SeasonalPattern, PredictionFactor } from './shared-types'
+import type { SeasonalPattern, PredictionFactor } from './shared-types'
 
 // SLA Reporting Requests and Responses
 export interface GetSLAReportRequest extends BaseApiRequest {

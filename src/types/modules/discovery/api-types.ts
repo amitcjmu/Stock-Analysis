@@ -14,10 +14,10 @@ import type {
 } from './base-types';
 
 import type { FieldMappingInput, FlowState } from './data-models'
-import { FieldMapping, CriticalAttribute, CrewAnalysis } from './data-models'
+import type { FieldMapping, CriticalAttribute, CrewAnalysis } from './data-models'
 
 import type { ValidationOptions, ValidationResult, FlowConfiguration, ImportOptions, ImportError } from './validation-types'
-import { AgentInsight } from './validation-types'
+import type { AgentInsight } from './validation-types'
 
 /**
  * API Types Namespace

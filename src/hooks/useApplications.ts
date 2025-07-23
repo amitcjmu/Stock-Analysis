@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import type { apiCall } from '@/config/api'
 import { API_CONFIG } from '@/config/api'
 import { SixRApiClient } from '@/lib/api/sixr';
-import { Application } from '@/components/sixr';
+import type { Application } from '@/components/sixr';
 
 /**
  * Interface for raw application data from backend API

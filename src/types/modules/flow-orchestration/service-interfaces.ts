@@ -17,7 +17,7 @@ import type {
 } from './base-types';
 
 import type { FlowInitializationConfig, FlowExecutionResult, ActiveFlowSummary, FlowStateData, AgentStatus, CoordinationResult, AgentMessage, CrewExecutionContext, CrewExecutionResult, CrewStatus, FlowEvent, HealthStatus, AlertConfiguration } from './model-types'
-import { FlowStatusDetail, FlowHistoryEntry, AgentInstance, AgentMetrics, AgentCoordination, AgentCommunication, CrewConfiguration, CrewInstance, CrewResults, CrewMetrics, EventSubscription, EventMetrics, FlowMetrics, SystemMetrics, PerformanceMetrics, ResourceUsage, Alert } from './model-types'
+import type { FlowStatusDetail, FlowHistoryEntry, AgentInstance, AgentMetrics, AgentCoordination, AgentCommunication, CrewConfiguration, CrewInstance, CrewResults, CrewMetrics, EventSubscription, EventMetrics, FlowMetrics, SystemMetrics, PerformanceMetrics, ResourceUsage, Alert } from './model-types'
 
 export interface MasterFlowOrchestratorService {
   initializeFlow: (config: FlowInitializationConfig) => Promise<FlowExecutionResult>;

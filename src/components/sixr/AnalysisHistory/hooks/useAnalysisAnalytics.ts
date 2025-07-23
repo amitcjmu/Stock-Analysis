@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { AnalyticsData } from '../types'
-import { AnalysisHistoryItem } from '../types'
+import type { AnalysisHistoryItem } from '../types'
 
 export const useAnalysisAnalytics = (analyses: AnalysisHistoryItem[]): AnalyticsData => {
   return useMemo(() => {

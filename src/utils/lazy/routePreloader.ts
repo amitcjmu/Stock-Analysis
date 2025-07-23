@@ -133,7 +133,7 @@ class RoutePreloader {
   setupHoverPreloading(): void {
     document.addEventListener('mouseover', (event) => {
       const target = event.target as HTMLElement;
-      const link = target.closest('a[href]') as HTMLAnchorElement;
+      const link = target.closest('a[href]');
       
       if (!link || link.hostname !== window.location.hostname) {
         return;
@@ -162,7 +162,7 @@ class RoutePreloader {
     // Clear timeouts on mouse leave
     document.addEventListener('mouseout', (event) => {
       const target = event.target as HTMLElement;
-      const link = target.closest('a[href]') as HTMLAnchorElement;
+      const link = target.closest('a[href]');
       
       if (link) {
         const href = link.getAttribute('href');

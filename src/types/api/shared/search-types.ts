@@ -7,7 +7,7 @@
 import type { BaseApiRequest, BaseApiResponse, PaginationInfo } from './base-types';
 import type { MultiTenantContext } from './tenant-types';
 import type { AggregationRequest, AggregationResult } from './query-types'
-import { SortParameter, FilterParameter } from './query-types'
+import type { SortParameter, FilterParameter } from './query-types'
 
 // Basic search
 export interface SearchRequest extends BaseApiRequest {

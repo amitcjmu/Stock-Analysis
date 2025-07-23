@@ -11,12 +11,12 @@ import { BarChart3, Calendar, Download, ClipboardList, Edit, ArrowRight } from '
 const AssessIndex = () => {
   const { getAuthHeaders } = useAuth();
 
-  type Metrics = {
+  interface Metrics {
     totalApps: number;
     assessed: number;
     waves: number;
     groups: number;
-  };
+  }
 
   const { data: assessmentMetrics = { totalApps: 0, assessed: 0, waves: 1, groups: 1 }, isLoading, error } = useQuery<Metrics, Error>({
     queryKey: ['assessment-overview'],

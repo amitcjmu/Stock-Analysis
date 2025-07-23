@@ -13,8 +13,8 @@ import type {
   MultiTenantContext
 } from '../../shared';
 import type { CostAmount } from '../cost-analysis';
-import type { OptimizationTarget, ResourceConfiguration, RiskAssessment, ExecutionPlan, ResourceState, ChangeImpact } from '../shared'
-import { OptimizationStrategy, OptimizationConstraint } from '../shared'
+import type { OptimizationTarget, ResourceConfiguration, RiskAssessment, ExecutionPlan, ResourceState, ChangeImpact , OptimizationConstraint } from '../shared'
+import { OptimizationStrategy } from '../shared'
 import type { ConfigurationValue, TypedConstraint } from '../../../shared/config-types';
 
 // Resource Allocation Optimization APIs

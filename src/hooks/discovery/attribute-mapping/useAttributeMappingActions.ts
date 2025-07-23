@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { apiCall } from '../../../config/api';
-import { FieldMapping } from './useFieldMappings';
+import type { FieldMapping } from './useFieldMappings';
 import type { FlowUpdate } from '../../useFlowUpdates'
 import { useFlowUpdates } from '../../useFlowUpdates'
 

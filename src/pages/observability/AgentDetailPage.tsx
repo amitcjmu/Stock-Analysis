@@ -158,7 +158,7 @@ const AgentDetailPage: React.FC = () => {
                       label: `${(rate * 100).toFixed(1)}%`
                     })),
                     color: '#10b981',
-                    trend: performanceMetrics?.trend as 'up' | 'down' | 'stable',
+                    trend: performanceMetrics?.trend,
                     changePercent: 0
                   }}
                   title="Success Rate Trend"

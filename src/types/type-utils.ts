@@ -39,7 +39,7 @@ export type ReturnType<T> = T extends (...args: unknown[]) => infer R ? R : unkn
 export type PromiseType<T> = T extends Promise<infer P> ? P : T;
 
 // Extract array element type
-export type ArrayElement<T> = T extends (infer U)[] ? U : never;
+export type ArrayElement<T> = T extends Array<infer U> ? U : never;
 
 // Create union from object values
 export type ValueOf<T> = T[keyof T];

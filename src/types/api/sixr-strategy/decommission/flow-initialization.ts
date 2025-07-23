@@ -16,7 +16,7 @@ import type {
 } from '../../shared';
 
 import type { InitializeStrategyFlowRequest, InitializeStrategyFlowResponse, TimeRange } from '../shared'
-import { StrategyScope, Stakeholder, Dependency, ApprovalRequirement } from '../shared'
+import type { StrategyScope, Stakeholder, Dependency, ApprovalRequirement } from '../shared'
 
 // Decommission-Specific Flow Initialization
 export interface InitializeDecommissionFlowRequest extends InitializeStrategyFlowRequest {

@@ -14,7 +14,7 @@ import type {
 } from '../../shared';
 import type { CostAmount } from '../cost-analysis';
 import type { FinOpsResource, ResourceType, TimeRange, UtilizationSummary, ResourceEfficiency } from '../shared'
-import { UtilizationMetric, UtilizationThreshold, ResourceUtilization, UtilizationTrend, UtilizationAnomaly } from '../shared'
+import type { UtilizationMetric, UtilizationThreshold, ResourceUtilization, UtilizationTrend, UtilizationAnomaly } from '../shared'
 
 // Resource Utilization Analysis APIs
 export interface AnalyzeResourceUtilizationRequest extends BaseApiRequest {

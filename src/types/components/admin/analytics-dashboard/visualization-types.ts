@@ -113,7 +113,7 @@ export interface PaginationConfig {
 export interface SortingConfig {
   enabled: boolean;
   multiple?: boolean;
-  defaultSort?: { field: string; direction: 'asc' | 'desc' }[];
+  defaultSort?: Array<{ field: string; direction: 'asc' | 'desc' }>;
 }
 
 export interface FilteringConfig {
@@ -212,7 +212,7 @@ export interface MapMarker {
 
 export interface MapRegion {
   id: string;
-  coordinates: [number, number][];
+  coordinates: Array<[number, number]>;
   color?: string;
   opacity?: number;
   popup?: string;

@@ -7,7 +7,7 @@
  */
 
 import type { ConfidenceLevel } from '../common'
-import { ActivityLocation, ActivityDevice } from '../common'
+import type { ActivityLocation, ActivityDevice } from '../common'
 import type { PatternType, AnomalyType, AnomalySeverity } from './enums';
 
 // User activity summary
