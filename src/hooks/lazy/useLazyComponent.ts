@@ -23,7 +23,7 @@ interface UseLazyComponentReturn {
   loadingState: LoadingState | null;
 }
 
-export const useLazyComponent = <P extends Record<string, any> = Record<string, any>>(
+export const useLazyComponent = <P extends Record<string, unknown> = Record<string, unknown>>(
   componentId: string,
   importFn: () => Promise<{ default: React.ComponentType<P> }>,
   options: UseLazyComponentOptions = {}
@@ -104,7 +104,7 @@ export const useLazyComponent = <P extends Record<string, any> = Record<string, 
 /**
  * Hook for viewport-based lazy loading
  */
-export const useViewportLazyComponent = <P extends Record<string, any> = Record<string, any>>(
+export const useViewportLazyComponent = <P extends Record<string, unknown> = Record<string, unknown>>(
   componentId: string,
   importFn: () => Promise<{ default: React.ComponentType<P> }>,
   targetRef: React.RefObject<HTMLElement>,
@@ -134,7 +134,7 @@ export const useViewportLazyComponent = <P extends Record<string, any> = Record<
     observer.observe(targetRef.current);
 
     return () => observer.disconnect();
-  }, [targetRef, result.Component, result.loadComponent, triggerDistance]);
+  }, [targetRef, result, triggerDistance]);
 
   return result;
 };
@@ -142,7 +142,7 @@ export const useViewportLazyComponent = <P extends Record<string, any> = Record<
 /**
  * Hook for hover-based preloading
  */
-export const useHoverPreload = <P extends Record<string, any> = Record<string, any>>(
+export const useHoverPreload = <P extends Record<string, unknown> = Record<string, unknown>>(
   componentId: string,
   importFn: () => Promise<{ default: React.ComponentType<P> }>,
   options: LazyComponentOptions = {}

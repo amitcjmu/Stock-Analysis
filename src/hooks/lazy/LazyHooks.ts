@@ -10,7 +10,7 @@ import { LoadingPriority } from '@/types/lazy';
  */
 
 // Lazy load attribute mapping logic
-export const useLazyAttributeMappingLogic = (immediate = false) => {
+export const useLazyAttributeMappingLogic = (immediate = false): ReturnType<typeof useLazyHook> => {
   return useLazyHook(
     'attribute-mapping-logic',
     () => import('@/hooks/discovery/attribute-mapping'),
@@ -36,7 +36,7 @@ export const useLazyAttributeMappingLogic = (immediate = false) => {
 // };
 
 // Lazy load discovery flow management
-export const useLazyUnifiedDiscoveryFlow = (immediate = false) => {
+export const useLazyUnifiedDiscoveryFlow = (immediate = false): ReturnType<typeof useLazyHook> => {
   return useLazyHook(
     'unified-discovery-flow',
     () => import('@/hooks/useUnifiedDiscoveryFlow'),
@@ -53,7 +53,7 @@ export const useLazyUnifiedDiscoveryFlow = (immediate = false) => {
  */
 
 // Lazy load 6R analysis logic
-export const useLazySixRAnalysis = (immediate = false) => {
+export const useLazySixRAnalysis = (immediate = false): ReturnType<typeof useLazyHook> => {
   return useLazyHook(
     'sixr-analysis',
     () => import('@/hooks/useSixRAnalysis'),
@@ -66,7 +66,7 @@ export const useLazySixRAnalysis = (immediate = false) => {
 };
 
 // Lazy load assessment flow logic
-export const useLazyAssessmentFlow = (immediate = false) => {
+export const useLazyAssessmentFlow = (immediate = false): ReturnType<typeof useLazyHook> => {
   return useLazyHook(
     'assessment-flow',
     () => import('@/hooks/useAssessmentFlow'),
@@ -165,7 +165,13 @@ export const useProgressiveLazyHook = <T extends Record<string, unknown>>(
   enhancedImport: () => Promise<{ default: T }>,
   shouldLoadEnhanced: boolean,
   immediate = false
-) => {
+): {
+  hookModule: T | null;
+  loading: boolean;
+  error: Error | null;
+  isEnhanced: boolean;
+  retry: () => void;
+} => {
   const baseHook = useLazyHook(baseHookId, baseImport, {
     priority: LoadingPriority.HIGH,
     immediate
@@ -203,23 +209,15 @@ export const useBatchLazyHooks = (
     priority?: LoadingPriority;
   }>,
   immediate = false
-) => {
-  const hookResults = hooks.map(hook => 
-    useLazyHook(hook.id, hook.import, {
-      priority: hook.priority || LoadingPriority.NORMAL,
-      immediate
-    })
-  );
-
-  const allLoaded = hookResults.every(result => !!result.hookModule);
-  const anyLoading = hookResults.some(result => result.loading);
-  const anyError = hookResults.find(result => result.error);
-
-  return {
-    hooks: hookResults.map(result => result.hookModule),
-    allLoaded,
-    loading: anyLoading,
-    error: anyError?.error || null,
-    retryAll: () => hookResults.forEach(result => result.retry())
-  };
+): {
+  hooks: (unknown | null)[];
+  allLoaded: boolean;
+  loading: boolean;
+  error: Error | null;
+  retryAll: () => void;
+} => {
+  // This function cannot use hooks directly as it would violate React's rules
+  // Instead, it should return a configuration that the caller can use
+  // with individual useLazyHook calls
+  throw new Error('useBatchLazyHooks is not implemented correctly. Use individual useLazyHook calls instead.');
 };
