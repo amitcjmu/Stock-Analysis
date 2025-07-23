@@ -1,12 +1,12 @@
 import React from 'react';
-import type { Play } from 'lucide-react'
+import { Play } from 'lucide-react'
 import { Activity, CheckCircle2, AlertTriangle, Clock, Zap, Eye, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { validateFlowObject, createDisplaySafeUUID, debugUUID } from '@/utils/uuidValidation';
-import type { FlowSummary } from '../types';
+import { FlowSummary } from '../types';
 
 interface FlowsOverviewProps {
   flows: FlowSummary[];

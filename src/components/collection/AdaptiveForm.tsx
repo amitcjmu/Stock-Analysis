@@ -24,7 +24,7 @@ import { SectionCard } from './components/SectionCard';
 import { BulkDataGrid } from './BulkDataGrid';
 import { ValidationDisplay } from './ValidationDisplay';
 
-import type {
+import {
   AdaptiveFormProps,
   AdaptiveFormData,
   CollectionFormData,

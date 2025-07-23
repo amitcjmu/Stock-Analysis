@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { User } from 'lucide-react';
-import type { AuthenticationIndicatorProps } from './types';
+import { AuthenticationIndicatorProps } from './types';
 
 const AuthenticationIndicator: React.FC<AuthenticationIndicatorProps> = ({
   isAuthenticated,

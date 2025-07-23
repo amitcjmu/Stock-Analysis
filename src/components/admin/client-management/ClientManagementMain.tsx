@@ -1,18 +1,18 @@
 import React from 'react'
 import { useState } from 'react'
 import { useCallback } from 'react'
-import type { Upload } from 'lucide-react'
+import { Upload } from 'lucide-react'
 import { Building2, Plus, Search, Download } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import type { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ClientForm } from './components/ClientForm';
 import { ClientTable } from './components/ClientTable';
 import { useClientData } from './hooks/useClientData';
 import { useClientOperations } from './hooks/useClientOperations';
-import type { ClientFormData , Client} from './types'
+import { ClientFormData , Client} from './types'
 import { Industries } from './types'
 
 const initialFormData: ClientFormData = {

@@ -6,7 +6,7 @@
 import React from 'react';
 import { BarChart3 } from 'lucide-react';
 import { Badge } from '../../../ui/badge';
-import type { ProcessedInsights } from '../types/InventoryInsightsTypes';
+import { ProcessedInsights } from '../types/InventoryInsightsTypes';
 
 interface TechnologyStackAnalysisProps {
   analysis: ProcessedInsights['technology_analysis'];

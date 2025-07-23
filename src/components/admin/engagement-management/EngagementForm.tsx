@@ -1,9 +1,9 @@
 import React from 'react';
-import type { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import type { EngagementFormData , Client} from './types'
+import { EngagementFormData , Client} from './types'
 import { MigrationScopes, CloudProviders, MigrationPhases, Currencies } from './types'
 
 type EngagementFormValue = string | number | null | undefined;

@@ -6,8 +6,8 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import type { AgentTask } from './types';
-import type { getStatusColor, getPriorityColor } from './utils';
+import { AgentTask } from './types';
+import { getStatusColor, getPriorityColor } from './utils';
 import StatusIcon from './StatusIcon';
 
 interface TaskCardProps {

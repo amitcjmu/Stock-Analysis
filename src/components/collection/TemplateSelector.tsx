@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Star, Clock, Target, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-import type { TemplateOption, TemplateMatchResult } from './types';
+import { TemplateOption, TemplateMatchResult } from './types';
 
 interface TemplateSelectorProps {
   templates: TemplateOption[];

@@ -6,8 +6,8 @@ import { Button } from '../ui/button';
 import { Progress } from '../ui/progress';
 import { Separator } from '../ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import type { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
-import type { ChevronDown, ChevronUp, Info } from 'lucide-react'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
+import { ChevronDown, ChevronUp, Info } from 'lucide-react'
 import { CheckCircle, AlertTriangle, TrendingUp, Clock, DollarSign, Shield, Zap, Star, Target, ArrowRight } from 'lucide-react'
 
 export interface SixRStrategyScore {

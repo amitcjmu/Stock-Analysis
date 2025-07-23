@@ -10,11 +10,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import type { Activity, BarChart3, Clock } from 'lucide-react'
+import { Activity, BarChart3, Clock } from 'lucide-react'
 import { TestTube, Users, AlertTriangle, CheckCircle } from 'lucide-react'
 
 // Import all observability components
-import type { AgentListOverview, ResponsiveAgentListOverview, ObservabilityErrorBoundary, EmptyState, type AgentCardData, type SparklineData } from '../components/observability'
+import { AgentListOverview, ResponsiveAgentListOverview, ObservabilityErrorBoundary, EmptyState, type AgentCardData, type SparklineData } from '../components/observability'
 import { AgentPerformanceCard, AgentPerformanceCardCompact, AgentStatusIndicator, AgentStatusGroup, SparklineChart, SuccessRateGauge, PerformanceDistributionChart, LoadingSpinner, AgentListSkeleton, ProgressiveLoader } from '../components/observability'
 
 // Mock data for testing

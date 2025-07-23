@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import type { UserDetailsModalProps } from './types';
+import { UserDetailsModalProps } from './types';
 
 export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({ 
   user, 

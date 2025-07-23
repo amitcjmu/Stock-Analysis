@@ -6,8 +6,8 @@
 import React from 'react';
 import { TrendingUp, TrendingDown, Trophy } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
-import type { AgentComparisonData } from '../hooks/useAgentComparison';
-import type { COMPARISON_METRICS } from '../utils/constants';
+import { AgentComparisonData } from '../hooks/useAgentComparison';
+import { COMPARISON_METRICS } from '../utils/constants';
 
 export interface MetricCardProps {
   metric: typeof COMPARISON_METRICS[number];

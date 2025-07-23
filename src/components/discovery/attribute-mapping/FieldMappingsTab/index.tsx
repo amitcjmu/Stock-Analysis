@@ -6,7 +6,7 @@ import { useFieldOptions } from '../../../../contexts/FieldOptionsContext';
 import ThreeColumnFieldMapper from './components/ThreeColumnFieldMapper/ThreeColumnFieldMapper';
 
 // Types
-import type { FieldMappingsTabProps } from './types';
+import { FieldMappingsTabProps } from './types';
 
 const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   fieldMappings,

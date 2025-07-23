@@ -1,5 +1,5 @@
 import React from 'react';
-import type { MappingFiltersProps } from './types';
+import { MappingFiltersProps } from './types';
 
 const MappingFilters: React.FC<MappingFiltersProps> = ({
   filterOptions,

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
-import type { Activity, Clock, AlertTriangle, MapPin, Zap, Server, Network } from 'lucide-react'
+import { Activity, Clock, AlertTriangle, MapPin, Zap, Server, Network } from 'lucide-react'
 import { Play, Trash2, ExternalLink, CheckCircle, Loader2 } from 'lucide-react'
 import { BatchDeletionConfirmDialog } from './BatchDeletionConfirmDialog';
 import { FlowDeletionConfirmDialog } from './FlowDeletionConfirmDialog';

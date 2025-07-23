@@ -4,8 +4,8 @@ import { useEffect, useCallback } from 'react'
 import { RefreshCw } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../../../config/api';
 import { useAuth } from '../../../../contexts/AuthContext';
-import type { FieldMappingsTabProps, FilterOptions, RejectionDialogState } from './types'
-import type { FieldMapping, TargetField } from './types'
+import { FieldMappingsTabProps, FilterOptions, RejectionDialogState } from './types'
+import { FieldMapping, TargetField } from './types'
 import MappingFilters from './MappingFilters';
 import FieldMappingsList from './FieldMappingsList';
 import MappingPagination from './MappingPagination';

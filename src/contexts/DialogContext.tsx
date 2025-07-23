@@ -1,7 +1,7 @@
 import React from 'react'
 import { createContext, useContext, useState } from 'react'
 import { useCallback } from 'react'
-import type { ReactNode } from 'react'
+import { ReactNode } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -390,76 +390,14 @@ export const DialogProvider: React.FC<DialogProviderProps> = ({ children }) => {
 
         if (dialog.type === 'prompt') {
           const options = dialog.options as PromptDialogOptions;
-          const [value, setValue] = useState(options.defaultValue || '');
-          const [error, setError] = useState<string | null>(null);
-
-          const handleConfirm = () => {
-            if (options.validation) {
-              const validationError = options.validation(value);
-              if (validationError) {
-                setError(validationError);
-                return;
-              }
-            }
-            dialog.resolve?.(value);
-            closeDialog(dialog.id);
-          };
-
           return (
-            <Dialog
+            <PromptDialogComponent
               key={dialog.id}
-              open={true}
-              onOpenChange={(open) => {
-                if (!open) {
-                  dialog.resolve?.(null);
-                  closeDialog(dialog.id);
-                }
-              }}
-            >
-              <DialogContent className={options.className}>
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2">
-                    {getIcon(options.icon)}
-                    {options.title || 'Input Required'}
-                  </DialogTitle>
-                  {options.description && (
-                    <DialogDescription>{options.description}</DialogDescription>
-                  )}
-                </DialogHeader>
-                <div className="space-y-2 py-4">
-                  <Input
-                    value={value}
-                    onChange={(e) => {
-                      setValue(e.target.value);
-                      setError(null);
-                    }}
-                    placeholder={options.placeholder}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleConfirm();
-                      }
-                    }}
-                  />
-                  {error && (
-                    <p className="text-sm text-destructive">{error}</p>
-                  )}
-                </div>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      dialog.resolve?.(null);
-                      closeDialog(dialog.id);
-                    }}
-                  >
-                    {options.cancelText || 'Cancel'}
-                  </Button>
-                  <Button onClick={handleConfirm}>
-                    {options.confirmText || 'OK'}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+              dialog={dialog}
+              options={options}
+              closeDialog={closeDialog}
+              getIcon={getIcon}
+            />
           );
         }
 

@@ -8,14 +8,14 @@ import React from 'react'
 import { useState, useRef } from 'react'
 import { useEffect, useMemo } from 'react'
 import { formatDistanceToNow } from 'date-fns';
-import type { Brain, Filter, Search } from 'lucide-react'
+import { Brain, Filter, Search } from 'lucide-react'
 import { Activity, CheckCircle, XCircle, Clock, AlertTriangle, User, Zap, Play, Pause, RotateCcw, Volume2, VolumeX } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import type { Input } from '../ui/input';
+import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import type { Switch } from '../ui/switch';
+import { Switch } from '../ui/switch';
 import { agentObservabilityService } from '../../services/api/agentObservabilityService';
 
 // Activity types and interfaces

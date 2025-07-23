@@ -14,8 +14,8 @@ import { EngagementFilters } from './EngagementFilters';
 import { EngagementStats } from './EngagementStats';
 import { EngagementList } from './EngagementList';
 import { EngagementForm } from './EngagementForm';
-import type { EngagementFormData } from './types'
-import type { Engagement, Client } from './types'
+import { EngagementFormData } from './types'
+import { Engagement, Client } from './types'
 
 const EngagementManagementMain: React.FC = () => {
   const { toast } = useToast();

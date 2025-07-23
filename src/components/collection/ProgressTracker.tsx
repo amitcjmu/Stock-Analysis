@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-import type { ProgressTrackerProps, ProgressMilestone } from './types';
+import { ProgressTrackerProps, ProgressMilestone } from './types';
 
 export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
   formId,

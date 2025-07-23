@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import type { Input } from '../ui/input';
+import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
@@ -15,7 +15,7 @@ import { FilterPanel } from './components/FilterPanel';
 import { ApplicationTable } from './components/ApplicationTable';
 import { QueueManagement } from './components/QueueManagement';
 import { ApplicationSelectionActions } from './components/ApplicationSelectionActions';
-import type { ApplicationSelectorProps } from './types/ApplicationSelectorTypes';
+import { ApplicationSelectorProps } from './types/ApplicationSelectorTypes';
 
 // Types are now imported from the types file
 

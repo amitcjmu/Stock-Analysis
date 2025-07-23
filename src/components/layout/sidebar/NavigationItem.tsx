@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import type { NavigationItemProps } from './types';
+import { NavigationItemProps } from './types';
 
 const NavigationItem: React.FC<NavigationItemProps> = ({
   item,

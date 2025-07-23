@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import Sidebar from '../../components/Sidebar';
-import type { Database, Shield, Calendar, AlertTriangle, FileText, HardDrive } from 'lucide-react'
+import { Database, Shield, Calendar, AlertTriangle, FileText, HardDrive } from 'lucide-react'
 import { Archive, Download, CheckCircle } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext';
 import { useDataRetention, useCreateArchiveJob, useUpdateRetentionPolicy } from '@/hooks/decommission/useDataRetention';

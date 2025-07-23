@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import type { Info } from 'lucide-react'
+import { Info } from 'lucide-react'
 import { RotateCcw, Save } from 'lucide-react'
 import { toast } from 'sonner';
 

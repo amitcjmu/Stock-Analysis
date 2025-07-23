@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import type { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,

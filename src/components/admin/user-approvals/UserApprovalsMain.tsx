@@ -9,17 +9,17 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
-import type { AdminLoadingState, getAccessLevelColor } from '@/components/admin/shared'
+import { AdminLoadingState, getAccessLevelColor } from '@/components/admin/shared'
 import { useAdminToasts, formatDate } from '@/components/admin/shared'
 
 import { UserStats } from './UserStats';
 import { UserFilters } from './UserFilters';
 import { UserList } from './UserList';
 import { UserDetailsModal } from './UserDetailsModal';
-import type { ApprovalActions } from './ApprovalActions';
+import { ApprovalActions } from './ApprovalActions';
 import { UserManagementTabs } from './UserManagementTabs';
-import type { ApprovalData, RejectionData } from './types'
-import type { PendingUser, ActiveUser } from './types'
+import { ApprovalData, RejectionData } from './types'
+import { PendingUser, ActiveUser } from './types'
 
 export const UserApprovalsMain: React.FC = () => {
   const { getAuthHeaders } = useAuth();

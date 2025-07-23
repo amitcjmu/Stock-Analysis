@@ -10,14 +10,14 @@ import { RefreshCw, Download } from 'lucide-react';
 
 // Import modular progress components
 import FlowMetricsGrid from './FlowMetricsGrid'
-import type { FlowMetrics } from './FlowMetricsGrid'
+import { FlowMetrics } from './FlowMetricsGrid'
 import FlowListSidebar from './FlowListSidebar'
-import type { CollectionFlow } from './FlowListSidebar'
+import { CollectionFlow } from './FlowListSidebar'
 import FlowDetailsCard from './FlowDetailsCard';
 import { ProgressTracker } from '@/components/collection/ProgressTracker';
 
 // Import types
-import type { ProgressMilestone } from '@/components/collection/types';
+import { ProgressMilestone } from '@/components/collection/types';
 
 // UI Components
 import { Button } from '@/components/ui/button';

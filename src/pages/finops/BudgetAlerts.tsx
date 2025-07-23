@@ -2,7 +2,7 @@ import type React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBudgetAlerts, useCostMetrics } from '@/hooks/finops/useFinOpsQueries';
 import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';
-import type { Bell, AlertTriangle, CheckCircle, Filter } from 'lucide-react'
+import { Bell, AlertTriangle, CheckCircle, Filter } from 'lucide-react'
 import { Settings, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';

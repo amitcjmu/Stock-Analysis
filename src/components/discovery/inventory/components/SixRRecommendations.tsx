@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { GitBranch } from 'lucide-react';
-import type { SixRRecommendationsProps } from '../types/InventoryInsightsTypes';
+import { SixRRecommendationsProps } from '../types/InventoryInsightsTypes';
 
 export const SixRRecommendations: React.FC<SixRRecommendationsProps> = ({ recommendations }) => {
   const getStrategyColor = (strategy: string) => {

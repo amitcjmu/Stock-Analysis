@@ -24,8 +24,8 @@ import { useAssetSelection } from './hooks/useAssetSelection';
 import { exportAssets } from './utils/exportHelpers';
 
 // Types
-import type { InventoryContentProps } from './types/inventory.types'
-import type { AssetInventory } from './types/inventory.types'
+import { InventoryContentProps } from './types/inventory.types'
+import { AssetInventory } from './types/inventory.types'
 
 const DEFAULT_COLUMNS = [
   'asset_name', 'asset_type', 'environment', 'operating_system', 

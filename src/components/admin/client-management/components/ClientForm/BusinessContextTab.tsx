@@ -1,9 +1,9 @@
 import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import type { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/input';
 import { CloudProviders, BusinessPriorities } from '../../types';
-import type { ClientFormData } from '../../types';
+import { ClientFormData } from '../../types';
 
 interface BusinessContextTabProps {
   formData: ClientFormData;

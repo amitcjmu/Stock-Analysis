@@ -1,7 +1,7 @@
 import type React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import type { Filter } from 'lucide-react'
+import { Filter } from 'lucide-react'
 import { Plus, Search, MoreHorizontal, Play, Pause, CheckCircle2, AlertCircle, Clock, Users, Loader2 } from 'lucide-react'
 
 import Sidebar from '../../components/Sidebar';
@@ -12,10 +12,10 @@ import AgentPlanningDashboard from '../../components/discovery/AgentPlanningDash
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '../../config/api';
 import { Button } from '@/components/ui/button';
-import type { CardDescription } from '@/components/ui/card'
+import { CardDescription } from '@/components/ui/card'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge';
-import type { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface AssessmentFlow {

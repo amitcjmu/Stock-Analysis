@@ -4,9 +4,9 @@
  */
 
 import React from 'react';
-import type { ProgressItemData } from '@/components/admin/shared/components/ProgressCard'
+import { ProgressItemData } from '@/components/admin/shared/components/ProgressCard'
 import { ProgressCard } from '@/components/admin/shared/components/ProgressCard'
-import type { DashboardStatsData } from './DashboardStats';
+import { DashboardStatsData } from './DashboardStats';
 
 export interface ClientAnalyticsProps {
   clientsData: DashboardStatsData['clients'];

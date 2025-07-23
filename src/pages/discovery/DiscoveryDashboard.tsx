@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { FormInput } from 'lucide-react'
+import { FormInput } from 'lucide-react'
 import { BarChart3, RefreshCw, FileUpload, Settings, ArrowRight } from 'lucide-react'
 
 // Components
@@ -9,7 +9,7 @@ import { ContextBreadcrumbs } from '../../components/context/ContextBreadcrumbs'
 import AgentLearningInsights from '../../components/discovery/AgentLearningInsights';
 
 // Hooks
-import type { DiscoveryMetrics, ApplicationLandscape, InfrastructureLandscape } from '../../hooks/useDiscoveryDashboard'
+import { DiscoveryMetrics, ApplicationLandscape, InfrastructureLandscape } from '../../hooks/useDiscoveryDashboard'
 import { useDiscoveryMetrics, useApplicationLandscape, useInfrastructureLandscape } from '../../hooks/useDiscoveryDashboard'
 import { useAuth } from '../../contexts/AuthContext';
 

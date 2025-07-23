@@ -4,8 +4,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import type { SixRDecision } from '@/hooks/useAssessmentFlow';
-import type { TrendingUp } from 'lucide-react'
+import { SixRDecision } from '@/hooks/useAssessmentFlow';
+import { TrendingUp } from 'lucide-react'
 import { Target, AlertTriangle } from 'lucide-react'
 
 interface SixRStrategyMatrixProps {

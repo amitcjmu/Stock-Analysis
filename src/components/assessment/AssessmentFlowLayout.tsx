@@ -4,9 +4,9 @@ import { useNavigate } from 'react-router-dom'
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { ChevronRight } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { CheckCircle2, Circle, Clock, AlertCircle, Loader2 } from 'lucide-react'
-import type { AssessmentPhase } from '@/hooks/useAssessmentFlow'
+import { AssessmentPhase } from '@/hooks/useAssessmentFlow'
 import { useAssessmentFlow } from '@/hooks/useAssessmentFlow'
 import { cn } from '@/lib/utils';
 

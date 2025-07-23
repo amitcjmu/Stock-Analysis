@@ -6,19 +6,19 @@
 
 import React from 'react'
 import { useState } from 'react'
-import type { Calendar, Clock, Brain, Zap, Target, Filter, Eye, Activity, Layers } from 'lucide-react'
+import { Calendar, Clock, Brain, Zap, Target, Filter, Eye, Activity, Layers } from 'lucide-react'
 import { BarChart3, AlertTriangle, Download, RefreshCw } from 'lucide-react'
-import type { CardHeader, CardTitle } from '../../ui/card'
+import { CardHeader, CardTitle } from '../../ui/card'
 import { Card, CardContent } from '../../ui/card'
-import type { Badge } from '../../ui/badge';
+import { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
-import type { AdvancedAnalyticsProps } from './types';
+import { AdvancedAnalyticsProps } from './types';
 import { METRIC_CONFIGS } from './constants';
 import { TrendIndicator } from './components';
 import { useAnalyticsData, useChartData } from './hooks';
-import type { handleExportData } from './utils';
+import { handleExportData } from './utils';
 import { TrendsTab, PatternsTab, CorrelationsTab, PredictionsTab, AnomaliesTab } from './tabs';
 
 const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({

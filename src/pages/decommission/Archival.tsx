@@ -1,5 +1,5 @@
 import type React from 'react';
-import type { Archive, Database, HardDrive } from 'lucide-react'
+import { Archive, Database, HardDrive } from 'lucide-react'
 import { CheckCircle, AlertTriangle, Clock, X } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext';
 import { useArchival, useStartArchival, useVerifyArchival } from '@/hooks/decommission/useArchival';

@@ -15,7 +15,7 @@ import { Info } from 'lucide-react'
 import { AlertCircle, CheckCircle, AlertTriangle, Target, TrendingUp, ChevronDown, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils';
 
-import type { ValidationDisplayProps, ValidationError } from './types';
+import { ValidationDisplayProps, ValidationError } from './types';
 
 export const ValidationDisplay: React.FC<ValidationDisplayProps> = ({
   validation,

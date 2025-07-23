@@ -1,5 +1,5 @@
 import React from 'react';
-import type { CrewProgress } from '../types';
+import { CrewProgress } from '../types';
 import { CrewCard } from './CrewCard';
 
 interface CrewsTabProps {

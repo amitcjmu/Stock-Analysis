@@ -7,7 +7,7 @@ import AgentClarificationPanel from '../../../../components/discovery/AgentClari
 import DataClassificationDisplay from '../../../../components/discovery/DataClassificationDisplay';
 import AgentInsightsSection from '../../../../components/discovery/AgentInsightsSection';
 import EnhancedAgentOrchestrationPanel from '../../../../components/discovery/EnhancedAgentOrchestrationPanel';
-import type { AttributeMappingState, NavigationState } from '../types';
+import { AttributeMappingState, NavigationState } from '../types';
 
 interface AttributeMappingContentProps {
   state: AttributeMappingState;

@@ -1,10 +1,10 @@
 import type React from 'react';
-import type { fireEvent } from '@testing-library/react'
+import { fireEvent } from '@testing-library/react'
 import { render, screen, waitFor } from '@testing-library/react'
 import type userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import ParameterSliders from '../ParameterSliders'
-import type { SixRParameters } from '../ParameterSliders'
+import { SixRParameters } from '../ParameterSliders'
 
 // Mock the toast function
 vi.mock('sonner', () => ({

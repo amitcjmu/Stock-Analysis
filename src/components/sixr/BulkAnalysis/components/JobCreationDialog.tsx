@@ -1,12 +1,12 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../../ui/dialog';
 import { Button } from '../../../ui/button';
-import type { Input } from '../../../ui/input';
+import { Input } from '../../../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../ui/select';
 import { Checkbox } from '../../../ui/checkbox';
 import { Label } from '../../../ui/label';
 import { Textarea } from '../../../ui/textarea';
-import type { JobCreationFormData } from '../types';
+import { JobCreationFormData } from '../types';
 
 interface JobCreationDialogProps {
   open: boolean;

@@ -6,7 +6,7 @@
 import React from 'react';
 import { Eye, XCircle, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { ApprovalActionsProps } from './types';
+import { ApprovalActionsProps } from './types';
 
 export const ApprovalActions: React.FC<ApprovalActionsProps> = ({
   user,

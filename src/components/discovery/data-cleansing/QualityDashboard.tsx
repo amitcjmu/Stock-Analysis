@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Target } from 'lucide-react'
+import { Target } from 'lucide-react'
 import { CheckCircle, AlertTriangle, XCircle, TrendingUp, Database } from 'lucide-react'
 
 interface QualityMetrics {

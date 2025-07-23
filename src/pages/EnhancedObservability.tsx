@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react'
 import Sidebar from '../components/Sidebar';
-import type { Clock } from 'lucide-react'
+import { Clock } from 'lucide-react'
 import { Activity, AlertCircle, CheckCircle, Users, BarChart3, TrendingUp, Network } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -14,7 +14,7 @@ import { Badge } from '../components/ui/badge';
 
 // Import our new agent observability components
 import { AgentListOverview } from '../components/observability';
-import type { AgentCardData } from '../types/api/observability/agent-performance';
+import { AgentCardData } from '../types/api/observability/agent-performance';
 
 const EnhancedObservability = () => {
   const [selectedAgent, setSelectedAgent] = useState<AgentCardData | null>(null);

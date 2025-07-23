@@ -6,7 +6,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { LucideIcon } from 'lucide-react'
+import { LucideIcon } from 'lucide-react'
 import { RotateCcw } from 'lucide-react'
 
 export interface HeaderAction {

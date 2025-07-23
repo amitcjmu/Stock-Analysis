@@ -8,12 +8,12 @@ import { useState } from 'react'
 import { useEffect, useCallback } from 'react'
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
-import type { AdminLoadingState } from '@/components/admin/shared/components'
+import { AdminLoadingState } from '@/components/admin/shared/components'
 import { AdminHeader } from '@/components/admin/shared/components'
 import { 
   useAdminToasts
 } from '@/components/admin/shared';
-import type {
+import {
   SoftDeletedItem,
   PurgeAction
 } from './components';

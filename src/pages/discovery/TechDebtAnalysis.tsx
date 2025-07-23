@@ -6,12 +6,12 @@ import type ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs
 import type AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
 import type DataClassificationDisplay from '../../components/discovery/DataClassificationDisplay';
 import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
-import type { Shield, Info, GraduationCap, Play, RefreshCw } from 'lucide-react'
+import { Shield, Info, GraduationCap, Play, RefreshCw } from 'lucide-react'
 import { AlertTriangle, Bug, Clock, TrendingUp, Code, Database, Globe, BarChart3, Settings, CheckCircle, X, RotateCcw } from 'lucide-react'
 import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
 import { useTechDebtFlowDetection } from '../../hooks/discovery/useDiscoveryFlowAutoDetection';
 import { useAuth } from '@/contexts/AuthContext';
-import type { Button } from '../../components/ui/button';
+import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/use-toast';
 
 interface TechDebtItem {

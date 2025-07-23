@@ -11,11 +11,11 @@ import { Lightbulb, Brain, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Alert, AlertDescription } from '../ui/alert';
-import type { TabsContent } from '../ui/tabs'
+import { TabsContent } from '../ui/tabs'
 import { Tabs, TabsList, TabsTrigger } from '../ui/tabs'
 import { useRecommendations } from './hooks/useRecommendations';
 import { RecommendationCard } from './recommendations/RecommendationCard';
-import type { Recommendation } from './recommendations/RecommendationCard';
+import { Recommendation } from './recommendations/RecommendationCard';
 
 // Types moved to recommendations/RecommendationCard.tsx
 

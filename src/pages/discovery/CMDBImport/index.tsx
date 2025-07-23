@@ -8,9 +8,9 @@ import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 import { UploadBlocker } from '@/components/discovery/UploadBlocker';
 import { IncompleteFlowManager } from '@/components/discovery/IncompleteFlowManager';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import type { SimplifiedFlowStatus } from '@/components/discovery/SimplifiedFlowStatus';
+import { SimplifiedFlowStatus } from '@/components/discovery/SimplifiedFlowStatus';
 import { PollingStatusIndicator } from '@/components/common/PollingControls';
-import type { AgentActivityViewer } from '@/components/discovery/AgentActivityViewer';
+import { AgentActivityViewer } from '@/components/discovery/AgentActivityViewer';
 import { FlowDeletionModal } from '@/components/flows/FlowDeletionModal';
 
 // Custom hooks and components

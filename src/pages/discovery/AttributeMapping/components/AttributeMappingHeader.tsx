@@ -2,7 +2,7 @@ import React from 'react';
 import { RefreshCw, Zap, ArrowRight, AlertCircle, Wifi, WifiOff, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import type { AttributeMappingState } from '../types';
+import { AttributeMappingState } from '../types';
 
 interface AttributeMappingHeaderProps {
   mappingProgress: {

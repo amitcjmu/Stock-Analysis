@@ -7,7 +7,7 @@ import React from 'react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../ui/card';
 import { TrendIndicator } from '../components';
-import type { AnalyticsData } from '../types';
+import { AnalyticsData } from '../types';
 
 interface PatternsTabProps {
   patternAnalysis: AnalyticsData['patternAnalysis'];

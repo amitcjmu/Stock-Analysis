@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import type { ApplicationComponent } from '@/hooks/useAssessmentFlow';
+import { ApplicationComponent } from '@/hooks/useAssessmentFlow';
 import { Network, ArrowRight } from 'lucide-react';
 
 interface DependencyVisualizationProps {

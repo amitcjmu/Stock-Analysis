@@ -1,6 +1,6 @@
 import React from 'react'
 import { useState } from 'react'
-import type { RejectionDialogProps } from './types';
+import { RejectionDialogProps } from './types';
 
 const RejectionDialog: React.FC<RejectionDialogProps> = ({
   isOpen,

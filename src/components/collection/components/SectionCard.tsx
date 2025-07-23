@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronRight, CheckCircle, AlertCircle, Clock, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-import type { SectionCardProps } from '../types';
+import { SectionCardProps } from '../types';
 
 export const SectionCard: React.FC<SectionCardProps> = ({
   section,

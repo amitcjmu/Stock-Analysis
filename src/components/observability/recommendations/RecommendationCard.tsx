@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader } from '../../ui/card';
 import { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
 import { Progress } from '../../ui/progress';
-import type { IMPACT_CONFIG, RECOMMENDATION_CATEGORIES } from '../utils/constants'
+import { IMPACT_CONFIG, RECOMMENDATION_CATEGORIES } from '../utils/constants'
 import { PRIORITY_CONFIG, EFFORT_CONFIG } from '../utils/constants'
 
 export interface Recommendation {

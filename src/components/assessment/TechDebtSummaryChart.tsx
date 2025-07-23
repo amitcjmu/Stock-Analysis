@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import type { TechDebtItem } from '@/hooks/useAssessmentFlow';
+import { TechDebtItem } from '@/hooks/useAssessmentFlow';
 import { AlertTriangle, BarChart3 } from 'lucide-react';
 
 interface TechDebtSummaryChartProps {

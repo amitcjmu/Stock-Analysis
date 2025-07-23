@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
-import type { CardHeader, CardTitle } from '../../ui/card'
+import { CardHeader, CardTitle } from '../../ui/card'
 import { Card, CardContent } from '../../ui/card'
 import { Badge } from '../../ui/badge';
 import { formatPercentage, formatDuration, formatMemory, formatNumber } from '../utils/formatters';

@@ -1,5 +1,5 @@
 import type React from 'react';
-import type { Activity } from 'lucide-react'
+import { Activity } from 'lucide-react'
 import { CheckCircle2, Clock, AlertCircle, Timer } from 'lucide-react'
 import { Badge } from '@/components/ui/badge';
 

@@ -9,8 +9,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '@/config/api';
 
-import type { CreateEngagementData } from './types'
-import type { ClientAccount } from './types'
+import { CreateEngagementData } from './types'
+import { ClientAccount } from './types'
 
 // CC: API response interfaces for type safety
 interface ClientApiResponse {
@@ -24,10 +24,10 @@ interface EngagementSubmissionData extends CreateEngagementData {
   user_id?: string;
   [key: string]: unknown;
 }
-import type { EngagementBasicInfo } from './EngagementBasicInfo';
+import { EngagementBasicInfo } from './EngagementBasicInfo';
 import { EngagementTimeline } from './EngagementTimeline';
 import { EngagementScope } from './EngagementScope';
-import type { EngagementSummary } from './EngagementSummary';
+import { EngagementSummary } from './EngagementSummary';
 
 export const CreateEngagementMain: React.FC = () => {
   const navigate = useNavigate();

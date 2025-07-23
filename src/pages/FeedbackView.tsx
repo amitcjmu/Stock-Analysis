@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState } from 'react'
 import { useEffect } from 'react'
-import type { Filter, ThumbsUp } from 'lucide-react'
+import { Filter, ThumbsUp } from 'lucide-react'
 import { MessageSquare, Clock, User, Search, Star, AlertTriangle, CheckCircle } from 'lucide-react'
 import { apiCall, API_CONFIG } from '../config/api';
 

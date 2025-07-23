@@ -12,7 +12,7 @@ import { Button } from '../../../ui/button';
 import { Badge } from '../../../ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../ui/select';
-import type { BulkAnalysisResult, BulkAnalysisSummary } from '../types';
+import { BulkAnalysisResult, BulkAnalysisSummary } from '../types';
 import { strategyColors } from '../utils/analysisUtils';
 
 interface JobResultsProps {

@@ -1,19 +1,19 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { Link } from 'react-router-dom';
-import type { Plus, Clock } from 'lucide-react'
+import { Link } from 'react-router-dom';
+import { Plus, Clock } from 'lucide-react'
 import { Settings } from 'lucide-react'
-import type { Button } from '@/components/ui/button';
-import type { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { apiCall } from '@/config/api'; 
 import { useAuth } from '@/contexts/AuthContext';
-import type { AdminLoadingState, AdminErrorState } from '@/components/admin/shared/components'
+import { AdminLoadingState, AdminErrorState } from '@/components/admin/shared/components'
 import { AdminHeader } from '@/components/admin/shared/components'
-import type { formatDate } from '@/components/admin/shared'
+import { formatDate } from '@/components/admin/shared'
 import { useAdminToasts } from '@/components/admin/shared'
-import type { DashboardStatsData } from './components/DashboardStats'
+import { DashboardStatsData } from './components/DashboardStats'
 import { DashboardStats } from './components/DashboardStats'
 import { ClientAnalytics } from './components/ClientAnalytics';
 import { EngagementAnalytics } from './components/EngagementAnalytics';

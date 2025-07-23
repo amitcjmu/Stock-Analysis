@@ -1,6 +1,6 @@
 import type React from 'react';
 import Sidebar from '../components/Sidebar';
-import type { Cloud, BarChart3, Calculator } from 'lucide-react'
+import { Cloud, BarChart3, Calculator } from 'lucide-react'
 import { DollarSign, TrendingUp, AlertTriangle, Download, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom';
 

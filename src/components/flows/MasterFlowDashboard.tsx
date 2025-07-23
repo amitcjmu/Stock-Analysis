@@ -15,12 +15,12 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import type { CheckCircle, Filter } from 'lucide-react'
+import { CheckCircle, Filter } from 'lucide-react'
 import { Activity, XCircle, Clock, PauseCircle, PlayCircle, RefreshCw, Plus, Search } from 'lucide-react'
 import { useFlows } from '../../hooks/useFlow';
-import type { FlowStatus, FlowType } from '../../types/flow';
+import { FlowStatus, FlowType } from '../../types/flow';
 import { flowToast } from '../../utils/toast';
-import type { getFlowPhaseRoute } from '@/config/flowRoutes';
+import { getFlowPhaseRoute } from '@/config/flowRoutes';
 import { useNavigate } from 'react-router-dom';
 import { useFlowDeletion } from '../../hooks/useFlowDeletion';
 import { FlowDeletionModal } from './FlowDeletionModal';

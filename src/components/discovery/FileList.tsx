@@ -1,5 +1,5 @@
 import React from 'react';
-import type { FileSpreadsheet, Download, Clock, Database , File } from 'lucide-react'
+import { FileSpreadsheet, Download, Clock, Database , File } from 'lucide-react'
 import { CheckCircle, AlertTriangle, X, Loader, Eye, Edit3, Brain, FileText } from 'lucide-react'
 
 export interface AnalysisResult {

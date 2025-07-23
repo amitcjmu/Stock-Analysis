@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { Target, AlertTriangle, CheckCircle, TrendingUp } from 'lucide-react';
-import type { ActionableRecommendationsProps } from '../types/InventoryInsightsTypes';
+import { ActionableRecommendationsProps } from '../types/InventoryInsightsTypes';
 
 export const ActionableRecommendations: React.FC<ActionableRecommendationsProps> = ({ recommendations }) => {
   return (

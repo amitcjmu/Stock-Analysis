@@ -2,13 +2,13 @@ import type React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCutoverEvents, useExecutionMetrics } from '@/hooks/execute/useExecuteQueries';
 import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';
-import type { Play, Clock, CheckCircle, AlertTriangle, ArrowRight } from 'lucide-react'
+import { Play, Clock, CheckCircle, AlertTriangle, ArrowRight } from 'lucide-react'
 import { Calendar, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import type { Progress } from '@/components/ui/progress';
+import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import type { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSkeleton } from '@/components/ui/loading-skeleton';
 

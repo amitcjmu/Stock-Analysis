@@ -1,6 +1,6 @@
 import React from 'react';
 import { Cloud } from 'lucide-react';
-import type { SidebarHeaderProps } from './types';
+import { SidebarHeaderProps } from './types';
 
 const SidebarHeader: React.FC<SidebarHeaderProps> = ({
   onAuthClick,

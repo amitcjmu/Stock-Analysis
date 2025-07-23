@@ -1,8 +1,8 @@
 import React from 'react';
-import type { Users, AlertTriangle } from 'lucide-react'
+import { Users, AlertTriangle } from 'lucide-react'
 import { Building2, DollarSign, CheckCircle, Clock } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { Engagement } from './types';
+import { Engagement } from './types';
 
 interface EngagementStatsProps {
   engagements: Engagement[];

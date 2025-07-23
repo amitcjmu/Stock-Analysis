@@ -1,13 +1,13 @@
 import React from 'react';
-import type { GetServerSideProps } from 'next/router';
-import type { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
+import { GetServerSideProps } from 'next/router';
+import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { ApplicationRollupView } from '@/components/assessment/ApplicationRollupView';
 import { ApplicationTabs } from '@/components/assessment/ApplicationTabs';
 import { useAssessmentFlow } from '@/hooks/useAssessmentFlow';
 import { AlertCircle } from 'lucide-react';
-import type { SixRAppDecisionSummary } from '@/components/assessment/sixr-review'
+import { SixRAppDecisionSummary } from '@/components/assessment/sixr-review'
 import { SixROverallStats, SixRActionButtons, SixRStatusAlert, SixRMainTabs } from '@/components/assessment/sixr-review'
-import type { useSixRReviewState } from '@/hooks/assessment/useSixRReviewState';
+import { useSixRReviewState } from '@/hooks/assessment/useSixRReviewState';
 import { useSixRSubmission } from '@/hooks/assessment/useSixRSubmission';
 import { useSixRStatistics } from '@/hooks/assessment/useSixRStatistics';
 

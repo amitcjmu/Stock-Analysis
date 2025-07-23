@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
-import type { Clock } from 'lucide-react'
+import { Clock } from 'lucide-react'
 import { Activity, AlertCircle, CheckCircle, Brain, BarChart3, ExternalLink, RefreshCw } from 'lucide-react'
 import { apiCall } from '../config/api';
 

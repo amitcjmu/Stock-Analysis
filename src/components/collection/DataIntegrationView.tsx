@@ -24,7 +24,7 @@ import {
 import { cn } from '@/lib/utils';
 
 import { ConflictResolver } from './components/ConflictResolver';
-import type { DataConflict, ConflictResolution } from './types';
+import { DataConflict, ConflictResolution } from './types';
 
 interface DataRecord {
   id?: string;

@@ -6,7 +6,7 @@
 import React from 'react';
 import { format } from 'date-fns';
 import { Badge } from '../../../ui/badge';
-import type { AnalyticsData } from '../types';
+import { AnalyticsData } from '../types';
 
 interface AnomalyCardProps {
   anomaly: AnalyticsData['predictiveInsights']['anomalies'][0];

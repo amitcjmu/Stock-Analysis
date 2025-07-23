@@ -1,11 +1,11 @@
 import React from 'react';
 import { AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import type { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { CreateEngagementData , ClientAccount} from './types'
+import { CreateEngagementData , ClientAccount} from './types'
 import { EngagementStatuses, Phases, RiskLevels } from './types'
 
 interface EngagementBasicInfoProps {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import type { ComponentTreatment } from '@/hooks/useAssessmentFlow';
+import { ComponentTreatment } from '@/hooks/useAssessmentFlow';
 import { Cpu, CheckCircle, AlertTriangle } from 'lucide-react';
 
 interface ComponentTreatmentEditorProps {

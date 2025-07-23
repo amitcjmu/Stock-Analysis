@@ -7,7 +7,7 @@ import React from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../ui/card';
 import { AnomalyCard } from '../components';
-import type { AnalyticsData } from '../types';
+import { AnalyticsData } from '../types';
 
 interface AnomaliesTabProps {
   anomalies: AnalyticsData['predictiveInsights']['anomalies'];

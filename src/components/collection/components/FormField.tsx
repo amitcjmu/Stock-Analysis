@@ -20,7 +20,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { HelpCircle, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-import type { FormFieldProps, FieldType, FieldValue } from '../types';
+import { FormFieldProps, FieldType, FieldValue } from '../types';
 
 export const FormField: React.FC<FormFieldProps> = ({
   field,

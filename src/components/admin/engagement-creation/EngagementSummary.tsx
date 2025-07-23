@@ -3,7 +3,7 @@ import { Calendar, DollarSign, Target, Save } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import type { CreateEngagementData , ClientAccount} from './types'
+import { CreateEngagementData , ClientAccount} from './types'
 import { CloudProviders } from './types'
 
 interface EngagementSummaryProps {

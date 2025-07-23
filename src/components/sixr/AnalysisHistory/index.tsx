@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Button } from '../../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../ui/dialog';
-import type { Users } from 'lucide-react'
+import { Users } from 'lucide-react'
 import { Download, BarChart3, FileText, Building2, TrendingUp, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner';
 
@@ -20,7 +20,7 @@ import { useAnalysisSelection } from './hooks/useAnalysisSelection';
 import { useAnalysisAnalytics } from './hooks/useAnalysisAnalytics';
 
 // Types
-import type { AnalysisHistoryProps } from './types';
+import { AnalysisHistoryProps } from './types';
 
 export const AnalysisHistory: React.FC<AnalysisHistoryProps> = ({
   analyses,

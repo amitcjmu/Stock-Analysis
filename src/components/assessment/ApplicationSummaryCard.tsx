@@ -1,11 +1,11 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import type { Progress } from '@/components/ui/progress';
-import type { SixRDecision } from '@/hooks/useAssessmentFlow'
-import type { ApplicationComponent, TechDebtItem } from '@/hooks/useAssessmentFlow'
+import { Progress } from '@/components/ui/progress';
+import { SixRDecision } from '@/hooks/useAssessmentFlow'
+import { ApplicationComponent, TechDebtItem } from '@/hooks/useAssessmentFlow'
 import { ConfidenceScoreIndicator } from './ConfidenceScoreIndicator';
-import type { Cpu } from 'lucide-react'
+import { Cpu } from 'lucide-react'
 import { Target, AlertTriangle, CheckCircle } from 'lucide-react'
 import { cn } from '@/lib/utils';
 

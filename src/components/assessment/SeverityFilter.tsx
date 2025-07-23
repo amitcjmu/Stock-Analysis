@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { AlertTriangle, Clock, Zap, Filter } from 'lucide-react';
+import { AlertTriangle, Clock, Zap, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type SeverityLevel = 'critical' | 'high' | 'medium' | 'low' | 'all';

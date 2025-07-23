@@ -9,9 +9,9 @@ import { useMemo } from 'react'
 import { cn } from '../../lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import type { Zap } from 'lucide-react'
+import { Zap } from 'lucide-react'
 import { TrendingUp, TrendingDown, Activity, BarChart3, Target, Timer } from 'lucide-react'
-import type { 
+import { 
   MetricsChartProps, 
   SparklineData, 
   ChartDataPoint,

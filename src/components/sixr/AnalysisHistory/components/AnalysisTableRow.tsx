@@ -4,7 +4,7 @@ import { Checkbox } from '../../../ui/checkbox';
 import { Button } from '../../../ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../ui/dropdown-menu';
 import { Eye, Archive, Trash2, MoreHorizontal, Star } from 'lucide-react';
-import type { AnalysisHistoryItem } from '../types';
+import { AnalysisHistoryItem } from '../types';
 import { StrategyBadge } from './StrategyBadge';
 import { StatusBadge } from './StatusBadge';
 import { effortColors } from '../constants';

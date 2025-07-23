@@ -1,5 +1,5 @@
 import React from 'react';
-import type { VersionDisplayProps } from './types';
+import { VersionDisplayProps } from './types';
 
 const VersionDisplay: React.FC<VersionDisplayProps> = ({
   versionInfo,

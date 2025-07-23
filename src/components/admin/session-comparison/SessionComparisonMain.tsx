@@ -11,10 +11,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import type { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import type { TrendingUp, TrendingDown, Equal, Plus, Minus, Edit, DollarSign, AlertTriangle, Settings, Activity, BarChart3, PieChart, Clock, Database, Zap, Shield, Users, Building, Server, HardDrive, Globe, CheckCircle, XCircle, Info, ArrowRight } from 'lucide-react'
+import { TrendingUp, TrendingDown, Equal, Plus, Minus, Edit, DollarSign, AlertTriangle, Settings, Activity, BarChart3, PieChart, Clock, Database, Zap, Shield, Users, Building, Server, HardDrive, Globe, CheckCircle, XCircle, Info, ArrowRight } from 'lucide-react'
 import { GitCompare, Download, RefreshCw } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast';
 

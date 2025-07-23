@@ -5,7 +5,7 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import type { AlertCircle, Clock, Play, Brain, RotateCw, Settings, Save, CheckCircle, Download, ChevronLeft, ChevronRight, Plus, Trash2, Archive, BarChart2, ListChecks, RefreshCw, Check, X, Sliders, HelpCircle, CheckSquare, AlertTriangle, ArrowRight, ArrowLeft, ChevronDown, ChevronUp, ExternalLink, Info, MoreHorizontal, PlusCircle, Search, Settings2, Share2, Tag, Upload, User, XCircle, Zap, FileText } from 'lucide-react'
+import { AlertCircle, Clock, Play, Brain, RotateCw, Settings, Save, CheckCircle, Download, ChevronLeft, ChevronRight, Plus, Trash2, Archive, BarChart2, ListChecks, RefreshCw, Check, X, Sliders, HelpCircle, CheckSquare, AlertTriangle, ArrowRight, ArrowLeft, ChevronDown, ChevronUp, ExternalLink, Info, MoreHorizontal, PlusCircle, Search, Settings2, Share2, Tag, Upload, User, XCircle, Zap, FileText } from 'lucide-react'
 import { Loader2 } from 'lucide-react'
 
 // Hooks
@@ -15,11 +15,11 @@ import { useSixRAnalysis } from '@/hooks/useSixRAnalysis';
 import { useAnalysisQueue } from '@/hooks/useAnalysisQueue';
 
 // Types
-import type { SixRParameters, SixRRecommendation, QuestionResponse, AnalysisProgress as AnalysisProgressType, AnalysisQueueItem , Application} from '@/types/assessment'
+import { SixRParameters, SixRRecommendation, QuestionResponse, AnalysisProgress as AnalysisProgressType, AnalysisQueueItem , Application} from '@/types/assessment'
 import { Analysis } from '@/types/assessment'
 
 // Components
-import type { AnalysisProgress as AnalysisProgressComponent } from '@/components/assessment'
+import { AnalysisProgress as AnalysisProgressComponent } from '@/components/assessment'
 import { ParameterSliders, QualifyingQuestions, RecommendationDisplay, AnalysisHistory } from '@/components/assessment'
 import { Sidebar } from '@/components';
 

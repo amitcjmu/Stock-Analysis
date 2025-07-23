@@ -1,6 +1,6 @@
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
-import type { CrewProgress } from '../types';
+import { CrewProgress } from '../types';
 import { getStatusIconWithStyles, getIconContainerStyles } from '../utils';
 
 interface OverviewTabProps {

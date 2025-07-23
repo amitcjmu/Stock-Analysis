@@ -10,7 +10,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../ui/card';
 import { Progress } from '../../../ui/progress';
 import { Badge } from '../../../ui/badge';
-import type { BulkAnalysisSummary } from '../types';
+import { BulkAnalysisSummary } from '../types';
 import { formatDuration, strategyColors } from '../utils/analysisUtils';
 
 interface AnalyticsSummaryProps {

@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Brain, Database, Share2 } from 'lucide-react';
-import type { MemoryAnalytics } from '../../types';
+import { MemoryAnalytics } from '../../types';
 
 interface MemoryTabProps {
   memoryAnalytics: MemoryAnalytics | null;

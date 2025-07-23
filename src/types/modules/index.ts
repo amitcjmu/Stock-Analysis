@@ -6,23 +6,23 @@
  */
 
 // Core namespace declarations
-export * from './discovery';
-export * from './assessment';
-export * from './planning';
-export * from './execution';
-export * from './modernize';
-export * from './finops';
-export * from './observability';
-export * from './decommission';
+export type * from './discovery';
+export type * from './assessment';
+export type * from './planning';
+export type * from './execution';
+export type * from './modernize';
+export type * from './finops';
+export type * from './observability';
+export type * from './decommission';
 
 // Shared module types
-export * from './shared';
+export type * from './shared';
 
 // Global module augmentations
-export * from './globals';
+export type * from './globals';
 
 // Module type utilities
-export * from './utilities';
+export type * from './utilities';
 
 // Re-export existing types with namespace organization
 export type {

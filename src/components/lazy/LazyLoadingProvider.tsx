@@ -5,7 +5,7 @@
 import React from 'react'
 import { createContext, useContext, useState } from 'react'
 import { useCallback, useEffect } from 'react'
-import type { LoadingPriority, LazyComponentOptions, LoadingState } from '@/types/lazy';
+import { LoadingPriority, LazyComponentOptions, LoadingState } from '@/types/lazy';
 import { loadingManager } from '@/utils/lazy/loadingManager';
 
 interface LazyLoadingContextType {

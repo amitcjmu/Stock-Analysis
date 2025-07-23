@@ -22,7 +22,7 @@ import {
   Timer
 } from 'lucide-react';
 import { AgentStatusIndicator, AgentOnlineIndicator } from './AgentStatusIndicator';
-import type { PerformanceCardProps, AgentCardData } from '../../types/api/observability/agent-performance';
+import { PerformanceCardProps, AgentCardData } from '../../types/api/observability/agent-performance';
 
 // Helper function to format duration
 const formatDuration = (seconds: number): string => {

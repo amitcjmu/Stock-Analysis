@@ -3,11 +3,11 @@ import FieldMappingsTab from './FieldMappingsTab/index';
 import CriticalAttributesTab from './CriticalAttributesTab';
 import ImportedDataTab from './ImportedDataTab';
 import { FieldMappingErrorBoundary } from './FieldMappingErrorBoundary';
-import type {
+import {
   FieldMapping,
   CriticalAttribute
 } from '../../../types/hooks/discovery/attribute-mapping-hooks';
-import type {
+import {
   AgenticData,
   SessionInfo
 } from '../../../pages/discovery/AttributeMapping/types';

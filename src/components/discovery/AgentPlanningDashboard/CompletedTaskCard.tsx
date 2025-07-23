@@ -7,7 +7,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle } from 'lucide-react';
-import type { AgentTask } from './types';
+import { AgentTask } from './types';
 
 interface CompletedTaskCardProps {
   task: AgentTask;

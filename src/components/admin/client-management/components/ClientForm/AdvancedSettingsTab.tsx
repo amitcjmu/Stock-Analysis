@@ -2,7 +2,7 @@ import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import type { ClientFormData } from '../../types';
+import { ClientFormData } from '../../types';
 
 interface AdvancedSettingsTabProps {
   formData: ClientFormData;

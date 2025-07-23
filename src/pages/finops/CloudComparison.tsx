@@ -2,14 +2,14 @@ import type React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCostMetrics } from '@/hooks/finops/useFinOpsQueries';
 import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';
-import type { Download, Filter, RefreshCw } from 'lucide-react'
+import { Download, Filter, RefreshCw } from 'lucide-react'
 import { Cloud, BarChart, LineChart } from 'lucide-react'
-import type { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import type { Badge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSkeleton } from '@/components/ui/loading-skeleton';
-import type { Progress } from '@/components/ui/progress';
+import { Progress } from '@/components/ui/progress';
 
 const CloudComparison = () => {
   const { isAuthenticated } = useAuth();

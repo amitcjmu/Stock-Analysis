@@ -1,7 +1,7 @@
 import React from 'react';
 import { Progress } from '../../ui/progress';
 import { Card } from '../../ui/card';
-import type { DependencyData } from '../../../types/dependency';
+import { DependencyData } from '../../../types/dependency';
 
 interface DependencyProgressProps {
   data: DependencyData | null;

@@ -32,7 +32,10 @@ export default tseslint.config(
       "docs/build/",
       "storybook-static/",
       ".eslintcache",
-      "*.tsbuildinfo"
+      "*.tsbuildinfo",
+      "tests/**/*.js",
+      "tests/**/*.cjs",
+      "**/*.cjs"
     ]
   },
   

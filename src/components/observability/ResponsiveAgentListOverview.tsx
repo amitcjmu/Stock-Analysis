@@ -8,13 +8,13 @@ import React from 'react'
 import { useState } from 'react'
 import { useEffect, useCallback } from 'react'
 import { cn } from '../../lib/utils';
-import type { CardHeader, CardTitle } from '../ui/card'
+import { CardHeader, CardTitle } from '../ui/card'
 import { Card, CardContent } from '../ui/card'
 import { Button } from '../ui/button';
-import type { Input } from '../ui/input';
-import type { Badge } from '../ui/badge';
+import { Input } from '../ui/input';
+import { Badge } from '../ui/badge';
 import { Alert, AlertDescription } from '../ui/alert';
-import type { Filter, Activity } from 'lucide-react'
+import { Filter, Activity } from 'lucide-react'
 import { RefreshCw, Search, Grid, List, Settings, AlertCircle, Users, TrendingUp, Wifi, WifiOff } from 'lucide-react'
 import { 
   Select,
@@ -27,14 +27,14 @@ import {
 // Import our components
 import { AgentPerformanceCard, AgentPerformanceCardCompact } from './AgentPerformanceCard';
 import { AgentStatusGroup } from './AgentStatusIndicator';
-import type { LoadingError, NetworkError } from './ErrorBoundary'
+import { LoadingError, NetworkError } from './ErrorBoundary'
 import { ObservabilityErrorBoundary } from './ErrorBoundary'
-import type { AgentOverviewLoading, AgentListSkeleton, EmptyState } from './LoadingStates'
+import { AgentOverviewLoading, AgentListSkeleton, EmptyState } from './LoadingStates'
 import { LoadingSpinner, ProgressiveLoader } from './LoadingStates'
 import { useComponentVisibility, useGridLayout } from './hooks/useResponsiveLayout'
 import { agentObservabilityService } from '../../services/api/agentObservabilityService';
 
-import type { 
+import { 
   AgentListOverviewProps,
   AgentCardData,
   AgentListState,

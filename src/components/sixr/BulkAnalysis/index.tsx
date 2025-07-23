@@ -1,7 +1,7 @@
 import React from 'react';
 import { Plus, Settings, Play, Pause, Square, Trash2 } from 'lucide-react';
 import { Button } from '../../ui/button';
-import type { Input } from '../../ui/input';
+import { Input } from '../../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
 
@@ -10,8 +10,8 @@ import { useBulkAnalysis } from './hooks/useBulkAnalysis';
 import { JobQueue } from './components/JobQueue';
 import { JobCreationDialog } from './components/JobCreationDialog';
 import { JobResults } from './components/JobResults';
-import type { AnalyticsSummary } from './components/AnalyticsSummary';
-import type { BulkAnalysisProps } from './types';
+import { AnalyticsSummary } from './components/AnalyticsSummary';
+import { BulkAnalysisProps } from './types';
 
 const BulkAnalysisContainer: React.FC<BulkAnalysisProps> = ({
   jobs,

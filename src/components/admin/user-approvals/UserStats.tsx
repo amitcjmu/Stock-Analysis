@@ -6,7 +6,7 @@
 import React from 'react';
 import { Clock, UserCheck, AlertCircle, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { UserStatsProps } from './types';
+import { UserStatsProps } from './types';
 
 export const UserStats: React.FC<UserStatsProps> = ({ pendingUsers, activeUsers }) => {
   const adminRequests = pendingUsers.filter(u => u.requested_access_level === 'admin').length;

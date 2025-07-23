@@ -23,7 +23,7 @@ import { RankingsOverview } from './comparison/RankingsOverview';
 import { SuccessRateTrendChart, PerformanceRadarChart } from './comparison/ComparisonCharts';
 
 // Types moved to hooks/useAgentComparison.ts
-import type { AgentComparisonData } from './hooks/useAgentComparison';
+import { AgentComparisonData } from './hooks/useAgentComparison';
 
 interface AgentComparisonProps {
   /** Pre-selected agents to compare */

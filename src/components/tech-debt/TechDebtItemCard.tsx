@@ -3,9 +3,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import type { Info } from 'lucide-react'
+import { Info } from 'lucide-react'
 import { AlertTriangle, CheckCircle, ExternalLink } from 'lucide-react'
-import type { TechDebtItem } from '@/types/tech-debt';
+import { TechDebtItem } from '@/types/tech-debt';
 
 interface TechDebtItemCardProps {
   item: TechDebtItem;

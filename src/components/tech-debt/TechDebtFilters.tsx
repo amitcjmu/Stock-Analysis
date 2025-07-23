@@ -2,7 +2,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Filter as FilterIcon, Search, X } from 'lucide-react'
-import type { TechDebtCategory, RiskLevel, StatusFilter } from '@/types/tech-debt';
+import { TechDebtCategory, RiskLevel, StatusFilter } from '@/types/tech-debt';
 
 interface TechDebtFiltersProps {
   searchQuery: string;

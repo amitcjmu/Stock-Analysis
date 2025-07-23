@@ -1,6 +1,6 @@
 import React from 'react'
 import { useState } from 'react'
-import type { ClientFormData } from '../../types';
+import { ClientFormData } from '../../types';
 import { BasicInfoTab } from './BasicInfoTab';
 import { BusinessContextTab } from './BusinessContextTab';
 import { TechnicalPreferencesTab } from './TechnicalPreferencesTab';

@@ -1,9 +1,9 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import type { Progress } from '@/components/ui/progress';
-import type { SixRDecision } from '@/hooks/useAssessmentFlow'
-import type { TechDebtItem } from '@/hooks/useAssessmentFlow'
+import { Progress } from '@/components/ui/progress';
+import { SixRDecision } from '@/hooks/useAssessmentFlow'
+import { TechDebtItem } from '@/hooks/useAssessmentFlow'
 import { TrendingUp, DollarSign, Clock, Users } from 'lucide-react';
 
 interface BusinessImpactAssessmentProps {

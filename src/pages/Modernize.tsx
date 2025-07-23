@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
-import type { Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
-import type { Zap, Layers, Package, Code, Cloud } from 'lucide-react'
+import { Zap, Layers, Package, Code, Cloud } from 'lucide-react'
 import { Sparkles, TrendingUp, RefreshCw } from 'lucide-react'
 
 const Modernize = () => {

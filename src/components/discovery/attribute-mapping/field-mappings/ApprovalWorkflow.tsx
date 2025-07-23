@@ -1,6 +1,6 @@
 import React from 'react';
 import { CheckCircle, X, RefreshCw } from 'lucide-react';
-import type { ApprovalWorkflowProps } from './types';
+import { ApprovalWorkflowProps } from './types';
 
 const ApprovalWorkflow: React.FC<ApprovalWorkflowProps> = ({
   mapping,

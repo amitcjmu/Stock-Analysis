@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
-import type { AgentPlan } from './types';
+import { AgentPlan } from './types';
 
 interface PlanOverviewProps {
   agentPlan: AgentPlan;

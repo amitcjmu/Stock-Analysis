@@ -8,7 +8,7 @@ import { Calendar, Brain, Zap, CheckCircle, XCircle, AlertTriangle } from 'lucid
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { Alert, AlertDescription } from '../../../components/ui/alert';
-import type { TaskHistoryRowProps } from '../types/AgentDetailTypes';
+import { TaskHistoryRowProps } from '../types/AgentDetailTypes';
 
 export const TaskHistoryRow: React.FC<TaskHistoryRowProps> = ({ task, onViewDetails }) => {
   const statusColor = task.success ? 'text-green-600' : 'text-red-600';

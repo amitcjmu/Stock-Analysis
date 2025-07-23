@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../ui/card';
-import type { LucideIcon } from 'lucide-react';
+import { LucideIcon } from 'lucide-react';
 
 interface AnalyticsCardProps {
   title: string;

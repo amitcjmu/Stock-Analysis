@@ -7,7 +7,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Edit3, Send } from 'lucide-react';
-import type { FeedbackType } from './types';
+import { FeedbackType } from './types';
 
 interface FeedbackFormProps {
   feedbackType: FeedbackType;

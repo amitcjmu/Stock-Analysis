@@ -3,7 +3,7 @@ import { Upload } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { UploadCategory } from '../CMDBImport.types';
+import { UploadCategory } from '../CMDBImport.types';
 
 interface CMDBUploadSectionProps {
   categories: UploadCategory[];

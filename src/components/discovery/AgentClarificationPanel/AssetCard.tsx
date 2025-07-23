@@ -8,7 +8,7 @@ import React from 'react'
 import { useState } from 'react'
 import { Info } from 'lucide-react'
 import { ChevronDown, ChevronUp, Server, Database, Globe, Monitor, Cpu, Building } from 'lucide-react'
-import type { AssetDetails } from './types';
+import { AssetDetails } from './types';
 import { getCriticalityColor } from './utils';
 
 interface AssetCardProps {

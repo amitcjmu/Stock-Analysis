@@ -8,7 +8,7 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { useSidebar } from "./sidebar-context"
-import type { SIDEBAR_WIDTH_MOBILE } from "./sidebar-constants"
+import { SIDEBAR_WIDTH_MOBILE } from "./sidebar-constants"
 
 export const Sidebar = React.forwardRef<
   HTMLDivElement,

@@ -2,7 +2,7 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import type { TechDebtItem } from '@/services/discovery/techDebtAnalysisService';
+import { TechDebtItem } from '@/services/discovery/techDebtAnalysisService';
 
 interface TechDebtItemCardProps {
   item: TechDebtItem;

@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
-import type { MapPin } from 'lucide-react'
+import { MapPin } from 'lucide-react'
 import { Calendar, DollarSign, Users, Cloud, ArrowLeft, Edit, Archive, CheckCircle, XCircle, Building2, User, Clock, Target } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

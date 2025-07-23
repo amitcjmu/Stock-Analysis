@@ -25,13 +25,13 @@ import NeedsReviewCard from './NeedsReviewCard';
 import ApprovedCard from './ApprovedCard';
 import ColumnHeader from './ColumnHeader';
 import BulkActions from './BulkActions';
-import type { ThreeColumnFieldMapperProps } from './types';
+import { ThreeColumnFieldMapperProps } from './types';
 import { 
   categorizeMappings, 
   filterMappingsBySearch, 
   calculateProgress 
 } from './mappingUtils';
-import type {
+import {
   createBulkApproveHandler, 
   createBulkRejectHandler 
 } from './bulkOperations';

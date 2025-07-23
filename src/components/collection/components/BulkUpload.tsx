@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Upload, FileText, AlertCircle, CheckCircle, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-import type { FormField, TemplateOption, BulkUploadResult } from '../types';
+import { FormField, TemplateOption, BulkUploadResult } from '../types';
 
 interface BulkUploadProps {
   fields: FormField[];

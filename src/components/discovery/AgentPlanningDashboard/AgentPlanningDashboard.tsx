@@ -12,8 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Brain, RefreshCw, AlertCircle, X } from 'lucide-react';
 
-import type { AgentPlanningDashboardProps, FeedbackType, TaskInput } from './types'
-import type { AgentPlan } from './types'
+import { AgentPlanningDashboardProps, FeedbackType, TaskInput } from './types'
+import { AgentPlan } from './types'
 import * as api from './api';
 import PlanOverview from './PlanOverview';
 import FeedbackForm from './FeedbackForm';
