@@ -23,7 +23,7 @@ interface UseLazyComponentReturn {
   loadingState: LoadingState | null;
 }
 
-export const useLazyComponent = <P extends Record<string, any> = {}>(
+export const useLazyComponent = <P extends Record<string, any> = Record<string, any>>(
   componentId: string,
   importFn: () => Promise<{ default: React.ComponentType<P> }>,
   options: UseLazyComponentOptions = {}
@@ -104,7 +104,7 @@ export const useLazyComponent = <P extends Record<string, any> = {}>(
 /**
  * Hook for viewport-based lazy loading
  */
-export const useViewportLazyComponent = <P extends Record<string, any> = {}>(
+export const useViewportLazyComponent = <P extends Record<string, any> = Record<string, any>>(
   componentId: string,
   importFn: () => Promise<{ default: React.ComponentType<P> }>,
   targetRef: React.RefObject<HTMLElement>,
@@ -142,7 +142,7 @@ export const useViewportLazyComponent = <P extends Record<string, any> = {}>(
 /**
  * Hook for hover-based preloading
  */
-export const useHoverPreload = <P extends Record<string, any> = {}>(
+export const useHoverPreload = <P extends Record<string, any> = Record<string, any>>(
   componentId: string,
   importFn: () => Promise<{ default: React.ComponentType<P> }>,
   options: LazyComponentOptions = {}
