@@ -1,4 +1,4 @@
-import type React, { useState } from 'react'
+import React, { useState } from 'react'
 import type { Target } from 'lucide-react'
 import { Layers, Sparkles, Settings, CheckCircle, ArrowRight, Loader2, AlertTriangle } from 'lucide-react'
 import { useRearchitect } from '@/hooks/useRearchitect';

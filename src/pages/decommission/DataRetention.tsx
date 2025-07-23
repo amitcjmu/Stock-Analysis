@@ -1,4 +1,4 @@
-import type React, { useState } from 'react'
+import React, { useState } from 'react'
 import Sidebar from '../../components/Sidebar';
 import type { Database, Shield, Calendar, AlertTriangle, FileText, HardDrive } from 'lucide-react'
 import { Archive, Download, CheckCircle } from 'lucide-react'

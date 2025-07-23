@@ -1,4 +1,4 @@
-import type React, { useState } from 'react'
+import React, { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext';
 import { useReplatformProjects, useExecutionMetrics, useUpdateReplatformProject } from '@/hooks/execute/useExecuteQueries';
 import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';

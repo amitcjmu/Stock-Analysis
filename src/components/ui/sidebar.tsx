@@ -9,25 +9,25 @@
  */
 
 // Import and re-export from the modular structure
-import type { SidebarProvider } from './sidebar/sidebar-provider';
-import type { SidebarContext } from './sidebar/sidebar-context'
+import { SidebarProvider } from './sidebar/sidebar-provider';
+import { SidebarContext } from './sidebar/sidebar-context'
 import { useSidebar } from './sidebar/sidebar-context'
-import type { Sidebar, SidebarInset } from './sidebar/sidebar-core';
-import type { SidebarTrigger, SidebarRail } from './sidebar/sidebar-interactions';
-import type {
+import { Sidebar, SidebarInset } from './sidebar/sidebar-core';
+import { SidebarTrigger, SidebarRail } from './sidebar/sidebar-interactions';
+import {
   SidebarHeader, 
   SidebarFooter, 
   SidebarContent, 
   SidebarInput, 
   SidebarSeparator 
 } from './sidebar/sidebar-layout';
-import type {
+import {
   SidebarGroup, 
   SidebarGroupLabel, 
   SidebarGroupAction, 
   SidebarGroupContent 
 } from './sidebar/sidebar-group';
-import type {
+import {
   SidebarMenu, 
   SidebarMenuItem, 
   SidebarMenuButton, 
@@ -35,7 +35,7 @@ import type {
   SidebarMenuBadge, 
   SidebarMenuSkeleton 
 } from './sidebar/sidebar-menu';
-import type {
+import {
   SidebarMenuSub, 
   SidebarMenuSubItem, 
   SidebarMenuSubButton 

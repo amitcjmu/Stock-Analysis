@@ -4,7 +4,7 @@
  * Part of the Agent Observability Enhancement Phase 4A
  */
 
-import type React, { useState } from 'react'
+import React, { useState } from 'react'
 import Sidebar from '../components/Sidebar';
 import type { Clock } from 'lucide-react'
 import { Activity, AlertCircle, CheckCircle, Users, BarChart3, TrendingUp, Network } from 'lucide-react'

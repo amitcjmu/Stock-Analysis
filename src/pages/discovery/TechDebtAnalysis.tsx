@@ -1,4 +1,4 @@
-import type React, { useState } from 'react'
+import React, { useState } from 'react'
 import { useEffect } from 'react'
 import type { useParams } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';

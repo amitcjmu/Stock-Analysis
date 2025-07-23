@@ -1,5 +1,5 @@
 
-import type React, { useState } from 'react'
+import React, { useState } from 'react'
 import Sidebar from '../../components/Sidebar';
 import type { FileText, Database, Shield, Clock } from 'lucide-react'
 import { CheckCircle, AlertTriangle, X, Search, Download } from 'lucide-react'

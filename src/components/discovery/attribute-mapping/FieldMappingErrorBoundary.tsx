@@ -1,4 +1,4 @@
-import type React, { ErrorInfo, ReactNode } from 'react'
+import React, { ErrorInfo, ReactNode } from 'react'
 import { Component } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 

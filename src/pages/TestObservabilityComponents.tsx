@@ -4,7 +4,7 @@
  * Part of the Agent Observability Enhancement Phase 4A
  */
 
-import type React, { useState } from 'react'
+import React, { useState } from 'react'
 import Sidebar from '../components/Sidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
