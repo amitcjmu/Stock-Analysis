@@ -156,14 +156,14 @@ jobs:
           severity: 'HIGH,CRITICAL'
       
       - name: Run Grype vulnerability scanner
-        uses: anchore/scan-action@v4
+        uses: anchore/scan-action@v6
         with:
           image: 'migrate-platform:scan'
           output-format: sarif
           fail-build: false
       
       - name: Dockerfile linting with Hadolint
-        uses: hadolint/hadolint-action@v4.0.0
+        uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile
           format: sarif
@@ -292,7 +292,7 @@ jobs:
     
     steps:
       - name: Send notification
-        uses: 8398a7/action-slack@v4
+        uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
           text: 'Security scan completed for ${{ github.event.inputs.scan_type || "release" }} scan'
