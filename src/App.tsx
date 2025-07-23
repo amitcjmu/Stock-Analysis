@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import type { Route } from 'react-router-dom'
+import { Route } from 'react-router-dom'
 import { Routes } from 'react-router-dom'
 import { ChatFeedbackProvider } from "./contexts/ChatFeedbackContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -19,12 +19,12 @@ import { LazyLoadingProvider, LoadingPriority } from "./components/lazy";
 import { routePreloader } from "./utils/lazy/routePreloader";
 
 // Lazy-loaded route components (organized by priority)
-import type { LazyDiscoveryIndex, LazyAssessIndex, LazyInitializeAssessmentFlow, LazyAssessmentAppOnPage, LazyAssessmentSummary, LazyAgentMonitoring, LazyAgentDetailPage, LazyClientDetails, LazyEngagementDetails, LazyDebugContext } from './components/lazy'
+import { LazyAssessmentAppOnPage, LazyAssessmentSummary, LazyAgentDetailPage, LazyClientDetails, LazyEngagementDetails, LazyDebugContext } from './components/lazy'
 import { LazyIndex, LazyLogin, LazyDiscovery, LazyAssess, LazyPlan, LazyExecute, LazyModernize, LazyFinOps, LazyObservability, LazyDecommission, LazyDataImport, LazyInventory, LazyDependencies, LazyDataCleansing, LazyAttributeMapping, LazyTechDebtAnalysis, LazyDiscoveryDashboard, LazyCollectionIndex, LazyAdaptiveForms, LazyBulkUpload, LazyDataIntegration, LazyCollectionProgress, LazyCollectionFlowManagement, LazyTreatment, LazyWavePlanning, LazyRoadmap, LazyEditor, LazyAssessmentFlowOverview, LazyInitializeFlowWithInventory, LazyAssessmentArchitecture, LazyAssessmentTechDebt, LazyAssessmentSixRReview, LazyPlanIndex, LazyTimeline, LazyResource, LazyTarget, LazyExecuteIndex, LazyRehost, LazyReplatform, LazyCutovers, LazyReports, LazyModernizeIndex, LazyRefactor, LazyRearchitect, LazyRewrite, LazyProgress, LazyDecommissionIndex, LazyDecommissionPlanning, LazyDataRetention, LazyDecommissionExecution, LazyDecommissionValidation, LazyCloudComparison, LazySavingsAnalysis, LazyCostAnalysis, LazyLLMCosts, LazyWaveBreakdown, LazyCostTrends, LazyBudgetAlerts, LazyEnhancedObservabilityDashboard, LazyFeedbackView, LazyNotFound, LazyAdminDashboard, LazyClientManagement, LazyEngagementManagement, LazyUserApprovals, LazyCreateUser, LazyCreateClient, LazyCreateEngagement, LazyUserProfile, LazyPlatformAdmin } from './components/lazy'
 
 // Non-lazy components that are always needed
-import type AdminLayout from "./components/admin/AdminLayout";
-import type AdminRoute from "./components/admin/AdminRoute";
+import AdminLayout from "./components/admin/AdminLayout";
+import AdminRoute from "./components/admin/AdminRoute";
 
 
 // Component to handle authenticated routes

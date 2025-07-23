@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertTriangle, Plus, Trash2, Edit3, Check, X, FileText } from 'lucide-react';
-import type { cn } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 interface ApplicationOverride {
   application_id: string;

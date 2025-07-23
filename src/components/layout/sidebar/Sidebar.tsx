@@ -1,9 +1,9 @@
 import React from 'react'
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom';
-import type { getVersionInfo } from '../../../utils/version';
+import { getVersionInfo } from '../../../utils/version';
 import { useAuth } from '../../../contexts/AuthContext';
-import type {
+import {
   Home, 
   Search, 
   FileText, 

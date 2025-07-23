@@ -1,7 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import type { Users, Building2, Calendar, UserCheck, BarChart3, Crown } from 'lucide-react'
-import { Shield, Settings, Home, ChevronRight, LogOut, User } from 'lucide-react'
+import { Users, Building2, Calendar, UserCheck, BarChart3, Crown, Shield, Settings, Home, ChevronRight, LogOut, User } from 'lucide-react'
 import type { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { Badge } from '@/components/ui/badge';

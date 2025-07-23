@@ -364,7 +364,7 @@ class UserService:
             id=str(engagement.id),
             name=engagement.name,
             description=engagement.description or f"Engagement: {engagement.name}",
-            client_id=str(client.id),
+            client_id=str(engagement.client_account_id),  # Use the actual foreign key field
             created_at=engagement.created_at or now,
             updated_at=engagement.updated_at or now,
         )
@@ -398,7 +398,7 @@ class UserService:
         logger.info("Creating demo context")
 
         demo_client = ClientBase(
-            id=DEMO_CLIENT_ID,
+            id=str(DEMO_CLIENT_ID),
             name="Democorp",
             description="Demonstration Client",
             created_at=now,
@@ -406,19 +406,19 @@ class UserService:
         )
 
         demo_engagement = EngagementBase(
-            id=DEMO_ENGAGEMENT_ID,
+            id=str(DEMO_ENGAGEMENT_ID),
             name="Cloud Migration 2024",
             description="Demonstration Engagement",
-            client_id=DEMO_CLIENT_ID,
+            client_id=str(DEMO_CLIENT_ID),
             created_at=now,
             updated_at=now,
         )
 
         SessionBase(
-            id=DEMO_SESSION_ID,
+            id=str(DEMO_SESSION_ID),
             name="Demo Session",
             description="Demonstration Session",
-            engagement_id=DEMO_ENGAGEMENT_ID,
+            engagement_id=str(DEMO_ENGAGEMENT_ID),
             is_default=True,
             created_by=str(user.id),
             created_at=now,

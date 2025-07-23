@@ -5,8 +5,7 @@ import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { apiCall } from '../../config/api';
-import type { Filter, Route } from 'lucide-react'
-import { BarChart3, Calendar, Download, ClipboardList, Edit, ArrowRight } from 'lucide-react'
+import { Filter, Route, BarChart3, Calendar, Download, ClipboardList, Edit, ArrowRight } from 'lucide-react'
 
 const AssessIndex = () => {
   const { getAuthHeaders } = useAuth();

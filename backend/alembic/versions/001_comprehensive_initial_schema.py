@@ -18,10 +18,46 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Create assessment and risk level enums
-    sa.Enum('TECHNICAL', 'BUSINESS', 'SECURITY', 'COMPLIANCE', 'PERFORMANCE', name='assessmenttype').create(op.get_bind())
-    sa.Enum('PENDING', 'IN_PROGRESS', 'COMPLETED', 'REVIEWED', 'APPROVED', 'REJECTED', name='assessmentstatus').create(op.get_bind())
-    sa.Enum('LOW', 'MEDIUM', 'HIGH', 'CRITICAL', name='risklevel').create(op.get_bind())
+    # Create assessment and risk level enums (conditionally)
+    bind = op.get_bind()
+    
+    # Check if enum types already exist and create only if they don't
+    try:
+        result = bind.execute(sa.text("""
+            SELECT EXISTS(SELECT 1 FROM pg_type WHERE typname = 'assessmenttype')
+        """)).scalar()
+        if not result:
+            sa.Enum('TECHNICAL', 'BUSINESS', 'SECURITY', 'COMPLIANCE', 'PERFORMANCE', name='assessmenttype').create(bind)
+    except Exception:
+        # If query fails, assume enum doesn't exist and try to create it
+        try:
+            sa.Enum('TECHNICAL', 'BUSINESS', 'SECURITY', 'COMPLIANCE', 'PERFORMANCE', name='assessmenttype').create(bind)
+        except Exception:
+            pass  # Enum probably already exists
+    
+    try:
+        result = bind.execute(sa.text("""
+            SELECT EXISTS(SELECT 1 FROM pg_type WHERE typname = 'assessmentstatus')
+        """)).scalar()
+        if not result:
+            sa.Enum('PENDING', 'IN_PROGRESS', 'COMPLETED', 'REVIEWED', 'APPROVED', 'REJECTED', name='assessmentstatus').create(bind)
+    except Exception:
+        try:
+            sa.Enum('PENDING', 'IN_PROGRESS', 'COMPLETED', 'REVIEWED', 'APPROVED', 'REJECTED', name='assessmentstatus').create(bind)
+        except Exception:
+            pass
+    
+    try:
+        result = bind.execute(sa.text("""
+            SELECT EXISTS(SELECT 1 FROM pg_type WHERE typname = 'risklevel')
+        """)).scalar()
+        if not result:
+            sa.Enum('LOW', 'MEDIUM', 'HIGH', 'CRITICAL', name='risklevel').create(bind)
+    except Exception:
+        try:
+            sa.Enum('LOW', 'MEDIUM', 'HIGH', 'CRITICAL', name='risklevel').create(bind)
+        except Exception:
+            pass
     
     # Create client_accounts table
     op.create_table('client_accounts',
@@ -718,7 +754,33 @@ def downgrade() -> None:
     op.drop_table('users')
     op.drop_table('client_accounts')
     
-    # Drop enums
-    sa.Enum(name='risklevel').drop(op.get_bind())
-    sa.Enum(name='assessmentstatus').drop(op.get_bind())
-    sa.Enum(name='assessmenttype').drop(op.get_bind())
+    # Drop enums (conditionally)
+    bind = op.get_bind()
+    
+    # Check if enum types exist and drop only if they do
+    try:
+        result = bind.execute(sa.text("""
+            SELECT EXISTS(SELECT 1 FROM pg_type WHERE typname = 'risklevel')
+        """)).scalar()
+        if result:
+            sa.Enum(name='risklevel').drop(bind)
+    except Exception:
+        pass
+    
+    try:
+        result = bind.execute(sa.text("""
+            SELECT EXISTS(SELECT 1 FROM pg_type WHERE typname = 'assessmentstatus')
+        """)).scalar()
+        if result:
+            sa.Enum(name='assessmentstatus').drop(bind)
+    except Exception:
+        pass
+    
+    try:
+        result = bind.execute(sa.text("""
+            SELECT EXISTS(SELECT 1 FROM pg_type WHERE typname = 'assessmenttype')
+        """)).scalar()
+        if result:
+            sa.Enum(name='assessmenttype').drop(bind)
+    except Exception:
+        pass

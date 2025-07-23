@@ -1,5 +1,5 @@
 import React from 'react';
-import type { cn } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 interface LoadingSkeletonProps {
   className?: string;

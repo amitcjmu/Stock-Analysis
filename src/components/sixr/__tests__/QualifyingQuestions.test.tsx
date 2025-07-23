@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react'
 import type userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import QualifyingQuestions from '../QualifyingQuestions'
-import type { type QualifyingQuestion, type QuestionResponse } from '../QualifyingQuestions'
+import type { QualifyingQuestion, QuestionResponse } from '../QualifyingQuestions'
 
 // Mock the toast function
 vi.mock('sonner', () => ({

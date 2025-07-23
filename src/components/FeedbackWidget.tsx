@@ -1,13 +1,12 @@
 import React from 'react'
 import { useState } from 'react'
-import type { Filter } from 'lucide-react'
 import { MessageSquare, ThumbsUp, Loader2, AlertTriangle, Send, Plus } from 'lucide-react'
 import { useFeedback } from '@/hooks/useFeedback';
 import { Alert } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';

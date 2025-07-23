@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/components/ui/use-toast';
 
 // Import modular components
-import type CollectionPageLayout from '@/components/collection/layout/CollectionPageLayout';
+import CollectionPageLayout from '@/components/collection/layout/CollectionPageLayout';
 import AdaptiveFormContainer from '@/components/collection/forms/AdaptiveFormContainer';
 import { CollectionUploadBlocker } from '@/components/collection/CollectionUploadBlocker';
 

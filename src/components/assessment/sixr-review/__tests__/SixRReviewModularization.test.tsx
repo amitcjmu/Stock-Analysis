@@ -7,7 +7,7 @@ import React from 'react';
 import type { fireEvent, waitFor } from '@testing-library/react'
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom';
-import type { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SixROverallStats } from '../SixROverallStats';
 import type { SixRAppDecisionSummary } from '../SixRAppDecisionSummary';
 import { SixRActionButtons } from '../SixRActionButtons';
