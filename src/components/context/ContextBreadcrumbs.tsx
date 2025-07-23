@@ -87,7 +87,7 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
   });
 
   // Fetch engagements for selected client using context establishment endpoint
-  const { data: engagements = [], isLoading: engagementsLoading } = useQuery({
+  const { data: engagements = [], isLoading: engagementsLoading, error: engagementsError } = useQuery({
     queryKey: ['context-engagements', selectedClientId],
     queryFn: async () => {
       if (!selectedClientId) return [];
@@ -97,12 +97,36 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
           headers: getAuthHeaders()
         }, false); // Don't include context - we're establishing it
         return response.engagements || [];
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to fetch engagements:', error);
+        
+        // Show user-friendly error notification
+        const errorMessage = error?.response?.data?.detail || error?.message || 'Failed to load engagements';
+        toast({
+          title: "Error Loading Engagements",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        
+        // If client doesn't exist, suggest clearing cache
+        if (error?.status === 404 && errorMessage.includes('Client not found')) {
+          toast({
+            title: "Client Not Found",
+            description: "The selected client no longer exists. Try refreshing the page or clearing your browser cache.",
+            variant: "destructive",
+            duration: 10000, // Show for 10 seconds
+            action: {
+              label: "Refresh",
+              onClick: () => window.location.reload()
+            }
+          });
+        }
+        
         return [];
       }
     },
-    enabled: isAuthenticated && !authLoading && !!selectedClientId // Only run when user is authenticated, auth is not loading, and client is selected
+    enabled: isAuthenticated && !authLoading && !!selectedClientId, // Only run when user is authenticated, auth is not loading, and client is selected
+    retry: false // Don't retry on 404 errors
   });
 
   // Handle client selection

@@ -105,6 +105,37 @@ repos:
         language: system
         files: \.py$
 
+  # Frontend TypeScript/JavaScript checks
+  - repo: local
+    hooks:
+      - id: prettier
+        name: Prettier Format
+        entry: npx prettier --write --ignore-unknown
+        language: system
+        files: \.(ts|tsx|js|jsx|json|css|scss|md)$
+        exclude: ^(node_modules|dist|build|coverage)/
+        
+      - id: eslint
+        name: ESLint
+        entry: npx eslint --fix --max-warnings 0
+        language: system
+        files: \.(ts|tsx|js|jsx)$
+        exclude: ^(node_modules|dist|build|coverage)/
+        
+      - id: typecheck
+        name: TypeScript Check
+        entry: npm run typecheck
+        language: system
+        pass_filenames: false
+        files: \.(ts|tsx)$
+        
+      - id: npm-audit
+        name: NPM Security Audit
+        entry: npm audit --production --audit-level=high
+        language: system
+        pass_filenames: false
+        files: package-lock\.json$
+
 # Configuration for specific hooks
 exclude: |
   (?x)^(
@@ -117,4 +148,4 @@ exclude: |
   )$
 
 fail_fast: false
-default_stages: [commit]
+default_stages: [pre-commit]

@@ -17,6 +17,33 @@ branch_labels = None
 depends_on = None
 
 
+def table_exists(table_name):
+    """Check if a table exists in the database"""
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    return table_name in inspector.get_table_names()
+
+def create_table_if_not_exists(table_name, *columns, **kwargs):
+    """Create a table only if it doesn't already exist"""
+    if not table_exists(table_name):
+        op.create_table(table_name, *columns, **kwargs)
+    else:
+        print(f"Table {table_name} already exists, skipping creation")
+
+def index_exists(index_name, table_name):
+    """Check if an index exists on a table"""
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    indexes = inspector.get_indexes(table_name)
+    return any(idx['name'] == index_name for idx in indexes)
+
+def create_index_if_not_exists(index_name, table_name, columns, **kwargs):
+    """Create an index only if it doesn't already exist"""
+    if table_exists(table_name) and not index_exists(index_name, table_name):
+        op.create_index(index_name, table_name, columns, **kwargs)
+    else:
+        print(f"Index {index_name} already exists or table doesn't exist, skipping creation")
+
 def upgrade() -> None:
     # Create assessment and risk level enums (conditionally)
     bind = op.get_bind()
@@ -60,47 +87,47 @@ def upgrade() -> None:
             pass
     
     # Create client_accounts table
-    op.create_table('client_accounts',
-        sa.Column('id', sa.UUID(), nullable=False),
-        sa.Column('name', sa.VARCHAR(length=255), nullable=False),
-        sa.Column('slug', sa.VARCHAR(length=100), nullable=False),
-        sa.Column('description', sa.TEXT(), nullable=True),
-        sa.Column('industry', sa.VARCHAR(length=100), nullable=True),
-        sa.Column('company_size', sa.VARCHAR(length=50), nullable=True),
-        sa.Column('headquarters_location', sa.VARCHAR(length=255), nullable=True),
-        sa.Column('primary_contact_name', sa.VARCHAR(length=255), nullable=True),
-        sa.Column('primary_contact_email', sa.VARCHAR(length=255), nullable=True),
-        sa.Column('primary_contact_phone', sa.VARCHAR(length=50), nullable=True),
-        sa.Column('contact_email', sa.VARCHAR(length=255), nullable=True),
-        sa.Column('contact_phone', sa.VARCHAR(length=50), nullable=True),
-        sa.Column('address', sa.TEXT(), nullable=True),
-        sa.Column('timezone', sa.VARCHAR(length=50), nullable=True),
-        sa.Column('subscription_tier', sa.VARCHAR(length=50), server_default='standard', nullable=True),
-        sa.Column('billing_contact_email', sa.VARCHAR(length=255), nullable=True),
-        sa.Column('subscription_start_date', sa.TIMESTAMP(timezone=True), nullable=True),
-        sa.Column('subscription_end_date', sa.TIMESTAMP(timezone=True), nullable=True),
-        sa.Column('max_users', sa.INTEGER(), nullable=True),
-        sa.Column('max_engagements', sa.INTEGER(), nullable=True),
-        sa.Column('features_enabled', postgresql.JSON(astext_type=sa.Text()), server_default=sa.text("'{}'::json"), nullable=True),
-        sa.Column('agent_configuration', postgresql.JSON(astext_type=sa.Text()), server_default=sa.text("'{}'::json"), nullable=True),
-        sa.Column('storage_quota_gb', sa.INTEGER(), nullable=True),
-        sa.Column('api_quota_monthly', sa.INTEGER(), nullable=True),
-        sa.Column('settings', postgresql.JSON(astext_type=sa.Text()), server_default=sa.text("'{}'::json"), nullable=True),
-        sa.Column('branding', postgresql.JSON(astext_type=sa.Text()), server_default=sa.text("'{}'::json"), nullable=True),
-        sa.Column('business_objectives', postgresql.JSON(astext_type=sa.Text()), server_default=sa.text('\'{"primary_goals": [], "timeframe": "", "success_metrics": [], "constraints": []}\'::json'), nullable=True),
-        sa.Column('it_guidelines', postgresql.JSON(astext_type=sa.Text()), nullable=True),
-        sa.Column('decision_criteria', postgresql.JSON(astext_type=sa.Text()), nullable=True),
-        sa.Column('agent_preferences', postgresql.JSON(astext_type=sa.Text()), server_default=sa.text('\'{"discovery_depth": "comprehensive", "automation_level": "assisted", "risk_tolerance": "moderate", "preferred_clouds": [], "compliance_requirements": [], "custom_rules": []}\'::json'), nullable=True),
-        sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=True),
-        sa.Column('updated_at', sa.TIMESTAMP(timezone=True), nullable=True),
-        sa.Column('created_by', sa.UUID(), nullable=True),
-        sa.Column('is_active', sa.BOOLEAN(), server_default=sa.text('true'), nullable=False),
-        sa.PrimaryKeyConstraint('id', name=op.f('pk_client_accounts')),
-        sa.UniqueConstraint('slug', name=op.f('uq_client_accounts_slug'))
-    )
+    create_table_if_not_exists('client_accounts',
+            sa.Column('id', sa.UUID(), nullable=False),
+            sa.Column('name', sa.VARCHAR(length=255), nullable=False),
+            sa.Column('slug', sa.VARCHAR(length=100), nullable=False),
+            sa.Column('description', sa.TEXT(), nullable=True),
+            sa.Column('industry', sa.VARCHAR(length=100), nullable=True),
+            sa.Column('company_size', sa.VARCHAR(length=50), nullable=True),
+            sa.Column('headquarters_location', sa.VARCHAR(length=255), nullable=True),
+            sa.Column('primary_contact_name', sa.VARCHAR(length=255), nullable=True),
+            sa.Column('primary_contact_email', sa.VARCHAR(length=255), nullable=True),
+            sa.Column('primary_contact_phone', sa.VARCHAR(length=50), nullable=True),
+            sa.Column('contact_email', sa.VARCHAR(length=255), nullable=True),
+            sa.Column('contact_phone', sa.VARCHAR(length=50), nullable=True),
+            sa.Column('address', sa.TEXT(), nullable=True),
+            sa.Column('timezone', sa.VARCHAR(length=50), nullable=True),
+            sa.Column('subscription_tier', sa.VARCHAR(length=50), server_default='standard', nullable=True),
+            sa.Column('billing_contact_email', sa.VARCHAR(length=255), nullable=True),
+            sa.Column('subscription_start_date', sa.TIMESTAMP(timezone=True), nullable=True),
+            sa.Column('subscription_end_date', sa.TIMESTAMP(timezone=True), nullable=True),
+            sa.Column('max_users', sa.INTEGER(), nullable=True),
+            sa.Column('max_engagements', sa.INTEGER(), nullable=True),
+            sa.Column('features_enabled', postgresql.JSON(astext_type=sa.Text()), server_default=sa.text("'{}'::json"), nullable=True),
+            sa.Column('agent_configuration', postgresql.JSON(astext_type=sa.Text()), server_default=sa.text("'{}'::json"), nullable=True),
+            sa.Column('storage_quota_gb', sa.INTEGER(), nullable=True),
+            sa.Column('api_quota_monthly', sa.INTEGER(), nullable=True),
+            sa.Column('settings', postgresql.JSON(astext_type=sa.Text()), server_default=sa.text("'{}'::json"), nullable=True),
+            sa.Column('branding', postgresql.JSON(astext_type=sa.Text()), server_default=sa.text("'{}'::json"), nullable=True),
+            sa.Column('business_objectives', postgresql.JSON(astext_type=sa.Text()), server_default=sa.text('\'{"primary_goals": [], "timeframe": "", "success_metrics": [], "constraints": []}\'::json'), nullable=True),
+            sa.Column('it_guidelines', postgresql.JSON(astext_type=sa.Text()), nullable=True),
+            sa.Column('decision_criteria', postgresql.JSON(astext_type=sa.Text()), nullable=True),
+            sa.Column('agent_preferences', postgresql.JSON(astext_type=sa.Text()), server_default=sa.text('\'{"discovery_depth": "comprehensive", "automation_level": "assisted", "risk_tolerance": "moderate", "preferred_clouds": [], "compliance_requirements": [], "custom_rules": []}\'::json'), nullable=True),
+            sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=True),
+            sa.Column('updated_at', sa.TIMESTAMP(timezone=True), nullable=True),
+            sa.Column('created_by', sa.UUID(), nullable=True),
+            sa.Column('is_active', sa.BOOLEAN(), server_default=sa.text('true'), nullable=False),
+            sa.PrimaryKeyConstraint('id', name=op.f('pk_client_accounts')),
+            sa.UniqueConstraint('slug', name=op.f('uq_client_accounts_slug'))
+        )
     
     # Create users table
-    op.create_table('users',
+    create_table_if_not_exists('users',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('email', sa.VARCHAR(length=255), nullable=False),
         sa.Column('password_hash', sa.VARCHAR(length=255), nullable=True),
@@ -119,7 +146,7 @@ def upgrade() -> None:
     )
     
     # Create engagements table
-    op.create_table('engagements',
+    create_table_if_not_exists('engagements',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('client_account_id', sa.UUID(), nullable=False),
         sa.Column('name', sa.VARCHAR(length=255), nullable=False),
@@ -147,7 +174,7 @@ def upgrade() -> None:
     )
     
     # Create user_profiles table
-    op.create_table('user_profiles',
+    create_table_if_not_exists('user_profiles',
         sa.Column('user_id', sa.UUID(), nullable=False),
         sa.Column('status', sa.VARCHAR(length=20), server_default='PENDING_APPROVAL', nullable=False),
         sa.Column('approval_requested_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=True),
@@ -173,7 +200,7 @@ def upgrade() -> None:
     )
     
     # Create RBAC tables
-    op.create_table('user_roles',
+    create_table_if_not_exists('user_roles',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('user_id', sa.UUID(), nullable=False),
         sa.Column('role_type', sa.VARCHAR(length=50), nullable=False),
@@ -195,11 +222,11 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['user_id'], ['users.id'], name=op.f('fk_user_roles_user_id_users'), ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id', name=op.f('pk_user_roles'))
     )
-    op.create_index(op.f('ix_user_roles_id'), 'user_roles', ['id'], unique=False)
-    op.create_index(op.f('ix_user_roles_user_id'), 'user_roles', ['user_id'], unique=False)
-    op.create_index(op.f('ix_user_roles_is_active'), 'user_roles', ['is_active'], unique=False)
+    create_index_if_not_exists(op.f('ix_user_roles_id'), 'user_roles', ['id'], unique=False)
+    create_index_if_not_exists(op.f('ix_user_roles_user_id'), 'user_roles', ['user_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_user_roles_is_active'), 'user_roles', ['is_active'], unique=False)
     
-    op.create_table('user_account_associations',
+    create_table_if_not_exists('user_account_associations',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('user_id', sa.UUID(), nullable=False),
         sa.Column('client_account_id', sa.UUID(), nullable=False),
@@ -212,11 +239,11 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('id', name=op.f('pk_user_account_associations')),
         sa.UniqueConstraint('user_id', 'client_account_id', name='_user_client_account_uc')
     )
-    op.create_index(op.f('ix_user_account_associations_user_id'), 'user_account_associations', ['user_id'], unique=False)
-    op.create_index(op.f('ix_user_account_associations_client_account_id'), 'user_account_associations', ['client_account_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_user_account_associations_user_id'), 'user_account_associations', ['user_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_user_account_associations_client_account_id'), 'user_account_associations', ['client_account_id'], unique=False)
     
     # Create client_access table
-    op.create_table('client_access',
+    create_table_if_not_exists('client_access',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('user_profile_id', sa.UUID(), nullable=False),
         sa.Column('client_account_id', sa.UUID(), nullable=False),
@@ -239,7 +266,7 @@ def upgrade() -> None:
     )
     
     # Create engagement_access table
-    op.create_table('engagement_access',
+    create_table_if_not_exists('engagement_access',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('user_profile_id', sa.UUID(), nullable=False),
         sa.Column('engagement_id', sa.UUID(), nullable=False),
@@ -261,13 +288,13 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['user_profile_id'], ['user_profiles.user_id'], name=op.f('fk_engagement_access_user_profile_id_user_profiles'), ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id', name=op.f('pk_engagement_access'))
     )
-    op.create_index(op.f('ix_engagement_access_id'), 'engagement_access', ['id'], unique=False)
-    op.create_index(op.f('ix_engagement_access_user_profile_id'), 'engagement_access', ['user_profile_id'], unique=False)
-    op.create_index(op.f('ix_engagement_access_engagement_id'), 'engagement_access', ['engagement_id'], unique=False)
-    op.create_index(op.f('ix_engagement_access_is_active'), 'engagement_access', ['is_active'], unique=False)
+    create_index_if_not_exists(op.f('ix_engagement_access_id'), 'engagement_access', ['id'], unique=False)
+    create_index_if_not_exists(op.f('ix_engagement_access_user_profile_id'), 'engagement_access', ['user_profile_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_engagement_access_engagement_id'), 'engagement_access', ['engagement_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_engagement_access_is_active'), 'engagement_access', ['is_active'], unique=False)
     
     # Create crewai_flow_state_extensions table
-    op.create_table('crewai_flow_state_extensions',
+    create_table_if_not_exists('crewai_flow_state_extensions',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('flow_id', sa.UUID(), nullable=False),
         sa.Column('client_account_id', sa.UUID(), nullable=False),
@@ -303,7 +330,7 @@ def upgrade() -> None:
     )
     
     # Create data_imports table
-    op.create_table('data_imports',
+    create_table_if_not_exists('data_imports',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('client_account_id', sa.UUID(), nullable=True),
         sa.Column('engagement_id', sa.UUID(), nullable=True),
@@ -335,7 +362,7 @@ def upgrade() -> None:
     )
     
     # Create discovery_flows table
-    op.create_table('discovery_flows',
+    create_table_if_not_exists('discovery_flows',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('flow_id', sa.UUID(), nullable=False),
         sa.Column('master_flow_id', sa.UUID(), nullable=True),
@@ -379,16 +406,16 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('id', name=op.f('pk_discovery_flows')),
         sa.UniqueConstraint('flow_id', name=op.f('uq_discovery_flows_flow_id'))
     )
-    op.create_index(op.f('ix_discovery_flows_id'), 'discovery_flows', ['id'], unique=False)
-    op.create_index(op.f('ix_discovery_flows_flow_id'), 'discovery_flows', ['flow_id'], unique=False)
-    op.create_index(op.f('ix_discovery_flows_master_flow_id'), 'discovery_flows', ['master_flow_id'], unique=False)
-    op.create_index(op.f('ix_discovery_flows_client_account_id'), 'discovery_flows', ['client_account_id'], unique=False)
-    op.create_index(op.f('ix_discovery_flows_engagement_id'), 'discovery_flows', ['engagement_id'], unique=False)
-    op.create_index(op.f('ix_discovery_flows_data_import_id'), 'discovery_flows', ['data_import_id'], unique=False)
-    op.create_index(op.f('ix_discovery_flows_status'), 'discovery_flows', ['status'], unique=False)
+    create_index_if_not_exists(op.f('ix_discovery_flows_id'), 'discovery_flows', ['id'], unique=False)
+    create_index_if_not_exists(op.f('ix_discovery_flows_flow_id'), 'discovery_flows', ['flow_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_discovery_flows_master_flow_id'), 'discovery_flows', ['master_flow_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_discovery_flows_client_account_id'), 'discovery_flows', ['client_account_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_discovery_flows_engagement_id'), 'discovery_flows', ['engagement_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_discovery_flows_data_import_id'), 'discovery_flows', ['data_import_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_discovery_flows_status'), 'discovery_flows', ['status'], unique=False)
     
     # Create raw_import_records table
-    op.create_table('raw_import_records',
+    create_table_if_not_exists('raw_import_records',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('data_import_id', sa.UUID(), nullable=False),
         sa.Column('client_account_id', sa.UUID(), nullable=True),
@@ -412,7 +439,7 @@ def upgrade() -> None:
     )
     
     # Create import_field_mappings table
-    op.create_table('import_field_mappings',
+    create_table_if_not_exists('import_field_mappings',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('data_import_id', sa.UUID(), nullable=False),
         sa.Column('client_account_id', sa.UUID(), nullable=False),
@@ -435,7 +462,7 @@ def upgrade() -> None:
     )
     
     # Create assessments table
-    op.create_table('assessments',
+    create_table_if_not_exists('assessments',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('client_account_id', sa.UUID(), nullable=False),
         sa.Column('engagement_id', sa.UUID(), nullable=False),
@@ -453,7 +480,7 @@ def upgrade() -> None:
     )
     
     # Create assets table with all columns including raw_import_records_id
-    op.create_table('assets',
+    create_table_if_not_exists('assets',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('client_account_id', sa.UUID(), nullable=False),
         sa.Column('engagement_id', sa.UUID(), nullable=False),
@@ -531,20 +558,26 @@ def upgrade() -> None:
     )
     
     # Create performance indexes for assets
-    op.create_index('idx_assets_client_engagement', 'assets', ['client_account_id', 'engagement_id'], unique=False)
-    op.create_index('idx_assets_created_at_desc', 'assets', [sa.text('created_at DESC')], unique=False)
-    op.create_index('idx_assets_type', 'assets', ['asset_type'], unique=False)
-    op.create_index('idx_assets_status', 'assets', ['status'], unique=False)
-    op.create_index('idx_assets_client_engagement_created', 'assets', ['client_account_id', 'engagement_id', sa.text('created_at DESC')], unique=False)
+    create_index_if_not_exists('idx_assets_client_engagement', 'assets', ['client_account_id', 'engagement_id'], unique=False)
+    create_index_if_not_exists('idx_assets_created_at_desc', 'assets', [sa.text('created_at DESC')], unique=False)
+    create_index_if_not_exists('idx_assets_type', 'assets', ['asset_type'], unique=False)
+    create_index_if_not_exists('idx_assets_status', 'assets', ['status'], unique=False)
+    create_index_if_not_exists('idx_assets_client_engagement_created', 'assets', ['client_account_id', 'engagement_id', sa.text('created_at DESC')], unique=False)
     
     # Create uniqueness constraints for assets
-    op.create_index('ix_assets_unique_hostname_per_context', 'assets', ['client_account_id', 'engagement_id', 'hostname'], unique=True, postgresql_where=sa.text("hostname IS NOT NULL AND hostname != ''"))
-    op.create_index('ix_assets_unique_name_per_context', 'assets', ['client_account_id', 'engagement_id', 'name'], unique=True, postgresql_where=sa.text("name IS NOT NULL AND name != ''"))
-    op.create_index('ix_assets_unique_ip_per_context', 'assets', ['client_account_id', 'engagement_id', 'ip_address'], unique=True, postgresql_where=sa.text("ip_address IS NOT NULL AND ip_address != ''"))
-    op.create_check_constraint('ck_assets_has_identifier', 'assets', sa.text("hostname IS NOT NULL OR name IS NOT NULL OR ip_address IS NOT NULL"))
+    create_index_if_not_exists('ix_assets_unique_hostname_per_context', 'assets', ['client_account_id', 'engagement_id', 'hostname'], unique=True, postgresql_where=sa.text("hostname IS NOT NULL AND hostname != ''"))
+    create_index_if_not_exists('ix_assets_unique_name_per_context', 'assets', ['client_account_id', 'engagement_id', 'name'], unique=True, postgresql_where=sa.text("name IS NOT NULL AND name != ''"))
+    create_index_if_not_exists('ix_assets_unique_ip_per_context', 'assets', ['client_account_id', 'engagement_id', 'ip_address'], unique=True, postgresql_where=sa.text("ip_address IS NOT NULL AND ip_address != ''"))
+    
+    # Check constraint - only create if table exists
+    if table_exists('assets'):
+        try:
+            op.create_check_constraint('ck_assets_has_identifier', 'assets', sa.text("hostname IS NOT NULL OR name IS NOT NULL OR ip_address IS NOT NULL"))
+        except Exception as e:
+            print(f"Check constraint ck_assets_has_identifier already exists or error: {e}")
     
     # Create migration_waves table
-    op.create_table('migration_waves',
+    create_table_if_not_exists('migration_waves',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('client_account_id', sa.UUID(), nullable=False),
         sa.Column('engagement_id', sa.UUID(), nullable=False),
@@ -571,14 +604,14 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['created_by'], ['users.id'], name=op.f('fk_migration_waves_created_by_users')),
         sa.PrimaryKeyConstraint('id', name=op.f('pk_migration_waves'))
     )
-    op.create_index(op.f('ix_migration_waves_id'), 'migration_waves', ['id'], unique=False)
-    op.create_index(op.f('ix_migration_waves_client_account_id'), 'migration_waves', ['client_account_id'], unique=False)
-    op.create_index(op.f('ix_migration_waves_engagement_id'), 'migration_waves', ['engagement_id'], unique=False)
-    op.create_index(op.f('ix_migration_waves_wave_number'), 'migration_waves', ['wave_number'], unique=False)
-    op.create_index(op.f('ix_migration_waves_status'), 'migration_waves', ['status'], unique=False)
+    create_index_if_not_exists(op.f('ix_migration_waves_id'), 'migration_waves', ['id'], unique=False)
+    create_index_if_not_exists(op.f('ix_migration_waves_client_account_id'), 'migration_waves', ['client_account_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_migration_waves_engagement_id'), 'migration_waves', ['engagement_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_migration_waves_wave_number'), 'migration_waves', ['wave_number'], unique=False)
+    create_index_if_not_exists(op.f('ix_migration_waves_status'), 'migration_waves', ['status'], unique=False)
     
     # Create assessment flow tables (from migration 003)
-    op.create_table('assessment_flows',
+    create_table_if_not_exists('assessment_flows',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('client_account_id', sa.UUID(), nullable=False),
         sa.Column('engagement_id', sa.UUID(), nullable=False),
@@ -592,7 +625,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('id')
     )
     
-    op.create_table('engagement_architecture_standards',
+    create_table_if_not_exists('engagement_architecture_standards',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('engagement_id', sa.UUID(), nullable=False),
         sa.Column('requirement_type', sa.String(length=100), nullable=False),
@@ -607,7 +640,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('id')
     )
     
-    op.create_table('application_architecture_overrides',
+    create_table_if_not_exists('application_architecture_overrides',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('assessment_flow_id', sa.UUID(), nullable=False),
         sa.Column('application_id', sa.UUID(), nullable=False),
@@ -622,10 +655,10 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['standard_id'], ['engagement_architecture_standards.id'], ondelete='SET NULL'),
         sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_application_architecture_overrides_assessment_flow_id'), 'application_architecture_overrides', ['assessment_flow_id'], unique=False)
-    op.create_index(op.f('ix_application_architecture_overrides_application_id'), 'application_architecture_overrides', ['application_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_application_architecture_overrides_assessment_flow_id'), 'application_architecture_overrides', ['assessment_flow_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_application_architecture_overrides_application_id'), 'application_architecture_overrides', ['application_id'], unique=False)
     
-    op.create_table('application_components',
+    create_table_if_not_exists('application_components',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('engagement_id', sa.UUID(), nullable=False),
         sa.Column('component_name', sa.String(length=255), nullable=False),
@@ -637,7 +670,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('id')
     )
     
-    op.create_table('tech_debt_analysis',
+    create_table_if_not_exists('tech_debt_analysis',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('engagement_id', sa.UUID(), nullable=False),
         sa.Column('analysis_type', sa.String(length=100), nullable=False),
@@ -648,7 +681,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('id')
     )
     
-    op.create_table('component_treatments',
+    create_table_if_not_exists('component_treatments',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('component_id', sa.UUID(), nullable=False),
         sa.Column('treatment_type', sa.String(length=100), nullable=False),
@@ -659,7 +692,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('id')
     )
     
-    op.create_table('sixr_decisions',
+    create_table_if_not_exists('sixr_decisions',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('engagement_id', sa.UUID(), nullable=False),
         sa.Column('decision_type', sa.String(length=100), nullable=False),
@@ -670,7 +703,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('id')
     )
     
-    op.create_table('assessment_learning_feedback',
+    create_table_if_not_exists('assessment_learning_feedback',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('engagement_id', sa.UUID(), nullable=False),
         sa.Column('feedback_type', sa.String(length=100), nullable=False),

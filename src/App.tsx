@@ -13,6 +13,7 @@ import { DialogProvider } from "./contexts/DialogContext";
 import GlobalChatFeedback from "./components/GlobalChatFeedback";
 import { AppInitializer } from "./services/appInitializer";
 import { useGlobalErrorHandler } from "./hooks/useGlobalErrorHandler";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 // Lazy Loading Infrastructure
 import { LazyLoadingProvider, LoadingPriority } from "./components/lazy";
@@ -235,31 +236,33 @@ const AuthenticatedApp = () => {
 };
 
 const App = () => (
-  <TooltipProvider>
-    <Toaster />
-    <Sonner />
-    <LazyLoadingProvider
-      globalOptions={{
-        priority: LoadingPriority.NORMAL,
-        timeout: 30000,
-        retryAttempts: 3,
-        cacheStrategy: 'memory'
-      }}
-    >
-      <AuthProvider>
-        <ClientProvider>
-          <FieldOptionsProvider>
-            <DialogProvider>
-              <ChatFeedbackProvider>
-                <AuthenticatedApp />
-                <GlobalChatFeedback />
-              </ChatFeedbackProvider>
-            </DialogProvider>
-          </FieldOptionsProvider>
-        </ClientProvider>
-      </AuthProvider>
-    </LazyLoadingProvider>
-  </TooltipProvider>
+  <ErrorBoundary>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <LazyLoadingProvider
+        globalOptions={{
+          priority: LoadingPriority.NORMAL,
+          timeout: 30000,
+          retryAttempts: 3,
+          cacheStrategy: 'memory'
+        }}
+      >
+        <AuthProvider>
+          <ClientProvider>
+            <FieldOptionsProvider>
+              <DialogProvider>
+                <ChatFeedbackProvider>
+                  <AuthenticatedApp />
+                  <GlobalChatFeedback />
+                </ChatFeedbackProvider>
+              </DialogProvider>
+            </FieldOptionsProvider>
+          </ClientProvider>
+        </AuthProvider>
+      </LazyLoadingProvider>
+    </TooltipProvider>
+  </ErrorBoundary>
 );
 
 export default App;

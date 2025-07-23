@@ -15,7 +15,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import and_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth.auth_utils import get_current_user
@@ -281,20 +281,30 @@ async def get_context_engagements(
         # Verify client exists and is active
         logger.info(f"🔍 Looking for client: {client_id} (type: {type(client_id)})")
         
-        # Debug: Try simple get first
-        simple_client = await db.get(ClientAccount, client_id)
-        logger.info(f"🔍 Simple db.get result: {simple_client}")
+        # First check if client exists at all
+        client_exists_query = select(ClientAccount).where(ClientAccount.id == client_id)
+        exists_result = await db.execute(client_exists_query)
+        client_exists = exists_result.scalar_one_or_none()
         
+        if not client_exists:
+            logger.error(f"❌ Client not found in database: {client_id}")
+            raise HTTPException(status_code=404, detail="Client not found")
+        
+        # Now check if it's active (handle NULL as active for backward compatibility)
         client_query = select(ClientAccount).where(
-            and_(ClientAccount.id == client_id, ClientAccount.is_active == True)
+            and_(
+                ClientAccount.id == client_id, 
+                or_(ClientAccount.is_active == True, ClientAccount.is_active.is_(None))
+            )
         )
         client_result = await db.execute(client_query)
         client = client_result.scalar_one_or_none()
-        logger.info(f"🔍 Client query result: {client}")
-
+        
         if not client:
-            logger.error(f"❌ Client not found: {client_id}")
-            raise HTTPException(status_code=404, detail="Client not found")
+            logger.error(f"❌ Client {client_id} exists but is marked as inactive (is_active=False)")
+            raise HTTPException(status_code=404, detail="Client not found or inactive")
+        
+        logger.info(f"✅ Found active client: {client.name} ({client.id})")
 
         if not is_platform_admin:
             # Regular users: Verify they have access to this client
@@ -321,13 +331,14 @@ async def get_context_engagements(
                     detail="Access denied: No permission for this client",
                 )
 
-        # Get engagements for this client (platform admins and authorized users)
+        # Get ONLY ACTIVE engagements for this client that the user is authorized to see
+        # Handle NULL is_active as active for backward compatibility
         query = (
             select(Engagement)
             .where(
                 and_(
                     Engagement.client_account_id == client_id,
-                    Engagement.is_active == True,
+                    or_(Engagement.is_active == True, Engagement.is_active.is_(None)),
                 )
             )
             .order_by(Engagement.name)
