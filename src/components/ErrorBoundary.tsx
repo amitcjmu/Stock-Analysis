@@ -1,4 +1,5 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
+import React, { Component } from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -27,7 +28,7 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Error boundary caught:', error, errorInfo);
     this.setState({ errorInfo });
-    
+
     // You can also log the error to an error reporting service here
     // logErrorToService(error, errorInfo);
   }
@@ -53,7 +54,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 {this.state.error?.message || 'An unexpected error occurred'}
               </AlertDescription>
             </Alert>
-            
+
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
                 The application encountered an error. This might be due to:
@@ -63,24 +64,24 @@ export class ErrorBoundary extends Component<Props, State> {
                 <li>Invalid data in your browser's cache</li>
                 <li>An unexpected application state</li>
               </ul>
-              
+
               <div className="flex gap-2">
                 <Button onClick={this.handleReset} variant="default">
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Reload Page
                 </Button>
-                <Button 
+                <Button
                   onClick={() => {
                     localStorage.clear();
                     sessionStorage.clear();
                     window.location.reload();
-                  }} 
+                  }}
                   variant="outline"
                 >
                   Clear Cache & Reload
                 </Button>
               </div>
-              
+
               {process.env.NODE_ENV === 'development' && this.state.errorInfo && (
                 <details className="mt-4 p-4 bg-muted rounded-lg">
                   <summary className="cursor-pointer text-sm font-medium">

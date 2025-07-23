@@ -1,25 +1,21 @@
-import React from 'react'
-import { useState } from 'react'
-import { useEffect } from 'react'
+import React from 'react';
+import { useState } from 'react';
+import { useEffect } from 'react';
 import { ChevronRight, Home, Building2, Calendar, Settings, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { useQuery } from '@tanstack/react-query'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { apiCall } from '@/config/api';
 
 // Types
@@ -40,23 +36,23 @@ interface ContextBreadcrumbsProps {
   showContextSelector?: boolean;
 }
 
-export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({ 
-  className = '', 
-  showContextSelector = true 
+export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
+  className = '',
+  showContextSelector = true,
 }) => {
-  const { 
+  const {
     client,
     engagement,
     switchClient,
     switchEngagement,
     getAuthHeaders,
     isAuthenticated,
-    isLoading: authLoading
+    isLoading: authLoading,
   } = useAuth();
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   // Local state for context switcher
   const [isContextSelectorOpen, setIsContextSelectorOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string>(client?.id || '');
@@ -73,98 +69,126 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
     queryKey: ['context-clients'],
     queryFn: async () => {
       try {
-        const response = await apiCall('/api/v1/context-establishment/clients', {
-          method: 'GET',
-          headers: getAuthHeaders()
-        }, false); // Don't include context - we're establishing it
+        const response = await apiCall(
+          '/api/v1/context-establishment/clients',
+          {
+            method: 'GET',
+            headers: getAuthHeaders(),
+          },
+          false
+        ); // Don't include context - we're establishing it
         return response.clients || [];
       } catch (error) {
         console.error('Failed to fetch clients:', error);
         return [];
       }
     },
-    enabled: isAuthenticated && !authLoading // Only run when user is authenticated and auth is not loading
+    enabled: isAuthenticated && !authLoading, // Only run when user is authenticated and auth is not loading
   });
 
   // Fetch engagements for selected client using context establishment endpoint
-  const { data: engagements = [], isLoading: engagementsLoading, error: engagementsError } = useQuery({
+  const {
+    data: engagements = [],
+    isLoading: engagementsLoading,
+    error: engagementsError,
+  } = useQuery({
     queryKey: ['context-engagements', selectedClientId],
     queryFn: async () => {
       if (!selectedClientId) return [];
       try {
-        const response = await apiCall(`/api/v1/context-establishment/engagements?client_id=${selectedClientId}`, {
-          method: 'GET',
-          headers: getAuthHeaders()
-        }, false); // Don't include context - we're establishing it
+        const response = await apiCall(
+          `/api/v1/context-establishment/engagements?client_id=${selectedClientId}`,
+          {
+            method: 'GET',
+            headers: getAuthHeaders(),
+          },
+          false
+        ); // Don't include context - we're establishing it
         return response.engagements || [];
-      } catch (error: any) {
+      } catch (error) {
         console.error('Failed to fetch engagements:', error);
-        
+
         // Show user-friendly error notification
-        const errorMessage = error?.response?.data?.detail || error?.message || 'Failed to load engagements';
-        toast({
-          title: "Error Loading Engagements",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        let errorMessage = 'Failed to load engagements';
+        let status: number | undefined;
         
-        // If client doesn't exist, suggest clearing cache
-        if (error?.status === 404 && errorMessage.includes('Client not found')) {
-          toast({
-            title: "Client Not Found",
-            description: "The selected client no longer exists. Try refreshing the page or clearing your browser cache.",
-            variant: "destructive",
-            duration: 10000, // Show for 10 seconds
-            action: {
-              label: "Refresh",
-              onClick: () => window.location.reload()
-            }
-          });
+        if (error instanceof Error) {
+          errorMessage = error.message;
+          // Check if it's an axios-like error with response data
+          const axiosError = error as Error & { 
+            response?: { data?: { detail?: string }; status?: number };
+            status?: number;
+          };
+          if (axiosError.response?.data?.detail) {
+            errorMessage = axiosError.response.data.detail;
+          }
+          status = axiosError.status || axiosError.response?.status;
         }
         
+        toast({
+          title: 'Error Loading Engagements',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+
+        // If client doesn't exist, suggest clearing cache
+        if (status === 404 && errorMessage.includes('Client not found')) {
+          toast({
+            title: 'Client Not Found',
+            description:
+              'The selected client no longer exists. Try refreshing the page or clearing your browser cache.',
+            variant: 'destructive',
+            duration: 10000, // Show for 10 seconds
+            action: {
+              label: 'Refresh',
+              onClick: () => window.location.reload(),
+            },
+          });
+        }
+
         return [];
       }
     },
     enabled: isAuthenticated && !authLoading && !!selectedClientId, // Only run when user is authenticated, auth is not loading, and client is selected
-    retry: false // Don't retry on 404 errors
+    retry: false, // Don't retry on 404 errors
   });
 
   // Handle client selection
   const handleClientChange = async (clientId: string) => {
     setSelectedClientId(clientId);
     setSelectedEngagementId(''); // Reset engagement when client changes
-    
+
     try {
       // Find the full client data
-      const selectedClient = clients.find(c => c.id === clientId);
+      const selectedClient = clients.find((c) => c.id === clientId);
       if (selectedClient) {
         // Create client data object for AuthContext
         const clientData = {
           id: selectedClient.id,
           name: selectedClient.name,
-          status: selectedClient.status || 'active'
+          status: selectedClient.status || 'active',
         };
-        
+
         // Update AuthContext with full client data
         await switchClient(clientId, clientData);
       } else {
         // Fallback if client not found in local data
         await switchClient(clientId);
       }
-      
+
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['engagements'] });
-      
+
       toast({
-        title: "Client switched",
+        title: 'Client switched',
         description: `Switched to ${selectedClient?.name || 'selected client'}`,
       });
     } catch (error) {
       console.error('Failed to switch client:', error);
       toast({
-        title: "Error",
-        description: "Failed to switch client",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to switch client',
+        variant: 'destructive',
       });
     }
   };
@@ -172,35 +196,35 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
   // Handle engagement selection
   const handleEngagementChange = async (engagementId: string) => {
     setSelectedEngagementId(engagementId);
-    
+
     try {
       // Find the full engagement data
-      const selectedEngagement = engagements.find(e => e.id === engagementId);
+      const selectedEngagement = engagements.find((e) => e.id === engagementId);
       if (selectedEngagement) {
         // Create engagement data object for AuthContext
         const engagementData = {
           id: selectedEngagement.id,
           name: selectedEngagement.name,
-          status: selectedEngagement.status || 'active'
+          status: selectedEngagement.status || 'active',
         };
-        
+
         // Update AuthContext with full engagement data
         await switchEngagement(engagementId, engagementData);
       } else {
         // Fallback if engagement not found in local data
         await switchEngagement(engagementId);
       }
-      
+
       toast({
-        title: "Engagement switched",
+        title: 'Engagement switched',
         description: `Switched to ${selectedEngagement?.name || 'selected engagement'}`,
       });
     } catch (error) {
       console.error('Failed to switch engagement:', error);
       toast({
-        title: "Error",
-        description: "Failed to switch engagement",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to switch engagement',
+        variant: 'destructive',
       });
     }
   };
@@ -208,13 +232,13 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
   // Apply context changes and close popover
   const handleApplyContext = () => {
     setIsContextSelectorOpen(false);
-    
+
     // Invalidate all queries to refresh data with new context
     queryClient.invalidateQueries();
-    
+
     toast({
-      title: "Context applied",
-      description: "All data will refresh with the new context",
+      title: 'Context applied',
+      description: 'All data will refresh with the new context',
     });
   };
 
@@ -235,17 +259,21 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
           variant="ghost"
           size="sm"
           className="h-8 px-2"
-          onClick={() => window.location.href = '/'}
+          onClick={() => (window.location.href = '/')}
         >
           <Home className="h-4 w-4" />
         </Button>
-        
+
         {breadcrumbs.map((crumb, index) => (
           <React.Fragment key={crumb.id}>
             <ChevronRight className="h-4 w-4 text-gray-400 mx-1" />
-            <Badge 
-              variant="outline" 
-              className={crumb.type === 'Client' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-green-50 text-green-700 border-green-200'}
+            <Badge
+              variant="outline"
+              className={
+                crumb.type === 'Client'
+                  ? 'bg-blue-50 text-blue-700 border-blue-200'
+                  : 'bg-green-50 text-green-700 border-green-200'
+              }
             >
               {crumb.type === 'Client' && <Building2 className="h-3 w-3 mr-1" />}
               {crumb.type === 'Engagement' && <Calendar className="h-3 w-3 mr-1" />}
@@ -261,11 +289,7 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
           {/* Context Switcher Popover - No duplicate badges */}
           <Popover open={isContextSelectorOpen} onOpenChange={setIsContextSelectorOpen}>
             <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 px-3"
-              >
+              <Button variant="outline" size="sm" className="h-8 px-3">
                 <Settings className="h-4 w-4 mr-1" />
                 Switch Context
                 <ChevronDown className="h-3 w-3 ml-1" />
@@ -275,11 +299,7 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="font-medium">Switch Context</h4>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsContextSelectorOpen(false)}
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => setIsContextSelectorOpen(false)}>
                     ×
                   </Button>
                 </div>
@@ -323,7 +343,11 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
                     disabled={!selectedClientId || engagementsLoading}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={selectedClientId ? "Select an engagement..." : "Select a client first"} />
+                      <SelectValue
+                        placeholder={
+                          selectedClientId ? 'Select an engagement...' : 'Select a client first'
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {engagements.map((engagementOption) => (
@@ -334,8 +358,10 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
                               {engagementOption.name}
                             </div>
                             {engagementOption.status && (
-                              <Badge 
-                                variant={engagementOption.status === 'active' ? 'default' : 'secondary'}
+                              <Badge
+                                variant={
+                                  engagementOption.status === 'active' ? 'default' : 'secondary'
+                                }
                                 className="text-xs ml-2"
                               >
                                 {engagementOption.status}

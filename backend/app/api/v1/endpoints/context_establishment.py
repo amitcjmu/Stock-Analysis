@@ -131,7 +131,9 @@ async def get_context_clients(
 
         else:
             # Regular users: Get clients with explicit access via client_access table
-            logger.info(f"🔍 Looking for client access for user_profile_id: {current_user.id}")
+            logger.info(
+                f"🔍 Looking for client access for user_profile_id: {current_user.id}"
+            )
             access_query = (
                 select(ClientAccess, ClientAccount)
                 .join(ClientAccount, ClientAccess.client_account_id == ClientAccount.id)
@@ -146,31 +148,47 @@ async def get_context_clients(
 
             # Debug: Print the actual SQL query
             try:
-                compiled_query = str(access_query.compile(compile_kwargs={'literal_binds': True}))
+                compiled_query = str(
+                    access_query.compile(compile_kwargs={"literal_binds": True})
+                )
                 logger.info(f"🔍 SQL Query: {compiled_query}")
             except Exception as e:
                 logger.info(f"🔍 SQL Query compilation failed: {e}")
-            
+
             result = await db.execute(access_query)
             accessible_clients = result.all()
-            logger.info(f"🔍 Found {len(accessible_clients)} accessible clients for user {current_user.id}")
-            
+            logger.info(
+                f"🔍 Found {len(accessible_clients)} accessible clients for user {current_user.id}"
+            )
+
             if len(accessible_clients) == 0:
                 # Check if ClientAccess records exist at all
-                debug_query = select(ClientAccess).where(ClientAccess.user_profile_id == str(current_user.id))
+                debug_query = select(ClientAccess).where(
+                    ClientAccess.user_profile_id == str(current_user.id)
+                )
                 debug_result = await db.execute(debug_query)
                 debug_access = debug_result.all()
-                logger.info(f"🔍 Debug: Found {len(debug_access)} ClientAccess records for user {current_user.id}")
+                logger.info(
+                    f"🔍 Debug: Found {len(debug_access)} ClientAccess records for user {current_user.id}"
+                )
                 for access in debug_access:
-                    logger.info(f"🔍 Debug: ClientAccess {access.id}, client_account_id: {access.client_account_id}, is_active: {access.is_active}")
-                
+                    logger.info(
+                        f"🔍 Debug: ClientAccess {access.id}, client_account_id: {access.client_account_id}, is_active: {access.is_active}"
+                    )
+
                 # Check if ClientAccount records exist
-                debug_client_query = select(ClientAccount).where(ClientAccount.id == "11111111-1111-1111-1111-111111111111")
+                debug_client_query = select(ClientAccount).where(
+                    ClientAccount.id == "11111111-1111-1111-1111-111111111111"
+                )
                 debug_client_result = await db.execute(debug_client_query)
                 debug_clients = debug_client_result.all()
-                logger.info(f"🔍 Debug: Found {len(debug_clients)} demo ClientAccount records")
+                logger.info(
+                    f"🔍 Debug: Found {len(debug_clients)} demo ClientAccount records"
+                )
                 for client in debug_clients:
-                    logger.info(f"🔍 Debug: ClientAccount {client.id}, name: {client.name}, is_active: {client.is_active}")
+                    logger.info(
+                        f"🔍 Debug: ClientAccount {client.id}, name: {client.name}, is_active: {client.is_active}"
+                    )
 
             client_responses = []
             for client_access, client in accessible_clients:
@@ -280,30 +298,32 @@ async def get_context_engagements(
 
         # Verify client exists and is active
         logger.info(f"🔍 Looking for client: {client_id} (type: {type(client_id)})")
-        
+
         # First check if client exists at all
         client_exists_query = select(ClientAccount).where(ClientAccount.id == client_id)
         exists_result = await db.execute(client_exists_query)
         client_exists = exists_result.scalar_one_or_none()
-        
+
         if not client_exists:
             logger.error(f"❌ Client not found in database: {client_id}")
             raise HTTPException(status_code=404, detail="Client not found")
-        
+
         # Now check if it's active (handle NULL as active for backward compatibility)
         client_query = select(ClientAccount).where(
             and_(
-                ClientAccount.id == client_id, 
-                or_(ClientAccount.is_active == True, ClientAccount.is_active.is_(None))
+                ClientAccount.id == client_id,
+                or_(ClientAccount.is_active == True, ClientAccount.is_active.is_(None)),
             )
         )
         client_result = await db.execute(client_query)
         client = client_result.scalar_one_or_none()
-        
+
         if not client:
-            logger.error(f"❌ Client {client_id} exists but is marked as inactive (is_active=False)")
+            logger.error(
+                f"❌ Client {client_id} exists but is marked as inactive (is_active=False)"
+            )
             raise HTTPException(status_code=404, detail="Client not found or inactive")
-        
+
         logger.info(f"✅ Found active client: {client.name} ({client.id})")
 
         if not is_platform_admin:
@@ -379,6 +399,7 @@ async def get_context_engagements(
     except Exception as e:
         logger.error(f"Error in context establishment - get engagements: {e}")
         import traceback
+
         logger.error(f"Traceback: {traceback.format_exc()}")
         # Return demo data as fallback only for demo client
         if client_id == "11111111-1111-1111-1111-111111111111":
