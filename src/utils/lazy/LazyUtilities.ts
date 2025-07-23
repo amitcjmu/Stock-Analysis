@@ -2,8 +2,9 @@
  * Lazy Utilities - Utility-level code splitting for heavy utility modules
  */
 
-import { LoadingPriority, LazyUtilityModule } from '@/types/lazy';
-import { loadingManager } from './loadingManager';
+import type { LazyUtilityModule } from '@/types/lazy'
+import { LoadingPriority } from '@/types/lazy'
+import type { loadingManager } from './loadingManager';
 
 interface LazyUtilityOptions {
   priority?: LoadingPriority;
@@ -108,7 +109,7 @@ class LazyUtilityManager {
       }
     }
 
-    throw lastError!;
+    throw lastError;
   }
 
   private delay(ms: number): Promise<void> {
@@ -131,14 +132,14 @@ const lazyUtilityManager = LazyUtilityManager.getInstance();
  */
 
 // API Utilities
-export const loadAPIUtils = () => 
+export const loadAPIUtils = (): Promise<unknown> => 
   lazyUtilityManager.loadUtility(
     'api-utils',
     () => import('@/utils/api'),
     { priority: LoadingPriority.HIGH, cache: true }
   );
 
-export const loadHTTPClient = () =>
+export const loadHTTPClient = (): Promise<unknown> =>
   lazyUtilityManager.loadUtility(
     'http-client',
     () => import('@/utils/api/httpClient'),
@@ -146,7 +147,7 @@ export const loadHTTPClient = () =>
   );
 
 // Data Processing Utilities
-export const loadDataCleansingUtils = () =>
+export const loadDataCleansingUtils = (): Promise<unknown> =>
   lazyUtilityManager.loadUtility(
     'data-cleansing-utils',
     () => import('@/utils/dataCleansingUtils'),
@@ -184,7 +185,7 @@ export const loadDataCleansingUtils = () =>
 //   );
 
 // Formatting and Display Utilities
-export const loadMarkdownUtils = () =>
+export const loadMarkdownUtils = (): Promise<unknown> =>
   lazyUtilityManager.loadUtility(
     'markdown-utils',
     () => import('@/utils/markdown'),
@@ -268,7 +269,7 @@ export const loadMarkdownUtils = () =>
 //   );
 
 // Version and Compatibility Utilities
-export const loadVersionUtils = () =>
+export const loadVersionUtils = (): Promise<unknown> =>
   lazyUtilityManager.loadUtility(
     'version-utils',
     () => import('@/utils/version'),
@@ -310,7 +311,7 @@ export const loadVersionUtils = () =>
 /**
  * Batch utility loading for related functionality - Using available utilities only
  */
-export const loadDiscoveryUtilities = async () => {
+export const loadDiscoveryUtilities = async (): Promise<unknown[]> => {
   return Promise.all([
     loadDataCleansingUtils(),
     // loadCSVProcessor(), // Not implemented
@@ -319,7 +320,7 @@ export const loadDiscoveryUtilities = async () => {
   ]);
 };
 
-export const loadAssessmentUtilities = async () => {
+export const loadAssessmentUtilities = async (): Promise<unknown[]> => {
   return Promise.all([
     // loadDataTransformers(), // Not implemented
     // loadAnalyticsUtils(), // Not implemented
@@ -328,7 +329,7 @@ export const loadAssessmentUtilities = async () => {
   ]);
 };
 
-export const loadAdminUtilities = async () => {
+export const loadAdminUtilities = async (): Promise<unknown[]> => {
   return Promise.all([
     // loadSecurityUtils(), // Not implemented
     // loadInputSanitizer(), // Not implemented
@@ -341,15 +342,18 @@ export const loadAdminUtilities = async () => {
 /**
  * Utility cache management
  */
-export const clearUtilityCache = () => {
+export const clearUtilityCache = (): void => {
   lazyUtilityManager.clearCache();
 };
 
-export const getUtilityCacheSize = () => {
+export const getUtilityCacheSize = (): number => {
   return lazyUtilityManager.getCacheSize();
 };
 
-export const getUtilityCacheStats = () => {
+export const getUtilityCacheStats = (): {
+  cacheSize: number;
+  memoryUsage: { used: number; total: number; } | null;
+} => {
   return {
     cacheSize: lazyUtilityManager.getCacheSize(),
     memoryUsage: (performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory ? {

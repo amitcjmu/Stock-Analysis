@@ -4,7 +4,7 @@
  */
 
 import { format } from 'date-fns';
-import { AnalyticsData } from '../types';
+import type { AnalyticsData } from '../types';
 
 export const handleExportData = (
   analyticsData: AnalyticsData | null,

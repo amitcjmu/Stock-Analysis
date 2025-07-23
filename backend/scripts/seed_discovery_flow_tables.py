@@ -11,27 +11,26 @@ This script:
 """
 
 import asyncio
+import json
 import logging
 import os
 import sys
-import argparse
 import uuid
-import json
-from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Any
+from datetime import datetime, timezone
 
 # Add the parent directory to the path so we can import our app modules
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 try:
-    from app.core.database import AsyncSessionLocal
-    from app.models.client_account import ClientAccount, Engagement, User
-    from app.models.discovery_flow import DiscoveryFlow
-    from app.models.asset import Asset as DiscoveryAsset
-    from app.models.data_import_session import DataImportSession
-    from app.models.data_import.core import DataImport
     from sqlalchemy import select, text
     from sqlalchemy.ext.asyncio import AsyncSession
+
+    from app.core.database import AsyncSessionLocal
+    from app.models.asset import Asset as DiscoveryAsset
+    from app.models.client_account import ClientAccount, Engagement, User
+    from app.models.data_import.core import DataImport
+    from app.models.data_import_session import DataImportSession
+    from app.models.discovery_flow import DiscoveryFlow
     DEPENDENCIES_AVAILABLE = True
 except ImportError as e:
     print(f"Missing dependencies: {e}")
@@ -592,7 +591,7 @@ async def verify_seeded_data():
                 WHERE is_mock = true
             """))
             
-            logger.info(f"📊 Database verification:")
+            logger.info("📊 Database verification:")
             logger.info(f"   • Discovery flows: {flow_total}")
             logger.info(f"   • Discovery assets: {asset_total}")
             

@@ -7,10 +7,10 @@ ensuring a smooth deployment process.
 """
 
 import asyncio
+import os
+
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import create_async_engine
-import os
-from typing import Dict, List
 
 # Database connection
 raw_db_url = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5433/migration_db")

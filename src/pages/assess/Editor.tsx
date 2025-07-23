@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 import { useParams } from 'react-router-dom';
 import { Save, User, Shield, Database, Settings } from 'lucide-react';
 import { toast } from 'sonner';

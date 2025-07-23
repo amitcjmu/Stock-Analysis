@@ -7,8 +7,8 @@
  */
 
 import type { BaseMetadata } from '../../../shared/metadata-types';
-import { NotificationMetadata } from '../common';
-import { 
+import type { NotificationMetadata } from '../common';
+import type {
   NotificationPriority, 
   NotificationStatus, 
   NotificationType, 
@@ -16,9 +16,9 @@ import {
   NotificationSource,
   ChannelType
 } from './enums';
-import { NotificationDelivery } from './delivery';
-import { NotificationTracking } from './tracking';
-import { RecurringSchedule, ScheduleDelay, DeviceInfo, GeoLocation } from '../common';
+import type { NotificationDelivery } from './delivery';
+import type { NotificationTracking } from './tracking';
+import type { RecurringSchedule, ScheduleDelay, DeviceInfo, GeoLocation } from '../common';
 
 // Core notification data structure
 export interface NotificationData {
@@ -251,7 +251,7 @@ export interface ChannelConfiguration {
   provider?: string;
   credentials?: BaseMetadata;
   settings: BaseMetadata;
-  rate_limits?: import('../common').RateLimit[];
+  rate_limits?: Array<import('../common').RateLimit>;
   retry_policy?: import('../common').RetryPolicy;
   fallback_channel?: ChannelType;
 }

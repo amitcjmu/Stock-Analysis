@@ -1,5 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, MessageCircle, X, Bot, User, Star, ThumbsUp } from 'lucide-react';
+import React from 'react'
+import { useState, useRef } from 'react'
+import { useEffect } from 'react'
+import type { MessageCircle } from 'lucide-react'
+import { Send, X, Bot, User, Star, ThumbsUp } from 'lucide-react'
 import { apiCall } from '../../config/api';
 import { Markdown } from '../../utils/markdown';
 

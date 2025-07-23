@@ -4,15 +4,14 @@ Tests AI-powered analysis services including 6R analysis, parameter updates,
 question processing, and bulk analysis operations in the ADCS system.
 """
 
-import pytest
 import asyncio
-import uuid
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch, call
-from typing import Dict, Any, List
+from unittest.mock import AsyncMock, MagicMock, call, patch
+
+import pytest
 
 from app.api.v1.endpoints.sixr_analysis_modular.services.analysis_service import AnalysisService
-from app.schemas.sixr_analysis import AnalysisStatus, SixRParameterBase
+from app.schemas.sixr_analysis import AnalysisStatus
 
 
 # Mock classes

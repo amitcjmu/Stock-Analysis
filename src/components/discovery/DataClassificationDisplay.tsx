@@ -1,21 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  CheckCircle, 
-  AlertTriangle, 
-  XCircle, 
-  Eye, 
-  Brain, 
-  Loader2,
-  ChevronDown,
-  ChevronUp,
-  BarChart3,
-  FileText,
-  RefreshCw,
-  ThumbsUp,
-  ThumbsDown,
-  Edit3
-} from 'lucide-react';
-import { apiCall, API_CONFIG } from '../../config/api';
+import React from 'react'
+import { useState } from 'react'
+import { useEffect } from 'react'
+import type { CheckCircle, XCircle, Eye, Brain, ChevronDown, ChevronUp, FileText, RefreshCw, ThumbsUp, ThumbsDown, Edit3 } from 'lucide-react'
+import { AlertTriangle, Loader2, BarChart3 } from 'lucide-react'
+import type { API_CONFIG } from '../../config/api'
+import { apiCall } from '../../config/api'
 import { useAuth } from '@/contexts/AuthContext';
 
 interface DataItem {

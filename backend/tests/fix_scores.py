@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
 import asyncio
-import json
-from sqlalchemy.ext.asyncio import AsyncSession
+
+from sqlalchemy import select
+
 from app.core.database import AsyncSessionLocal
 from app.models.sixr_analysis import SixRRecommendation
-from sqlalchemy import select
+
 
 async def fix_scores():
     async with AsyncSessionLocal() as session:

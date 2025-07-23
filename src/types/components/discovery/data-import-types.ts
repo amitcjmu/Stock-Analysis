@@ -98,12 +98,12 @@ export interface FileUploadAreaProps extends BaseDiscoveryProps {
   size?: 'sm' | 'md' | 'lg';
   variant?: 'dashed' | 'solid' | 'filled';
   borderRadius?: 'none' | 'sm' | 'md' | 'lg' | 'full';
-  allowedFileCategories?: ('document' | 'image' | 'video' | 'audio' | 'archive' | 'code')[];
+  allowedFileCategories?: Array<'document' | 'image' | 'video' | 'audio' | 'archive' | 'code'>;
 }
 
 export interface RawDataTableProps<TData = Record<string, unknown>> extends BaseDiscoveryProps {
   data: TData[];
-  columns: ColumnDefinition<TData>[];
+  columns: Array<ColumnDefinition<TData>>;
   loading?: boolean;
   error?: string | null;
   onRowSelect?: (row: TData, event?: MouseEvent<HTMLTableRowElement>) => void;
@@ -136,17 +136,17 @@ export interface RawDataTableProps<TData = Record<string, unknown>> extends Base
   rowHeight?: number;
   estimatedRowHeight?: number;
   stickyHeader?: boolean;
-  stickyColumns?: (keyof TData)[];
+  stickyColumns?: Array<keyof TData>;
   resizableColumns?: boolean;
   reorderableColumns?: boolean;
-  onColumnReorder?: (columns: ColumnDefinition<TData>[], event?: DragEvent<HTMLTableHeaderCellElement>) => void;
+  onColumnReorder?: (columns: Array<ColumnDefinition<TData>>, event?: DragEvent<HTMLTableHeaderCellElement>) => void;
   onColumnResize?: (columnId: keyof TData, width: number, event?: MouseEvent<HTMLDivElement>) => void;
   columnVisibility?: Record<keyof TData, boolean>;
   onColumnVisibilityChange?: (visibility: Record<keyof TData, boolean>) => void;
   exportEnabled?: boolean;
   exportFormats?: ExportFormat[];
   onExport?: (format: ExportFormat, data: TData[], event?: MouseEvent<HTMLButtonElement>) => Promise<void> | void;
-  customActions?: TableAction<TData>[];
+  customActions?: Array<TableAction<TData>>;
   onCustomAction?: (action: TableAction<TData>, rows: TData[], event?: MouseEvent<HTMLButtonElement>) => Promise<void> | void;
   onRowClick?: (row: TData, index: number, event: MouseEvent<HTMLTableRowElement>) => void;
   onRowDoubleClick?: (row: TData, index: number, event: MouseEvent<HTMLTableRowElement>) => void;
@@ -154,7 +154,7 @@ export interface RawDataTableProps<TData = Record<string, unknown>> extends Base
   onCellClick?: (row: TData, column: ColumnDefinition<TData>, value: unknown, event: MouseEvent<HTMLTableCellElement>) => void;
   onCellDoubleClick?: (row: TData, column: ColumnDefinition<TData>, value: unknown, event: MouseEvent<HTMLTableCellElement>) => void;
   onCellEdit?: (row: TData, column: ColumnDefinition<TData>, newValue: unknown, oldValue: unknown) => Promise<boolean> | boolean;
-  editableColumns?: (keyof TData)[];
+  editableColumns?: Array<keyof TData>;
   editMode?: 'inline' | 'modal' | 'drawer';
   renderEditCell?: (row: TData, column: ColumnDefinition<TData>, value: unknown, onChange: (value: unknown) => void, onCancel: () => void, onSave: () => void) => ReactNode;
   striped?: boolean;

@@ -2,8 +2,10 @@
  * useLazyComponent Hook - Advanced lazy loading with error boundaries and retries
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { LoadingPriority, LazyComponentOptions, LoadingState } from '@/types/lazy';
+import { useState, useRef } from 'react'
+import { useEffect, useCallback } from 'react'
+import type { LazyComponentOptions, LoadingState } from '@/types/lazy'
+import { LoadingPriority } from '@/types/lazy'
 import { loadingManager } from '@/utils/lazy/loadingManager';
 
 interface UseLazyComponentOptions extends LazyComponentOptions {
@@ -21,7 +23,7 @@ interface UseLazyComponentReturn {
   loadingState: LoadingState | null;
 }
 
-export const useLazyComponent = <P extends {} = {}>(
+export const useLazyComponent = <P extends Record<string, unknown> = Record<string, unknown>>(
   componentId: string,
   importFn: () => Promise<{ default: React.ComponentType<P> }>,
   options: UseLazyComponentOptions = {}
@@ -102,7 +104,7 @@ export const useLazyComponent = <P extends {} = {}>(
 /**
  * Hook for viewport-based lazy loading
  */
-export const useViewportLazyComponent = <P extends {} = {}>(
+export const useViewportLazyComponent = <P extends Record<string, unknown> = Record<string, unknown>>(
   componentId: string,
   importFn: () => Promise<{ default: React.ComponentType<P> }>,
   targetRef: React.RefObject<HTMLElement>,
@@ -132,7 +134,7 @@ export const useViewportLazyComponent = <P extends {} = {}>(
     observer.observe(targetRef.current);
 
     return () => observer.disconnect();
-  }, [targetRef, result.Component, result.loadComponent, triggerDistance]);
+  }, [targetRef, result, triggerDistance]);
 
   return result;
 };
@@ -140,7 +142,7 @@ export const useViewportLazyComponent = <P extends {} = {}>(
 /**
  * Hook for hover-based preloading
  */
-export const useHoverPreload = <P extends {} = {}>(
+export const useHoverPreload = <P extends Record<string, unknown> = Record<string, unknown>>(
   componentId: string,
   importFn: () => Promise<{ default: React.ComponentType<P> }>,
   options: LazyComponentOptions = {}

@@ -1,25 +1,14 @@
-import React, { useState } from 'react';
-import { 
-  AlertTriangle, 
-  Upload, 
-  Play, 
-  Trash2, 
-  Eye, 
-  Clock,
-  TrendingUp,
-  Activity,
-  Shield,
-  Sparkles,
-  RefreshCw,
-  Zap
-} from 'lucide-react';
+import React from 'react'
+import { useState } from 'react'
+import type { Clock, TrendingUp, RefreshCw, Zap } from 'lucide-react'
+import { AlertTriangle, Upload, Play, Trash2, Eye, Activity, Shield, Sparkles } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { IncompleteFlowV2 } from '@/hooks/discovery/useFlowOperations';
+import type { IncompleteFlowV2 } from '@/hooks/discovery/useFlowOperations';
 import { useFlowCleanup } from '@/hooks/useFlowDeletion';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';

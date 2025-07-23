@@ -6,22 +6,24 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-from app.services.collection_flow.adapters import AdapterMetadata, AdapterCapability
 from app.models.collection_flow import AutomationTier
+from app.services.collection_flow.adapters import AdapterCapability, AdapterMetadata
 
 
 @dataclass
 class AWSCredentials:
     """AWS credentials configuration"""
+
     access_key_id: str
     secret_access_key: str
     session_token: Optional[str] = None
     region: str = "us-east-1"
-    
-    
+
+
 @dataclass
 class AWSResourceMetrics:
     """AWS resource performance metrics"""
+
     resource_id: str
     resource_type: str
     cpu_utilization: Optional[float] = None
@@ -48,12 +50,9 @@ AWS_ADAPTER_METADATA = AdapterMetadata(
         AdapterCapability.DEPENDENCY_MAPPING,
         AdapterCapability.PERFORMANCE_METRICS,
         AdapterCapability.CONFIGURATION_EXPORT,
-        AdapterCapability.CREDENTIAL_VALIDATION
+        AdapterCapability.CREDENTIAL_VALIDATION,
     ],
-    required_credentials=[
-        "access_key_id",
-        "secret_access_key"
-    ],
+    required_credentials=["access_key_id", "secret_access_key"],
     configuration_schema={
         "type": "object",
         "required": ["credentials", "region"],
@@ -65,16 +64,16 @@ AWS_ADAPTER_METADATA = AdapterMetadata(
                     "access_key_id": {"type": "string"},
                     "secret_access_key": {"type": "string"},
                     "session_token": {"type": "string"},
-                    "region": {"type": "string", "default": "us-east-1"}
-                }
+                    "region": {"type": "string", "default": "us-east-1"},
+                },
             },
             "region": {"type": "string", "default": "us-east-1"},
             "include_metrics": {"type": "boolean", "default": True},
             "include_config": {"type": "boolean", "default": True},
-            "collect_all_regions": {"type": "boolean", "default": False}
-        }
+            "collect_all_regions": {"type": "boolean", "default": False},
+        },
     },
     description="Comprehensive AWS platform adapter with CloudWatch and Config integration",
     author="ADCS Team B1",
-    documentation_url="https://docs.aws.amazon.com/sdk-for-python/"
+    documentation_url="https://docs.aws.amazon.com/sdk-for-python/",
 )

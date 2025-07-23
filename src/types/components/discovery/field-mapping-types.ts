@@ -194,7 +194,7 @@ export interface ColumnDefinition<TData = Record<string, unknown>> {
   description?: string;
   placeholder?: string;
   defaultValue?: unknown;
-  options?: { label: string; value: unknown }[];
+  options?: Array<{ label: string; value: unknown }>;
   validation?: {
     required?: boolean;
     min?: number;

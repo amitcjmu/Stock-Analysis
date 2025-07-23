@@ -5,11 +5,11 @@
  * Provides type safety and IntelliSense support for all components.
  */
 
-export * from './navigation';
-export * from './discovery';
-export * from './shared';
-export * from './forms';
-export * from './layout';
-export * from './data-display';
-export * from './feedback';
-export * from './admin';
+export type * from './navigation';
+export type * from './discovery';
+export type * from './shared';
+export type * from './forms';
+export type * from './layout';
+export type * from './data-display';
+export type * from './feedback';
+export type * from './admin';

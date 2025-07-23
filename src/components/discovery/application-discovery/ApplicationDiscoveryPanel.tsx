@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import type { Input } from '@/components/ui/input';
 import { Search, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import { ApplicationOverview } from './components/ApplicationOverview';
 import { ApplicationFilters } from './components/ApplicationFilters';
 import { ApplicationList } from './components/ApplicationList';
-import { ApplicationDetails } from './components/ApplicationDetails';
+import type { ApplicationDetails } from './components/ApplicationDetails';
 import { Pagination } from './components/Pagination';
 
 import { useApplicationDiscovery } from './hooks/useApplicationDiscovery';

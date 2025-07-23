@@ -3,23 +3,25 @@
  * Only accessible by platform administrators
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react'
+import { useState } from 'react'
+import { useEffect, useCallback } from 'react'
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  AdminHeader,
-  AdminLoadingState
-} from '@/components/admin/shared/components';
+import type { AdminLoadingState } from '@/components/admin/shared/components'
+import { AdminHeader } from '@/components/admin/shared/components'
 import { 
   useAdminToasts
 } from '@/components/admin/shared';
+import type {
+  SoftDeletedItem,
+  PurgeAction
+} from './components';
 import {
   PlatformStats,
   PendingItemsList,
   PurgeActionDialog,
-  ItemDetailsDialog,
-  SoftDeletedItem,
-  PurgeAction
+  ItemDetailsDialog
 } from './components';
 
 // Interfaces moved to components folder

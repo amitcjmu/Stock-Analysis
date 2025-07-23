@@ -9,7 +9,7 @@
  */
 
 import type { AuditableMetadata } from '../../../shared/metadata-types';
-import {
+import type {
   CreateRequest,
   CreateResponse,
   GetRequest,

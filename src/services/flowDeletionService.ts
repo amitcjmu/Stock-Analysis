@@ -113,7 +113,7 @@ class FlowDeletionService {
     try {
       const flows = await masterFlowService.getActiveFlows(clientAccountId, engagementId, flowType);
       
-      return flows.map(flow => this.analyzeFlowForDeletion(flow)).filter(Boolean) as FlowDeletionCandidate[];
+      return flows.map(flow => this.analyzeFlowForDeletion(flow)).filter(Boolean);
     } catch (error) {
       console.error('Failed to identify deletion candidates:', error);
       return [];
@@ -358,7 +358,7 @@ class FlowDeletionService {
       // Convert to deletion candidates
       const candidates = targetFlows
         .map(flow => this.analyzeFlowForDeletion(flow))
-        .filter(Boolean) as FlowDeletionCandidate[];
+        .filter(Boolean);
 
       // If no flows found in master flows, create a candidate for the requested flow ID
       if (candidates.length === 0 && flowIds.length > 0) {

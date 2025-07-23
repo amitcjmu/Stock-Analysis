@@ -5,7 +5,8 @@
  * critical attributes, and mapping configurations.
  */
 
-import { BaseHookParams, BaseHookReturn } from './base-hooks';
+import type { BaseHookParams } from './base-hooks'
+import type { BaseHookReturn } from './base-hooks'
 
 // Attribute Mapping hook types
 export interface UseAttributeMappingParams extends BaseHookParams {
@@ -64,7 +65,7 @@ export interface UseAttributeMappingReturn {
   getMappingDependencies: (mappingId: string) => Promise<MappingDependency[]>;
   validateMappingSet: (mappingIds: string[]) => Promise<SetValidation>;
   previewMapping: (mapping: FieldMapping) => Promise<MappingPreview>;
-  testMapping: (mapping: FieldMapping, sampleData: Record<string, unknown>[]) => Promise<MappingTestResult>;
+  testMapping: (mapping: FieldMapping, sampleData: Array<Record<string, unknown>>) => Promise<MappingTestResult>;
   compareMappings: (mappingId1: string, mappingId2: string) => Promise<MappingComparison>;
   optimizeMappings: () => Promise<OptimizationResult>;
   scheduleMapping: (mapping: FieldMapping, schedule: MappingSchedule) => Promise<void>;
@@ -82,7 +83,7 @@ export interface AttributeMappingActions {
   suggest: (sourceField: string, options?: SuggestionOptions) => Promise<MappingSuggestion[]>;
   validate: (mapping: FieldMapping) => Promise<MappingValidation>;
   preview: (mapping: FieldMapping) => Promise<MappingPreview>;
-  test: (mapping: FieldMapping, sampleData: Record<string, unknown>[]) => Promise<MappingTestResult>;
+  test: (mapping: FieldMapping, sampleData: Array<Record<string, unknown>>) => Promise<MappingTestResult>;
   save: (mapping: FieldMapping) => Promise<void>;
   delete: (mappingId: string) => Promise<void>;
   duplicate: (mappingId: string) => Promise<FieldMapping>;

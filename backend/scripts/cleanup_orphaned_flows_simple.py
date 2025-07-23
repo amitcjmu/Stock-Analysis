@@ -4,8 +4,11 @@ Simple cleanup of orphaned discovery flows - no backup needed since we have full
 """
 
 import asyncio
+
 from sqlalchemy import text
+
 from app.core.database import AsyncSessionLocal
+
 
 async def cleanup_orphaned_discovery_flows():
     """Delete discovery flows with invalid master_flow_id references."""
@@ -40,7 +43,7 @@ async def cleanup_orphaned_discovery_flows():
         result = await db.execute(status_query)
         stats = result.fetchone()
         
-        print(f"📊 Final Status:")
+        print("📊 Final Status:")
         print(f"   Total Discovery Flows: {stats.total_flows}")
         print(f"   Flows with Master ID: {stats.flows_with_master_id}")
         print(f"   Flows without Master ID: {stats.flows_without_master_id}")

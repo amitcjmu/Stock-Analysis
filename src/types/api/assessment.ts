@@ -13,7 +13,7 @@
  */
 
 // Re-export all assessment types for backward compatibility
-export * from './sixr-strategy/assessment';
+export type * from './sixr-strategy/assessment';
 
 // Re-export shared types commonly used in assessment flows
 export type {

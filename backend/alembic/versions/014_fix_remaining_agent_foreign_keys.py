@@ -5,9 +5,8 @@ Revises: 013_fix_agent_task_history_foreign_keys
 Create Date: 2025-01-21 04:26:00.000000
 
 """
+
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '014_fix_remaining_agent_foreign_keys'

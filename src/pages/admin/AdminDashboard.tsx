@@ -1,27 +1,20 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
-import { 
-  Plus,
-  Clock,
-  Settings
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import type { Link } from 'react-router-dom';
+import type { Plus, Clock } from 'lucide-react'
+import { Settings } from 'lucide-react'
+import type { Button } from '@/components/ui/button';
+import type { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { apiCall } from '@/config/api'; 
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  AdminHeader, 
-  AdminLoadingState, 
-  AdminErrorState 
-} from '@/components/admin/shared/components';
-import { 
-  formatDate,
-  useAdminToasts 
-} from '@/components/admin/shared';
-import { DashboardStats, DashboardStatsData } from './components/DashboardStats';
+import type { AdminLoadingState, AdminErrorState } from '@/components/admin/shared/components'
+import { AdminHeader } from '@/components/admin/shared/components'
+import type { formatDate } from '@/components/admin/shared'
+import { useAdminToasts } from '@/components/admin/shared'
+import type { DashboardStatsData } from './components/DashboardStats'
+import { DashboardStats } from './components/DashboardStats'
 import { ClientAnalytics } from './components/ClientAnalytics';
 import { EngagementAnalytics } from './components/EngagementAnalytics';
 import { UserManagement } from './components/UserManagement';

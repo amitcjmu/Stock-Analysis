@@ -4,8 +4,10 @@
  * Fixes DISC-011: Browser native confirm dialog blocking UI access
  */
 
-import { useState, useCallback } from 'react';
-import { flowDeletionService, FlowDeletionCandidate, FlowDeletionRequest, FlowDeletionResult } from '@/services/flowDeletionService';
+import { useState } from 'react'
+import { useCallback } from 'react'
+import type { FlowDeletionRequest, FlowDeletionResult , FlowDeletionCandidate } from '@/services/flowDeletionService'
+import { flowDeletionService } from '@/services/flowDeletionService'
 
 export interface UseFlowDeletionState {
   isModalOpen: boolean;

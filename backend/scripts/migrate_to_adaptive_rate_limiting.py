@@ -4,7 +4,6 @@ Migration script to transition from simple rate limiting to adaptive rate limiti
 This script helps configure and test the new adaptive rate limiting system.
 """
 
-import asyncio
 import logging
 import sys
 from pathlib import Path
@@ -13,7 +12,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.middleware.adaptive_rate_limiter import AdaptiveRateLimiter
-from app.core.config import settings
 
 # Configure logging
 logging.basicConfig(
@@ -152,7 +150,7 @@ def test_scenarios():
             break
     else:
         print(f"   ✅ All {allowed_count} requests allowed (testing mode)")
-        print(f"   📊 User type detected: testing")
+        print("   📊 User type detected: testing")
     
     limiter.reset_client(client_key)
     

@@ -12,6 +12,7 @@ from enum import Enum
 
 class BusinessDomain(str, Enum):
     """Business domains for context analysis"""
+
     FINANCIAL_SERVICES = "financial_services"
     HEALTHCARE = "healthcare"
     MANUFACTURING = "manufacturing"
@@ -26,15 +27,17 @@ class BusinessDomain(str, Enum):
 
 class OrganizationSize(str, Enum):
     """Organization size categories"""
-    STARTUP = "startup"           # < 50 employees
-    SMALL = "small"               # 50-249 employees
-    MEDIUM = "medium"             # 250-999 employees
-    LARGE = "large"               # 1000-4999 employees
-    ENTERPRISE = "enterprise"     # 5000+ employees
+
+    STARTUP = "startup"  # < 50 employees
+    SMALL = "small"  # 50-249 employees
+    MEDIUM = "medium"  # 250-999 employees
+    LARGE = "large"  # 1000-4999 employees
+    ENTERPRISE = "enterprise"  # 5000+ employees
 
 
 class StakeholderRole(str, Enum):
     """Stakeholder roles for questionnaire targeting"""
+
     INFRASTRUCTURE_ENGINEER = "infrastructure_engineer"
     APPLICATION_ARCHITECT = "application_architect"
     BUSINESS_OWNER = "business_owner"
@@ -49,6 +52,7 @@ class StakeholderRole(str, Enum):
 
 class MigrationDriverType(str, Enum):
     """Types of migration drivers"""
+
     COST_OPTIMIZATION = "cost_optimization"
     DIGITAL_TRANSFORMATION = "digital_transformation"
     COMPLIANCE_REQUIREMENT = "compliance_requirement"

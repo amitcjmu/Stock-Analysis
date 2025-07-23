@@ -9,6 +9,7 @@ from enum import Enum
 
 class QualityDimension(str, Enum):
     """Dimensions of data quality assessment"""
+
     COMPLETENESS = "completeness"
     ACCURACY = "accuracy"
     CONSISTENCY = "consistency"
@@ -19,6 +20,7 @@ class QualityDimension(str, Enum):
 
 class ConfidenceLevel(str, Enum):
     """Confidence levels for assessments"""
+
     HIGH = "high"
     MEDIUM = "medium"
     LOW = "low"

@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react'
+import { useCallback } from 'react'
 
 export const useAnalysisSelection = () => {
   const [selectedAnalyses, setSelectedAnalyses] = useState<number[]>([]);

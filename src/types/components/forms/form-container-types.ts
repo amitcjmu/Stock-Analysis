@@ -4,18 +4,10 @@
  * Types for form containers, form fields, and form-level configuration.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps } from '../shared';
-import { 
-  BaseFormProps, 
-  FormSchema, 
-  FormField, 
-  FormErrorInfo, 
-  ScrollToFirstErrorOptions, 
-  ColProps, 
-  FormInstance,
-  FormFieldControl
-} from './base-types';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps } from '../shared';
+import type { BaseFormProps, FormSchema, FormErrorInfo, ScrollToFirstErrorOptions, ColProps, FormInstance, FormFieldControl } from './base-types'
+import type { FormField } from './base-types'
 
 // Form container types
 export interface FormProps extends BaseComponentProps {
@@ -73,7 +65,7 @@ export interface FormProps extends BaseComponentProps {
 }
 
 export interface FormFieldProps extends BaseFormProps {
-  fieldKey?: string | number | (string | number)[];
+  fieldKey?: string | number | Array<string | number>;
   dependencies?: string[][];
   getValueFromEvent?: (...args: unknown[]) => unknown;
   getValueProps?: (value: unknown) => unknown;
@@ -111,5 +103,18 @@ export interface FormFieldMeta {
 }
 
 export interface ValidationRule {
-  // Add validation rule properties as needed
+  required?: boolean;
+  min?: number;
+  max?: number;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: RegExp | string;
+  message?: string;
+  validator?: (value: unknown, allValues?: Record<string, unknown>) => boolean | string | Promise<boolean | string>;
+  whitespace?: boolean;
+  type?: 'string' | 'number' | 'boolean' | 'method' | 'regexp' | 'integer' | 'float' | 'array' | 'object' | 'enum' | 'date' | 'url' | 'hex' | 'email';
+  enum?: unknown[];
+  fields?: Record<string, ValidationRule>;
+  defaultField?: ValidationRule;
+  transform?: (value: unknown) => unknown;
 }

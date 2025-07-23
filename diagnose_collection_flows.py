@@ -18,7 +18,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select, update
 from app.models.collection_flow import CollectionFlow, CollectionFlowStatus
-from app.core.config import settings
 
 # Database connection
 # Try to get from environment or use standard URL

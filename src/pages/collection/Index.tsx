@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 
 // Import layout components
@@ -18,17 +19,8 @@ import { canCreateCollectionFlow, getRoleName } from '@/utils/rbac';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Upload, 
-  FormInput, 
-  Settings, 
-  BarChart3,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  Loader2,
-  Shield
-} from 'lucide-react';
+import type { FormInput } from 'lucide-react'
+import { Upload, Settings, BarChart3, Clock, CheckCircle, AlertCircle, Loader2, Shield } from 'lucide-react'
 
 /**
  * Collection workflow index page

@@ -3,15 +3,14 @@ End-to-end test for Data Import page load
 Simulates the exact API calls made when loading the Data Import page
 """
 
+import uuid
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-import uuid
-import json
-from datetime import datetime
 
-from app.models import User, UserProfile, Client, Engagement
 from app.core.auth import create_access_token, get_password_hash
+from app.models import Client, Engagement, User, UserProfile
 
 
 @pytest.mark.asyncio

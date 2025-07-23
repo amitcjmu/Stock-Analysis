@@ -11,12 +11,7 @@ Tests the modular database utility functions including:
 
 import pytest
 import asyncio
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from typing import Dict, List, Any, Optional
-from datetime import datetime, timedelta
-import uuid
-from sqlalchemy.orm import Session
-from sqlalchemy import text
+from unittest.mock import Mock, AsyncMock, patch
 
 # Import database utilities
 try:
@@ -324,7 +319,7 @@ class TestPaginationUtilities:
         
         # Act
         paginated_query = builder.paginate(paginator.page, paginator.per_page)
-        results = await paginated_query.execute(mock_db_session)
+        await paginated_query.execute(mock_db_session)
         
         # Assert
         assert builder.limit_value == paginator.per_page

@@ -4,11 +4,12 @@ Assessment Flow Test Configuration
 Pytest configuration and fixtures specific to assessment flow testing.
 """
 
-import pytest
 import asyncio
 import os
-from typing import Generator, AsyncGenerator
+from typing import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 # Test environment setup
 os.environ["ENVIRONMENT"] = "test"
@@ -17,6 +18,7 @@ os.environ["DATABASE_URL"] = "postgresql://test_user:test_pass@localhost:5434/te
 try:
     from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
     from sqlalchemy.orm import sessionmaker
+
     from app.core.database import Base, get_db
     from app.core.flow_context import FlowContext
     SQLALCHEMY_AVAILABLE = True
@@ -215,7 +217,7 @@ def pytest_configure(config):
 # Collection modifications for different test types
 def pytest_collection_modifyitems(config, items):
     """Modify test collection based on environment."""
-    test_env = os.getenv("ENVIRONMENT", "test")
+    os.getenv("ENVIRONMENT", "test")
     
     # Mark all tests in assessment_flow as unit tests by default
     for item in items:

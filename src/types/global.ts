@@ -67,7 +67,7 @@ declare global {
 
 // Ambient module declarations for external libraries
 declare module 'react' {
-  interface FunctionComponent<P = {}> {
+  interface FunctionComponent<P = Record<string, unknown>> {
     displayName?: string;
   }
 }

@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react'
+import { useEffect, useCallback } from 'react'
 import { apiCall } from '@/config/api';
-import { CrewProgress, CollaborationData, PlanningData, MemoryAnalytics } from '../types';
-import { INITIAL_CREWS } from '../constants';
+import type { CollaborationData, PlanningData } from '../types'
+import type { CrewProgress, MemoryAnalytics } from '../types'
+import type { INITIAL_CREWS } from '../constants';
 
 export const useEnhancedMonitoring = (flowId: string, flowState: unknown) => {
   const [crews, setCrews] = useState<CrewProgress[]>(INITIAL_CREWS);

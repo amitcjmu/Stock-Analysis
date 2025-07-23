@@ -4,13 +4,14 @@ Post-deployment script for Railway production database schema fixes.
 This script runs automatically after deployment to ensure schema consistency.
 """
 
-import os
-import sys
 import asyncio
-import asyncpg
 import json
 import logging
+import os
+import sys
 from urllib.parse import urlparse
+
+import asyncpg
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -216,7 +217,7 @@ async def fix_railway_schema():
         # Verify fix
         logger.info("🔍 Verifying fix...")
         try:
-            test_query = await conn.fetch("""
+            await conn.fetch("""
                 SELECT id, name, headquarters_location, settings 
                 FROM client_accounts 
                 LIMIT 1
@@ -227,7 +228,7 @@ async def fix_railway_schema():
             return False
         
         try:
-            test_query = await conn.fetch("""
+            await conn.fetch("""
                 SELECT id, name, migration_scope 
                 FROM engagements 
                 LIMIT 1

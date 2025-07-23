@@ -12,4 +12,4 @@
  */
 
 // Re-export all types from the modular structure
-export * from './reporting/index';
+export type * from './reporting/index';

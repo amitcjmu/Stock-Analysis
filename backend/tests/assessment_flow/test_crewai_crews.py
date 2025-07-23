@@ -5,16 +5,15 @@ This module tests the CrewAI crew implementations for assessment flow
 with mocked agents for fast, isolated testing.
 """
 
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime
-from typing import Dict, Any
 
 try:
+    from app.services.crewai_flows.assessment.crews.app_on_page_crew import AppOnPageCrew
     from app.services.crewai_flows.assessment.crews.architecture_standards_crew import ArchitectureStandardsCrew
     from app.services.crewai_flows.assessment.crews.component_analysis_crew import ComponentAnalysisCrew
     from app.services.crewai_flows.assessment.crews.sixr_strategy_crew import SixRStrategyCrew
-    from app.services.crewai_flows.assessment.crews.app_on_page_crew import AppOnPageCrew
     CREWS_AVAILABLE = True
 except ImportError:
     # Mock classes for when components don't exist yet
@@ -40,14 +39,6 @@ except ImportError:
             self.flow_context = flow_context
             self.crew = MagicMock()
 
-from tests.fixtures.assessment_fixtures import (
-    mock_flow_context,
-    sample_engagement_context,
-    sample_architecture_standards,
-    sample_application_metadata,
-    sample_component_analysis_result,
-    sample_sixr_strategy_result
-)
 
 
 class TestArchitectureStandardsCrew:

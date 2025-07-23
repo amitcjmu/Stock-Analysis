@@ -3,7 +3,8 @@
  * Extracted from RecommendationEngine component
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react'
+import { useEffect, useCallback } from 'react'
 import { agentObservabilityService } from '../../../services/api/agentObservabilityService';
 import type { Recommendation } from '../recommendations/RecommendationCard';
 

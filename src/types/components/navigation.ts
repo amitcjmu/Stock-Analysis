@@ -5,7 +5,7 @@
  * tabs, and navigation-related interfaces.
  */
 
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 // Base navigation types
 export interface BaseNavigationProps {

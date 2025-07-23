@@ -9,17 +9,19 @@ Issue: Data was uploaded to "Debug Test Engagement" instead of "Azure Transforma
 """
 
 import asyncio
-import sys
 import os
-from datetime import datetime
+import sys
 
 # Add the backend directory to sys.path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
+import uuid
+
+from sqlalchemy import select, update
+
 from app.core.database import AsyncSessionLocal
 from app.models.data_import.core import DataImport, RawImportRecord
-from sqlalchemy import select, update
-import uuid
+
 
 async def fix_engagement_data_association():
     """Move data from Debug Test Engagement to Azure Transformation 2"""
@@ -30,7 +32,7 @@ async def fix_engagement_data_association():
         wrong_engagement = 'baf640df-433c-4bcd-8c8f-7b01c12e9005'  # Debug Test Engagement  
         correct_engagement = '3362a198-c917-459c-be10-b10e19b1810e'  # Azure Transformation 2
         
-        print(f"🔧 Starting data association fix...")
+        print("🔧 Starting data association fix...")
         print(f"   Client: {marathon_client} (Marathon Petroleum)")
         print(f"   From: {wrong_engagement} (Debug Test Engagement)")
         print(f"   To: {correct_engagement} (Azure Transformation 2)")

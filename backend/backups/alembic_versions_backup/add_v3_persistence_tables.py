@@ -5,10 +5,12 @@ Revises: c85140124625
 Create Date: 2024-06-30
 
 """
-from alembic import op
+import uuid
+
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
-import uuid
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = 'add_v3_persistence_001'

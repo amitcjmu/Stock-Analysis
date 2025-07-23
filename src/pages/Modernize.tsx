@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react'
+import type { Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
-import { Sparkles, Zap, Layers, Package, Code, Cloud, TrendingUp, RefreshCw } from 'lucide-react';
+import type { Zap, Layers, Package, Code, Cloud } from 'lucide-react'
+import { Sparkles, TrendingUp, RefreshCw } from 'lucide-react'
 
 const Modernize = () => {
   const [selectedCategory, setSelectedCategory] = useState('containerization');

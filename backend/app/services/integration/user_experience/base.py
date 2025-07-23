@@ -4,15 +4,16 @@ User Experience Base Types and Classes
 Core types and data structures for UX optimization.
 """
 
-from typing import Dict, List, Any
-from uuid import UUID
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from dataclasses import dataclass, field
+from typing import Any, Dict, List
+from uuid import UUID
 
 
 class UXOptimizationArea(Enum):
     """Areas of user experience optimization"""
+
     WORKFLOW_NAVIGATION = "workflow_navigation"
     PROGRESS_TRACKING = "progress_tracking"
     ERROR_COMMUNICATION = "error_communication"
@@ -23,6 +24,7 @@ class UXOptimizationArea(Enum):
 
 class UXMetricType(Enum):
     """Types of UX metrics"""
+
     TIME_TO_COMPLETION = "time_to_completion"
     USER_SATISFACTION = "user_satisfaction"
     ERROR_RATE = "error_rate"
@@ -34,6 +36,7 @@ class UXMetricType(Enum):
 @dataclass
 class UXRecommendation:
     """User experience improvement recommendation"""
+
     id: str
     area: UXOptimizationArea
     title: str
@@ -49,6 +52,7 @@ class UXRecommendation:
 @dataclass
 class UserJourneyAnalytics:
     """Analytics for user journey through ADCS workflow"""
+
     engagement_id: UUID
     user_id: UUID
     journey_start: datetime
@@ -65,6 +69,7 @@ class UserJourneyAnalytics:
 @dataclass
 class OptimizationContext:
     """Context for UX optimization"""
+
     engagement_id: UUID
     user_id: UUID
     flows_data: Dict[str, Any]

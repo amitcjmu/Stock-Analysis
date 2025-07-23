@@ -3,10 +3,12 @@ Verification Test for DISC-001: UUID Serialization in Data Cleansing
 Agent-7 Verification Test Suite
 """
 
-import pytest
-import httpx
 import json
-from typing import Dict, Any
+from typing import Dict
+
+import httpx
+import pytest
+
 
 class TestDISC001UUIDSerialization:
     """Test suite to verify UUID serialization fix in data cleansing endpoint"""
@@ -96,7 +98,7 @@ class TestDISC001UUIDSerialization:
                 assert response.headers.get("content-type", "").startswith("application/json"), \
                     "Response should be JSON"
                 
-                data = response.json()
+                response.json()
                 return True, "Stats endpoint working correctly"
                 
             except json.JSONDecodeError as e:

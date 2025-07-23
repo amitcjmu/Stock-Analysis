@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react'
+import { useState } from 'react'
 import { 
   Bot, 
   Brain, 
@@ -16,15 +17,7 @@ import {
   Send,
   Network
 } from 'lucide-react';
-import { 
-  useAgentQuestions, 
-  useAnswerAgentQuestion, 
-  useAgentInsights, 
-  useAgentStatus,
-  useConfidenceScores,
-  useAgentThink,
-  useAgentPonderMore
-} from '../../../hooks/useAgentQuestions';
+import { useAgentQuestions, useAnswerAgentQuestion, useAgentInsights, useConfidenceScores, useAgentThink, useAgentPonderMore, useAgentStatus } from '../../../hooks/useAgentQuestions'
 
 interface AgentUIMonitorProps {
   className?: string;

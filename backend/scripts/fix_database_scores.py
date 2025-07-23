@@ -2,9 +2,12 @@
 
 import asyncio
 import json
+
+from sqlalchemy import select
+
 from app.core.database import AsyncSessionLocal
 from app.models.sixr_analysis import SixRRecommendation as SixRRecommendationModel
-from sqlalchemy import select
+
 
 def fix_scores_in_data(data, path=""):
     """Recursively fix any scores > 100 in the data structure"""

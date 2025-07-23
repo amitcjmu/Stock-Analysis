@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React from 'react'
+import { useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Brain, TrendingUp, AlertCircle, CheckCircle, Clock, Target, Users, Bot } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
-import { apiCall, API_CONFIG } from '../../../config/api';
+import type { apiCall, API_CONFIG } from '../../../config/api';
 
 interface FieldMapping {
   confidence: number;

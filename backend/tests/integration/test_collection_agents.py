@@ -9,8 +9,8 @@ import pytest
 def test_platform_detection_agents():
     """Test that platform detection agents can be imported"""
     try:
-        from app.services.agents.platform_detection_agent_crewai import PlatformDetectionAgent
         from app.services.agents.credential_validation_agent_crewai import CredentialValidationAgent
+        from app.services.agents.platform_detection_agent_crewai import PlatformDetectionAgent
         from app.services.agents.tier_recommendation_agent_crewai import TierRecommendationAgent
         
         # Verify agent metadata
@@ -54,9 +54,9 @@ def test_gap_analysis_agents():
 def test_manual_collection_agents():
     """Test that manual collection agents can be imported"""
     try:
+        from app.services.agents.progress_tracking_agent_crewai import ProgressTrackingAgent
         from app.services.agents.questionnaire_dynamics_agent_crewai import QuestionnaireDynamicsAgent
         from app.services.agents.validation_workflow_agent_crewai import ValidationWorkflowAgent
-        from app.services.agents.progress_tracking_agent_crewai import ProgressTrackingAgent
         
         assert QuestionnaireDynamicsAgent.agent_metadata().name == "questionnaire_dynamics_agent"
         assert ValidationWorkflowAgent.agent_metadata().name == "validation_workflow_agent"

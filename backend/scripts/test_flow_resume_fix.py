@@ -3,15 +3,18 @@
 Test script to verify flow state persistence fix
 """
 import asyncio
-import sys
 import os
+import sys
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.core.database import AsyncSessionLocal
-from app.core.context import RequestContext
-from app.services.crewai_flow_service import CrewAIFlowService
-from app.models.discovery_flow import DiscoveryFlow
 from sqlalchemy import select
+
+from app.core.context import RequestContext
+from app.core.database import AsyncSessionLocal
+from app.models.discovery_flow import DiscoveryFlow
+from app.services.crewai_flow_service import CrewAIFlowService
+
 
 async def test_flow_resume():
     """Test that flow state is properly loaded when resuming"""
@@ -37,13 +40,13 @@ async def test_flow_resume():
             print(f"❌ Flow {flow_id} not found")
             return
             
-        print(f"📋 Current flow state:")
+        print("📋 Current flow state:")
         print(f"   - Status: {flow.status}")
         print(f"   - Phase: {flow.current_phase}")
         print(f"   - Progress: {flow.progress_percentage}%")
         
         # Simulate resuming the flow
-        print(f"\n🔄 Testing flow resume...")
+        print("\n🔄 Testing flow resume...")
         
         service = CrewAIFlowService(db)
         resume_context = {
@@ -58,7 +61,7 @@ async def test_flow_resume():
         # This should load existing state, not create new one
         result = await service.resume_flow(flow_id, resume_context)
         
-        print(f"\n✅ Resume result:")
+        print("\n✅ Resume result:")
         print(f"   - Status: {result.get('status')}")
         print(f"   - Method: {result.get('method')}")
         if 'execution_result' in result:

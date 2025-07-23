@@ -1,7 +1,8 @@
 
-import React from 'react';
+import type React from 'react';
 import Sidebar from '../../components/Sidebar';
-import { Archive, Shield, Trash2, Database, Clock, AlertTriangle, CheckCircle, FileText } from 'lucide-react';
+import type { Shield, Database, Clock, AlertTriangle, CheckCircle, FileText } from 'lucide-react'
+import { Archive, Trash2 } from 'lucide-react'
 
 const DecommissionIndex = () => {
   const decommissionMetrics = [

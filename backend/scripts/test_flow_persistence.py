@@ -19,8 +19,8 @@ except ImportError as e:
 
 # Test if we can create a simple Flow with persistence
 try:
-    from crewai.flow.flow import Flow, start, listen
     from crewai.flow import persist
+    from crewai.flow.flow import Flow, listen, start
     from pydantic import BaseModel
     
     class TestState(BaseModel):

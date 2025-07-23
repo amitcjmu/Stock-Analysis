@@ -12,19 +12,19 @@
  */
 
 // Shared Supporting Types
-export * from './shared-types';
+export type * from './shared-types';
 
 // Performance Analysis Types
-export * from './performance-analysis';
+export type * from './performance-analysis';
 
 // SLA Reporting Types
-export * from './sla-reporting';
+export type * from './sla-reporting';
 
 // Capacity Planning Types
-export * from './capacity-planning';
+export type * from './capacity-planning';
 
 // Observability Analytics Types
-export * from './observability-analytics';
+export type * from './observability-analytics';
 
 // Report Generation Types
-export * from './report-generation';
+export type * from './report-generation';

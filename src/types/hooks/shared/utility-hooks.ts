@@ -22,9 +22,7 @@ export interface UseForceUpdateReturn {
   updateCount: number;
 }
 
-export interface UseIsomorphicLayoutEffectReturn {
-  // No return value - this is just useLayoutEffect in browser, useEffect in SSR
-}
+export type UseIsomorphicLayoutEffectReturn = void;
 
 export interface UseComposedRefsReturn<T = unknown> {
   composedRef: React.RefCallback<T>;

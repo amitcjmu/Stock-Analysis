@@ -4,24 +4,29 @@ Seed script for Six R Questions and Parameters.
 Usage:
     docker exec migration_backend python app/scripts/seed_sixr_questions.py [--force]
 """
+
+import argparse
 import asyncio
 import logging
 import os
 import sys
-from typing import List, Dict, Any
 from datetime import datetime
+from typing import Any, Dict, List
+
 from sqlalchemy import text
-import argparse
 
 # Adjust path for module imports
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 try:
     from app.core.database import AsyncSessionLocal
+
     DEPENDENCIES_AVAILABLE = True
 except ImportError:
     DEPENDENCIES_AVAILABLE = False
-    print("Required application modules missing – ensure you are running inside the backend container.")
+    print(
+        "Required application modules missing – ensure you are running inside the backend container."
+    )
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -50,6 +55,7 @@ PARAMETERS: List[Dict[str, Any]] = [
     # Additional scoring parameters ...
 ]
 
+
 # ---------------------------------------------------------------------------
 # Seeder implementation helpers
 # ---------------------------------------------------------------------------
@@ -74,6 +80,7 @@ async def seed_questions(session, force: bool):
             },
         )
 
+
 async def seed_parameters(session, force: bool):
     if force:
         await session.execute(text("DELETE FROM sixr_parameters"))
@@ -94,6 +101,7 @@ async def seed_parameters(session, force: bool):
             },
         )
 
+
 # ---------------------------------------------------------------------------
 async def main(force: bool):
     if not DEPENDENCIES_AVAILABLE:
@@ -108,9 +116,14 @@ async def main(force: bool):
         await session.commit()
     logger.info("SixR questions & parameters seeding complete.")
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Seed SixR master questions and parameters.")
-    parser.add_argument("--force", action="store_true", help="Delete existing rows before seeding")
+    parser = argparse.ArgumentParser(
+        description="Seed SixR master questions and parameters."
+    )
+    parser.add_argument(
+        "--force", action="store_true", help="Delete existing rows before seeding"
+    )
     args = parser.parse_args()
 
     asyncio.run(main(force=args.force))

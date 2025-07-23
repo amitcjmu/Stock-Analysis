@@ -6,7 +6,7 @@
 import React from 'react';
 import { Mail, Phone, MapPin } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Client } from '../types';
+import type { Client } from '../types';
 
 interface ContactCardProps {
   client: Client;

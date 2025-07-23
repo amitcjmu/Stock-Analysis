@@ -9,17 +9,18 @@ before the raw record storage functionality was implemented.
 import asyncio
 import json
 import logging
-from datetime import datetime
-from sqlalchemy import select, and_, func
-from sqlalchemy.ext.asyncio import AsyncSession
+import os
 
 # Add backend to path
 import sys
-import os
+from datetime import datetime
+
+from sqlalchemy import func, select
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.core.database import AsyncSessionLocal
-from app.models.data_import import DataImport, RawImportRecord, ImportFieldMapping
+from app.models.data_import import DataImport, ImportFieldMapping, RawImportRecord
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -97,7 +98,7 @@ async def fix_missing_raw_records():
                     logger.info(f"  Created {num_records} raw records")
                 else:
                     # No field mappings - create minimal sample data
-                    logger.info(f"  No field mappings found - creating minimal sample")
+                    logger.info("  No field mappings found - creating minimal sample")
                     
                     sample_record = RawImportRecord(
                         data_import_id=data_import.id,
@@ -122,7 +123,7 @@ async def fix_missing_raw_records():
                     if not data_import.completed_at:
                         data_import.completed_at = datetime.utcnow()
                     
-                    logger.info(f"  Created 1 minimal raw record")
+                    logger.info("  Created 1 minimal raw record")
             
             await session.commit()
             logger.info("✅ Successfully fixed missing raw records")

@@ -12,14 +12,15 @@ Usage:
 
 import asyncio
 import json
+import sys
 from datetime import datetime
 from pathlib import Path
-import sys
 
 # Add the backend directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from sqlalchemy import text
+
 from app.core.database import AsyncSessionLocal
 
 
@@ -228,7 +229,7 @@ class Phase3SummaryReporter:
         # Data Imports
         before_di = self.summary["before_state"]["data_imports"]
         after_di = self.summary["after_state"]["data_imports"]
-        print(f"DATA IMPORTS:")
+        print("DATA IMPORTS:")
         print(f"  Before: {before_di['orphaned']}/{before_di['total']} orphaned ({before_di['health_percentage']:.1f}% healthy)")
         print(f"  After:  {after_di['orphaned']}/{after_di['total']} orphaned ({after_di['health_percentage']:.1f}% healthy)")
         print(f"  Fixed:  {self.summary['achievements']['data_imports_fixed']} records")
@@ -238,7 +239,7 @@ class Phase3SummaryReporter:
         # Raw Import Records
         before_rir = self.summary["before_state"]["raw_import_records"]
         after_rir = self.summary["after_state"]["raw_import_records"]
-        print(f"RAW IMPORT RECORDS:")
+        print("RAW IMPORT RECORDS:")
         print(f"  Before: {before_rir['orphaned']}/{before_rir['total']} orphaned ({before_rir['health_percentage']:.1f}% healthy)")
         print(f"  After:  {after_rir['orphaned']}/{after_rir['total']} orphaned ({after_rir['health_percentage']:.1f}% healthy)")
         print(f"  Fixed:  {self.summary['achievements']['raw_records_fixed']} records")
@@ -248,7 +249,7 @@ class Phase3SummaryReporter:
         # Discovery Flows
         before_df = self.summary["before_state"]["discovery_flows"]
         after_df = self.summary["after_state"]["discovery_flows"]
-        print(f"DISCOVERY FLOWS:")
+        print("DISCOVERY FLOWS:")
         print(f"  Before: {before_df['orphaned']}/{before_df['total']} orphaned ({before_df['health_percentage']:.1f}% healthy)")
         print(f"  After:  {after_df['orphaned']}/{after_df['total']} orphaned ({after_df['health_percentage']:.1f}% healthy)")
         print(f"  Fixed:  {self.summary['achievements']['discovery_flows_fixed']} records")

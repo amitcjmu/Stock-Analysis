@@ -2,14 +2,14 @@ import React from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
-type GlobalErrorBoundaryProps = {
+interface GlobalErrorBoundaryProps {
   children: React.ReactNode;
-};
+}
 
-type State = {
+interface State {
   hasError: boolean;
   error: Error | null;
-};
+}
 
 class GlobalErrorBoundary extends React.Component<GlobalErrorBoundaryProps, State> {
   state: State = {

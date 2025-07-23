@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react'
+import { useState } from 'react'
+import { useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Progress } from '../ui/progress';
 import { Badge } from '../ui/badge';
@@ -126,7 +128,7 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({
   useEffect(() => {
     if (progress.estimatedCompletion && progress.status === 'in_progress') {
       const updateTimeRemaining = () => {
-        setTimeRemaining(formatTimeRemaining(progress.estimatedCompletion!));
+        setTimeRemaining(formatTimeRemaining(progress.estimatedCompletion));
       };
 
       updateTimeRemaining();

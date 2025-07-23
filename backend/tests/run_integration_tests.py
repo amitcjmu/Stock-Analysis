@@ -5,9 +5,9 @@ This ensures we catch runtime errors before deployment
 """
 
 import sys
-import pytest
-import asyncio
 from pathlib import Path
+
+import pytest
 
 # Add backend to path
 backend_path = Path(__file__).parent.parent

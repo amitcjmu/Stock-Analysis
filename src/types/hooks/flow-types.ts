@@ -4,7 +4,7 @@
  * Common types used across flow-related hooks.
  */
 
-import { PrimitiveValue } from '../api/shared/value-types';
+import type { PrimitiveValue } from '../api/shared/value-types';
 
 // Flow initialization data types
 export interface FlowInitializationData {
@@ -20,8 +20,8 @@ export interface PhaseExecutionData {
   phaseId?: string;
   phaseName?: string;
   action?: string;
-  parameters?: Record<string, PrimitiveValue | Array<PrimitiveValue>>;
-  data?: Record<string, PrimitiveValue | Record<string, PrimitiveValue> | Array<PrimitiveValue>>;
+  parameters?: Record<string, PrimitiveValue | PrimitiveValue[]>;
+  data?: Record<string, PrimitiveValue | Record<string, PrimitiveValue> | PrimitiveValue[]>;
   skipValidation?: boolean;
 }
 
@@ -31,7 +31,7 @@ export interface PhaseExecutionResult {
   phase?: string;
   status?: string;
   result?: {
-    data?: Record<string, PrimitiveValue | Array<PrimitiveValue>>;
+    data?: Record<string, PrimitiveValue | PrimitiveValue[]>;
     metrics?: Record<string, number>;
     warnings?: string[];
     errors?: string[];
@@ -43,7 +43,7 @@ export interface PhaseExecutionResult {
 
 // Data transformation types
 export interface DataRecord {
-  [key: string]: PrimitiveValue | Array<PrimitiveValue> | DataRecord;
+  [key: string]: PrimitiveValue | PrimitiveValue[] | DataRecord;
 }
 
 // Asset and inventory types

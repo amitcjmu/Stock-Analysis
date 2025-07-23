@@ -5,7 +5,7 @@
  */
 
 import { apiCall } from '../../../config/api';
-import { AgentQuestion } from './types';
+import type { AgentQuestion } from './types';
 
 export const fetchAgentQuestions = async (pageContext: string): Promise<AgentQuestion[]> => {
   try {

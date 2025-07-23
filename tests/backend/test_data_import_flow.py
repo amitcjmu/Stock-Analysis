@@ -7,10 +7,8 @@ Tests repository pattern enforcement, multi-tenant scoping, and data lifecycle v
 import asyncio
 import httpx
 import uuid
-import json
 import sys
 import logging
-from typing import Dict, Any
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -168,7 +166,7 @@ class DatabaseDesignTest:
                     
                     # Should get different results for different contexts
                     if response.status_code == 200:
-                        logger.info(f"✅ Multi-tenant scoping responding correctly for context")
+                        logger.info("✅ Multi-tenant scoping responding correctly for context")
                     else:
                         logger.warning(f"⚠️ Context test returned: {response.status_code}")
             

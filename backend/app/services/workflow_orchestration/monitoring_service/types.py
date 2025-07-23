@@ -10,14 +10,16 @@ from enum import Enum
 
 class MonitoringLevel(Enum):
     """Monitoring detail levels"""
-    BASIC = "basic"              # Basic status and health
-    STANDARD = "standard"        # Standard metrics and progress
-    DETAILED = "detailed"        # Detailed phase and component metrics
+
+    BASIC = "basic"  # Basic status and health
+    STANDARD = "standard"  # Standard metrics and progress
+    DETAILED = "detailed"  # Detailed phase and component metrics
     COMPREHENSIVE = "comprehensive"  # Full diagnostic and performance data
 
 
 class AlertSeverity(Enum):
     """Alert severity levels"""
+
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"
@@ -26,6 +28,7 @@ class AlertSeverity(Enum):
 
 class MetricType(Enum):
     """Types of metrics tracked"""
+
     PERFORMANCE = "performance"
     QUALITY = "quality"
     RESOURCE = "resource"
@@ -35,6 +38,7 @@ class MetricType(Enum):
 
 class HealthStatus(Enum):
     """Health status indicators"""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"

@@ -9,21 +9,16 @@ Comprehensive tests covering all flow API endpoints:
 - Backward compatibility support
 """
 
-import pytest
-import asyncio
-import json
-from typing import Dict, List, Any
-from unittest.mock import AsyncMock, Mock, patch, MagicMock
 from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
-from httpx import AsyncClient
 
-from app.core.database import get_db
 from app.core.schemas import RequestContext
-from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 from app.models import User
-from app.api.v1.endpoints.context.services.user_service import UserService
+from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
 
 # Test fixtures
@@ -511,8 +506,8 @@ class TestMultiTenant:
     def test_tenant_isolation(self, api_client, authenticated_headers, mock_dependencies):
         """Test that flows are isolated by tenant"""
         # Mock different client contexts
-        context1 = RequestContext(user_id="user1", client_account_id=1, engagement_id=1)
-        context2 = RequestContext(user_id="user2", client_account_id=2, engagement_id=2)
+        RequestContext(user_id="user1", client_account_id=1, engagement_id=1)
+        RequestContext(user_id="user2", client_account_id=2, engagement_id=2)
         
         # Test that each context gets its own orchestrator
         response = api_client.get("/api/v1/flows", headers=authenticated_headers)

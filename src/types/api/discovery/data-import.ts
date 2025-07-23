@@ -5,7 +5,7 @@
  * data validation, processing, and import management.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext,
@@ -14,8 +14,9 @@ import {
   ValidationResult,
   PaginationInfo
 } from '../shared';
-import { PrimitiveValue, ExtendedValue, ParameterValue } from '../shared/value-types';
-import { GenericMetadata } from '../shared/metadata-types';
+import type { ExtendedValue, ParameterValue } from '../shared/value-types'
+import type { PrimitiveValue } from '../shared/value-types'
+import type { GenericMetadata } from '../shared/metadata-types';
 
 // Data Import APIs
 export interface InitiateDataImportRequest extends FileUploadRequest {

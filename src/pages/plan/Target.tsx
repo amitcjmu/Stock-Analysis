@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 import { Cloud, Loader2, AlertTriangle, Plus, DollarSign, Shield, Server } from 'lucide-react';
 import { useTarget } from '@/hooks/useTarget';
 import { Sidebar, SidebarProvider } from '@/components/ui/sidebar';

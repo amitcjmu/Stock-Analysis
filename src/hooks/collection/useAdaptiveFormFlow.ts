@@ -5,7 +5,8 @@
  * for collection workflows with CrewAI integration.
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react'
+import { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -16,10 +17,8 @@ import { useCollectionFlowManagement, useIncompleteCollectionFlows } from './use
 import { collectionFlowApi } from '@/services/api/collection-flow';
 
 // Import form data transformation utilities
-import { 
-  convertQuestionnairesToFormData, 
-  validateFormDataStructure 
-} from '@/utils/collection/formDataTransformation';
+import type { convertQuestionnairesToFormData } from '@/utils/collection/formDataTransformation'
+import { validateFormDataStructure } from '@/utils/collection/formDataTransformation'
 
 // Import types
 import type { 

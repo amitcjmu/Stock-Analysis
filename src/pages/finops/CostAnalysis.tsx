@@ -1,8 +1,9 @@
-import React from 'react';
+import type React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCostMetrics, useResourceCosts } from '@/hooks/finops/useFinOpsQueries';
 import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';
-import { DollarSign, BarChart, LineChart, Download, Filter, RefreshCw } from 'lucide-react';
+import type { DollarSign, BarChart, LineChart, Filter, RefreshCw } from 'lucide-react'
+import { Download } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';

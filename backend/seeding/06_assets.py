@@ -10,13 +10,12 @@ Asset Distribution:
 """
 
 import asyncio
-import json
-from datetime import datetime, timezone, timedelta
-from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime, timedelta, timezone
+
+from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, FLOW_IDS, USER_IDS
 
 from app.core.database import AsyncSessionLocal
-from app.models.asset import Asset, AssetType, AssetStatus, SixRStrategy
-from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, FLOW_IDS, USER_IDS
+from app.models.asset import Asset
 
 # Asset distribution across flows
 FLOW_ASSET_DISTRIBUTION = {
@@ -384,13 +383,13 @@ async def create_assets():
         databases = sum(d["databases"] for d in FLOW_ASSET_DISTRIBUTION.values())
         network = sum(d["network"] for d in FLOW_ASSET_DISTRIBUTION.values())
         
-        print(f"\n✅ Assets created successfully!")
+        print("\n✅ Assets created successfully!")
         print(f"   📊 Total Assets: {total_assets}")
         print(f"   🖥️ Applications: {applications}")
         print(f"   🖥️ Servers: {servers} ({linux_server_count} Linux, {windows_server_count} Windows)")
         print(f"   🗄️ Databases: {databases} ({oracle_count} Oracle, {sqlserver_count} SQL Server, {postgres_count} PostgreSQL)")
         print(f"   🌐 Network Devices: {network} ({load_balancer_count} Load Balancers, {firewall_count} Firewalls)")
-        print(f"\n   📁 Distribution by Flow:")
+        print("\n   📁 Distribution by Flow:")
         for flow_name, distribution in FLOW_ASSET_DISTRIBUTION.items():
             flow_total = distribution["applications"] + distribution["servers"] + distribution["databases"] + distribution["network"]
             print(f"     {flow_name}: {flow_total} assets")

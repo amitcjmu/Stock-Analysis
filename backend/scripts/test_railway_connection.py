@@ -4,11 +4,10 @@ Railway Connection Test Script
 Tests connection to Railway database and compares schema with local environment
 """
 
-import os
-import sys
 import asyncio
 import logging
-from typing import Dict, List, Any
+import os
+import sys
 
 # Add backend to path
 sys.path.append('/app')
@@ -164,7 +163,7 @@ async def main():
         if local_version == railway_version:
             logger.info(f"✅ Migration versions match: {local_version}")
         else:
-            logger.error(f"❌ Migration version mismatch!")
+            logger.error("❌ Migration version mismatch!")
             logger.error(f"   Local: {local_version}")
             logger.error(f"   Railway: {railway_version}")
         
@@ -175,7 +174,7 @@ async def main():
         if local_columns == railway_columns:
             logger.info(f"✅ Column counts match: {local_columns}")
         else:
-            logger.error(f"❌ Column count mismatch!")
+            logger.error("❌ Column count mismatch!")
             logger.error(f"   Local: {local_columns}")
             logger.error(f"   Railway: {railway_columns}")
         

@@ -5,14 +5,14 @@
  * Provides type safety for all API interactions across the application.
  */
 
-export * from './discovery';
-export * from './assessment';
-export * from './planning';
-export * from './execution';
-export * from './modernize';
+export type * from './discovery';
+export type * from './assessment';
+export type * from './planning';
+export type * from './execution';
+export type * from './modernize';
 export * from './finops';
-export * from './observability';
-export * from './decommission';
+export type * from './observability';
+export type * from './decommission';
 export * from './admin';
-export * from './auth';
-export * from './shared';
+export type * from './auth';
+export type * from './shared';

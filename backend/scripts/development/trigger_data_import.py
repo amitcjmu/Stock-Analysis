@@ -4,9 +4,11 @@ Trigger Data Import Phase Execution
 Script to manually trigger data import phase execution for stuck flows
 """
 
-import requests
 import json
 import sys
+
+import requests
+
 
 def trigger_data_import_execution(flow_id: str):
     """Trigger data import phase execution for a specific flow"""
@@ -48,7 +50,7 @@ def trigger_data_import_execution(flow_id: str):
         
         if response.status_code == 200:
             result = response.json()
-            print(f"✅ Success! Data import execution triggered:")
+            print("✅ Success! Data import execution triggered:")
             print(f"   Status: {result.get('status')}")
             print(f"   Phase: {result.get('phase')}")
             print(f"   CrewAI Execution: {result.get('crewai_execution')}")
@@ -89,7 +91,7 @@ def check_flow_status(flow_id: str):
         
         if response.status_code == 200:
             status = response.json()
-            print(f"📊 Flow Status:")
+            print("📊 Flow Status:")
             print(f"   Progress: {status.get('progress_percentage')}%")
             print(f"   Current Phase: {status.get('current_phase')}")
             print(f"   Status: {status.get('status')}")
@@ -115,7 +117,7 @@ def main():
     flow_id = sys.argv[1]
     action = sys.argv[2] if len(sys.argv) > 2 else "execute"
     
-    print(f"🎯 Data Import Phase Trigger Tool")
+    print("🎯 Data Import Phase Trigger Tool")
     print(f"   Flow ID: {flow_id}")
     print(f"   Action: {action}")
     print("=" * 50)

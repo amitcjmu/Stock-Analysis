@@ -6,15 +6,15 @@ Modularized components for intelligent tier detection and routing logic.
 """
 
 # Re-export all public interfaces for backward compatibility
-from .enums import AutomationTier, RoutingStrategy, EnvironmentComplexity
-from .models import TierAnalysis, RoutingDecision
+from .enums import AutomationTier, EnvironmentComplexity, RoutingStrategy
+from .models import RoutingDecision, TierAnalysis
 from .service import TierRoutingService
 
 __all__ = [
-    'AutomationTier',
-    'RoutingStrategy', 
-    'EnvironmentComplexity',
-    'TierAnalysis',
-    'RoutingDecision',
-    'TierRoutingService'
+    "AutomationTier",
+    "RoutingStrategy",
+    "EnvironmentComplexity",
+    "TierAnalysis",
+    "RoutingDecision",
+    "TierRoutingService",
 ]

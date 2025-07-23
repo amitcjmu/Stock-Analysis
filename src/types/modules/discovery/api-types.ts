@@ -7,156 +7,140 @@
  * Generated with CC - Code Companion
  */
 
-import {
+import type {
   MultiTenantContext,
   ResponseMetadata,
   FlowStatus
 } from './base-types';
 
-import {
-  FieldMapping,
-  FieldMappingInput,
-  FlowState,
-  CriticalAttribute,
-  CrewAnalysis
-} from './data-models';
+import type { FieldMappingInput, FlowState } from './data-models'
+import type { FieldMapping, CriticalAttribute, CrewAnalysis } from './data-models'
 
-import {
-  ValidationOptions,
-  ValidationResult,
-  FlowConfiguration,
-  ImportOptions,
-  ImportError,
-  AgentInsight
-} from './validation-types';
+import type { ValidationOptions, ValidationResult, FlowConfiguration, ImportOptions, ImportError } from './validation-types'
+import type { AgentInsight } from './validation-types'
 
 /**
- * API Types Namespace
+ * Field mapping API request
  */
-export namespace API {
-  /**
-   * Field mapping API request
-   */
-  export interface FieldMappingRequest {
-    flowId: string;
-    mappings: FieldMappingInput[];
-    context: MultiTenantContext;
-    validation?: ValidationOptions;
-  }
+export interface FieldMappingRequest {
+  flowId: string;
+  mappings: FieldMappingInput[];
+  context: MultiTenantContext;
+  validation?: ValidationOptions;
+}
 
-  /**
-   * Field mapping API response
-   */
-  export interface FieldMappingResponse {
-    success: boolean;
-    data: FieldMapping[];
-    metadata: ResponseMetadata;
-    validationResults?: ValidationResult[];
-  }
+/**
+ * Field mapping API response
+ */
+export interface FieldMappingResponse {
+  success: boolean;
+  data: FieldMapping[];
+  metadata: ResponseMetadata;
+  validationResults?: ValidationResult[];
+}
 
-  /**
-   * Flow initialization API request
-   */
-  export interface FlowInitializationRequest {
-    flowName: string;
-    flowDescription?: string;
-    context: MultiTenantContext;
-    configuration?: FlowConfiguration;
-  }
+/**
+ * Flow initialization API request
+ */
+export interface FlowInitializationRequest {
+  flowName: string;
+  flowDescription?: string;
+  context: MultiTenantContext;
+  configuration?: FlowConfiguration;
+}
 
-  /**
-   * Flow initialization API response
-   */
-  export interface FlowInitializationResponse {
-    success: boolean;
-    flowId: string;
-    initialState: FlowState;
-    metadata: ResponseMetadata;
-  }
+/**
+ * Flow initialization API response
+ */
+export interface FlowInitializationResponse {
+  success: boolean;
+  flowId: string;
+  initialState: FlowState;
+  metadata: ResponseMetadata;
+}
 
-  /**
-   * Flow status API request
-   */
-  export interface FlowStatusRequest {
-    flowId: string;
-    context: MultiTenantContext;
-    includeDetails?: boolean;
-  }
+/**
+ * Flow status API request
+ */
+export interface FlowStatusRequest {
+  flowId: string;
+  context: MultiTenantContext;
+  includeDetails?: boolean;
+}
 
-  /**
-   * Flow status API response
-   */
-  export interface FlowStatusResponse {
-    flowId: string;
-    status: FlowStatus;
-    progress: number;
-    currentPhase: string;
-    nextPhase?: string;
-    phaseCompletion: Record<string, boolean>;
-    agentInsights?: AgentInsight[];
-    errors?: string[];
-    warnings?: string[];
-    metadata: ResponseMetadata;
-  }
+/**
+ * Flow status API response
+ */
+export interface FlowStatusResponse {
+  flowId: string;
+  status: FlowStatus;
+  progress: number;
+  currentPhase: string;
+  nextPhase?: string;
+  phaseCompletion: Record<string, boolean>;
+  agentInsights?: AgentInsight[];
+  errors?: string[];
+  warnings?: string[];
+  metadata: ResponseMetadata;
+}
 
-  /**
-   * Data import API request
-   */
-  export interface DataImportRequest {
-    flowId: string;
-    file: File;
-    context: MultiTenantContext;
-    options?: ImportOptions;
-  }
+/**
+ * Data import API request
+ */
+export interface DataImportRequest {
+  flowId: string;
+  file: File;
+  context: MultiTenantContext;
+  options?: ImportOptions;
+}
 
-  /**
-   * Data import API response
-   */
-  export interface DataImportResponse {
-    success: boolean;
-    importId: string;
-    recordsProcessed: number;
-    recordsValid: number;
-    errors?: ImportError[];
-    metadata: ResponseMetadata;
-  }
+/**
+ * Data import API response
+ */
+export interface DataImportResponse {
+  success: boolean;
+  importId: string;
+  recordsProcessed: number;
+  recordsValid: number;
+  errors?: ImportError[];
+  metadata: ResponseMetadata;
+}
 
-  /**
-   * Critical attributes API request
-   */
-  export interface CriticalAttributesRequest {
-    flowId: string;
-    context: MultiTenantContext;
-    includeValidation?: boolean;
-  }
+/**
+ * Critical attributes API request
+ */
+export interface CriticalAttributesRequest {
+  flowId: string;
+  context: MultiTenantContext;
+  includeValidation?: boolean;
+}
 
-  /**
-   * Critical attributes API response
-   */
-  export interface CriticalAttributesResponse {
-    success: boolean;
-    attributes: CriticalAttribute[];
-    validationResults?: ValidationResult[];
-    metadata: ResponseMetadata;
-  }
+/**
+ * Critical attributes API response
+ */
+export interface CriticalAttributesResponse {
+  success: boolean;
+  attributes: CriticalAttribute[];
+  validationResults?: ValidationResult[];
+  metadata: ResponseMetadata;
+}
 
-  /**
-   * Crew analysis API request
-   */
-  export interface CrewAnalysisRequest {
-    flowId: string;
-    context: MultiTenantContext;
-    analysisType: 'mapping' | 'validation' | 'optimization';
-    parameters?: Record<string, string | number | boolean | null>;
-  }
+/**
+ * Crew analysis API request
+ */
+export interface CrewAnalysisRequest {
+  flowId: string;
+  context: MultiTenantContext;
+  analysisType: 'mapping' | 'validation' | 'optimization';
+  parameters?: Record<string, string | number | boolean | null>;
+}
 
-  /**
-   * Crew analysis API response
-   */
-  export interface CrewAnalysisResponse {
-    success: boolean;
-    analysis: CrewAnalysis[];
-    recommendations?: string[];
-    metadata: ResponseMetadata;
-  }
+/**
+ * Crew analysis API response
+ */
+export interface CrewAnalysisResponse {
+  success: boolean;
+  analysis: CrewAnalysis[];
+  recommendations?: string[];
+  metadata: ResponseMetadata;
 }

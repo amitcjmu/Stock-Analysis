@@ -3,7 +3,7 @@
  * Unified API client with authentication and error handling
  */
 
-import { ApiResponse, ApiError } from '../types/shared/api-types';
+import type { ApiResponse, ApiError } from '../types/shared/api-types';
 
 export interface ApiClientConfig {
   baseURL: string;

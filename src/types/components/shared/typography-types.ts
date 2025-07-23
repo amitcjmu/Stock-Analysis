@@ -4,8 +4,8 @@
  * Text and typography-related component interfaces.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps } from './base-props';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps } from './base-props';
 
 // Typography component types
 export interface TypographyProps extends BaseComponentProps {

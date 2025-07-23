@@ -5,9 +5,10 @@ Revises: create_flow_deletion_audit
 Create Date: 2025-01-27 21:47:00.000000
 
 """
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = 'create_crewai_flow_extensions'

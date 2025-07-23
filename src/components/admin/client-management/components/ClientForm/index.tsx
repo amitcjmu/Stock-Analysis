@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { ClientFormData } from '../../types';
+import React from 'react'
+import { useState } from 'react'
+import type { ClientFormData } from '../../types';
 import { BasicInfoTab } from './BasicInfoTab';
 import { BusinessContextTab } from './BusinessContextTab';
 import { TechnicalPreferencesTab } from './TechnicalPreferencesTab';
@@ -12,7 +13,7 @@ interface ClientFormProps {
 
 type TabType = 'basic' | 'business' | 'technical' | 'advanced';
 
-const tabs: { id: TabType; label: string }[] = [
+const tabs: Array<{ id: TabType; label: string }> = [
   { id: 'basic', label: 'Basic Information' },
   { id: 'business', label: 'Business Context' },
   { id: 'technical', label: 'Technical Preferences' },

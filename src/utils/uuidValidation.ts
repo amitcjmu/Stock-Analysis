@@ -35,7 +35,7 @@ export function validateUUID(value: string, context: string = 'UUID'): Validated
     throw new Error(`${context} must be a valid UUID format: ${value}`);
   }
   
-  return value as ValidatedUUID;
+  return value;
 }
 
 /**

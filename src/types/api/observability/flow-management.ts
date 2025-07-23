@@ -5,7 +5,7 @@
  * Handles flow lifecycle, status monitoring, and flow listing operations.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext,
@@ -13,15 +13,8 @@ import {
   ListResponse,
   GetRequest
 } from '../shared';
-import {
-  ObservabilityScope,
-  MonitoringStrategy,
-  ObservabilityStatus,
-  ObservabilityFlowData,
-  ObservabilityObjective,
-  ObservabilityRequirement,
-  PerformanceMetrics
-} from './core-types';
+import type { ObservabilityScope, MonitoringStrategy, ObservabilityStatus, ObservabilityFlowData, PerformanceMetrics } from './core-types'
+import type { ObservabilityObjective, ObservabilityRequirement } from './core-types'
 
 // Flow Initialization
 export interface InitializeObservabilityFlowRequest extends BaseApiRequest {

@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronDown, Building2, Calendar, Database, Eye, Layers, RefreshCw, AlertCircle, Check, X } from 'lucide-react';
+import React from 'react'
+import { useState } from 'react'
+import { useEffect } from 'react'
+import type { AlertCircle } from 'lucide-react'
+import { ChevronDown, Building2, Calendar, Database, Eye, Layers, RefreshCw, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { 
   Select, 
@@ -14,10 +17,11 @@ import { useClient } from '@/contexts/ClientContext';
 import { useEngagement } from '@/contexts/EngagementContext';
 import { useSession } from '@/contexts/SessionContext';
 import { useToast } from '@/hooks/use-toast';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { getContextHeaders } from '@/utils/contextUtils';
+import type { getContextHeaders } from '@/utils/contextUtils';
 
 interface Client {
   id: string;

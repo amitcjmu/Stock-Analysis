@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'
 import Sidebar from '../../components/Sidebar';
-import { Database, Shield, Archive, Download, Calendar, AlertTriangle, CheckCircle, FileText, HardDrive } from 'lucide-react';
+import type { Database, Shield, Calendar, AlertTriangle, FileText, HardDrive } from 'lucide-react'
+import { Archive, Download, CheckCircle } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext';
 import { useDataRetention, useCreateArchiveJob, useUpdateRetentionPolicy } from '@/hooks/decommission/useDataRetention';
 import { Button } from '@/components/ui/button';

@@ -6,7 +6,7 @@
  * Generated with CC for modular admin type organization.
  */
 
-import { 
+import type {
   SecurityEventMetadata,
   ConfidenceLevel,
   ImpactLevel,
@@ -16,7 +16,7 @@ import {
   RegulatoryImpact,
   TrendDirection
 } from '../common';
-import { 
+import type {
   SecurityEventType, 
   SecuritySeverity,
   SecurityEventSource,

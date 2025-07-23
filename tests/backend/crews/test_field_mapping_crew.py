@@ -6,10 +6,8 @@ shared memory integration, and tool usage following CrewAI best practices.
 """
 
 import pytest
-import asyncio
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from typing import Dict, List, Any, Optional
-import json
+from unittest.mock import Mock
+from typing import Dict, List, Any
 
 # Mock imports for testing
 try:

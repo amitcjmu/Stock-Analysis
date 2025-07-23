@@ -25,6 +25,10 @@ on:
       - 'Dockerfile'
       - 'requirements*.txt'
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   sast-scan:
     name: Static Application Security Testing
@@ -70,7 +74,7 @@ jobs:
           pip-audit -r backend/requirements.txt --format json --output reports/pip-audit-report.json
       
       - name: Upload SAST Reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sast-reports
           path: reports/
@@ -126,7 +130,7 @@ jobs:
             --enableExperimental
       
       - name: Upload dependency check results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
           path: reports/
@@ -152,7 +156,7 @@ jobs:
           severity: 'HIGH,CRITICAL'
       
       - name: Run Grype vulnerability scanner
-        uses: anchore/scan-action@v3
+        uses: anchore/scan-action@v6
         with:
           image: 'migrate-platform:scan'
           output-format: sarif
@@ -197,7 +201,7 @@ jobs:
           fail_on: high
       
       - name: Upload IaC scan results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: iac-scan-reports
           path: reports/
@@ -245,7 +249,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: security-artifacts/
       
@@ -272,7 +276,7 @@ jobs:
             }
       
       - name: Upload final security report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: security-assessment-report
           path: |

@@ -1,7 +1,7 @@
 import React from 'react';
-import { Server, Database, Cpu, Router } from 'lucide-react';
+import type { Server, Database, Cpu, Router } from 'lucide-react';
 import { ClassificationCard } from './ClassificationCard';
-import { InventoryProgress } from '../../types/inventory.types';
+import type { InventoryProgress } from '../../types/inventory.types';
 
 interface ClassificationCardsProps {
   inventoryProgress: InventoryProgress;

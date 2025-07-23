@@ -8,16 +8,16 @@
  */
 
 // Core Analytics - Metrics, dimensions, and basic analytics
-export * from './analytics-core';
+export type * from './analytics-core';
 
 // Trends and Forecasting - Advanced trend analysis and predictive analytics
-export * from './trends-forecasts';
+export type * from './trends-forecasts';
 
 // KPIs and Benchmarks - Performance indicators and comparative analysis
-export * from './kpis-benchmarks';
+export type * from './kpis-benchmarks';
 
 // Report Generation - Report creation, formatting, and distribution
-export * from './report-generation';
+export type * from './report-generation';
 
 // Re-export commonly used types for convenience
 export type {

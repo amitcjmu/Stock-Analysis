@@ -3,16 +3,17 @@
 Test direct DeepInfra API call with OpenAI format and reasoning_effort=none.
 """
 
-import requests
-import json
-import time
-import sys
 import os
+import sys
+import time
+
+import requests
 
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
 
 from app.core.config import settings
+
 
 def test_direct_api_call():
     """Test direct API call to DeepInfra with OpenAI format."""
@@ -43,8 +44,8 @@ def test_direct_api_call():
     
     print(f"🌐 API URL: {url}")
     print(f"🤖 Model: {settings.DEEPINFRA_MODEL}")
-    print(f"🧠 Reasoning effort: none")
-    print(f"📝 Prompt: What is 5+5? Answer with just the number.")
+    print("🧠 Reasoning effort: none")
+    print("📝 Prompt: What is 5+5? Answer with just the number.")
     
     try:
         print("\n🚀 Making API call...")

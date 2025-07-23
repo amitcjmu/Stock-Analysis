@@ -1,11 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React from 'react'
+import { useState } from 'react'
+import { useEffect } from 'react'
+import { useParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Shield, AlertTriangle } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { useAuth } from '../../contexts/AuthContext';
-import AgentDetailPage from './AgentDetailPage';
+import type AgentDetailPage from './AgentDetailPage';
 
 /**
  * Integrated Agent Detail Page with Navigation, Auth, and RBAC

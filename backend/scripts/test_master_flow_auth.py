@@ -3,9 +3,9 @@
 Test script to verify master flow authentication is working properly
 """
 
-import requests
-import json
 import sys
+
+import requests
 
 # Test configuration
 API_URL = "http://localhost:8000"
@@ -18,7 +18,7 @@ def test_delete_without_auth():
     
     response = requests.delete(url)
     print(f"   Status Code: {response.status_code}")
-    print(f"   Expected: 401 (Unauthorized)")
+    print("   Expected: 401 (Unauthorized)")
     
     if response.status_code == 401:
         print("   ✅ PASS: Properly rejected unauthorized request")
@@ -36,7 +36,7 @@ def test_delete_with_invalid_auth():
     
     response = requests.delete(url, headers=headers)
     print(f"   Status Code: {response.status_code}")
-    print(f"   Expected: 401 (Unauthorized)")
+    print("   Expected: 401 (Unauthorized)")
     
     if response.status_code == 401:
         print("   ✅ PASS: Properly rejected invalid token")

@@ -4,7 +4,6 @@ Test context dropdown functionality
 """
 import asyncio
 from playwright.async_api import async_playwright
-import json
 
 async def test_context_dropdown():
     async with async_playwright() as p:

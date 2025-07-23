@@ -4,7 +4,7 @@
  * Device, browser, and network information types for session comparison.
  */
 
-import { DeviceType, ConnectionType, ProxyType } from './enum-types';
+import type { DeviceType, ConnectionType, ProxyType } from './enum-types';
 
 export interface DeviceInfo {
   type: DeviceType;

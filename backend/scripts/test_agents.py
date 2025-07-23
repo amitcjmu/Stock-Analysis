@@ -5,7 +5,6 @@ Test script for the new agentic Discovery Flow implementation
 
 import asyncio
 import sys
-import os
 
 # Add the backend directory to the Python path
 sys.path.insert(0, '/app')
@@ -30,9 +29,10 @@ async def test_agentic_flow():
         
         # Test 2: Test Discovery Flow creation
         print("\n2. Testing Discovery Flow creation...")
-        from app.services.crewai_flows.discovery_flow import create_discovery_flow, CREWAI_FLOW_AVAILABLE
-        from app.core.context import RequestContext
         import uuid
+
+        from app.core.context import RequestContext
+        from app.services.crewai_flows.discovery_flow import CREWAI_FLOW_AVAILABLE, create_discovery_flow
         
         print(f"   ✅ CrewAI Flow available: {CREWAI_FLOW_AVAILABLE}")
         

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Brain, Lightbulb, Network, BarChart3 } from 'lucide-react';
-import { CrewProgress } from '../types';
+import type { CrewProgress } from '../types';
 
 interface OverallProgressProps {
   crews: CrewProgress[];

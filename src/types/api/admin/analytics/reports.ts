@@ -6,8 +6,8 @@
  * Generated with CC for modular admin type organization.
  */
 
-import { ReportMetadata, DataSource, ReportPermission, AnalyticsPeriod } from '../common';
-import { ReportType, ReportFormat, SectionType, DeliveryMethod } from './enums';
+import type { ReportMetadata, DataSource, ReportPermission, AnalyticsPeriod } from '../common';
+import type { ReportType, ReportFormat, SectionType, DeliveryMethod } from './enums';
 
 // Admin report structure
 export interface AdminReport {

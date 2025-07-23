@@ -2,13 +2,14 @@
  * Lazy Routes - Route-based code splitting for main pages
  */
 
-import React, { lazy, Suspense } from 'react';
+import React from 'react'
+import { lazy, Suspense } from 'react'
 import { LoadingFallback, ErrorFallback } from '../LoadingFallback';
 import { LoadingPriority } from '@/types/lazy';
 import { ErrorBoundary } from 'react-error-boundary';
 
 // Define lazy loading strategies for different route categories
-const createLazyRoute = <P extends {} = {}>(
+const createLazyRoute = <P extends Record<string, unknown> = Record<string, unknown>>(
   importFn: () => Promise<{ default: React.ComponentType<P> }>,
   componentName: string,
   priority: LoadingPriority = LoadingPriority.NORMAL

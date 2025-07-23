@@ -3,15 +3,18 @@
 Properly reset flow back to field_mapping phase with correct status
 """
 import asyncio
-import sys
 import os
+import sys
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.core.database import AsyncSessionLocal
-from app.models.discovery_flow import DiscoveryFlow
-from app.models import CrewAIFlowStateExtensions
+
 from sqlalchemy import select, update
-import json
+
+from app.core.database import AsyncSessionLocal
+from app.models import CrewAIFlowStateExtensions
+from app.models.discovery_flow import DiscoveryFlow
+
 
 async def reset_flow():
     """Reset flow to field_mapping phase with proper status"""
@@ -129,10 +132,10 @@ async def reset_flow():
         
         await db.commit()
         print(f"✅ Flow {flow_id} properly reset to field_mapping phase with:")
-        print(f"   - Status: paused (awaiting approval)")
-        print(f"   - Progress: 16.7%")
-        print(f"   - Field mappings: 14 fields mapped")
-        print(f"   - Awaiting user approval: True")
+        print("   - Status: paused (awaiting approval)")
+        print("   - Progress: 16.7%")
+        print("   - Field mappings: 14 fields mapped")
+        print("   - Awaiting user approval: True")
 
 if __name__ == "__main__":
     asyncio.run(reset_flow())

@@ -9,7 +9,6 @@ import aiohttp
 import json
 import time
 from datetime import datetime
-from typing import Dict, List, Any, Optional
 
 # Test configuration
 BASE_URL = "http://localhost:8000"
@@ -172,11 +171,9 @@ async def test_api_performance():
                 if method == "POST":
                     async with session.post(url, json=data, headers=TEST_HEADERS) as response:
                         await response.read()
-                        status = response.status
                 else:
                     async with session.get(url, headers=TEST_HEADERS) as response:
                         await response.read()
-                        status = response.status
                 
                 response_time = (time.time() - start_time) * 1000  # ms
                 
@@ -388,7 +385,7 @@ async def main():
     # Save results
     with open("e2e_validation_results.json", "w") as f:
         json.dump(test_results, f, indent=2)
-        print(f"\nDetailed results saved to: e2e_validation_results.json")
+        print("\nDetailed results saved to: e2e_validation_results.json")
 
 
 if __name__ == "__main__":

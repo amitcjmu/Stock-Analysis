@@ -2,8 +2,11 @@
 """Simple test to verify schema."""
 
 import asyncio
+
 from sqlalchemy import text
+
 from app.core.database import AsyncSessionLocal
+
 
 async def main():
     async with AsyncSessionLocal() as session:

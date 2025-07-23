@@ -4,19 +4,19 @@ Shared data models for services.
 """
 
 from .agent_communication import (
-    QuestionType,
+    AgentInsight,
+    AgentQuestion,
     ConfidenceLevel,
     DataClassification,
-    AgentQuestion,
     DataItem,
-    AgentInsight
+    QuestionType,
 )
 
 __all__ = [
-    'QuestionType',
-    'ConfidenceLevel', 
-    'DataClassification',
-    'AgentQuestion',
-    'DataItem',
-    'AgentInsight'
-] 
+    "QuestionType",
+    "ConfidenceLevel",
+    "DataClassification",
+    "AgentQuestion",
+    "DataItem",
+    "AgentInsight",
+]

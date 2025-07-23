@@ -20,7 +20,7 @@ SUPPORTED_ASSET_TYPES = {
     "compute.googleapis.com/Subnetwork",
     "compute.googleapis.com/Firewall",
     "bigquery.googleapis.com/Dataset",
-    "bigquery.googleapis.com/Table"
+    "bigquery.googleapis.com/Table",
 }
 
 # Target mapping for user-friendly resource names
@@ -37,7 +37,7 @@ TARGET_MAPPING = {
     "Functions": "cloudfunctions.googleapis.com/CloudFunction",
     "LoadBalancers": "compute.googleapis.com/ForwardingRule",
     "Networks": "compute.googleapis.com/Network",
-    "BigQuery": "bigquery.googleapis.com/Dataset"
+    "BigQuery": "bigquery.googleapis.com/Dataset",
 }
 
 # Asset type to normalized type mapping
@@ -56,7 +56,7 @@ ASSET_TYPE_MAP = {
     "compute.googleapis.com/Subnetwork": "network",
     "compute.googleapis.com/Firewall": "security_group",
     "bigquery.googleapis.com/Dataset": "data_warehouse",
-    "bigquery.googleapis.com/Table": "data_warehouse"
+    "bigquery.googleapis.com/Table": "data_warehouse",
 }
 
 # Metric types for different GCP services
@@ -65,7 +65,7 @@ COMPUTE_METRICS = [
     "compute.googleapis.com/instance/network/received_bytes_count",
     "compute.googleapis.com/instance/network/sent_bytes_count",
     "compute.googleapis.com/instance/disk/read_bytes_count",
-    "compute.googleapis.com/instance/disk/write_bytes_count"
+    "compute.googleapis.com/instance/disk/write_bytes_count",
 ]
 
 SQL_METRICS = [
@@ -73,12 +73,12 @@ SQL_METRICS = [
     "cloudsql.googleapis.com/database/memory/utilization",
     "cloudsql.googleapis.com/database/disk/utilization",
     "cloudsql.googleapis.com/database/network/received_bytes_count",
-    "cloudsql.googleapis.com/database/network/sent_bytes_count"
+    "cloudsql.googleapis.com/database/network/sent_bytes_count",
 ]
 
 FUNCTION_METRICS = [
     "cloudfunctions.googleapis.com/function/executions",
     "cloudfunctions.googleapis.com/function/execution_times",
     "cloudfunctions.googleapis.com/function/user_memory_bytes",
-    "cloudfunctions.googleapis.com/function/network_egress"
+    "cloudfunctions.googleapis.com/function/network_egress",
 ]

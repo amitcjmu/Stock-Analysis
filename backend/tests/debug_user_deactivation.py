@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
 import asyncio
+
+from sqlalchemy import and_, select
+
+from app.core.database import AsyncSessionLocal
 from app.models.user_profile import UserProfile
 from app.schemas.auth_schemas import UserStatus
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.database import AsyncSessionLocal
-from sqlalchemy import select, and_
+
 
 async def test_user_lookup():
     async with AsyncSessionLocal() as session:

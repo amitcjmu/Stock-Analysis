@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { AssetInventory, InventoryProgress } from '../types/inventory.types';
+import type { AssetInventory, InventoryProgress } from '../types/inventory.types';
 
 export const useInventoryProgress = (assets: AssetInventory[]): InventoryProgress => {
   return useMemo(() => {

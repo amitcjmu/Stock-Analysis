@@ -5,8 +5,8 @@
  * user details, user approval workflows, and user statistics.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps } from '../shared';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps } from '../shared';
 
 // User Management component types
 export interface UserListProps extends BaseComponentProps {

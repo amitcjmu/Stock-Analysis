@@ -7,9 +7,9 @@ Create Date: 2025-07-01 00:05:00.000000
 This migration drops all V3 prefixed tables and removes is_mock columns from all tables
 as we're using multi-tenancy (clientID/engagementID) to handle mock data separation.
 """
-from alembic import op
-import sqlalchemy as sa
 from sqlalchemy import text
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = 'drop_legacy_schema_elements'

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Crown, Activity } from 'lucide-react';
-import { AgentInfo } from '../types';
+import type { AgentInfo } from '../types';
 import { getStatusIcon } from '../utils/statusHelpers';
 
 interface AgentCardProps {

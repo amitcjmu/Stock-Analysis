@@ -9,7 +9,4 @@ This module contains the modularized 6R analysis API implementation:
 
 from .services.analysis_service import AnalysisService, analysis_service
 
-__all__ = [
-    'AnalysisService',
-    'analysis_service'
-]
+__all__ = ["AnalysisService", "analysis_service"]

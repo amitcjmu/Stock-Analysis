@@ -8,7 +8,7 @@ Built by: Agent Team B2 (AI Analysis & Intelligence)
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 from .enums import MigrationDriverType, StakeholderRole
 
@@ -16,6 +16,7 @@ from .enums import MigrationDriverType, StakeholderRole
 @dataclass
 class BusinessContext:
     """Comprehensive business context for questionnaire targeting"""
+
     organization_profile: Dict[str, Any]
     migration_drivers: List[MigrationDriverType]
     stakeholder_landscape: Dict[StakeholderRole, Dict[str, Any]]
@@ -29,6 +30,7 @@ class BusinessContext:
 @dataclass
 class QuestionnaireTarget:
     """Target definition for questionnaire delivery"""
+
     target_stakeholders: List[StakeholderRole]
     priority_level: str  # critical, high, medium, low
     complexity_level: str  # basic, intermediate, advanced

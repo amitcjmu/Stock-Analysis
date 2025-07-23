@@ -1,5 +1,5 @@
-import { QualityIssue } from '../components/discovery/data-cleansing/QualityIssuesSummary';
-import { AgentRecommendation } from '../components/discovery/data-cleansing/RecommendationsSummary';
+import type { QualityIssue } from '../components/discovery/data-cleansing/QualityIssuesSummary';
+import type { AgentRecommendation } from '../components/discovery/data-cleansing/RecommendationsSummary';
 
 /**
  * Fixed field highlighting function that properly matches assets and fields
@@ -7,7 +7,7 @@ import { AgentRecommendation } from '../components/discovery/data-cleansing/Reco
 export const getFieldHighlight = (
   fieldName: string, 
   assetId: string, 
-  rawData: Record<string, unknown>[], 
+  rawData: Array<Record<string, unknown>>, 
   qualityIssues: QualityIssue[], 
   agentRecommendations: AgentRecommendation[],
   selectedIssue: string | null,
@@ -126,7 +126,7 @@ const normalizeFieldName = (fieldName: string): string => {
   
   // Convert to lowercase and remove spaces, underscores, parentheses, and other special chars for comparison
   const normalized = fieldName.toLowerCase()
-    .replace(/[\s_\-\(\)]/g, '')  // Remove spaces, underscores, dashes, parentheses
+    .replace(/[\s_\-()]/g, '')  // Remove spaces, underscores, dashes, parentheses
     .replace(/[^a-z0-9]/g, '');   // Remove any remaining special characters
   
   // Handle common field name variations - return a standardized version
@@ -160,7 +160,7 @@ const normalizeFieldName = (fieldName: string): string => {
 /**
  * Find asset by various identifier formats - MUST match table's getAssetIdentifier logic exactly
  */
-const findAssetByIdentifier = (rawData: Record<string, unknown>[], identifier: string): Record<string, unknown> | null => {
+const findAssetByIdentifier = (rawData: Array<Record<string, unknown>>, identifier: string): Record<string, unknown> | null => {
   if (!identifier || !rawData || rawData.length === 0) return null;
   
   return rawData.find(asset => {

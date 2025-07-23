@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
+
 import requests
-import json
+
 
 def test_marathon_import():
     """Test data import with Marathon context."""
@@ -44,7 +45,7 @@ def test_marathon_import():
         
         if response.status_code == 200:
             result = response.json()
-            print(f"✅ Import successful!")
+            print("✅ Import successful!")
             print(f"   Session ID: {result.get('session_id')}")
             print(f"   Client returned: {result.get('client_account_id')}")
             print(f"   Engagement returned: {result.get('engagement_id')}")

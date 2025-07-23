@@ -5,7 +5,7 @@
  * including chunked uploads and progress tracking.
  */
 
-import { RequestConfig } from './shared';
+import type { RequestConfig } from './shared';
 
 // Upload response interface
 export interface UploadResponse {
@@ -111,4 +111,4 @@ export interface DownloadProgress {
 }
 
 export type UploadStatus = 'pending' | 'uploading' | 'paused' | 'completed' | 'failed' | 'cancelled';
-export type ValidationResult = { valid: boolean; errors?: string[] };
+export interface ValidationResult { valid: boolean; errors?: string[] }

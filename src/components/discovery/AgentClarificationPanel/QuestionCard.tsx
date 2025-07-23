@@ -4,7 +4,8 @@
  * Individual question card with response interface and context display.
  */
 
-import React, { useState } from 'react';
+import React from 'react'
+import { useState } from 'react'
 import { 
   Send, 
   Loader2, 
@@ -13,8 +14,9 @@ import {
   AlertCircle,
   Server
 } from 'lucide-react';
-import { AgentQuestion, AssetDetails } from './types';
-import { getPriorityColor, getConfidenceIcon, formatTimestamp, getPriorityBadgeClass } from './utils';
+import type { AgentQuestion, AssetDetails } from './types';
+import type { getPriorityColor } from './utils'
+import { getConfidenceIcon, formatTimestamp, getPriorityBadgeClass } from './utils'
 import AssetCard from './AssetCard';
 
 interface QuestionCardProps {

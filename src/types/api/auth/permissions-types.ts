@@ -4,13 +4,14 @@
  * Permission checking, role management, and authorization API types.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext
 } from '../shared';
 
-import { UserPermissions, Permission, Role, ResourceAccess } from './core-types';
+import type { UserPermissions, Role, ResourceAccess } from './core-types';
+import { Permission } from './core-types';
 
 // Permission and Authorization APIs
 export interface GetUserPermissionsRequest extends BaseApiRequest {

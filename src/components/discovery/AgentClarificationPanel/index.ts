@@ -18,7 +18,7 @@ export { default as ErrorState } from './ErrorState';
 export { default as PanelHeader } from './PanelHeader';
 
 // Types
-export * from './types';
+export type * from './types';
 
 // Utilities
 export * from './utils';

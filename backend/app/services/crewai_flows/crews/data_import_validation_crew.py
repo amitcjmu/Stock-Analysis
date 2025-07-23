@@ -5,8 +5,9 @@ Performs ONLY essential tasks: file type analysis, security validation, PII dete
 """
 
 import logging
-from typing import Dict, Any, List, Optional
-from crewai import Agent, Task, Crew
+from typing import Any, Dict, List, Optional
+
+from crewai import Agent, Crew, Task
 
 logger = logging.getLogger(__name__)
 
@@ -16,29 +17,29 @@ def create_data_import_validation_crew(
     raw_data: List[Dict[str, Any]],
     metadata: Dict[str, Any],
     shared_memory: Optional[Any] = None,
-    callback_handler: Optional[Any] = None
+    callback_handler: Optional[Any] = None,
 ):
     """
     Create a focused data import validation crew.
-    
+
     Args:
         crewai_service: CrewAI service instance
         raw_data: Raw data to validate
         metadata: File metadata
         shared_memory: Shared memory for agent learning
         callback_handler: Optional callback handler for task monitoring
-    
+
     Returns:
         CrewAI Crew for data import validation
     """
-    
+
     try:
         # Get LLM from service
         llm = crewai_service.get_llm()
-        
+
         # Import optimized config
         from .crew_config import DEFAULT_AGENT_CONFIG
-        
+
         # Create focused data validation agent with NO delegation
         data_validation_agent = Agent(
             role="Data Import Validation Specialist",
@@ -53,9 +54,9 @@ def create_data_import_validation_crew(
             You provide quick, accurate validation results for user approval.""",
             llm=llm,
             memory=shared_memory,
-            **DEFAULT_AGENT_CONFIG  # Apply no-delegation config
+            **DEFAULT_AGENT_CONFIG,  # Apply no-delegation config
         )
-        
+
         # Create focused validation task
         validation_task = Task(
             description=f"""Perform focused validation on the imported data:
@@ -86,29 +87,29 @@ def create_data_import_validation_crew(
 
             Keep analysis focused and efficient. Do not perform data transformation or complex processing.""",
             agent=data_validation_agent,
-            expected_output="JSON object with validation results as specified above"
+            expected_output="JSON object with validation results as specified above",
         )
-        
+
         # Import crew config
         from .crew_config import get_optimized_crew_config
-        
+
         # Create focused crew with NO iterations, single pass only
         crew_config = get_optimized_crew_config()
-        
+
         # Add callback handler if provided
         if callback_handler:
             crew_config["callbacks"] = [callback_handler]
-            
+
         crew = Crew(
             agents=[data_validation_agent],
             tasks=[validation_task],
             process="sequential",  # Simple sequential process
-            **crew_config  # Apply optimized config (no iterations, 15s timeout)
+            **crew_config,  # Apply optimized config (no iterations, 15s timeout)
         )
-        
+
         logger.info("✅ Data Import Validation Crew created successfully")
         return crew
-        
+
     except Exception as e:
         logger.error(f"❌ Failed to create data import validation crew: {e}")
-        raise e 
+        raise e

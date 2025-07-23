@@ -6,21 +6,30 @@ This script uses the backend API to create demo data, ensuring consistency with 
 
 import asyncio
 import sys
-import os
+
 sys.path.append('/app')
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.database import AsyncSessionLocal
-from app.models.client_account import User, ClientAccount, Engagement
-from app.models.data_import_session import DataImportSession
-from app.models.rbac import UserProfile, UserRole, RoleType
-from app.core.demo_constants import (
-    DEMO_USER_ID, DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, DEMO_SESSION_ID,
-    DEMO_USER_EMAIL, DEMO_CLIENT_NAME, DEMO_ENGAGEMENT_NAME, DEMO_SESSION_NAME
-)
-from datetime import datetime
 import uuid
-from sqlalchemy import select, and_
+from datetime import datetime
+
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import AsyncSessionLocal
+from app.core.demo_constants import (
+    DEMO_CLIENT_ID,
+    DEMO_CLIENT_NAME,
+    DEMO_ENGAGEMENT_ID,
+    DEMO_ENGAGEMENT_NAME,
+    DEMO_SESSION_ID,
+    DEMO_SESSION_NAME,
+    DEMO_USER_EMAIL,
+    DEMO_USER_ID,
+)
+from app.models.client_account import ClientAccount, Engagement, User
+from app.models.data_import_session import DataImportSession
+from app.models.rbac import UserProfile
+
 
 async def create_demo_users(db: AsyncSession):
     """
@@ -273,14 +282,16 @@ async def create_user_roles(db: AsyncSession, demo_user):
     """Create user roles for proper RBAC authorization."""
     print("Creating user roles...")
     
-    from sqlalchemy import select
-    from app.models.rbac import UserRole, RoleType
     import uuid
+
+    from sqlalchemy import select
+
+    from app.models.rbac import RoleType, UserRole
     
     # SECURITY: Only create demo user role - no admin@democorp role
     # Demo user role (Analyst - SECURE)
     existing_demo_role = await db.execute(select(UserRole).where(
-        and_(UserRole.user_id == demo_user.id, UserRole.is_active == True)
+        and_(UserRole.user_id == demo_user.id, UserRole.is_active is True)
     ))
     if not existing_demo_role.scalar_one_or_none():
         demo_role = UserRole(

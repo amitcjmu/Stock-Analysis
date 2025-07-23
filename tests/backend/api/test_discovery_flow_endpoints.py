@@ -10,13 +10,10 @@ Tests complete API workflows including:
 """
 
 import pytest
-import asyncio
 import json
-from typing import Dict, List, Any
+from typing import Dict, Any
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, Mock, patch
-import websockets
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # API testing fixtures
 @pytest.fixture

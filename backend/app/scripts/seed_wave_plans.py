@@ -4,19 +4,22 @@ Scaffold: Seed baseline migration wave plans.
 Run via:
   docker exec migration_backend python app/scripts/seed_wave_plans.py [--force]
 """
+
+import argparse
 import asyncio
 import logging
 import os
 import sys
-import argparse
 from datetime import datetime, timedelta
+
 from sqlalchemy import text
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 try:
     from app.core.database import AsyncSessionLocal
     from app.scripts.demo_context import get_demo_context
+
     DEPENDENCIES_AVAILABLE = True
 except ImportError:
     DEPENDENCIES_AVAILABLE = False
@@ -24,10 +27,13 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 # ---------------------------------------------------------------------------
 async def seed_wave_plans(session, force: bool):
     if force:
-        await session.execute(text("DELETE FROM wave_plans WHERE wave_name LIKE 'MOCK:%'"))
+        await session.execute(
+            text("DELETE FROM wave_plans WHERE wave_name LIKE 'MOCK:%'")
+        )
         logger.info("Existing mock wave plans removed.")
 
     # Retrieve a migration to link wave plans to. Prefer the most recent mock migration if available.
@@ -134,6 +140,7 @@ async def seed_wave_plans(session, force: bool):
 
     logger.info(f"Inserted {inserted} wave plan rows for migration {migration_id}.")
 
+
 # ---------------------------------------------------------------------------
 async def main(force: bool):
     if not DEPENDENCIES_AVAILABLE:
@@ -147,9 +154,12 @@ async def main(force: bool):
         await session.commit()
     logger.info("Wave plan seeding completed.")
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Seed baseline wave plans.")
-    parser.add_argument("--force", action="store_true", help="Delete existing mock rows before seeding")
+    parser.add_argument(
+        "--force", action="store_true", help="Delete existing mock rows before seeding"
+    )
     args = parser.parse_args()
 
     asyncio.run(main(force=args.force))

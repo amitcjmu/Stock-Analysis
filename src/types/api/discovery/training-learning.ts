@@ -5,7 +5,7 @@
  * and model management within the discovery flow.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   GetRequest,

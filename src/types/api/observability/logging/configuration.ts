@@ -8,8 +8,8 @@
  */
 
 import type { BaseMetadata, AuditableMetadata } from '../../../shared/metadata-types';
-import { PrimitiveValue, FilterValue, ConfigValue } from '../../shared/value-types';
-import {
+import type { PrimitiveValue, FilterValue, ConfigValue } from '../../shared/value-types';
+import type {
   BaseApiRequest,
   BaseApiResponse,
   CreateRequest,

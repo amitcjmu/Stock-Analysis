@@ -4,8 +4,8 @@
  * Common base interfaces and utilities used across all form components.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps } from '../shared';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps } from '../shared';
 
 // Form field control interface
 export interface FormFieldControl {
@@ -87,30 +87,16 @@ export interface FormInternalHooks {
 }
 
 // Placeholder types that need to be defined based on actual implementation
-export interface ValidationRule {
-  // Add validation rule properties as needed
-}
+export type ValidationRule = Record<string, unknown>;
 
-export interface FormSchema {
-  // Add form schema properties as needed
-}
+export type FormSchema = Record<string, unknown>;
 
-export interface FormField {
-  // Add form field properties as needed
-}
+export type FormField = Record<string, unknown>;
 
-export interface FormErrorInfo {
-  // Add form error info properties as needed
-}
+export type FormErrorInfo = Record<string, unknown>;
 
-export interface ScrollToFirstErrorOptions {
-  // Add scroll options as needed
-}
+export type ScrollToFirstErrorOptions = Record<string, unknown>;
 
-export interface ColProps {
-  // Add column props as needed
-}
+export type ColProps = Record<string, unknown>;
 
-export interface FormInstance {
-  // Add form instance properties as needed
-}
+export type FormInstance = Record<string, unknown>;

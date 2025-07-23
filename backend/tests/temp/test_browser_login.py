@@ -3,7 +3,9 @@
 Test login flow using Playwright to simulate real browser behavior
 """
 import asyncio
+
 from playwright.async_api import async_playwright
+
 
 async def test_login():
     async with async_playwright() as p:
@@ -40,7 +42,7 @@ async def test_login():
                 # Wait for successful navigation away from login page
                 await page.wait_for_url("http://localhost:8081/", timeout=5000)
                 print("✅ Login successful! Redirected to home page")
-            except:
+            except Exception:
                 # Check for error messages
                 error_element = page.locator('.text-red-500, .text-destructive, [role="alert"]')
                 if await error_element.count() > 0:

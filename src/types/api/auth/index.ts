@@ -5,19 +5,19 @@
  */
 
 // Core types and interfaces
-export * from './core-types';
+export type * from './core-types';
 
 // Authentication API types
-export * from './authentication-types';
+export type * from './authentication-types';
 
 // Multi-factor authentication types
-export * from './mfa-types';
+export type * from './mfa-types';
 
 // Session management types
-export * from './session-types';
+export type * from './session-types';
 
 // Token management types
-export * from './token-types';
+export type * from './token-types';
 
 // Permissions and authorization types
-export * from './permissions-types';
+export type * from './permissions-types';

@@ -5,11 +5,8 @@ Run with: docker exec migration_backend python test_agentic_discovery_corrected.
 """
 
 import asyncio
-import json
-import sys
 import os
-from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+import sys
 
 # Add the app directory to the Python path
 sys.path.insert(0, '/app')
@@ -103,7 +100,7 @@ async def test_database_integration():
             print("⚠️  MasterFlow not available")
         
         # Test database connection
-        async with AsyncSessionLocal() as session:
+        async with AsyncSessionLocal():
             print("✅ Database connection successful")
         
         return True
@@ -192,10 +189,10 @@ async def test_hardcoded_threshold_removal():
     
     try:
         # Check field mapping phase for hardcoded thresholds
-        from app.services.crewai_flows.unified_discovery_flow.phases import field_mapping
-        
         # Read the source code to check for hardcoded values
         import inspect
+
+        from app.services.crewai_flows.unified_discovery_flow.phases import field_mapping
         source = inspect.getsource(field_mapping)
         
         # Look for common threshold patterns
@@ -325,7 +322,6 @@ async def main():
     
     passed = 0
     failed = 0
-    warnings = 0
     
     for test_name, test_func in tests:
         print(f"\n{'=' * 60}")

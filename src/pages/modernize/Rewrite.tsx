@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'
 import { Code2, Loader2, AlertTriangle, RefreshCw, Calendar, Users, Activity, AlertCircle } from 'lucide-react';
 import { useRewrite } from '@/hooks/useRewrite';
 import { Sidebar } from '@/components/ui/sidebar';

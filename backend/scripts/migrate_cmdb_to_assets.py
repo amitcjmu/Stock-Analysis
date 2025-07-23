@@ -9,22 +9,20 @@ Usage:
     python backend/scripts/migrate_cmdb_to_assets.py [--dry-run] [--backup]
 """
 
-import asyncio
-import sys
-import os
 import argparse
+import asyncio
+import os
+import sys
 from datetime import datetime
-from typing import Dict, List, Any
 
 # Add the backend directory to Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from sqlalchemy import text, select, update, delete
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import AsyncSessionLocal
-from app.models.asset import Asset
-from app.models.data_import import RawImportRecord
-from app.models.tags import AssetEmbedding, AssetTag
+
 
 class CMDBToAssetsDataMigrator:
     """Handles the migration from cmdb_assets to assets table."""
@@ -269,9 +267,9 @@ class CMDBToAssetsDataMigrator:
         self.migration_stats["asset_embeddings_updated"] = 0
         self.migration_stats["asset_tags_updated"] = 0
         
-        print(f"   📝 Raw import record references: Requires application-level rebuild")
-        print(f"   🧠 Asset embedding references: Requires application-level rebuild") 
-        print(f"   🏷️  Asset tag references: Requires application-level rebuild")
+        print("   📝 Raw import record references: Requires application-level rebuild")
+        print("   🧠 Asset embedding references: Requires application-level rebuild") 
+        print("   🏷️  Asset tag references: Requires application-level rebuild")
     
     async def _verify_migration_integrity(self, session: AsyncSession):
         """Verify the integrity of the migration."""

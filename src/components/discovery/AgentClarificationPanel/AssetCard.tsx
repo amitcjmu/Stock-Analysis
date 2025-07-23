@@ -4,20 +4,12 @@
  * Expandable card displaying asset details with technical and business information.
  */
 
-import React, { useState } from 'react';
-import { 
-  ChevronDown, 
-  ChevronUp, 
-  Server, 
-  Database, 
-  Globe, 
-  Monitor,
-  Cpu,
-  Building,
-  Info
-} from 'lucide-react';
-import { AssetDetails } from './types';
-import { getCriticalityColor } from './utils';
+import React from 'react'
+import { useState } from 'react'
+import type { Info } from 'lucide-react'
+import { ChevronDown, ChevronUp, Server, Database, Globe, Monitor, Cpu, Building } from 'lucide-react'
+import type { AssetDetails } from './types';
+import type { getCriticalityColor } from './utils';
 
 interface AssetCardProps {
   componentName: string;

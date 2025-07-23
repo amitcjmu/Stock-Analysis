@@ -5,7 +5,6 @@ Test script for Gap Analysis agents and tools
 
 import asyncio
 import logging
-from typing import List, Dict, Any
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -35,13 +34,13 @@ def test_tool_imports():
     try:
         from app.services.tools.gap_analysis_tools import (
             AttributeMapperTool,
+            CollectionPlannerTool,
             CompletenessAnalyzerTool,
-            QualityScorerTool,
+            EffortEstimatorTool,
             GapIdentifierTool,
             ImpactCalculatorTool,
-            EffortEstimatorTool,
             PriorityRankerTool,
-            CollectionPlannerTool
+            QualityScorerTool,
         )
         logger.info("✅ Successfully imported Gap Analysis tools")
         
@@ -89,8 +88,8 @@ def test_critical_attributes_framework():
 async def test_tool_functionality():
     """Test basic tool functionality (without database)"""
     try:
-        from app.services.tools.gap_analysis_tools import AttributeMapperTool
         from app.core.context import RequestContext, set_context
+        from app.services.tools.gap_analysis_tools import AttributeMapperTool
         
         # Create a mock context
         mock_context = RequestContext(

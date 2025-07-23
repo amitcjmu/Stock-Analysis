@@ -5,10 +5,10 @@ Revises: 002_add_security_audit_tables
 Create Date: 2025-07-19
 
 """
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = '003_add_collection_flow_tables'

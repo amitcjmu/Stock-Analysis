@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { FieldMapping } from './useFieldMappings';
+import type { FieldMapping } from './useFieldMappings';
 
 // CC: Data structure interfaces for attribute mapping state
 interface AttributeData {

@@ -3,17 +3,23 @@ Base handler for RBAC operations with common functionality.
 """
 
 import logging
-from typing import Dict, List, Any, Optional
-from datetime import datetime
+from typing import Dict
+
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
 
 # Import RBAC models with fallback
 try:
     from app.models.rbac import (
-        UserProfile, UserRole, ClientAccess, EngagementAccess, AccessAuditLog,
-        UserStatus, AccessLevel, RoleType
+        AccessAuditLog,
+        AccessLevel,
+        ClientAccess,
+        EngagementAccess,
+        RoleType,
+        UserProfile,
+        UserRole,
+        UserStatus,
     )
+
     RBAC_MODELS_AVAILABLE = True
 except ImportError:
     RBAC_MODELS_AVAILABLE = False
@@ -23,6 +29,7 @@ except ImportError:
 # Import user and client models with fallback
 try:
     from app.models.client_account import ClientAccount, Engagement, User
+
     CLIENT_MODELS_AVAILABLE = True
 except ImportError:
     CLIENT_MODELS_AVAILABLE = False
@@ -30,16 +37,19 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+
 class BaseRBACHandler:
     """Base handler with common RBAC functionality."""
-    
+
     def __init__(self, db: AsyncSession):
         self.db = db
         self.is_available = RBAC_MODELS_AVAILABLE and CLIENT_MODELS_AVAILABLE
-        
+
         if not self.is_available:
-            logger.warning("RBAC Handler initialized with limited functionality due to missing models")
-    
+            logger.warning(
+                "RBAC Handler initialized with limited functionality due to missing models"
+            )
+
     def _get_default_permissions(self, access_level: str) -> Dict[str, bool]:
         """Get default permissions based on access level."""
         if access_level == AccessLevel.READ_ONLY:
@@ -54,9 +64,9 @@ class BaseRBACHandler:
                 "approve_migrations": False,
                 "manage_users": False,
                 "create_engagements": False,
-                "delete_data": False
+                "delete_data": False,
             }
-        
+
         elif access_level == AccessLevel.READ_WRITE or access_level == "analyst":
             return {
                 "view_assets": True,
@@ -72,9 +82,9 @@ class BaseRBACHandler:
                 "approve_migrations": False,
                 "manage_users": False,
                 "create_engagements": False,
-                "delete_data": False
+                "delete_data": False,
             }
-        
+
         elif access_level == AccessLevel.ADMIN or access_level == "manager":
             return {
                 "view_assets": True,
@@ -93,9 +103,9 @@ class BaseRBACHandler:
                 "manage_engagement_settings": True,
                 "approve_budgets": True,
                 "manage_users": False,
-                "delete_data": False
+                "delete_data": False,
             }
-        
+
         elif access_level == AccessLevel.SUPER_ADMIN:
             return {
                 "view_assets": True,
@@ -115,13 +125,13 @@ class BaseRBACHandler:
                 "approve_budgets": True,
                 "delete_data": True,
                 "system_administration": True,
-                "platform_configuration": True
+                "platform_configuration": True,
             }
-        
+
         else:
             # Default to read-only
             return self._get_default_permissions(AccessLevel.READ_ONLY)
-    
+
     def _get_default_role_permissions(self, access_level: str) -> Dict[str, bool]:
         """Get default role permissions based on access level."""
         if access_level == AccessLevel.READ_ONLY:
@@ -131,9 +141,9 @@ class BaseRBACHandler:
                 "generate_reports": False,
                 "modify_data": False,
                 "approve_changes": False,
-                "manage_users": False
+                "manage_users": False,
             }
-        
+
         elif access_level == AccessLevel.READ_WRITE or access_level == "analyst":
             return {
                 "view_data": True,
@@ -142,9 +152,9 @@ class BaseRBACHandler:
                 "modify_data": True,
                 "create_analysis": True,
                 "approve_changes": False,
-                "manage_users": False
+                "manage_users": False,
             }
-        
+
         elif access_level == AccessLevel.ADMIN or access_level == "manager":
             return {
                 "view_data": True,
@@ -154,9 +164,9 @@ class BaseRBACHandler:
                 "create_analysis": True,
                 "approve_changes": True,
                 "manage_team": True,
-                "manage_users": False
+                "manage_users": False,
             }
-        
+
         elif access_level == AccessLevel.SUPER_ADMIN:
             return {
                 "view_data": True,
@@ -167,12 +177,12 @@ class BaseRBACHandler:
                 "approve_changes": True,
                 "manage_team": True,
                 "manage_users": True,
-                "system_admin": True
+                "system_admin": True,
             }
-        
+
         else:
             return self._get_default_role_permissions(AccessLevel.READ_ONLY)
-    
+
     def _determine_role_type(self, access_level: str) -> str:
         """Determine role type based on access level."""
         if access_level == AccessLevel.READ_ONLY:
@@ -185,13 +195,14 @@ class BaseRBACHandler:
             return RoleType.PLATFORM_ADMIN
         else:
             return RoleType.VIEWER
-    
-    async def _log_access(self, user_id: str, action_type: str, result: str, 
-                         reason: str = None, **kwargs):
+
+    async def _log_access(
+        self, user_id: str, action_type: str, result: str, reason: str = None, **kwargs
+    ):
         """Log access events for audit trail."""
         if not self.is_available:
             return
-        
+
         try:
             details = {}
             for key, value in kwargs.items():
@@ -199,21 +210,23 @@ class BaseRBACHandler:
                     details.update(value)
                 else:
                     details[key] = value
-            
+
             audit_log = AccessAuditLog(
                 user_id=user_id,
                 action_type=action_type,
                 result=result,
                 reason=reason,
-                details=details
+                details=details,
             )
-            
+
             self.db.add(audit_log)
             await self.db.commit()
-            
+
         except Exception as e:
             # Log warning instead of error - audit failure shouldn't block operations
-            logger.warning(f"Failed to log access audit (table may not exist): {str(e)}")
+            logger.warning(
+                f"Failed to log access audit (table may not exist): {str(e)}"
+            )
             await self.db.rollback()
             # Don't fail the main operation if logging fails
-            pass 
+            pass

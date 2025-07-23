@@ -1,5 +1,6 @@
 import React from 'react';
-import { ArrowRight, AlertTriangle, AlertCircle, Info, CheckCircle } from 'lucide-react';
+import type { AlertTriangle, AlertCircle, Info } from 'lucide-react'
+import { ArrowRight, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 

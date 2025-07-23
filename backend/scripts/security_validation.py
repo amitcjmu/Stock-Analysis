@@ -4,11 +4,10 @@ Security Validation Script
 Validates that all critical security fixes have been properly implemented.
 """
 
-import asyncio
-import os
 import re
 import sys
 from pathlib import Path
+
 
 def validate_authentication_bypass_fix():
     """Validate that authentication bypass has been fixed"""
@@ -169,7 +168,7 @@ def run_security_validation():
             failed += 1
     
     print("=" * 50)
-    print(f"📊 Security Validation Results:")
+    print("📊 Security Validation Results:")
     print(f"   Passed: {passed}")
     print(f"   Failed: {failed}")
     print(f"   Total:  {passed + failed}")

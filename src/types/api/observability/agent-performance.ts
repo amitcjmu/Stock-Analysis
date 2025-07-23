@@ -4,10 +4,10 @@
  * Part of the Agent Observability Enhancement Phase 4A
  */
 
-import { PrimitiveValue } from '../shared/value-types';
+import type { PrimitiveValue } from '../shared/value-types';
 
 // Re-export existing agent performance types
-export * from '../../agent-performance';
+export type * from '../../agent-performance';
 
 // Additional UI-specific types for components
 export interface AgentCardData {
@@ -69,7 +69,7 @@ export interface StatusIndicatorConfig {
 }
 
 export interface AgentListFilters {
-  status?: ('active' | 'idle' | 'error' | 'offline')[];
+  status?: Array<'active' | 'idle' | 'error' | 'offline'>;
   sortBy?: 'name' | 'successRate' | 'lastActive' | 'totalTasks';
   sortOrder?: 'asc' | 'desc';
   searchQuery?: string;

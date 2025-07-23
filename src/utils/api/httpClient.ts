@@ -22,7 +22,7 @@ import type {
   ResponseInterceptor,
   QueryParams
 } from './apiTypes';
-import { handleApiError, createApiError } from './errorHandling';
+import type { handleApiError, createApiError } from './errorHandling';
 import { applyRetryPolicy } from './retryPolicies';
 import { CacheManager } from './cacheStrategies';
 import { createMultiTenantHeaders } from './multiTenantHeaders';
@@ -373,7 +373,7 @@ class HttpClient implements ApiClient {
     });
   }
 
-  async batch<T = unknown>(requests: BatchRequest[]): Promise<BatchResponse<T>[]> {
+  async batch<T = unknown>(requests: BatchRequest[]): Promise<Array<BatchResponse<T>>> {
     const batchPromises = requests.map(async (request) => {
       try {
         const response = await this.executeRequest<T>(

@@ -2,10 +2,10 @@
 Complete the seeding process - runs all remaining seeding scripts.
 """
 import asyncio
+import json
 import subprocess
 import sys
 from pathlib import Path
-import json
 
 
 async def run_script(script_name: str) -> bool:
@@ -55,7 +55,7 @@ async def main():
         print("\n✅ SEEDED_IDS.json created successfully!")
         with open(seeded_ids_path) as f:
             data = json.load(f)
-        print(f"\nSeeded data summary:")
+        print("\nSeeded data summary:")
         print(f"  - Client: {data['client_account']['name']}")
         print(f"  - Engagement: {data['engagement']['name']}")
         print(f"  - Users: {len(data['users'])}")

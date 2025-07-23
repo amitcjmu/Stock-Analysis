@@ -3,12 +3,14 @@ Asset data audit and lineage tracking endpoints.
 """
 
 import logging
-from fastapi import APIRouter, HTTPException, Depends
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.core.context import get_current_context, RequestContext
+
+from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
-from app.repositories.asset_repository import AssetRepository
 from app.models.data_import.core import RawImportRecord
+from app.repositories.asset_repository import AssetRepository
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +22,7 @@ router = APIRouter(tags=["Asset Audit"])
 async def get_asset_data_audit(
     asset_id: str,
     context: RequestContext = Depends(get_current_context),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Get data audit trail for an asset using existing linkage.
@@ -32,11 +34,12 @@ async def get_asset_data_audit(
         asset = await asset_repo.get_by_id(asset_id)
         if not asset:
             raise HTTPException(status_code=404, detail="Asset not found")
-        
+
         # Find linked raw import record using asset_id
         from sqlalchemy import select
+
         from app.core.database import get_async_db_session
-        
+
         async with get_async_db_session() as session:
             result = await session.execute(
                 select(RawImportRecord)
@@ -44,7 +47,7 @@ async def get_asset_data_audit(
                 .where(RawImportRecord.client_account_id == context.client_account_id)
             )
             raw_record = result.scalar_one_or_none()
-        
+
         if not raw_record:
             return {
                 "asset_id": asset_id,
@@ -57,29 +60,33 @@ async def get_asset_data_audit(
                     "asset_type": asset.asset_type,
                     "environment": asset.environment,
                     "hostname": asset.hostname,
-                    "operating_system": asset.operating_system
-                }
+                    "operating_system": asset.operating_system,
+                },
             }
-        
+
         # Compare name fields specifically
         raw_name_fields = {
             "App_Name": raw_record.raw_data.get("App_Name"),
-            "app_name": raw_record.raw_data.get("app_name"), 
+            "app_name": raw_record.raw_data.get("app_name"),
             "name": raw_record.raw_data.get("name"),
             "asset_name": raw_record.raw_data.get("asset_name"),
             "hostname": raw_record.raw_data.get("hostname"),
-            "application_name": raw_record.raw_data.get("application_name")
+            "application_name": raw_record.raw_data.get("application_name"),
         }
-        
-        cleansed_name_fields = {} if not raw_record.cleansed_data else {
-            "App_Name": raw_record.cleansed_data.get("App_Name"),
-            "app_name": raw_record.cleansed_data.get("app_name"),
-            "name": raw_record.cleansed_data.get("name"),
-            "asset_name": raw_record.cleansed_data.get("asset_name"),
-            "hostname": raw_record.cleansed_data.get("hostname"),
-            "application_name": raw_record.cleansed_data.get("application_name")
-        }
-        
+
+        cleansed_name_fields = (
+            {}
+            if not raw_record.cleansed_data
+            else {
+                "App_Name": raw_record.cleansed_data.get("App_Name"),
+                "app_name": raw_record.cleansed_data.get("app_name"),
+                "name": raw_record.cleansed_data.get("name"),
+                "asset_name": raw_record.cleansed_data.get("asset_name"),
+                "hostname": raw_record.cleansed_data.get("hostname"),
+                "application_name": raw_record.cleansed_data.get("application_name"),
+            }
+        )
+
         return {
             "asset_id": asset_id,
             "row_number": raw_record.row_number,
@@ -89,13 +96,17 @@ async def get_asset_data_audit(
             "validation_errors": raw_record.validation_errors,
             "processing_notes": raw_record.processing_notes,
             "name_field_analysis": {
-                "raw_name_fields": {k: v for k, v in raw_name_fields.items() if v is not None},
-                "cleansed_name_fields": {k: v for k, v in cleansed_name_fields.items() if v is not None},
+                "raw_name_fields": {
+                    k: v for k, v in raw_name_fields.items() if v is not None
+                },
+                "cleansed_name_fields": {
+                    k: v for k, v in cleansed_name_fields.items() if v is not None
+                },
                 "final_asset_name": asset.name,
                 "name_transformation_issue": (
-                    len([v for v in raw_name_fields.values() if v]) > 0 and 
-                    (not asset.name or asset.name.startswith("Asset-"))
-                )
+                    len([v for v in raw_name_fields.values() if v]) > 0
+                    and (not asset.name or asset.name.startswith("Asset-"))
+                ),
             },
             "raw_data": raw_record.raw_data,
             "cleansed_data": raw_record.cleansed_data,
@@ -108,10 +119,10 @@ async def get_asset_data_audit(
                 "application_name": asset.application_name,
                 "cpu_cores": asset.cpu_cores,
                 "memory_gb": asset.memory_gb,
-                "storage_gb": asset.storage_gb
-            }
+                "storage_gb": asset.storage_gb,
+            },
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:

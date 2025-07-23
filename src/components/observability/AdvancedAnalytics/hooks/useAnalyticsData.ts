@@ -3,10 +3,11 @@
  * Handles data loading, caching, and refresh logic
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react'
+import { useEffect, useCallback } from 'react'
 import { subDays } from 'date-fns';
-import { AnalyticsData } from '../types';
-import { generateAnalyticsData } from '../utils';
+import type { AnalyticsData } from '../types';
+import type { generateAnalyticsData } from '../utils';
 
 interface UseAnalyticsDataProps {
   agentNames: string[];

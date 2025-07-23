@@ -4,11 +4,12 @@
  * Types for bulk operations, batch processing, and bulk responses.
  */
 
-import { BaseApiRequest, BaseApiResponse, ApiError, ApiWarning } from './base-types';
-import { MultiTenantContext } from './tenant-types';
+import type { BaseApiRequest, BaseApiResponse, ApiError } from './base-types'
+import type { ApiWarning } from './base-types'
+import type { MultiTenantContext } from './tenant-types';
 
 export interface BulkRequest<T> extends BaseApiRequest {
-  operations: BulkOperation<T>[];
+  operations: Array<BulkOperation<T>>;
   context: MultiTenantContext;
   continueOnError?: boolean;
   validate?: boolean;
@@ -16,8 +17,8 @@ export interface BulkRequest<T> extends BaseApiRequest {
   batchSize?: number;
 }
 
-export interface BulkResponse<T> extends BaseApiResponse<BulkResult<T>[]> {
-  data: BulkResult<T>[];
+export interface BulkResponse<T> extends BaseApiResponse<Array<BulkResult<T>>> {
+  data: Array<BulkResult<T>>;
   summary: BulkSummary;
   partial: boolean;
 }

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { SixRDecision } from '@/hooks/useAssessmentFlow';
+import type { Badge } from '@/components/ui/badge';
+import type { SixRDecision } from '@/hooks/useAssessmentFlow';
 import { Users, ArrowRight, Calendar } from 'lucide-react';
 
 interface MoveGroupHintsPanelProps {

@@ -4,9 +4,10 @@
  * Core dashboard component type definitions including props and layout.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps } from '../../shared';
-import { DashboardWidget, DashboardLayout, DashboardFilter, DashboardTemplate, TimeRange, ExportFormat } from './widget-types';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps } from '../../shared';
+import type { DashboardLayout, DashboardFilter, TimeRange, ExportFormat } from './widget-types'
+import type { DashboardWidget, DashboardTemplate } from './widget-types'
 
 export interface AnalyticsDashboardProps extends BaseComponentProps {
   widgets: DashboardWidget[];

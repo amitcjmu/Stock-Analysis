@@ -7,17 +7,16 @@ Provides shared test infrastructure, database setup, and utility functions.
 Generated with CC for ADCS end-to-end integration testing.
 """
 
-import pytest
 import asyncio
+from typing import Any, AsyncGenerator, Dict
 from uuid import uuid4
-from typing import Dict, Any, AsyncGenerator
 
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.core.database import AsyncSessionLocal, engine
+from app.models import ClientAccount, Engagement, User
 from app.models.base import Base
-from app.models import User, ClientAccount, Engagement
 
 
 @pytest.fixture(scope="session")
@@ -341,8 +340,9 @@ def memory_monitor():
         
         def take_snapshot(self, name: str):
             """Take memory usage snapshot"""
-            import psutil
             import os
+
+            import psutil
             
             process = psutil.Process(os.getpid())
             memory_info = process.memory_info()

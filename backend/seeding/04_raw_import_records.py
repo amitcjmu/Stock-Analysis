@@ -4,15 +4,13 @@ Creating realistic asset inventory with raw import records for 3 data imports.
 """
 
 import asyncio
-import json
-from datetime import datetime, timezone
-from sqlalchemy.ext.asyncio import AsyncSession
+
+from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, IMPORT_IDS
 from sqlalchemy import select
 
 from app.core.database import AsyncSessionLocal
-from app.models.data_import.core import RawImportRecord
 from app.models.data_import import DataImport
-from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, IMPORT_IDS
+from app.models.data_import.core import RawImportRecord
 
 # Asset distributions for raw records
 ASSET_DISTRIBUTIONS = {
@@ -318,7 +316,7 @@ async def create_raw_import_records():
         total_valid = csv_dist["valid_records"] + json_dist["valid_records"] + excel_dist["valid_records"]
         total_invalid = csv_dist["invalid_records"] + json_dist["invalid_records"] + excel_dist["invalid_records"]
         
-        print(f"\n✅ Raw import records created successfully!")
+        print("\n✅ Raw import records created successfully!")
         print(f"   📊 Total Records: {total_records}")
         print(f"   ✅ Valid Records: {total_valid}")
         print(f"   ❌ Invalid Records: {total_invalid}")

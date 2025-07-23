@@ -5,12 +5,12 @@ Test script for the embedding service
 
 import asyncio
 import sys
-import os
 
 # Add the backend directory to the path
 sys.path.append('/app')
 
 from app.services.embedding_service import EmbeddingService
+
 
 async def test_embedding_service():
     """Test the embedding service functionality."""
@@ -53,10 +53,10 @@ async def test_embedding_service():
         similarity1 = service.calculate_cosine_similarity(text1_emb, text2_emb)
         similarity2 = service.calculate_cosine_similarity(text1_emb, text3_emb)
         
-        print(f"✅ Similarity calculations:")
+        print("✅ Similarity calculations:")
         print(f"   - 'server_name' vs 'hostname': {similarity1:.3f}")
         print(f"   - 'server_name' vs 'database_port': {similarity2:.3f}")
-        print(f"   - Expected: hostname should be more similar to server_name")
+        print("   - Expected: hostname should be more similar to server_name")
     except Exception as e:
         print(f"❌ Error calculating similarity: {e}")
     
@@ -64,7 +64,7 @@ async def test_embedding_service():
     try:
         # Test mock embedding generation
         mock_embedding = service._generate_mock_embedding("test_field")
-        print(f"✅ Mock embedding generated:")
+        print("✅ Mock embedding generated:")
         print(f"   - Length: {len(mock_embedding)}")
         print(f"   - Deterministic: {mock_embedding == service._generate_mock_embedding('test_field')}")
     except Exception as e:

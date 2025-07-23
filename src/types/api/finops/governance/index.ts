@@ -8,16 +8,16 @@
  */
 
 // Policy management and lifecycle
-export * from './policy-management';
+export type * from './policy-management';
 
 // Enforcement automation and tracking
-export * from './enforcement';
+export type * from './enforcement';
 
 // Compliance validation and monitoring
-export * from './compliance-validation';
+export type * from './compliance-validation';
 
 // Remediation planning and execution
-export * from './remediation';
+export type * from './remediation';
 
 // Audit trail and reporting
-export * from './audit-reporting';
+export type * from './audit-reporting';

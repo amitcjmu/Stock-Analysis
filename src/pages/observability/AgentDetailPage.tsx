@@ -6,8 +6,10 @@
  * Modularized version with extracted components and hooks
  */
 
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React from 'react'
+import { useState } from 'react'
+import { useParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Download, RefreshCw, Settings, AlertTriangle } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
@@ -156,7 +158,7 @@ const AgentDetailPage: React.FC = () => {
                       label: `${(rate * 100).toFixed(1)}%`
                     })),
                     color: '#10b981',
-                    trend: performanceMetrics?.trend as 'up' | 'down' | 'stable',
+                    trend: performanceMetrics?.trend,
                     changePercent: 0
                   }}
                   title="Success Rate Trend"

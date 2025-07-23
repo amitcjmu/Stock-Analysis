@@ -11,10 +11,6 @@ Key Components:
 - Pattern validation and learning workflows
 """
 
-from .three_tier_memory_manager import ThreeTierMemoryManager, MemoryQuery, MemoryResult
+from .three_tier_memory_manager import MemoryQuery, MemoryResult, ThreeTierMemoryManager
 
-__all__ = [
-    'ThreeTierMemoryManager',
-    'MemoryQuery', 
-    'MemoryResult'
-]
+__all__ = ["ThreeTierMemoryManager", "MemoryQuery", "MemoryResult"]

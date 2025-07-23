@@ -2,11 +2,12 @@
 Tests for Phase 2 Tool System Implementation
 """
 
-import pytest
-from unittest.mock import MagicMock, patch
-from app.services.tools.registry import ToolRegistry, ToolMetadata
+from unittest.mock import patch
+
+from app.services.tools.categories import get_tools_for_phase
 from app.services.tools.factory import ToolFactory
-from app.services.tools.categories import get_tools_for_phase, TOOL_CATEGORIES
+from app.services.tools.registry import ToolRegistry
+
 
 class TestPhase2ToolSystem:
     """Test Phase 2 tool system functionality"""
@@ -75,8 +76,8 @@ class TestPhase2ToolSystem:
     
     def test_context_awareness_pattern(self):
         """Test that tools follow context-aware patterns"""
-        from app.services.tools.base_tool import BaseDiscoveryTool
         from app.core.context_aware import ContextAwareTool
+        from app.services.tools.base_tool import BaseDiscoveryTool
         
         # Check inheritance
         assert issubclass(BaseDiscoveryTool, ContextAwareTool), "Tools should be context-aware"
@@ -123,7 +124,7 @@ class TestPhase2ToolSystem:
         assert len(registry.list_tools()) >= 3, "Should discover at least 3 tools"
         
         # Base tool classes provide proper patterns
-        from app.services.tools.base_tool import BaseDiscoveryTool, AsyncBaseDiscoveryTool
+        from app.services.tools.base_tool import AsyncBaseDiscoveryTool, BaseDiscoveryTool
         assert BaseDiscoveryTool is not None, "BaseDiscoveryTool should exist"
         assert AsyncBaseDiscoveryTool is not None, "AsyncBaseDiscoveryTool should exist"
         

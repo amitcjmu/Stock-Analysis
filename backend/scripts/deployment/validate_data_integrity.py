@@ -16,15 +16,15 @@ Usage:
     python scripts/deployment/validate_data_integrity.py --fix-issues
 """
 
-import asyncio
 import argparse
-import logging
+import asyncio
 import json
-from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
+import logging
 import uuid
+from datetime import datetime
+from typing import Any, Dict, Optional
 
-from sqlalchemy import text, select, func
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # Configure logging
@@ -36,10 +36,10 @@ logger = logging.getLogger(__name__)
 
 try:
     from app.core.database import AsyncSessionLocal
-    from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-    from app.models.discovery_flow import DiscoveryFlow
-    from app.models.data_import.core import DataImport, RawImportRecord
     from app.models.asset import Asset
+    from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+    from app.models.data_import.core import DataImport, RawImportRecord
+    from app.models.discovery_flow import DiscoveryFlow
 except ImportError as e:
     logger.error(f"Failed to import application modules: {e}")
     logger.error("Make sure to run this script from the backend directory")

@@ -1,4 +1,5 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { apiCall, API_CONFIG } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -62,7 +63,7 @@ export interface DependencyAnalysis {
   application_dependencies: number;
   server_dependencies: number;
   database_dependencies: number;
-  complex_dependency_chains: Array<DependencyChain>;
+  complex_dependency_chains: DependencyChain[];
   orphaned_assets: string[];
 }
 

@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+
 def add_client_context():
     marathon_client_id = '73dee5f1-6a01-43e3-b1b8-dbe6c66f2990'
     data_dir = Path('data')

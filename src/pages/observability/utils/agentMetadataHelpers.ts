@@ -3,7 +3,7 @@
  * Extracted from AgentDetailPage.tsx for modularization
  */
 
-import { AgentMetadataHelpers } from '../types/AgentDetailTypes';
+import type { AgentMetadataHelpers } from '../types/AgentDetailTypes';
 
 export const getAgentMetadataHelpers = (): AgentMetadataHelpers => {
   const getAgentRole = (name: string): string => {

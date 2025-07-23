@@ -8,9 +8,9 @@ import ContextBreadcrumbs from '@/components/context/ContextBreadcrumbs';
 import { UploadBlocker } from '@/components/discovery/UploadBlocker';
 import { IncompleteFlowManager } from '@/components/discovery/IncompleteFlowManager';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { SimplifiedFlowStatus } from '@/components/discovery/SimplifiedFlowStatus';
+import type { SimplifiedFlowStatus } from '@/components/discovery/SimplifiedFlowStatus';
 import { PollingStatusIndicator } from '@/components/common/PollingControls';
-import { AgentActivityViewer } from '@/components/discovery/AgentActivityViewer';
+import type { AgentActivityViewer } from '@/components/discovery/AgentActivityViewer';
 import { FlowDeletionModal } from '@/components/flows/FlowDeletionModal';
 
 // Custom hooks and components
@@ -184,7 +184,7 @@ const CMDBImportContainer: React.FC = () => {
                     </div>
                   </div>
                   <SimplifiedFlowStatus
-                    flow_id={file.flow_id!}
+                    flow_id={file.flow_id}
                     onNavigateToMapping={() => {
                       // Use consistent navigation logic - get the route and navigate properly
                       const flowId = file.flow_id;

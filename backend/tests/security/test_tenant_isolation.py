@@ -5,19 +5,15 @@ Tests to ensure that clients cannot access each other's data.
 This is a CRITICAL security requirement.
 """
 
-import pytest
 import uuid
-from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException
 
-from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
-from app.repositories.context_aware_repository import ContextAwareRepository
-from app.models.discovery_flow import DiscoveryFlow
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.context import RequestContext
 from app.core.database import AsyncSessionLocal
+from app.repositories.crewai_flow_state_extensions_repository import CrewAIFlowStateExtensionsRepository
+from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 
 
 @pytest.fixture
@@ -54,7 +50,7 @@ class TestTenantIsolation:
         """Test that repositories require client context"""
         # Should raise ValueError when no client_account_id provided
         with pytest.raises(ValueError, match="SECURITY.*Client account ID is required"):
-            repo = DiscoveryFlowRepository(
+            DiscoveryFlowRepository(
                 db=db_session,
                 client_account_id=None,
                 engagement_id=None
@@ -82,7 +78,7 @@ class TestTenantIsolation:
         
         # Create a flow for Client 1
         flow1_id = str(uuid.uuid4())
-        flow1 = await client1_repo.create_discovery_flow(
+        await client1_repo.create_discovery_flow(
             flow_id=flow1_id,
             flow_type="primary",
             description="Client 1 Discovery Flow"
@@ -90,7 +86,7 @@ class TestTenantIsolation:
         
         # Create a flow for Client 2
         flow2_id = str(uuid.uuid4())
-        flow2 = await client2_repo.create_discovery_flow(
+        await client2_repo.create_discovery_flow(
             flow_id=flow2_id,
             flow_type="primary",
             description="Client 2 Discovery Flow"
@@ -136,14 +132,14 @@ class TestTenantIsolation:
         
         # Create master flows
         flow1_id = str(uuid.uuid4())
-        master1 = await client1_repo.create_master_flow(
+        await client1_repo.create_master_flow(
             flow_id=flow1_id,
             flow_type="discovery",
             flow_name="Client 1 Master Flow"
         )
         
         flow2_id = str(uuid.uuid4())
-        master2 = await client2_repo.create_master_flow(
+        await client2_repo.create_master_flow(
             flow_id=flow2_id,
             flow_type="discovery",
             flow_name="Client 2 Master Flow"
@@ -198,7 +194,7 @@ class TestTenantIsolation:
         """Test that all query methods enforce context"""
         # Try to create repository without context - should fail
         with pytest.raises(ValueError, match="SECURITY"):
-            repo = DiscoveryFlowRepository(
+            DiscoveryFlowRepository(
                 db=db_session,
                 client_account_id=None,
                 engagement_id=None
@@ -219,7 +215,7 @@ class TestTenantIsolation:
         )
         
         flow_id = str(uuid.uuid4())
-        flow = await client1_repo.create_discovery_flow(
+        await client1_repo.create_discovery_flow(
             flow_id=flow_id,
             flow_type="primary"
         )
@@ -246,9 +242,9 @@ class TestAPISecurityEnforcement:
     
     async def test_api_requires_context_headers(self):
         """Test that API endpoints require context headers"""
-        from app.api.security_dependencies import get_verified_context, SecurityError
         from fastapi import Request
-        from starlette.datastructures import Headers
+
+        from app.api.security_dependencies import SecurityError, get_verified_context
         
         # Mock request without headers
         request = Request(
@@ -259,12 +255,13 @@ class TestAPISecurityEnforcement:
         
         # Should raise SecurityError
         with pytest.raises(SecurityError, match="Client account context is required"):
-            context = get_verified_context(request)
+            get_verified_context(request)
     
     async def test_api_validates_uuid_format(self):
         """Test that API validates UUID format in context"""
-        from app.api.security_dependencies import get_verified_context, SecurityError
         from fastapi import Request
+
+        from app.api.security_dependencies import SecurityError, get_verified_context
         
         # Mock request with invalid UUID
         headers = [
@@ -280,7 +277,7 @@ class TestAPISecurityEnforcement:
         
         # Should raise SecurityError for invalid UUID
         with pytest.raises(SecurityError, match="Invalid context format"):
-            context = get_verified_context(request)
+            get_verified_context(request)
 
 
 if __name__ == "__main__":

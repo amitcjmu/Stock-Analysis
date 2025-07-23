@@ -5,7 +5,7 @@
  * findings, recommendations, and implementation planning.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   GetRequest,

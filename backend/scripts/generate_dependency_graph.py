@@ -1,8 +1,9 @@
 import argparse
 import ast
-import os
-import networkx as nx
 import logging
+import os
+
+import networkx as nx
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

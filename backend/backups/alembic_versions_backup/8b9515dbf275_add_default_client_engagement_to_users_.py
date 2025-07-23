@@ -5,9 +5,10 @@ Revises: enhanced_client_accounts
 Create Date: 2025-06-27 18:15:41.125468
 
 """
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = '8b9515dbf275'

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { SixRDecision } from '@/hooks/useAssessmentFlow';
+import type { SixRDecision } from '@/hooks/useAssessmentFlow';
 import { ConfidenceScoreIndicator } from './ConfidenceScoreIndicator';
 import { Target, AlertTriangle, TrendingUp } from 'lucide-react';
 

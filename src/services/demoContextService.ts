@@ -7,7 +7,7 @@
  */
 
 import { apiCall } from '@/config/api';
-import { ApiError } from '../types/shared/api-types';
+import type { ApiError } from '../types/shared/api-types';
 
 /**
  * External client data from backend API

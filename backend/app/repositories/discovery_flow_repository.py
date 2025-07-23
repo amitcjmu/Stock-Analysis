@@ -15,4 +15,4 @@ For backward compatibility, the DiscoveryFlowRepository is re-exported.
 # Re-export the main repository from the package
 from .discovery_flow_repository import DiscoveryFlowRepository
 
-__all__ = ['DiscoveryFlowRepository']
+__all__ = ["DiscoveryFlowRepository"]

@@ -2,7 +2,8 @@
  * Performance Monitor - Advanced performance monitoring for lazy loading
  */
 
-import { LazyLoadingMetrics, BundleAnalysis, LoadingPriority } from '@/types/lazy';
+import type { BundleAnalysis, LoadingPriority } from '@/types/lazy'
+import type { LazyLoadingMetrics } from '@/types/lazy'
 
 interface PerformanceThresholds {
   excellentLoadTime: number;
@@ -475,4 +476,4 @@ class PerformanceMonitor {
   }
 }
 
-export const performanceMonitor = PerformanceMonitor.getInstance();
+export const performanceMonitor: PerformanceMonitor = PerformanceMonitor.getInstance();

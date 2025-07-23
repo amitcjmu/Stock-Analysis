@@ -2,16 +2,17 @@
 Data Import Validation Agent - Converted to proper CrewAI pattern
 """
 
-from typing import List, Dict, Any
-from crewai import Agent
+from typing import Any, List
+
 from app.services.agents.base_agent import BaseCrewAIAgent
 from app.services.agents.metadata import AgentMetadata
 from app.services.llm_config import get_crewai_llm
 
+
 class DataImportValidationAgent(BaseCrewAIAgent):
     """
     Validates imported data quality and structure using CrewAI patterns.
-    
+
     Capabilities:
     - Schema validation
     - Data quality assessment
@@ -19,12 +20,12 @@ class DataImportValidationAgent(BaseCrewAIAgent):
     - Format consistency checking
     - PII detection
     """
-    
+
     def __init__(self, tools: List[Any], llm: Any = None, **kwargs):
         """Initialize with proper CrewAI configuration"""
         if llm is None:
             llm = get_crewai_llm()
-        
+
         super().__init__(
             role="Data Import Validation Specialist",
             goal="Ensure imported data meets quality standards and is ready for processing",
@@ -40,7 +41,7 @@ class DataImportValidationAgent(BaseCrewAIAgent):
             llm=llm,
             **kwargs
         )
-    
+
     @classmethod
     def agent_metadata(cls) -> AgentMetadata:
         """Define agent metadata for registry"""
@@ -50,18 +51,18 @@ class DataImportValidationAgent(BaseCrewAIAgent):
             agent_class=cls,
             required_tools=[
                 "schema_analyzer",
-                "data_quality_analyzer", 
+                "data_quality_analyzer",
                 "pii_scanner",
-                "format_validator"
+                "format_validator",
             ],
             capabilities=[
                 "data_validation",
                 "schema_validation",
                 "quality_assessment",
-                "pii_detection"
+                "pii_detection",
             ],
             max_iter=10,
             memory=True,
             verbose=True,
-            allow_delegation=False
+            allow_delegation=False,
         )

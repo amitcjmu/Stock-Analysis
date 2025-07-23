@@ -6,8 +6,8 @@
  * Generated with CC for modular admin type organization.
  */
 
-import { TemplateMetadata } from '../common';
-import { 
+import type { TemplateMetadata } from '../common';
+import type {
   TemplateType, 
   TemplateCategory, 
   TemplateStatus, 

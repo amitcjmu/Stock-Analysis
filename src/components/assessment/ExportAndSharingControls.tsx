@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Download, Share, FileText, FileSpreadsheet, Mail } from 'lucide-react';

@@ -8,62 +8,71 @@ Enhanced implementation with CrewAI best practices:
 """
 
 import logging
-import json
-from typing import Dict, List, Any, Optional
-from crewai import Agent, Task, Crew, Process
+from typing import Any, Dict, List, Optional
+
+from crewai import Agent, Crew, Process, Task
 
 # Import advanced CrewAI features with fallbacks
 try:
-    from crewai.memory import LongTermMemory
     from crewai.knowledge import Knowledge, LocalKnowledgeBase
+    from crewai.memory import LongTermMemory
+
     CREWAI_ADVANCED_AVAILABLE = True
 except ImportError:
     CREWAI_ADVANCED_AVAILABLE = False
+
     # Fallback classes
     class LongTermMemory:
         def __init__(self, **kwargs):
             pass
+
     class Knowledge:
         def __init__(self, **kwargs):
             pass
+
     class LocalKnowledgeBase:
         def __init__(self, **kwargs):
             pass
 
+
 logger = logging.getLogger(__name__)
+
 
 class InventoryBuildingCrew:
     """Enhanced Inventory Building Crew with multi-domain classification"""
-    
+
     def __init__(self, crewai_service, shared_memory=None, knowledge_base=None):
         self.crewai_service = crewai_service
-        
+
         # Get proper LLM configuration from our LLM config service
         try:
             from app.services.llm_config import get_crewai_llm
+
             self.llm_model = get_crewai_llm()
             logger.info("✅ Inventory Building Crew using configured DeepInfra LLM")
         except Exception as e:
             logger.warning(f"Failed to get configured LLM, using fallback: {e}")
-            self.llm_model = getattr(crewai_service, 'llm', None)
-        
+            self.llm_model = getattr(crewai_service, "llm", None)
+
         # Setup shared memory and knowledge base
         self.shared_memory = shared_memory or self._setup_shared_memory()
         self.knowledge_base = knowledge_base or self._setup_knowledge_base()
-        
-        logger.info("✅ Inventory Building Crew initialized with multi-domain classification")
-    
+
+        logger.info(
+            "✅ Inventory Building Crew initialized with multi-domain classification"
+        )
+
     def _setup_shared_memory(self) -> Optional[LongTermMemory]:
         """Setup shared memory for cross-domain classification insights"""
         if not CREWAI_ADVANCED_AVAILABLE:
             logger.warning("Shared memory not available - using fallback")
             return None
-        
+
         try:
             # Use LocalKnowledgeBase for file-based knowledge
             kb = LocalKnowledgeBase(
                 collection_name="inventory_building_insights",
-                storage_path="./data/memory"
+                storage_path="./data/memory",
             )
             # LongTermMemory now uses a knowledge_base parameter
             memory = LongTermMemory(knowledge_base=kb)
@@ -72,26 +81,26 @@ class InventoryBuildingCrew:
         except Exception as e:
             logger.warning(f"Failed to setup shared memory: {e}")
             return None
-    
+
     def _setup_knowledge_base(self) -> Optional[Knowledge]:
         """Setup knowledge base for asset classification rules"""
         if not CREWAI_ADVANCED_AVAILABLE:
             logger.warning("Knowledge base not available - using fallback")
             return None
-        
+
         try:
             # Use LocalKnowledgeBase for file-based knowledge
             return LocalKnowledgeBase(
                 collection_name="asset_classification_rules",
-                file_path="backend/app/knowledge_bases/asset_classification_rules.json"
+                file_path="backend/app/knowledge_bases/asset_classification_rules.json",
             )
         except Exception as e:
             logger.warning(f"Failed to setup knowledge base: {e}")
             return None
-    
+
     def create_agents(self):
         """Create agents with hierarchical management and domain expertise"""
-        
+
         # Manager Agent for multi-domain coordination with enhanced role boundaries
         inventory_manager = Agent(
             role="IT Asset Inventory Coordination Manager",
@@ -149,12 +158,12 @@ class InventoryBuildingCrew:
             allow_delegation=False,  # Disabled to prevent back-and-forth delays
             max_delegation=0,  # No delegations to speed up processing
             max_retry=1,  # Prevent retry loops
-            collaboration=False  # Disabled for faster processing
+            collaboration=False,  # Disabled for faster processing
         )
-        
+
         # Server Classification Expert - infrastructure domain specialist
         server_expert = Agent(
-            role="Enterprise Server & Infrastructure Classification Expert", 
+            role="Enterprise Server & Infrastructure Classification Expert",
             goal="Classify server and infrastructure assets with detailed technical specifications and hosting capacity analysis",
             backstory="""You are a specialized infrastructure expert with deep knowledge of enterprise server 
             environments, virtualization platforms, and cloud infrastructure. Your domain expertise includes:
@@ -210,9 +219,9 @@ class InventoryBuildingCrew:
             allow_delegation=False,  # Disabled to prevent back-and-forth
             max_retry=1,  # Prevent retry loops
             collaboration=False,  # Disabled to speed up processing
-            tools=[]  # Tools will be added later
+            tools=[],  # Tools will be added later
         )
-        
+
         # Application Discovery Expert - application domain
         app_expert = Agent(
             role="Application Discovery Expert",
@@ -227,9 +236,9 @@ class InventoryBuildingCrew:
             allow_delegation=False,  # Disabled to prevent back-and-forth
             max_retry=1,  # Prevent retry loops
             collaboration=False,  # Disabled to speed up processing
-            tools=self._create_app_classification_tools()
+            tools=self._create_app_classification_tools(),
         )
-        
+
         # Device Classification Expert - network/device domain
         device_expert = Agent(
             role="Device Classification Expert",
@@ -244,12 +253,14 @@ class InventoryBuildingCrew:
             allow_delegation=False,  # Disabled to prevent back-and-forth
             max_retry=1,  # Prevent retry loops
             collaboration=False,  # Disabled to speed up processing
-            tools=self._create_device_classification_tools()
+            tools=self._create_device_classification_tools(),
         )
-        
+
         return [inventory_manager, server_expert, app_expert, device_expert]
-    
-    def create_tasks(self, agents, cleaned_data: List[Dict[str, Any]], field_mappings: Dict[str, Any]):
+
+    def create_tasks(
+        self, agents, cleaned_data: List[Dict[str, Any]], field_mappings: Dict[str, Any]
+    ):
         """
         Creates a robust, sequential-then-parallel task structure for inventory building.
         1. Triage: A fast, initial sorting of all assets.
@@ -263,7 +274,7 @@ class InventoryBuildingCrew:
         triage_task = Task(
             description="Triage the entire list of assets. Your job is to sort each asset into one of three lists: 'servers', 'applications', or 'devices' based on its name and type. Do NOT perform a deep classification. Your output must be a JSON object with these three keys.",
             expected_output="A JSON object with three keys: 'server_assets', 'application_assets', and 'device_assets'. Each key should contain a list of the corresponding asset records.",
-            agent=manager
+            agent=manager,
         )
 
         # Step 2: Parallel Classification Tasks
@@ -276,7 +287,7 @@ class InventoryBuildingCrew:
             expected_output="A JSON list of fully classified server assets with detailed attributes. Each asset MUST have asset_type: 'server'.",
             agent=server_expert,
             context=[triage_task],  # Depends on the output of the triage task
-            async_execution=True
+            async_execution=True,
         )
 
         app_classification_task = Task(
@@ -287,7 +298,7 @@ class InventoryBuildingCrew:
             expected_output="A JSON list of fully classified application assets with detailed attributes. Each asset MUST have asset_type: 'application'.",
             agent=app_expert,
             context=[triage_task],
-            async_execution=True
+            async_execution=True,
         )
 
         device_classification_task = Task(
@@ -298,7 +309,7 @@ class InventoryBuildingCrew:
             expected_output="A JSON list of fully classified device assets with detailed attributes. Each asset MUST have asset_type: 'device'.",
             agent=device_expert,
             context=[triage_task],
-            async_execution=True
+            async_execution=True,
         )
 
         # Step 3: Final Consolidation and Relationship Mapping
@@ -315,74 +326,101 @@ class InventoryBuildingCrew:
             After deduplication, analyze the consolidated data to map relationships between the assets.""",
             expected_output="A final JSON object containing three lists: 'servers', 'applications', and 'devices' (only unique assets), and a fourth list 'relationships' detailing all identified connections.",
             agent=manager,
-            context=[server_classification_task, app_classification_task, device_classification_task] # Depends on all classification tasks
+            context=[
+                server_classification_task,
+                app_classification_task,
+                device_classification_task,
+            ],  # Depends on all classification tasks
         )
-        
+
         return [
             triage_task,
             server_classification_task,
             app_classification_task,
             device_classification_task,
-            consolidation_task
+            consolidation_task,
         ]
-    
-    def create_crew(self, cleaned_data: List[Dict[str, Any]], field_mappings: Dict[str, Any], context_info: Dict[str, Any] = None):
+
+    def create_crew(
+        self,
+        cleaned_data: List[Dict[str, Any]],
+        field_mappings: Dict[str, Any],
+        context_info: Dict[str, Any] = None,
+    ):
         """Create the inventory building crew with agents and tasks"""
         agents = self.create_agents()
-        
+
         # Add task completion tools to the inventory manager
         if context_info:
-            from app.services.crewai_flows.tools.task_completion_tools import create_task_completion_tools
+            from app.services.crewai_flows.tools.task_completion_tools import (
+                create_task_completion_tools,
+            )
+
             completion_tools = create_task_completion_tools(context_info)
             # Add tools to the inventory manager (first agent)
-            if agents and hasattr(agents[0], 'tools'):
+            if agents and hasattr(agents[0], "tools"):
                 agents[0].tools.extend(completion_tools)
             else:
                 agents[0].tools = completion_tools
-        
+
         tasks = self.create_tasks(agents, cleaned_data, field_mappings)
-        
+
         # Use hierarchical process if advanced features available
-        process = Process.hierarchical if CREWAI_ADVANCED_AVAILABLE else Process.sequential
-        
+        process = (
+            Process.hierarchical if CREWAI_ADVANCED_AVAILABLE else Process.sequential
+        )
+
         crew_config = {
             "agents": agents,
             "tasks": tasks,
             "process": process,
-            "verbose": True
+            "verbose": True,
         }
-        
+
         # Add advanced features if available
         if CREWAI_ADVANCED_AVAILABLE:
             # Ensure manager_llm uses our configured LLM and not gpt-4o-mini
-            crew_config.update({
-                "manager_llm": self.llm_model,  # Critical: Use our DeepInfra LLM
-                "planning": False,  # DISABLED: Causing loops
-                "planning_llm": self.llm_model,  # Force planning to use our LLM too
-                "memory": False,  # DISABLED: Causing APIStatusError loops
-                "knowledge": None,  # DISABLED: Causing API errors
-                "share_crew": False,  # DISABLED: Causing complexity
-                "collaboration": True  # Re-enabled for proper agent coordination
-            })
-            
+            crew_config.update(
+                {
+                    "manager_llm": self.llm_model,  # Critical: Use our DeepInfra LLM
+                    "planning": False,  # DISABLED: Causing loops
+                    "planning_llm": self.llm_model,  # Force planning to use our LLM too
+                    "memory": False,  # DISABLED: Causing APIStatusError loops
+                    "knowledge": None,  # DISABLED: Causing API errors
+                    "share_crew": False,  # DISABLED: Causing complexity
+                    "collaboration": True,  # Re-enabled for proper agent coordination
+                }
+            )
+
             # Additional environment override to prevent any gpt-4o-mini fallback
             import os
-            os.environ["OPENAI_MODEL_NAME"] = str(self.llm_model) if isinstance(self.llm_model, str) else "deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
-        
-        logger.info(f"Creating Inventory Building Crew with {process.name if hasattr(process, 'name') else 'sequential'} process")
-        logger.info(f"Using LLM: {self.llm_model if isinstance(self.llm_model, str) else 'Unknown'}")
+
+            os.environ["OPENAI_MODEL_NAME"] = (
+                str(self.llm_model)
+                if isinstance(self.llm_model, str)
+                else "deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+            )
+
+        logger.info(
+            f"Creating Inventory Building Crew with {process.name if hasattr(process, 'name') else 'sequential'} process"
+        )
+        logger.info(
+            f"Using LLM: {self.llm_model if isinstance(self.llm_model, str) else 'Unknown'}"
+        )
         return Crew(**crew_config)
-    
-    def _identify_asset_type_indicators(self, data: List[Dict[str, Any]]) -> Dict[str, int]:
+
+    def _identify_asset_type_indicators(
+        self, data: List[Dict[str, Any]]
+    ) -> Dict[str, int]:
         """Identify potential asset type indicators in the data"""
         if not data:
             return {}
-        
+
         indicators = {"servers": 0, "applications": 0, "devices": 0, "unknown": 0}
-        server_keywords = ['server', 'host', 'vm', 'virtual', 'linux', 'windows']
-        app_keywords = ['app', 'application', 'service', 'software', 'web']
-        device_keywords = ['router', 'switch', 'firewall', 'network', 'device']
-        
+        server_keywords = ["server", "host", "vm", "virtual", "linux", "windows"]
+        app_keywords = ["app", "application", "service", "software", "web"]
+        device_keywords = ["router", "switch", "firewall", "network", "device"]
+
         for record in data[:10]:  # Sample analysis
             record_str = str(record).lower()
             if any(keyword in record_str for keyword in server_keywords):
@@ -393,42 +431,74 @@ class InventoryBuildingCrew:
                 indicators["devices"] += 1
             else:
                 indicators["unknown"] += 1
-        
+
         return indicators
-    
-    def _filter_infrastructure_mappings(self, mappings: Dict[str, Any]) -> Dict[str, Any]:
+
+    def _filter_infrastructure_mappings(
+        self, mappings: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Filter field mappings relevant to infrastructure"""
-        infra_fields = ['operating_system', 'ip_address', 'cpu_cores', 'memory_gb', 'storage_gb']
-        return {k: v for k, v in mappings.items() if any(field in str(v).lower() for field in infra_fields)}
-    
+        infra_fields = [
+            "operating_system",
+            "ip_address",
+            "cpu_cores",
+            "memory_gb",
+            "storage_gb",
+        ]
+        return {
+            k: v
+            for k, v in mappings.items()
+            if any(field in str(v).lower() for field in infra_fields)
+        }
+
     def _filter_application_mappings(self, mappings: Dict[str, Any]) -> Dict[str, Any]:
         """Filter field mappings relevant to applications"""
-        app_fields = ['application', 'service', 'version', 'environment', 'business_criticality']
-        return {k: v for k, v in mappings.items() if any(field in str(v).lower() for field in app_fields)}
-    
+        app_fields = [
+            "application",
+            "service",
+            "version",
+            "environment",
+            "business_criticality",
+        ]
+        return {
+            k: v
+            for k, v in mappings.items()
+            if any(field in str(v).lower() for field in app_fields)
+        }
+
     def _filter_device_mappings(self, mappings: Dict[str, Any]) -> Dict[str, Any]:
         """Filter field mappings relevant to devices"""
-        device_fields = ['device', 'network', 'router', 'switch', 'firewall']
-        return {k: v for k, v in mappings.items() if any(field in str(v).lower() for field in device_fields)}
-    
+        device_fields = ["device", "network", "router", "switch", "firewall"]
+        return {
+            k: v
+            for k, v in mappings.items()
+            if any(field in str(v).lower() for field in device_fields)
+        }
+
     def _create_server_classification_tools(self):
         """Create tools for server classification"""
         # For now, return empty list - tools will be implemented in Task 7
         return []
-    
+
     def _create_app_classification_tools(self):
         """Create tools for application classification"""
         # For now, return empty list - tools will be implemented in Task 7
         return []
-    
+
     def _create_device_classification_tools(self):
         """Create tools for device classification"""
-        # For now, return empty list - tools will be implemented in Task 7  
+        # For now, return empty list - tools will be implemented in Task 7
         return []
 
-def create_inventory_building_crew(crewai_service, cleaned_data: List[Dict[str, Any]], 
-                                  field_mappings: Dict[str, Any], shared_memory=None, 
-                                  knowledge_base=None, context_info: Dict[str, Any] = None) -> Crew:
+
+def create_inventory_building_crew(
+    crewai_service,
+    cleaned_data: List[Dict[str, Any]],
+    field_mappings: Dict[str, Any],
+    shared_memory=None,
+    knowledge_base=None,
+    context_info: Dict[str, Any] = None,
+) -> Crew:
     """Factory function to create enhanced Inventory Building Crew"""
     crew_instance = InventoryBuildingCrew(crewai_service, shared_memory, knowledge_base)
     return crew_instance.create_crew(cleaned_data, field_mappings, context_info)

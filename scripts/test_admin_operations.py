@@ -5,10 +5,11 @@ Tests client and engagement CRUD operations to ensure foreign key constraints ar
 """
 
 import asyncio
-import aiohttp
 import json
 import sys
-from typing import Dict, Any
+from typing import Any, Dict
+
+import aiohttp
 
 # Test configuration
 BASE_URL = "http://localhost:8000/api/v1"
@@ -283,7 +284,7 @@ async def main():
         with open("admin_operations_test_results.json", "w") as f:
             json.dump(results, f, indent=2, default=str)
         
-        print(f"\n📄 Detailed results saved to: admin_operations_test_results.json")
+        print("\n📄 Detailed results saved to: admin_operations_test_results.json")
         
         return 0 if success else 1
 

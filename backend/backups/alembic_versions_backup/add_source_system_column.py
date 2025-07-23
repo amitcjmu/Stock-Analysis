@@ -6,9 +6,10 @@ Create Date: 2025-06-30 23:50:00.000000
 
 This migration adds the missing source_system column to data_imports table.
 """
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import text
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = 'add_source_system_column'

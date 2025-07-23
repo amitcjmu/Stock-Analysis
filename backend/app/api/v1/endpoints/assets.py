@@ -35,4 +35,4 @@ async def update_asset(asset_id: int):
 @router.delete("/{asset_id}")
 async def delete_asset(asset_id: int):
     """Delete asset - placeholder endpoint."""
-    return {"message": f"Delete asset {asset_id} - coming in Sprint 2"} 
+    return {"message": f"Delete asset {asset_id} - coming in Sprint 2"}

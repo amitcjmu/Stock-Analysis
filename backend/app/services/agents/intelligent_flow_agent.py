@@ -11,20 +11,20 @@ Use the modular imports for new code:
 
 # Re-export all public interfaces from the modular implementation
 from .intelligent_flow_agent import (
-    FlowIntelligenceResult,
-    IntelligentFlowAgent,
     FlowContextTool,
+    FlowIntelligenceResult,
     FlowStatusTool,
+    IntelligentFlowAgent,
+    NavigationDecisionTool,
     PhaseValidationTool,
-    NavigationDecisionTool
 )
 
 # Maintain backward compatibility
 __all__ = [
     "FlowIntelligenceResult",
-    "IntelligentFlowAgent", 
+    "IntelligentFlowAgent",
     "FlowContextTool",
     "FlowStatusTool",
     "PhaseValidationTool",
-    "NavigationDecisionTool"
-] 
+    "NavigationDecisionTool",
+]

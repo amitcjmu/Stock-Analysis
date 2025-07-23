@@ -4,6 +4,7 @@ Check database schema status.
 import asyncio
 import sys
 from pathlib import Path
+
 from sqlalchemy import text
 
 # Add backend to path
@@ -43,7 +44,7 @@ async def check_schema():
             } - set(tables)
             
             if missing_tables:
-                print(f"\nMissing tables:")
+                print("\nMissing tables:")
                 for table in missing_tables:
                     print(f"  ✗ {table}")
             

@@ -1,14 +1,15 @@
-import React from 'react';
+import type React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCostMetrics } from '@/hooks/finops/useFinOpsQueries';
 import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';
-import { Cloud, BarChart, LineChart, Download, Filter, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import type { Download, Filter, RefreshCw } from 'lucide-react'
+import { Cloud, BarChart, LineChart } from 'lucide-react'
+import type { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
+import type { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSkeleton } from '@/components/ui/loading-skeleton';
-import { Progress } from '@/components/ui/progress';
+import type { Progress } from '@/components/ui/progress';
 
 const CloudComparison = () => {
   const { isAuthenticated } = useAuth();

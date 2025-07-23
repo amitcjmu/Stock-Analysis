@@ -133,11 +133,11 @@ export const isFieldMapping = (obj: unknown): obj is import('./hooks/discovery')
 };
 
 // Array Type Guards
-export const isFieldMappingArray = (obj: unknown): obj is import('./hooks/discovery').FieldMapping[] => {
+export const isFieldMappingArray = (obj: unknown): obj is Array<import('./hooks/discovery').FieldMapping> => {
   return Array.isArray(obj) && obj.every(isFieldMapping);
 };
 
-export const isValidationResultArray = (obj: unknown): obj is import('./api/shared').ValidationResult[] => {
+export const isValidationResultArray = (obj: unknown): obj is Array<import('./api/shared').ValidationResult> => {
   return Array.isArray(obj) && obj.every(isValidationResult);
 };
 
@@ -229,7 +229,7 @@ export const validateSchema = (obj: unknown, schema: ValidationSchema): { isVali
     // Array item validation
     if (config.type === 'array' && config.arrayItemValidator && Array.isArray(value)) {
       value.forEach((item, index) => {
-        if (!config.arrayItemValidator!(item)) {
+        if (!config.arrayItemValidator(item)) {
           errors.push(`Array item at index ${index} in field '${key}' failed validation`);
         }
       });

@@ -4,16 +4,17 @@ Test CrewAI with completely fresh agents and LLM instance that has thinking mode
 """
 
 import asyncio
-import time
-import sys
-import os
 import gc
+import os
+import sys
+import time
 
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
 
-from app.services.deepinfra_llm import create_crewai_compatible_llm
 from app.core.config import settings
+from app.services.deepinfra_llm import create_crewai_compatible_llm
+
 
 async def test_completely_fresh_crewai():
     """Test CrewAI with completely fresh agents and LLM instance."""
@@ -58,7 +59,7 @@ async def test_completely_fresh_crewai():
     print("\n🔍 Step 2: Fresh CrewAI Agents Test")
     try:
         # Import CrewAI components fresh
-        from crewai import Agent, Task, Crew, Process
+        from crewai import Agent, Crew, Process, Task
         
         print("✅ CrewAI components imported")
         
@@ -134,7 +135,7 @@ async def test_fresh_cmdb_analysis():
         )
         
         # Import fresh
-        from crewai import Agent, Task, Crew, Process
+        from crewai import Agent, Crew, Process, Task
         
         # Create a fresh CMDB analyst agent
         cmdb_agent = Agent(

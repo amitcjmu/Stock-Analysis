@@ -4,8 +4,8 @@
  * Type definitions for loading, skeleton, and spinner components.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps } from '../shared';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps } from '../shared';
 
 // Loading component types
 export interface LoadingProps extends BaseComponentProps {

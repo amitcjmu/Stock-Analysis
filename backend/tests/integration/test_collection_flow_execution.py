@@ -3,20 +3,21 @@ End-to-End Test for Collection Flow Execution
 Tests actual CrewAI flow execution with mocked agents
 """
 
-import pytest
 import asyncio
-import uuid
 from datetime import datetime
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
-from app.services.crewai_flows.unified_collection_flow import UnifiedCollectionFlow
-from app.models.collection_flow import (
-    CollectionFlowState, CollectionPhase, CollectionStatus,
-    AutomationTier, PlatformType
-)
+import pytest
+
 from app.core.context import RequestContext
+from app.models.collection_flow import (
+    AutomationTier,
+    CollectionFlowState,
+    CollectionPhase,
+    CollectionStatus,
+)
 from app.services.crewai_flows.crews.collection.platform_detection_crew import PlatformDetectionCrew
-from app.services.agents.platform_detection_agent_crewai import PlatformDetectionAgent
+from app.services.crewai_flows.unified_collection_flow import UnifiedCollectionFlow
 
 
 @pytest.mark.asyncio
@@ -193,7 +194,7 @@ async def test_collection_flow_with_mocked_crewai():
 @pytest.mark.asyncio
 async def test_gap_analysis_functionality():
     """Test gap analysis identifies missing critical attributes"""
-    from app.services.tools.gap_analysis_tools import GapIdentifierTool, AttributeMapperTool
+    from app.services.tools.gap_analysis_tools import AttributeMapperTool, GapIdentifierTool
     
     # Create tools
     mapper = AttributeMapperTool()

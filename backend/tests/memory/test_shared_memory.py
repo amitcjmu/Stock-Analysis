@@ -6,19 +6,18 @@ knowledge base loading and search functionality, cross-crew memory sharing,
 memory optimization strategies, and multi-tenant memory management.
 """
 
-import pytest
-import asyncio
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from typing import Dict, List, Any, Optional
-import json
 import time
 import uuid
+from typing import Any, Dict, List
+from unittest.mock import Mock
+
+import pytest
 
 # Mock imports for testing
 try:
-    from app.services.crewai_flows.shared_memory_service import SharedMemoryService
-    from app.services.crewai_flows.knowledge_base_service import KnowledgeBaseService
     from app.models.data_import.import_session import ImportSession
+    from app.services.crewai_flows.knowledge_base_service import KnowledgeBaseService
+    from app.services.crewai_flows.shared_memory_service import SharedMemoryService
 except ImportError:
     # Fallback for testing environment
     SharedMemoryService = Mock

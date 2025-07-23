@@ -8,29 +8,34 @@ Provides intelligent field mapping with full agent capabilities:
 - Full audit trail
 """
 
-import logging
 import json
-from typing import Dict, List, Any, Optional
-from crewai import Agent, Task, Crew, Process
+import logging
+from typing import Any, Dict, List
+
+from crewai import Agent, Crew, Process, Task
 from crewai.tools import BaseTool
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 logger = logging.getLogger(__name__)
 
 
 class AssetSchemaAnalysisTool(BaseTool):
     """Tool to analyze the Asset model schema"""
+
     name: str = "asset_schema_analyzer"
-    description: str = "Analyzes the complete Asset model schema to understand all available fields and their types"
-    
+    description: str = (
+        "Analyzes the complete Asset model schema to understand all available fields and their types"
+    )
+
     def _run(self) -> str:
         """Return complete Asset model schema"""
-        from app.models.asset import Asset
         from sqlalchemy import inspect
-        
+
+        from app.models.asset import Asset
+
         mapper = inspect(Asset)
         schema_info = []
-        
+
         for column in mapper.columns:
             col_info = {
                 "name": column.name,
@@ -38,40 +43,74 @@ class AssetSchemaAnalysisTool(BaseTool):
                 "nullable": column.nullable,
                 "primary_key": column.primary_key,
                 "foreign_key": bool(column.foreign_keys),
-                "description": column.comment or ""
+                "description": column.comment or "",
             }
             schema_info.append(col_info)
-        
+
         # Asset field categories for better understanding
         field_categories = {
             "Identity": ["id", "name", "asset_name", "hostname", "asset_id", "fqdn"],
             "Classification": ["asset_type", "description", "technology_stack"],
             "Network": ["ip_address", "mac_address"],
-            "Location": ["environment", "location", "datacenter", "rack_location", "availability_zone"],
-            "Hardware": ["operating_system", "os_version", "cpu_cores", "memory_gb", "storage_gb"],
-            "Business": ["business_owner", "technical_owner", "department", "application_name", 
-                        "criticality", "business_criticality"],
-            "Migration": ["six_r_strategy", "migration_priority", "migration_complexity", 
-                         "migration_wave", "migration_status"],
+            "Location": [
+                "environment",
+                "location",
+                "datacenter",
+                "rack_location",
+                "availability_zone",
+            ],
+            "Hardware": [
+                "operating_system",
+                "os_version",
+                "cpu_cores",
+                "memory_gb",
+                "storage_gb",
+            ],
+            "Business": [
+                "business_owner",
+                "technical_owner",
+                "department",
+                "application_name",
+                "criticality",
+                "business_criticality",
+            ],
+            "Migration": [
+                "six_r_strategy",
+                "migration_priority",
+                "migration_complexity",
+                "migration_wave",
+                "migration_status",
+            ],
             "Status": ["status", "mapping_status"],
             "Dependencies": ["dependencies", "related_assets"],
-            "Performance": ["cpu_utilization_percent", "memory_utilization_percent", 
-                           "disk_iops", "network_throughput_mbps"],
+            "Performance": [
+                "cpu_utilization_percent",
+                "memory_utilization_percent",
+                "disk_iops",
+                "network_throughput_mbps",
+            ],
             "Cost": ["current_monthly_cost", "estimated_cloud_cost"],
             "Quality": ["completeness_score", "quality_score"],
-            "Discovery": ["discovery_method", "discovery_source", "discovery_timestamp"],
+            "Discovery": [
+                "discovery_method",
+                "discovery_source",
+                "discovery_timestamp",
+            ],
             "Import": ["source_filename", "raw_data", "field_mappings_used"],
             "Metadata": ["created_at", "updated_at", "created_by", "updated_by"],
             "Multi-tenant": ["client_account_id", "engagement_id", "flow_id"],
-            "Custom": ["custom_attributes"]
+            "Custom": ["custom_attributes"],
         }
-        
-        return json.dumps({
-            "schema": schema_info,
-            "field_categories": field_categories,
-            "total_fields": len(schema_info)
-        }, indent=2)
-    
+
+        return json.dumps(
+            {
+                "schema": schema_info,
+                "field_categories": field_categories,
+                "total_fields": len(schema_info),
+            },
+            indent=2,
+        )
+
     async def _arun(self) -> str:
         """Async version"""
         return self._run()
@@ -79,24 +118,27 @@ class AssetSchemaAnalysisTool(BaseTool):
 
 class DataPatternAnalysisTool(BaseTool):
     """Tool to analyze data patterns in source fields"""
+
     name: str = "data_pattern_analyzer"
-    description: str = "Analyzes data patterns and values to understand the nature of the data"
-    
+    description: str = (
+        "Analyzes data patterns and values to understand the nature of the data"
+    )
+
     sample_data: List[Dict[str, Any]] = Field(default_factory=list)
-    
+
     def _run(self, field_name: str) -> str:
         """Analyze patterns in a specific field"""
         if not self.sample_data:
             return "No sample data available"
-        
+
         values = []
         for record in self.sample_data[:10]:  # Analyze up to 10 samples
             if field_name in record:
                 values.append(record[field_name])
-        
+
         if not values:
             return f"Field '{field_name}' not found in sample data"
-        
+
         # Analyze patterns
         analysis = {
             "field": field_name,
@@ -104,13 +146,15 @@ class DataPatternAnalysisTool(BaseTool):
             "value_count": len(values),
             "unique_values": len(set(str(v) for v in values if v is not None)),
             "has_nulls": any(v is None or v == "" for v in values),
-            "all_numeric": all(isinstance(v, (int, float)) for v in values if v is not None),
+            "all_numeric": all(
+                isinstance(v, (int, float)) for v in values if v is not None
+            ),
             "all_strings": all(isinstance(v, str) for v in values if v is not None),
-            "patterns": self._detect_patterns(values)
+            "patterns": self._detect_patterns(values),
         }
-        
+
         return json.dumps(analysis, indent=2, default=str)
-    
+
     def _detect_patterns(self, values: List[Any]) -> Dict[str, Any]:
         """Detect common patterns in values"""
         patterns = {
@@ -119,34 +163,39 @@ class DataPatternAnalysisTool(BaseTool):
             "looks_like_email": False,
             "looks_like_date": False,
             "looks_like_version": False,
-            "looks_like_path": False
+            "looks_like_path": False,
         }
-        
+
         import re
-        
+
         for value in values:
             if value and isinstance(value, str):
                 # IP pattern
-                if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', value):
+                if re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", value):
                     patterns["looks_like_ip"] = True
                 # Hostname pattern
-                if re.match(r'^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+$', value):
+                if re.match(
+                    r"^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+$",
+                    value,
+                ):
                     patterns["looks_like_hostname"] = True
                 # Email pattern
-                if '@' in value and '.' in value:
+                if "@" in value and "." in value:
                     patterns["looks_like_email"] = True
                 # Date patterns
-                if re.match(r'^\d{4}-\d{2}-\d{2}', value) or re.match(r'^\d{2}/\d{2}/\d{4}', value):
+                if re.match(r"^\d{4}-\d{2}-\d{2}", value) or re.match(
+                    r"^\d{2}/\d{2}/\d{4}", value
+                ):
                     patterns["looks_like_date"] = True
                 # Version pattern
-                if re.match(r'^\d+\.\d+', value):
+                if re.match(r"^\d+\.\d+", value):
                     patterns["looks_like_version"] = True
                 # Path pattern
-                if '/' in value or '\\' in value:
+                if "/" in value or "\\" in value:
                     patterns["looks_like_path"] = True
-        
+
         return patterns
-    
+
     async def _arun(self, field_name: str) -> str:
         """Async version"""
         return self._run(field_name)
@@ -154,30 +203,31 @@ class DataPatternAnalysisTool(BaseTool):
 
 class FieldMappingCrew:
     """Full Agentic Field Mapping Crew with complete capabilities"""
-    
+
     def __init__(self, crewai_service, shared_memory=None, knowledge_base=None):
         self.crewai_service = crewai_service
         self.shared_memory = shared_memory
         self.knowledge_base = knowledge_base
-        
+
         # Get proper LLM configuration from our LLM config service
         try:
             from app.services.llm_config import get_crewai_llm
+
             self.llm_model = get_crewai_llm()
             logger.info("✅ Field Mapping Crew using configured DeepInfra LLM")
         except Exception as e:
             logger.warning(f"Failed to get configured LLM, using fallback: {e}")
-            self.llm_model = getattr(crewai_service, 'llm', None)
-        
+            self.llm_model = getattr(crewai_service, "llm", None)
+
         logger.info("✅ Field Mapping Crew initialized with FULL agentic capabilities")
-    
+
     def create_agents(self, raw_data: List[Dict[str, Any]]):
         """Create intelligent agents with full capabilities"""
-        
+
         # Create tools with sample data
         schema_tool = AssetSchemaAnalysisTool()
         pattern_tool = DataPatternAnalysisTool(sample_data=raw_data)
-        
+
         # Data Analysis Agent
         data_analyst_config = {
             "role": "Senior Data Pattern Analyst",
@@ -195,9 +245,9 @@ class FieldMappingCrew:
             "verbose": False,
             "allow_delegation": True,
             "tools": [pattern_tool],
-            "memory": True
+            "memory": True,
         }
-        
+
         # Schema Mapping Expert
         schema_expert_config = {
             "role": "CMDB Schema Mapping Expert",
@@ -217,9 +267,9 @@ class FieldMappingCrew:
             "verbose": False,
             "allow_delegation": True,
             "tools": [schema_tool, pattern_tool],
-            "memory": True
+            "memory": True,
         }
-        
+
         # Synthesis Specialist
         synthesis_specialist_config = {
             "role": "Data Synthesis and Transformation Specialist",
@@ -239,19 +289,19 @@ class FieldMappingCrew:
             "verbose": False,
             "allow_delegation": False,
             "tools": [pattern_tool],
-            "memory": True
+            "memory": True,
         }
-        
+
         data_analyst = Agent(**data_analyst_config)
         schema_expert = Agent(**schema_expert_config)
         synthesis_specialist = Agent(**synthesis_specialist_config)
-        
+
         return [data_analyst, schema_expert, synthesis_specialist]
-    
+
     def create_tasks(self, agents, raw_data: List[Dict[str, Any]]):
         """Create comprehensive mapping tasks"""
         data_analyst, schema_expert, synthesis_specialist = agents
-        
+
         headers = list(raw_data[0].keys()) if raw_data else []
         # Use minimal data sample to avoid rate limits - just headers and one sample value per field
         sample_values = {}
@@ -259,12 +309,18 @@ class FieldMappingCrew:
             # Only show first 10 fields to reduce token usage
             limited_headers = headers[:10]
             for header in limited_headers:
-                sample_values[header] = str(raw_data[0].get(header, ""))[:30]  # Limit to 30 chars per field
-            
+                sample_values[header] = str(raw_data[0].get(header, ""))[
+                    :30
+                ]  # Limit to 30 chars per field
+
             if len(headers) > 10:
-                logger.info(f"⚠️ Limiting field mapping to first 10 fields out of {len(headers)} to prevent rate limits")
-                sample_values["...more_fields"] = f"({len(headers) - 10} additional fields not shown)"
-        
+                logger.info(
+                    f"⚠️ Limiting field mapping to first 10 fields out of {len(headers)} to prevent rate limits"
+                )
+                sample_values["...more_fields"] = (
+                    f"({len(headers) - 10} additional fields not shown)"
+                )
+
         # Task 1: Analyze Data Patterns (OPTIMIZED for rate limits)
         data_analysis_task = Task(
             description=f"""
@@ -288,9 +344,9 @@ class FieldMappingCrew:
             - Whether it's metadata or actual asset data
             - Relationships to other fields
             - Any composite information detected
-            """
+            """,
         )
-        
+
         # Task 2: Create Intelligent Mappings (OPTIMIZED for rate limits)
         mapping_task = Task(
             description=f"""
@@ -328,12 +384,12 @@ class FieldMappingCrew:
             expected_output="""
             Complete JSON mapping specification with all source fields mapped or explicitly skipped,
             including confidence scores and detailed reasoning.
-            """
+            """,
         )
-        
+
         # Task 3: Design Complex Transformations
         synthesis_task = Task(
-            description=f"""
+            description="""
             Design transformation rules for any complex mappings identified.
             
             Based on the mapping analysis, create specific transformation rules for:
@@ -351,33 +407,33 @@ class FieldMappingCrew:
             - Conflict resolution strategy
             
             OUTPUT FORMAT:
-            {{
+            {
                 "transformations": [
-                    {{
+                    {
                         "source_fields": ["field1", "field2"],
                         "target_field": "asset_field",
                         "transformation_type": "synthesis",
                         "logic": "Detailed transformation logic",
                         "conflict_resolution": "How to handle conflicts"
-                    }}
+                    }
                 ]
-            }}
+            }
             """,
             agent=synthesis_specialist,
             context=[data_analysis_task, mapping_task],
             expected_output="""
             Complete transformation specifications for any complex mappings,
             ensuring no data loss and proper synthesis of information.
-            """
+            """,
         )
-        
+
         return [data_analysis_task, mapping_task, synthesis_task]
-    
+
     def create_crew(self, raw_data: List[Dict[str, Any]]):
         """Create full agentic crew with collaboration"""
         agents = self.create_agents(raw_data)
         tasks = self.create_tasks(agents, raw_data)
-        
+
         crew_config = {
             "agents": agents,
             "tasks": tasks,
@@ -392,10 +448,12 @@ class FieldMappingCrew:
             # "planning_llm": self.llm,
             # "knowledge": self.knowledge_base
         }
-        
-        logger.info("Creating FULL Agentic Field Mapping Crew with complete capabilities")
+
+        logger.info(
+            "Creating FULL Agentic Field Mapping Crew with complete capabilities"
+        )
         return Crew(**crew_config)
-    
+
     def get_audit_metadata(self) -> Dict[str, Any]:
         """Get metadata for audit trail"""
         return {
@@ -405,18 +463,22 @@ class FieldMappingCrew:
                 "full_schema_analysis",
                 "data_pattern_recognition",
                 "multi_field_synthesis",
-                "intelligent_reasoning"
+                "intelligent_reasoning",
             ],
             "agents": [
                 "Senior Data Pattern Analyst",
                 "CMDB Schema Mapping Expert",
-                "Data Synthesis Specialist"
-            ]
+                "Data Synthesis Specialist",
+            ],
         }
 
 
-def create_field_mapping_crew(crewai_service, raw_data: List[Dict[str, Any]], 
-                             shared_memory=None, knowledge_base=None) -> Crew:
+def create_field_mapping_crew(
+    crewai_service,
+    raw_data: List[Dict[str, Any]],
+    shared_memory=None,
+    knowledge_base=None,
+) -> Crew:
     """Factory function to create Full Agentic Field Mapping Crew"""
     crew_instance = FieldMappingCrew(crewai_service, shared_memory, knowledge_base)
     return crew_instance.create_crew(raw_data)

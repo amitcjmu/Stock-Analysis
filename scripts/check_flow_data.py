@@ -1,7 +1,9 @@
 import asyncio
-from sqlalchemy import select, text
+
+from sqlalchemy import text
+
 from backend.app.core.database import AsyncSessionLocal
-import json
+
 
 async def check_flow_data():
     flow_id = "1e640262-4332-4087-ac4e-1674b08cd8f2"

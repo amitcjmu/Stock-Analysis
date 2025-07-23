@@ -28,8 +28,7 @@ except ImportError:
     print("⚠️ Playwright not available - install with: pip install playwright")
 
 # Backend imports for database verification
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, text
+from sqlalchemy import select, func
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
 from app.models.data_import import DataImport, RawImportRecord, MappingLearningPattern
@@ -122,7 +121,7 @@ class DiscoveryWorkflowTester:
                 
                 self.test_results["database_checks"]["baseline"] = baseline
                 
-                print(f"📈 Current Database State:")
+                print("📈 Current Database State:")
                 print(f"   Assets: {total_assets}")
                 print(f"   Data Imports: {total_imports}")
                 print(f"   Raw Import Records: {total_raw}")
@@ -250,7 +249,7 @@ class DiscoveryWorkflowTester:
             
             self.test_results["frontend_captures"]["initial_dashboard"] = metrics
             
-            print(f"📊 Initial Dashboard Metrics Captured:")
+            print("📊 Initial Dashboard Metrics Captured:")
             for key, value in metrics.items():
                 print(f"   {key}: {value}")
             
@@ -562,7 +561,7 @@ class DiscoveryWorkflowTester:
             
             self.test_results["frontend_captures"]["final_dashboard"] = metrics
             
-            print(f"📊 Final Dashboard Metrics Captured:")
+            print("📊 Final Dashboard Metrics Captured:")
             for key, value in metrics.items():
                 print(f"   {key}: {value}")
             
@@ -579,7 +578,6 @@ class DiscoveryWorkflowTester:
         print("\n🔌 Phase 3: Testing Backend APIs Directly")
         print("-" * 50)
         
-        import aiohttp
         
         base_url = "http://localhost:8000"
         
@@ -799,7 +797,7 @@ class DiscoveryWorkflowTester:
                 
                 self.test_results["database_checks"]["persistence"] = persistence_results
                 
-                print(f"📊 Database Persistence Results:")
+                print("📊 Database Persistence Results:")
                 print(f"   Assets: {baseline['assets']} → {total_assets_after} (+{total_assets_after - baseline['assets']})")
                 print(f"   Imports: {baseline['data_imports']} → {total_imports_after} (+{total_imports_after - baseline['data_imports']})")
                 print(f"   Raw Records: {baseline['raw_import_records']} → {total_raw_after} (+{total_raw_after - baseline['raw_import_records']})")
@@ -858,7 +856,7 @@ class DiscoveryWorkflowTester:
                 
                 self.test_results["frontend_captures"]["dashboard_verification"] = verification_results
                 
-                print(f"📊 Dashboard Verification:")
+                print("📊 Dashboard Verification:")
                 print(f"   Initial numbers: {initial.get('displayed_numbers', [])}")
                 print(f"   Final numbers: {displayed_numbers}")
                 print(f"   Metrics changed: {verification_results['metrics_changed']}")
@@ -883,7 +881,7 @@ class DiscoveryWorkflowTester:
                 json.dump(self.test_results, f, indent=2, default=str)
             
             # Generate summary
-            print(f"\n📊 TEST SUMMARY")
+            print("\n📊 TEST SUMMARY")
             print("=" * 60)
             print(f"Test Duration: {self.test_results.get('test_start')} → {self.test_results.get('test_end')}")
             print(f"Total Errors: {len(self.test_results['errors'])}")
@@ -892,19 +890,19 @@ class DiscoveryWorkflowTester:
             # Database changes
             if "persistence" in self.test_results["database_checks"]:
                 persistence = self.test_results["database_checks"]["persistence"]
-                print(f"\n📊 DATABASE CHANGES:")
+                print("\n📊 DATABASE CHANGES:")
                 print(f"   Assets Added: {persistence['assets_added']}")
                 print(f"   Imports Added: {persistence['imports_added']}")
                 print(f"   Raw Records Added: {persistence['raw_records_added']}")
             
             # API results
-            print(f"\n🔌 API TEST RESULTS:")
+            print("\n🔌 API TEST RESULTS:")
             for api_name, result in self.test_results["api_responses"].items():
                 status_icon = "✅" if result.get("success", False) else "❌"
                 print(f"   {status_icon} {api_name}: {result.get('status', 'N/A')}")
             
             # Frontend workflow
-            print(f"\n🎭 FRONTEND WORKFLOW:")
+            print("\n🎭 FRONTEND WORKFLOW:")
             for step_name, result in self.test_results["frontend_captures"].items():
                 if isinstance(result, dict) and "success" in result:
                     status_icon = "✅" if result["success"] else "❌"
@@ -914,7 +912,7 @@ class DiscoveryWorkflowTester:
             
             # Errors
             if self.test_results["errors"]:
-                print(f"\n❌ ERRORS ENCOUNTERED:")
+                print("\n❌ ERRORS ENCOUNTERED:")
                 for i, error in enumerate(self.test_results["errors"], 1):
                     print(f"   {i}. {error}")
             

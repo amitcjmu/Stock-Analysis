@@ -20,24 +20,20 @@ Built by: Agent Team B2 (AI Analysis & Intelligence)
 """
 
 # Export all enums
-from .enums import (
-    BusinessDomain,
-    OrganizationSize,
-    StakeholderRole,
-    MigrationDriverType
-)
-
-# Export all models
-from .models import (
-    BusinessContext,
-    QuestionnaireTarget
-)
+# Export analyzers
+from .analyzers import BusinessAnalyzers
 
 # Export configuration manager
 from .domain_configurations import DomainConfigurationManager
+from .enums import (
+    BusinessDomain,
+    MigrationDriverType,
+    OrganizationSize,
+    StakeholderRole,
+)
 
-# Export analyzers
-from .analyzers import BusinessAnalyzers
+# Export all models
+from .models import BusinessContext, QuestionnaireTarget
 
 # Export optimization components
 from .optimization import QuestionnaireOptimizer
@@ -47,18 +43,16 @@ from .utilities import BusinessContextUtilities
 
 __all__ = [
     # Enums
-    'BusinessDomain',
-    'OrganizationSize', 
-    'StakeholderRole',
-    'MigrationDriverType',
-    
+    "BusinessDomain",
+    "OrganizationSize",
+    "StakeholderRole",
+    "MigrationDriverType",
     # Models
-    'BusinessContext',
-    'QuestionnaireTarget',
-    
+    "BusinessContext",
+    "QuestionnaireTarget",
     # Components
-    'DomainConfigurationManager',
-    'BusinessAnalyzers',
-    'QuestionnaireOptimizer',
-    'BusinessContextUtilities'
+    "DomainConfigurationManager",
+    "BusinessAnalyzers",
+    "QuestionnaireOptimizer",
+    "BusinessContextUtilities",
 ]

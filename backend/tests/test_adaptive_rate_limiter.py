@@ -2,15 +2,12 @@
 Tests for the adaptive rate limiter implementation.
 """
 
-import pytest
-import time
 import asyncio
-from unittest.mock import Mock, patch
-from app.middleware.adaptive_rate_limiter import (
-    AdaptiveRateLimiter,
-    TokenBucket,
-    UserContext
-)
+import time
+
+import pytest
+
+from app.middleware.adaptive_rate_limiter import AdaptiveRateLimiter, TokenBucket, UserContext
 
 
 class TestTokenBucket:

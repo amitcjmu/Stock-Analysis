@@ -7,18 +7,14 @@ learning effectiveness, data classification accuracy, and real-time updates.
 
 import pytest
 import asyncio
-import json
 import time
-from unittest.mock import AsyncMock, patch, MagicMock
-from typing import Dict, List, Any
+from unittest.mock import patch
 
-import pytest_asyncio
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
-import websockets
 
 
 class TestAgentUIIntegration:

@@ -1,4 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React from 'react'
+import { useState } from 'react'
+import { useMemo, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,7 +24,8 @@ import { useAssetSelection } from './hooks/useAssetSelection';
 import { exportAssets } from './utils/exportHelpers';
 
 // Types
-import { AssetInventory, InventoryContentProps } from './types/inventory.types';
+import type { InventoryContentProps } from './types/inventory.types'
+import type { AssetInventory } from './types/inventory.types'
 
 const DEFAULT_COLUMNS = [
   'asset_name', 'asset_type', 'environment', 'operating_system', 

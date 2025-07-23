@@ -4,7 +4,7 @@
  */
 
 import { useMemo } from 'react';
-import { AnalyticsData } from '../types';
+import type { AnalyticsData } from '../types';
 
 interface UseChartDataProps {
   analyticsData: AnalyticsData | null;

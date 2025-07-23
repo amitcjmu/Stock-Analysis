@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState } from 'react'
 import Sidebar from '../components/Sidebar';
-import { Download, Filter, Calendar, BarChart3 } from 'lucide-react';
+import type { Filter } from 'lucide-react'
+import { Download, Calendar, BarChart3 } from 'lucide-react'
 
 const Assess = () => {
   const [filterDept, setFilterDept] = useState('All');

@@ -5,7 +5,7 @@
  * and notification settings.
  */
 
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 // Base user and role types
 export interface User {

@@ -7,31 +7,31 @@
  */
 
 // Core deliverable types
-export * from './core';
+export type * from './core';
 
 // Requirements management
-export * from './requirements';
+export type * from './requirements';
 
 // Specifications and implementation
-export * from './specifications';
+export type * from './specifications';
 
 // Quality control and assurance
-export * from './quality';
+export type * from './quality';
 
 // Timeline and scheduling
-export * from './timeline';
+export type * from './timeline';
 
 // Approval processes
-export * from './approval';
+export type * from './approval';
 
 // Risk management
-export * from './risk';
+export type * from './risk';
 
 // Status tracking and monitoring
-export * from './status';
+export type * from './status';
 
 // Management (ownership, stakeholders, resources, artifacts)
-export * from './management';
+export type * from './management';
 
 // Acceptance criteria
-export * from './acceptance';
+export type * from './acceptance';

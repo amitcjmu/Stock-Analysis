@@ -1,17 +1,31 @@
 """
 Universal Flow Processing Crew
 
-This module implements the CrewAI crew for intelligent flow continuation 
+This module implements the CrewAI crew for intelligent flow continuation
 and routing across all flow types (Discovery, Assess, Plan, Execute, etc.).
 """
 
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .crewai_imports import Agent, Task, Crew, Process, CREWAI_AVAILABLE, get_crewai_llm, LLM_AVAILABLE
-from .models import FlowAnalysisResult, RouteDecision, FlowContinuationResult
-from .tools import FlowStateAnalysisTool, PhaseValidationTool, FlowValidationTool, RouteDecisionTool
+from .crewai_imports import (
+    CREWAI_AVAILABLE,
+    LLM_AVAILABLE,
+    Agent,
+    Crew,
+    Process,
+    Task,
+    get_crewai_llm,
+)
+from .models import FlowContinuationResult, RouteDecision
+from .tools import (
+    FlowStateAnalysisTool,
+    FlowValidationTool,
+    PhaseValidationTool,
+    RouteDecisionTool,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -19,35 +33,40 @@ logger = logging.getLogger(__name__)
 class UniversalFlowProcessingCrew:
     """
     Universal Flow Processing Crew - Proper CrewAI Implementation
-    
+
     This crew handles flow continuation requests across ALL flow types using
     proper CrewAI patterns with specialized agents, tasks, and tools.
     """
-    
-    def __init__(self, db_session: AsyncSession = None, client_account_id: int = None, engagement_id: int = None):
+
+    def __init__(
+        self,
+        db_session: AsyncSession = None,
+        client_account_id: int = None,
+        engagement_id: int = None,
+    ):
         # Store parameters for backward compatibility, but tools use APIs instead of direct DB access
         self.db = db_session
         self.client_account_id = client_account_id
         self.engagement_id = engagement_id
-        
+
         # Initialize API-based tools (no database dependencies)
         self.flow_analyzer = FlowStateAnalysisTool()
         self.phase_validator = PhaseValidationTool()
         self.flow_validator = FlowValidationTool()
         self.route_decider = RouteDecisionTool()
-        
+
         # Create agents
         self._create_agents()
-        
+
         # Create crew
         self._create_crew()
-    
+
     def _create_agents(self):
         """Create specialized CrewAI agents following documentation patterns"""
-        
+
         # Get LLM for agents
         llm = get_crewai_llm() if LLM_AVAILABLE else None
-        
+
         # Flow Analysis Agent
         self.flow_analyst = Agent(
             role="Flow State Analyst",
@@ -62,10 +81,10 @@ class UniversalFlowProcessingCrew:
             allow_delegation=False,
             max_iter=3,
             memory=False,  # DISABLE MEMORY - Prevents APIStatusError
-            llm=llm
+            llm=llm,
         )
-        
-        # Phase Validation Agent  
+
+        # Phase Validation Agent
         self.phase_validator_agent = Agent(
             role="Phase Completion Validator",
             goal="Validate whether migration phases are truly complete and meet all required criteria before allowing progression to the next phase",
@@ -79,12 +98,12 @@ class UniversalFlowProcessingCrew:
             allow_delegation=False,
             max_iter=3,
             memory=False,  # DISABLE MEMORY - Prevents APIStatusError
-            llm=llm
+            llm=llm,
         )
-        
+
         # Route Decision Agent
         self.route_strategist = Agent(
-            role="Flow Navigation Strategist", 
+            role="Flow Navigation Strategist",
             goal="Make intelligent routing decisions to guide users to the exact right place in their migration flow based on current state and validation results",
             backstory="""You are a strategic navigation expert who specializes in guiding teams through complex migration workflows. You understand the intricate relationships between different phases and know exactly where to direct teams based on their current situation.
             
@@ -96,49 +115,54 @@ class UniversalFlowProcessingCrew:
             allow_delegation=False,
             max_iter=3,
             memory=False,  # DISABLE MEMORY - Prevents APIStatusError
-            llm=llm
+            llm=llm,
         )
-    
+
     def _create_crew(self):
         """Create the CrewAI crew with proper task orchestration"""
         if not CREWAI_AVAILABLE:
             logger.warning("CrewAI not available, using fallback implementation")
             self.crew = None
             return
-        
+
         self.crew = Crew(
-            agents=[self.flow_analyst, self.phase_validator_agent, self.route_strategist],
+            agents=[
+                self.flow_analyst,
+                self.phase_validator_agent,
+                self.route_strategist,
+            ],
             tasks=[],  # Tasks will be created dynamically
             process=Process.sequential,
             verbose=True,
-            memory=False  # DISABLE MEMORY - Prevents APIStatusError
+            memory=False,  # DISABLE MEMORY - Prevents APIStatusError
         )
-    
-    async def process_flow_continuation(self, flow_id: str, user_context: Dict[str, Any] = None) -> FlowContinuationResult:
+
+    async def process_flow_continuation(
+        self, flow_id: str, user_context: Dict[str, Any] = None
+    ) -> FlowContinuationResult:
         """
         Process flow continuation request using proper CrewAI crew orchestration
         """
         try:
             logger.info(f"🤖 UNIVERSAL FLOW CREW: Starting analysis for flow {flow_id}")
-            
+
             if not CREWAI_AVAILABLE or self.crew is None:
                 return await self._fallback_processing(flow_id, user_context)
-            
+
             # Create dynamic tasks for this specific flow continuation request
             tasks = self._create_flow_continuation_tasks(flow_id, user_context)
-            
+
             # Update crew with current tasks
             self.crew.tasks = tasks
-            
+
             # Execute the crew
-            result = self.crew.kickoff({
-                "flow_id": flow_id,
-                "user_context": user_context or {}
-            })
-            
+            result = self.crew.kickoff(
+                {"flow_id": flow_id, "user_context": user_context or {}}
+            )
+
             # Parse crew result into structured response
             return self._parse_crew_result(result, flow_id)
-            
+
         except Exception as e:
             logger.error(f"❌ Universal Flow Crew failed for {flow_id}: {e}")
             return FlowContinuationResult(
@@ -151,16 +175,18 @@ class UniversalFlowProcessingCrew:
                     phase="error",
                     flow_type="unknown",
                     reasoning=f"Error in flow processing: {str(e)}",
-                    confidence=0.1
+                    confidence=0.1,
                 ),
                 user_guidance={"error": str(e)},
                 success=False,
-                error_message=str(e)
+                error_message=str(e),
             )
-    
-    def _create_flow_continuation_tasks(self, flow_id: str, user_context: Dict[str, Any]) -> List[Task]:
+
+    def _create_flow_continuation_tasks(
+        self, flow_id: str, user_context: Dict[str, Any]
+    ) -> List[Task]:
         """Create dynamic tasks for flow continuation analysis"""
-        
+
         # Task 1: Flow State Analysis
         analysis_task = Task(
             description=f"""Analyze the current state of flow {flow_id}. 
@@ -178,9 +204,9 @@ class UniversalFlowProcessingCrew:
             User Context: {user_context}
             """,
             agent=self.flow_analyst,
-            expected_output="Detailed flow state analysis including flow type, current phase, progress percentage, and available data"
+            expected_output="Detailed flow state analysis including flow type, current phase, progress percentage, and available data",
         )
-        
+
         # Task 2: Phase Validation
         validation_task = Task(
             description=f"""Use the flow_validator tool to perform comprehensive validation on flow {flow_id}.
@@ -209,9 +235,9 @@ class UniversalFlowProcessingCrew:
             """,
             agent=self.phase_validator_agent,
             expected_output="Detailed validation with specific actionable guidance distinguishing user actions from system actions",
-            context=[analysis_task]
+            context=[analysis_task],
         )
-        
+
         # Task 3: Route Decision
         routing_task = Task(
             description="""Based on the flow analysis and phase validation, make an intelligent routing decision that provides ACTIONABLE USER GUIDANCE.
@@ -239,43 +265,59 @@ class UniversalFlowProcessingCrew:
             """,
             agent=self.route_strategist,
             expected_output="Routing decision with specific user guidance and clear distinction between user vs system responsibilities",
-            context=[analysis_task, validation_task]
+            context=[analysis_task, validation_task],
         )
-        
+
         return [analysis_task, validation_task, routing_task]
-    
+
     def _parse_crew_result(self, crew_result, flow_id: str) -> FlowContinuationResult:
         """Parse crew execution result into structured response"""
         try:
             # In a real implementation, this would parse the structured crew output
             # For now, we'll create a basic response structure
-            
-            result_text = str(crew_result.get("result", "")) if isinstance(crew_result, dict) else str(crew_result)
-            
+
+            result_text = (
+                str(crew_result.get("result", ""))
+                if isinstance(crew_result, dict)
+                else str(crew_result)
+            )
+
             # Extract key information (simplified parsing)
             flow_type = "discovery"  # Default
             current_phase = "data_import"  # Default
             target_page = "/discovery/enhanced-dashboard"  # Default
-            
+
             # Try to extract actual values from result
             if "Type=" in result_text:
-                flow_type = result_text.split("Type=")[1].split(",")[0] if "," in result_text.split("Type=")[1] else result_text.split("Type=")[1].split(" ")[0]
-            
+                flow_type = (
+                    result_text.split("Type=")[1].split(",")[0]
+                    if "," in result_text.split("Type=")[1]
+                    else result_text.split("Type=")[1].split(" ")[0]
+                )
+
             if "Phase=" in result_text:
-                current_phase = result_text.split("Phase=")[1].split(",")[0] if "," in result_text.split("Phase=")[1] else result_text.split("Phase=")[1].split(" ")[0]
-            
+                current_phase = (
+                    result_text.split("Phase=")[1].split(",")[0]
+                    if "," in result_text.split("Phase=")[1]
+                    else result_text.split("Phase=")[1].split(" ")[0]
+                )
+
             if "ROUTE:" in result_text:
-                target_page = result_text.split("ROUTE:")[1].split("|")[0].strip() if "|" in result_text.split("ROUTE:")[1] else result_text.split("ROUTE:")[1].strip()
-            
+                target_page = (
+                    result_text.split("ROUTE:")[1].split("|")[0].strip()
+                    if "|" in result_text.split("ROUTE:")[1]
+                    else result_text.split("ROUTE:")[1].strip()
+                )
+
             routing_decision = RouteDecision(
                 target_page=target_page,
                 flow_id=flow_id,
                 phase=current_phase,
                 flow_type=flow_type,
                 reasoning="AI crew analysis and routing decision",
-                confidence=0.8
+                confidence=0.8,
             )
-            
+
             return FlowContinuationResult(
                 flow_id=flow_id,
                 flow_type=flow_type,
@@ -284,11 +326,11 @@ class UniversalFlowProcessingCrew:
                 user_guidance={
                     "message": f"Continue with your {flow_type} flow",
                     "phase": current_phase,
-                    "crew_analysis": result_text
+                    "crew_analysis": result_text,
                 },
-                success=True
+                success=True,
             )
-            
+
         except Exception as e:
             logger.error(f"Failed to parse crew result: {e}")
             return FlowContinuationResult(
@@ -301,21 +343,23 @@ class UniversalFlowProcessingCrew:
                     phase="error",
                     flow_type="unknown",
                     reasoning="Failed to parse crew result",
-                    confidence=0.1
+                    confidence=0.1,
                 ),
                 user_guidance={"error": "Failed to process crew result"},
                 success=False,
-                error_message=str(e)
+                error_message=str(e),
             )
-    
-    async def _fallback_processing(self, flow_id: str, user_context: Dict[str, Any]) -> FlowContinuationResult:
+
+    async def _fallback_processing(
+        self, flow_id: str, user_context: Dict[str, Any]
+    ) -> FlowContinuationResult:
         """Fallback processing when CrewAI is not available"""
         logger.info(f"🔄 Using fallback processing for flow {flow_id}")
-        
+
         try:
             # Use tools directly without crew orchestration
             flow_analysis = self.flow_analyzer._run(flow_id)
-            
+
             # Extract basic information from analysis
             flow_type = "discovery"
             current_phase = "data_import"
@@ -323,16 +367,16 @@ class UniversalFlowProcessingCrew:
                 flow_type = flow_analysis.split("Type=")[1].split(",")[0]
             if "Phase=" in flow_analysis:
                 current_phase = flow_analysis.split("Phase=")[1].split(",")[0]
-            
+
             routing_decision = RouteDecision(
-                target_page=f"/discovery/enhanced-dashboard",
+                target_page="/discovery/enhanced-dashboard",
                 flow_id=flow_id,
                 phase=current_phase,
                 flow_type=flow_type,
                 reasoning="Fallback processing - CrewAI not available",
-                confidence=0.6
+                confidence=0.6,
             )
-            
+
             return FlowContinuationResult(
                 flow_id=flow_id,
                 flow_type=flow_type,
@@ -341,11 +385,11 @@ class UniversalFlowProcessingCrew:
                 user_guidance={
                     "message": f"Continue with your {flow_type} flow",
                     "phase": current_phase,
-                    "fallback_mode": True
+                    "fallback_mode": True,
                 },
-                success=True
+                success=True,
             )
-            
+
         except Exception as e:
             logger.error(f"Fallback processing failed: {e}")
             return FlowContinuationResult(
@@ -358,9 +402,9 @@ class UniversalFlowProcessingCrew:
                     phase="error",
                     flow_type="unknown",
                     reasoning="Fallback processing failed",
-                    confidence=0.1
+                    confidence=0.1,
                 ),
                 user_guidance={"error": str(e)},
                 success=False,
-                error_message=str(e)
+                error_message=str(e),
             )

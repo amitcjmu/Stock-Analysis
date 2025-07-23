@@ -6,12 +6,14 @@ Creating 60 assets using raw SQL to bypass enum casting issues.
 import asyncio
 import json
 import uuid
-from datetime import datetime, timezone, timedelta
-from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime, timedelta, timezone
+
+from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, FLOW_IDS, USER_IDS
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
-from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, FLOW_IDS, USER_IDS
+
 
 # Asset data generators (same as before)
 def generate_application_asset(index: int, flow_info: dict) -> dict:
@@ -402,7 +404,7 @@ async def create_assets_raw_sql():
         databases = sum(d["databases"] for d in FLOW_ASSET_DISTRIBUTION.values())
         network = sum(d["network"] for d in FLOW_ASSET_DISTRIBUTION.values())
         
-        print(f"\n✅ Assets created successfully using raw SQL!")
+        print("\n✅ Assets created successfully using raw SQL!")
         print(f"   📊 Total Assets: {total_assets}")
         print(f"   🖥️ Applications: {applications}")
         print(f"   🖥️ Servers: {servers} ({linux_server_count} Linux, {windows_server_count} Windows)")

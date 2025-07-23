@@ -113,7 +113,7 @@ export async function createUser(userData: Omit<UserData, 'id'>): Promise<UserDa
     } else {
       // Handle specific error types
       if (response.error?.code === 'VALIDATION_ERROR') {
-        const validationError = response.error as ApiError;
+        const validationError = response.error;
         throw new Error(`Validation failed: ${validationError.message}`);
       }
       throw new Error(response.error?.message || 'Failed to create user');
@@ -166,7 +166,7 @@ export async function uploadFile(file: File, metadata?: Record<string, unknown>)
 }
 
 // Example: Batch operations
-export async function batchCreateUsers(users: Omit<UserData, 'id'>[]): Promise<UserData[]> {
+export async function batchCreateUsers(users: Array<Omit<UserData, 'id'>>): Promise<UserData[]> {
   const requests = users.map((user, index) => ({
     id: `user-${index}`,
     method: 'POST',

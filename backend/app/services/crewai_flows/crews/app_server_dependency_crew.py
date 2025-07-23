@@ -8,73 +8,80 @@ Enhanced implementation with CrewAI best practices:
 """
 
 import logging
-import json
-from typing import Dict, List, Any, Optional
-from crewai import Agent, Task, Crew, Process
-from .crew_config import get_optimized_agent_config, MAX_DELEGATIONS
+from typing import Any, Dict, Optional
+
+from crewai import Agent, Crew, Process, Task
+
+from .crew_config import get_optimized_agent_config
 
 # Import advanced CrewAI features with fallbacks
 try:
-    from crewai.memory import LongTermMemory
     from crewai.knowledge.knowledge import Knowledge
+    from crewai.memory import LongTermMemory
+
     CREWAI_ADVANCED_AVAILABLE = True
 except ImportError:
     CREWAI_ADVANCED_AVAILABLE = False
+
     # Fallback classes
     class LongTermMemory:
         def __init__(self, **kwargs):
             pass
+
     class Knowledge:
         def __init__(self, **kwargs):
             pass
 
+
 logger = logging.getLogger(__name__)
+
 
 class AppServerDependencyCrew:
     """Enhanced App-Server Dependency Crew for hosting relationship mapping"""
-    
+
     def __init__(self, crewai_service, shared_memory=None, knowledge_base=None):
         self.crewai_service = crewai_service
-        
+
         # Get proper LLM configuration from our LLM config service
         try:
             from app.services.llm_config import get_crewai_llm
+
             self.llm_model = get_crewai_llm()
             logger.info("✅ App-Server Dependency Crew using configured DeepInfra LLM")
         except Exception as e:
             logger.warning(f"Failed to get configured LLM, using fallback: {e}")
-            self.llm_model = getattr(crewai_service, 'llm', None)
-        
+            self.llm_model = getattr(crewai_service, "llm", None)
+
         # Setup shared memory and knowledge base
         self.shared_memory = shared_memory or self._setup_shared_memory()
         self.knowledge_base = knowledge_base or self._setup_knowledge_base()
-        
+
         logger.info("✅ App-Server Dependency Crew initialized with hosting analysis")
-    
+
     def _setup_shared_memory(self) -> Optional[LongTermMemory]:
         """Setup shared memory for dependency pattern insights"""
         if not CREWAI_ADVANCED_AVAILABLE:
             logger.warning("Shared memory not available - using fallback")
             return None
-        
+
         try:
             return LongTermMemory(
                 storage_type="vector",
                 embedder_config={
-                    "provider": "openai", 
-                    "model": "text-embedding-3-small"
-                }
+                    "provider": "openai",
+                    "model": "text-embedding-3-small",
+                },
             )
         except Exception as e:
             logger.warning(f"Failed to setup shared memory: {e}")
             return None
-    
+
     def _setup_knowledge_base(self) -> Optional[Knowledge]:
         """Setup knowledge base for dependency analysis patterns"""
         if not CREWAI_ADVANCED_AVAILABLE:
             logger.warning("Knowledge base not available - using fallback")
             return None
-        
+
         try:
             return Knowledge(
                 sources=[
@@ -82,16 +89,16 @@ class AppServerDependencyCrew:
                 ],
                 embedder_config={
                     "provider": "openai",
-                    "model": "text-embedding-3-small"
-                }
+                    "model": "text-embedding-3-small",
+                },
             )
         except Exception as e:
             logger.warning(f"Failed to setup knowledge base: {e}")
             return None
-    
+
     def create_agents(self):
         """Create agents with hierarchical management for dependency analysis"""
-        
+
         # Manager Agent for dependency coordination
         manager_config = get_optimized_agent_config(allow_delegation=True)
         dependency_manager = Agent(
@@ -105,13 +112,13 @@ class AppServerDependencyCrew:
             knowledge=self.knowledge_base,
             verbose=True,
             planning=True if CREWAI_ADVANCED_AVAILABLE else False,
-            **manager_config
+            **manager_config,
         )
-        
+
         # Hosting Relationship Expert - specialist agent (no delegation)
         specialist_config = get_optimized_agent_config(allow_delegation=False)
         hosting_expert = Agent(
-            role="Hosting Relationship Expert", 
+            role="Hosting Relationship Expert",
             goal="Identify and map application-to-server hosting relationships with migration impact analysis",
             backstory="""You are an expert in application hosting with deep knowledge of enterprise 
             infrastructure dependencies. You excel at identifying which applications run on which 
@@ -122,9 +129,9 @@ class AppServerDependencyCrew:
             verbose=True,
             collaboration=True if CREWAI_ADVANCED_AVAILABLE else False,
             tools=self._create_hosting_analysis_tools(),
-            **specialist_config
+            **specialist_config,
         )
-        
+
         # Migration Impact Analyst - specialist agent (no delegation)
         migration_impact_analyst = Agent(
             role="Migration Impact Analyst",
@@ -133,23 +140,23 @@ class AppServerDependencyCrew:
             impact of hosting relationships on migration projects. You excel at identifying migration 
             risks, complexity factors, and sequencing requirements based on dependencies.""",
             llm=self.llm_model,
-            memory=self.shared_memory, 
+            memory=self.shared_memory,
             knowledge=self.knowledge_base,
             verbose=True,
             collaboration=True if CREWAI_ADVANCED_AVAILABLE else False,
             tools=self._create_impact_analysis_tools(),
-            **specialist_config
+            **specialist_config,
         )
-        
+
         return [dependency_manager, hosting_expert, migration_impact_analyst]
-    
+
     def create_tasks(self, agents, asset_inventory: Dict[str, Any]):
         """Create hierarchical tasks for app-server dependency analysis"""
         manager, hosting_expert, migration_impact_analyst = agents
-        
+
         servers = asset_inventory.get("servers", [])
         applications = asset_inventory.get("applications", [])
-        
+
         # Planning Task - Manager coordinates dependency analysis approach
         planning_task = Task(
             description=f"""Plan comprehensive app-server dependency analysis strategy.
@@ -168,9 +175,9 @@ class AppServerDependencyCrew:
             Use your planning capabilities to coordinate comprehensive dependency mapping.""",
             expected_output="Comprehensive dependency analysis execution plan with hosting discovery strategy and impact assessment approach",
             agent=manager,
-            tools=[]
+            tools=[],
         )
-        
+
         # Hosting Relationship Discovery Task
         hosting_discovery_task = Task(
             description=f"""Identify and map application-to-server hosting relationships.
@@ -194,9 +201,9 @@ class AppServerDependencyCrew:
             expected_output="Comprehensive hosting relationship matrix with app-server mappings and hosting patterns",
             agent=hosting_expert,
             context=[planning_task],
-            tools=self._create_hosting_analysis_tools()
+            tools=self._create_hosting_analysis_tools(),
         )
-        
+
         # Migration Impact Assessment Task
         impact_assessment_task = Task(
             description=f"""Assess migration complexity and risk based on hosting dependencies.
@@ -218,70 +225,87 @@ class AppServerDependencyCrew:
             expected_output="Comprehensive migration impact assessment with complexity scoring and risk analysis",
             agent=migration_impact_analyst,
             context=[hosting_discovery_task],
-            tools=self._create_impact_analysis_tools()
+            tools=self._create_impact_analysis_tools(),
         )
-        
+
         return [planning_task, hosting_discovery_task, impact_assessment_task]
-    
+
     def create_crew(self, asset_inventory: Dict[str, Any]):
         """Create hierarchical crew for app-server dependency analysis"""
         agents = self.create_agents()
         tasks = self.create_tasks(agents, asset_inventory)
-        
+
         # Use hierarchical process if advanced features available
-        process = Process.hierarchical if CREWAI_ADVANCED_AVAILABLE else Process.sequential
-        
+        process = (
+            Process.hierarchical if CREWAI_ADVANCED_AVAILABLE else Process.sequential
+        )
+
         crew_config = {
             "agents": agents,
             "tasks": tasks,
             "process": process,
             "verbose": True,
             "max_iterations": 10,  # Limit total crew iterations
-            "step_callback": lambda step: logger.info(f"Crew step {step}")
+            "step_callback": lambda step: logger.info(f"Crew step {step}"),
         }
-        
+
         # Add advanced features if available
         if CREWAI_ADVANCED_AVAILABLE:
             # Ensure manager_llm uses our configured LLM and not gpt-4o-mini
-            crew_config.update({
-                "manager_llm": self.llm_model,  # Critical: Use our DeepInfra LLM
-                "planning": True,
-                "planning_llm": self.llm_model,  # Force planning to use our LLM too
-                "memory": True,
-                "knowledge": self.knowledge_base,
-                "share_crew": True,
-                "collaboration": True
-            })
-            
+            crew_config.update(
+                {
+                    "manager_llm": self.llm_model,  # Critical: Use our DeepInfra LLM
+                    "planning": True,
+                    "planning_llm": self.llm_model,  # Force planning to use our LLM too
+                    "memory": True,
+                    "knowledge": self.knowledge_base,
+                    "share_crew": True,
+                    "collaboration": True,
+                }
+            )
+
             # Additional environment override to prevent any gpt-4o-mini fallback
             import os
-            os.environ["OPENAI_MODEL_NAME"] = str(self.llm_model) if isinstance(self.llm_model, str) else "deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
-        
-        logger.info(f"Creating App-Server Dependency Crew with {process.name if hasattr(process, 'name') else 'sequential'} process")
-        logger.info(f"Using LLM: {self.llm_model if isinstance(self.llm_model, str) else 'Unknown'}")
+
+            os.environ["OPENAI_MODEL_NAME"] = (
+                str(self.llm_model)
+                if isinstance(self.llm_model, str)
+                else "deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+            )
+
+        logger.info(
+            f"Creating App-Server Dependency Crew with {process.name if hasattr(process, 'name') else 'sequential'} process"
+        )
+        logger.info(
+            f"Using LLM: {self.llm_model if isinstance(self.llm_model, str) else 'Unknown'}"
+        )
         return Crew(**crew_config)
-    
+
     def _create_hosting_analysis_tools(self):
         """Create tools for hosting relationship analysis"""
         # For now, return empty list - tools will be implemented in Task 7
         return []
-    
+
     def _create_impact_analysis_tools(self):
         """Create tools for migration impact analysis"""
-        # For now, return empty list - tools will be implemented in Task 7  
+        # For now, return empty list - tools will be implemented in Task 7
         return []
 
-def create_app_server_dependency_crew(crewai_service, asset_inventory: Dict[str, Any], 
-                                     shared_memory=None) -> Crew:
+
+def create_app_server_dependency_crew(
+    crewai_service, asset_inventory: Dict[str, Any], shared_memory=None
+) -> Crew:
     """
     Create enhanced App-Server Dependency Crew with inventory intelligence
     Uses asset inventory insights from shared memory to map hosting relationships
     """
-    
+
     # Access inventory insights from shared memory
     if shared_memory:
-        logger.info("🧠 App-Server Dependency Crew accessing asset inventory insights from shared memory")
-    
+        logger.info(
+            "🧠 App-Server Dependency Crew accessing asset inventory insights from shared memory"
+        )
+
     try:
         # Dependency Manager - Enhanced with inventory context
         dependency_manager = Agent(
@@ -297,9 +321,9 @@ def create_app_server_dependency_crew(crewai_service, asset_inventory: Dict[str,
             memory=shared_memory,  # Access inventory insights
             planning=True,
             verbose=True,
-            step_callback=lambda step: logger.info(f"Dependency Manager: {step}")
+            step_callback=lambda step: logger.info(f"Dependency Manager: {step}"),
         )
-        
+
         # Hosting Relationship Expert - Enhanced with inventory intelligence
         hosting_expert = Agent(
             role="Hosting Relationship Expert",
@@ -314,10 +338,10 @@ def create_app_server_dependency_crew(crewai_service, asset_inventory: Dict[str,
             tools=[
                 _create_hosting_analysis_tool(asset_inventory),
                 _create_topology_mapping_tool(),
-                _create_relationship_validation_tool()
-            ]
+                _create_relationship_validation_tool(),
+            ],
         )
-        
+
         # Migration Impact Analyst - Enhanced with hosting context
         migration_analyst = Agent(
             role="Migration Impact Analyst",
@@ -332,10 +356,10 @@ def create_app_server_dependency_crew(crewai_service, asset_inventory: Dict[str,
             tools=[
                 _create_migration_complexity_tool(asset_inventory),
                 _create_capacity_analysis_tool(),
-                _create_impact_assessment_tool()
-            ]
+                _create_impact_assessment_tool(),
+            ],
         )
-        
+
         # Enhanced planning task that leverages inventory intelligence
         planning_task = Task(
             description=f"""
@@ -360,9 +384,9 @@ def create_app_server_dependency_crew(crewai_service, asset_inventory: Dict[str,
             expected_output="App-server dependency mapping plan with hosting relationship discovery strategy",
             agent=dependency_manager,
             context=[],
-            tools=[]
+            tools=[],
         )
-        
+
         # Inventory-aware hosting analysis task
         hosting_analysis_task = Task(
             description=f"""
@@ -389,13 +413,13 @@ def create_app_server_dependency_crew(crewai_service, asset_inventory: Dict[str,
             collaboration=[migration_analyst],
             tools=[
                 _create_hosting_analysis_tool(asset_inventory),
-                _create_topology_mapping_tool()
-            ]
+                _create_topology_mapping_tool(),
+            ],
         )
-        
+
         # Inventory-aware migration impact task
         migration_impact_task = Task(
-            description=f"""
+            description="""
             Analyze migration complexity and impact using hosting relationship intelligence.
             
             HOSTING CONTEXT USAGE:
@@ -420,10 +444,10 @@ def create_app_server_dependency_crew(crewai_service, asset_inventory: Dict[str,
             collaboration=[hosting_expert],
             tools=[
                 _create_migration_complexity_tool(asset_inventory),
-                _create_capacity_analysis_tool()
-            ]
+                _create_capacity_analysis_tool(),
+            ],
         )
-        
+
         # Create crew with hierarchical process and shared memory
         crew = Crew(
             agents=[dependency_manager, hosting_expert, migration_analyst],
@@ -431,78 +455,97 @@ def create_app_server_dependency_crew(crewai_service, asset_inventory: Dict[str,
             process=Process.hierarchical,
             manager_llm=crewai_service.llm,
             planning=True,
-            planning_llm=getattr(crewai_service, 'planning_llm', crewai_service.llm),
+            planning_llm=getattr(crewai_service, "planning_llm", crewai_service.llm),
             memory=True,
             verbose=True,
-            share_crew=True  # Enable cross-crew collaboration
+            share_crew=True,  # Enable cross-crew collaboration
         )
-        
-        logger.info("✅ Enhanced App-Server Dependency Crew created with inventory intelligence")
+
+        logger.info(
+            "✅ Enhanced App-Server Dependency Crew created with inventory intelligence"
+        )
         return crew
-        
+
     except Exception as e:
         logger.error(f"Failed to create enhanced App-Server Dependency Crew: {e}")
         # Fallback to basic crew
-        return _create_fallback_app_server_dependency_crew(crewai_service, asset_inventory)
+        return _create_fallback_app_server_dependency_crew(
+            crewai_service, asset_inventory
+        )
+
 
 def _create_hosting_analysis_tool(asset_inventory: Dict[str, Any]):
     """Create tool for hosting relationship analysis"""
+
     # Placeholder for hosting analysis tool - will be implemented in Task 7
     class HostingAnalysisTool:
         def analyze_hosting_relationships(self, data):
             return f"Hosting analysis for {len(asset_inventory.get('servers', []))} servers and {len(asset_inventory.get('applications', []))} applications"
-    
+
     return HostingAnalysisTool()
+
 
 def _create_topology_mapping_tool():
     """Create tool for topology mapping"""
+
     # Placeholder for topology mapping tool - will be implemented in Task 7
     class TopologyMappingTool:
         def map_topology(self, data):
             return "Topology mapping analysis"
-    
+
     return TopologyMappingTool()
+
 
 def _create_relationship_validation_tool():
     """Create tool for relationship validation"""
+
     # Placeholder for relationship validation tool - will be implemented in Task 7
     class RelationshipValidationTool:
         def validate_relationships(self, data):
             return "Relationship validation analysis"
-    
+
     return RelationshipValidationTool()
+
 
 def _create_migration_complexity_tool(asset_inventory: Dict[str, Any]):
     """Create tool for migration complexity analysis"""
+
     # Placeholder for migration complexity tool - will be implemented in Task 7
     class MigrationComplexityTool:
         def analyze_complexity(self, data):
             return f"Migration complexity analysis for {len(asset_inventory.get('servers', []))} servers"
-    
+
     return MigrationComplexityTool()
+
 
 def _create_capacity_analysis_tool():
     """Create tool for capacity analysis"""
+
     # Placeholder for capacity analysis tool - will be implemented in Task 7
     class CapacityAnalysisTool:
         def analyze_capacity(self, data):
             return "Capacity analysis"
-    
+
     return CapacityAnalysisTool()
+
 
 def _create_impact_assessment_tool():
     """Create tool for impact assessment"""
+
     # Placeholder for impact assessment tool - will be implemented in Task 7
     class ImpactAssessmentTool:
         def assess_impact(self, data):
             return "Impact assessment analysis"
-    
+
     return ImpactAssessmentTool()
 
-def _create_fallback_app_server_dependency_crew(crewai_service, asset_inventory: Dict[str, Any]) -> Crew:
+
+def _create_fallback_app_server_dependency_crew(
+    crewai_service, asset_inventory: Dict[str, Any]
+) -> Crew:
     """Create fallback crew when enhanced features fail"""
     logger.info("Creating fallback App-Server Dependency Crew")
-    
+
     # Basic crew with minimal functionality
     crew_instance = AppServerDependencyCrew(crewai_service)
     return crew_instance.create_crew(asset_inventory)

@@ -3,15 +3,17 @@ Integration tests for the flows API endpoint
 Tests real API calls with authentication and multi-tenant headers
 """
 
-import pytest
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 from datetime import datetime
 
+import bcrypt
+import pytest
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models import User
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-import bcrypt
+
 
 def get_password_hash(password: str) -> str:
     """Hash a password using bcrypt"""
@@ -19,7 +21,7 @@ def get_password_hash(password: str) -> str:
 
 # Try to import test utils, skip if not available
 try:
-    from tests.utils import create_test_user, create_test_client, create_test_engagement
+    from tests.utils import create_test_client, create_test_engagement, create_test_user
 except ImportError:
     # Define minimal test helpers if utils not available
     async def create_test_user(db, email, password):

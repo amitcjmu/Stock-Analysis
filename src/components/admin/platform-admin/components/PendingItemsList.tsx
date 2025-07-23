@@ -17,8 +17,9 @@ import {
   Eye, 
   CheckCircle 
 } from 'lucide-react';
-import { formatDate, getItemTypeColor, getItemTypeLabel } from '@/components/admin/shared/utils/adminFormatters';
-import { SoftDeletedItem } from './PlatformStats';
+import type { getItemTypeColor } from '@/components/admin/shared/utils/adminFormatters'
+import { formatDate, getItemTypeLabel } from '@/components/admin/shared/utils/adminFormatters'
+import type { SoftDeletedItem } from './PlatformStats';
 
 export interface PendingItemsListProps {
   pendingItems: SoftDeletedItem[];

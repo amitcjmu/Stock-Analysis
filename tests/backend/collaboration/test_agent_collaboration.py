@@ -8,10 +8,8 @@ and real-time collaboration monitoring.
 """
 
 import pytest
-import asyncio
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from typing import Dict, List, Any, Optional
-import json
+from unittest.mock import Mock
+from typing import Dict, List
 import time
 import uuid
 

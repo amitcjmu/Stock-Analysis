@@ -11,7 +11,7 @@ export interface DeliverableTimeline {
   endDate: string;
   phases: DeliverablePhase[];
   milestones: DeliverableMilestone[];
-  dependencies: import('./core').DeliverableDependency[];
+  dependencies: Array<import('./core').DeliverableDependency>;
   reviews: DeliverableReview[];
   buffer: DeliverableBuffer;
   schedule: DeliverableSchedule[];

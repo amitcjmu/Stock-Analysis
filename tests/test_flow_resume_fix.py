@@ -3,10 +3,8 @@
 Test script to verify the flow resume fixes
 """
 
-import asyncio
 import requests
 import json
-from datetime import datetime
 
 # Test configuration
 BASE_URL = "http://localhost:8000"
@@ -61,7 +59,7 @@ def test_flow_resume():
         print(f"Status code: {response.status_code}")
         if response.status_code == 200:
             data = response.json()
-            print(f"✅ Resume successful!")
+            print("✅ Resume successful!")
             print(f"✅ Response: {json.dumps(data, indent=2)}")
             return True
         else:

@@ -4,11 +4,13 @@ Test CrewAI Flow Service handling of deleted flows
 Tests that deleted flows cannot be resumed and proper error handling.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from app.services.crewai_flow_service import CrewAIFlowService
+
+import pytest
+
 from app.core.exceptions import InvalidFlowStateError
 from app.models.discovery_flow import DiscoveryFlow
+from app.services.crewai_flow_service import CrewAIFlowService
 
 
 class TestCrewAIFlowServiceDeletedFlows:

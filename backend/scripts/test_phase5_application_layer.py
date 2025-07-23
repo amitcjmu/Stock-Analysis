@@ -5,12 +5,13 @@ Task 5.3: Comprehensive testing of master flow repositories and API endpoints
 """
 
 import asyncio
-import sys
 import os
-import json
+import sys
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from sqlalchemy import text
+
 from app.core.database import AsyncSessionLocal
 from app.repositories.asset_repository import AssetRepository
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
@@ -123,7 +124,7 @@ async def test_discovery_flow_repository_master_coordination():
             if flow:
                 print(f"      ✅ Found discovery flow: {flow.flow_name}")
             else:
-                print(f"      ❌ No discovery flow found for master flow")
+                print("      ❌ No discovery flow found for master flow")
         
         # Test 2: get_master_flow_coordination_summary
         print("\n   2️⃣ Testing get_master_flow_coordination_summary...")
@@ -242,7 +243,7 @@ async def test_error_handling_and_edge_cases():
             return False
         
         asset_repo = AssetRepository(session, str(test_context.client_account_id))
-        discovery_repo = DiscoveryFlowRepository(session, str(test_context.client_account_id))
+        DiscoveryFlowRepository(session, str(test_context.client_account_id))
         
         # Test 1: Invalid master flow ID
         print("\n   1️⃣ Testing invalid master flow ID...")

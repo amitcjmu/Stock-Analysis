@@ -5,4 +5,4 @@
  * comparison views, and session metrics.
  */
 
-export * from './session-comparison/index';
+export type * from './session-comparison/index';

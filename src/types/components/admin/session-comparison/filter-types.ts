@@ -4,9 +4,9 @@
  * Filter, column, and export types for session comparison functionality.
  */
 
-import { ReactNode } from 'react';
-import { UserSession } from './session-types';
-import { ColumnType, FilterType, FilterOperator } from './enum-types';
+import type { ReactNode } from 'react';
+import type { UserSession } from './session-types';
+import type { ColumnType, FilterType, FilterOperator } from './enum-types';
 
 export interface SessionComparisonColumn {
   key: string;

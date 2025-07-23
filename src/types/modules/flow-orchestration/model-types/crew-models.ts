@@ -4,15 +4,11 @@
  * Type definitions for crew configuration, execution, status, results, and metrics.
  */
 
-import {
-  AgentConfiguration,
-  ExecutionError,
-  ExecutionConstraints,
-  RetryPolicy,
-  TimeRange
-} from '../base-types';
+import type { ExecutionError, ExecutionConstraints, RetryPolicy, TimeRange } from '../base-types'
+import type { AgentConfiguration } from '../base-types'
 
-import { AgentInstance, AgentStatus, AgentResult, AgentResourceUsage } from './agent-models';
+import type { AgentStatus, AgentResult } from './agent-models'
+import type { AgentInstance, AgentResourceUsage } from './agent-models'
 
 // Crew Models
 export interface CrewConfiguration {

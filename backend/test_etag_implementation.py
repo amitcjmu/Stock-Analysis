@@ -5,10 +5,10 @@ This script demonstrates the efficient polling behavior with ETags.
 """
 
 import asyncio
-import httpx
 import logging
-import json
 from datetime import datetime
+
+import httpx
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -57,8 +57,8 @@ async def test_flow_status_etag(flow_id: str):
                 )
                 
                 if response2.status_code == 304:
-                    logger.info(f"✅ Second request returned 304 Not Modified - Efficient polling working!")
-                    logger.info(f"   No body returned, saving bandwidth")
+                    logger.info("✅ Second request returned 304 Not Modified - Efficient polling working!")
+                    logger.info("   No body returned, saving bandwidth")
                 else:
                     logger.warning(f"❌ Second request returned {response2.status_code} instead of 304")
                     logger.warning(f"   Body: {response2.text}")
@@ -98,7 +98,7 @@ async def test_active_flows_etag():
                 )
                 
                 if response2.status_code == 304:
-                    logger.info(f"✅ Second request returned 304 Not Modified - Efficient polling working!")
+                    logger.info("✅ Second request returned 304 Not Modified - Efficient polling working!")
                 else:
                     logger.warning(f"❌ Second request returned {response2.status_code} instead of 304")
         else:
@@ -135,7 +135,7 @@ async def test_processing_status_etag(flow_id: str):
                 )
                 
                 if response2.status_code == 304:
-                    logger.info(f"✅ Polling returned 304 Not Modified - Bandwidth saved!")
+                    logger.info("✅ Polling returned 304 Not Modified - Bandwidth saved!")
                 else:
                     logger.warning(f"❌ Polling returned {response2.status_code} instead of 304")
         else:
@@ -178,7 +178,7 @@ async def simulate_polling_session(flow_id: str, duration_seconds: int = 10):
             
             await asyncio.sleep(1)  # Poll every second
         
-        logger.info(f"\n📊 Polling Summary:")
+        logger.info("\n📊 Polling Summary:")
         logger.info(f"   Total requests: {request_count}")
         logger.info(f"   304 responses: {not_modified_count}")
         logger.info(f"   Efficiency rate: {(not_modified_count/request_count)*100:.1f}%")

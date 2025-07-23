@@ -2,9 +2,10 @@ import React from 'react';
 import { Search, Download, Upload, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import type { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Client, MigrationPhases } from './types';
+import type { Client} from './types';
+import { MigrationPhases } from './types';
 
 interface EngagementFiltersProps {
   searchTerm: string;

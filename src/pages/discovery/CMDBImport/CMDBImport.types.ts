@@ -1,4 +1,4 @@
-import { ValidationAgentResult } from '@/services/dataImportValidationService';
+import type { ValidationAgentResult } from '@/services/dataImportValidationService';
 
 export interface UploadFile {
   id: string;

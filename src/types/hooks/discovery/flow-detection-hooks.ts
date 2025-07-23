@@ -5,7 +5,8 @@
  * import data management, and workflow orchestration.
  */
 
-import { BaseHookParams, BaseHookReturn } from './base-hooks';
+import type { BaseHookParams } from './base-hooks'
+import type { BaseHookReturn } from './base-hooks'
 
 // Flow Detection hook types
 export interface UseFlowDetectionParams extends BaseHookParams {

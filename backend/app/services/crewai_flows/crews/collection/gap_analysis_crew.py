@@ -4,8 +4,9 @@ ADCS: Crew for analyzing collected data gaps using intelligent agents
 """
 
 import logging
-from typing import Dict, Any, List, Optional
-from crewai import Agent, Task, Crew
+from typing import Any, Dict, Optional
+
+from crewai import Agent, Crew, Task
 
 logger = logging.getLogger(__name__)
 
@@ -15,29 +16,29 @@ def create_gap_analysis_crew(
     collected_data: Dict[str, Any],
     quality_assessment: Dict[str, Any],
     context: Dict[str, Any],
-    shared_memory: Optional[Any] = None
+    shared_memory: Optional[Any] = None,
 ):
     """
     Create a crew for gap analysis phase
-    
+
     Args:
         crewai_service: CrewAI service instance
         collected_data: Data collected from automated collection phase
         quality_assessment: Quality assessment from collection phase
         context: Additional context (critical attributes, 6R requirements, etc.)
         shared_memory: Shared memory for agent learning
-    
+
     Returns:
         CrewAI Crew for gap analysis
     """
-    
+
     try:
         # Get LLM from service
         llm = crewai_service.get_llm()
-        
+
         # Import optimized config
         from ..crew_config import DEFAULT_AGENT_CONFIG
-        
+
         # Create gap analysis specialist agent
         gap_specialist = Agent(
             role="Data Gap Analysis Specialist",
@@ -58,9 +59,9 @@ def create_gap_analysis_crew(
             Your analysis ensures migration strategies are based on complete, accurate data.""",
             llm=llm,
             memory=shared_memory,
-            **DEFAULT_AGENT_CONFIG
+            **DEFAULT_AGENT_CONFIG,
         )
-        
+
         # Create 6R impact assessor agent
         sixr_impact_assessor = Agent(
             role="6R Strategy Impact Assessment Expert",
@@ -77,9 +78,9 @@ def create_gap_analysis_crew(
             Your assessments ensure stakeholders understand the impact of data gaps on migration options.""",
             llm=llm,
             memory=shared_memory,
-            **DEFAULT_AGENT_CONFIG
+            **DEFAULT_AGENT_CONFIG,
         )
-        
+
         # Create gap prioritization agent
         gap_prioritizer = Agent(
             role="Gap Prioritization and Resolution Expert",
@@ -96,19 +97,25 @@ def create_gap_analysis_crew(
             You ensure gap resolution efforts are focused on highest-value activities.""",
             llm=llm,
             memory=shared_memory,
-            **DEFAULT_AGENT_CONFIG
+            **DEFAULT_AGENT_CONFIG,
         )
-        
+
         # Extract context information
-        critical_attributes = context.get('critical_attributes_framework', {})
-        sixr_requirements = context.get('sixr_requirements', {})
-        business_priorities = context.get('business_priorities', {})
-        
+        context.get("critical_attributes_framework", {})
+        context.get("sixr_requirements", {})
+        business_priorities = context.get("business_priorities", {})
+
         # Calculate collection statistics
-        total_records = sum(len(v.get('resources', [])) for v in collected_data.values() if isinstance(v, dict))
+        total_records = sum(
+            len(v.get("resources", []))
+            for v in collected_data.values()
+            if isinstance(v, dict)
+        )
         platforms_collected = len(collected_data)
-        avg_quality_score = quality_assessment.get('quality_assessment', {}).get('overall_quality_score', 0)
-        
+        avg_quality_score = quality_assessment.get("quality_assessment", {}).get(
+            "overall_quality_score", 0
+        )
+
         # Create gap analysis task
         gap_analysis_task = Task(
             description=f"""Analyze collected data to identify critical gaps:
@@ -177,12 +184,12 @@ def create_gap_analysis_crew(
                 ]
             }}""",
             agent=gap_specialist,
-            expected_output="JSON object with comprehensive gap analysis"
+            expected_output="JSON object with comprehensive gap analysis",
         )
-        
+
         # Create 6R impact assessment task
         sixr_impact_task = Task(
-            description=f"""Assess how identified gaps impact 6R strategy decisions:
+            description="""Assess how identified gaps impact 6R strategy decisions:
 
             6R STRATEGY REQUIREMENTS:
             - Rehost: Infrastructure details, dependencies, performance metrics
@@ -212,41 +219,41 @@ def create_gap_analysis_crew(
                - Gaps that can be deferred
 
             OUTPUT FORMAT:
-            {{
-                "sixr_impact_analysis": {{
-                    "rehost": {{
+            {
+                "sixr_impact_analysis": {
+                    "rehost": {
                         "confidence_score": 0.82,
                         "blocking_gaps": [],
                         "confidence_impact": "Medium - missing performance baselines",
                         "risk_level": "low"
-                    }},
-                    "replatform": {{
+                    },
+                    "replatform": {
                         "confidence_score": 0.45,
                         "blocking_gaps": ["technology_stack", "platform_features"],
                         "confidence_impact": "High - cannot assess platform compatibility",
                         "risk_level": "high"
-                    }}
-                }},
-                "strategy_recommendations": {{
+                    }
+                },
+                "strategy_recommendations": {
                     "viable_strategies": ["rehost", "retire"],
                     "blocked_strategies": ["refactor", "repurchase"],
                     "confidence_threshold_met": ["rehost"],
                     "remediation_required_for": ["replatform", "refactor"]
-                }},
+                },
                 "critical_gaps_for_6r": [
-                    {{
+                    {
                         "gap_id": "gap-001",
                         "strategies_affected": ["replatform", "refactor"],
                         "confidence_impact": -35,
                         "priority": "critical"
-                    }}
+                    }
                 ]
-            }}""",
+            }""",
             agent=sixr_impact_assessor,
             expected_output="JSON object with 6R strategy impact analysis",
-            context=[gap_analysis_task]
+            context=[gap_analysis_task],
         )
-        
+
         # Create gap prioritization task
         gap_prioritization_task = Task(
             description=f"""Prioritize gaps and recommend resolution strategies:
@@ -316,24 +323,24 @@ def create_gap_analysis_crew(
             }}""",
             agent=gap_prioritizer,
             expected_output="JSON object with prioritized gaps and resolution plan",
-            context=[gap_analysis_task, sixr_impact_task]
+            context=[gap_analysis_task, sixr_impact_task],
         )
-        
+
         # Import crew config
         from ..crew_config import get_optimized_crew_config
-        
+
         # Create crew with optimized settings
         crew_config = get_optimized_crew_config()
         crew = Crew(
             agents=[gap_specialist, sixr_impact_assessor, gap_prioritizer],
             tasks=[gap_analysis_task, sixr_impact_task, gap_prioritization_task],
             process="sequential",
-            **crew_config  # Apply optimized config
+            **crew_config,  # Apply optimized config
         )
-        
+
         logger.info("✅ Gap Analysis Crew created successfully")
         return crew
-        
+
     except Exception as e:
         logger.error(f"❌ Failed to create gap analysis crew: {e}")
         raise e

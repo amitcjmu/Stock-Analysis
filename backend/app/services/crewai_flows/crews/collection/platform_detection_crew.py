@@ -4,8 +4,9 @@ ADCS: Crew for detecting and identifying target platforms using intelligent agen
 """
 
 import logging
-from typing import Dict, Any, List, Optional
-from crewai import Agent, Task, Crew
+from typing import Any, Dict, Optional
+
+from crewai import Agent, Crew, Task
 
 logger = logging.getLogger(__name__)
 
@@ -14,28 +15,28 @@ def create_platform_detection_crew(
     crewai_service,
     infrastructure_data: Dict[str, Any],
     context: Dict[str, Any],
-    shared_memory: Optional[Any] = None
+    shared_memory: Optional[Any] = None,
 ):
     """
     Create a crew for platform detection phase
-    
+
     Args:
         crewai_service: CrewAI service instance
         infrastructure_data: Data about infrastructure to analyze
         context: Additional context (credentials, tiers, etc.)
         shared_memory: Shared memory for agent learning
-    
+
     Returns:
         CrewAI Crew for platform detection
     """
-    
+
     try:
         # Get LLM from service
         llm = crewai_service.get_llm()
-        
+
         # Import optimized config
         from ..crew_config import DEFAULT_AGENT_CONFIG
-        
+
         # Create platform detection specialist agent
         platform_detection_agent = Agent(
             role="Platform Detection Specialist",
@@ -57,9 +58,9 @@ def create_platform_detection_crew(
             Your analysis ensures comprehensive platform coverage for migration planning.""",
             llm=llm,
             memory=shared_memory,
-            **DEFAULT_AGENT_CONFIG  # Apply no-delegation config
+            **DEFAULT_AGENT_CONFIG,  # Apply no-delegation config
         )
-        
+
         # Create automation tier assessment agent
         tier_assessment_agent = Agent(
             role="Automation Tier Assessment Expert",
@@ -75,14 +76,14 @@ def create_platform_detection_crew(
             You assess each platform's automation potential and recommend the appropriate tier.""",
             llm=llm,
             memory=shared_memory,
-            **DEFAULT_AGENT_CONFIG
+            **DEFAULT_AGENT_CONFIG,
         )
-        
+
         # Create platform metadata from infrastructure data
-        platform_info = context.get('platform_info', {})
-        credentials_available = context.get('credentials_available', {})
-        automation_preferences = context.get('automation_preferences', {})
-        
+        platform_info = context.get("platform_info", {})
+        credentials_available = context.get("credentials_available", {})
+        automation_preferences = context.get("automation_preferences", {})
+
         # Create platform detection task
         platform_detection_task = Task(
             description=f"""Analyze the infrastructure data to detect all platforms:
@@ -137,9 +138,9 @@ def create_platform_detection_crew(
                 }}
             }}""",
             agent=platform_detection_agent,
-            expected_output="JSON object with detected platforms and their characteristics"
+            expected_output="JSON object with detected platforms and their characteristics",
         )
-        
+
         # Create tier assessment task
         tier_assessment_task = Task(
             description=f"""Assess automation tier for each detected platform:
@@ -194,24 +195,24 @@ def create_platform_detection_crew(
             }}""",
             agent=tier_assessment_agent,
             expected_output="JSON object with automation tier assessments for each platform",
-            context=[platform_detection_task]
+            context=[platform_detection_task],
         )
-        
+
         # Import crew config
         from ..crew_config import get_optimized_crew_config
-        
+
         # Create crew with optimized settings
         crew_config = get_optimized_crew_config()
         crew = Crew(
             agents=[platform_detection_agent, tier_assessment_agent],
             tasks=[platform_detection_task, tier_assessment_task],
             process="sequential",
-            **crew_config  # Apply optimized config
+            **crew_config,  # Apply optimized config
         )
-        
+
         logger.info("✅ Platform Detection Crew created successfully")
         return crew
-        
+
     except Exception as e:
         logger.error(f"❌ Failed to create platform detection crew: {e}")
         raise e

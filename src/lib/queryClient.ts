@@ -1,4 +1,4 @@
-import { QueryClient } from '@tanstack/react-query';
+import type { QueryClient } from '@tanstack/react-query';
 import type { ApiError } from '@/types/shared/api-types';
 
 // Create a basic query client without error handling

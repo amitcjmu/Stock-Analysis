@@ -3,12 +3,13 @@
  * Extracted from ResponsiveAgentListOverview
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import type { AgentCardData } from '../../../types/api/observability/agent-performance';
 
 export interface AgentFilters {
   searchQuery?: string;
-  status?: ('active' | 'idle' | 'error' | 'offline')[];
+  status?: Array<'active' | 'idle' | 'error' | 'offline'>;
   sortBy?: 'name' | 'successRate' | 'totalTasks' | 'lastActive';
   sortOrder?: 'asc' | 'desc';
 }
@@ -28,7 +29,7 @@ export const useAgentFilters = (agents: AgentCardData[]) => {
 
     // Filter by status
     if (filters.status && filters.status.length > 0) {
-      filtered = filtered.filter(agent => filters.status!.includes(agent.status));
+      filtered = filtered.filter(agent => filters.status.includes(agent.status));
     }
 
     // Filter by search query
@@ -42,8 +43,8 @@ export const useAgentFilters = (agents: AgentCardData[]) => {
     // Sort
     if (filters.sortBy) {
       filtered.sort((a, b) => {
-        let aValue: unknown = a[filters.sortBy!];
-        let bValue: unknown = b[filters.sortBy!];
+        let aValue: unknown = a[filters.sortBy];
+        let bValue: unknown = b[filters.sortBy];
 
         if (filters.sortBy === 'name' || filters.sortBy === 'lastActive') {
           aValue = aValue.toLowerCase();

@@ -10,24 +10,26 @@ Tests the complete discovery workflow using real clients to verify:
 """
 
 import asyncio
-import sys
-import os
 import csv
-import tempfile
 import json
-import aiohttp
+import os
+import sys
+import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
+
+import aiohttp
 
 # Add the backend directory to the path
 sys.path.append('/app')
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
+from sqlalchemy import and_, func, select
+
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
-from app.models.data_import import DataImport, RawImportRecord
 from app.models.client_account import ClientAccount
+from app.models.data_import import DataImport
+
 
 class MultiTenantWorkflowTester:
     """Test multi-tenant discovery workflow with real clients."""
@@ -520,7 +522,7 @@ class MultiTenantWorkflowTester:
                 json.dump(self.test_results, f, indent=2, default=str)
             
             # Generate executive summary
-            print(f"\n📊 MULTI-TENANT WORKFLOW TEST SUMMARY")
+            print("\n📊 MULTI-TENANT WORKFLOW TEST SUMMARY")
             print("=" * 80)
             
             # Test results overview
@@ -537,7 +539,7 @@ class MultiTenantWorkflowTester:
             print(f"Multi-Tenant Isolation: {'✅ PASSED' if isolation_passed else '❌ FAILED'}")
             
             # Individual client results
-            print(f"\n🏢 CLIENT-SPECIFIC RESULTS:")
+            print("\n🏢 CLIENT-SPECIFIC RESULTS:")
             for client_name, test_data in self.test_results["tenant_tests"].items():
                 csv_success = test_data.get("csv_upload", {}).get("success", False)
                 crewai_success = test_data.get("crewai_processing", {}).get("success", False)
@@ -546,7 +548,7 @@ class MultiTenantWorkflowTester:
                 print(f"  {client_name.upper()}: CSV {'✅' if csv_success else '❌'} | CrewAI {'✅' if crewai_success else '❌'} | Assets Added: {assets_added}")
             
             # Critical findings
-            print(f"\n🚨 CRITICAL FINDINGS:")
+            print("\n🚨 CRITICAL FINDINGS:")
             
             real_processing_detected = False
             for test_data in self.test_results["tenant_tests"].values():
@@ -555,14 +557,14 @@ class MultiTenantWorkflowTester:
                     break
             
             if real_processing_detected:
-                print(f"   ✅ REAL DATA PROCESSING CONFIRMED: Assets actually created and persisted")
+                print("   ✅ REAL DATA PROCESSING CONFIRMED: Assets actually created and persisted")
             else:
-                print(f"   🚨 NO REAL PROCESSING: No assets were actually created despite API success messages")
+                print("   🚨 NO REAL PROCESSING: No assets were actually created despite API success messages")
             
             if isolation_passed:
-                print(f"   ✅ MULTI-TENANT ISOLATION WORKING: No data cross-contamination between clients")
+                print("   ✅ MULTI-TENANT ISOLATION WORKING: No data cross-contamination between clients")
             else:
-                print(f"   🚨 MULTI-TENANT ISOLATION FAILED: Data cross-contamination detected")
+                print("   🚨 MULTI-TENANT ISOLATION FAILED: Data cross-contamination detected")
             
             # API Context Testing
             api_context_working = True
@@ -572,13 +574,13 @@ class MultiTenantWorkflowTester:
                     break
             
             if api_context_working:
-                print(f"   ✅ API CONTEXT HEADERS WORKING: Client-specific data returned correctly")
+                print("   ✅ API CONTEXT HEADERS WORKING: Client-specific data returned correctly")
             else:
-                print(f"   🚨 API CONTEXT ISSUES: Client context headers not working properly")
+                print("   🚨 API CONTEXT ISSUES: Client context headers not working properly")
             
             # Errors
             if error_count > 0:
-                print(f"\n❌ ERRORS ENCOUNTERED:")
+                print("\n❌ ERRORS ENCOUNTERED:")
                 for i, error in enumerate(self.test_results["errors"], 1):
                     print(f"   {i}. {error}")
             

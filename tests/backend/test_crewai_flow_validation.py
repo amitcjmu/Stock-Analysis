@@ -4,12 +4,9 @@ Tests the complete CrewAI Flow system in Docker environment.
 """
 
 import pytest
-import asyncio
 import requests
-import json
 import time
 from datetime import datetime
-from typing import Dict, Any
 
 
 class TestCrewAIFlowValidation:

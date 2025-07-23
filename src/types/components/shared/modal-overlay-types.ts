@@ -4,8 +4,8 @@
  * Modal, tooltip, and overlay component interfaces.
  */
 
-import { ReactNode, RefObject } from 'react';
-import { BaseComponentProps } from './base-props';
+import type { ReactNode, RefObject } from 'react';
+import type { BaseComponentProps } from './base-props';
 
 // Modal and overlay component types
 export interface ModalProps extends BaseComponentProps {

@@ -5,14 +5,15 @@ This module contains data models for quality and confidence scoring results.
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
-from .enums import QualityDimension, ConfidenceLevel
+from .enums import ConfidenceLevel, QualityDimension
 
 
 @dataclass
 class QualityScore:
     """Data quality score result"""
+
     overall_score: float
     dimension_scores: Dict[QualityDimension, float]
     issues_found: List[Dict[str, Any]]
@@ -23,6 +24,7 @@ class QualityScore:
 @dataclass
 class ConfidenceScore:
     """Confidence assessment result"""
+
     overall_confidence: float
     confidence_level: ConfidenceLevel
     confidence_factors: Dict[str, float]

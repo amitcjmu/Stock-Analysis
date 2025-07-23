@@ -4,9 +4,9 @@
  * Types for file upload, download, and file management operations.
  */
 
-import { BaseApiRequest, BaseApiResponse } from './base-types';
-import { MultiTenantContext } from './tenant-types';
-import { CompressionOptions, EncryptionOptions } from './file-processing-types';
+import type { BaseApiRequest, BaseApiResponse } from './base-types';
+import type { MultiTenantContext } from './tenant-types';
+import type { CompressionOptions, EncryptionOptions } from './file-processing-types';
 
 // File upload/download
 export interface FileUploadRequest extends BaseApiRequest {

@@ -8,11 +8,13 @@ Revises: a1409a6c4f88
 Create Date: 2025-06-30 06:00:00.000000
 
 """
-from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
-from sqlalchemy import text
 import logging
+
+import sqlalchemy as sa
+from sqlalchemy import text
+from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = 'railway_safe_schema_sync'

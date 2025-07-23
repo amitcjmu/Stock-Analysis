@@ -17,7 +17,7 @@ interface UploadContext {
 }
 
 interface DataImportRequest {
-  file_data: Record<string, unknown>[];
+  file_data: Array<Record<string, unknown>>;
   metadata: FileMetadata;
   upload_context: UploadContext;
   client_id?: string;
@@ -65,7 +65,7 @@ class DataImportClient {
    * Import CSV data directly
    */
   async importData(
-    data: Record<string, unknown>[],
+    data: Array<Record<string, unknown>>,
     filename: string,
     importType: string
   ): Promise<DataImportResponse> {
@@ -226,12 +226,12 @@ class DataImportClient {
   /**
    * Parse CSV text to array of objects
    */
-  private parseCSV(text: string): Record<string, unknown>[] {
+  private parseCSV(text: string): Array<Record<string, unknown>> {
     const lines = text.split('\n').filter(line => line.trim());
     if (lines.length === 0) return [];
 
     const headers = lines[0].split(',').map(h => h.trim());
-    const data: Record<string, unknown>[] = [];
+    const data: Array<Record<string, unknown>> = [];
 
     for (let i = 1; i < lines.length; i++) {
       const values = lines[i].split(',').map(v => v.trim());

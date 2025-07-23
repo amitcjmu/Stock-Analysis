@@ -67,6 +67,6 @@ export interface LazyUtilityModule<T = unknown> {
   [key: string]: T;
 }
 
-export type LazyComponentImport<P = {}> = () => Promise<{ default: React.ComponentType<P> }>;
+export type LazyComponentImport<P = Record<string, unknown>> = () => Promise<{ default: React.ComponentType<P> }>;
 export type LazyHookImport<T = unknown> = () => Promise<LazyHookModule<T>>;
 export type LazyUtilityImport<T = unknown> = () => Promise<LazyUtilityModule<T>>;

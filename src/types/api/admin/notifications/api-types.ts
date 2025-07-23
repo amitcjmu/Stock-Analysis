@@ -6,7 +6,7 @@
  * Generated with CC for modular admin type organization.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext,
@@ -16,20 +16,12 @@ import {
   CreateResponse
 } from '../../shared';
 
-import { 
-  NotificationData, 
-  Notification, 
-  NotificationRecipient, 
-  NotificationChannel,
-  NotificationScheduling,
-  NotificationRead,
-  DeliveryChannel,
-  PriorityCount,
-  ChannelStats
-} from './notification';
+import type { NotificationData, NotificationScheduling } from './notification'
+import type { Notification, NotificationRecipient, NotificationChannel, NotificationRead, DeliveryChannel, PriorityCount, ChannelStats } from './notification'
 
-import { NotificationPriority, NotificationStatus, ChannelType } from './enums';
-import { TimeRange } from '../common';
+import type { NotificationStatus, ChannelType } from './enums'
+import type { NotificationPriority } from './enums'
+import type { TimeRange } from '../common';
 
 // Notification Creation APIs
 export interface CreateNotificationRequest extends CreateRequest<NotificationData> {

@@ -1,26 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Progress } from '../ui/progress';
 import { Separator } from '../ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
-import { 
-  CheckCircle, 
-  AlertTriangle, 
-  TrendingUp, 
-  Clock, 
-  DollarSign,
-  Shield,
-  Zap,
-  ChevronDown,
-  ChevronUp,
-  Star,
-  Target,
-  ArrowRight,
-  Info
-} from 'lucide-react';
+import type { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
+import type { ChevronDown, ChevronUp, Info } from 'lucide-react'
+import { CheckCircle, AlertTriangle, TrendingUp, Clock, DollarSign, Shield, Zap, Star, Target, ArrowRight } from 'lucide-react'
 
 export interface SixRStrategyScore {
   strategy: string;

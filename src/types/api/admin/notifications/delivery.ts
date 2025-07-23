@@ -7,7 +7,7 @@
  */
 
 import type { BaseMetadata, AuditableMetadata } from '../../../shared/metadata-types';
-import { ChannelType, DeliveryStatus, ErrorCategory } from './enums';
+import type { ChannelType, DeliveryStatus, ErrorCategory } from './enums';
 
 // Notification delivery information
 export interface NotificationDelivery {

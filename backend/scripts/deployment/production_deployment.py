@@ -7,18 +7,19 @@ This script handles the full production deployment of the Master Flow Orchestrat
 with blue-green deployment strategy, comprehensive monitoring, and rollback capabilities.
 """
 
-import os
-import sys
 import asyncio
-import logging
 import json
+import logging
+import os
 import subprocess
-import time
-import aiohttp
-from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional, Tuple
-from pathlib import Path
+import sys
 import tempfile
+import time
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict
+
+import aiohttp
 
 # Configure logging
 logging.basicConfig(
@@ -763,7 +764,7 @@ echo "Traffic split updated to {percentage}% green"
                             total_count += 1
                             if response.status >= 500:
                                 error_count += 1
-                    except:
+                    except Exception:
                         total_count += 1
                         error_count += 1
                 

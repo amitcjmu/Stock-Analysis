@@ -2,8 +2,8 @@
 Agent metadata definitions to avoid circular imports
 """
 
-from typing import List, Type, Any
 from dataclasses import dataclass
+from typing import List, Type
 
 # Optional CrewAI import
 try:
@@ -13,9 +13,11 @@ except ImportError:
     class Agent:
         pass
 
+
 @dataclass
 class AgentMetadata:
     """Metadata for registered agents"""
+
     name: str
     description: str
     agent_class: Type[Agent]

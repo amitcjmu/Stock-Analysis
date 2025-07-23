@@ -14,4 +14,4 @@
  */
 
 // Re-export all types for backward compatibility
-export * from './logging';
+export type * from './logging';

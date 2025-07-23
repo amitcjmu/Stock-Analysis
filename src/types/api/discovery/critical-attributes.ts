@@ -5,7 +5,7 @@
  * validation, business rules, and quality assessment operations.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   GetRequest,

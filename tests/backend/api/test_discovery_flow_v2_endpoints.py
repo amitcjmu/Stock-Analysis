@@ -4,12 +4,7 @@ Tests the new v2 API architecture with CrewAI Flow ID as single source of truth.
 """
 
 import pytest
-import asyncio
-import json
-from typing import Dict, List, Any
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, Mock, patch
-from datetime import datetime, timedelta
 
 # API testing fixtures
 @pytest.fixture

@@ -11,4 +11,4 @@
  */
 
 // Re-export all types from the modular monitoring structure
-export * from './monitoring/index';
+export type * from './monitoring/index';

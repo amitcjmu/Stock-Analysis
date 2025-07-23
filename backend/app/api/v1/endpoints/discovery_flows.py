@@ -5,7 +5,7 @@ This is the new modular implementation of discovery flows endpoints.
 The original discovery_flows.py has been refactored into specialized modules:
 
 - Query Endpoints: GET operations for status, lists, and information
-- Lifecycle Endpoints: POST/DELETE operations for creation and deletion  
+- Lifecycle Endpoints: POST/DELETE operations for creation and deletion
 - Execution Endpoints: PUT operations for flow execution and control
 - Validation Endpoints: Health checks and validation operations
 - Response Mappers: Standardized response formatting
@@ -16,21 +16,23 @@ and cleaner code organization.
 """
 
 import logging
+
 from fastapi import APIRouter
+
+from .discovery_flows.execution_endpoints import execution_router
+from .discovery_flows.lifecycle_endpoints import lifecycle_router
 
 # Import all modular routers
 from .discovery_flows.query_endpoints import query_router
-from .discovery_flows.lifecycle_endpoints import lifecycle_router
-from .discovery_flows.execution_endpoints import execution_router
-from .discovery_flows.validation_endpoints import validation_router
 
 # Import response models for OpenAPI documentation
 from .discovery_flows.response_mappers import (
-    DiscoveryFlowResponse, 
+    DiscoveryFlowResponse,
     DiscoveryFlowStatusResponse,
     FlowInitializeResponse,
-    FlowOperationResponse
+    FlowOperationResponse,
 )
+from .discovery_flows.validation_endpoints import validation_router
 
 logger = logging.getLogger(__name__)
 
@@ -47,9 +49,9 @@ router.include_router(validation_router, prefix="", tags=["discovery-validation"
 __all__ = [
     "router",
     "DiscoveryFlowResponse",
-    "DiscoveryFlowStatusResponse", 
+    "DiscoveryFlowStatusResponse",
     "FlowInitializeResponse",
-    "FlowOperationResponse"
+    "FlowOperationResponse",
 ]
 
 # Log the modular implementation startup

@@ -4,8 +4,8 @@
  * Alert, toast, and notification component interfaces.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps } from './base-props';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps } from './base-props';
 
 // Alert and notification component types
 export interface AlertProps extends BaseComponentProps {

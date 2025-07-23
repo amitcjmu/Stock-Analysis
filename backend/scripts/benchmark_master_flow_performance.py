@@ -2,17 +2,17 @@
 Test query performance with new indexes and schema changes.
 """
 import asyncio
+import os
+import random
+import statistics
 import time
 import uuid
 from datetime import datetime, timedelta
-import random
-from typing import List, Dict, Any
-import statistics
+from typing import Any, Dict
+
 from sqlalchemy import create_engine, text
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import NullPool
-import os
 from tabulate import tabulate
 
 # Database URL from environment or default

@@ -9,7 +9,7 @@ import {
   Clock 
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { UploadFile } from '../CMDBImport.types';
+import type { UploadFile } from '../CMDBImport.types';
 import { getStatusStyling } from '../utils/statusUtils';
 
 interface CMDBValidationPanelProps {

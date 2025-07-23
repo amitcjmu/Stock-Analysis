@@ -12,4 +12,4 @@
  */
 
 // Re-export all types from modular structure
-export * from './analytics-types';
+export type * from './analytics-types';

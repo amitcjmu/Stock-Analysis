@@ -4,12 +4,10 @@ Schema validation script for database consolidation
 Ensures the consolidated schema is correctly created
 """
 
-import asyncio
-import sys
-from sqlalchemy import create_engine, inspect
-from sqlalchemy.ext.asyncio import create_async_engine
 import os
-from typing import List, Dict, Set
+import sys
+
+from sqlalchemy import create_engine, inspect
 
 # Database connection from environment
 DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/migration_db')
@@ -175,7 +173,7 @@ class SchemaValidator:
         if deprecated_found:
             self.errors.append(f"Deprecated tables still exist: {sorted(deprecated_found)}")
         else:
-            print(f"✓ No deprecated tables found")
+            print("✓ No deprecated tables found")
     
     def _check_enum_types(self):
         """Check enum types exist"""
@@ -192,7 +190,7 @@ class SchemaValidator:
         if missing_enums:
             self.warnings.append(f"Missing enum types: {sorted(missing_enums)}")
         else:
-            print(f"✓ All expected enum types exist")
+            print("✓ All expected enum types exist")
     
     def _check_critical_fields(self):
         """Verify critical fields exist with correct names"""

@@ -24,7 +24,7 @@ test.describe('Data Import Page', () => {
 
   test('should load without console errors', async () => {
     const consoleErrors: string[] = [];
-    const apiErrors: { url: string; status: number; error?: string }[] = [];
+    const apiErrors: Array<{ url: string; status: number; error?: string }> = [];
     
     // Listen for console errors
     page.on('console', (msg) => {

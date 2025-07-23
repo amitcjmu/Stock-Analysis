@@ -1,15 +1,16 @@
-import React from 'react';
+import type React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useExecutionMetrics, useExecutionReports } from '@/hooks/execute/useExecuteQueries';
 import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';
-import { BarChart, LineChart, PieChart, Download, Filter, RefreshCw } from 'lucide-react';
+import type { BarChart, LineChart, PieChart, Filter, RefreshCw } from 'lucide-react'
+import { Download } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
+import type { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSkeleton } from '@/components/ui/loading-skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Reports = () => {
   const { isAuthenticated } = useAuth();

@@ -4,13 +4,14 @@
  * Session handling, monitoring, and management API types.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext
 } from '../shared';
 
-import { UserSession, SessionActivity, DeviceInfo } from './core-types';
+import type { DeviceInfo } from './core-types'
+import type { UserSession, SessionActivity } from './core-types'
 
 // Session Management APIs
 export interface GetSessionsRequest extends BaseApiRequest {

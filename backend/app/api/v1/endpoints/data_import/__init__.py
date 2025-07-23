@@ -5,13 +5,15 @@ Enhanced with multi-tenant context awareness and automatic session management.
 
 from fastapi import APIRouter
 
+from .asset_processing import router as processing_router
+
 # Import all module routers
 from .core_import import router as core_router
+
 # from .quality_analysis import router as quality_router  # Disabled - DataQualityIssue model removed
 from .critical_attributes import router as critical_router
-from .learning_integration import router as learning_router
-from .asset_processing import router as processing_router
 from .field_mapping_modular import router as field_mapping_router
+from .learning_integration import router as learning_router
 
 # Create main router that combines all modules
 router = APIRouter()
@@ -29,7 +31,7 @@ __all__ = [
     "core_router",
     # "quality_router",  # Disabled - DataQualityIssue model removed
     "critical_router",
-    "learning_router", 
+    "learning_router",
     "processing_router",
-    "field_mapping_router"
-] 
+    "field_mapping_router",
+]

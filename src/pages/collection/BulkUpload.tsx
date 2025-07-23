@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Upload, FileSpreadsheet, AlertCircle, CheckCircle } from 'lucide-react';
+import type { FileSpreadsheet } from 'lucide-react'
+import { ArrowLeft, Download, Upload, AlertCircle, CheckCircle } from 'lucide-react'
 
 // Import layout components
 import Sidebar from '@/components/Sidebar';

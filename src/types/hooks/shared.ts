@@ -8,4 +8,4 @@
  */
 
 // Re-export everything from the modularized structure
-export * from './shared';
+export type * from './shared';

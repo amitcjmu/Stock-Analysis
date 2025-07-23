@@ -8,7 +8,7 @@
  */
 
 import type { BaseMetadata, AuditableMetadata } from '../../../shared/metadata-types';
-import {
+import type {
   BaseApiRequest,
   CreateRequest,
   CreateResponse

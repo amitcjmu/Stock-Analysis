@@ -4,12 +4,15 @@
  * Part of the Agent Observability Enhancement Phase 4B - Advanced Features
  */
 
-import React, { useState, useMemo } from 'react';
+import React from 'react'
+import { useState } from 'react'
+import { useMemo } from 'react'
 import { Lightbulb, Brain, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Alert, AlertDescription } from '../ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import type { TabsContent } from '../ui/tabs'
+import { Tabs, TabsList, TabsTrigger } from '../ui/tabs'
 import { useRecommendations } from './hooks/useRecommendations';
 import { RecommendationCard } from './recommendations/RecommendationCard';
 import type { Recommendation } from './recommendations/RecommendationCard';

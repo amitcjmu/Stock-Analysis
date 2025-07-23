@@ -5,12 +5,10 @@ This test provides step-by-step monitoring to isolate the exact hanging point.
 """
 
 import asyncio
-import time
+import os
 import signal
 import sys
-import os
-import threading
-from datetime import datetime
+import time
 
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
@@ -24,8 +22,9 @@ except ImportError as e:
     print(f"❌ CrewAI import failed: {e}")
     CREWAI_AVAILABLE = False
 
+from app.services.agent_monitor import agent_monitor
 from app.services.crewai_service_modular import crewai_service
-from app.services.agent_monitor import agent_monitor, TaskStatus
+
 
 class HangingDebugger:
     def __init__(self):
@@ -56,13 +55,13 @@ class HangingDebugger:
         # Get detailed status
         status = agent_monitor.get_status_report()
         
-        print(f"\nMonitoring Status:")
+        print("\nMonitoring Status:")
         print(f"  Active: {status['monitoring_active']}")
         print(f"  Active tasks: {status['active_tasks']}")
         print(f"  Hanging tasks: {status['hanging_tasks']}")
         
         if status['hanging_task_details']:
-            print(f"\n🚨 HANGING TASK ANALYSIS:")
+            print("\n🚨 HANGING TASK ANALYSIS:")
             for task in status['hanging_task_details']:
                 print(f"  Task ID: {task['task_id']}")
                 print(f"  Agent: {task['agent']}")

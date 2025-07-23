@@ -16,4 +16,4 @@
  */
 
 // Re-export all types for backward compatibility
-export * from './analytics-reporting';
+export type * from './analytics-reporting';

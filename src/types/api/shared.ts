@@ -17,4 +17,4 @@
  */
 
 // Re-export all types from modular files
-export * from './shared/index';
+export type * from './shared/index';

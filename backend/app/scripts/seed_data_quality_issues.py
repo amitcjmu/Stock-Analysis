@@ -4,21 +4,23 @@ Scaffold: Seed sample data_quality_issues linked to assets.
 Run via:
   docker exec migration_backend python app/scripts/seed_data_quality_issues.py [--force]
 """
+
+import argparse
 import asyncio
+import json
 import logging
 import os
 import sys
-import argparse
-from datetime import datetime
-from sqlalchemy import text
 import uuid
-import json
-import random
+from datetime import datetime
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+from sqlalchemy import text
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 try:
     from app.core.database import AsyncSessionLocal
+
     DEPENDENCIES_AVAILABLE = True
 except ImportError:
     DEPENDENCIES_AVAILABLE = False
@@ -26,10 +28,13 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 async def seed_issues(session, force: bool):
     if force:
         # Delete previously seeded mock rows identified by the reasoning prefix
-        await session.execute(text("DELETE FROM data_quality_issues WHERE reasoning LIKE 'MOCK:%'"))
+        await session.execute(
+            text("DELETE FROM data_quality_issues WHERE reasoning LIKE 'MOCK:%'")
+        )
         logger.info("Existing mock data_quality_issues removed.")
 
     # -------------------------------------------------------------------
@@ -46,7 +51,9 @@ async def seed_issues(session, force: bool):
             data_import_id = row[0]
             # Try to get a raw record under it
             rr_res = await session.execute(
-                text("SELECT id FROM raw_import_records WHERE data_import_id = :di LIMIT 1"),
+                text(
+                    "SELECT id FROM raw_import_records WHERE data_import_id = :di LIMIT 1"
+                ),
                 {"di": str(data_import_id)},
             )
             rr_row = rr_res.first()
@@ -57,7 +64,9 @@ async def seed_issues(session, force: bool):
         user_row = await session.execute(text("SELECT id FROM users LIMIT 1"))
         user_id = user_row.scalar_one_or_none()
         if not user_id:
-            logger.warning("No users found – cannot create mock import; skipping issue seeding.")
+            logger.warning(
+                "No users found – cannot create mock import; skipping issue seeding."
+            )
             return None, None  # Will skip later
 
         data_import_id = str(uuid.uuid4())
@@ -73,7 +82,11 @@ async def seed_issues(session, force: bool):
                 )
                 """
             ),
-            {"id": data_import_id, "imported_by": str(user_id), "created_at": datetime.utcnow()},
+            {
+                "id": data_import_id,
+                "imported_by": str(user_id),
+                "created_at": datetime.utcnow(),
+            },
         )
 
         raw_record_id = str(uuid.uuid4())
@@ -95,12 +108,18 @@ async def seed_issues(session, force: bool):
                 "created_at": datetime.utcnow(),
             },
         )
-        logger.info("Created mock data_import %s and raw_record %s", data_import_id, raw_record_id)
+        logger.info(
+            "Created mock data_import %s and raw_record %s",
+            data_import_id,
+            raw_record_id,
+        )
         return data_import_id, raw_record_id
 
     data_import_id, raw_record_id = await _ensure_mock_import()
     if not data_import_id:
-        logger.warning("DataQualityIssue seeding skipped – no data import context available.")
+        logger.warning(
+            "DataQualityIssue seeding skipped – no data import context available."
+        )
         return
 
     # -------------------------------------------------------------------
@@ -158,6 +177,7 @@ async def seed_issues(session, force: bool):
 
     logger.info("Inserted %d mock data quality issues.", inserted)
 
+
 async def main(force: bool):
     if not DEPENDENCIES_AVAILABLE:
         logger.error("Run inside backend container with app modules available.")
@@ -168,6 +188,7 @@ async def main(force: bool):
             await seed_issues(session, force)
         await session.commit()
     logger.info("Data quality issues seeding completed.")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Seed sample data_quality_issues.")

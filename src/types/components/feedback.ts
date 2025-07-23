@@ -5,4 +5,4 @@
  * loading states, progress indicators, and user feedback components.
  */
 
-export * from './feedback/index';
+export type * from './feedback/index';

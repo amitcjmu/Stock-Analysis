@@ -4,11 +4,9 @@ Docker Database Diagnosis Script
 Runs inside the Docker backend container to diagnose database and dependency issues
 """
 
-import os
-import sys
 import asyncio
 import logging
-from typing import Dict, List, Any
+import sys
 
 # Add backend to path
 sys.path.append('/app')
@@ -21,6 +19,7 @@ async def check_database_connection():
     """Check database connection and migration state"""
     try:
         from sqlalchemy import create_engine, text
+
         from app.core.config import settings
         
         # Use the Docker internal database URL
@@ -48,6 +47,7 @@ async def check_table_structure():
     """Check critical table structure"""
     try:
         from sqlalchemy import create_engine, text
+
         from app.core.config import settings
         
         db_url = settings.DATABASE_URL.replace('+asyncpg', '')
@@ -98,12 +98,12 @@ def check_crewai_installation():
         import crewai
         logger.info(f"✅ CrewAI version: {crewai.__version__}")
         
-        from crewai import Agent, Task, Crew, Process
+        from crewai import Agent, Crew, Process, Task
         logger.info("✅ CrewAI core classes imported successfully")
         
         try:
-            from crewai.memory import LongTermMemory
             from crewai.knowledge.knowledge import Knowledge
+            from crewai.memory import LongTermMemory
             logger.info("✅ CrewAI advanced features available")
         except ImportError as e:
             logger.warning(f"⚠️ CrewAI advanced features not available: {e}")
@@ -117,7 +117,7 @@ def check_crewai_installation():
 def check_discovery_flow_imports():
     """Check if discovery flow modules can be imported"""
     try:
-        from app.services.crewai_flows.discovery_flow import create_discovery_flow, DiscoveryFlow
+        from app.services.crewai_flows.discovery_flow import DiscoveryFlow, create_discovery_flow
         logger.info("✅ DiscoveryFlow imported successfully")
         
         from app.services.crewai_flows.crews.inventory_building_crew import create_inventory_building_crew

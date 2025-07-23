@@ -4,18 +4,21 @@
  * Part of the Agent Observability Enhancement Phase 4B - Advanced Features
  */
 
-import React, { useState } from 'react';
-import { BarChart3, Calendar, Clock, Brain, Zap, AlertTriangle, Target, Download, RefreshCw, Filter, Eye, Activity, Layers } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
-import { Badge } from '../../ui/badge';
+import React from 'react'
+import { useState } from 'react'
+import type { Calendar, Clock, Brain, Zap, Target, Filter, Eye, Activity, Layers } from 'lucide-react'
+import { BarChart3, AlertTriangle, Download, RefreshCw } from 'lucide-react'
+import type { CardHeader, CardTitle } from '../../ui/card'
+import { Card, CardContent } from '../../ui/card'
+import type { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
-import { AdvancedAnalyticsProps } from './types';
+import type { AdvancedAnalyticsProps } from './types';
 import { METRIC_CONFIGS } from './constants';
 import { TrendIndicator } from './components';
 import { useAnalyticsData, useChartData } from './hooks';
-import { handleExportData } from './utils';
+import type { handleExportData } from './utils';
 import { TrendsTab, PatternsTab, CorrelationsTab, PredictionsTab, AnomaliesTab } from './tabs';
 
 const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({

@@ -5,7 +5,8 @@
  * for collection workflows and flow management.
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react'
+import { useEffect } from 'react'
 import { useToast } from '@/components/ui/use-toast';
 import type { ProgressMilestone } from '@/components/collection/types';
 import { collectionFlowApi } from '@/services/api/collection-flow';

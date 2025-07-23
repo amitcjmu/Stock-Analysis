@@ -7,9 +7,9 @@ header naming conventions to resolve console errors and context mismatches.
 """
 
 import asyncio
-import aiohttp
-import json
 from datetime import datetime
+
+import aiohttp
 
 # Test contexts from the logs
 TEST_CONTEXTS = {

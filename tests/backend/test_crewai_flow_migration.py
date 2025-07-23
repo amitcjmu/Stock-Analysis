@@ -11,22 +11,17 @@ This test suite validates:
 """
 
 import pytest
-import asyncio
-import json
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import Mock, patch
 from datetime import datetime
-from typing import Dict, Any
 
 # Test imports
 from app.services.crewai_flow_service import CrewAIFlowService
 from app.services.crewai_flows.discovery_flow import (
     DiscoveryFlow, 
     DiscoveryFlowState, 
-    create_discovery_flow,
-    CREWAI_FLOW_AVAILABLE
+    create_discovery_flow
 )
 from app.core.context import RequestContext
-from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState as LegacyDiscoveryFlowState
 
 
 class TestCrewAIFlowMigration:
@@ -158,7 +153,7 @@ class TestCrewAIFlowMigration:
     
     def test_native_format_structure(self, mock_db_session):
         """Test that the service returns native DiscoveryFlowState format."""
-        service = CrewAIFlowService(mock_db_session)
+        CrewAIFlowService(mock_db_session)
         
         # Create a test state
         new_state = DiscoveryFlowState(
@@ -180,7 +175,7 @@ class TestCrewAIFlowMigration:
     
     def test_fallback_behavior_when_crewai_unavailable(self):
         """Test that the system works correctly when CrewAI Flow is not available."""
-        from app.services.crewai_flows.discovery_flow import Flow, start, listen, persist
+        from app.services.crewai_flows.discovery_flow import Flow, start, persist
         
         # Test mock decorators
         @start()
@@ -383,7 +378,7 @@ class TestNativeFormatValidation:
     
     def test_native_state_structure_complete(self, mock_db_session):
         """Test that native state structure contains all required fields."""
-        service = CrewAIFlowService(mock_db_session)
+        CrewAIFlowService(mock_db_session)
         
         # Create new state
         new_state = DiscoveryFlowState(
@@ -441,7 +436,7 @@ class TestPerformanceAndScaling:
     
     def test_large_dataset_handling(self, mock_db_session):
         """Test handling of large CMDB datasets."""
-        service = CrewAIFlowService(mock_db_session)
+        CrewAIFlowService(mock_db_session)
         
         # Create large dataset
         large_dataset = []

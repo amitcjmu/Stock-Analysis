@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Shield, AlertTriangle, CheckCircle, Info, Eye, EyeOff, Lock } from 'lucide-react';
+import React from 'react'
+import { useState } from 'react'
+import { useEffect } from 'react'
+import type { Info } from 'lucide-react'
+import { Shield, AlertTriangle, CheckCircle, Eye, EyeOff, Lock } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext';
 import { API_CONFIG } from '../../config/api';
 

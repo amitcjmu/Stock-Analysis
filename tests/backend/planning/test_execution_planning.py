@@ -14,12 +14,8 @@ Tests the planning and coordination functionality including:
 
 import pytest
 import asyncio
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from typing import Dict, List, Any
-import json
-from datetime import datetime, timedelta
-import time
-import uuid
+from unittest.mock import Mock, AsyncMock
+from datetime import datetime
 
 # Import planning components
 try:

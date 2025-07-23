@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
+import asyncio
+
+from sqlalchemy import select
+
 from app.core.database import AsyncSessionLocal
 from app.models.sixr_analysis import SixRParameters as SixRParametersModel
-from sqlalchemy import select
-import asyncio
+
 
 async def check_params():
     async with AsyncSessionLocal() as session:

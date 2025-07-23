@@ -16,7 +16,7 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import { masterFlowService } from '@/services/api/masterFlowService';
 import { useAuth } from '@/contexts/AuthContext';
-import { FlowStatusResponse } from '@/types/api';
+import type { FlowStatusResponse } from '@/types/api';
 
 interface UseDiscoveryFlowStatusOptions {
   /** Flow ID to monitor */

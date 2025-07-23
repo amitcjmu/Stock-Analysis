@@ -3,16 +3,17 @@ Tier Recommendation Agent - Automation tier recommendation
 Recommends optimal automation tier based on platform capabilities and requirements
 """
 
-from typing import List, Dict, Any
-from crewai import Agent
+from typing import Any, List
+
 from app.services.agents.base_agent import BaseCrewAIAgent
 from app.services.agents.metadata import AgentMetadata
 from app.services.llm_config import get_crewai_llm
 
+
 class TierRecommendationAgent(BaseCrewAIAgent):
     """
     Recommends appropriate automation tier using CrewAI patterns.
-    
+
     Capabilities:
     - Complexity assessment
     - Automation feasibility analysis
@@ -20,12 +21,12 @@ class TierRecommendationAgent(BaseCrewAIAgent):
     - Tier matching
     - Recommendation justification
     """
-    
+
     def __init__(self, tools: List[Any], llm: Any = None, **kwargs):
         """Initialize with proper CrewAI configuration"""
         if llm is None:
             llm = get_crewai_llm()
-        
+
         super().__init__(
             role="Automation Tier Recommendation Specialist",
             goal="Recommend the optimal automation tier that balances efficiency, risk, and complexity",
@@ -48,7 +49,7 @@ class TierRecommendationAgent(BaseCrewAIAgent):
             llm=llm,
             **kwargs
         )
-    
+
     @classmethod
     def agent_metadata(cls) -> AgentMetadata:
         """Define agent metadata for registry"""
@@ -61,17 +62,17 @@ class TierRecommendationAgent(BaseCrewAIAgent):
                 "AutomationFeasibilityChecker",
                 "RiskAssessmentTool",
                 "TierMatchingEngine",
-                "RecommendationJustifier"
+                "RecommendationJustifier",
             ],
             capabilities=[
                 "complexity_assessment",
                 "automation_feasibility",
                 "risk_evaluation",
                 "tier_recommendation",
-                "justification_generation"
+                "justification_generation",
             ],
             max_iter=8,
             memory=True,
             verbose=True,
-            allow_delegation=False
+            allow_delegation=False,
         )

@@ -4,7 +4,6 @@ End-to-end test to verify the Discovery Flow works after repository fixes
 """
 
 import requests
-import json
 import time
 
 # Test data

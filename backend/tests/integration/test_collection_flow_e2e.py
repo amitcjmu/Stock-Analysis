@@ -16,38 +16,33 @@ Test Coverage:
 Generated with CC.
 """
 
-import pytest
 import asyncio
-import uuid
 import json
-from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
+import logging
+import uuid
+from datetime import datetime
+from typing import Any, Dict
 
-from sqlalchemy import text, select, func
+import pytest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import selectinload
 
-from app.core.database import AsyncSessionLocal, engine
 from app.core.context import RequestContext
-from app.models.base import Base
-from app.models import User, ClientAccount, Engagement
-from app.models.collection_flow import (
-    CollectionFlow, CollectionPhase, CollectionStatus, 
-    AutomationTier, PlatformType, DataDomain
-)
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.core.database import AsyncSessionLocal
+from app.models import ClientAccount, Engagement, User
 from app.models.collected_data_inventory import CollectedDataInventory
 from app.models.collection_data_gap import CollectionDataGap
+from app.models.collection_flow import (
+    CollectionFlow,
+    CollectionPhase,
+    CollectionStatus,
+    PlatformType,
+)
 from app.models.collection_questionnaire_response import CollectionQuestionnaireResponse
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.models.platform_credentials import PlatformCredential
-
 from app.services.crewai_flows.unified_collection_flow import UnifiedCollectionFlow
 from app.services.crewai_service import CrewAIService
-from app.services.collection_flow import CollectionFlowStateService
-from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-
-import logging
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -427,8 +422,8 @@ class TestCollectionFlowE2E:
         
         # Attempt to execute automated collection (should handle error gracefully)
         try:
-            result = await collection_flow.automated_collection({"phase": "platform_detection"})
-        except Exception as e:
+            await collection_flow.automated_collection({"phase": "platform_detection"})
+        except Exception:
             # Verify error was logged
             assert collection_flow.state.errors is not None
             assert len(collection_flow.state.errors) > 0
@@ -525,7 +520,7 @@ class TestCollectionFlowE2E:
         
         # Execute flow initialization and platform detection
         await collection_flow.initialize_collection()
-        platform_result = await collection_flow.detect_platforms({"phase": "initialization"})
+        await collection_flow.detect_platforms({"phase": "initialization"})
         
         # Verify platforms detected match credentials
         detected = collection_flow.state.detected_platforms
@@ -556,7 +551,7 @@ class TestCollectionFlowE2E:
         
         # Phase 2: Platform Detection
         start_time = time.time()
-        platform_result = await collection_flow.detect_platforms({"phase": "initialization"})
+        await collection_flow.detect_platforms({"phase": "initialization"})
         phase_times["platform_detection"] = time.time() - start_time
         
         # Verify reasonable execution times

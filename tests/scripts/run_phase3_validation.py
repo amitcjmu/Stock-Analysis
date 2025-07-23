@@ -19,7 +19,6 @@ Usage:
 """
 
 import sys
-import os
 import time
 import subprocess
 import argparse
@@ -288,7 +287,7 @@ class Phase3ValidationRunner:
         # Show failed tests
         failed_results = [r for r in summary['results'] if not r["success"]]
         if failed_results:
-            print(f"\nFAILED TESTS:")
+            print("\nFAILED TESTS:")
             print("-" * 40)
             for result in failed_results:
                 print(f"❌ {result['description']}")
@@ -296,7 +295,7 @@ class Phase3ValidationRunner:
                     print(f"   Error: {result['stderr'][:200]}...")
         
         # Show all test results
-        print(f"\nALL TEST RESULTS:")
+        print("\nALL TEST RESULTS:")
         print("-" * 40)
         for result in summary['results']:
             status = "✅" if result["success"] else "❌"

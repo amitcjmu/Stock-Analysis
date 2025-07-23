@@ -6,14 +6,13 @@ Detects and prevents unauthorized demo/admin account creation.
 
 import asyncio
 import sys
-import os
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 sys.path.append('/app')
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from sqlalchemy import select
+
 from app.core.database import AsyncSessionLocal
 from app.models.client_account import User
 from app.models.rbac import UserRole
@@ -256,7 +255,7 @@ async def main():
         return
     
     # Display results
-    print(f"\n📊 SECURITY AUDIT RESULTS")
+    print("\n📊 SECURITY AUDIT RESULTS")
     print(f"Audit Time: {audit_results['audit_timestamp']}")
     print(f"Total Users: {audit_results['total_users']}")
     print(f"Security Score: {audit_results['security_score']['score']}/100 ({audit_results['security_score']['status']})")
@@ -281,7 +280,7 @@ async def main():
     
     # Auto-remediate if violations found
     if audit_results['violations']:
-        print(f"\n🔧 STARTING AUTO-REMEDIATION...")
+        print("\n🔧 STARTING AUTO-REMEDIATION...")
         remediation_results = await auto_remediate_violations(audit_results['violations'])
         
         if 'error' not in remediation_results:
@@ -290,11 +289,11 @@ async def main():
                 print(f"❌ Failed to remediate {len(remediation_results['failed'])} accounts")
     
     # Show recommendations
-    print(f"\n📋 SECURITY RECOMMENDATIONS")
+    print("\n📋 SECURITY RECOMMENDATIONS")
     for i, rec in enumerate(audit_results['recommendations'], 1):
         print(f"  {i}. {rec}")
     
-    print(f"\n🔒 Security audit complete!")
+    print("\n🔒 Security audit complete!")
 
 if __name__ == "__main__":
     asyncio.run(main()) 

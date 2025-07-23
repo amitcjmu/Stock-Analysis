@@ -1,15 +1,6 @@
-import { apiCall } from '@/config/api';
-import { 
-  SixRParameters, 
-  QualifyingQuestion, 
-  QuestionResponse, 
-  SixRRecommendation,
-  AnalysisProgressType,
-  AnalysisHistoryItem,
-  BulkAnalysisJob,
-  BulkAnalysisResult,
-  BulkAnalysisSummary
-} from '../../components/sixr';
+import type { apiCall } from '@/config/api';
+import type { QuestionResponse, AnalysisProgressType, BulkAnalysisResult, BulkAnalysisSummary } from '../../components/sixr'
+import { SixRParameters, QualifyingQuestion, SixRRecommendation, AnalysisHistoryItem, BulkAnalysisJob } from '../../components/sixr'
 
 // Custom API Error class for SixR
 export class APIError extends Error {

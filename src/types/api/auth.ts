@@ -5,4 +5,4 @@
  * login, logout, token management, session handling, and security operations.
  */
 
-export * from './auth/index';
+export type * from './auth/index';

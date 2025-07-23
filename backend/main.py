@@ -5,6 +5,7 @@ Main application entry point with CORS, routing, and WebSocket support.
 
 # Disable OpenTelemetry before any other imports to prevent connection errors
 import os
+
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 os.environ.setdefault("OTEL_TRACES_EXPORTER", "none")
 os.environ.setdefault("OTEL_METRICS_EXPORTER", "none")
@@ -13,21 +14,19 @@ os.environ.setdefault("OTEL_PYTHON_DISABLED_INSTRUMENTATIONS", "all")
 
 # Configure Rich console early to prevent display conflicts
 from app.core.rich_config import configure_rich_for_backend
+
 configure_rich_for_backend()
 
-import sys
-import traceback
 import logging
-import uuid
-from fastapi import FastAPI, Request, Depends
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-import uvicorn
 import os
-from dotenv import load_dotenv
-
+import uuid
 from contextlib import asynccontextmanager
-from pathlib import Path
+
+import uvicorn
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+
 from app.core.context import RequestContext, get_current_context_dependency
 
 # Import error handlers
@@ -36,7 +35,7 @@ try:
     ERROR_HANDLERS_AVAILABLE = True
 except ImportError:
     ERROR_HANDLERS_AVAILABLE = False
-    logger.warning("Error handlers not available")
+    print("Warning: Error handlers not available")
 
 # Load environment variables
 load_dotenv()
@@ -129,8 +128,8 @@ async def lifespan(app: FastAPI):
                 # Initialize database with required data (platform admin, test users in development)
                 if os.getenv("SKIP_DB_INIT", "false").lower() != "true":
                     try:
-                        from app.core.database_initialization import initialize_database
                         from app.core.database import AsyncSessionLocal
+                        from app.core.database_initialization import initialize_database
                         
                         logger.info("📦 Initializing database with required data...")
                         async with AsyncSessionLocal() as db:
@@ -181,16 +180,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Basic health check that's always available
-@app.get("/health")
-async def health_check():
-    """Health check endpoint for monitoring."""
-    return {
-        "status": "healthy",
-        "service": "ai-force-migration-api",
-        "version": "0.2.0",
-        "timestamp": "2025-01-27"
-    }
+# Health check is defined later with more comprehensive component status
 
 @app.get("/cors-test")
 async def cors_test():
@@ -220,7 +210,7 @@ API_ROUTES_ENABLED = False
 API_ROUTES_ERROR = None
 
 try:
-    from app.core.config import settings, get_database_url
+    from app.core.config import get_database_url, settings
     logger.info("✅ Configuration loaded successfully")
     CONFIG_LOADED = True
 except Exception as e:
@@ -242,7 +232,7 @@ except Exception as e:
         return settings.DATABASE_URL
 
 try:
-    from version import __version__, API_TITLE, API_DESCRIPTION, BUILD_INFO
+    from version import API_DESCRIPTION, API_TITLE, __version__
     # Update app metadata
     app.title = API_TITLE
     app.description = API_DESCRIPTION
@@ -253,8 +243,7 @@ except Exception as e:
 
 # Try to import database components
 try:
-    from app.core.database import engine, Base, SQLALCHEMY_AVAILABLE
-    from app.models.client_account import ClientAccount
+    from app.core.database import SQLALCHEMY_AVAILABLE, Base, engine
     from app.models.data_import import *
     DATABASE_ENABLED = SQLALCHEMY_AVAILABLE
     logger.info("✅ Database components loaded")
@@ -359,13 +348,13 @@ ENABLE_MIDDLEWARE = True  # Production setting
 
 if ENABLE_MIDDLEWARE:
     try:
-        from app.core.middleware import ContextMiddleware, RequestLoggingMiddleware
-        from app.middleware.adaptive_rate_limit_middleware import AdaptiveRateLimitMiddleware
-        from app.middleware.security_headers import SecurityHeadersMiddleware, SecurityAuditMiddleware
-        
         # Import request tracking middleware
         from starlette.middleware.base import BaseHTTPMiddleware
         from starlette.requests import Request
+
+        from app.core.middleware import ContextMiddleware, RequestLoggingMiddleware
+        from app.middleware.adaptive_rate_limit_middleware import AdaptiveRateLimitMiddleware
+        from app.middleware.security_headers import SecurityAuditMiddleware, SecurityHeadersMiddleware
         
         class TraceIDMiddleware(BaseHTTPMiddleware):
             """Middleware to add trace ID to all requests"""
@@ -457,8 +446,8 @@ else:
 # This ensures CORS headers are added to ALL responses, including error responses
 logger.info("🌐 Adding CORS middleware with the following configuration:")
 logger.info(f"🌐 allow_origins: {cors_origins}")
-logger.info(f"🌐 allow_credentials: True")
-logger.info(f"🌐 allow_methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH']")
+logger.info("🌐 allow_credentials: True")
+logger.info("🌐 allow_methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH']")
 
 # Production-safe CORS configuration
 app.add_middleware(

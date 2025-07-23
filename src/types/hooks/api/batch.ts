@@ -5,7 +5,7 @@
  * with support for concurrent and sequential execution.
  */
 
-import { HttpMethod } from './shared';
+import type { HttpMethod } from './shared';
 
 // Batch Request Hook Types
 export interface UseBatchRequestParams {

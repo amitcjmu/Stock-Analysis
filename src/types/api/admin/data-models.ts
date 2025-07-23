@@ -10,4 +10,4 @@
  */
 
 // Re-export all types from the modular data-models structure
-export * from './data-models/index';
+export type * from './data-models/index';

@@ -11,7 +11,7 @@ export * from './errorHandling';
 export * from './multiTenantHeaders';
 export * from './retryPolicies';
 export * from './cacheStrategies';
-export * from './apiTypes';
+export type * from './apiTypes';
 
 // Re-export commonly used functions
 export {

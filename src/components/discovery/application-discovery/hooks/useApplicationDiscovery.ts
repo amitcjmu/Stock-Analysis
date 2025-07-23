@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react'
+import { useEffect, useCallback } from 'react'
 import { apiCall, API_CONFIG } from '@/config/api';
 
 interface Application {

@@ -4,7 +4,7 @@
  * Common validation interfaces used across CRUD operations and import/export.
  */
 
-import { PrimitiveValue, DynamicValue, ConditionValue } from './value-types';
+import type { PrimitiveValue, DynamicValue, ConditionValue } from './value-types';
 
 export interface ValidationError {
   field: string;

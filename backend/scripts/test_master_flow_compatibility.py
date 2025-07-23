@@ -5,15 +5,16 @@ Task 1.4.2: Test asset repository and discovery flow services with master flow q
 """
 
 import asyncio
-import sys
 import os
+import sys
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
+
 from sqlalchemy import text
+
 from app.core.database import AsyncSessionLocal
 from app.repositories.asset_repository import AssetRepository
-from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
-import json
 
 
 async def test_asset_repository_master_flow():
@@ -39,7 +40,7 @@ async def test_asset_repository_master_flow():
         print(f"   🎯 Test Context: Client {test_context.client_account_id}, Engagement {test_context.engagement_id}")
         
         # Initialize repository
-        asset_repo = AssetRepository(session, test_context.client_account_id)
+        AssetRepository(session, test_context.client_account_id)
         
         # Test 1: Get assets by master flow
         print("\n   1️⃣ Testing get assets by master flow...")
@@ -145,7 +146,6 @@ async def test_discovery_flow_master_integration():
         coordinations = result.fetchall()
         
         for coord in coordinations:
-            progression = coord.phase_progression if coord.phase_progression else {}
             print(f"      ✅ Flow '{coord.flow_name}' - Phase: {coord.current_phase}, Status: {coord.status}")
             
         # Test 3: Phase progression tracking

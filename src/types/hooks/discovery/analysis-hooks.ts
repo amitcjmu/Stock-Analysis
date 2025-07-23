@@ -5,8 +5,8 @@
  * findings, comparisons, and training configurations.
  */
 
-import { BaseHookParams, BaseHookReturn } from './base-hooks';
-import { ReactNode } from 'react';
+import type { BaseHookParams, BaseHookReturn } from './base-hooks';
+import type { ReactNode } from 'react';
 
 // Analysis Types
 export interface AnalysisType {
@@ -24,7 +24,7 @@ export interface AnalysisParameter {
   description?: string;
   required?: boolean;
   defaultValue?: unknown;
-  options?: { value: unknown; label: string }[];
+  options?: Array<{ value: unknown; label: string }>;
   min?: number;
   max?: number;
   step?: number;

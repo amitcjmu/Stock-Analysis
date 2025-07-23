@@ -4,9 +4,8 @@ Debug script to test backend fixes for admin interface issues.
 Tests user deactivation and engagement creation API endpoints.
 """
 
+
 import requests
-import json
-import uuid
 
 # Configuration
 BASE_URL = "http://localhost:8000"

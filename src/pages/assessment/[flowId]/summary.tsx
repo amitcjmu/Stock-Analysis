@@ -1,9 +1,9 @@
 import React from 'react';
-import { GetServerSideProps } from 'next/router';
-import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
+import type { GetServerSideProps } from 'next/router';
+import type { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { useAssessmentFlow } from '@/hooks/useAssessmentFlow';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import type { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, ArrowRight, Download, BarChart3 } from 'lucide-react';
 

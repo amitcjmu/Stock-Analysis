@@ -7,9 +7,7 @@ This script simulates the frontend's "Continue to Data Cleansing" action.
 import asyncio
 import httpx
 import json
-import sys
 from datetime import datetime
-from uuid import uuid4
 
 # Configuration
 API_BASE_URL = "http://localhost:8000/api/v1"

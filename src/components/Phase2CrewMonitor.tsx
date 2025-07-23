@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Bot, Loader2, AlertTriangle, Activity, Clock, CheckCircle, XCircle, 
-  AlertCircle, Play, Pause, StopCircle, RefreshCw, Users, Zap,
-  Brain, Network, Target, TrendingUp, Eye, Settings
-} from 'lucide-react';
+import React from 'react'
+import { useState } from 'react'
+import { useEffect, useCallback } from 'react'
+import type { Pause, StopCircle, Zap, Brain, Network, Target, Settings } from 'lucide-react'
+import { Bot, Loader2, AlertTriangle, Activity, Clock, CheckCircle, XCircle, AlertCircle, Play, RefreshCw, Users, TrendingUp, Eye } from 'lucide-react'
 import { Alert } from '@/components/ui/alert';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import type { CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

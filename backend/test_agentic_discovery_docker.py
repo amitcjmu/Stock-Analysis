@@ -6,9 +6,8 @@ Run with: docker exec migration_backend python test_agentic_discovery_docker.py
 
 import asyncio
 import json
-import sys
 import os
-from datetime import datetime
+import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Add the app directory to the Python path
@@ -139,8 +138,8 @@ async def test_master_flow_orchestrator():
     print("\n🧪 Testing master flow orchestrator...")
     
     try:
-        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
         from app.core.database import AsyncSessionLocal
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
         print("✅ MasterFlowOrchestrator imported")
         
         async with AsyncSessionLocal() as session:
@@ -165,8 +164,8 @@ async def test_sse_status_manager():
     print("\n🧪 Testing SSE status manager...")
     
     try:
-        from app.services.flow_orchestration.status_manager import FlowStatusManager
         from app.core.database import AsyncSessionLocal
+        from app.services.flow_orchestration.status_manager import FlowStatusManager
         print("✅ FlowStatusManager imported")
         
         async with AsyncSessionLocal() as session:
@@ -190,8 +189,8 @@ async def test_api_endpoints():
     print("\n🧪 Testing API endpoints...")
     
     try:
-        from app.api.v1.unified_discovery import router as discovery_router
         from app.api.v1.endpoints.discovery_flows.query_endpoints import router as query_router
+        from app.api.v1.unified_discovery import router as discovery_router
         print("✅ API routers imported")
         
         # Check routes exist

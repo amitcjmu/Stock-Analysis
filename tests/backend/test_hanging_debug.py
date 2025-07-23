@@ -9,8 +9,6 @@ import time
 import signal
 import sys
 import os
-import threading
-from datetime import datetime
 
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
@@ -25,7 +23,7 @@ except ImportError as e:
     CREWAI_AVAILABLE = False
 
 from app.services.crewai_flow_service import crewai_service
-from app.services.agent_monitor import agent_monitor, TaskStatus
+from app.services.agent_monitor import agent_monitor
 
 class HangingDebugger:
     def __init__(self):
@@ -56,13 +54,13 @@ class HangingDebugger:
         # Get detailed status
         status = agent_monitor.get_status_report()
         
-        print(f"\nMonitoring Status:")
+        print("\nMonitoring Status:")
         print(f"  Active: {status['monitoring_active']}")
         print(f"  Active tasks: {status['active_tasks']}")
         print(f"  Hanging tasks: {status['hanging_tasks']}")
         
         if status['hanging_task_details']:
-            print(f"\n🚨 HANGING TASK ANALYSIS:")
+            print("\n🚨 HANGING TASK ANALYSIS:")
             for task in status['hanging_task_details']:
                 print(f"  Task ID: {task['task_id']}")
                 print(f"  Agent: {task['agent']}")

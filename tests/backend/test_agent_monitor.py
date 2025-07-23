@@ -5,9 +5,7 @@ Tests real-time monitoring, task tracking, and hanging detection.
 """
 
 import sys
-import os
 import asyncio
-import time
 from pathlib import Path
 
 # Add backend to path
@@ -112,7 +110,7 @@ class TestAgentMonitor:
         assert status["active_tasks"] == 0, "Should have 0 active tasks"
         assert status["completed_tasks"] == 1, "Should have 1 completed task"
         
-        print(f"   ✅ Task completed successfully")
+        print("   ✅ Task completed successfully")
         
         return True
     
@@ -182,7 +180,7 @@ class TestAgentMonitor:
         agent_monitor.complete_llm_call(task_id, 250)
         agent_monitor.record_thinking_phase(task_id, "Analyzing test data")
         
-        print(f"   ✅ Logged 2 LLM calls and 1 thinking phase")
+        print("   ✅ Logged 2 LLM calls and 1 thinking phase")
         
         # Check tracking
         status = agent_monitor.get_status_report()
@@ -260,7 +258,7 @@ class TestAgentMonitor:
             expected_active = len(task_ids) - (i + 1)
             assert status["active_tasks"] == expected_active, f"Should have {expected_active} active tasks"
         
-        print(f"   ✅ All tasks completed successfully")
+        print("   ✅ All tasks completed successfully")
         
         return True
     
@@ -283,11 +281,11 @@ class TestAgentMonitor:
             ]
         }
         
-        print(f"   🔄 Starting CMDB analysis with monitoring...")
+        print("   🔄 Starting CMDB analysis with monitoring...")
         
         # Get initial status
         initial_status = agent_monitor.get_status_report()
-        initial_active = initial_status["active_tasks"]
+        initial_status["active_tasks"]
         
         try:
             # Start analysis (this should create monitored tasks)
@@ -303,13 +301,13 @@ class TestAgentMonitor:
                 "Should have completed tasks during analysis"
             
             print(f"   ✅ Tasks completed: {final_status['completed_tasks']}")
-            print(f"   ✅ Integration working correctly")
+            print("   ✅ Integration working correctly")
             
             return True
             
         except Exception as e:
             print(f"   ⚠️  Analysis failed (expected in test): {e}")
-            print(f"   ✅ Monitoring still functional during failures")
+            print("   ✅ Monitoring still functional during failures")
             return True
     
     async def run_all_tests(self):

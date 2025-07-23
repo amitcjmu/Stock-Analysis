@@ -1,5 +1,5 @@
 /**
- * Shared Utilities Module Namespace
+ * Shared Utilities Module
  * 
  * Re-exports all shared utility types from modular files for backward compatibility.
  * 
@@ -13,29 +13,11 @@
  */
 
 // Re-export all types from modular files
-export * from './shared-utilities/index';
+export type * from './shared-utilities/index';
 
-// Preserve the original namespace structure for backward compatibility
-declare namespace SharedUtilities {
-  namespace Auth {
-    export * from './shared-utilities/auth-types';
-  }
-  
-  namespace API {
-    export * from './shared-utilities/api-types';
-  }
-  
-  namespace Validation {
-    export * from './shared-utilities/validation-types';
-  }
-  
-  namespace ErrorHandling {
-    export * from './shared-utilities/error-handling-types';
-  }
-  
-  namespace Utils {
-    export * from './shared-utilities/utility-types';
-  }
-}
-
-export { SharedUtilities };
+// Export grouped modules for organized access
+export type * as Auth from './shared-utilities/auth-types';
+export type * as API from './shared-utilities/api-types';
+export type * as Validation from './shared-utilities/validation-types';
+export type * as ErrorHandling from './shared-utilities/error-handling-types';
+export type * as Utils from './shared-utilities/utility-types';

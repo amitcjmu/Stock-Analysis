@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Direct test of the _ensure_json_serializable method"""
 
-import uuid
 import json
+import uuid
 from datetime import datetime
 from typing import Any
+
 
 # Copy the method from execution_engine.py
 def _ensure_json_serializable(obj: Any) -> Any:
@@ -59,7 +60,7 @@ def test_uuid_serialization():
         print(f"JSON length: {len(json_str)} characters")
         
         # Verify we can parse it back
-        parsed = json.loads(json_str)
+        json.loads(json_str)
         print("✅ JSON parsing successful!")
         
         return True

@@ -23,18 +23,21 @@ Built by: Agent Team B2 (AI Analysis & Intelligence)
 Status: COMPLETE - All 6 core services implemented
 """
 
-from .gap_analysis_agent import GapAnalysisAgent
-from .questionnaire_generator import AdaptiveQuestionnaireGenerator
-from .confidence_scoring import ConfidenceScorer
-from .business_context_analyzer_compat import BusinessContextAnalyzer
-from .learning_optimizer import LearningOptimizer
 from .ai_validation_service import AIValidationService
+from .business_context_analyzer import BusinessContextAnalyzer
+from .business_context_analyzer_compat import (
+    BusinessContextAnalyzer as BusinessContextAnalyzerCompat,
+)
+from .confidence_scoring import ConfidenceScorer
+from .gap_analysis_agent import GapAnalysisAgent
+from .learning_optimizer import LearningOptimizer
+from .questionnaire_generator import AdaptiveQuestionnaireGenerator
 
 __all__ = [
-    'GapAnalysisAgent',
-    'AdaptiveQuestionnaireGenerator', 
-    'ConfidenceScorer',
-    'BusinessContextAnalyzer',
-    'LearningOptimizer',
-    'AIValidationService'
+    "GapAnalysisAgent",
+    "AdaptiveQuestionnaireGenerator",
+    "ConfidenceScorer",
+    "BusinessContextAnalyzer",
+    "LearningOptimizer",
+    "AIValidationService",
 ]

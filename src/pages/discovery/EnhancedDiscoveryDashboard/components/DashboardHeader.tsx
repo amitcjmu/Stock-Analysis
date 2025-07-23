@@ -1,5 +1,6 @@
 import React from 'react';
-import { RefreshCw, Filter, Plus, Settings, Brain } from 'lucide-react';
+import type { Filter, Settings } from 'lucide-react'
+import { RefreshCw, Plus, Brain } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 

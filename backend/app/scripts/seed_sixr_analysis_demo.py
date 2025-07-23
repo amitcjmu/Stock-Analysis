@@ -9,19 +9,21 @@ Notes:
 - Must reference a valid engagement & assets belonging to a client account.
 - Uses ContextAwareRepository pattern (TODO: integrate repository once models available).
 """
+
+import argparse
 import asyncio
 import logging
 import os
 import sys
-from datetime import datetime
 from typing import Dict
-from sqlalchemy import text
-import argparse
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+from sqlalchemy import text
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 try:
     from app.core.database import AsyncSessionLocal
+
     # from app.repositories.context_aware import SixRAnalysisRepository  # TODO
     DEPENDENCIES_AVAILABLE = True
 except ImportError:
@@ -39,23 +41,26 @@ ANALYSIS_META: Dict[str, str] = {
     "status": "completed",
 }
 
+
 # ---------------------------------------------------------------------------
 async def seed_analysis(session, force: bool):
     """Inserts a single demo analysis with one iteration and mock responses."""
     if force:
-        await session.execute(text("DELETE FROM sixr_recommendations WHERE is_mock = TRUE"))
-        await session.execute(text("DELETE FROM sixr_question_responses WHERE is_mock = TRUE"))
+        await session.execute(
+            text("DELETE FROM sixr_recommendations WHERE is_mock = TRUE")
+        )
+        await session.execute(
+            text("DELETE FROM sixr_question_responses WHERE is_mock = TRUE")
+        )
         await session.execute(text("DELETE FROM sixr_iterations WHERE is_mock = TRUE"))
         await session.execute(text("DELETE FROM sixr_analyses WHERE is_mock = TRUE"))
         logger.info("Existing mock SixR analysis data removed.")
 
     # TODO: Look up client_account_id, engagement_id, and asset list
-    client_account_id = None  # Placeholder
-    engagement_id = None      # Placeholder
-    user_id = None            # Placeholder (admin user)
 
     # TODO: Insert analysis, iteration, responses, recommendations
     logger.info("TODO: Implement SixR analysis seeding once models & repo ready.")
+
 
 # ---------------------------------------------------------------------------
 async def main(force: bool):
@@ -70,9 +75,12 @@ async def main(force: bool):
         await session.commit()
     logger.info("SixR demo analysis seeding complete (placeholder).")
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Seed demo SixR analysis data.")
-    parser.add_argument("--force", action="store_true", help="Delete existing mock rows before seeding")
+    parser.add_argument(
+        "--force", action="store_true", help="Delete existing mock rows before seeding"
+    )
     args = parser.parse_args()
 
     asyncio.run(main(force=args.force))

@@ -8,15 +8,15 @@
  */
 
 // Re-export all types from individual modules
-export * from './user-management-types';
+export type * from './user-management-types';
 export * from './role-permission-types';
-export * from './client-account-types';
-export * from './engagement-types';
-export * from './system-settings-types';
-export * from './audit-logging-types';
-export * from './analytics-reporting-types';
-export * from './notification-types';
-export * from './data-models';
+export type * from './client-account-types';
+export type * from './engagement-types';
+export type * from './system-settings-types';
+export type * from './audit-logging-types';
+export type * from './analytics-reporting-types';
+export type * from './notification-types';
+export type * from './data-models';
 
 // Module organization metadata for reference
 export const ADMIN_TYPE_MODULES = {

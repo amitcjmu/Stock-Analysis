@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useRef } from 'react'
+import { useEffect, useCallback } from 'react'
 import { toast } from 'sonner';
 import type { WebSocketMessageData, AgentActivityData, WebSocketOutgoingMessage } from '../types/hooks/websocket-types';
 
@@ -177,7 +178,7 @@ export const useSixRWebSocket = (options: UseSixRWebSocketOptions = {}) => {
               });
               break;
             
-            case 'bulk_job_update':
+            case 'bulk_job_update': {
               const jobUpdate = message.data as BulkJobUpdate;
               if (jobUpdate.status === 'completed') {
                 toast.success('Bulk analysis job completed!', {
@@ -189,8 +190,9 @@ export const useSixRWebSocket = (options: UseSixRWebSocketOptions = {}) => {
                 });
               }
               break;
+            }
             
-            case 'agent_activity':
+            case 'agent_activity': {
               const activity = message.data as AgentActivity;
               if (activity.status === 'failed') {
                 toast.warning(`Agent ${activity.agent_name} encountered an issue`, {
@@ -198,6 +200,7 @@ export const useSixRWebSocket = (options: UseSixRWebSocketOptions = {}) => {
                 });
               }
               break;
+            }
           }
         } catch (error) {
           console.error('Failed to parse WebSocket message:', error);

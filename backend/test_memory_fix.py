@@ -4,9 +4,8 @@ Test script to identify and fix CrewAI memory system issues.
 This script tests memory functionality in isolation to diagnose the APIStatusError.
 """
 
-import sys
-import os
 import asyncio
+import sys
 import traceback
 from datetime import datetime
 
@@ -22,7 +21,7 @@ async def test_memory_components():
     # Test 1: Basic imports
     print("\n1️⃣ Testing Basic Imports...")
     try:
-        from crewai import Agent, Task, Crew
+        from crewai import Agent, Crew, Task
         from crewai.memory import LongTermMemory
         print("✅ Core CrewAI imports successful")
         
@@ -69,17 +68,16 @@ async def test_memory_components():
     print("\n4️⃣ Testing Default LongTermMemory...")
     try:
         if storage_available:
-            memory = LongTermMemory(storage=sqlite_storage)
+            LongTermMemory(storage=sqlite_storage)
             print("✅ LongTermMemory with SQLite storage successful")
         else:
             # Try with default configuration
-            memory = LongTermMemory()
+            LongTermMemory()
             print("✅ LongTermMemory with default configuration successful")
     except Exception as e:
         print(f"❌ LongTermMemory initialization failed: {e}")
         traceback.print_exc()
         print("ℹ️  Trying without explicit memory configuration...")
-        memory = None
     
     # Test 5: Simple agent with memory (the critical test)
     print("\n5️⃣ Testing Agent with Memory...")
@@ -236,10 +234,10 @@ if __name__ == "__main__":
             await suggest_fixes()
             
             if success:
-                print(f"\n✅ CONCLUSION: Memory system is working! Ready to re-enable.")
+                print("\n✅ CONCLUSION: Memory system is working! Ready to re-enable.")
                 exit(0)
             else:
-                print(f"\n❌ CONCLUSION: Memory system has issues. Need dependency fixes.")
+                print("\n❌ CONCLUSION: Memory system has issues. Need dependency fixes.")
                 exit(1)
                 
         except Exception as e:

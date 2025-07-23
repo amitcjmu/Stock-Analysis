@@ -8,9 +8,9 @@
  */
 
 // Forward declarations for types from other modules
-export interface SensitivityRecommendation {}
-export interface BenchmarkInsight {}
-export interface BenchmarkRecommendation {}
+export type SensitivityRecommendation = Record<string, unknown>;
+export type BenchmarkInsight = Record<string, unknown>;
+export type BenchmarkRecommendation = Record<string, unknown>;
 
 // Estimation and Analysis Types
 export interface CostEstimate {

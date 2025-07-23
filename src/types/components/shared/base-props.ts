@@ -4,7 +4,7 @@
  * Fundamental component prop interfaces used across all components.
  */
 
-import { ReactNode, RefObject } from 'react';
+import type { ReactNode, RefObject } from 'react';
 
 // Base shared component types
 export interface BaseComponentProps {

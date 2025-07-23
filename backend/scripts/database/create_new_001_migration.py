@@ -6,8 +6,8 @@ This replaces the simplified version with a complete one.
 
 print("Backing up current migration 001...")
 
-import shutil
 import os
+import shutil
 
 # Backup the current migration
 backup_path = "/app/alembic/versions/001_complete_database_schema_backup.py"

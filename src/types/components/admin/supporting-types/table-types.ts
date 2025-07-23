@@ -5,8 +5,8 @@
  * configuration types.
  */
 
-import { ReactNode } from 'react';
-import { ValidationRule } from './form-types';
+import type { ReactNode } from 'react';
+import type { ValidationRule } from './form-types';
 
 export interface TableColumn {
   key: string;

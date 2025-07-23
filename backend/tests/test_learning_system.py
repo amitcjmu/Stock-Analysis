@@ -4,21 +4,21 @@ Comprehensive test suite for the Learning Effectiveness System.
 Tests feedback processing, pattern extraction, and continuous improvement.
 """
 
-import sys
-import os
 import asyncio
-import tempfile
+import os
 import shutil
+import sys
+import tempfile
 from pathlib import Path
 
 # Add backend to path
 backend_path = Path(__file__).parent.parent.parent / "backend"
 sys.path.insert(0, str(backend_path))
 
-from app.services.memory import AgentMemory
-from app.services.feedback import FeedbackProcessor
 from app.services.analysis import IntelligentAnalyzer
 from app.services.crewai_service_modular import CrewAIService
+from app.services.feedback import FeedbackProcessor
+from app.services.memory import AgentMemory
 
 
 class TestLearningSystem:
@@ -360,7 +360,7 @@ class TestLearningSystem:
         
         print(f"   ✅ Initial confidence: {initial_confidence:.2f}")
         print(f"   ✅ Second confidence: {second_confidence:.2f}")
-        print(f"   ✅ Learning cycle completed successfully")
+        print("   ✅ Learning cycle completed successfully")
         
         # Check memory state
         stats = self.memory.get_memory_stats()

@@ -6,7 +6,7 @@ import { useImportData } from './useImportData';
 import { useCriticalAttributes } from './useCriticalAttributes';
 import { useAttributeMappingActions } from './useAttributeMappingActions';
 import { useAttributeMappingState } from './useAttributeMappingState';
-import { AttributeMappingLogicResult } from './types';
+import type { AttributeMappingLogicResult } from './types';
 
 /**
  * Main composition hook that combines all specialized attribute mapping hooks

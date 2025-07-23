@@ -6,8 +6,9 @@
  * Generated with CC for modular admin type organization.
  */
 
-import { ActivityLocation, ActivityDevice, ConfidenceLevel } from '../common';
-import { PatternType, AnomalyType, AnomalySeverity } from './enums';
+import type { ConfidenceLevel } from '../common'
+import type { ActivityLocation, ActivityDevice } from '../common'
+import type { PatternType, AnomalyType, AnomalySeverity } from './enums';
 
 // User activity summary
 export interface UserActivitySummary {

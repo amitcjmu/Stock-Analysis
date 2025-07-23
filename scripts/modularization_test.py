@@ -12,14 +12,14 @@ Usage:
     python scripts/modularization_test.py --detailed
 """
 
-import os
-import sys
 import argparse
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+import json
+import os
 from dataclasses import dataclass
 from enum import Enum
-import json
+from pathlib import Path
+from typing import List, Tuple
+
 
 class FileCategory(Enum):
     BACKEND_PYTHON = "Backend Python"
@@ -267,7 +267,7 @@ class ModularizationTester:
                 try:
                     if file_path.stat().st_size < 100:  # Less than 100 bytes
                         continue
-                except:
+                except (OSError, FileNotFoundError):
                     continue
                 
                 # Analyze the file

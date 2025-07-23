@@ -4,8 +4,8 @@
  * Type definitions for system metrics, performance monitoring, resource usage, health status, and alerts.
  */
 
-import { TimeRange } from '../base-types';
-import { AgentResourceUsage, CrewResourceUsage } from './crew-models';
+import type { TimeRange } from '../base-types';
+import type { AgentResourceUsage, CrewResourceUsage } from './crew-models';
 
 // Metrics and Monitoring Models
 export interface FlowMetrics {

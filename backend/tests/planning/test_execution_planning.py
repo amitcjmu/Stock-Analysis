@@ -12,21 +12,19 @@ Tests the planning and coordination functionality including:
 - Planning intelligence integration
 """
 
-import pytest
 import asyncio
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from typing import Dict, List, Any
-import json
-from datetime import datetime, timedelta
-import time
-import uuid
+from datetime import datetime
+from unittest.mock import AsyncMock, Mock
+
+import pytest
 
 # Import planning components
 try:
+    from crewai.planning import PlanningMixin
+
     from app.services.crewai_flows.discovery_flow_redesigned import DiscoveryFlowRedesigned, DiscoveryFlowState
     from app.services.crewai_flows.planning_coordinator import PlanningCoordinator
     from app.services.observability.plan_analytics import PlanAnalytics
-    from crewai.planning import PlanningMixin
     PLANNING_COMPONENTS_AVAILABLE = True
 except ImportError:
     PLANNING_COMPONENTS_AVAILABLE = False

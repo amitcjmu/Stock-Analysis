@@ -7,11 +7,11 @@ by checking the actual schema state vs expected migration state.
 """
 
 import asyncio
+import os
+from typing import Any, Dict
+
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import create_async_engine
-import os
-import json
-from typing import Dict, List, Any
 
 # Use Railway DATABASE_URL if available, otherwise local
 raw_db_url = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5433/migration_db")
@@ -241,7 +241,7 @@ async def main():
     # Data counts
     data_counts = schema_state.get('data_counts', {})
     if isinstance(data_counts, dict):
-        print(f"📊 Data Counts:")
+        print("📊 Data Counts:")
         for table, count in data_counts.items():
             print(f"   - {table}: {count} records")
     

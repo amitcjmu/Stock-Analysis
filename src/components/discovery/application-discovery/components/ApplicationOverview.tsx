@@ -2,7 +2,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Users, RefreshCw, AlertCircle, CheckCircle, HelpCircle } from 'lucide-react';
+import type { AlertCircle, CheckCircle } from 'lucide-react'
+import { Users, RefreshCw, HelpCircle } from 'lucide-react'
 
 interface DiscoveryMetadata {
   total_assets_analyzed: number;

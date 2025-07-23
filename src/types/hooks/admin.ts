@@ -5,7 +5,8 @@
  * system administration, monitoring, and platform management patterns.
  */
 
-import { BaseAsyncHookParams, BaseAsyncHookReturn } from './shared';
+import type { BaseAsyncHookParams } from './shared'
+import type { BaseAsyncHookReturn } from './shared'
 
 // Common types for admin data
 export type AdminValue = string | number | boolean | Date | null | undefined;

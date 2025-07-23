@@ -4,7 +4,6 @@ Test data import functionality
 """
 import asyncio
 from playwright.async_api import async_playwright
-import json
 
 async def test_data_import():
     async with async_playwright() as p:

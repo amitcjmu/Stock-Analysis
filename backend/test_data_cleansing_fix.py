@@ -6,10 +6,10 @@ for flow ID: 5d4149d3-ac32-40ea-85d1-56ebea8d5e17
 
 import asyncio
 import logging
-import sys
 import os
+import sys
+
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
 
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -53,7 +53,7 @@ async def test_data_retrieval():
                 return False
             
             # Test master flow ID lookup (the fix we implemented)
-            logger.info(f"\n🔗 Testing master flow ID lookup...")
+            logger.info("\n🔗 Testing master flow ID lookup...")
             
             # Get the database ID for this flow_id
             db_id_query = text('''
@@ -80,7 +80,7 @@ async def test_data_retrieval():
                 data_import = import_result.fetchone()
                 
                 if data_import:
-                    logger.info(f"✅ Found data import via master flow ID:")
+                    logger.info("✅ Found data import via master flow ID:")
                     logger.info(f"   Import ID: {data_import.id}")
                     logger.info(f"   Filename: {data_import.filename}")
                     logger.info(f"   Total Records: {data_import.total_records}")

@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 import Sidebar from '../../components/Sidebar';
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import { Calendar, Users, Target } from 'lucide-react';

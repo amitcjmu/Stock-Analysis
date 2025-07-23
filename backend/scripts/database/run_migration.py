@@ -29,9 +29,8 @@ async def run_migration():
     
     try:
         # Import after path setup
-        from app.core.database import engine, Base, AsyncSessionLocal
-        from app.models.feedback import Feedback, FeedbackSummary
-        from app.models.client_account import ClientAccount, Engagement, User
+        from app.core.database import AsyncSessionLocal, Base, engine
+        from app.models.feedback import Feedback
         print("✅ Database modules imported successfully")
         
         # Test connection
@@ -40,7 +39,7 @@ async def run_migration():
         async with engine.begin() as conn:
             result = await conn.execute(text("SELECT version()"))
             version = result.fetchone()[0]
-            print(f"✅ PostgreSQL Connection: SUCCESS")
+            print("✅ PostgreSQL Connection: SUCCESS")
             print(f"📋 Database Version: {version}")
         
         # Create all tables
@@ -52,7 +51,6 @@ async def run_migration():
         # Test feedback table specifically
         print("\n🧪 Testing feedback table...")
         async with AsyncSessionLocal() as session:
-            from sqlalchemy import select, func
             
             # Check if feedback table exists and is accessible
             result = await session.execute(text("SELECT COUNT(*) FROM feedback"))

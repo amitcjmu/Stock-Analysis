@@ -290,7 +290,7 @@ export interface ApiClient {
   delete<T = unknown>(url: string, config?: RequestConfig): Promise<ApiResponse<T>>;
   patch<T = unknown>(url: string, data?: unknown, config?: RequestConfig): Promise<ApiResponse<T>>;
   upload<T = unknown>(url: string, config: UploadConfig): Promise<ApiResponse<T>>;
-  batch<T = unknown>(requests: BatchRequest[]): Promise<BatchResponse<T>[]>;
+  batch<T = unknown>(requests: BatchRequest[]): Promise<Array<BatchResponse<T>>>;
   poll<T = unknown>(url: string, config: PollingConfig): Promise<ApiResponse<T>>;
   healthCheck(): Promise<HealthCheckResult[]>;
   getMetrics(): ApiMetrics;

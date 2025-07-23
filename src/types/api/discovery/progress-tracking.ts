@@ -5,7 +5,7 @@
  * timeline monitoring, projections, and bottleneck analysis.
  */
 
-import {
+import type {
   GetRequest,
   GetResponse
 } from '../shared';

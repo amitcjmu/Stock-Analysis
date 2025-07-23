@@ -5,20 +5,16 @@ Task A1.6: Create test seed data
 """
 
 import asyncio
-import uuid
 import json
+import uuid
 from datetime import datetime, timedelta, timezone
-from typing import List, Dict, Any
+from typing import List
 
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import Session
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
-from app.core.database import Base, get_db
-from app.models import User, ClientAccount, Engagement, DiscoveryFlow
-
 
 # Test data constants
 TEST_ADAPTERS = [
@@ -81,7 +77,7 @@ TEST_ADAPTERS = [
                 "username": {"type": "string"},
                 "password": {"type": "string", "format": "password"},
                 "port": {"type": "integer", "default": 443},
-                "verify_ssl": {"type": "boolean", "default": true}
+                "verify_ssl": {"type": "boolean", "default": True}
             },
             "required": ["vcenter_host", "username", "password"]
         },

@@ -5,12 +5,14 @@ This module contains the data models used by the Intelligent Flow Agent
 for representing flow intelligence results and analysis data.
 """
 
-from pydantic import BaseModel, Field
 from typing import List
+
+from pydantic import BaseModel
 
 
 class FlowIntelligenceResult(BaseModel):
     """Result from the intelligent flow agent"""
+
     success: bool
     flow_id: str
     flow_type: str

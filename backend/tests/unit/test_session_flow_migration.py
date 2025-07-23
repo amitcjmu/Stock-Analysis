@@ -1,9 +1,10 @@
 """
 Test session to flow ID migration
 """
-import pytest
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from sqlalchemy.orm import Session
 
 # Mock the services and models since they may not exist yet

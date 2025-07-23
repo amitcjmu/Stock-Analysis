@@ -3,12 +3,13 @@
  * Handles agent selection for comparison
  */
 
-import React, { useState } from 'react';
+import React from 'react'
+import { useState } from 'react'
 import { Search, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
-import { Input } from '../../ui/input';
+import type { Input } from '../../ui/input';
 
 export interface AgentSelectorProps {
   availableAgents: string[];

@@ -9,13 +9,13 @@ Tests performance characteristics of the Discovery Flow including:
 - Performance regression detection
 """
 
-import pytest
 import asyncio
-import time
 import gc
-from typing import Dict, List, Any
-from unittest.mock import AsyncMock, Mock, patch
-from concurrent.futures import ThreadPoolExecutor
+import time
+from typing import Any, Dict
+
+import pytest
+
 
 # Mock psutil for testing environment
 class MockProcess:
@@ -245,7 +245,7 @@ class TestDiscoveryFlowPerformance:
         metrics = performance_monitor.stop_monitoring()
         
         # Assert
-        assert result['memory_optimized'] == True, "Memory optimization should be applied"
+        assert result['memory_optimized'] is True, "Memory optimization should be applied"
         assert metrics['memory_delta'] < 200, "Memory delta should be controlled with optimization"
         assert result['processed_assets'] == 10000, "All assets should be processed"
         
@@ -313,7 +313,7 @@ class TestDiscoveryFlowPerformance:
         result = await crew.execute_async(large_data)
         
         await monitor_task
-        metrics = performance_monitor.stop_monitoring()
+        performance_monitor.stop_monitoring()
         
         # Assert
         avg_cpu = sum(cpu_samples) / len(cpu_samples)
@@ -347,7 +347,7 @@ class TestDiscoveryFlowPerformance:
             start_time = time.time()
             start_memory = psutil.Process().memory_info().rss / 1024 / 1024
             
-            result = await crew.execute_async(data)
+            await crew.execute_async(data)
             
             execution_time = time.time() - start_time
             end_memory = psutil.Process().memory_info().rss / 1024 / 1024

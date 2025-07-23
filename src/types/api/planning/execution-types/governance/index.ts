@@ -8,7 +8,7 @@
  */
 
 // Core Governance Framework
-export {
+export type {
   GovernanceFramework,
   GovernanceStructure,
   GovernanceEscalation,
@@ -21,17 +21,17 @@ export type {
 } from './core';
 
 // Hierarchy and Structure
-export * from './hierarchy';
+export type * from './hierarchy';
 
 // Governance Bodies
-export * from './committees';
-export * from './boards';
-export * from './councils';
-export * from './offices';
-export * from './governance-bodies';
+export type * from './committees';
+export type * from './boards';
+export type * from './councils';
+export type * from './offices';
+export type * from './governance-bodies';
 
 // Roles and Responsibilities - export specific types to avoid duplicates
-export {
+export type {
   GovernanceRole,
   RolePerformance,
   RoleDevelopment,
@@ -45,7 +45,7 @@ export {
 } from './roles-responsibilities';
 
 // Policies and Standards - export specific types to avoid duplicates
-export {
+export type {
   GovernancePolicy,
   PolicyRule,
   PolicyException,
@@ -57,10 +57,10 @@ export {
 } from './policies-standards';
 
 // Processes
-export * from './processes';
+export type * from './processes';
 
 // Compliance and Audit - export specific types to avoid duplicates
-export {
+export type {
   GovernanceCompliance,
   GovernanceAudit,
   AuditFramework,
@@ -86,7 +86,7 @@ export type {
 } from './compliance-audit';
 
 // Reporting and Communication - export specific types to avoid duplicates
-export {
+export type {
   GovernanceReporting,
   ReportingStructure,
   ReportingSchedule,
@@ -102,7 +102,7 @@ export {
 } from './reporting';
 
 // Maturity and Improvement
-export * from './maturity-improvement';
+export type * from './maturity-improvement';
 
 // Health and Status
-export * from './health-status';
+export type * from './health-status';

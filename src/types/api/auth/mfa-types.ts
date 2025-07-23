@@ -4,13 +4,14 @@
  * MFA setup, verification, and management API types.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext
 } from '../shared';
 
-import { MFAMethod, MFASetupResult, MFAVerificationResult, MFADisableResult, BackupCodesResult } from './core-types';
+import type { MFASetupResult, MFAVerificationResult, MFADisableResult, BackupCodesResult } from './core-types'
+import type { MFAMethod } from './core-types'
 
 // Multi-Factor Authentication APIs
 export interface SetupMFARequest extends BaseApiRequest {

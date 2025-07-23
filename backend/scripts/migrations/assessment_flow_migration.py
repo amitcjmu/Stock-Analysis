@@ -11,11 +11,12 @@ import logging
 import os
 import sys
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List
 
 try:
-    from sqlalchemy.ext.asyncio import AsyncSession
     from sqlalchemy import text
+    from sqlalchemy.ext.asyncio import AsyncSession
+
     from alembic import command
     from alembic.config import Config
     from app.core.database import AsyncSessionLocal

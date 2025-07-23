@@ -5,7 +5,7 @@
 
 import { ApiClient } from '../ApiClient';
 import { masterFlowService } from './masterFlowService';
-import { ApiResponse } from '../../types/shared/api-types';
+import type { ApiResponse } from '../../types/shared/api-types';
 
 const apiClient = ApiClient.getInstance();
 

@@ -6,10 +6,7 @@ ensuring all phases work correctly with the new consolidated architecture.
 """
 
 import pytest
-import asyncio
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from typing import Dict, List, Any, Optional
-import json
+from unittest.mock import Mock, AsyncMock
 import time
 
 # Mock imports for testing
@@ -246,7 +243,7 @@ class TestUnifiedDiscoveryFlowSequence:
         result4 = await mock_unified_flow.execute_asset_inventory_crew(result3)
         result5 = await mock_unified_flow.execute_dependency_analysis_crew(result4)
         result6 = await mock_unified_flow.execute_tech_debt_analysis_crew(result5)
-        final_result = await mock_unified_flow.finalize_discovery(result6)
+        await mock_unified_flow.finalize_discovery(result6)
         
         # Verify execution order
         expected_order = [

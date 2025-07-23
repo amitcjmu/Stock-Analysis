@@ -3,8 +3,10 @@
  * Extracted from ApplicationSelector.tsx for modularization
  */
 
-import { useState, useMemo } from 'react';
-import { Application, ApplicationFilters, FilteredApplicationsResult } from '../types/ApplicationSelectorTypes';
+import { useState } from 'react'
+import { useMemo } from 'react'
+import type { FilteredApplicationsResult } from '../types/ApplicationSelectorTypes'
+import type { Application, ApplicationFilters } from '../types/ApplicationSelectorTypes'
 
 interface UseApplicationFiltersResult extends FilteredApplicationsResult {
   filters: ApplicationFilters;

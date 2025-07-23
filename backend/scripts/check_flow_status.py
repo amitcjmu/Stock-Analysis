@@ -5,7 +5,9 @@ Script to check the current status of a Discovery Flow
 
 import asyncio
 import logging
+
 from sqlalchemy import text
+
 from app.core.database import AsyncSessionLocal
 
 # Configure logging

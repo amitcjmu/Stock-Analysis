@@ -4,7 +4,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CreateEngagementData, CloudProviders } from './types';
+import type { CreateEngagementData } from './types'
+import { CloudProviders } from './types'
 
 interface EngagementScopeProps {
   formData: CreateEngagementData;

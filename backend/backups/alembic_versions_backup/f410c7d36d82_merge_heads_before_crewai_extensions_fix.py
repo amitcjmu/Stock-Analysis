@@ -5,8 +5,6 @@ Revises: b1cc7d8d2aa1, add_v3_persistence_001
 Create Date: 2025-06-30 03:56:10.989001
 
 """
-from alembic import op
-import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.

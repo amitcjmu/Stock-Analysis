@@ -4,7 +4,9 @@
  * Part of the Agent Observability Enhancement Phase 4A
  */
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React from 'react'
+import type { ErrorInfo, ReactNode } from 'react'
+import { Component } from 'react'
 import { Alert, AlertDescription } from '../ui/alert';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';

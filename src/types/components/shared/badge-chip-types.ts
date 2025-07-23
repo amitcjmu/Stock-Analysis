@@ -4,8 +4,8 @@
  * Badge, chip, and similar indicator component interfaces.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps, InteractiveComponentProps } from './base-props';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps, InteractiveComponentProps } from './base-props';
 
 // Badge and chip component types
 export interface BadgeProps extends BaseComponentProps {

@@ -5,6 +5,7 @@ Contains shared dependencies and utilities for all monitoring modules.
 """
 
 from fastapi import Request
+
 from app.core.context import RequestContext, extract_context_from_request
 from app.core.logging import get_logger as enhanced_get_logger
 

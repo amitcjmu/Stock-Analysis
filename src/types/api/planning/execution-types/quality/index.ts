@@ -8,36 +8,36 @@
  */
 
 // Quality Gates Types
-export * from './gates';
-export * from './gates-core';
-export * from './gates-management';
+export type * from './gates';
+export type * from './gates-core';
+export type * from './gates-management';
 
 // Quality Frameworks and Standards Types
-export * from './frameworks';
+export type * from './frameworks';
 
 // Quality Processes Types
-export * from './processes';
+export type * from './processes';
 
 // Quality Metrics Types
-export * from './metrics';
+export type * from './metrics';
 
 // Quality Governance Types
-export * from './governance';
+export type * from './governance';
 
 // Quality Improvement Types
-export * from './improvement';
+export type * from './improvement';
 
 // Quality Maturity Types
-export * from './maturity';
+export type * from './maturity';
 
 // Quality Culture Types
-export * from './culture';
+export type * from './culture';
 
 // Quality Monitoring and Metrics Types
-export * from './monitoring';
+export type * from './monitoring';
 
 // Quality Assessment Types
-export * from './assessment';
+export type * from './assessment';
 
 // Quality Assurance Types
-export * from './assurance';
+export type * from './assurance';

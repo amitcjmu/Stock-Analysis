@@ -4,13 +4,13 @@
  * Core authentication API types including login, logout, and password management.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext
 } from '../shared';
 
-import { AuthenticationResult, LogoutResult, PasswordChangeResult, AuthenticatedUser, MFAChallenge, MFAMethod } from './core-types';
+import type { AuthenticationResult, LogoutResult, PasswordChangeResult, AuthenticatedUser, MFAChallenge, MFAMethod } from './core-types';
 
 // Authentication APIs
 export interface LoginRequest extends BaseApiRequest {

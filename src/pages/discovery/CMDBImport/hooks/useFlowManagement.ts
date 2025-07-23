@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react'
+import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { 
   useIncompleteFlowDetectionV2, 
@@ -6,7 +7,7 @@ import {
   useBulkFlowOperationsV2 
 } from '@/hooks/discovery/useFlowOperations';
 import { useFlowDeletion } from '@/hooks/useFlowDeletion';
-import { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
+import type { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 

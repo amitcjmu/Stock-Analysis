@@ -4,8 +4,9 @@ ADCS: Crew for manual data collection through intelligent questionnaire generati
 """
 
 import logging
-from typing import Dict, Any, List, Optional
-from crewai import Agent, Task, Crew
+from typing import Any, Dict, List, Optional
+
+from crewai import Agent, Crew, Task
 
 logger = logging.getLogger(__name__)
 
@@ -15,29 +16,29 @@ def create_manual_collection_crew(
     prioritized_gaps: List[Dict[str, Any]],
     resolution_plan: Dict[str, Any],
     context: Dict[str, Any],
-    shared_memory: Optional[Any] = None
+    shared_memory: Optional[Any] = None,
 ):
     """
     Create a crew for manual collection phase
-    
+
     Args:
         crewai_service: CrewAI service instance
         prioritized_gaps: Prioritized gaps from gap analysis phase
         resolution_plan: Resolution plan from gap analysis
         context: Additional context (user responses, validation rules, etc.)
         shared_memory: Shared memory for agent learning
-    
+
     Returns:
         CrewAI Crew for manual collection
     """
-    
+
     try:
         # Get LLM from service
         llm = crewai_service.get_llm()
-        
+
         # Import optimized config
         from ..crew_config import DEFAULT_AGENT_CONFIG
-        
+
         # Create questionnaire generation agent
         questionnaire_generator = Agent(
             role="Dynamic Questionnaire Generation Expert",
@@ -55,9 +56,9 @@ def create_manual_collection_crew(
             and quality data collection.""",
             llm=llm,
             memory=shared_memory,
-            **DEFAULT_AGENT_CONFIG
+            **DEFAULT_AGENT_CONFIG,
         )
-        
+
         # Create response validation agent
         response_validator = Agent(
             role="Data Validation and Quality Assurance Specialist",
@@ -74,9 +75,9 @@ def create_manual_collection_crew(
             You ensure all manually collected data is accurate and ready for migration planning.""",
             llm=llm,
             memory=shared_memory,
-            **DEFAULT_AGENT_CONFIG
+            **DEFAULT_AGENT_CONFIG,
         )
-        
+
         # Create collection progress agent
         collection_coordinator = Agent(
             role="Manual Collection Coordination Expert",
@@ -93,14 +94,14 @@ def create_manual_collection_crew(
             Your coordination ensures manual collection is completed efficiently and on schedule.""",
             llm=llm,
             memory=shared_memory,
-            **DEFAULT_AGENT_CONFIG
+            **DEFAULT_AGENT_CONFIG,
         )
-        
+
         # Extract context information
-        existing_responses = context.get('existing_responses', {})
-        validation_rules = context.get('validation_rules', {})
-        user_preferences = context.get('user_preferences', {})
-        
+        existing_responses = context.get("existing_responses", {})
+        validation_rules = context.get("validation_rules", {})
+        user_preferences = context.get("user_preferences", {})
+
         # Create questionnaire generation task
         questionnaire_task = Task(
             description=f"""Generate targeted questionnaires for gap resolution:
@@ -178,9 +179,9 @@ def create_manual_collection_crew(
                 }}
             }}""",
             agent=questionnaire_generator,
-            expected_output="JSON object with generated questionnaires and collection strategy"
+            expected_output="JSON object with generated questionnaires and collection strategy",
         )
-        
+
         # Create response validation task
         validation_task = Task(
             description=f"""Validate responses as they are submitted:
@@ -261,9 +262,9 @@ def create_manual_collection_crew(
             }}""",
             agent=response_validator,
             expected_output="JSON object with validation results and quality metrics",
-            context=[questionnaire_task]
+            context=[questionnaire_task],
         )
-        
+
         # Create collection coordination task
         coordination_task = Task(
             description=f"""Coordinate and optimize the manual collection process:
@@ -343,24 +344,28 @@ def create_manual_collection_crew(
             }}""",
             agent=collection_coordinator,
             expected_output="JSON object with coordination status and optimization insights",
-            context=[questionnaire_task, validation_task]
+            context=[questionnaire_task, validation_task],
         )
-        
+
         # Import crew config
         from ..crew_config import get_optimized_crew_config
-        
+
         # Create crew with optimized settings
         crew_config = get_optimized_crew_config()
         crew = Crew(
-            agents=[questionnaire_generator, response_validator, collection_coordinator],
+            agents=[
+                questionnaire_generator,
+                response_validator,
+                collection_coordinator,
+            ],
             tasks=[questionnaire_task, validation_task, coordination_task],
             process="sequential",
-            **crew_config  # Apply optimized config
+            **crew_config,  # Apply optimized config
         )
-        
+
         logger.info("✅ Manual Collection Crew created successfully")
         return crew
-        
+
     except Exception as e:
         logger.error(f"❌ Failed to create manual collection crew: {e}")
         raise e

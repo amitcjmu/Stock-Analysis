@@ -3,16 +3,17 @@ Asset Inventory Agent - Converted to proper CrewAI pattern
 Specialized agent for asset classification and inventory management
 """
 
-from typing import List, Dict, Any
-from crewai import Agent
+from typing import Any, List
+
 from app.services.agents.base_agent import BaseCrewAIAgent
 from app.services.agents.metadata import AgentMetadata
 from app.services.llm_config import get_crewai_llm
 
+
 class AssetInventoryAgent(BaseCrewAIAgent):
     """
     Performs asset classification and inventory management using CrewAI patterns.
-    
+
     Capabilities:
     - Asset type classification
     - Criticality assessment
@@ -20,12 +21,12 @@ class AssetInventoryAgent(BaseCrewAIAgent):
     - Inventory organization
     - Asset relationships
     """
-    
+
     def __init__(self, tools: List[Any], llm: Any = None, **kwargs):
         """Initialize with proper CrewAI configuration"""
         if llm is None:
             llm = get_crewai_llm()
-        
+
         super().__init__(
             role="Asset Inventory Specialist",
             goal="Accurately classify and categorize all discovered assets with proper criticality assessment",
@@ -42,7 +43,7 @@ class AssetInventoryAgent(BaseCrewAIAgent):
             llm=llm,
             **kwargs
         )
-    
+
     @classmethod
     def agent_metadata(cls) -> AgentMetadata:
         """Define agent metadata for registry"""
@@ -54,16 +55,16 @@ class AssetInventoryAgent(BaseCrewAIAgent):
                 "AssetClassifierTool",
                 "CriticalityAssessorTool",
                 "EnvironmentDetectorTool",
-                "AssetRelationshipTool"
+                "AssetRelationshipTool",
             ],
             capabilities=[
                 "asset_classification",
                 "criticality_assessment",
                 "environment_detection",
-                "inventory_management"
+                "inventory_management",
             ],
             max_iter=12,
             memory=True,
             verbose=True,
-            allow_delegation=False
+            allow_delegation=False,
         )

@@ -1,16 +1,6 @@
 import React from 'react';
-import { 
-  Play, 
-  Pause, 
-  Square, 
-  RotateCcw, 
-  Eye,
-  Trash2,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  Loader2
-} from 'lucide-react';
+import type { CheckCircle, AlertCircle } from 'lucide-react'
+import { Play, Pause, Square, RotateCcw, Eye, Trash2, Clock, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../ui/card';
 import { Button } from '../../../ui/button';
 import { Badge } from '../../../ui/badge';

@@ -2,7 +2,7 @@
  * API Service - Re-exports the api functions from config
  */
 
-import { ExternalApiRequestPayload } from '../config/api';
+import type { ExternalApiRequestPayload } from '../config/api';
 
 export { apiCall as get, apiCall as post, apiCall as put, apiCall as patch, apiCall as del } from '../config/api';
 

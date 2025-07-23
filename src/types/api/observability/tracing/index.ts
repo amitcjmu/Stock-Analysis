@@ -8,10 +8,10 @@
  */
 
 // Configuration and setup
-export * from './configuration';
+export type * from './configuration';
 
 // Core tracing data structures
-export * from './traces-spans';
+export type * from './traces-spans';
 
 // Service topology and mapping
-export * from './service-mapping';
+export type * from './service-mapping';

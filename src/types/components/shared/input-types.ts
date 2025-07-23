@@ -4,8 +4,8 @@
  * Input and form control component interfaces.
  */
 
-import { ReactNode, RefObject } from 'react';
-import { InteractiveComponentProps } from './base-props';
+import type { ReactNode, RefObject } from 'react';
+import type { InteractiveComponentProps } from './base-props';
 
 // Input component types
 export interface InputProps extends InteractiveComponentProps {

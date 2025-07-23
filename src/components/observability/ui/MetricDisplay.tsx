@@ -5,7 +5,8 @@
 
 import React from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
+import type { CardHeader, CardTitle } from '../../ui/card'
+import { Card, CardContent } from '../../ui/card'
 import { Badge } from '../../ui/badge';
 import { formatPercentage, formatDuration, formatMemory, formatNumber } from '../utils/formatters';
 
@@ -125,11 +126,11 @@ export const MetricBadge: React.FC<MetricBadgeProps> = ({
 };
 
 export interface MetricComparisonProps {
-  items: {
+  items: Array<{
     name: string;
     value: number;
     color?: string;
-  }[];
+  }>;
   format?: 'number' | 'percentage' | 'duration' | 'memory';
   showRanking?: boolean;
 }

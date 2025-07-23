@@ -3,38 +3,44 @@ Collection Flow API Endpoints
 Provides API interface for the Adaptive Data Collection System (ADCS)
 """
 
-from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
 
-from app.core.database import get_db
-from app.core.context import get_request_context
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.v1.auth.auth_utils import get_current_user
+from app.core.context import get_request_context
+from app.core.database import get_db
+from app.core.rbac_utils import (
+    COLLECTION_CREATE_ROLES,
+    COLLECTION_DELETE_ROLES,
+    require_role,
+)
 from app.models import User
 from app.models.collection_flow import (
-    CollectionFlow, CollectionPhase, CollectionFlowStatus, 
-    AutomationTier, CollectionGapAnalysis, AdaptiveQuestionnaire
+    AdaptiveQuestionnaire,
+    AutomationTier,
+    CollectionFlow,
+    CollectionFlowStatus,
+    CollectionGapAnalysis,
+    CollectionPhase,
 )
-# from app.services.workflow_orchestration.collection_phase_engine import CollectionPhaseEngine
-from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+
 # from app.services.flow_state_service import FlowStateService
 from app.schemas.collection_flow import (
+    AdaptiveQuestionnaireResponse,
     CollectionFlowCreate,
     CollectionFlowResponse,
     CollectionFlowUpdate,
     CollectionGapAnalysisResponse,
-    AdaptiveQuestionnaireResponse
 )
-from app.core.rbac_utils import (
-    require_role, 
-    COLLECTION_CREATE_ROLES, 
-    COLLECTION_DELETE_ROLES,
-    COLLECTION_VIEW_ROLES
-)
+
+# from app.services.workflow_orchestration.collection_phase_engine import CollectionPhaseEngine
+from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +51,7 @@ router = APIRouter()
 async def get_collection_status(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    context = Depends(get_request_context)
+    context=Depends(get_request_context),
 ) -> Dict[str, Any]:
     """Get collection flow status for current engagement"""
     try:
@@ -54,18 +60,18 @@ async def get_collection_status(
             select(CollectionFlow)
             .where(
                 CollectionFlow.engagement_id == context.engagement_id,
-                CollectionFlow.status != CollectionFlowStatus.COMPLETED.value
+                CollectionFlow.status != CollectionFlowStatus.COMPLETED.value,
             )
             .order_by(CollectionFlow.created_at.desc())
         )
         collection_flow = result.scalar_one_or_none()
-        
+
         if not collection_flow:
             return {
                 "status": "no_active_flow",
-                "message": "No active collection flow found"
+                "message": "No active collection flow found",
             }
-        
+
         return {
             "flow_id": str(collection_flow.id),
             "status": collection_flow.status,
@@ -73,9 +79,9 @@ async def get_collection_status(
             "automation_tier": collection_flow.automation_tier,
             "progress": collection_flow.progress_percentage or 0,
             "created_at": collection_flow.created_at.isoformat(),
-            "updated_at": collection_flow.updated_at.isoformat()
+            "updated_at": collection_flow.updated_at.isoformat(),
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting collection status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -86,29 +92,33 @@ async def create_collection_flow(
     flow_data: CollectionFlowCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    context = Depends(get_request_context)
+    context=Depends(get_request_context),
 ) -> CollectionFlowResponse:
     """Create and start a new collection flow"""
     # Check RBAC - only analysts and above can create collection flows
     require_role(current_user, COLLECTION_CREATE_ROLES, "create collection flows")
-    
-    logger.info(f"🚀 Creating collection flow - automation_tier: {flow_data.automation_tier}, config: {flow_data.collection_config}")
+
+    logger.info(
+        f"🚀 Creating collection flow - automation_tier: {flow_data.automation_tier}, config: {flow_data.collection_config}"
+    )
     try:
         # Check for existing active flow
         existing = await db.execute(
             select(CollectionFlow)
             .where(
                 CollectionFlow.engagement_id == context.engagement_id,
-                CollectionFlow.status.notin_([
-                    CollectionFlowStatus.COMPLETED.value,
-                    CollectionFlowStatus.FAILED.value,
-                    CollectionFlowStatus.CANCELLED.value
-                ])
+                CollectionFlow.status.notin_(
+                    [
+                        CollectionFlowStatus.COMPLETED.value,
+                        CollectionFlowStatus.FAILED.value,
+                        CollectionFlowStatus.CANCELLED.value,
+                    ]
+                ),
             )
             .order_by(CollectionFlow.created_at.desc())
         )
         existing_flow = existing.scalar_one_or_none()
-        
+
         if existing_flow:
             # Check if the existing flow is stuck in INITIALIZED state
             if existing_flow.status == CollectionFlowStatus.INITIALIZED.value:
@@ -120,25 +130,29 @@ async def create_collection_flow(
                     # If created_at is timezone-naive, assume UTC
                     created_at = created_at.replace(tzinfo=timezone.utc)
                 time_since_creation = now - created_at
-                
+
                 # If flow is stuck in INITIALIZED for more than 5 minutes, cancel it
                 if time_since_creation > timedelta(minutes=5):
-                    logger.warning(f"Found stale INITIALIZED flow {existing_flow.id}, cancelling it")
+                    logger.warning(
+                        f"Found stale INITIALIZED flow {existing_flow.id}, cancelling it"
+                    )
                     existing_flow.status = CollectionFlowStatus.CANCELLED.value
                     existing_flow.completed_at = datetime.now(timezone.utc)
-                    existing_flow.error_message = "Flow cancelled due to initialization timeout"
+                    existing_flow.error_message = (
+                        "Flow cancelled due to initialization timeout"
+                    )
                     await db.commit()
                 else:
                     raise HTTPException(
                         status_code=400,
-                        detail=f"An active collection flow is being initialized. Please wait or use the flow management UI to cancel it."
+                        detail="An active collection flow is being initialized. Please wait or use the flow management UI to cancel it.",
                     )
             else:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"An active collection flow already exists with status: {existing_flow.status}"
+                    detail=f"An active collection flow already exists with status: {existing_flow.status}",
                 )
-        
+
         # Create collection flow record
         flow_id = uuid.uuid4()
         collection_flow = CollectionFlow(
@@ -151,36 +165,37 @@ async def create_collection_flow(
             status=CollectionFlowStatus.INITIALIZED.value,
             automation_tier=flow_data.automation_tier or AutomationTier.TIER_2.value,
             collection_config=flow_data.collection_config or {},
-            current_phase=CollectionPhase.INITIALIZATION.value
+            current_phase=CollectionPhase.INITIALIZATION.value,
         )
-        
+
         db.add(collection_flow)
         await db.commit()
         await db.refresh(collection_flow)
-        
+
         # Initialize with Master Flow Orchestrator
         mfo = MasterFlowOrchestrator(db, context)
-        
+
         # Start the collection flow through MFO
         flow_input = {
             "flow_id": str(collection_flow.id),
             "automation_tier": collection_flow.automation_tier,
-            "collection_config": collection_flow.collection_config
+            "collection_config": collection_flow.collection_config,
         }
-        
+
         # Create the flow - it will be automatically started by the execution engine
         master_flow_id, master_flow_data = await mfo.create_flow(
-            flow_type="collection",
-            initial_state=flow_input
+            flow_type="collection", initial_state=flow_input
         )
-        
+
         # Update collection flow with master flow ID
         collection_flow.master_flow_id = master_flow_id
         await db.commit()
         await db.refresh(collection_flow)
-        
-        logger.info(f"Created collection flow {collection_flow.id} linked to master flow {master_flow_id} for engagement {context.engagement_id} - automatic execution started")
-        
+
+        logger.info(
+            f"Created collection flow {collection_flow.id} linked to master flow {master_flow_id} for engagement {context.engagement_id} - automatic execution started"
+        )
+
         return CollectionFlowResponse(
             id=str(collection_flow.id),
             client_account_id=str(collection_flow.client_account_id),
@@ -191,9 +206,9 @@ async def create_collection_flow(
             progress=collection_flow.progress_percentage or 0,
             collection_config=collection_flow.collection_config,
             created_at=collection_flow.created_at,
-            updated_at=collection_flow.updated_at
+            updated_at=collection_flow.updated_at,
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -207,29 +222,29 @@ async def get_collection_flow(
     flow_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    context = Depends(get_request_context)
+    context=Depends(get_request_context),
 ) -> CollectionFlowResponse:
     """Get collection flow details"""
     try:
         result = await db.execute(
-            select(CollectionFlow)
-            .where(
+            select(CollectionFlow).where(
                 CollectionFlow.id == uuid.UUID(flow_id),
-                CollectionFlow.engagement_id == context.engagement_id
+                CollectionFlow.engagement_id == context.engagement_id,
             )
         )
         collection_flow = result.scalar_one_or_none()
-        
+
         if not collection_flow:
             raise HTTPException(status_code=404, detail="Collection flow not found")
-        
+
         # Get gap analysis if available
         gaps = await db.execute(
-            select(CollectionGapAnalysis)
-            .where(CollectionGapAnalysis.collection_flow_id == collection_flow.id)
+            select(CollectionGapAnalysis).where(
+                CollectionGapAnalysis.collection_flow_id == collection_flow.id
+            )
         )
         gap_list = gaps.scalars().all()
-        
+
         response = CollectionFlowResponse(
             id=str(collection_flow.id),
             client_account_id=str(collection_flow.client_account_id),
@@ -244,14 +259,16 @@ async def get_collection_flow(
             completed_at=collection_flow.completed_at,
             gaps_identified=len(gap_list),
             collection_metrics={
-                "platforms_detected": len(collection_flow.collection_config.get("detected_platforms", [])),
+                "platforms_detected": len(
+                    collection_flow.collection_config.get("detected_platforms", [])
+                ),
                 "data_collected": collection_flow.collection_quality_score or 0,
-                "gaps_resolved": 0  # CollectionGapAnalysis doesn't have resolution_status
-            }
+                "gaps_resolved": 0,  # CollectionGapAnalysis doesn't have resolution_status
+            },
         )
-        
+
         return response
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -265,48 +282,46 @@ async def update_collection_flow(
     update_data: CollectionFlowUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    context = Depends(get_request_context)
+    context=Depends(get_request_context),
 ) -> CollectionFlowResponse:
     """Update collection flow (e.g., provide user input, continue flow)"""
     try:
         # Get the flow
         result = await db.execute(
-            select(CollectionFlow)
-            .where(
+            select(CollectionFlow).where(
                 CollectionFlow.id == uuid.UUID(flow_id),
-                CollectionFlow.engagement_id == context.engagement_id
+                CollectionFlow.engagement_id == context.engagement_id,
             )
         )
         collection_flow = result.scalar_one_or_none()
-        
+
         if not collection_flow:
             raise HTTPException(status_code=404, detail="Collection flow not found")
-        
+
         # Handle different update types
         if update_data.action == "continue":
             # Continue flow execution through MFO
             mfo = MasterFlowOrchestrator(db, context)
             result = await mfo.resume_flow(
-                flow_id=flow_id,
-                resume_context=update_data.user_input or {}
+                flow_id=flow_id, resume_context=update_data.user_input or {}
             )
-        
+
         elif update_data.action == "pause":
             # Note: There's no PAUSED status in the enum, keep current status
             collection_flow.updated_at = datetime.now(timezone.utc)
-            
+
         elif update_data.action == "cancel":
             collection_flow.status = CollectionFlowStatus.CANCELLED.value
             collection_flow.updated_at = datetime.now(timezone.utc)
             collection_flow.completed_at = datetime.now(timezone.utc)
-        
+
         # Update any provided data
         if update_data.collection_config:
             collection_flow.collection_config.update(update_data.collection_config)
-        
+
         await db.commit()
         await db.refresh(collection_flow)
-        
+
         return CollectionFlowResponse(
             id=str(collection_flow.id),
             client_account_id=str(collection_flow.client_account_id),
@@ -318,9 +333,9 @@ async def update_collection_flow(
             collection_config=collection_flow.collection_config,
             created_at=collection_flow.created_at,
             updated_at=collection_flow.updated_at,
-            completed_at=collection_flow.completed_at
+            completed_at=collection_flow.completed_at,
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -334,28 +349,28 @@ async def get_collection_gaps(
     flow_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    context = Depends(get_request_context)
+    context=Depends(get_request_context),
 ) -> List[CollectionGapAnalysisResponse]:
     """Get gap analysis results for a collection flow"""
     try:
         # Verify flow exists and belongs to engagement
         flow_result = await db.execute(
-            select(CollectionFlow)
-            .where(
+            select(CollectionFlow).where(
                 CollectionFlow.id == uuid.UUID(flow_id),
-                CollectionFlow.engagement_id == context.engagement_id
+                CollectionFlow.engagement_id == context.engagement_id,
             )
         )
         if not flow_result.scalar_one_or_none():
             raise HTTPException(status_code=404, detail="Collection flow not found")
-        
+
         # Get gaps
         result = await db.execute(
-            select(CollectionGapAnalysis)
-            .where(CollectionGapAnalysis.collection_flow_id == uuid.UUID(flow_id))
+            select(CollectionGapAnalysis).where(
+                CollectionGapAnalysis.collection_flow_id == uuid.UUID(flow_id)
+            )
         )
         gaps = result.scalars().all()
-        
+
         return [
             CollectionGapAnalysisResponse(
                 id=str(gap.id),
@@ -369,11 +384,11 @@ async def get_collection_gaps(
                 blocks_decision=gap.blocks_decision,
                 recommended_collection_method=gap.recommended_collection_method,
                 resolution_status=gap.resolution_status,
-                created_at=gap.created_at
+                created_at=gap.created_at,
             )
             for gap in gaps
         ]
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -381,26 +396,28 @@ async def get_collection_gaps(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/flows/{flow_id}/questionnaires", response_model=List[AdaptiveQuestionnaireResponse])
+@router.get(
+    "/flows/{flow_id}/questionnaires",
+    response_model=List[AdaptiveQuestionnaireResponse],
+)
 async def get_adaptive_questionnaires(
     flow_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    context = Depends(get_request_context)
+    context=Depends(get_request_context),
 ) -> List[AdaptiveQuestionnaireResponse]:
     """Get adaptive questionnaires for manual collection"""
     try:
         # Verify flow exists
         flow_result = await db.execute(
-            select(CollectionFlow)
-            .where(
+            select(CollectionFlow).where(
                 CollectionFlow.id == uuid.UUID(flow_id),
-                CollectionFlow.engagement_id == context.engagement_id
+                CollectionFlow.engagement_id == context.engagement_id,
             )
         )
         if not flow_result.scalar_one_or_none():
             raise HTTPException(status_code=404, detail="Collection flow not found")
-        
+
         # Get questionnaires
         result = await db.execute(
             select(AdaptiveQuestionnaire)
@@ -408,7 +425,7 @@ async def get_adaptive_questionnaires(
             .order_by(AdaptiveQuestionnaire.created_at.desc())
         )
         questionnaires = result.scalars().all()
-        
+
         return [
             AdaptiveQuestionnaireResponse(
                 id=str(q.id),
@@ -421,11 +438,11 @@ async def get_adaptive_questionnaires(
                 completion_status=q.completion_status,
                 responses_collected=q.responses_collected,
                 created_at=q.created_at,
-                completed_at=q.completed_at
+                completed_at=q.completed_at,
             )
             for q in questionnaires
         ]
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -440,48 +457,43 @@ async def submit_questionnaire_response(
     responses: Dict[str, Any],
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    context = Depends(get_request_context)
+    context=Depends(get_request_context),
 ) -> Dict[str, Any]:
     """Submit responses to an adaptive questionnaire"""
     try:
         # Get questionnaire
         result = await db.execute(
-            select(AdaptiveQuestionnaire)
-            .where(
+            select(AdaptiveQuestionnaire).where(
                 AdaptiveQuestionnaire.id == uuid.UUID(questionnaire_id),
-                AdaptiveQuestionnaire.collection_flow_id == uuid.UUID(flow_id)
+                AdaptiveQuestionnaire.collection_flow_id == uuid.UUID(flow_id),
             )
         )
         questionnaire = result.scalar_one_or_none()
-        
+
         if not questionnaire:
             raise HTTPException(status_code=404, detail="Questionnaire not found")
-        
+
         # Update questionnaire with responses
         questionnaire.responses_collected = responses
         questionnaire.completion_status = "completed"
         questionnaire.completed_at = datetime.now(timezone.utc)
         questionnaire.updated_at = datetime.now(timezone.utc)
-        
+
         # Continue flow with questionnaire responses
         mfo = MasterFlowOrchestrator(db, context)
         result = await mfo.resume_flow(
             flow_id=flow_id,
-            resume_context={
-                "questionnaire_responses": {
-                    questionnaire_id: responses
-                }
-            }
+            resume_context={"questionnaire_responses": {questionnaire_id: responses}},
         )
-        
+
         await db.commit()
-        
+
         return {
             "status": "success",
             "message": "Questionnaire responses submitted successfully",
-            "questionnaire_id": questionnaire_id
+            "questionnaire_id": questionnaire_id,
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -494,11 +506,12 @@ async def submit_questionnaire_response(
 # COLLECTION FLOW LIFECYCLE MANAGEMENT
 # ========================================
 
+
 @router.get("/incomplete", response_model=List[CollectionFlowResponse])
 async def get_incomplete_flows(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    context = Depends(get_request_context)
+    context=Depends(get_request_context),
 ) -> List[CollectionFlowResponse]:
     """Get all incomplete collection flows for the current engagement"""
     try:
@@ -506,15 +519,17 @@ async def get_incomplete_flows(
             select(CollectionFlow)
             .where(
                 CollectionFlow.engagement_id == context.engagement_id,
-                CollectionFlow.status.notin_([
-                    CollectionFlowStatus.COMPLETED.value,
-                    CollectionFlowStatus.CANCELLED.value
-                ])
+                CollectionFlow.status.notin_(
+                    [
+                        CollectionFlowStatus.COMPLETED.value,
+                        CollectionFlowStatus.CANCELLED.value,
+                    ]
+                ),
             )
             .order_by(CollectionFlow.created_at.desc())
         )
         incomplete_flows = result.scalars().all()
-        
+
         return [
             CollectionFlowResponse(
                 id=str(flow.id),
@@ -527,11 +542,11 @@ async def get_incomplete_flows(
                 collection_config=flow.collection_config,
                 created_at=flow.created_at,
                 updated_at=flow.updated_at,
-                completed_at=flow.completed_at
+                completed_at=flow.completed_at,
             )
             for flow in incomplete_flows
         ]
-        
+
     except Exception as e:
         logger.error(f"Error getting incomplete flows: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -543,46 +558,49 @@ async def continue_flow(
     resume_context: Optional[Dict[str, Any]] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    context = Depends(get_request_context)
+    context=Depends(get_request_context),
 ) -> Dict[str, Any]:
     """Continue/resume a paused or incomplete collection flow"""
     try:
         # Verify flow exists and belongs to engagement
         result = await db.execute(
-            select(CollectionFlow)
-            .where(
+            select(CollectionFlow).where(
                 CollectionFlow.id == uuid.UUID(flow_id),
-                CollectionFlow.engagement_id == context.engagement_id
+                CollectionFlow.engagement_id == context.engagement_id,
             )
         )
         collection_flow = result.scalar_one_or_none()
-        
+
         if not collection_flow:
             raise HTTPException(status_code=404, detail="Collection flow not found")
-        
+
         # Check if flow can be resumed
-        if collection_flow.status in [CollectionFlowStatus.COMPLETED.value, CollectionFlowStatus.CANCELLED.value]:
+        if collection_flow.status in [
+            CollectionFlowStatus.COMPLETED.value,
+            CollectionFlowStatus.CANCELLED.value,
+        ]:
             raise HTTPException(
-                status_code=400, 
-                detail=f"Cannot resume flow with status: {collection_flow.status}"
+                status_code=400,
+                detail=f"Cannot resume flow with status: {collection_flow.status}",
             )
-        
+
         # Resume flow through MFO
         mfo = MasterFlowOrchestrator(db, context)
         result = await mfo.resume_flow(
-            flow_id=flow_id,
-            resume_context=resume_context or {}
+            flow_id=flow_id, resume_context=resume_context or {}
         )
-        
-        logger.info(f"Resumed collection flow {flow_id} for engagement {context.engagement_id}")
-        
+
+        logger.info(
+            f"Resumed collection flow {flow_id} for engagement {context.engagement_id}"
+        )
+
         return {
             "status": "success",
             "message": "Collection flow resumed successfully",
             "flow_id": flow_id,
-            "resume_result": result
+            "resume_result": result,
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -596,37 +614,36 @@ async def delete_flow(
     force: bool = Query(False, description="Force delete even if flow is active"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    context = Depends(get_request_context)
+    context=Depends(get_request_context),
 ) -> Dict[str, Any]:
     """Delete a collection flow and all related data"""
     # Check RBAC - only managers and above can delete collection flows
     require_role(current_user, COLLECTION_DELETE_ROLES, "delete collection flows")
-    
+
     try:
         # Get the flow
         result = await db.execute(
-            select(CollectionFlow)
-            .where(
+            select(CollectionFlow).where(
                 CollectionFlow.id == uuid.UUID(flow_id),
-                CollectionFlow.engagement_id == context.engagement_id
+                CollectionFlow.engagement_id == context.engagement_id,
             )
         )
         collection_flow = result.scalar_one_or_none()
-        
+
         if not collection_flow:
             raise HTTPException(status_code=404, detail="Collection flow not found")
-        
+
         # Check if flow can be deleted
         if not force and collection_flow.status in [
             CollectionFlowStatus.PLATFORM_DETECTION.value,
             CollectionFlowStatus.AUTOMATED_COLLECTION.value,
-            CollectionFlowStatus.GAP_ANALYSIS.value
+            CollectionFlowStatus.GAP_ANALYSIS.value,
         ]:
             raise HTTPException(
                 status_code=400,
-                detail="Cannot delete active flow. Use force=true to override."
+                detail="Cannot delete active flow. Use force=true to override.",
             )
-        
+
         # Delete through MFO if flow is managed there
         try:
             mfo = MasterFlowOrchestrator(db, context)
@@ -634,19 +651,21 @@ async def delete_flow(
         except Exception as e:
             logger.warning(f"MFO deletion failed for flow {flow_id}: {e}")
             # Continue with DB deletion even if MFO fails
-        
+
         # Delete from database (cascade will handle related records)
         await db.delete(collection_flow)
         await db.commit()
-        
-        logger.info(f"Deleted collection flow {flow_id} for engagement {context.engagement_id}")
-        
+
+        logger.info(
+            f"Deleted collection flow {flow_id} for engagement {context.engagement_id}"
+        )
+
         return {
             "status": "success",
             "message": "Collection flow deleted successfully",
-            "flow_id": flow_id
+            "flow_id": flow_id,
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -657,46 +676,55 @@ async def delete_flow(
 
 @router.post("/cleanup")
 async def cleanup_flows(
-    expiration_hours: int = Query(72, description="Hours after which flows are considered expired"),
-    dry_run: bool = Query(True, description="Preview cleanup without actually deleting"),
+    expiration_hours: int = Query(
+        72, description="Hours after which flows are considered expired"
+    ),
+    dry_run: bool = Query(
+        True, description="Preview cleanup without actually deleting"
+    ),
     include_failed: bool = Query(True, description="Include failed flows in cleanup"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    context = Depends(get_request_context)
+    context=Depends(get_request_context),
 ) -> Dict[str, Any]:
     """Clean up expired collection flows"""
     try:
         cutoff_time = datetime.now(timezone.utc) - timedelta(hours=expiration_hours)
-        
+
         # Build query for expired flows
         query = select(CollectionFlow).where(
             CollectionFlow.engagement_id == context.engagement_id,
-            CollectionFlow.updated_at < cutoff_time
+            CollectionFlow.updated_at < cutoff_time,
         )
-        
+
         # Add status filters
         status_filters = [CollectionFlowStatus.CANCELLED.value]
         if include_failed:
             status_filters.append(CollectionFlowStatus.FAILED.value)
-            
+
         query = query.where(CollectionFlow.status.in_(status_filters))
-        
+
         result = await db.execute(query)
         expired_flows = result.scalars().all()
-        
+
         flows_to_clean = []
         total_size = 0
-        
+
         for flow in expired_flows:
             flow_data = {
                 "flow_id": str(flow.id),
                 "status": flow.status,
-                "age_hours": (datetime.now(timezone.utc) - flow.updated_at).total_seconds() / 3600,
-                "estimated_size": len(str(flow.collection_config)) + len(str(flow.phase_state)) + len(str(flow.collection_results))
+                "age_hours": (
+                    datetime.now(timezone.utc) - flow.updated_at
+                ).total_seconds()
+                / 3600,
+                "estimated_size": len(str(flow.collection_config))
+                + len(str(flow.phase_state))
+                + len(str(flow.collection_results)),
             }
             flows_to_clean.append(flow_data)
             total_size += flow_data["estimated_size"]
-        
+
         if not dry_run and flows_to_clean:
             # Perform actual cleanup
             for flow in expired_flows:
@@ -706,27 +734,29 @@ async def cleanup_flows(
                     await mfo.delete_flow(str(flow.id))
                 except Exception as e:
                     logger.warning(f"MFO cleanup failed for flow {flow.id}: {e}")
-                
+
                 # Delete from database
                 await db.delete(flow)
-            
+
             await db.commit()
             logger.info(f"Cleaned up {len(flows_to_clean)} expired collection flows")
-        
+
         return {
             "status": "success",
             "dry_run": dry_run,
             "flows_cleaned": len(flows_to_clean),
             "total_size_bytes": total_size,
-            "space_recovered": f"{total_size / 1024:.1f} KB" if total_size > 0 else "0 KB",
+            "space_recovered": (
+                f"{total_size / 1024:.1f} KB" if total_size > 0 else "0 KB"
+            ),
             "flows_details": flows_to_clean,
             "cleanup_criteria": {
                 "expiration_hours": expiration_hours,
                 "include_failed": include_failed,
-                "cutoff_time": cutoff_time.isoformat()
-            }
+                "cutoff_time": cutoff_time.isoformat(),
+            },
         }
-        
+
     except Exception as e:
         logger.error(f"Error during collection flow cleanup: {e}")
         await db.rollback()
@@ -739,73 +769,72 @@ async def batch_delete_flows(
     force: bool = Query(False, description="Force delete even if flows are active"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    context = Depends(get_request_context)
+    context=Depends(get_request_context),
 ) -> Dict[str, Any]:
     """Delete multiple collection flows in batch"""
     try:
         deleted_flows = []
         failed_deletions = []
-        
+
         for flow_id in flow_ids:
             try:
                 # Get the flow
                 result = await db.execute(
-                    select(CollectionFlow)
-                    .where(
+                    select(CollectionFlow).where(
                         CollectionFlow.id == uuid.UUID(flow_id),
-                        CollectionFlow.engagement_id == context.engagement_id
+                        CollectionFlow.engagement_id == context.engagement_id,
                     )
                 )
                 collection_flow = result.scalar_one_or_none()
-                
+
                 if not collection_flow:
-                    failed_deletions.append({
-                        "flow_id": flow_id,
-                        "error": "Flow not found"
-                    })
+                    failed_deletions.append(
+                        {"flow_id": flow_id, "error": "Flow not found"}
+                    )
                     continue
-                
+
                 # Check if flow can be deleted
                 if not force and collection_flow.status in [
                     CollectionFlowStatus.PLATFORM_DETECTION.value,
                     CollectionFlowStatus.AUTOMATED_COLLECTION.value,
-                    CollectionFlowStatus.GAP_ANALYSIS.value
+                    CollectionFlowStatus.GAP_ANALYSIS.value,
                 ]:
-                    failed_deletions.append({
-                        "flow_id": flow_id,
-                        "error": "Cannot delete active flow without force flag"
-                    })
+                    failed_deletions.append(
+                        {
+                            "flow_id": flow_id,
+                            "error": "Cannot delete active flow without force flag",
+                        }
+                    )
                     continue
-                
+
                 # Delete through MFO if possible
                 try:
                     mfo = MasterFlowOrchestrator(db, context)
                     await mfo.delete_flow(flow_id)
                 except Exception as e:
                     logger.warning(f"MFO deletion failed for flow {flow_id}: {e}")
-                
+
                 # Delete from database
                 await db.delete(collection_flow)
                 deleted_flows.append(flow_id)
-                
+
             except Exception as e:
-                failed_deletions.append({
-                    "flow_id": flow_id,
-                    "error": str(e)
-                })
-        
+                failed_deletions.append({"flow_id": flow_id, "error": str(e)})
+
         await db.commit()
-        
-        logger.info(f"Batch deleted {len(deleted_flows)} collection flows, {len(failed_deletions)} failures")
-        
+
+        logger.info(
+            f"Batch deleted {len(deleted_flows)} collection flows, {len(failed_deletions)} failures"
+        )
+
         return {
             "status": "success",
             "deleted_count": len(deleted_flows),
             "failed_count": len(failed_deletions),
             "deleted_flows": deleted_flows,
-            "failed_deletions": failed_deletions
+            "failed_deletions": failed_deletions,
         }
-        
+
     except Exception as e:
         logger.error(f"Error in batch delete: {e}")
         await db.rollback()

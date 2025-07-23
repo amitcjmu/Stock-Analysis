@@ -5,17 +5,20 @@ Tests that flows progress from 'initialized' to 'running' state
 """
 
 import asyncio
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from datetime import datetime
-from app.core.database import AsyncSessionLocal
-from app.core.context import RequestContext
-from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-from sqlalchemy import select
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 import logging
+from datetime import datetime
+
+from sqlalchemy import select
+
+from app.core.context import RequestContext
+from app.core.database import AsyncSessionLocal
+from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -23,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 # [ECHO] Initialize flows before testing
 from app.core.flow_initialization import initialize_flows_on_startup
+
 print("[ECHO] Initializing flow configurations...")
 flow_init_results = initialize_flows_on_startup()
 print(f"[ECHO] Flow initialization results: {flow_init_results.get('success', False)}")
@@ -93,7 +97,7 @@ async def test_flow_execution():
         
         # Check flow status
         status = await orchestrator.get_flow_status(flow_id)
-        print(f"\n[ECHO] Flow status after 2 seconds:")
+        print("\n[ECHO] Flow status after 2 seconds:")
         print(f"  - Status: {status['status']}")
         print(f"  - Current phase: {status.get('current_phase', 'N/A')}")
         print(f"  - Progress: {status.get('progress_percentage', 0)}%")
@@ -106,7 +110,7 @@ async def test_flow_execution():
         db_flow = result.scalar_one_or_none()
         
         if db_flow:
-            print(f"\n[ECHO] Database record:")
+            print("\n[ECHO] Database record:")
             print(f"  - DB Status: {db_flow.flow_status}")
             print(f"  - Configuration: {db_flow.flow_configuration}")
             print(f"  - Updated at: {db_flow.updated_at}")
@@ -117,7 +121,7 @@ async def test_flow_execution():
         
         # Final status check
         final_status = await orchestrator.get_flow_status(flow_id)
-        print(f"\n[ECHO] Final flow status after 7 seconds total:")
+        print("\n[ECHO] Final flow status after 7 seconds total:")
         print(f"  - Status: {final_status['status']}")
         print(f"  - Current phase: {final_status.get('current_phase', 'N/A')}")
         print(f"  - Progress: {final_status.get('progress_percentage', 0)}%")

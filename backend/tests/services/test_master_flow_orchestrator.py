@@ -10,17 +10,16 @@ Tests the core functionality of the MasterFlowOrchestrator including:
 - Performance tracking
 """
 
-import pytest
 import uuid
 from datetime import datetime
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
-from typing import Dict, Any
+from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.master_flow_orchestrator import MasterFlowOrchestrator, FlowOperationType
 from app.core.schemas import RequestContext
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+from app.services.master_flow_orchestrator import FlowOperationType, MasterFlowOrchestrator
 
 
 @pytest.fixture
@@ -400,7 +399,7 @@ class TestMasterFlowOrchestrator:
                 mock_end.assert_called_once_with(
                     "tracking-id-123",
                     success=True,
-                    result_metadata={"flow_id": mock.ANY}
+                    result_metadata={"flow_id": Mock.ANY}
                 )
     
     @pytest.mark.asyncio

@@ -1,4 +1,6 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
+import React from 'react'
+import { Component } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface Analytics {

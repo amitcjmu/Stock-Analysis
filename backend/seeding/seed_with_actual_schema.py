@@ -3,23 +3,29 @@ Seeding script that works with the actual database schema.
 This version uses only fields that actually exist in the database.
 """
 import asyncio
-import sys
 import json
+import sys
 import uuid
+from datetime import timedelta
 from pathlib import Path
-from datetime import datetime, timezone, timedelta
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
+
 from passlib.context import CryptContext
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Add backend to path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from app.core.database import AsyncSessionLocal
 from seeding.constants import (
-    DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, DEMO_COMPANY_NAME,
-    USER_IDS, USERS, DEFAULT_PASSWORD, BASE_TIMESTAMP,
-    FLOW_IDS, FLOWS, IMPORT_IDS, IMPORTS
+    BASE_TIMESTAMP,
+    DEFAULT_PASSWORD,
+    DEMO_CLIENT_ID,
+    DEMO_COMPANY_NAME,
+    DEMO_ENGAGEMENT_ID,
+    FLOWS,
+    IMPORTS,
+    USERS,
 )
 
 # Password hashing
@@ -255,7 +261,7 @@ async def generate_seeded_ids_json(users: list[dict], flows: list[dict], imports
     with open(output_path, "w") as f:
         json.dump(seeded_data, f, indent=2)
     
-    print(f"\n✅ Generated SEEDED_IDS.json")
+    print("\n✅ Generated SEEDED_IDS.json")
     return output_path
 
 
@@ -321,7 +327,7 @@ async def main():
             print("\n" + "=" * 60)
             print("✅ SEEDING COMPLETED SUCCESSFULLY!")
             print("=" * 60)
-            print(f"\nSummary:")
+            print("\nSummary:")
             print(f"  - Users: {len(users)}")
             print(f"  - Discovery Flows: {len(flows)}")
             print(f"  - Data Imports: {len(imports)}")

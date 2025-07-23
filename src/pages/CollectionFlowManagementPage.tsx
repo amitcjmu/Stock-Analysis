@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react'
+import { useState } from 'react'
+import { useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,23 +8,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { 
-  CheckCircle, 
-  XCircle, 
-  AlertTriangle, 
-  RefreshCw, 
-  Database, 
-  Settings, 
-  Trash2, 
-  Shield,
-  Activity,
-  Clock,
-  HardDrive,
-  Zap,
-  BarChart3,
-  Users,
-  Play
-} from 'lucide-react';
+import type { Database, Settings, Clock, Zap, Play } from 'lucide-react'
+import { CheckCircle, XCircle, AlertTriangle, RefreshCw, Trash2, Shield, Activity, HardDrive, BarChart3, Users } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast';
 import { useCollectionFlowManagement } from '@/hooks/collection/useCollectionFlowManagement';
 import { IncompleteCollectionFlowManager } from '@/components/collection/IncompleteCollectionFlowManager';

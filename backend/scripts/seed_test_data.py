@@ -5,15 +5,16 @@ Creates realistic test data without any mock flags
 """
 
 import asyncio
-import uuid
-import random
-from datetime import datetime, timedelta
-from faker import Faker
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import text
-import os
 import json
+import os
+import random
+import uuid
+from datetime import datetime, timedelta
+
+from faker import Faker
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
 
 # Initialize Faker
 fake = Faker()

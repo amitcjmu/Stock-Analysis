@@ -5,12 +5,12 @@ Test script for Confidence Manager Service
 
 import asyncio
 import sys
-import os
 
 # Add the backend directory to the path
 sys.path.append('/app')
 
-from app.services.confidence_manager import ConfidenceManager, ConfidenceThresholds
+from app.services.confidence_manager import ConfidenceManager
+
 
 async def test_confidence_manager():
     """Test confidence manager functionality."""

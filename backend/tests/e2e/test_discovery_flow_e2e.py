@@ -3,17 +3,13 @@ End-to-End tests for the complete discovery flow
 Tests the entire flow from data import to asset creation
 """
 
+import asyncio
+
 import pytest
 import pytest_asyncio
-import asyncio
-import json
-from datetime import datetime
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
-from app.core.database import AsyncSessionLocal
-from app.models.client_account import ClientAccount, Engagement, User
 
 # Configure pytest to use asyncio
 pytestmark = pytest.mark.asyncio
@@ -150,7 +146,7 @@ db-server-01,10.0.3.100,Ubuntu 20.04,32,128,2000,production,datacenter-1"""
         
         assert response.status_code == 200
         validation_data = response.json()
-        assert validation_data["is_valid"] == True
+        assert validation_data["is_valid"] is True
         assert validation_data["total_records"] == 5
         assert validation_data["valid_records"] == 5
         
@@ -179,7 +175,7 @@ db-server-01,10.0.3.100,Ubuntu 20.04,32,128,2000,production,datacenter-1"""
         # Step 9: Verify assets were created (would need asset endpoint)
         # This would be implemented when asset endpoints are available
         
-        print(f"\n✅ E2E Test completed successfully!")
+        print("\n✅ E2E Test completed successfully!")
         print(f"   - Imported {import_data['total_records']} records")
         print(f"   - Created flow: {flow_id}")
         print(f"   - Completed phases: {flow_data['phases_completed']}")
@@ -320,7 +316,7 @@ db-server-01,10.0.3.100,Ubuntu 20.04,32,128,2000,production,datacenter-1"""
         
         status = response.json()
         assert status["status"] == "paused"
-        assert status["can_resume"] == True
+        assert status["can_resume"] is True
         
         # Resume the flow
         response = await test_client.post(
@@ -393,7 +389,7 @@ db-server-01,10.0.3.100,Ubuntu 20.04,32,128,2000,production,datacenter-1"""
         
         assert response.status_code == 200
         validation = response.json()
-        assert validation["is_valid"] == False
+        assert validation["is_valid"] is False
         assert len(validation["validation_errors"]) >= 3
         assert "Fix validation errors before proceeding" in validation["recommendations"]
     
@@ -498,7 +494,7 @@ async def test_discovery_flow_performance():
         assert response.status_code == 201
         mapping_time = time.time() - start_time
         
-        print(f"\n⚡ Performance Results:")
+        print("\n⚡ Performance Results:")
         print(f"   - Import 1000 records: {import_time:.2f}s")
         print(f"   - Auto-map 8 fields: {mapping_time:.2f}s")
         

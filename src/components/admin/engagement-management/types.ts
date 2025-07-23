@@ -1,6 +1,6 @@
 // Team Preferences Interface
 export interface TeamPreferences {
-  preferred_communication_channels?: ('email' | 'slack' | 'teams' | 'jira')[];
+  preferred_communication_channels?: Array<'email' | 'slack' | 'teams' | 'jira'>;
   meeting_frequency?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly';
   reporting_frequency?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly';
   escalation_matrix?: Array<{
@@ -44,7 +44,7 @@ export interface AgentConfiguration {
 
 // Discovery Preferences Interface
 export interface DiscoveryPreferences {
-  discovery_methods?: ('automated' | 'manual' | 'hybrid')[];
+  discovery_methods?: Array<'automated' | 'manual' | 'hybrid'>;
   data_sources?: Array<{
     type: string;
     connection_string?: string;
@@ -134,7 +134,7 @@ export interface StakeholderPreferences {
     involvement_level: 'high' | 'medium' | 'low';
   }>;
   communication_preferences?: {
-    preferred_channels?: ('email' | 'phone' | 'video' | 'in-person')[];
+    preferred_channels?: Array<'email' | 'phone' | 'video' | 'in-person'>;
     update_frequency?: 'daily' | 'weekly' | 'bi-weekly' | 'monthly';
     report_format?: 'detailed' | 'summary' | 'executive';
   };

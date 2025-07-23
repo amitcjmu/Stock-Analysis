@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React from 'react'
+import { useState } from 'react'
+import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,7 +9,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '@/config/api';
 
-import { CreateEngagementData, ClientAccount } from './types';
+import type { CreateEngagementData } from './types'
+import type { ClientAccount } from './types'
 
 // CC: API response interfaces for type safety
 interface ClientApiResponse {
@@ -21,10 +24,10 @@ interface EngagementSubmissionData extends CreateEngagementData {
   user_id?: string;
   [key: string]: unknown;
 }
-import { EngagementBasicInfo } from './EngagementBasicInfo';
+import type { EngagementBasicInfo } from './EngagementBasicInfo';
 import { EngagementTimeline } from './EngagementTimeline';
 import { EngagementScope } from './EngagementScope';
-import { EngagementSummary } from './EngagementSummary';
+import type { EngagementSummary } from './EngagementSummary';
 
 export const CreateEngagementMain: React.FC = () => {
   const navigate = useNavigate();

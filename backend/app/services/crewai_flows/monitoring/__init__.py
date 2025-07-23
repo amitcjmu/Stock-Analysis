@@ -1,1 +1,5 @@
-from .collaboration_monitor import CollaborationMonitor, CollaborationType, CollaborationStatus
+from .collaboration_monitor import (
+    CollaborationMonitor,
+    CollaborationStatus,
+    CollaborationType,
+)

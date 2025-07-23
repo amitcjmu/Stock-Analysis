@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { useUnifiedDiscoveryFlow } from '@/hooks/useUnifiedDiscoveryFlow';
 import { useFileUpload } from './useFileUpload';
@@ -9,7 +10,7 @@ import {
   useFlowResumptionV2
 } from '@/hooks/discovery/useFlowOperations';
 import { useFlowDeletion } from '@/hooks/useFlowDeletion';
-import { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
+import type { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
 import { apiCall } from '@/config/api';
 
 export const useCMDBImport = () => {

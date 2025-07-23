@@ -4,7 +4,7 @@
  * Supports local development, Vercel frontend + Railway backend deployment
  */
 
-import { ApiResponse, ApiError } from '../types/shared/api-types';
+import type { ApiResponse, ApiError } from '../types/shared/api-types';
 import { tokenStorage } from '../contexts/AuthContext/storage';
 
 // Define types for the API context

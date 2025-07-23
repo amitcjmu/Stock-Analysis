@@ -7,7 +7,6 @@ This script verifies that the AI configuration is working correctly.
 import os
 import sys
 import asyncio
-import json
 from dotenv import load_dotenv
 
 # Load environment variables

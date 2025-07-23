@@ -4,9 +4,10 @@ Test script to verify flow pause functionality
 """
 
 import asyncio
-import httpx
 import json
 from datetime import datetime
+
+import httpx
 
 # Test configuration
 BASE_URL = "http://localhost:8000"
@@ -79,7 +80,7 @@ async def test_flow_pause():
                 print(f"  [{i+1}s] Status: {current_status}, Progress: {progress}%, Awaiting: {awaiting_approval}")
                 
                 if current_status == "waiting_for_approval" or awaiting_approval:
-                    print(f"\n✅ Flow successfully paused for approval!")
+                    print("\n✅ Flow successfully paused for approval!")
                     print(f"   Full status: {json.dumps(status_data, indent=2)}")
                     return
         

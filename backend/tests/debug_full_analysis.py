@@ -6,8 +6,9 @@ import traceback
 
 sys.path.append('/app')
 
-from app.services.tech_debt_analysis_agent import tech_debt_analysis_agent
 from app.api.v1.discovery.asset_handlers.asset_crud import AssetCRUDHandler
+from app.services.tech_debt_analysis_agent import tech_debt_analysis_agent
+
 
 async def debug_full_analysis():
     print("=== FULL ANALYSIS DEBUG ===")
@@ -43,7 +44,7 @@ async def debug_full_analysis():
         print("\n=== STEP 3: INFRASTRUCTURE ANALYSIS ===")
         try:
             infrastructure_analysis = await tech_debt_analysis_agent._analyze_infrastructure_debt(assets)
-            print(f"Infrastructure analysis completed")
+            print("Infrastructure analysis completed")
         except Exception as e:
             print(f"Infrastructure analysis failed: {e}")
             traceback.print_exc()
@@ -52,7 +53,7 @@ async def debug_full_analysis():
         print("\n=== STEP 4: SECURITY ANALYSIS ===")
         try:
             security_analysis = await tech_debt_analysis_agent._analyze_security_debt(assets)
-            print(f"Security analysis completed")
+            print("Security analysis completed")
         except Exception as e:
             print(f"Security analysis failed: {e}")
             traceback.print_exc()
@@ -72,7 +73,7 @@ async def debug_full_analysis():
                 {},  # stakeholder_context
                 "6-12 months"  # migration_timeline
             )
-            print(f"Business risk assessment completed")
+            print("Business risk assessment completed")
         except Exception as e:
             print(f"Business risk assessment failed: {e}")
             traceback.print_exc()

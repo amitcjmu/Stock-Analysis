@@ -9,22 +9,23 @@ This script bridges the gap between data cleansing and asset creation by:
 """
 
 import asyncio
-import sys
 import os
+import sys
 import uuid
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, Optional
 
 # Add the backend directory to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 async def main():
     try:
+        from sqlalchemy import select
+
         from app.core.database import AsyncSessionLocal
         from app.models.asset import Asset, AssetStatus
         from app.models.data_import import RawImportRecord
         from app.models.data_import.mapping import ImportFieldMapping
-        from sqlalchemy import select, update
         
         print("🚀 Starting Manual Asset Creation from Raw Import Records...")
         
@@ -32,7 +33,7 @@ async def main():
             # 1. Get unprocessed raw records
             raw_query = select(RawImportRecord).where(
                 RawImportRecord.client_account_id == "73dee5f1-6a01-43e3-b1b8-dbe6c66f2990",
-                RawImportRecord.is_processed == False
+                RawImportRecord.is_processed is False
             )
             
             result = await session.execute(raw_query)
@@ -148,7 +149,7 @@ async def main():
             # Commit all changes
             await session.commit()
             
-            print(f"🎉 Asset creation completed:")
+            print("🎉 Asset creation completed:")
             print(f"   - Assets created: {assets_created}")
             print(f"   - Records processed: {records_processed}")
             

@@ -5,10 +5,10 @@ Revises: 006_add_collection_flow_next_phase
 Create Date: 2025-01-20
 
 """
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = '007_add_missing_collection_flow_columns'

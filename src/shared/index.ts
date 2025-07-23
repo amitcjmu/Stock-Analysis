@@ -18,4 +18,4 @@ export type { UseSelectionResult, UseSelectionOptions } from './hooks/useSelecti
 export * from './utils/dataFormatters';
 
 // Types
-export * from './types/CommonTypes';
+export type * from './types/CommonTypes';

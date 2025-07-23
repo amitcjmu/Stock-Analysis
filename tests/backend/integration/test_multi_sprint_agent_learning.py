@@ -6,12 +6,9 @@ cross-page agent collaboration, and application portfolio discovery accuracy wit
 
 import pytest
 import asyncio
-import json
 import tempfile
-import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, List, Any, Optional
-from unittest.mock import AsyncMock, patch, MagicMock
 
 # Backend service imports
 from app.services.agent_ui_bridge import agent_ui_bridge
@@ -245,7 +242,7 @@ class TestMultiSprintAgentLearning:
         )
         
         # Page 2: Attribute Mapping - Agents build on discovered patterns
-        mapping_context = await self._simulate_page_analysis(
+        await self._simulate_page_analysis(
             page="attribute-mapping",
             data=self.sprint_2_migration_tool_data,
             agent_focus="field_mapping_intelligence"

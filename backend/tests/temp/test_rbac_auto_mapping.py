@@ -6,19 +6,19 @@ the appropriate ClientAccess and EngagementAccess records are automatically crea
 """
 
 import asyncio
-import uuid
 import json
 from datetime import datetime
 
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+
+from app.core.seed_data_config import DemoDataConfig
 
 # Import models and services
-from app.models import User, ClientAccount, Engagement
-from app.models.rbac import UserProfile, ClientAccess, EngagementAccess, AccessLevel
+from app.models import ClientAccount, Engagement, User
+from app.models.rbac import AccessLevel, ClientAccess, EngagementAccess
 from app.services.rbac_service import RBACService
-from app.core.seed_data_config import DemoDataConfig
 
 
 async def test_rbac_auto_mapping():
@@ -37,7 +37,7 @@ async def test_rbac_auto_mapping():
         print("\n1️⃣ Finding demo client and engagement...")
         
         # Find demo client
-        from sqlalchemy import cast, String
+        from sqlalchemy import String, cast
         client_result = await db.execute(
             select(ClientAccount).where(
                 cast(ClientAccount.id, String).like('%def0-def0-def0%')
@@ -111,7 +111,7 @@ async def test_rbac_auto_mapping():
         pending_client_access = client_access_result.scalar_one_or_none()
         
         if pending_client_access:
-            print(f"✅ Pending ClientAccess created:")
+            print("✅ Pending ClientAccess created:")
             print(f"   - Access Level: {pending_client_access.access_level}")
             print(f"   - Is Active: {pending_client_access.is_active}")
             print(f"   - Notes: {pending_client_access.notes}")
@@ -128,7 +128,7 @@ async def test_rbac_auto_mapping():
         pending_engagement_access = engagement_access_result.scalar_one_or_none()
         
         if pending_engagement_access:
-            print(f"✅ Pending EngagementAccess created:")
+            print("✅ Pending EngagementAccess created:")
             print(f"   - Access Level: {pending_engagement_access.access_level}")
             print(f"   - Engagement Role: {pending_engagement_access.engagement_role}")
             print(f"   - Is Active: {pending_engagement_access.is_active}")

@@ -3,7 +3,8 @@
  * Replaces hardcoded mock data with persistent database-backed demo data.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react'
+import { useEffect, useCallback } from 'react'
 
 // Base configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';

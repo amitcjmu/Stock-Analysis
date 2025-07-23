@@ -5,8 +5,8 @@
  * tooltips, scales, and chart configuration options.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps, InteractiveComponentProps } from '../shared';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps, InteractiveComponentProps } from '../shared';
 
 // Basic chart data types
 export interface ChartDataPoint {

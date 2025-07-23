@@ -3,14 +3,13 @@ Test Collection Flow through API endpoints
 Tests the actual flow execution to verify CrewAI integration
 """
 
-import pytest
 import asyncio
 import json
+
+import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
-from app.models import User, ClientAccount, Engagement
 from app.models.collection_flow import CollectionFlow
 
 
@@ -111,9 +110,10 @@ async def test_collection_flow_database_integration():
 @pytest.mark.asyncio  
 async def test_collection_flow_service_direct():
     """Test Collection Flow service directly without API"""
-    from app.services.crewai_flows.unified_collection_flow import UnifiedCollectionFlow
+    from unittest.mock import Mock
+
     from app.core.context import RequestContext
-    from unittest.mock import Mock, AsyncMock
+    from app.services.crewai_flows.unified_collection_flow import UnifiedCollectionFlow
     
     # Create mock CrewAI service
     mock_crewai_service = Mock()

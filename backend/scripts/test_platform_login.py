@@ -17,13 +17,14 @@ will set passwords that work with the authentication service.
 Test platform admin login.
 """
 import asyncio
+import hashlib
 import os
 import sys
-import hashlib
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sqlalchemy import select
+
 from app.core.database import AsyncSessionLocal
 from app.models import User
 from app.models.rbac import UserProfile

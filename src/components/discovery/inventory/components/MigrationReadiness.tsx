@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { Cloud } from 'lucide-react';
-import { MigrationReadinessProps } from '../types/InventoryInsightsTypes';
+import type { MigrationReadinessProps } from '../types/InventoryInsightsTypes';
 
 export const MigrationReadiness: React.FC<MigrationReadinessProps> = ({ readiness }) => {
   return (

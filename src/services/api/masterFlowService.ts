@@ -4,12 +4,13 @@
  */
 
 import { ApiClient } from '../ApiClient';
-import { ApiResponse, ApiError } from '../../types/shared/api-types';
+import type { ApiResponse, ApiError } from '../../types/shared/api-types';
 import type { EnhancedApiError } from '../../config/api';
-import { BaseMetadata, AuditableMetadata } from '../../types/shared/metadata-types';
+import type { AuditableMetadata } from '../../types/shared/metadata-types'
+import type { BaseMetadata } from '../../types/shared/metadata-types'
 
 const apiClient = ApiClient.getInstance();
-import { AuthService } from '../../contexts/AuthContext/services/authService';
+import type { AuthService } from '../../contexts/AuthContext/services/authService';
 
 export interface FlowConfiguration extends BaseMetadata {
   flow_name?: string;

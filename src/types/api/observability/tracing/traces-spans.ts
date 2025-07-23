@@ -7,7 +7,7 @@
  */
 
 import type { BaseMetadata, AuditableMetadata } from '../../../shared/metadata-types';
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   GetRequest,
@@ -300,11 +300,11 @@ export interface PerformanceAnalysis {
     errorsByType: Record<string, number>;
     topErrors: string[];
   };
-  recommendations: {
+  recommendations: Array<{
     category: 'performance' | 'reliability' | 'cost';
     message: string;
     priority: 'low' | 'medium' | 'high';
-  }[];
+  }>;
 }
 
 export interface ErrorAnalysis {

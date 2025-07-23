@@ -84,7 +84,7 @@ async def test_llm_configuration():
                 agent=agent
             )
             
-            crew = Crew(
+            Crew(
                 agents=[agent],
                 tasks=[task],
                 process=Process.sequential,

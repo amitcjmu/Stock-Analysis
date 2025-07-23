@@ -3,14 +3,11 @@ Full End-to-End Test for Collection Flow with Authentication
 Tests the complete collection flow through API with CrewAI execution
 """
 
-import pytest
 import asyncio
 import json
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import AsyncSessionLocal
-from app.models import User
+import pytest
+from httpx import AsyncClient
 
 # Test credentials
 TEST_EMAIL = "demo@demo-corp.com"
@@ -52,7 +49,6 @@ async def test_collection_flow_full_e2e():
             
             if not token:
                 # Try to use cookies instead
-                cookies = login_response.cookies
                 headers = {
                     "X-Client-Account-Id": "11111111-1111-1111-1111-111111111111",
                     "X-Engagement-Id": "22222222-2222-2222-2222-222222222222"

@@ -5,7 +5,7 @@
  * and configuring notification systems for observability monitoring.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   CreateRequest,
@@ -14,8 +14,9 @@ import {
   ListResponse,
   MultiTenantContext
 } from '../shared';
-import { FilterValue, PrimitiveValue, ThresholdValue } from '../shared/value-types';
-import { GenericMetadata } from '../shared/metadata-types';
+import type { FilterValue, ThresholdValue } from '../shared/value-types'
+import type { PrimitiveValue } from '../shared/value-types'
+import type { GenericMetadata } from '../shared/metadata-types';
 
 // Alert Rule Management
 export interface CreateAlertRuleRequest extends CreateRequest<AlertRuleData> {
@@ -184,7 +185,7 @@ export interface AlertTestResult {
   message: string;
   duration: number;
   fired: boolean;
-  mockData?: Record<string, PrimitiveValue> | Array<PrimitiveValue>;
+  mockData?: Record<string, PrimitiveValue> | PrimitiveValue[];
 }
 
 export interface Alert {

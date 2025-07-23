@@ -1,5 +1,5 @@
 import { useAttributeMappingComposition } from './useAttributeMappingComposition';
-import { AttributeMappingLogicResult } from './types';
+import type { AttributeMappingLogicResult } from './types';
 
 /**
  * Main attribute mapping logic hook - refactored with modular architecture

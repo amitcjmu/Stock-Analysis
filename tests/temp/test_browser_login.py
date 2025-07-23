@@ -25,7 +25,7 @@ async def test_login():
                     "headers": headers,
                     "data": post_data
                 })
-                print(f"\n📤 API Request:")
+                print("\n📤 API Request:")
                 print(f"   URL: {request.url}")
                 print(f"   Method: {request.method}")
                 if "authorization" in headers:
@@ -38,7 +38,7 @@ async def test_login():
         # Intercept responses
         async def handle_response(response):
             if "/api/" in response.url:
-                print(f"\n📥 API Response:")
+                print("\n📥 API Response:")
                 print(f"   URL: {response.url}")
                 print(f"   Status: {response.status}")
                 if response.status >= 400:

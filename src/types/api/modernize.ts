@@ -13,7 +13,7 @@
  */
 
 // Re-export all modernize types for backward compatibility
-export * from './sixr-strategy/modernize';
+export type * from './sixr-strategy/modernize';
 
 // Re-export shared types commonly used in modernize flows
 export type {

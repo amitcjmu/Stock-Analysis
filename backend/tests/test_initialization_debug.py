@@ -1,5 +1,5 @@
 import time
-import sys
+
 
 def test_step(step_name, func):
     """Test a step and measure time."""
@@ -17,9 +17,6 @@ def test_step(step_name, func):
 
 def step1_basic_imports():
     """Test basic imports."""
-    import logging
-    from typing import Dict, Any
-    from datetime import datetime
     return "Basic imports OK"
 
 def step2_config_import():
@@ -29,7 +26,6 @@ def step2_config_import():
 
 def step3_memory_import():
     """Test memory service import."""
-    from app.services.memory import AgentMemory
     return "Memory service imported"
 
 def step4_memory_init():
@@ -40,13 +36,12 @@ def step4_memory_init():
 
 def step5_deepinfra_import():
     """Test DeepInfra LLM import."""
-    from app.services.deepinfra_llm import create_deepinfra_llm
     return "DeepInfra LLM imported"
 
 def step6_deepinfra_init():
     """Test DeepInfra LLM initialization."""
-    from app.services.deepinfra_llm import create_deepinfra_llm
     from app.core.config import settings
+    from app.services.deepinfra_llm import create_deepinfra_llm
     llm = create_deepinfra_llm(
         api_token=settings.DEEPINFRA_API_KEY,
         model_id=settings.DEEPINFRA_MODEL
@@ -55,14 +50,13 @@ def step6_deepinfra_init():
 
 def step7_agents_import():
     """Test agents import."""
-    from app.services.agents import AgentManager
     return "Agent manager imported"
 
 def step8_agents_init():
     """Test agents initialization."""
+    from app.core.config import settings
     from app.services.agents import AgentManager
     from app.services.deepinfra_llm import create_deepinfra_llm
-    from app.core.config import settings
     
     llm = create_deepinfra_llm(
         api_token=settings.DEEPINFRA_API_KEY,
@@ -73,14 +67,13 @@ def step8_agents_init():
 
 def step9_crewai_service_import():
     """Test CrewAI service import (this is where it likely hangs)."""
-    from app.services.crewai_service_modular import CrewAIService
     return "CrewAI service class imported"
 
 def step10_crewai_service_init():
     """Test CrewAI service initialization."""
     from app.services.crewai_service_modular import CrewAIService
-    service = CrewAIService()
-    return f"CrewAI service initialized"
+    CrewAIService()
+    return "CrewAI service initialized"
 
 def step11_crewai_global_import():
     """Test importing the global crewai_service instance."""

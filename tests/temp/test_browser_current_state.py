@@ -17,7 +17,7 @@ async def test_current_state():
         
         async def handle_response(response):
             if "/api/" in response.url and response.status >= 400:
-                print(f"\n❌ API Error:")
+                print("\n❌ API Error:")
                 print(f"   URL: {response.url}")
                 print(f"   Status: {response.status}")
                 try:

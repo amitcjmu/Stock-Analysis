@@ -7,18 +7,18 @@
  */
 
 // Re-export all types from modular files to maintain backward compatibility
-export * from './discovery/flow-management';
-export * from './discovery/data-import';
-export * from './discovery/attribute-mapping';
-export * from './discovery/critical-attributes';
-export * from './discovery/crew-analysis';
-export * from './discovery/flow-state-management';
-export * from './discovery/agent-clarifications';
-export * from './discovery/progress-tracking';
-export * from './discovery/training-learning';
+export type * from './discovery/flow-management';
+export type * from './discovery/data-import';
+export type * from './discovery/attribute-mapping';
+export type * from './discovery/critical-attributes';
+export type * from './discovery/crew-analysis';
+export type * from './discovery/flow-state-management';
+export type * from './discovery/agent-clarifications';
+export type * from './discovery/progress-tracking';
+export type * from './discovery/training-learning';
 
 // Import shared types
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext,

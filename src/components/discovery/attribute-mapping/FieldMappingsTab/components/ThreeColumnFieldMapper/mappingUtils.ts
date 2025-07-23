@@ -4,8 +4,9 @@
  * Functions for categorizing mappings, filtering, and state management.
  */
 
-import { FieldMapping } from '../../types';
-import { MappingBuckets, ProgressInfo } from './types';
+import type { FieldMapping } from '../../types';
+import type { ProgressInfo } from './types'
+import type { MappingBuckets } from './types'
 
 export const categorizeMappings = (fieldMappings: FieldMapping[]): MappingBuckets => {
   console.log('🔍 ThreeColumnFieldMapper - Field mappings data:', {

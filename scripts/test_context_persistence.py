@@ -9,9 +9,9 @@ This script tests:
 """
 
 import asyncio
-import aiohttp
-import json
 from datetime import datetime
+
+import aiohttp
 
 # Test contexts - Marathon should persist, not switch to Acme
 TEST_CONTEXTS = {
@@ -95,13 +95,13 @@ async def test_store_import_validation():
                 result = await response.json()
                 
                 if response.status == 200:
-                    print(f"✅ Store-Import API: SUCCESS (200)")
+                    print("✅ Store-Import API: SUCCESS (200)")
                     print(f"   Import Session ID: {result.get('import_session_id')}")
                     print(f"   Records Stored: {result.get('records_stored')}")
                     print(f"   Message: {result.get('message')}")
                     return True
                 elif response.status == 422:
-                    print(f"❌ Store-Import API: VALIDATION ERROR (422)")
+                    print("❌ Store-Import API: VALIDATION ERROR (422)")
                     print(f"   Error Details: {result}")
                     return False
                 else:
@@ -134,10 +134,10 @@ async def test_context_persistence():
             ) as response:
                 
                 if response.status == 200:
-                    result = await response.json()
-                    print(f"✅ Context Persistence: Headers processed correctly")
+                    await response.json()
+                    print("✅ Context Persistence: Headers processed correctly")
                     print(f"   Expected Client: Marathon Petroleum ({context['client_id']})")
-                    print(f"   Context Preserved: ✅")
+                    print("   Context Preserved: ✅")
                     return True
                 else:
                     print(f"❌ Context Persistence: Failed ({response.status})")

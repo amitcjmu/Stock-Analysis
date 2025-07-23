@@ -1,19 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react'
+import { useEffect } from 'react'
 import { useParams } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
-import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
-import AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
-import DataClassificationDisplay from '../../components/discovery/DataClassificationDisplay';
+import type ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
+import type AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';
+import type DataClassificationDisplay from '../../components/discovery/DataClassificationDisplay';
 import AgentInsightsSection from '../../components/discovery/AgentInsightsSection';
-import { 
-  AlertTriangle, Bug, Shield, Clock, TrendingUp,
-  Code, Database, Globe, BarChart3, Settings,
-  CheckCircle, X, Info, GraduationCap, RotateCcw, Play, RefreshCw
-} from 'lucide-react';
+import type { Shield, Info, GraduationCap, Play, RefreshCw } from 'lucide-react'
+import { AlertTriangle, Bug, Clock, TrendingUp, Code, Database, Globe, BarChart3, Settings, CheckCircle, X, RotateCcw } from 'lucide-react'
 import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
 import { useTechDebtFlowDetection } from '../../hooks/discovery/useDiscoveryFlowAutoDetection';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '../../components/ui/button';
+import type { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/use-toast';
 
 interface TechDebtItem {

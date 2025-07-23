@@ -9,23 +9,33 @@ Usage:
     python scripts/qa/performance_validation.py [--verbose] [--benchmark]
 """
 
-import asyncio
-import sys
 import argparse
+import asyncio
 import json
+import sys
 import time
-from datetime import datetime
-from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass
+from datetime import datetime
 from statistics import mean, median
+from typing import Any, Dict, List, Optional
 
 # Add app path
 sys.path.append('/app')
 
-from sqlalchemy import text, select, func, and_, or_, distinct
+from sqlalchemy import and_, distinct, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.database import AsyncSessionLocal
-from app.models import *
+from app.models import (
+    Asset,
+    ClientAccount,
+    DataImport,
+    DiscoveryFlow,
+    Engagement,
+    Migration,
+    User,
+)
+
 
 @dataclass
 class PerformanceResult:
@@ -819,7 +829,7 @@ def print_performance_report(report: Dict[str, Any]):
     
     # Category breakdown
     if report['category_performance']:
-        print(f"\n📊 PERFORMANCE BY CATEGORY:")
+        print("\n📊 PERFORMANCE BY CATEGORY:")
         print("-" * 40)
         for category, stats in report['category_performance'].items():
             pass_rate = (stats['passed_tests'] / stats['total_tests']) * 100
@@ -827,7 +837,7 @@ def print_performance_report(report: Dict[str, Any]):
     
     # Failed tests
     if summary['failed_tests'] > 0:
-        print(f"\n❌ SLOW TESTS:")
+        print("\n❌ SLOW TESTS:")
         print("-" * 40)
         failed = [r for r in report['detailed_results'] if not r['passed']]
         for result in failed:
@@ -836,17 +846,17 @@ def print_performance_report(report: Dict[str, Any]):
     
     # Recommendations
     if report['recommendations']:
-        print(f"\n💡 PERFORMANCE RECOMMENDATIONS:")
+        print("\n💡 PERFORMANCE RECOMMENDATIONS:")
         print("-" * 40)
         for i, rec in enumerate(report['recommendations'], 1):
             print(f"{i}. {rec}")
     
     # Overall status
     if summary['failed_tests'] == 0:
-        print(f"\n🎉 ALL PERFORMANCE TESTS PASSED!")
+        print("\n🎉 ALL PERFORMANCE TESTS PASSED!")
         print("Database performance is excellent for demo purposes.")
     else:
-        print(f"\n⚠️ PERFORMANCE ISSUES DETECTED")
+        print("\n⚠️ PERFORMANCE ISSUES DETECTED")
         print(f"Found {summary['failed_tests']} tests exceeding performance thresholds.")
 
 async def main():

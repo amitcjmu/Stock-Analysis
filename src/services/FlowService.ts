@@ -12,8 +12,9 @@
  */
 
 import { ApiClient } from './ApiClient';
-import { FlowStatus, FlowType, CreateFlowRequest, ExecutePhaseRequest, FlowAnalytics } from '../types/flow';
-import { ApiError } from '../types/shared/api-types';
+import type { FlowStatus, FlowType, CreateFlowRequest, ExecutePhaseRequest } from '../types/flow'
+import type { FlowAnalytics } from '../types/flow'
+import type { ApiError } from '../types/shared/api-types';
 
 export interface FlowListOptions {
   flow_type?: FlowType;

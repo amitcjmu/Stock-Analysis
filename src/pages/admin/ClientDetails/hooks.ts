@@ -8,7 +8,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCallWithFallback } from '@/config/api';
-import { Client, ClientFormData } from './types';
+import type { ClientFormData } from './types'
+import type { Client } from './types'
 
 export const useClient = (clientId: string | undefined) => {
   const { toast } = useToast();

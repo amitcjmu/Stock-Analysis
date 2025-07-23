@@ -4,25 +4,31 @@ This script sets up all demo data in the correct order for a fresh deployment.
 Run this after migrations are applied to populate the database with demo data.
 """
 import asyncio
-import sys
 import os
+import sys
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from datetime import datetime, timezone
-from sqlalchemy import select, func, text
+
+from sqlalchemy import func, select, text
+
 from app.core.database import AsyncSessionLocal
 from app.models import (
-    ClientAccount, Engagement, User, UserAccountAssociation,
-    DiscoveryFlow, DataImport, Asset, AssetDependency,
-    ImportFieldMapping, RawImportRecord, UserRole
+    Asset,
+    ClientAccount,
+    DataImport,
+    DiscoveryFlow,
+    Engagement,
+    ImportFieldMapping,
+    User,
+    UserAccountAssociation,
+    UserRole,
 )
-from app.models.asset import MigrationWave
-import json
+from seeding.constants import DEMO_USER_IDS
 
 # Import the individual seeding modules
-from seeding.demo_multi_tenant_setup import create_demo_multi_tenant_data, clean_demo_data
-from seeding.constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, DEMO_USER_IDS
-from seeding.shared.seeding_utils import safe_json_serialize
+from seeding.demo_multi_tenant_setup import clean_demo_data, create_demo_multi_tenant_data
 
 
 class DeploymentSeeder:
@@ -261,10 +267,10 @@ class DeploymentSeeder:
         # Import and run the seeding modules in order
         try:
             # These modules will use the existing demo accounts
+            from seeding.asset_dependency_seeder import seed_dependencies
+            from seeding.asset_seeder import seed_assets
             from seeding.data_import_seeder import seed_data_imports
             from seeding.field_mapping_seeder import seed_field_mappings
-            from seeding.asset_seeder import seed_assets
-            from seeding.asset_dependency_seeder import seed_dependencies
             from seeding.migration_planning_seeder import seed_migration_planning
             
             await seed_data_imports()

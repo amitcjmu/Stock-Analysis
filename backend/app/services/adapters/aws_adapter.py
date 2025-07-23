@@ -9,19 +9,15 @@ from the modularized aws_adapter package.
 """
 
 # Re-export all public interfaces for backward compatibility
-from .aws_adapter.base import AWSCredentials, AWSResourceMetrics, AWS_ADAPTER_METADATA
+from .aws_adapter.base import AWS_ADAPTER_METADATA, AWSCredentials, AWSResourceMetrics
 from .aws_adapter.main import AWSAdapter
 
 # Maintain backward compatibility with direct imports
-__all__ = [
-    "AWSAdapter",
-    "AWSCredentials",
-    "AWSResourceMetrics",
-    "AWS_ADAPTER_METADATA"
-]
+__all__ = ["AWSAdapter", "AWSCredentials", "AWSResourceMetrics", "AWS_ADAPTER_METADATA"]
 
 # For compatibility with existing code that might access these directly
 import logging
+
 logger = logging.getLogger(__name__)
 
 # Note: The actual implementation has been modularized into the aws_adapter/ directory

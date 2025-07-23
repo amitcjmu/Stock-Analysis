@@ -7,34 +7,34 @@
  */
 
 // Health and status types
-export * from './health';
+export type * from './health';
 
 // Progress tracking types
-export * from './progress';
+export type * from './progress';
 
 // Risk and issue management types
-export * from './risk';
+export type * from './risk';
 
 // Stakeholder management types
-export * from './stakeholder';
+export type * from './stakeholder';
 
 // Resource management types
-export * from './resource';
+export type * from './resource';
 
 // Metrics and analytics types
-export * from './metrics';
+export type * from './metrics';
 
 // Integration types
-export * from './integration';
+export type * from './integration';
 
 // Compliance types
-export * from './compliance';
+export type * from './compliance';
 
 // Change management types
-export * from './change';
+export type * from './change';
 
 // Knowledge management types
-export * from './knowledge';
+export type * from './knowledge';
 
 // Common utility types
-export * from './common';
+export type * from './common';

@@ -5,4 +5,4 @@
  */
 
 export { default } from './AdvancedAnalytics/AdvancedAnalytics';
-export * from './AdvancedAnalytics';
+export * from './AdvancedAnalytics/AdvancedAnalytics';

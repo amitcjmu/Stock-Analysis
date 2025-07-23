@@ -5,8 +5,8 @@ Core types and base classes for the agent registry system.
 """
 
 import logging
-from datetime import datetime
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from typing import List, Optional
 
@@ -15,8 +15,9 @@ logger = logging.getLogger(__name__)
 
 class AgentPhase(Enum):
     """Agent execution phases"""
+
     DISCOVERY = "discovery"
-    ASSESSMENT = "assessment"  
+    ASSESSMENT = "assessment"
     PLANNING = "planning"
     MIGRATION = "migration"
     MODERNIZATION = "modernization"
@@ -28,6 +29,7 @@ class AgentPhase(Enum):
 
 class AgentStatus(Enum):
     """Agent operational status"""
+
     ACTIVE = "active"
     STANDBY = "standby"
     BUSY = "busy"
@@ -40,6 +42,7 @@ class AgentStatus(Enum):
 @dataclass
 class AgentRegistration:
     """Complete agent registration information"""
+
     agent_id: str
     name: str
     role: str

@@ -10,7 +10,7 @@ This script:
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+
 from sqlalchemy import text
 
 from app.core.database import AsyncSessionLocal

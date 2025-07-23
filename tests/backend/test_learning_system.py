@@ -360,7 +360,7 @@ class TestLearningSystem:
         
         print(f"   ✅ Initial confidence: {initial_confidence:.2f}")
         print(f"   ✅ Second confidence: {second_confidence:.2f}")
-        print(f"   ✅ Learning cycle completed successfully")
+        print("   ✅ Learning cycle completed successfully")
         
         # Check memory state
         stats = self.memory.get_memory_stats()

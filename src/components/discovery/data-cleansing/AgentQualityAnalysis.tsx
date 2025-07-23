@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { Brain, Lightbulb, Target, TrendingUp, ChevronDown, ChevronUp, Zap, AlertCircle, Edit3, Check, X } from 'lucide-react';
+import React from 'react'
+import { useState } from 'react'
+import type { Brain, AlertCircle } from 'lucide-react'
+import { Lightbulb, Target, TrendingUp, ChevronDown, ChevronUp, Zap, Edit3, Check, X } from 'lucide-react'
 
 interface QualityIssue {
   id: string;

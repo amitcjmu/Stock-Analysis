@@ -4,11 +4,11 @@
  * Types for data import, export, and data transformation operations.
  */
 
-import { BaseApiRequest, BaseApiResponse } from './base-types';
-import { MultiTenantContext } from './tenant-types';
-import { FilterParameter } from './query-types';
-import { ValidationResult, ValidationError, ValidationWarning } from './validation-types';
-import { CompressionOptions, EncryptionOptions } from './file-processing-types';
+import type { BaseApiRequest, BaseApiResponse } from './base-types';
+import type { MultiTenantContext } from './tenant-types';
+import type { FilterParameter } from './query-types';
+import type { ValidationResult, ValidationError, ValidationWarning } from './validation-types';
+import type { CompressionOptions, EncryptionOptions } from './file-processing-types';
 
 // Export/Import
 export interface ExportRequest extends BaseApiRequest {

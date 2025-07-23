@@ -26,7 +26,7 @@ if config.config_file_name is not None:
 # The following import is critical for Alembic to detect model changes.
 # It assumes that your models/__init__.py file imports all your model modules.
 from app.core.database import Base
-from app.models import *  # Import all models
+from app.models import *  # noqa: F403 - Import all models for Alembic auto-detection
 
 target_metadata = Base.metadata
 
@@ -88,7 +88,8 @@ def do_run_migrations(connection: Connection) -> None:
         connection=connection, 
         target_metadata=target_metadata,
         include_schemas=True,
-        version_table_schema='migration'
+        version_table_schema='migration',
+        version_table_pk=False  # This allows for custom version table schema
     )
 
     with context.begin_transaction():

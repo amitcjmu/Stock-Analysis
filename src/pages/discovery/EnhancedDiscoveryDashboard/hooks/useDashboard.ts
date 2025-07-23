@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react'
+import { useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext';
 import { dashboardService } from '../services/dashboardService';
 import type { DashboardState } from '../types';

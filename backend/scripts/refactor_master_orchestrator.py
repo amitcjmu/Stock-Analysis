@@ -4,7 +4,6 @@ Script to refactor MasterFlowOrchestrator by removing extracted methods
 and creating a smaller, more focused class.
 """
 
-import re
 from pathlib import Path
 
 # Define the methods to remove (they've been extracted to services)
@@ -84,7 +83,7 @@ def refactor_master_orchestrator():
     with open(file_path, 'w') as f:
         f.write(new_content)
     
-    print(f"✅ Refactored MasterFlowOrchestrator")
+    print("✅ Refactored MasterFlowOrchestrator")
     print(f"📁 Backup saved to: {backup_path}")
     
     # Count lines saved

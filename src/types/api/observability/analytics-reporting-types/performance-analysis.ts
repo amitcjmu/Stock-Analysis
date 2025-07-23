@@ -5,26 +5,13 @@
  * generating recommendations, and tracking performance trends.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext
 } from '../../shared';
-import {
-  ImpactMeasure,
-  BenefitMeasure,
-  BusinessImpact,
-  TechnicalImpact,
-  CauseEvidence,
-  BaselineMetric,
-  BaselineCondition,
-  MetricValue,
-  MetricStatistics,
-  MetricTrend,
-  MetricAnomaly,
-  ThresholdAnalysis,
-  CausalityAnalysis
-} from './shared-types';
+import type { ImpactMeasure, BenefitMeasure, BusinessImpact, TechnicalImpact, MetricStatistics, MetricTrend, ThresholdAnalysis, CausalityAnalysis } from './shared-types'
+import type { CauseEvidence, BaselineMetric, BaselineCondition, MetricValue, MetricAnomaly } from './shared-types'
 
 // Performance Analysis Requests and Responses
 export interface AnalyzePerformanceRequest extends BaseApiRequest {

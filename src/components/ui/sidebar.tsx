@@ -10,23 +10,24 @@
 
 // Import and re-export from the modular structure
 import { SidebarProvider } from './sidebar/sidebar-provider';
-import { SidebarContext, useSidebar } from './sidebar/sidebar-context';
+import { SidebarContext } from './sidebar/sidebar-context'
+import { useSidebar } from './sidebar/sidebar-context'
 import { Sidebar, SidebarInset } from './sidebar/sidebar-core';
 import { SidebarTrigger, SidebarRail } from './sidebar/sidebar-interactions';
-import { 
+import {
   SidebarHeader, 
   SidebarFooter, 
   SidebarContent, 
   SidebarInput, 
   SidebarSeparator 
 } from './sidebar/sidebar-layout';
-import { 
+import {
   SidebarGroup, 
   SidebarGroupLabel, 
   SidebarGroupAction, 
   SidebarGroupContent 
 } from './sidebar/sidebar-group';
-import { 
+import {
   SidebarMenu, 
   SidebarMenuItem, 
   SidebarMenuButton, 
@@ -34,7 +35,7 @@ import {
   SidebarMenuBadge, 
   SidebarMenuSkeleton 
 } from './sidebar/sidebar-menu';
-import { 
+import {
   SidebarMenuSub, 
   SidebarMenuSubItem, 
   SidebarMenuSubButton 

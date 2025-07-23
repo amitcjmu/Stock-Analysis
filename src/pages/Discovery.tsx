@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import Sidebar from '../components/Sidebar';
-import { Search, Database, Network, Server, Activity, Download, Filter } from 'lucide-react';
+import { Database, Network, Activity, Download, Filter } from 'lucide-react';
 
 const Discovery = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');

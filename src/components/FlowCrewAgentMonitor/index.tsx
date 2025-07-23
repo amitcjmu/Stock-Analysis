@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react'
+import { useState } from 'react'
 import { 
   Bot, 
   RefreshCw, 
@@ -21,7 +22,7 @@ import Phase2CrewMonitor from '../Phase2CrewMonitor';
 import { useAgentMonitor } from './hooks/useAgentMonitor';
 import { AgentList } from './components/AgentList';
 import { AgentDetail } from './components/AgentDetail';
-import { AgentStatus } from './components/AgentStatus';
+import type { AgentStatus } from './components/AgentStatus';
 import { AgentMetrics } from './components/AgentMetrics';
 import type { Agent } from './types';
 

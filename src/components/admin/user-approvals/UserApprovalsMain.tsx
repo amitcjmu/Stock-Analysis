@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react'
+import { useState } from 'react'
+import { useEffect, useCallback } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -7,20 +9,17 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  AdminLoadingState,
-  useAdminToasts,
-  formatDate,
-  getAccessLevelColor 
-} from '@/components/admin/shared';
+import type { AdminLoadingState, getAccessLevelColor } from '@/components/admin/shared'
+import { useAdminToasts, formatDate } from '@/components/admin/shared'
 
 import { UserStats } from './UserStats';
 import { UserFilters } from './UserFilters';
 import { UserList } from './UserList';
 import { UserDetailsModal } from './UserDetailsModal';
-import { ApprovalActions } from './ApprovalActions';
+import type { ApprovalActions } from './ApprovalActions';
 import { UserManagementTabs } from './UserManagementTabs';
-import { PendingUser, ActiveUser, ApprovalData, RejectionData } from './types';
+import type { ApprovalData, RejectionData } from './types'
+import type { PendingUser, ActiveUser } from './types'
 
 export const UserApprovalsMain: React.FC = () => {
   const { getAuthHeaders } = useAuth();

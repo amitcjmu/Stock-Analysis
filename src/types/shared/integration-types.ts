@@ -5,9 +5,9 @@
  * to replace any types in integration layer code
  */
 
-import { ApiResponse, ApiError } from './api-types';
-import { ConfigurationValue } from './config-types';
-import { BaseMetadata } from './metadata-types';
+import type { ApiResponse, ApiError } from './api-types';
+import type { ConfigurationValue } from './config-types';
+import type { BaseMetadata } from './metadata-types';
 
 /**
  * Generic external API integration response wrapper

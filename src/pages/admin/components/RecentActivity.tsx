@@ -4,11 +4,8 @@
  */
 
 import React from 'react';
-import { 
-  Clock, 
-  Activity, 
-  UserCheck 
-} from 'lucide-react';
+import type { Clock, UserCheck } from 'lucide-react'
+import { Activity } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 

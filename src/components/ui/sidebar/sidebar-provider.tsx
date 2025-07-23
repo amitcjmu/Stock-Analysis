@@ -8,14 +8,9 @@ import * as React from "react"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { SidebarContext, type SidebarContext as SidebarContextType } from "./sidebar-context"
-import { 
-  SIDEBAR_COOKIE_NAME, 
-  SIDEBAR_COOKIE_MAX_AGE, 
-  SIDEBAR_WIDTH, 
-  SIDEBAR_WIDTH_ICON, 
-  SIDEBAR_KEYBOARD_SHORTCUT 
-} from "./sidebar-constants"
+import type { SidebarContext, type SidebarContext as SidebarContextType } from "./sidebar-context"
+import type { SIDEBAR_WIDTH, SIDEBAR_WIDTH_ICON } from './sidebar-constants'
+import { SIDEBAR_COOKIE_NAME, SIDEBAR_COOKIE_MAX_AGE, SIDEBAR_KEYBOARD_SHORTCUT } from './sidebar-constants'
 
 export const SidebarProvider = React.forwardRef<
   HTMLDivElement,

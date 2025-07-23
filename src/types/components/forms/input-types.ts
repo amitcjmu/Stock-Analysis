@@ -4,8 +4,8 @@
  * Types for text inputs, number inputs, textareas, and related input components.
  */
 
-import { ReactNode, RefObject } from 'react';
-import { BaseFormProps, MaskState } from './base-types';
+import type { ReactNode, RefObject } from 'react';
+import type { BaseFormProps, MaskState } from './base-types';
 
 // Text input types
 export interface TextInputProps extends BaseFormProps {

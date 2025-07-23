@@ -12,8 +12,8 @@
  */
 
 import { ApiClient } from '../ApiClient';
-import { ApiResponse, ApiError } from '../../types/shared/api-types';
-import { AuditableMetadata } from '../../types/shared/metadata-types';
+import type { ApiResponse, ApiError } from '../../types/shared/api-types';
+import type { AuditableMetadata } from '../../types/shared/metadata-types';
 
 const apiClient = ApiClient.getInstance();
 

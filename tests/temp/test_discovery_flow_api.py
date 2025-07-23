@@ -5,10 +5,7 @@ Tests the backend API endpoints to verify Discovery flow creation
 """
 
 import requests
-import json
-import time
-import uuid
-from typing import Dict, Any, Optional
+from typing import Optional
 
 class DiscoveryFlowAPITester:
     def __init__(self, base_url: str = "http://localhost:8000"):
@@ -78,7 +75,7 @@ class DiscoveryFlowAPITester:
                 self.engagement_id = context.get("engagement_id") 
                 self.user_id = context.get("user_id")
                 
-                print(f"✅ Context retrieved:")
+                print("✅ Context retrieved:")
                 print(f"   Client ID: {self.client_account_id}")
                 print(f"   Engagement ID: {self.engagement_id}")
                 print(f"   User ID: {self.user_id}")

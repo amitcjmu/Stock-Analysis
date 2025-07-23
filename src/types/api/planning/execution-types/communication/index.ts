@@ -8,38 +8,38 @@
  */
 
 // Communication Strategy & Planning
-export * from './strategy';
+export type * from './strategy';
 
 // Stakeholder Management
-export * from './stakeholders';
+export type * from './stakeholders';
 
 // Communication Channels
-export * from './channels';
+export type * from './channels';
 
 // Messages & Content
-export * from './messages';
+export type * from './messages';
 
 // Scheduling & Protocols
-export * from './scheduling';
+export type * from './scheduling';
 
 // Governance & Quality
-export * from './governance';
+export type * from './governance';
 
 // Feedback & Analytics
-export * from './feedback';
+export type * from './feedback';
 
 // Crisis Communication
-export * from './crisis';
-export * from './crisis-framework';
-export * from './crisis-planning';
-export * from './crisis-response';
-export * from './crisis-recovery';
+export type * from './crisis';
+export type * from './crisis-framework';
+export type * from './crisis-planning';
+export type * from './crisis-response';
+export type * from './crisis-recovery';
 
 // Resource Management
-export * from './resources';
+export type * from './resources';
 
 // Templates & Standards
-export * from './templates';
+export type * from './templates';
 
 // Main Communication Plan Interface
 export interface CommunicationPlan {

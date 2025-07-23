@@ -8,7 +8,7 @@
 
 import type { BaseMetadata, AuditableMetadata } from '../../../shared/metadata-types';
 import type { ConfigurationValue } from '../../../shared/config-types';
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext,

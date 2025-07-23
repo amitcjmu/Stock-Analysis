@@ -5,7 +5,7 @@
  * status updates, configuration, and flow control operations.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext,

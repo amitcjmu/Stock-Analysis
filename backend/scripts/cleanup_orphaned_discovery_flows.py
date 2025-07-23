@@ -7,14 +7,13 @@ This script identifies and deletes discovery flows that have invalid master_flow
 """
 
 import asyncio
-import uuid
 from datetime import datetime
-from sqlalchemy import select, delete, and_, text
-from sqlalchemy.ext.asyncio import AsyncSession
+
+from sqlalchemy import delete, text
 
 from app.core.database import AsyncSessionLocal
 from app.models.discovery_flow import DiscoveryFlow
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+
 
 async def cleanup_orphaned_discovery_flows():
     """

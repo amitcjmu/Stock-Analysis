@@ -12,30 +12,23 @@ Generated with CC for modular backend architecture.
 """
 
 import logging
-from typing import Dict, Any, List, Optional, Tuple, Union
-from datetime import datetime
-
-# Import modular components
-from .decision import (
-    BaseDecisionAgent, 
-    AgentDecision, 
-    PhaseAction,
-    PhaseTransitionAgent,
-    FieldMappingDecisionAgent,
-    DecisionUtils,
-    ConfidenceCalculator
-)
 
 # For backward compatibility - re-export all classes
-from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
+from .decision import (
+    AgentDecision,
+    BaseDecisionAgent,
+    FieldMappingDecisionAgent,
+    PhaseAction,
+    PhaseTransitionAgent,
+)
 
 logger = logging.getLogger(__name__)
 
-
-# Backward compatibility: Keep existing classes available but delegate to modular components
-# This allows existing imports to continue working while enabling modular structure
-
-# All classes are now imported from the modular structure above
-# Existing code can continue to use:
-# from decision_agents import PhaseTransitionAgent, FieldMappingDecisionAgent
-# from decision_agents import PhaseAction, AgentDecision
+# Export all classes for backward compatibility
+__all__ = [
+    "AgentDecision",
+    "BaseDecisionAgent",
+    "PhaseAction",
+    "PhaseTransitionAgent",
+    "FieldMappingDecisionAgent",
+]

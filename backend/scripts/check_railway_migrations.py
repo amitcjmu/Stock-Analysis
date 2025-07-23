@@ -6,7 +6,7 @@ Uses docker exec to check the Railway database state without complex imports
 
 import subprocess
 import sys
-import os
+
 
 def run_psql_command(command: str) -> tuple[bool, str]:
     """Run a PostgreSQL command via docker exec"""
@@ -115,9 +115,9 @@ def main():
         print("❌ Cannot proceed without migration version")
         return False
     
-    print(f"\n📋 Expected migration version: 9d6b856ba8a7")
+    print("\n📋 Expected migration version: 9d6b856ba8a7")
     if current_version != "9d6b856ba8a7":
-        print(f"⚠️ Version mismatch! Railway may be missing migrations.")
+        print("⚠️ Version mismatch! Railway may be missing migrations.")
     else:
         print("✅ Migration version matches expected")
     

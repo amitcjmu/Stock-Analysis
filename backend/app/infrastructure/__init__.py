@@ -2,18 +2,18 @@
 Infrastructure abstractions for deployment flexibility.
 """
 
-from .credentials import CredentialManager
-from .telemetry import TelemetryService
 from .authentication import AuthenticationBackend
+from .credentials import CredentialManager
 from .deployment import (
-    DeploymentMode,
     DeploymentConfig,
-    get_deployment_config,
+    DeploymentMode,
     ServiceDetector,
     ServiceFactory,
+    get_deployment_config,
+    get_service,
     get_service_factory,
-    get_service
 )
+from .telemetry import TelemetryService
 
 __all__ = [
     "CredentialManager",
@@ -25,5 +25,5 @@ __all__ = [
     "ServiceDetector",
     "ServiceFactory",
     "get_service_factory",
-    "get_service"
+    "get_service",
 ]

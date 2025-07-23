@@ -3,9 +3,9 @@ Data Import Models Package
 """
 
 from .core import DataImport, RawImportRecord
-from .mapping import ImportFieldMapping
-from .enums import ImportStatus, ImportType
 from .custom_fields import CustomTargetField
+from .enums import ImportStatus, ImportType
+from .mapping import ImportFieldMapping
 
 __all__ = [
     "DataImport",
@@ -13,5 +13,5 @@ __all__ = [
     "ImportFieldMapping",
     "ImportStatus",
     "ImportType",
-    "CustomTargetField"
-] 
+    "CustomTargetField",
+]

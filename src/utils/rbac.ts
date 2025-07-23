@@ -2,7 +2,7 @@
  * RBAC utility functions for frontend role-based access control
  */
 
-import { User } from '@/contexts/AuthContext/types';
+import type { User } from '@/contexts/AuthContext/types';
 
 // Role hierarchy mapping
 export const RoleLevel = {

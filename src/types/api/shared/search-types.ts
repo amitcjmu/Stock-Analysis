@@ -4,9 +4,10 @@
  * Types for search operations, advanced search, and search results.
  */
 
-import { BaseApiRequest, BaseApiResponse, PaginationInfo } from './base-types';
-import { MultiTenantContext } from './tenant-types';
-import { SortParameter, FilterParameter, AggregationRequest, AggregationResult } from './query-types';
+import type { BaseApiRequest, BaseApiResponse, PaginationInfo } from './base-types';
+import type { MultiTenantContext } from './tenant-types';
+import type { AggregationRequest, AggregationResult } from './query-types'
+import type { SortParameter, FilterParameter } from './query-types'
 
 // Basic search
 export interface SearchRequest extends BaseApiRequest {
@@ -22,8 +23,8 @@ export interface SearchRequest extends BaseApiRequest {
   context: MultiTenantContext;
 }
 
-export interface SearchResponse<T> extends BaseApiResponse<SearchResult<T>[]> {
-  data: SearchResult<T>[];
+export interface SearchResponse<T> extends BaseApiResponse<Array<SearchResult<T>>> {
+  data: Array<SearchResult<T>>;
   query: string;
   took: number;
   totalHits: number;
@@ -44,8 +45,8 @@ export interface AdvancedSearchRequest extends BaseApiRequest {
   context: MultiTenantContext;
 }
 
-export interface AdvancedSearchResponse<T> extends BaseApiResponse<SearchResult<T>[]> {
-  data: SearchResult<T>[];
+export interface AdvancedSearchResponse<T> extends BaseApiResponse<Array<SearchResult<T>>> {
+  data: Array<SearchResult<T>>;
   aggregations?: AggregationResult[];
   suggestions?: SearchSuggestion[];
   statistics: SearchStatistics;

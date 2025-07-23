@@ -4,13 +4,14 @@ Database Consolidation Rollback Script
 Safely rolls back database consolidation changes if issues are found
 """
 
-import os
-import sys
-import subprocess
 import argparse
+import os
+import subprocess
+import sys
 import time
 from datetime import datetime
 from typing import List, Optional
+
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 

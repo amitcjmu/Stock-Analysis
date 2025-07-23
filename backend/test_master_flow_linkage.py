@@ -5,21 +5,21 @@ Tests both Phase 1 (retroactive updates) and Phase 2 (smart discovery)
 """
 
 import asyncio
-import sys
 import os
-from datetime import datetime
-from typing import Dict, Any
+import sys
 
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 
-from app.core.database import AsyncSessionLocal
-from app.core.context import RequestContext
-from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-from app.services.data_import.storage_manager import ImportStorageManager
-from app.models.data_import import DataImport, RawImportRecord, ImportFieldMapping
-from sqlalchemy import select, and_, func
 import uuid
+
+from sqlalchemy import and_, func, select
+
+from app.core.context import RequestContext
+from app.core.database import AsyncSessionLocal
+from app.models.data_import import DataImport, ImportFieldMapping, RawImportRecord
+from app.services.data_import.storage_manager import ImportStorageManager
+from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
 # Test configuration using real orphaned data
 TEST_FLOW_ID = "914ebf01-5174-4efa-9a81-5deb968dac60"  # Known orphaned flow
@@ -62,7 +62,7 @@ async def test_orphaned_data_discovery():
                 # Let's test it directly
                 smart_status = await orchestrator._smart_flow_discovery(TEST_FLOW_ID, include_details=True)
                 if smart_status:
-                    print(f"✅ Smart discovery succeeded!")
+                    print("✅ Smart discovery succeeded!")
                     print(f"📊 Discovery method: {smart_status.get('discovery_method')}")
                     print(f"🎯 Confidence: {smart_status.get('confidence')}")
                     
@@ -127,11 +127,11 @@ async def test_orphaned_data_repair():
 
 async def test_comprehensive_linkage():
     """Test comprehensive linkage for new flow creation"""
-    print(f"\n🔗 Testing comprehensive master_flow_id linkage")
+    print("\n🔗 Testing comprehensive master_flow_id linkage")
     
     async with AsyncSessionLocal() as db:
         # Create test context
-        context = RequestContext(
+        RequestContext(
             client_account_id=TEST_CLIENT_ACCOUNT_ID,
             engagement_id=TEST_ENGAGEMENT_ID,
             user_id=TEST_USER_ID
@@ -224,7 +224,7 @@ async def test_comprehensive_linkage():
 
 async def check_orphaned_data_status():
     """Check current status of orphaned data"""
-    print(f"\n📊 Checking current orphaned data status")
+    print("\n📊 Checking current orphaned data status")
     
     async with AsyncSessionLocal() as db:
         try:

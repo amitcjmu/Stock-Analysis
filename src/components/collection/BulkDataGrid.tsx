@@ -5,27 +5,19 @@
  * Agent Team B3 - Task B3.2 Frontend Implementation
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React from 'react'
+import { useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import type { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { 
-  Upload, 
-  Download, 
-  Plus, 
-  Trash2, 
-  Copy, 
-  Save, 
-  AlertCircle,
-  CheckCircle,
-  Filter,
-  MoreHorizontal
-} from 'lucide-react';
+import type { Plus, Filter } from 'lucide-react'
+import { Upload, Download, Trash2, Copy, Save, AlertCircle, CheckCircle, MoreHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils';
 
 import { BulkUpload } from './components/BulkUpload';

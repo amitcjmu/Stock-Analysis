@@ -3,9 +3,11 @@ JSON serialization utilities for the discovery module.
 Handles conversion of pandas/numpy data types to JSON-serializable types.
 """
 
-import pandas as pd
+from typing import Any
+
 import numpy as np
-from typing import Any, Dict, List
+import pandas as pd
+
 
 def clean_for_json_serialization(data: Any) -> Any:
     """Convert pandas/numpy data types to JSON-serializable types."""
@@ -28,13 +30,14 @@ def clean_for_json_serialization(data: Any) -> Any:
         return data.tolist()
     elif pd.isna(data):
         return None
-    elif hasattr(data, 'item'):  # numpy scalars
+    elif hasattr(data, "item"):  # numpy scalars
         try:
             return data.item()
         except (AttributeError, ValueError):
             return str(data)
     else:
         return data
+
 
 def ensure_json_serializable(value: Any) -> Any:
     """Ensure a value is JSON serializable."""
@@ -46,10 +49,10 @@ def ensure_json_serializable(value: Any) -> Any:
         return value
     elif pd.isna(value):
         return None
-    elif hasattr(value, 'item'):
+    elif hasattr(value, "item"):
         try:
             return value.item()
         except (AttributeError, ValueError):
             return str(value)
     else:
-        return str(value) 
+        return str(value)

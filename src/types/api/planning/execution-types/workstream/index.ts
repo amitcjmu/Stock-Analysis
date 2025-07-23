@@ -7,15 +7,15 @@
  */
 
 // Core workstream types
-export * from './core';
-export * from './scope';
-export * from './objectives';
-export * from './activities';
-export * from './resources';
-export * from './timeline';
-export * from './dependencies';
-export * from './risks';
-export * from './governance';
-export * from './quality';
-export * from './success';
-export * from './performance';
+export type * from './core';
+export type * from './scope';
+export type * from './objectives';
+export type * from './activities';
+export type * from './resources';
+export type * from './timeline';
+export type * from './dependencies';
+export type * from './risks';
+export type * from './governance';
+export type * from './quality';
+export type * from './success';
+export type * from './performance';

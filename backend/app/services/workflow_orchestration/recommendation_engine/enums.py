@@ -10,6 +10,7 @@ from enum import Enum
 
 class RecommendationType(Enum):
     """Types of recommendations"""
+
     AUTOMATION_TIER = "automation_tier"
     WORKFLOW_CONFIG = "workflow_config"
     PHASE_OPTIMIZATION = "phase_optimization"
@@ -21,14 +22,16 @@ class RecommendationType(Enum):
 
 class RecommendationConfidence(Enum):
     """Confidence levels for recommendations"""
-    LOW = "low"          # 0.0 - 0.4
-    MEDIUM = "medium"    # 0.4 - 0.7
-    HIGH = "high"        # 0.7 - 0.9
+
+    LOW = "low"  # 0.0 - 0.4
+    MEDIUM = "medium"  # 0.4 - 0.7
+    HIGH = "high"  # 0.7 - 0.9
     VERY_HIGH = "very_high"  # 0.9 - 1.0
 
 
 class RecommendationSource(Enum):
     """Sources of recommendation insights"""
+
     HISTORICAL_ANALYSIS = "historical_analysis"
     PATTERN_RECOGNITION = "pattern_recognition"
     MACHINE_LEARNING = "machine_learning"

@@ -1,6 +1,6 @@
 import { apiCall } from '@/config/api';
 import type { CollectionFlow, CleanupResult, FlowContinueResult } from '@/hooks/collection/useCollectionFlowManagement';
-import { BaseMetadata } from '../../types/shared/metadata-types';
+import type { BaseMetadata } from '../../types/shared/metadata-types';
 
 export interface CollectionFlowConfiguration extends BaseMetadata {
   automation_tier?: 'basic' | 'standard' | 'advanced' | 'enterprise';
@@ -23,7 +23,7 @@ export interface NotificationConfig {
   email_notifications: boolean;
   slack_notifications: boolean;
   webhook_notifications: boolean;
-  notification_levels: ('error' | 'warning' | 'info' | 'success')[];
+  notification_levels: Array<'error' | 'warning' | 'info' | 'success'>;
 }
 
 export interface CollectionFlowCreateRequest {
@@ -79,11 +79,11 @@ export interface QuestionnaireQuestion {
 }
 
 export interface ConditionalLogic {
-  show_if: {
+  show_if: Array<{
     question_id: string;
     operator: 'equals' | 'not_equals' | 'contains' | 'greater_than' | 'less_than';
     value: string | number | boolean;
-  }[];
+  }>;
 }
 
 export interface QuestionnaireResponse {

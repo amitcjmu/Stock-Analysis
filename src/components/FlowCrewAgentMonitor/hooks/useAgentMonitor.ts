@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react'
+import { useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext';
 import { masterFlowService } from '../../../services/api/masterFlowService';
 import type { 
@@ -8,7 +9,8 @@ import type {
   AgentMonitorState,
   FlowStatus 
 } from '../types';
-import { transformCrewData, createAllAvailableCrews, createCompleteFlowView } from '../utils/agentDataProcessor';
+import type { transformCrewData } from '../utils/agentDataProcessor'
+import { createAllAvailableCrews, createCompleteFlowView } from '../utils/agentDataProcessor'
 
 export const useAgentMonitor = () => {
   const [state, setState] = useState<AgentMonitorState>({
@@ -104,7 +106,7 @@ export const useAgentMonitor = () => {
               
               activeFlows.push({
                 flow_id: flow.flow_id || `discovery_flow_${Date.now()}`,
-                status: flow.status as FlowStatus,
+                status: flow.status,
                 current_phase: flow.current_phase || 'initialization',
                 progress: flow.progress || 0,
                 crews,

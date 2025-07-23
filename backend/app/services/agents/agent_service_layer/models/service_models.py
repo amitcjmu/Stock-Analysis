@@ -2,14 +2,16 @@
 Service models for agent service layer data structures.
 """
 
-from typing import Dict, Any, List, Optional
 from datetime import datetime
-from pydantic import BaseModel, Field
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 
 class ServiceCallStatus(str, Enum):
     """Service call status enumeration."""
+
     SUCCESS = "success"
     ERROR = "error"
     NOT_FOUND = "not_found"
@@ -19,6 +21,7 @@ class ServiceCallStatus(str, Enum):
 
 class ErrorType(str, Enum):
     """Error type enumeration."""
+
     SYSTEM = "system"
     NOT_FOUND = "not_found"
     PERMISSION = "permission"
@@ -29,6 +32,7 @@ class ErrorType(str, Enum):
 
 class PhaseType(str, Enum):
     """Discovery phase type enumeration."""
+
     DATA_IMPORT = "data_import"
     ATTRIBUTE_MAPPING = "attribute_mapping"
     DATA_CLEANSING = "data_cleansing"
@@ -39,6 +43,7 @@ class PhaseType(str, Enum):
 
 class AssetType(str, Enum):
     """Asset type enumeration."""
+
     SERVER = "server"
     DATABASE = "database"
     APPLICATION = "application"
@@ -53,6 +58,7 @@ class AssetType(str, Enum):
 
 class ValidationLevel(str, Enum):
     """Validation level enumeration."""
+
     HIGH = "high"
     MEDIUM = "medium"
     LOW = "low"
@@ -60,6 +66,7 @@ class ValidationLevel(str, Enum):
 
 class ServiceResponse(BaseModel):
     """Base service response model."""
+
     status: ServiceCallStatus
     message: Optional[str] = None
     timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
@@ -70,6 +77,7 @@ class ServiceResponse(BaseModel):
 
 class FlowStatusResponse(ServiceResponse):
     """Flow status response model."""
+
     flow_exists: bool = False
     flow: Optional[Dict[str, Any]] = None
     active_flows_count: int = 0
@@ -78,6 +86,7 @@ class FlowStatusResponse(ServiceResponse):
 
 class NavigationGuidanceItem(BaseModel):
     """Navigation guidance item model."""
+
     action: str
     description: str
     priority: str
@@ -86,6 +95,7 @@ class NavigationGuidanceItem(BaseModel):
 
 class NavigationGuidanceResponse(ServiceResponse):
     """Navigation guidance response model."""
+
     flow_id: Optional[str] = None
     current_phase: Optional[str] = None
     guidance: List[NavigationGuidanceItem] = []
@@ -94,6 +104,7 @@ class NavigationGuidanceResponse(ServiceResponse):
 
 class PhaseCompletionResponse(ServiceResponse):
     """Phase completion response model."""
+
     flow_id: Optional[str] = None
     phase: Optional[str] = None
     is_complete: bool = False
@@ -102,6 +113,7 @@ class PhaseCompletionResponse(ServiceResponse):
 
 class FlowListItem(BaseModel):
     """Flow list item model."""
+
     flow_id: str
     status: str
     current_phase: str
@@ -114,6 +126,7 @@ class FlowListItem(BaseModel):
 
 class PhaseTransitionResponse(ServiceResponse):
     """Phase transition validation response model."""
+
     flow_id: Optional[str] = None
     from_phase: Optional[str] = None
     to_phase: Optional[str] = None
@@ -124,6 +137,7 @@ class PhaseTransitionResponse(ServiceResponse):
 
 class DataAnalysisResult(BaseModel):
     """Data analysis result model."""
+
     record_count: int
     sample_size: Optional[int] = None
     field_analysis: Dict[str, Any]
@@ -132,6 +146,7 @@ class DataAnalysisResult(BaseModel):
 
 class ImportDataResponse(ServiceResponse):
     """Import data response model."""
+
     flow_id: Optional[str] = None
     data: List[Dict[str, Any]] = []
     metadata: Optional[Dict[str, Any]] = None
@@ -140,6 +155,7 @@ class ImportDataResponse(ServiceResponse):
 
 class MappingStatistics(BaseModel):
     """Mapping statistics model."""
+
     total_source_fields: int
     mapped_fields: int
     unmapped_fields: int
@@ -148,6 +164,7 @@ class MappingStatistics(BaseModel):
 
 class FieldMappingsResponse(ServiceResponse):
     """Field mappings response model."""
+
     flow_id: Optional[str] = None
     mappings: Dict[str, Any] = {}
     metadata: Optional[Dict[str, Any]] = None
@@ -156,6 +173,7 @@ class FieldMappingsResponse(ServiceResponse):
 
 class MappingValidationResult(BaseModel):
     """Mapping validation result model."""
+
     source_field: str
     target_mapping: Any
     issues: List[str] = []
@@ -163,6 +181,7 @@ class MappingValidationResult(BaseModel):
 
 class MappingValidationResponse(ServiceResponse):
     """Mapping validation response model."""
+
     flow_id: Optional[str] = None
     is_valid: bool = False
     validation_results: List[MappingValidationResult] = []
@@ -171,6 +190,7 @@ class MappingValidationResponse(ServiceResponse):
 
 class CleansingResultsResponse(ServiceResponse):
     """Cleansing results response model."""
+
     flow_id: Optional[str] = None
     results: Dict[str, Any] = {}
     metadata: Optional[Dict[str, Any]] = None
@@ -179,6 +199,7 @@ class CleansingResultsResponse(ServiceResponse):
 
 class ValidationIssue(BaseModel):
     """Validation issue model."""
+
     issue_type: str
     message: str
     severity: str
@@ -188,6 +209,7 @@ class ValidationIssue(BaseModel):
 
 class AssetItem(BaseModel):
     """Asset item model."""
+
     id: str
     name: str
     asset_type: str
@@ -204,6 +226,7 @@ class AssetItem(BaseModel):
 
 class DependencyInfo(BaseModel):
     """Dependency information model."""
+
     asset_id: str
     asset_name: str
     asset_type: str
@@ -215,6 +238,7 @@ class DependencyInfo(BaseModel):
 
 class DependencyAnalysis(BaseModel):
     """Dependency analysis model."""
+
     total_assets: int
     total_dependencies: int
     orphaned_assets: int
@@ -224,6 +248,7 @@ class DependencyAnalysis(BaseModel):
 
 class AssetDependenciesResponse(ServiceResponse):
     """Asset dependencies response model."""
+
     flow_id: Optional[str] = None
     dependencies: Dict[str, DependencyInfo] = {}
     analysis: Optional[DependencyAnalysis] = None
@@ -233,6 +258,7 @@ class AssetDependenciesResponse(ServiceResponse):
 
 class TechDebtSummary(BaseModel):
     """Technical debt summary model."""
+
     total_assets: int
     total_debt_items: int
     average_debt_score: float
@@ -243,6 +269,7 @@ class TechDebtSummary(BaseModel):
 
 class TechDebtAnalysisResponse(ServiceResponse):
     """Technical debt analysis response model."""
+
     flow_id: Optional[str] = None
     analysis: Optional[Dict[str, Any]] = None
     metadata: Optional[Dict[str, Any]] = None
@@ -250,6 +277,7 @@ class TechDebtAnalysisResponse(ServiceResponse):
 
 class AssetValidationResult(BaseModel):
     """Asset validation result model."""
+
     required_fields: Dict[str, Any]
     data_quality: Dict[str, Any]
     consistency: Dict[str, Any]
@@ -257,6 +285,7 @@ class AssetValidationResult(BaseModel):
 
 class AssetValidationResponse(ServiceResponse):
     """Asset validation response model."""
+
     asset_id: Optional[str] = None
     asset_name: Optional[str] = None
     is_valid: bool = False
@@ -267,6 +296,7 @@ class AssetValidationResponse(ServiceResponse):
 
 class RelationshipItem(BaseModel):
     """Relationship item model."""
+
     id: str
     name: str
     type: str
@@ -275,6 +305,7 @@ class RelationshipItem(BaseModel):
 
 class AssetRelationships(BaseModel):
     """Asset relationships model."""
+
     depends_on: List[RelationshipItem] = []
     dependents: List[RelationshipItem] = []
     related: List[RelationshipItem] = []
@@ -282,6 +313,7 @@ class AssetRelationships(BaseModel):
 
 class AssetRelationshipsResponse(ServiceResponse):
     """Asset relationships response model."""
+
     asset_id: Optional[str] = None
     asset_name: Optional[str] = None
     asset_type: Optional[str] = None
@@ -292,6 +324,7 @@ class AssetRelationshipsResponse(ServiceResponse):
 
 class PerformanceOverview(BaseModel):
     """Performance overview model."""
+
     calls_made: int
     errors: int
     error_rate: float
@@ -302,6 +335,7 @@ class PerformanceOverview(BaseModel):
 
 class PerformanceMetrics(BaseModel):
     """Performance metrics model."""
+
     overview: PerformanceOverview
     context: Dict[str, Any]
     recent_performance: Dict[str, Any]
@@ -314,6 +348,7 @@ class PerformanceMetrics(BaseModel):
 
 class HealthIndicator(BaseModel):
     """Health indicator model."""
+
     value: float
     recent_value: Optional[float] = None
     status: str
@@ -322,6 +357,7 @@ class HealthIndicator(BaseModel):
 
 class HealthStatus(BaseModel):
     """Health status model."""
+
     status: str
     message: str
     indicators: Dict[str, HealthIndicator]
@@ -330,6 +366,7 @@ class HealthStatus(BaseModel):
 
 class ServiceValidationResult(BaseModel):
     """Service validation result model."""
+
     is_valid: bool
     issues: List[str] = []
     recommendations: List[str] = []

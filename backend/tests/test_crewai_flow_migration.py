@@ -4,15 +4,14 @@ Tests the migration from legacy discovery patterns to the new CrewAI Flow implem
 Validates compatibility, fallback behavior, and performance characteristics.
 """
 
+from unittest.mock import Mock
+
 import pytest
-import asyncio
-from unittest.mock import Mock, patch, AsyncMock
-from datetime import datetime
-from typing import Dict, Any
+
+from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 
 # Test the migration from legacy to CrewAI Flow
 from app.services.crewai_flow_service import CrewAIFlowService
-from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 
 
 class TestCrewAIFlowMigration:
@@ -115,7 +114,7 @@ class TestCrewAIFlowMigration:
     
     def test_native_format_structure(self, mock_db_session):
         """Test native format structure compatibility.""" 
-        service = CrewAIFlowService(mock_db_session)
+        CrewAIFlowService(mock_db_session)
         
         # Create state in native format
         native_state = {
@@ -178,7 +177,7 @@ class TestCrewAIFlowMigration:
         invalid_data = {"invalid": "data"}
         
         try:
-            result = await service.initiate_discovery_workflow(
+            await service.initiate_discovery_workflow(
                 data_source=invalid_data,
                 context=sample_context
             )
@@ -299,7 +298,7 @@ class TestCrewAIFlowMigration:
         
         assert "mappings" in mapping_result
         assert "validation_results" in mapping_result
-        assert mapping_result["validation_results"]["fallback_used"] == True
+        assert mapping_result["validation_results"]["fallback_used"] is True
     
     def test_fallback_asset_classification(self, sample_context, sample_cmdb_data):
         """Test fallback asset classification logic.""" 
@@ -329,7 +328,7 @@ class TestCrewAIFlowMigration:
         assert "servers" in classification_result
         assert "total_assets" in classification_result
         assert classification_result["total_assets"] == 2
-        assert classification_result["classification_metadata"]["fallback_used"] == True
+        assert classification_result["classification_metadata"]["fallback_used"] is True
 
 
 class TestNativeFormatValidation:
@@ -341,7 +340,7 @@ class TestNativeFormatValidation:
     
     def test_native_state_structure_complete(self, mock_db_session):
         """Test that native state structure contains all required fields."""
-        service = CrewAIFlowService(mock_db_session)
+        CrewAIFlowService(mock_db_session)
         
         # Create new state
         new_state = UnifiedDiscoveryFlowState(
@@ -398,7 +397,7 @@ class TestPerformanceAndScaling:
     
     def test_large_dataset_handling(self, mock_db_session):
         """Test handling of large CMDB datasets."""
-        service = CrewAIFlowService(mock_db_session)
+        CrewAIFlowService(mock_db_session)
         
         # Create large dataset
         large_dataset = []
@@ -413,8 +412,8 @@ class TestPerformanceAndScaling:
         mock_service = Mock()
         mock_service.agents = {}
         
-        from app.services.crewai_flows.unified_discovery_flow import create_unified_discovery_flow
         from app.core.context import RequestContext
+        from app.services.crewai_flows.unified_discovery_flow import create_unified_discovery_flow
         
         context = RequestContext(
             client_account_id="test-client",

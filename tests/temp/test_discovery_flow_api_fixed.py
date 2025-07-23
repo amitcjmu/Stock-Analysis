@@ -6,9 +6,8 @@ Tests the backend API endpoints with correct request format
 
 import requests
 import json
-import time
 import uuid
-from typing import Dict, Any, Optional
+from typing import Optional
 from datetime import datetime
 
 class DiscoveryFlowAPITester:
@@ -55,7 +54,7 @@ class DiscoveryFlowAPITester:
                 self.engagement_id = context.get("engagement_id") 
                 self.user_id = context.get("user_id") or self.user_id
                 
-                print(f"✅ Context retrieved:")
+                print("✅ Context retrieved:")
                 print(f"   Client ID: {self.client_account_id}")
                 print(f"   Engagement ID: {self.engagement_id}")
                 print(f"   User ID: {self.user_id}")
@@ -155,7 +154,7 @@ class DiscoveryFlowAPITester:
             
             if response.status_code == 200:
                 result = response.json()
-                print(f"✅ Upload successful!")
+                print("✅ Upload successful!")
                 print(f"   Success: {result.get('success')}")
                 print(f"   Message: {result.get('message')}")
                 print(f"   Records stored: {result.get('records_stored', 0)}")
@@ -206,7 +205,7 @@ class DiscoveryFlowAPITester:
         status_endpoints = [
             f"/api/v1/discovery-flow/flows/{flow_id}",
             f"/api/v1/data-import/flow/{flow_id}/status",
-            f"/api/v1/agents/discovery/agent-status"
+            "/api/v1/agents/discovery/agent-status"
         ]
         
         for endpoint in status_endpoints:
@@ -301,7 +300,7 @@ class DiscoveryFlowAPITester:
                 
                 if "data" in agent_data:
                     agent_info = agent_data["data"]
-                    print(f"✅ Discovery agent status retrieved")
+                    print("✅ Discovery agent status retrieved")
                     
                     if "active_agents" in agent_info:
                         active_count = agent_info["active_agents"].get("active", 0)
@@ -409,7 +408,7 @@ class DiscoveryFlowAPITester:
         operational_count = sum(1 for step in operational_steps if results[step])
         
         if success_count == len(critical_steps):
-            print(f"\n🎉 TEST PASSED: Discovery flow API working correctly!")
+            print("\n🎉 TEST PASSED: Discovery flow API working correctly!")
             print(f"   Critical steps: {success_count}/{len(critical_steps)} ✅")
             print(f"   Operational features: {operational_count}/{len(operational_steps)} working")
             return True

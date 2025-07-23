@@ -1,10 +1,12 @@
 """
 OS Analysis Handler for Tech Debt
 """
+
 import logging
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
+
 
 class OSAnalysisHandler:
     def __init__(self, config=None):
@@ -38,4 +40,4 @@ class OSAnalysisHandler:
     def _extract_os_information(self, asset: Dict[str, Any]) -> Dict[str, Any]:
         """Extracts OS information from asset data."""
         # This would contain the logic from the original service's method.
-        return {"os_name": asset.get("os"), "os_version": asset.get("os_version")} 
+        return {"os_name": asset.get("os"), "os_version": asset.get("os_version")}

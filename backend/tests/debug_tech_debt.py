@@ -2,13 +2,13 @@
 
 import asyncio
 import sys
-import os
 
 # Add the backend directory to the path
 sys.path.append('/app')
 
-from app.services.tech_debt_analysis_agent import tech_debt_analysis_agent
 from app.api.v1.discovery.asset_handlers.asset_crud import AssetCRUDHandler
+from app.services.tech_debt_analysis_agent import tech_debt_analysis_agent
+
 
 async def debug_tech_debt():
     print("=== TECH DEBT DEBUG ===")

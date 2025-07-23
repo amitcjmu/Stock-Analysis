@@ -4,9 +4,9 @@
  * Types for WebSocket connections, subscriptions, and real-time messaging.
  */
 
-import { BaseApiRequest, BaseApiResponse } from './base-types';
-import { MultiTenantContext } from './tenant-types';
-import { FilterParameter } from './query-types';
+import type { BaseApiRequest, BaseApiResponse } from './base-types';
+import type { MultiTenantContext } from './tenant-types';
+import type { FilterParameter } from './query-types';
 
 // Real-time updates
 export interface WebSocketMessage<T = unknown> {

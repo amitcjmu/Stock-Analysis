@@ -1,8 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react'
+import { useState } from 'react'
+import { useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, CheckCircle } from 'lucide-react';
+import type { CheckCircle } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 
 export const DebugContext: React.FC = () => {
   const { user, client, engagement, flow } = useAuth();

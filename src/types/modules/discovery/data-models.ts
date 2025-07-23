@@ -7,9 +7,10 @@
  * Generated with CC - Code Companion
  */
 
-import { ReactNode } from 'react';
-import { FlowStatus, PhaseCompletion } from './base-types';
-import { ValidationRule, ValidationResult, BusinessRule, ImportError, AgentInsight } from './validation-types';
+import type { ReactNode } from 'react';
+import type { FlowStatus, PhaseCompletion } from './base-types';
+import type { ValidationResult, ImportError } from './validation-types'
+import type { ValidationRule, BusinessRule, AgentInsight } from './validation-types'
 
 /**
  * Field mapping entity

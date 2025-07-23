@@ -6,6 +6,8 @@
 
 services:
   postgres:
+    # Override the image to use pgvector-enabled PostgreSQL
+    image: pgvector/pgvector:pg16
     volumes:
       # Option 1: Named volume (recommended - survives container removal)
       - postgres_data:/var/lib/postgresql/data

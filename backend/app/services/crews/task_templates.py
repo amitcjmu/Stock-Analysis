@@ -2,23 +2,25 @@
 Reusable task templates for common operations
 """
 
-from crewai import Task
-from typing import Any, List, Dict
 import json
+from typing import Any, Dict, List
+
+from crewai import Task
+
 
 class TaskTemplates:
     """
     Library of reusable task templates.
     Provides standard task patterns for common operations.
     """
-    
+
     @staticmethod
     def create_analysis_task(
         description: str,
         agent: Any,
         data: Dict[str, Any],
         expected_output: str,
-        context: List[Task] = None
+        context: List[Task] = None,
     ) -> Task:
         """Create a standard analysis task"""
         return Task(
@@ -38,15 +40,15 @@ class TaskTemplates:
             """,
             agent=agent,
             expected_output=expected_output,
-            context=context or []
+            context=context or [],
         )
-    
+
     @staticmethod
     def create_validation_task(
         items_to_validate: List[Any],
         validation_rules: Dict[str, Any],
         agent: Any,
-        context: List[Task] = None
+        context: List[Task] = None,
     ) -> Task:
         """Create a validation task"""
         return Task(
@@ -71,16 +73,16 @@ class TaskTemplates:
             """,
             agent=agent,
             expected_output="Validation report with detailed findings, pass/fail status, and correction suggestions",
-            context=context or []
+            context=context or [],
         )
-    
+
     @staticmethod
     def create_transformation_task(
         source_format: str,
         target_format: str,
         transformation_rules: Dict[str, Any],
         agent: Any,
-        context: List[Task] = None
+        context: List[Task] = None,
     ) -> Task:
         """Create a data transformation task"""
         return Task(
@@ -104,15 +106,15 @@ class TaskTemplates:
             """,
             agent=agent,
             expected_output=f"Data successfully transformed to {target_format} with transformation report",
-            context=context or []
+            context=context or [],
         )
-    
+
     @staticmethod
     def create_classification_task(
         items_to_classify: List[Any],
         classification_schema: Dict[str, Any],
         agent: Any,
-        context: List[Task] = None
+        context: List[Task] = None,
     ) -> Task:
         """Create a classification task"""
         return Task(
@@ -138,16 +140,16 @@ class TaskTemplates:
             """,
             agent=agent,
             expected_output="Classification results with categories, confidence scores, and reasoning",
-            context=context or []
+            context=context or [],
         )
-    
+
     @staticmethod
     def create_matching_task(
         source_items: List[Any],
         target_items: List[Any],
         matching_criteria: Dict[str, Any],
         agent: Any,
-        context: List[Task] = None
+        context: List[Task] = None,
     ) -> Task:
         """Create a matching/mapping task"""
         return Task(
@@ -177,15 +179,15 @@ class TaskTemplates:
             """,
             agent=agent,
             expected_output="Matching results with confidence scores, unmatched items, and reasoning",
-            context=context or []
+            context=context or [],
         )
-    
+
     @staticmethod
     def create_quality_assessment_task(
         data_to_assess: List[Any],
         quality_metrics: Dict[str, Any],
         agent: Any,
-        context: List[Task] = None
+        context: List[Task] = None,
     ) -> Task:
         """Create a data quality assessment task"""
         return Task(
@@ -211,15 +213,15 @@ class TaskTemplates:
             """,
             agent=agent,
             expected_output="Data quality assessment report with scores, issues, and recommendations",
-            context=context or []
+            context=context or [],
         )
-    
+
     @staticmethod
     def create_extraction_task(
         source_data: Any,
         extraction_rules: Dict[str, Any],
         agent: Any,
-        context: List[Task] = None
+        context: List[Task] = None,
     ) -> Task:
         """Create a data extraction task"""
         return Task(
@@ -245,15 +247,15 @@ class TaskTemplates:
             """,
             agent=agent,
             expected_output="Extracted data in structured format with extraction metadata",
-            context=context or []
+            context=context or [],
         )
-    
+
     @staticmethod
     def create_summarization_task(
         data_to_summarize: Any,
         summarization_criteria: Dict[str, Any],
         agent: Any,
-        context: List[Task] = None
+        context: List[Task] = None,
     ) -> Task:
         """Create a summarization task"""
         return Task(
@@ -279,53 +281,51 @@ class TaskTemplates:
             """,
             agent=agent,
             expected_output="Comprehensive summary with key findings, insights, and recommendations",
-            context=context or []
+            context=context or [],
         )
-    
+
     @staticmethod
     def create_sequential_task_chain(
-        task_definitions: List[Dict[str, Any]],
-        agents: List[Any]
+        task_definitions: List[Dict[str, Any]], agents: List[Any]
     ) -> List[Task]:
         """Create a chain of sequential tasks with proper context linking"""
         tasks = []
         previous_task = None
-        
+
         for i, task_def in enumerate(task_definitions):
             agent = agents[i % len(agents)]  # Cycle through agents if fewer than tasks
-            
+
             context = [previous_task] if previous_task else []
-            
+
             task = Task(
                 description=task_def.get("description", ""),
                 agent=agent,
                 expected_output=task_def.get("expected_output", "Task completion"),
-                context=context
+                context=context,
             )
-            
+
             tasks.append(task)
             previous_task = task
-        
+
         return tasks
-    
+
     @staticmethod
     def create_parallel_task_group(
-        task_definitions: List[Dict[str, Any]],
-        agents: List[Any]
+        task_definitions: List[Dict[str, Any]], agents: List[Any]
     ) -> List[Task]:
         """Create a group of parallel tasks (no context dependencies)"""
         tasks = []
-        
+
         for i, task_def in enumerate(task_definitions):
             agent = agents[i % len(agents)]  # Cycle through agents if fewer than tasks
-            
+
             task = Task(
                 description=task_def.get("description", ""),
                 agent=agent,
                 expected_output=task_def.get("expected_output", "Task completion"),
-                context=[]  # No dependencies for parallel execution
+                context=[],  # No dependencies for parallel execution
             )
-            
+
             tasks.append(task)
-        
+
         return tasks

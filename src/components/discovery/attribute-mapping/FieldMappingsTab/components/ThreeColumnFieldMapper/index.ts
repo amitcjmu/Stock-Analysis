@@ -21,4 +21,4 @@ export * from './bulkOperations';
 export * from './mappingUtils';
 
 // Types
-export * from './types';
+export type * from './types';

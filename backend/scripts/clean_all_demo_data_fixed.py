@@ -10,6 +10,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sqlalchemy import text
+
 from app.core.database import AsyncSessionLocal
 
 
@@ -17,7 +18,7 @@ async def clean_all_demo_data():
     """Clean all demo data handling FK constraints in proper order"""
     print("\n🧹 Thoroughly cleaning all demo data...")
     
-    async with AsyncSessionLocal() as session:
+    async with AsyncSessionLocal():
         # Execute cleanup in proper order to avoid FK constraints
         cleanup_queries = [
             # First clear references in dependent tables

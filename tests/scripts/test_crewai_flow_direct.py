@@ -246,8 +246,8 @@ async def test_workflow_initiation():
                 # Verify flow was created
                 mock_create.assert_called_once()
         
-        print("✅ Workflow initiation test successful")
-        return True
+                print("✅ Workflow initiation test successful")
+                return True
     except Exception as e:
         print(f"❌ Workflow initiation test failed: {e}")
         return False

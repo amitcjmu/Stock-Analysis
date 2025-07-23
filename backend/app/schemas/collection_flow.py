@@ -2,28 +2,43 @@
 Pydantic schemas for Collection Flow API
 """
 
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
-from uuid import UUID
 
 
 class CollectionFlowCreate(BaseModel):
     """Schema for creating a collection flow"""
-    automation_tier: Optional[str] = Field(default="tier_2", description="Automation tier (tier_1 to tier_4)")
-    collection_config: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Collection configuration")
-    target_platforms: Optional[List[str]] = Field(default_factory=list, description="Target platforms to scan")
+
+    automation_tier: Optional[str] = Field(
+        default="tier_2", description="Automation tier (tier_1 to tier_4)"
+    )
+    collection_config: Optional[Dict[str, Any]] = Field(
+        default_factory=dict, description="Collection configuration"
+    )
+    target_platforms: Optional[List[str]] = Field(
+        default_factory=list, description="Target platforms to scan"
+    )
 
 
 class CollectionFlowUpdate(BaseModel):
     """Schema for updating a collection flow"""
-    action: Optional[str] = Field(None, description="Action to perform: continue, pause, cancel")
-    user_input: Optional[Dict[str, Any]] = Field(default_factory=dict, description="User input for flow continuation")
-    collection_config: Optional[Dict[str, Any]] = Field(None, description="Updated collection configuration")
+
+    action: Optional[str] = Field(
+        None, description="Action to perform: continue, pause, cancel"
+    )
+    user_input: Optional[Dict[str, Any]] = Field(
+        default_factory=dict, description="User input for flow continuation"
+    )
+    collection_config: Optional[Dict[str, Any]] = Field(
+        None, description="Updated collection configuration"
+    )
 
 
 class CollectionFlowResponse(BaseModel):
     """Schema for collection flow response"""
+
     id: str
     client_account_id: str
     engagement_id: str
@@ -44,6 +59,7 @@ class CollectionFlowResponse(BaseModel):
 
 class CollectionGapAnalysisResponse(BaseModel):
     """Schema for gap analysis response"""
+
     id: str
     collection_flow_id: str
     attribute_name: str
@@ -63,6 +79,7 @@ class CollectionGapAnalysisResponse(BaseModel):
 
 class AdaptiveQuestionnaireResponse(BaseModel):
     """Schema for adaptive questionnaire response"""
+
     id: str
     collection_flow_id: str
     title: str

@@ -7,7 +7,6 @@ import asyncio
 import time
 import sys
 import os
-import json
 
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
@@ -101,9 +100,9 @@ async def test_production_cmdb_analysis():
         
         # Evaluate results
         avg_duration = (duration1 + duration2 + duration3) / 3
-        print(f"\n📊 Performance Summary:")
+        print("\n📊 Performance Summary:")
         print(f"   Average duration: {avg_duration:.2f}s")
-        print(f"   All tests completed: ✅")
+        print("   All tests completed: ✅")
         
         # Check if performance is acceptable for production
         if avg_duration < 30:  # 30 seconds is reasonable for CMDB analysis

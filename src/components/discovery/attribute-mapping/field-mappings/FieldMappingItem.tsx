@@ -1,6 +1,8 @@
 import React from 'react';
-import { ArrowRight, CheckCircle, X } from 'lucide-react';
-import { FieldMappingItemProps, CATEGORY_COLORS } from './types';
+import type { CheckCircle, X } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
+import type { FieldMappingItemProps } from './types'
+import { CATEGORY_COLORS } from './types'
 import TargetFieldSelector from './TargetFieldSelector';
 import ApprovalWorkflow from './ApprovalWorkflow';
 

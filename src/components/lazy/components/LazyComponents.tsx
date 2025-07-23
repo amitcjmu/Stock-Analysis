@@ -2,12 +2,13 @@
  * Lazy Components - Component-level code splitting for heavy components
  */
 
-import React, { lazy, Suspense } from 'react';
+import React from 'react'
+import { lazy, Suspense } from 'react'
 import { LoadingFallback, ErrorFallback, SkeletonFallback } from '../LoadingFallback';
 import { LoadingPriority } from '@/types/lazy';
 import { ErrorBoundary } from 'react-error-boundary';
 
-const createLazyComponent = <P extends {} = {}>(
+const createLazyComponent = <P extends Record<string, unknown> = Record<string, unknown>>(
   importFn: () => Promise<{ default: React.ComponentType<P> }>,
   componentName: string,
   fallbackType: 'loading' | 'skeleton' | 'minimal' = 'loading',
@@ -281,19 +282,19 @@ export const ViewportLazyComponent: React.FC<ViewportLazyComponentProps> = ({
 };
 
 // Progressive enhancement wrapper
-interface ProgressiveLazyComponentProps<P = {}> {
+interface ProgressiveLazyComponentProps<P = Record<string, unknown>> {
   baseComponent: React.ComponentType<P>;
   enhancedImport: () => Promise<{ default: React.ComponentType<P> }>;
   enhancementCondition: boolean;
   props: P;
 }
 
-export const ProgressiveLazyComponent = <P extends {} = {}>({
+export const ProgressiveLazyComponent = <P extends Record<string, unknown> = Record<string, unknown>>({
   baseComponent: BaseComponent,
   enhancedImport,
   enhancementCondition,
   props
-}: ProgressiveLazyComponentProps<P>) => {
+}: ProgressiveLazyComponentProps<P>): JSX.Element => {
   const [EnhancedComponent, setEnhancedComponent] = React.useState<React.ComponentType<P> | null>(null);
 
   React.useEffect(() => {

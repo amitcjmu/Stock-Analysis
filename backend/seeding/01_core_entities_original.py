@@ -4,21 +4,26 @@ Agent 2 Task 2.2 - Core entities seeding
 """
 import asyncio
 import sys
-from pathlib import Path
 from datetime import datetime, timezone
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from pathlib import Path
+
 from passlib.context import CryptContext
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Add backend to path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from app.core.database import AsyncSessionLocal
 from app.models.client_account import ClientAccount, Engagement, User, UserAccountAssociation
-from app.models.rbac import UserProfile, UserRole, ClientAccess, EngagementAccess, RoleType, AccessLevel, UserStatus
+from app.models.rbac import ClientAccess, EngagementAccess, UserProfile, UserRole, UserStatus
 from seeding.constants import (
-    DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, DEMO_COMPANY_NAME, DEMO_COMPANY_DOMAIN,
-    USER_IDS, USERS, DEFAULT_PASSWORD, BASE_TIMESTAMP
+    BASE_TIMESTAMP,
+    DEFAULT_PASSWORD,
+    DEMO_CLIENT_ID,
+    DEMO_COMPANY_NAME,
+    DEMO_ENGAGEMENT_ID,
+    USER_IDS,
+    USERS,
 )
 
 # Password hashing
@@ -375,7 +380,7 @@ async def main():
             # 5. Create RBAC setup
             await create_rbac_setup(db, users)
             
-            print(f"\n✅ Successfully seeded core entities:")
+            print("\n✅ Successfully seeded core entities:")
             print(f"   - 1 Client Account: {client.name}")
             print(f"   - 1 Engagement: {engagement.name}")
             print(f"   - {len(users)} Users with RBAC setup")

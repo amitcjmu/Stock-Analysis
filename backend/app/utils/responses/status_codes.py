@@ -6,23 +6,24 @@ Provides standard status codes and helper functions.
 from enum import IntEnum
 from typing import Dict, Optional
 
+
 class StatusCode(IntEnum):
     """HTTP status codes enumeration."""
-    
+
     # Success codes (2xx)
     OK = 200
     CREATED = 201
     ACCEPTED = 202
     NO_CONTENT = 204
     PARTIAL_CONTENT = 206
-    
+
     # Redirection codes (3xx)
     MOVED_PERMANENTLY = 301
     FOUND = 302
     NOT_MODIFIED = 304
     TEMPORARY_REDIRECT = 307
     PERMANENT_REDIRECT = 308
-    
+
     # Client error codes (4xx)
     BAD_REQUEST = 400
     UNAUTHORIZED = 401
@@ -51,7 +52,7 @@ class StatusCode(IntEnum):
     TOO_MANY_REQUESTS = 429
     REQUEST_HEADER_FIELDS_TOO_LARGE = 431
     UNAVAILABLE_FOR_LEGAL_REASONS = 451
-    
+
     # Server error codes (5xx)
     INTERNAL_SERVER_ERROR = 500
     NOT_IMPLEMENTED = 501
@@ -65,13 +66,14 @@ class StatusCode(IntEnum):
     NOT_EXTENDED = 510
     NETWORK_AUTHENTICATION_REQUIRED = 511
 
+
 # Status code categories
 SUCCESS_CODES = {
     StatusCode.OK,
     StatusCode.CREATED,
     StatusCode.ACCEPTED,
     StatusCode.NO_CONTENT,
-    StatusCode.PARTIAL_CONTENT
+    StatusCode.PARTIAL_CONTENT,
 }
 
 REDIRECTION_CODES = {
@@ -79,7 +81,7 @@ REDIRECTION_CODES = {
     StatusCode.FOUND,
     StatusCode.NOT_MODIFIED,
     StatusCode.TEMPORARY_REDIRECT,
-    StatusCode.PERMANENT_REDIRECT
+    StatusCode.PERMANENT_REDIRECT,
 }
 
 CLIENT_ERROR_CODES = {
@@ -109,7 +111,7 @@ CLIENT_ERROR_CODES = {
     StatusCode.PRECONDITION_REQUIRED,
     StatusCode.TOO_MANY_REQUESTS,
     StatusCode.REQUEST_HEADER_FIELDS_TOO_LARGE,
-    StatusCode.UNAVAILABLE_FOR_LEGAL_REASONS
+    StatusCode.UNAVAILABLE_FOR_LEGAL_REASONS,
 }
 
 SERVER_ERROR_CODES = {
@@ -123,7 +125,7 @@ SERVER_ERROR_CODES = {
     StatusCode.INSUFFICIENT_STORAGE,
     StatusCode.LOOP_DETECTED,
     StatusCode.NOT_EXTENDED,
-    StatusCode.NETWORK_AUTHENTICATION_REQUIRED
+    StatusCode.NETWORK_AUTHENTICATION_REQUIRED,
 }
 
 ERROR_CODES = CLIENT_ERROR_CODES | SERVER_ERROR_CODES
@@ -136,14 +138,12 @@ STATUS_MESSAGES: Dict[int, str] = {
     202: "Accepted",
     204: "No Content",
     206: "Partial Content",
-    
     # Redirection codes
     301: "Moved Permanently",
     302: "Found",
     304: "Not Modified",
     307: "Temporary Redirect",
     308: "Permanent Redirect",
-    
     # Client error codes
     400: "Bad Request",
     401: "Unauthorized",
@@ -172,7 +172,6 @@ STATUS_MESSAGES: Dict[int, str] = {
     429: "Too Many Requests",
     431: "Request Header Fields Too Large",
     451: "Unavailable For Legal Reasons",
-    
     # Server error codes
     500: "Internal Server Error",
     501: "Not Implemented",
@@ -184,88 +183,95 @@ STATUS_MESSAGES: Dict[int, str] = {
     507: "Insufficient Storage",
     508: "Loop Detected",
     510: "Not Extended",
-    511: "Network Authentication Required"
+    511: "Network Authentication Required",
 }
+
 
 def get_status_message(status_code: int) -> Optional[str]:
     """
     Get the standard message for a status code.
-    
+
     Args:
         status_code: HTTP status code
-        
+
     Returns:
         Status message or None if not found
     """
     return STATUS_MESSAGES.get(status_code)
 
+
 def is_success_code(status_code: int) -> bool:
     """
     Check if status code is a success code (2xx).
-    
+
     Args:
         status_code: HTTP status code
-        
+
     Returns:
         True if success code, False otherwise
     """
     return status_code in SUCCESS_CODES
 
+
 def is_error_code(status_code: int) -> bool:
     """
     Check if status code is an error code (4xx or 5xx).
-    
+
     Args:
         status_code: HTTP status code
-        
+
     Returns:
         True if error code, False otherwise
     """
     return status_code in ERROR_CODES
 
+
 def is_client_error(status_code: int) -> bool:
     """
     Check if status code is a client error (4xx).
-    
+
     Args:
         status_code: HTTP status code
-        
+
     Returns:
         True if client error, False otherwise
     """
     return status_code in CLIENT_ERROR_CODES
 
+
 def is_server_error(status_code: int) -> bool:
     """
     Check if status code is a server error (5xx).
-    
+
     Args:
         status_code: HTTP status code
-        
+
     Returns:
         True if server error, False otherwise
     """
     return status_code in SERVER_ERROR_CODES
 
+
 def is_redirection(status_code: int) -> bool:
     """
     Check if status code is a redirection (3xx).
-    
+
     Args:
         status_code: HTTP status code
-        
+
     Returns:
         True if redirection, False otherwise
     """
     return status_code in REDIRECTION_CODES
 
+
 def get_status_category(status_code: int) -> str:
     """
     Get the category of a status code.
-    
+
     Args:
         status_code: HTTP status code
-        
+
     Returns:
         Status category string
     """
@@ -280,13 +286,14 @@ def get_status_category(status_code: int) -> str:
     else:
         return "unknown"
 
+
 def get_status_info(status_code: int) -> Dict[str, str]:
     """
     Get comprehensive information about a status code.
-    
+
     Args:
         status_code: HTTP status code
-        
+
     Returns:
         Dictionary with status information
     """
@@ -298,8 +305,9 @@ def get_status_info(status_code: int) -> Dict[str, str]:
         "is_error": is_error_code(status_code),
         "is_client_error": is_client_error(status_code),
         "is_server_error": is_server_error(status_code),
-        "is_redirection": is_redirection(status_code)
+        "is_redirection": is_redirection(status_code),
     }
+
 
 # Common status code constants for convenience
 HTTP_200_OK = StatusCode.OK

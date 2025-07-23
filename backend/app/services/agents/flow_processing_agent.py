@@ -16,10 +16,10 @@ The flow processing functionality is now organized as:
 # Import everything from the modular implementation for backward compatibility
 from .flow_processing import (
     FlowAnalysisResult,
-    RouteDecision,
     FlowContinuationResult,
+    FlowProcessingAgent,
+    RouteDecision,
     UniversalFlowProcessingCrew,
-    FlowProcessingAgent
 )
 
 # Maintain backward compatibility by exposing the main classes at module level
@@ -28,5 +28,5 @@ __all__ = [
     "RouteDecision",
     "FlowContinuationResult",
     "UniversalFlowProcessingCrew",
-    "FlowProcessingAgent"
+    "FlowProcessingAgent",
 ]

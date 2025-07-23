@@ -4,8 +4,8 @@
  * Types for checkbox, radio, switch, and other choice-based form components.
  */
 
-import { ReactNode, RefObject } from 'react';
-import { BaseFormProps } from './base-types';
+import type { ReactNode, RefObject } from 'react';
+import type { BaseFormProps } from './base-types';
 
 // Checkbox component types
 export interface CheckboxProps extends BaseFormProps {

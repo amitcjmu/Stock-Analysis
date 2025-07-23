@@ -5,14 +5,14 @@
 
 // Types for analytics data
 export interface AnalyticsData {
-  timeSeriesData: {
+  timeSeriesData: Array<{
     timestamp: string;
     [key: string]: string | number; // Dynamic agent metrics - primitive values only
-  }[];
+  }>;
   patternAnalysis: {
-    peakHours: { hour: number; activity: number }[];
-    weeklyPatterns: { day: string; averagePerformance: number }[];
-    seasonalTrends: { period: string; trend: 'up' | 'down' | 'stable'; magnitude: number }[];
+    peakHours: Array<{ hour: number; activity: number }>;
+    weeklyPatterns: Array<{ day: string; averagePerformance: number }>;
+    seasonalTrends: Array<{ period: string; trend: 'up' | 'down' | 'stable'; magnitude: number }>;
   };
   correlationMatrix: {
     [metric1: string]: {
@@ -20,30 +20,30 @@ export interface AnalyticsData {
     };
   };
   predictiveInsights: {
-    forecasts: {
+    forecasts: Array<{
       metric: string;
-      predictions: { timestamp: string; value: number; confidence: number }[];
-    }[];
-    anomalies: {
+      predictions: Array<{ timestamp: string; value: number; confidence: number }>;
+    }>;
+    anomalies: Array<{
       timestamp: string;
       metric: string;
       value: number;
       expectedValue: number;
       severity: 'low' | 'medium' | 'high';
       agentName: string;
-    }[];
-    trends: {
+    }>;
+    trends: Array<{
       metric: string;
       direction: 'improving' | 'declining' | 'stable';
       rate: number;
       significance: number;
-    }[];
+    }>;
   };
-  distributionAnalysis: {
+  distributionAnalysis: Array<{
     metric: string;
-    distribution: { bucket: string; count: number; percentage: number }[];
-    outliers: { value: number; agentName: string; timestamp: string }[];
-  }[];
+    distribution: Array<{ bucket: string; count: number; percentage: number }>;
+    outliers: Array<{ value: number; agentName: string; timestamp: string }>;
+  }>;
 }
 
 export interface AdvancedAnalyticsProps {

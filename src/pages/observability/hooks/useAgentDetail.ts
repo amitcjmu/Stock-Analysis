@@ -3,9 +3,10 @@
  * Extracted from AgentDetailPage.tsx for modularization
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react'
+import { useEffect } from 'react'
 import { agentObservabilityService } from '../../../services/api/agentObservabilityService';
-import { AgentDetailData } from '../types/AgentDetailTypes';
+import type { AgentDetailData } from '../types/AgentDetailTypes';
 import { getAgentMetadataHelpers } from '../utils/agentMetadataHelpers';
 
 interface UseAgentDetailResult {
@@ -81,7 +82,7 @@ export const useAgentDetail = (agentName: string | undefined, taskHistoryPage: n
             startedAt: task.started_at,
             completedAt: task.completed_at,
             duration: task.duration_seconds,
-            status: task.status as 'completed' | 'failed' | 'timeout',
+            status: task.status,
             success: task.success,
             confidenceScore: task.confidence_score,
             resultPreview: task.result_preview,

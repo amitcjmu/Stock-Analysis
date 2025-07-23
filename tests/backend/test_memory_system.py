@@ -8,7 +8,6 @@ import sys
 import os
 import tempfile
 import shutil
-import pickle
 from pathlib import Path
 
 # Add backend to path
@@ -108,7 +107,7 @@ class TestMemorySystem:
             for key, value in exp["data"].items():
                 assert stored_data.get(key) == value, f"Data should match for {key}"
         
-        print(f"   ✅ All experiences stored and retrieved correctly")
+        print("   ✅ All experiences stored and retrieved correctly")
         
         return True
     
@@ -192,11 +191,11 @@ class TestMemorySystem:
         self.memory.add_experience("analysis_attempt", test_experience)
         self.memory.update_learning_metrics("persistence_test", 42)
         
-        print(f"   ✅ Added test data to memory")
+        print("   ✅ Added test data to memory")
         
         # Save memory
         self.memory.save_memory()
-        print(f"   ✅ Memory saved to disk")
+        print("   ✅ Memory saved to disk")
         
         # Create new memory instance (simulating restart)
         new_memory = AgentMemory(data_dir=self.temp_dir)
@@ -209,7 +208,7 @@ class TestMemorySystem:
         assert persistence_experiences[0]["confidence"] == 0.88, "Data should be preserved"
         assert new_memory.learning_metrics.get("persistence_test") == 42, "Metrics should be preserved"
         
-        print(f"   ✅ Data successfully persisted and loaded")
+        print("   ✅ Data successfully persisted and loaded")
         print(f"   ✅ Found {len(persistence_experiences)} persisted experiences")
         print(f"   ✅ Metrics preserved: {new_memory.learning_metrics.get('persistence_test')}")
         
@@ -237,7 +236,7 @@ class TestMemorySystem:
             }
             self.memory.add_experience("user_feedback", feedback)
         
-        print(f"   ✅ Added test data for statistics")
+        print("   ✅ Added test data for statistics")
         
         # Get statistics
         stats = self.memory.get_memory_stats()

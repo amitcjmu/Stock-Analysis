@@ -1,5 +1,6 @@
 import React from 'react';
-import { AlertTriangle, Database, Clock, FileText, Users, Server, TrendingDown } from 'lucide-react';
+import type { FileText, Server } from 'lucide-react'
+import { AlertTriangle, Database, Clock, Users, TrendingDown } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -13,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { IncompleteFlow } from '@/hooks/discovery/useIncompleteFlowDetection';
+import type { IncompleteFlow } from '@/hooks/discovery/useIncompleteFlowDetection';
 
 interface BatchDeletionConfirmDialogProps {
   flowCount: number;

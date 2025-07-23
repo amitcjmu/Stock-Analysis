@@ -3,14 +3,16 @@ Router for discovery agent endpoints.
 
 This module combines all discovery agent-related endpoints into a single router.
 """
+
 from fastapi import APIRouter
+
+from .handlers.agent_ui_integration import router as agent_ui_router
+from .handlers.analysis import router as analysis_router
+from .handlers.dependencies import router as dependencies_router
+from .handlers.learning import router as learning_router
 
 # Import handlers
 from .handlers.status import router as status_router
-from .handlers.analysis import router as analysis_router
-from .handlers.learning import router as learning_router
-from .handlers.dependencies import router as dependencies_router
-from .handlers.agent_ui_integration import router as agent_ui_router
 
 # Create the router
 router = APIRouter(tags=["discovery-agents"])

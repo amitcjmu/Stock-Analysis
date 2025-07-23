@@ -4,12 +4,13 @@ Creating migration waves and updating 6R strategies using raw SQL.
 """
 
 import asyncio
-from datetime import datetime, timezone, timedelta
-from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime, timezone
+
+from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, USER_IDS
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
-from constants import DEMO_CLIENT_ID, DEMO_ENGAGEMENT_ID, USER_IDS
 
 # Migration wave definitions
 MIGRATION_WAVES = [
@@ -295,40 +296,40 @@ async def create_migration_planning_raw_sql():
         
         # Update wave statistics
         await update_wave_statistics(session, wave_assignments)
-        print(f"    ✅ Updated wave statistics")
+        print("    ✅ Updated wave statistics")
         
         # Commit all changes
         await session.commit()
         
-        print(f"\n✅ Migration planning created successfully!")
+        print("\n✅ Migration planning created successfully!")
         print(f"   📊 Total Assets: {total_assets}")
         print(f"   🌊 Migration Waves: {waves_created}")
         
-        print(f"\n   🎯 6R Strategy Distribution:")
+        print("\n   🎯 6R Strategy Distribution:")
         for strategy, count in sorted(strategy_counts.items()):
             percentage = (count / total_assets) * 100
             print(f"     {strategy.replace('_', ' ').title()}: {count} ({percentage:.1f}%)")
         
-        print(f"\n   🌊 Wave Assignment:")
+        print("\n   🌊 Wave Assignment:")
         for wave_num, count in sorted(wave_assignments.items()):
             wave_name = MIGRATION_WAVES[wave_num - 1]["name"]
             wave_status = MIGRATION_WAVES[wave_num - 1]["status"]
             percentage = (count / total_assets) * 100
             print(f"     Wave {wave_num} ({wave_name}): {count} assets ({percentage:.1f}%) - {wave_status.upper()}")
         
-        print(f"\n   🚦 Readiness Status:")
+        print("\n   🚦 Readiness Status:")
         for readiness, count in sorted(readiness_counts.items()):
             percentage = (count / total_assets) * 100
             print(f"     {readiness}: {count} ({percentage:.1f}%)")
         
-        print(f"\n   💰 Migration Cost Estimates:")
+        print("\n   💰 Migration Cost Estimates:")
         total_estimated = sum(wave["estimated_cost"] for wave in MIGRATION_WAVES)
         total_actual = sum(wave.get("actual_cost", 0) for wave in MIGRATION_WAVES if wave.get("actual_cost"))
         print(f"     Total Estimated: ${total_estimated:,}")
         print(f"     Spent to Date: ${total_actual:,}")
         print(f"     Remaining Budget: ${total_estimated - total_actual:,}")
         
-        print(f"\n   ⏱️ Effort Estimates:")
+        print("\n   ⏱️ Effort Estimates:")
         total_effort = sum(wave["estimated_effort_hours"] for wave in MIGRATION_WAVES)
         actual_effort = sum(wave.get("actual_effort_hours", 0) for wave in MIGRATION_WAVES if wave.get("actual_effort_hours"))
         print(f"     Total Estimated: {total_effort:,} hours")

@@ -5,9 +5,9 @@ Revises: 007_add_missing_collection_flow_columns
 Create Date: 2025-01-20
 
 """
-from alembic import op
-import sqlalchemy as sa
 
+from alembic import op
+from sqlalchemy import text
 
 # revision identifiers, used by Alembic.
 revision = '008_update_flow_type_constraint'
@@ -17,8 +17,18 @@ depends_on = None
 
 
 def upgrade():
-    # Drop the old constraint
-    op.drop_constraint('chk_valid_flow_type', 'crewai_flow_state_extensions', type_='check')
+    # Check if constraint exists first
+    conn = op.get_bind()
+    result = conn.execute(text("""
+        SELECT COUNT(*) 
+        FROM pg_constraint 
+        WHERE conname = 'chk_valid_flow_type'
+    """))
+    constraint_exists = result.scalar() > 0
+    
+    # Drop the old constraint if it exists
+    if constraint_exists:
+        op.drop_constraint('chk_valid_flow_type', 'crewai_flow_state_extensions', type_='check')
     
     # Create new constraint with collection included
     op.create_check_constraint(

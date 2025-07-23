@@ -1,11 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api';
-import {
-  ReadinessAssessment,
-  UseReadinessAssessmentOptions,
-  GenerateSignoffPackageParams,
-  SubmitForApprovalParams,
-} from '../types';
+import type { UseReadinessAssessmentOptions, GenerateSignoffPackageParams, SubmitForApprovalParams } from '../types'
+import type { ReadinessAssessment,  } from '../types'
 
 export const useReadinessAssessment = ({
   clientAccountId,

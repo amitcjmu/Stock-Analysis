@@ -19,12 +19,13 @@ The crew consists of three specialized agents:
 """
 
 import logging
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List
 
 # CrewAI imports with fallback
 try:
-    from crewai import Agent, Task, Crew
+    from crewai import Agent, Crew, Task
+
     CREWAI_AVAILABLE = True
     logger = logging.getLogger(__name__)
     logger.info("✅ CrewAI imports successful for ComponentAnalysisCrew")
@@ -32,37 +33,48 @@ except ImportError as e:
     logger = logging.getLogger(__name__)
     logger.warning(f"CrewAI not available: {e}")
     CREWAI_AVAILABLE = False
-    
+
     # Fallback classes
     class Agent:
         def __init__(self, **kwargs):
-            self.role = kwargs.get('role', '')
-            self.goal = kwargs.get('goal', '')
-            self.backstory = kwargs.get('backstory', '')
-    
+            self.role = kwargs.get("role", "")
+            self.goal = kwargs.get("goal", "")
+            self.backstory = kwargs.get("backstory", "")
+
     class Task:
         def __init__(self, **kwargs):
-            self.description = kwargs.get('description', '')
-            self.expected_output = kwargs.get('expected_output', '')
-    
+            self.description = kwargs.get("description", "")
+            self.expected_output = kwargs.get("expected_output", "")
+
     class Crew:
         def __init__(self, **kwargs):
-            self.agents = kwargs.get('agents', [])
-            self.tasks = kwargs.get('tasks', [])
-        
-        def kickoff(self, inputs=None):
-            return {"status": "fallback_mode", "components": [], "tech_debt_analysis": []}
+            self.agents = kwargs.get("agents", [])
+            self.tasks = kwargs.get("tasks", [])
 
-from app.models.assessment_flow import CrewExecutionError, ComponentType, TechDebtSeverity
+        def kickoff(self, inputs=None):
+            return {
+                "status": "fallback_mode",
+                "components": [],
+                "tech_debt_analysis": [],
+            }
+
+
+from app.models.assessment_flow import (
+    ComponentType,
+    CrewExecutionError,
+    TechDebtSeverity,
+)
 
 
 class ComponentAnalysisCrew:
     """Identifies components and analyzes technical debt based on discovered metadata"""
-    
+
     def __init__(self, flow_context):
         self.flow_context = flow_context
-        logger.info(f"🔍 Initializing Component Analysis Crew for flow {flow_context.flow_id}")
-        
+        logger.info(
+            f"🔍 Initializing Component Analysis Crew for flow {flow_context.flow_id}"
+        )
+
         if CREWAI_AVAILABLE:
             self.agents = self._create_agents()
             self.crew = self._create_crew()
@@ -71,32 +83,39 @@ class ComponentAnalysisCrew:
             logger.warning("CrewAI not available, using fallback mode")
             self.agents = []
             self.crew = None
-    
+
     def _create_agents(self) -> List[Agent]:
         """Create specialized agents for component analysis"""
-        
+
         # Import tools (will be implemented in separate task)
         try:
             from app.services.crewai_flows.tools.component_tools import (
                 ComponentDiscoveryTool,
-                MetadataAnalyzer,
                 DependencyMapper,
-                TechDebtCalculator
+                MetadataAnalyzer,
+                TechDebtCalculator,
             )
+
             tools_available = True
         except ImportError:
-            logger.warning("Component analysis tools not yet available, agents will have limited functionality")
+            logger.warning(
+                "Component analysis tools not yet available, agents will have limited functionality"
+            )
             tools_available = False
+
             # Create placeholder tool classes
             class ComponentDiscoveryTool:
                 pass
+
             class MetadataAnalyzer:
                 pass
+
             class DependencyMapper:
                 pass
+
             class TechDebtCalculator:
                 pass
-        
+
         component_discovery_agent = Agent(
             role="Component Architecture Analyst",
             goal="Identify and catalog all application components beyond traditional 3-tier architecture",
@@ -120,14 +139,15 @@ class ComponentAnalysisCrew:
             
             You excel at recognizing architectural evolution patterns where monolithic applications
             have been partially decomposed or where microservices have been aggregated for efficiency.""",
-            tools=[
-                ComponentDiscoveryTool(),
-                MetadataAnalyzer()
-            ] if tools_available else [],
+            tools=(
+                [ComponentDiscoveryTool(), MetadataAnalyzer()]
+                if tools_available
+                else []
+            ),
             verbose=True,
-            allow_delegation=True
+            allow_delegation=True,
         )
-        
+
         metadata_analyst_agent = Agent(
             role="Technical Debt Assessment Specialist",
             goal="Analyze technical debt from discovered application metadata and identify modernization opportunities",
@@ -150,14 +170,11 @@ class ComponentAnalysisCrew:
             from metadata such as technology versions, dependency structures, code metrics, deployment
             patterns, and architectural decisions. You understand the relationship between technical
             debt and migration strategy selection.""",
-            tools=[
-                MetadataAnalyzer(),
-                TechDebtCalculator()
-            ] if tools_available else [],
+            tools=[MetadataAnalyzer(), TechDebtCalculator()] if tools_available else [],
             verbose=True,
-            allow_delegation=False
+            allow_delegation=False,
         )
-        
+
         dependency_mapper_agent = Agent(
             role="Dependency Analysis Expert",
             goal="Map component dependencies and identify coupling patterns for migration grouping",
@@ -180,19 +197,24 @@ class ComponentAnalysisCrew:
             can be refactored for independent migration, and which integration points require special
             handling during cloud migration. You understand the difference between compile-time,
             runtime, and deployment dependencies and their impact on migration sequencing.""",
-            tools=[
-                DependencyMapper(),
-                ComponentDiscoveryTool()
-            ] if tools_available else [],
+            tools=(
+                [DependencyMapper(), ComponentDiscoveryTool()]
+                if tools_available
+                else []
+            ),
             verbose=True,
-            allow_delegation=False
+            allow_delegation=False,
         )
-        
-        return [component_discovery_agent, metadata_analyst_agent, dependency_mapper_agent]
-    
+
+        return [
+            component_discovery_agent,
+            metadata_analyst_agent,
+            dependency_mapper_agent,
+        ]
+
     def _create_crew(self) -> Crew:
         """Create crew with component analysis tasks"""
-        
+
         identify_components_task = Task(
             description="""Analyze the application metadata to identify all components within the application 
             architecture. Go beyond traditional frontend/middleware/backend categories to identify modern
@@ -302,9 +324,9 @@ class ComponentAnalysisCrew:
                - Data sources used for component discovery
                - Assumptions made and potential gaps in analysis
                - Recommendations for additional discovery if needed""",
-            agent=self.agents[0] if self.agents else None
+            agent=self.agents[0] if self.agents else None,
         )
-        
+
         analyze_technical_debt_task = Task(
             description="""Analyze technical debt for each identified component based on available 
             metadata and discovery data. Focus on comprehensive debt assessment across multiple dimensions:
@@ -400,9 +422,9 @@ class ComponentAnalysisCrew:
                - Remediation ROI estimates and business case data
                - Success metrics for debt reduction initiatives""",
             agent=self.agents[1] if len(self.agents) > 1 else None,
-            context=[identify_components_task] if identify_components_task else []
+            context=[identify_components_task] if identify_components_task else [],
         )
-        
+
         map_dependencies_task = Task(
             description="""Map dependencies between identified components and analyze coupling patterns 
             that will influence migration strategies. Perform comprehensive dependency analysis:
@@ -497,29 +519,35 @@ class ComponentAnalysisCrew:
                - Testing and validation requirements for each dependency
                - Rollback strategies and dependency reversal planning""",
             agent=self.agents[2] if len(self.agents) > 2 else None,
-            context=[identify_components_task, analyze_technical_debt_task]
+            context=[identify_components_task, analyze_technical_debt_task],
         )
-        
+
         if not CREWAI_AVAILABLE:
             return None
-            
+
         return Crew(
             agents=self.agents,
-            tasks=[identify_components_task, analyze_technical_debt_task, map_dependencies_task],
+            tasks=[
+                identify_components_task,
+                analyze_technical_debt_task,
+                map_dependencies_task,
+            ],
             verbose=True,
-            process="sequential"
+            process="sequential",
         )
-    
+
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Execute the component analysis crew"""
-        
+
         try:
-            logger.info(f"🔍 Starting Component Analysis Crew for application {context.get('application_id')}")
-            
+            logger.info(
+                f"🔍 Starting Component Analysis Crew for application {context.get('application_id')}"
+            )
+
             if not CREWAI_AVAILABLE or not self.crew:
                 logger.warning("CrewAI not available, using fallback implementation")
                 return await self._execute_fallback(context)
-            
+
             # Prepare context for crew execution
             crew_context = {
                 "application_metadata": context.get("application_metadata", {}),
@@ -530,27 +558,31 @@ class ComponentAnalysisCrew:
                 "security_requirements": context.get("security_requirements", {}),
                 "architecture_patterns": context.get("architecture_patterns", {}),
                 "network_topology": context.get("network_topology", {}),
-                "flow_context": self.flow_context
+                "flow_context": self.flow_context,
             }
-            
+
             # Execute crew
             result = self.crew.kickoff(inputs=crew_context)
-            
+
             # Process and structure the results
-            processed_result = await self._process_crew_results(result, context["application_id"])
-            
-            logger.info(f"✅ Component Analysis Crew completed for application {context.get('application_id')}")
+            processed_result = await self._process_crew_results(
+                result, context["application_id"]
+            )
+
+            logger.info(
+                f"✅ Component Analysis Crew completed for application {context.get('application_id')}"
+            )
             return processed_result
-            
+
         except Exception as e:
             logger.error(f"❌ Component Analysis Crew execution failed: {str(e)}")
             raise CrewExecutionError(f"Component analysis failed: {str(e)}")
-    
+
     async def _execute_fallback(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Fallback implementation when CrewAI is not available"""
         app_id = context.get("application_id", "unknown")
         logger.info(f"Executing Component Analysis in fallback mode for {app_id}")
-        
+
         # Generate basic component identification
         components = [
             {
@@ -559,7 +591,7 @@ class ComponentAnalysisCrew:
                 "technology_stack": {"framework": "React", "language": "JavaScript"},
                 "responsibilities": ["User interface", "Client-side logic"],
                 "complexity_score": 6.0,
-                "business_value_score": 8.0
+                "business_value_score": 8.0,
             },
             {
                 "name": "api_service",
@@ -567,7 +599,7 @@ class ComponentAnalysisCrew:
                 "technology_stack": {"framework": "Spring Boot", "language": "Java"},
                 "responsibilities": ["Business logic", "Data access"],
                 "complexity_score": 7.0,
-                "business_value_score": 9.0
+                "business_value_score": 9.0,
             },
             {
                 "name": "database",
@@ -575,10 +607,10 @@ class ComponentAnalysisCrew:
                 "technology_stack": {"database": "PostgreSQL", "version": "12"},
                 "responsibilities": ["Data persistence", "Transaction management"],
                 "complexity_score": 5.0,
-                "business_value_score": 9.0
-            }
+                "business_value_score": 9.0,
+            },
         ]
-        
+
         # Generate basic technical debt analysis
         tech_debt_analysis = [
             {
@@ -590,7 +622,7 @@ class ComponentAnalysisCrew:
                 "tech_debt_score": 7.5,
                 "component": "api_service",
                 "remediation_effort_hours": 40,
-                "impact_on_migration": "high"
+                "impact_on_migration": "high",
             },
             {
                 "category": "architecture",
@@ -601,7 +633,7 @@ class ComponentAnalysisCrew:
                 "tech_debt_score": 6.0,
                 "component": "web_frontend",
                 "remediation_effort_hours": 80,
-                "impact_on_migration": "medium"
+                "impact_on_migration": "medium",
             },
             {
                 "category": "security",
@@ -612,38 +644,44 @@ class ComponentAnalysisCrew:
                 "tech_debt_score": 8.0,
                 "component": "api_service",
                 "remediation_effort_hours": 60,
-                "impact_on_migration": "high"
-            }
+                "impact_on_migration": "high",
+            },
         ]
-        
+
         # Generate component scores
-        component_scores = {
-            "web_frontend": 6.0,
-            "api_service": 7.2,
-            "database": 5.0
-        }
-        
+        component_scores = {"web_frontend": 6.0, "api_service": 7.2, "database": 5.0}
+
         # Generate dependency map
         dependency_map = {
             "internal_dependencies": [
-                {"from": "web_frontend", "to": "api_service", "type": "REST", "coupling": "loose"},
-                {"from": "api_service", "to": "database", "type": "JDBC", "coupling": "tight"}
+                {
+                    "from": "web_frontend",
+                    "to": "api_service",
+                    "type": "REST",
+                    "coupling": "loose",
+                },
+                {
+                    "from": "api_service",
+                    "to": "database",
+                    "type": "JDBC",
+                    "coupling": "tight",
+                },
             ],
             "external_dependencies": [],
             "migration_groups": [
                 {
                     "group_id": "core_backend",
                     "components": ["api_service", "database"],
-                    "rationale": "Tight coupling requires joint migration"
+                    "rationale": "Tight coupling requires joint migration",
                 },
                 {
                     "group_id": "frontend",
                     "components": ["web_frontend"],
-                    "rationale": "Can be migrated independently"
-                }
-            ]
+                    "rationale": "Can be migrated independently",
+                },
+            ],
         }
-        
+
         return {
             "components": components,
             "tech_debt_analysis": tech_debt_analysis,
@@ -654,61 +692,79 @@ class ComponentAnalysisCrew:
             "analysis_insights": [
                 "Application follows traditional 3-tier architecture",
                 "High technical debt in technology versions",
-                "Modernization opportunities in authentication and API design"
+                "Modernization opportunities in authentication and API design",
             ],
-            "execution_mode": "fallback"
+            "execution_mode": "fallback",
         }
-    
-    async def _process_crew_results(self, result, application_id: str) -> Dict[str, Any]:
+
+    async def _process_crew_results(
+        self, result, application_id: str
+    ) -> Dict[str, Any]:
         """Process and structure crew execution results"""
-        
+
         try:
             # Extract components from crew results
             components_data = result.get("component_inventory", [])
-            
+
             # Structure components for flow state
             structured_components = []
             for component in components_data:
-                structured_components.append({
-                    "name": component.get("name", "unknown"),
-                    "type": component.get("type", ComponentType.CUSTOM.value),
-                    "technology_stack": component.get("technology_stack", {}),
-                    "responsibilities": component.get("responsibilities", []),
-                    "complexity_score": component.get("complexity_score", 5.0),
-                    "business_value_score": component.get("business_value_score", 5.0),
-                    "dependencies": component.get("dependencies", [])
-                })
-            
+                structured_components.append(
+                    {
+                        "name": component.get("name", "unknown"),
+                        "type": component.get("type", ComponentType.CUSTOM.value),
+                        "technology_stack": component.get("technology_stack", {}),
+                        "responsibilities": component.get("responsibilities", []),
+                        "complexity_score": component.get("complexity_score", 5.0),
+                        "business_value_score": component.get(
+                            "business_value_score", 5.0
+                        ),
+                        "dependencies": component.get("dependencies", []),
+                    }
+                )
+
             # Extract and structure technical debt analysis
             tech_debt_data = result.get("tech_debt_analysis", [])
             structured_tech_debt = []
             component_scores = {}
-            
+
             for debt_item in tech_debt_data:
-                structured_tech_debt.append({
-                    "category": debt_item.get("category", "unknown"),
-                    "subcategory": debt_item.get("subcategory", ""),
-                    "title": debt_item.get("title", ""),
-                    "description": debt_item.get("description", ""),
-                    "severity": debt_item.get("severity", TechDebtSeverity.MEDIUM.value),
-                    "tech_debt_score": debt_item.get("tech_debt_score", 5.0),
-                    "component": debt_item.get("component", ""),
-                    "remediation_effort_hours": debt_item.get("remediation_effort_hours", 0),
-                    "impact_on_migration": debt_item.get("impact_on_migration", "medium"),
-                    "detected_by_agent": "component_analysis_crew",
-                    "agent_confidence": debt_item.get("confidence", 0.8)
-                })
-                
+                structured_tech_debt.append(
+                    {
+                        "category": debt_item.get("category", "unknown"),
+                        "subcategory": debt_item.get("subcategory", ""),
+                        "title": debt_item.get("title", ""),
+                        "description": debt_item.get("description", ""),
+                        "severity": debt_item.get(
+                            "severity", TechDebtSeverity.MEDIUM.value
+                        ),
+                        "tech_debt_score": debt_item.get("tech_debt_score", 5.0),
+                        "component": debt_item.get("component", ""),
+                        "remediation_effort_hours": debt_item.get(
+                            "remediation_effort_hours", 0
+                        ),
+                        "impact_on_migration": debt_item.get(
+                            "impact_on_migration", "medium"
+                        ),
+                        "detected_by_agent": "component_analysis_crew",
+                        "agent_confidence": debt_item.get("confidence", 0.8),
+                    }
+                )
+
                 # Track component-level scores
                 component_name = debt_item.get("component")
                 if component_name:
-                    component_scores[component_name] = debt_item.get("tech_debt_score", 5.0)
-            
+                    component_scores[component_name] = debt_item.get(
+                        "tech_debt_score", 5.0
+                    )
+
             # Calculate average scores for components without explicit scores
             for component in structured_components:
                 if component["name"] not in component_scores:
-                    component_scores[component["name"]] = component.get("complexity_score", 5.0)
-            
+                    component_scores[component["name"]] = component.get(
+                        "complexity_score", 5.0
+                    )
+
             return {
                 "components": structured_components,
                 "tech_debt_analysis": structured_tech_debt,
@@ -721,10 +777,10 @@ class ComponentAnalysisCrew:
                     "crew_type": "component_analysis",
                     "application_id": application_id,
                     "execution_time": datetime.utcnow().isoformat(),
-                    "flow_id": self.flow_context.flow_id
-                }
+                    "flow_id": self.flow_context.flow_id,
+                },
             }
-            
+
         except Exception as e:
             logger.error(f"Error processing crew results: {e}")
             # Return basic structure to prevent flow failure
@@ -736,5 +792,5 @@ class ComponentAnalysisCrew:
                 "migration_groups": [],
                 "crew_confidence": 0.5,
                 "analysis_insights": [],
-                "processing_error": str(e)
+                "processing_error": str(e),
             }

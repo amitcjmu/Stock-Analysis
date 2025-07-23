@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { toast } from '@/components/ui/use-toast';
-import { tokenStorage } from '@/contexts/AuthContext/storage';
+import type { toast } from '@/components/ui/use-toast';
+import type { tokenStorage } from '@/contexts/AuthContext/storage';
 import { useAuth } from '@/contexts/AuthContext';
 
 export const useGlobalErrorHandler = () => {

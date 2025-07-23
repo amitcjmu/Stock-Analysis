@@ -13,4 +13,4 @@
  */
 
 // Re-export all types from modular files
-export * from './forms/index';
+export type * from './forms/index';

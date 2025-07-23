@@ -89,7 +89,7 @@ export interface DeliverableStatus {
   quality: DeliverableQualityStatus;
   approval: import('./approval').DeliverableApprovalStatus;
   issues: DeliverableIssue[];
-  risks: import('./risk').DeliverableRisk[];
+  risks: Array<import('./risk').DeliverableRisk>;
   forecast: DeliverableForecast;
 }
 
@@ -166,7 +166,7 @@ export interface DeliverableQualityStatus {
   standards: QualityStandardStatus[];
   reviews: QualityReviewStatus[];
   testing: QualityTestingStatus;
-  metrics: import('./quality').QualityMetricStatus[];
+  metrics: Array<import('./quality').QualityMetricStatus>;
   issues: QualityIssueStatus[];
 }
 

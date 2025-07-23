@@ -7,7 +7,9 @@
  * Agent Team B3 - Task B3.1 Frontend Implementation
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React from 'react'
+import { useState } from 'react'
+import { useEffect, useCallback, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';

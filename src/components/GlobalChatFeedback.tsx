@@ -1,7 +1,7 @@
 import React from 'react';
 import { MessageCircle } from 'lucide-react';
 import { useChatFeedback } from '../contexts/ChatFeedbackContext';
-import ChatInterface from './ui/ChatInterface';
+import type ChatInterface from './ui/ChatInterface';
 
 const GlobalChatFeedback: React.FC = () => {
   const { isChatOpen, setIsChatOpen, currentPageName, breadcrumbPath } = useChatFeedback();

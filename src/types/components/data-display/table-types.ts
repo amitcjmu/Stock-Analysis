@@ -5,8 +5,8 @@
  * sorting, pagination, and table configuration options.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps } from '../shared';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps } from '../shared';
 
 // Basic table data types
 export interface TableRowData {
@@ -135,7 +135,7 @@ export interface TableColumn<TData extends TableRowData = TableRowData> {
   validateValue?: (value: unknown, row: TData, index: number) => boolean | string;
   sorter?: boolean | ((a: TData, b: TData) => number);
   sortOrder?: 'asc' | 'desc' | null;
-  sortDirections?: ('asc' | 'desc')[];
+  sortDirections?: Array<'asc' | 'desc'>;
   defaultSortOrder?: 'asc' | 'desc';
   filters?: TableFilter[];
   filterDropdown?: ReactNode | ((props: TableFilterDropdownProps) => ReactNode);
@@ -198,7 +198,7 @@ export interface TablePaginationConfig {
   size?: 'default' | 'small';
   simple?: boolean;
   hideOnSinglePage?: boolean;
-  position?: ('topLeft' | 'topCenter' | 'topRight' | 'bottomLeft' | 'bottomCenter' | 'bottomRight')[];
+  position?: Array<'topLeft' | 'topCenter' | 'topRight' | 'bottomLeft' | 'bottomCenter' | 'bottomRight'>;
   onChange?: (page: number, pageSize: number) => void;
   onShowSizeChange?: (current: number, size: number) => void;
 }
@@ -282,26 +282,14 @@ export interface TableFooterConfig {
   // Add footer config properties as needed
 }
 
-export interface TableState {
-  // Add state properties as needed
-}
+export type TableState = Record<string, unknown>;
 
-export interface TableColumnValidation {
-  // Add validation properties as needed
-}
+export type TableColumnValidation = Record<string, unknown>;
 
-export interface TableSortInfo {
-  // Add sort info properties as needed
-}
+export type TableSortInfo = Record<string, unknown>;
 
-export interface TableFilterInfo {
-  // Add filter info properties as needed
-}
+export type TableFilterInfo = Record<string, unknown>;
 
-export interface TablePaginationState {
-  // Add pagination state properties as needed
-}
+export type TablePaginationState = Record<string, unknown>;
 
-export interface TableSorterTooltip {
-  // Add sorter tooltip properties as needed
-}
+export type TableSorterTooltip = Record<string, unknown>;

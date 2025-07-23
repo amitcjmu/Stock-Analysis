@@ -7,7 +7,8 @@ import {
   Zap, 
   Target 
 } from 'lucide-react';
-import { CrewProgress, CollaborationData, PlanningData } from './types';
+import type { CollaborationData, PlanningData } from './types'
+import { CrewProgress } from './types'
 
 export const useAgentOrchestrationState = () => {
   const [activeTab, setActiveTab] = useState('overview');

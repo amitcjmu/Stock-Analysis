@@ -8,25 +8,25 @@
  */
 
 // Base entities and foundational types
-export * from './base-entities';
+export type * from './base-entities';
 
 // User profile and preferences
-export * from './user-profile';
+export type * from './user-profile';
 
 // Account and subscription management
-export * from './account-subscription';
+export type * from './account-subscription';
 
 // Security and compliance
-export * from './security-compliance';
+export type * from './security-compliance';
 
 // Engagement and project management
-export * from './engagement-project';
+export type * from './engagement-project';
 
 // System configuration and integration
-export * from './system-configuration';
+export type * from './system-configuration';
 
 // Supporting types and complex interfaces
-export * from './supporting-types';
+export type * from './supporting-types';
 
 // Shared enums and type literals
-export * from './enums';
+export type * from './enums';

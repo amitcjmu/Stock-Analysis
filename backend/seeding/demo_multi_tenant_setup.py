@@ -18,14 +18,15 @@ All emails use pattern: user@demo.company.com
 All engagements have "Demo" prefix
 """
 import asyncio
+import hashlib
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import select, delete
-from sqlalchemy.ext.asyncio import AsyncSession
+
+from sqlalchemy import select
+
 from app.core.database import AsyncSessionLocal
 from app.models import ClientAccount, Engagement, User, UserAccountAssociation
 from app.models.rbac import UserProfile, UserStatus
-import hashlib
 
 
 def get_password_hash(password: str) -> str:

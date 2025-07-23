@@ -7,7 +7,9 @@
  * Individual modules are located in this directory.
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React from 'react'
+import { useState } from 'react'
+import { useMemo, useCallback } from 'react'
 import { CheckCircle, AlertCircle, Clock, Search, RefreshCw, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../../../../../contexts/AuthContext';
 
@@ -23,13 +25,13 @@ import NeedsReviewCard from './NeedsReviewCard';
 import ApprovedCard from './ApprovedCard';
 import ColumnHeader from './ColumnHeader';
 import BulkActions from './BulkActions';
-import { ThreeColumnFieldMapperProps } from './types';
+import type { ThreeColumnFieldMapperProps } from './types';
 import { 
   categorizeMappings, 
   filterMappingsBySearch, 
   calculateProgress 
 } from './mappingUtils';
-import { 
+import type {
   createBulkApproveHandler, 
   createBulkRejectHandler 
 } from './bulkOperations';

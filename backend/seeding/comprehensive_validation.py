@@ -3,16 +3,23 @@ Comprehensive validation that addresses all identified issues and passes all tes
 This validates the complete database setup after all fixes have been applied.
 """
 import asyncio
-from datetime import datetime
-from sqlalchemy import select, func
+
+from sqlalchemy import func, select
+
 from app.core.database import AsyncSessionLocal
 from app.models import (
-    ClientAccount, Engagement, User, UserAccountAssociation,
-    DiscoveryFlow, DataImport, Asset, AssetDependency,
-    ImportFieldMapping, RawImportRecord
+    Asset,
+    AssetDependency,
+    ClientAccount,
+    DataImport,
+    DiscoveryFlow,
+    Engagement,
+    ImportFieldMapping,
+    RawImportRecord,
+    User,
+    UserAccountAssociation,
 )
-from app.models.asset import MigrationWave
-from app.models.asset import AssetType, AssetStatus, SixRStrategy
+from app.models.asset import AssetStatus, AssetType, MigrationWave, SixRStrategy
 
 
 class Colors:
@@ -29,7 +36,6 @@ async def validate_models_import():
     print(f"\n{Colors.BOLD}=== Model Import Validation ==={Colors.ENDC}")
     try:
         # Test critical model imports
-        from app.models import UserAccountAssociation
         print(f"{Colors.GREEN}✅ UserAccountAssociation model imported{Colors.ENDC}")
         
         # Test enum string values

@@ -5,13 +5,12 @@ Analyzes code files for size, complexity, and provides refactoring recommendatio
 CC generated for comprehensive codebase analysis.
 """
 
-import os
 import json
-import subprocess
-from pathlib import Path
-from typing import Dict, List, Tuple, Any
-from dataclasses import dataclass, asdict
 from collections import defaultdict
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Tuple
+
 
 @dataclass
 class FileMetrics:
@@ -392,15 +391,15 @@ def main():
     print(f"Files exceeding 350 LOC threshold: {report['summary']['files_exceeding_threshold']}")
     print(f"Compliance rate: {report['summary']['compliance_rate']}%")
     
-    print(f"\nBy Priority:")
+    print("\nBy Priority:")
     for priority, count in report['by_priority'].items():
         print(f"  {priority}: {count} files")
     
-    print(f"\nTop 10 Files Requiring Immediate Attention:")
+    print("\nTop 10 Files Requiring Immediate Attention:")
     for i, file_info in enumerate(report['top_offenders'][:10], 1):
         print(f"  {i:2d}. {file_info['path']} ({file_info['code_lines']} LOC, {file_info['priority']} priority)")
     
-    print(f"\nDetailed report saved to: modularization_analysis_report.json")
+    print("\nDetailed report saved to: modularization_analysis_report.json")
 
 if __name__ == "__main__":
     main()

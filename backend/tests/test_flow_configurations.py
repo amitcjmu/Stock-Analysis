@@ -5,19 +5,17 @@ MFO-057: Test all flow types
 Tests to ensure all flow configurations are properly set up and working.
 """
 
+
 import pytest
-import asyncio
-from typing import Dict, Any
 
 from app.services.flow_configs import (
+    get_flow_summary,
     initialize_all_flows,
     verify_flow_configurations,
-    get_flow_summary,
-    flow_configuration_manager
 )
 from app.services.flow_type_registry import FlowTypeRegistry
-from app.services.validator_registry import ValidatorRegistry
 from app.services.handler_registry import HandlerRegistry
+from app.services.validator_registry import ValidatorRegistry
 
 
 class TestFlowConfigurations:
@@ -70,16 +68,16 @@ class TestFlowConfigurations:
         
         # Verify all flows present
         assert verification["total_flows"] == 8
-        assert verification["consistency_check"] == True
+        assert verification["consistency_check"] is True
         assert len(verification["issues"]) == 0
         
         # Check each flow has proper configuration
         for flow_name, details in verification["flow_details"].items():
             assert details["phases"] > 0
-            assert details["has_validators"] == True
-            assert details["has_handlers"] == True
-            assert details["capabilities"]["pause_resume"] == True
-            assert details["capabilities"]["checkpointing"] == True
+            assert details["has_validators"] is True
+            assert details["has_handlers"] is True
+            assert details["capabilities"]["pause_resume"] is True
+            assert details["capabilities"]["checkpointing"] is True
     
     def test_get_flow_summary(self):
         """Test flow summary retrieval"""
@@ -173,7 +171,7 @@ class TestFlowConfigurations:
         
         assert planning_config.name == "planning"
         assert len(planning_config.phases) == 3
-        assert planning_config.capabilities.supports_iterations == True
+        assert planning_config.capabilities.supports_iterations is True
         assert planning_config.capabilities.max_iterations == 5
     
     def test_execution_flow_configuration(self):
@@ -186,8 +184,8 @@ class TestFlowConfigurations:
         
         assert execution_config.name == "execution"
         assert len(execution_config.phases) == 3
-        assert execution_config.capabilities.supports_rollback == True
-        assert execution_config.capabilities.supports_parallel_phases == True
+        assert execution_config.capabilities.supports_rollback is True
+        assert execution_config.capabilities.supports_parallel_phases is True
     
     def test_validator_registration(self):
         """Test that validators are properly registered"""
@@ -248,7 +246,7 @@ class TestFlowConfigurations:
         }
         
         result = await validator(valid_input, {})
-        assert result["valid"] == True
+        assert result["valid"] is True
         assert len(result["errors"]) == 0
     
     @pytest.mark.asyncio
@@ -269,7 +267,7 @@ class TestFlowConfigurations:
             configuration={"parallel_processing": True}
         )
         
-        assert result["initialized"] == True
+        assert result["initialized"] is True
         assert result["flow_id"] == "test_flow_123"
         assert "discovery_config" in result
     
@@ -320,19 +318,19 @@ def test_flow_configurations_basic():
     
     # Verify configurations
     verification = verify_flow_configurations()
-    print(f"\nVerification results:")
+    print("\nVerification results:")
     print(f"Total flows: {verification['total_flows']}")
     print(f"Consistency check: {verification['consistency_check']}")
     print(f"Issues: {verification['issues']}")
     
     # Get summary
     summary = get_flow_summary()
-    print(f"\nFlow summary:")
+    print("\nFlow summary:")
     for flow in summary:
         print(f"- {flow['name']}: {flow['phase_count']} phases, v{flow['version']}")
     
     assert verification["total_flows"] == 8
-    assert verification["consistency_check"] == True
+    assert verification["consistency_check"] is True
 
 
 if __name__ == "__main__":

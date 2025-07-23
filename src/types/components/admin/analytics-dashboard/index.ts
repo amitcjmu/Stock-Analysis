@@ -7,19 +7,19 @@
  */
 
 // Dashboard core types
-export * from './dashboard-types';
+export type * from './dashboard-types';
 
 // Widget and layout types
-export * from './widget-types';
+export type * from './widget-types';
 
 // Data source and transformation types
-export * from './data-types';
+export type * from './data-types';
 
 // Visualization configuration types
-export * from './visualization-types';
+export type * from './visualization-types';
 
 // Widget configuration types
-export * from './configuration-types';
+export type * from './configuration-types';
 
 // Metrics and overview types
-export * from './metrics-types';
+export type * from './metrics-types';

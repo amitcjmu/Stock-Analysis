@@ -2,15 +2,16 @@
 Tests for Phase 2 Discovery Flow implementation
 """
 
-import pytest
 import asyncio
 from datetime import datetime
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
-from app.services.flows.discovery_flow import UnifiedDiscoveryFlow, DiscoveryFlowState
-from app.services.flows.manager import FlowManager
-from app.services.flows.events import FlowEventBus, FlowEvent
+import pytest
+
 from app.core.context import RequestContext
+from app.services.flows.discovery_flow import DiscoveryFlowState, UnifiedDiscoveryFlow
+from app.services.flows.events import FlowEvent, FlowEventBus
+from app.services.flows.manager import FlowManager
 
 
 @pytest.fixture

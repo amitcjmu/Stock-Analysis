@@ -6,7 +6,8 @@
  * need it, preventing hardcoded ID issues.
  */
 
-import { demoContextService, DemoContext } from './demoContextService';
+import type { DemoContext } from './demoContextService'
+import { demoContextService } from './demoContextService'
 
 export class AppInitializer {
   private static initialized = false;

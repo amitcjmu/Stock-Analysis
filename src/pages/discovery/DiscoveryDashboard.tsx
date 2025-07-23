@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, RefreshCw, FileUpload, FormInput, Settings, ArrowRight } from 'lucide-react';
+import type { FormInput } from 'lucide-react'
+import { BarChart3, RefreshCw, FileUpload, Settings, ArrowRight } from 'lucide-react'
 
 // Components
 import Sidebar from '../../components/Sidebar';
@@ -8,14 +9,8 @@ import { ContextBreadcrumbs } from '../../components/context/ContextBreadcrumbs'
 import AgentLearningInsights from '../../components/discovery/AgentLearningInsights';
 
 // Hooks
-import { 
-  useDiscoveryMetrics, 
-  useApplicationLandscape, 
-  useInfrastructureLandscape,
-  type DiscoveryMetrics,
-  type ApplicationLandscape,
-  type InfrastructureLandscape
-} from '../../hooks/useDiscoveryDashboard';
+import type { type DiscoveryMetrics, type ApplicationLandscape, type InfrastructureLandscape } from '../../hooks/useDiscoveryDashboard'
+import { useDiscoveryMetrics, useApplicationLandscape, useInfrastructureLandscape } from '../../hooks/useDiscoveryDashboard'
 import { useAuth } from '../../contexts/AuthContext';
 
 // UI Components

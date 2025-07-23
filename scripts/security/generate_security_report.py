@@ -6,10 +6,10 @@ Consolidates security scan results into a comprehensive report
 
 import json
 import sys
-from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Any
-import markdown2
+from pathlib import Path
+from typing import Any, Dict
+
 
 class SecurityReportGenerator:
     def __init__(self, artifacts_dir: str):

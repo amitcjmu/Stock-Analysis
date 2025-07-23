@@ -8,17 +8,13 @@ This script fixes the missing master_flow_id population in:
 """
 
 import asyncio
-import uuid
-from datetime import datetime
-from sqlalchemy import select, update, text, and_
-from sqlalchemy.ext.asyncio import AsyncSession
+
+from sqlalchemy import text, update
 
 from app.core.database import AsyncSessionLocal
 from app.models.asset import Asset
 from app.models.data_import.mapping import ImportFieldMapping
-from app.models.data_import.core import DataImport
-from app.models.discovery_flow import DiscoveryFlow
-from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+
 
 async def fix_asset_master_flow_links():
     """Link assets to their master flows via discovery flows."""
@@ -203,7 +199,7 @@ async def main():
     # Validate results
     await validate_master_flow_links()
     
-    print(f"\n🎉 Master Flow Link Fix Complete!")
+    print("\n🎉 Master Flow Link Fix Complete!")
     print(f"   Fixed {asset_count} asset links")
     print(f"   Fixed {mapping_count} field mapping links")
     print(f"   Total fixes: {asset_count + mapping_count}")

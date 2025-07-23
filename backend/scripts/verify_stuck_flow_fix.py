@@ -5,7 +5,9 @@ Verify that stuck flows are properly detected and handled
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from sqlalchemy import select, and_, func
+
+from sqlalchemy import and_, func, select
+
 from app.core.database import AsyncSessionLocal
 from app.models.discovery_flow import DiscoveryFlow
 

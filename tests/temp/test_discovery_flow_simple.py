@@ -4,9 +4,7 @@ Simple test to verify Discovery Flow execution after repository fixes
 """
 
 import asyncio
-import json
 import logging
-from typing import Dict, Any
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')

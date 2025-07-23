@@ -4,6 +4,7 @@ Test database connection and check existing data.
 import asyncio
 import sys
 from pathlib import Path
+
 from sqlalchemy import select, text
 
 # Add backend to path

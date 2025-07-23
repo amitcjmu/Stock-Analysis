@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 # Get model tables
-import subprocess
 import re
+import subprocess
 
 # Get tables from models  
 model_tables_raw = subprocess.run(['grep', '-h', '__tablename__', 'app/models/*.py'], capture_output=True, text=True, shell=True).stdout
@@ -87,7 +87,7 @@ common = set(model_tables) & set(db_tables)
 print(f"✅ {len(common)} tables match")
 
 # Check if the difference is explained by missing models
-print(f"\nAnalysis:")
+print("\nAnalysis:")
 print(f"Models define: {len(model_tables)} tables")
 print(f"Database has: {len(db_tables) - 1} tables (excluding alembic_version)")
 print(f"Difference: {len(db_tables) - 1 - len(model_tables)} extra tables in database")

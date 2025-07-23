@@ -15,9 +15,9 @@ This maintains multi-tenant security while resolving the circular dependency.
 """
 
 import asyncio
-import aiohttp
-import json
 from datetime import datetime
+
+import aiohttp
 
 # Test Marathon Petroleum context (the failing case from logs)
 MARATHON_CONTEXT = {
@@ -90,7 +90,7 @@ async def test_context_establishment_workflow():
             return False
 
         # Step 3: Test that regular endpoints still require engagement context (security verification)
-        print(f"\n3️⃣ Testing Security - Regular Endpoints Still Require Engagement Context")
+        print("\n3️⃣ Testing Security - Regular Endpoints Still Require Engagement Context")
         try:
             # Test data import latest endpoint without engagement context (should fail)
             async with session.get(
@@ -111,7 +111,7 @@ async def test_context_establishment_workflow():
             print(f"❌ Security verification test failed: {e}")
 
         # Step 4: Test operational endpoint with full context (should work)
-        print(f"\n4️⃣ Testing Operations - Data Import with Full Context")
+        print("\n4️⃣ Testing Operations - Data Import with Full Context")
         try:
             async with session.get(
                 f"{BASE_URL}/api/v1/data-import/latest",
@@ -129,7 +129,7 @@ async def test_context_establishment_workflow():
                         data = await response.json()
                         print(f"   Latest import data available: {len(data.get('assets', []))} assets")
                     else:
-                        print(f"   No import data found (expected for fresh context)")
+                        print("   No import data found (expected for fresh context)")
                 else:
                     print(f"❌ Operational endpoint failed: {response.status}")
                     error_text = await response.text()
@@ -138,7 +138,7 @@ async def test_context_establishment_workflow():
             print(f"❌ Operational endpoint test failed: {e}")
 
         # Step 5: Summary and recommendations
-        print(f"\n5️⃣ Context Establishment Workflow Summary")
+        print("\n5️⃣ Context Establishment Workflow Summary")
         print("=" * 60)
         print("✅ Context establishment endpoints work without engagement requirements")
         print("✅ Regular operational endpoints maintain engagement context requirements")

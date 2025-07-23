@@ -2,7 +2,9 @@
  * Performance Dashboard - Visual monitoring for lazy loading performance
  */
 
-import React, { useState, useEffect } from 'react';
+import React from 'react'
+import { useState } from 'react'
+import { useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,7 +21,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { performanceMonitor } from '@/utils/lazy/performanceMonitor';
-import { BundleAnalysis } from '@/types/lazy';
+import type { BundleAnalysis } from '@/types/lazy';
 
 interface PerformanceInsight {
   type: 'optimization' | 'warning' | 'error' | 'info';
@@ -315,7 +317,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
                   {bundleAnalysis?.chunkSizes && Object.entries(bundleAnalysis.chunkSizes).map(([chunk, size]) => (
                     <div key={chunk} className="flex justify-between text-sm">
                       <span className="truncate mr-2">{chunk}</span>
-                      <span className="font-mono">{Math.round((size as number) / 1024)}KB</span>
+                      <span className="font-mono">{Math.round((size) / 1024)}KB</span>
                     </div>
                   ))}
                 </div>

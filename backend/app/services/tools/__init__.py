@@ -3,39 +3,39 @@ External Tools Package for AI Agents
 Contains tools that agents can use to interact with external systems and learn from data.
 """
 
-from .field_mapping_tool import field_mapping_tool
-from .registry import tool_registry, ToolMetadata
-from .factory import tool_factory
-from .base_tool import BaseDiscoveryTool, AsyncBaseDiscoveryTool
+from .base_tool import AsyncBaseDiscoveryTool, BaseDiscoveryTool
 from .categories import TOOL_CATEGORIES, get_tools_for_phase
+from .factory import tool_factory
+from .field_mapping_tool import field_mapping_tool
+from .registry import ToolMetadata, tool_registry
 
 # Auto-discover tools on import
 try:
-    from .schema_analyzer_tool import SchemaAnalyzerTool
     from .field_matcher_tool import FieldMatcherTool
-    from .pii_scanner_tool import PIIScannerTool
-    
+
     # Gap Analysis Tools
     from .gap_analysis_tools import (
         AttributeMapperTool,
+        CollectionPlannerTool,
         CompletenessAnalyzerTool,
-        QualityScorerTool,
+        EffortEstimatorTool,
         GapIdentifierTool,
         ImpactCalculatorTool,
-        EffortEstimatorTool,
         PriorityRankerTool,
-        CollectionPlannerTool
+        QualityScorerTool,
     )
-except ImportError as e:
+    from .pii_scanner_tool import PIIScannerTool
+    from .schema_analyzer_tool import SchemaAnalyzerTool
+except ImportError:
     pass  # Tools will be discovered automatically
 
 __all__ = [
-    'field_mapping_tool',
-    'tool_registry', 
-    'tool_factory',
-    'ToolMetadata',
-    'BaseDiscoveryTool',
-    'AsyncBaseDiscoveryTool',
-    'TOOL_CATEGORIES',
-    'get_tools_for_phase'
-] 
+    "field_mapping_tool",
+    "tool_registry",
+    "tool_factory",
+    "ToolMetadata",
+    "BaseDiscoveryTool",
+    "AsyncBaseDiscoveryTool",
+    "TOOL_CATEGORIES",
+    "get_tools_for_phase",
+]

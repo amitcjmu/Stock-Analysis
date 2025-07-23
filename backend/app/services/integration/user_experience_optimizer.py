@@ -14,23 +14,18 @@ MODULAR STRUCTURE:
 Generated with CC for modular backend architecture.
 """
 
-import logging
-from typing import Dict, List, Any, Tuple
-from uuid import UUID
+# For backward compatibility - re-export all classes
+from app.core.logging import get_logger
 
 # Import modular components
 from .user_experience import (
-    UXOptimizationArea,
-    UXMetricType,
-    UXRecommendation,
-    UserJourneyAnalytics,
     OptimizationContext,
-    UserExperienceOptimizer as ModularUserExperienceOptimizer
+    UserJourneyAnalytics,
+    UXMetricType,
+    UXOptimizationArea,
+    UXRecommendation,
 )
-
-# For backward compatibility - re-export all classes
-from app.core.logging import get_logger
-from app.monitoring.metrics import track_performance
+from .user_experience import UserExperienceOptimizer as ModularUserExperienceOptimizer
 
 logger = get_logger(__name__)
 
@@ -41,15 +36,16 @@ class UserExperienceOptimizer(ModularUserExperienceOptimizer):
     User experience optimizer - delegates to modular implementation.
     Optimizes user experience across the complete ADCS workflow.
     """
+
     pass
 
 
 # Export all types and classes for backward compatibility
 __all__ = [
-    'UXOptimizationArea',
-    'UXMetricType', 
-    'UXRecommendation',
-    'UserJourneyAnalytics',
-    'OptimizationContext',
-    'UserExperienceOptimizer'
+    "UXOptimizationArea",
+    "UXMetricType",
+    "UXRecommendation",
+    "UserJourneyAnalytics",
+    "OptimizationContext",
+    "UserExperienceOptimizer",
 ]

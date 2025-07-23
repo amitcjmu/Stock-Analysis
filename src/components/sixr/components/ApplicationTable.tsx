@@ -8,7 +8,8 @@ import { Users, Code, CheckCircle, AlertCircle, Clock, Play } from 'lucide-react
 import { Badge } from '../../ui/badge';
 import { Checkbox } from '../../ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/table';
-import { Application, ApplicationTableProps } from '../types/ApplicationSelectorTypes';
+import type { ApplicationTableProps } from '../types/ApplicationSelectorTypes'
+import type { Application } from '../types/ApplicationSelectorTypes'
 
 const criticalityColors = {
   low: 'bg-green-100 text-green-800',

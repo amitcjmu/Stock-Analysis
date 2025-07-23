@@ -3,12 +3,11 @@
 Create additional demo clients and engagements for testing platform admin access
 """
 import asyncio
+import sys
 import uuid
 from datetime import datetime, timedelta
-from sqlalchemy.ext.asyncio import AsyncSession
-
-import sys
 from pathlib import Path
+
 sys.path.append(str(Path(__file__).parent.parent))
 
 from app.core.database import AsyncSessionLocal
@@ -157,12 +156,12 @@ async def create_additional_demo_data():
         await db.commit()
         
         # Verify counts
-        from sqlalchemy import select, func
+        from sqlalchemy import func, select
         
         client_count = await db.execute(select(func.count()).select_from(ClientAccount))
         engagement_count = await db.execute(select(func.count()).select_from(Engagement))
         
-        print(f"\n📊 Final counts:")
+        print("\n📊 Final counts:")
         print(f"  - Total clients: {client_count.scalar_one()}")
         print(f"  - Total engagements: {engagement_count.scalar_one()}")
         

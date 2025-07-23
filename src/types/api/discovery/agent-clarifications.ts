@@ -5,7 +5,7 @@
  * responses, escalation, and resolution workflows.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   GetRequest,

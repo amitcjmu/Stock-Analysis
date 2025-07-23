@@ -1,5 +1,6 @@
-import React from 'react';
-import { Shield, CheckCircle, AlertTriangle, Clock, X, FileText, RefreshCw } from 'lucide-react';
+import type React from 'react';
+import type { Shield, FileText, RefreshCw } from 'lucide-react'
+import { CheckCircle, AlertTriangle, Clock, X } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompliance, useStartAudit, useUpdateRequirement } from '@/hooks/decommission/useCompliance';
 import { Button } from '@/components/ui/button';

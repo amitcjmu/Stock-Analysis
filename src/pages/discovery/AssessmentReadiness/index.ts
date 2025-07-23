@@ -8,7 +8,7 @@ export * from './components';
 export * from './hooks';
 
 // Re-export all types
-export * from './types';
+export type * from './types';
 
 // Re-export all utils
 export * from './utils';

@@ -7,7 +7,7 @@ Built by: Agent Team B2 (AI Analysis & Intelligence)
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 
 from .enums import LearningPattern, OptimizationStrategy
 
@@ -15,6 +15,7 @@ from .enums import LearningPattern, OptimizationStrategy
 @dataclass
 class LearningEvent:
     """Individual learning event for pattern analysis"""
+
     event_id: str
     event_type: LearningPattern
     timestamp: datetime
@@ -30,6 +31,7 @@ class LearningEvent:
 @dataclass
 class OptimizationRecommendation:
     """Optimization recommendation based on learning patterns"""
+
     strategy: OptimizationStrategy
     confidence: float  # 0.0 to 1.0
     expected_improvement: float  # percentage improvement expected
@@ -42,6 +44,7 @@ class OptimizationRecommendation:
 @dataclass
 class LearningInsight:
     """Insight derived from learning pattern analysis"""
+
     insight_id: str
     pattern_type: LearningPattern
     description: str

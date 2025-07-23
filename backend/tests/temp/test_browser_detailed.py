@@ -3,8 +3,10 @@
 Detailed browser test with request interception
 """
 import asyncio
-from playwright.async_api import async_playwright
 import json
+
+from playwright.async_api import async_playwright
+
 
 async def test_login():
     async with async_playwright() as p:
@@ -25,7 +27,7 @@ async def test_login():
                     "headers": headers,
                     "data": post_data
                 })
-                print(f"\n📤 Login Request:")
+                print("\n📤 Login Request:")
                 print(f"   URL: {request.url}")
                 print(f"   Method: {request.method}")
                 print(f"   Headers: {json.dumps(headers, indent=4)}")
@@ -39,13 +41,13 @@ async def test_login():
             if "/api/v1/auth/login" in response.url:
                 try:
                     data = await response.json()
-                    print(f"\n📥 Login Response:")
+                    print("\n📥 Login Response:")
                     print(f"   Status: {response.status}")
                     print(f"   Headers: {response.headers}")
                     print(f"   Data: {json.dumps(data, indent=2)}")
-                except:
+                except Exception:
                     text = await response.text()
-                    print(f"\n📥 Login Response (text):")
+                    print("\n📥 Login Response (text):")
                     print(f"   Status: {response.status}")
                     print(f"   Text: {text}")
         

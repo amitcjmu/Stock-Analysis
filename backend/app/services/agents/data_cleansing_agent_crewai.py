@@ -3,16 +3,17 @@ Data Cleansing Agent - Converted to proper CrewAI pattern
 Enterprise Data Standardization and Bulk Processing Specialist
 """
 
-from typing import List, Dict, Any
-from crewai import Agent
+from typing import Any, List
+
 from app.services.agents.base_agent import BaseCrewAIAgent
 from app.services.agents.metadata import AgentMetadata
 from app.services.llm_config import get_crewai_llm
 
+
 class DataCleansingAgent(BaseCrewAIAgent):
     """
     Performs intelligent data cleansing and standardization using CrewAI patterns.
-    
+
     Capabilities:
     - Data standardization
     - Format normalization
@@ -20,12 +21,12 @@ class DataCleansingAgent(BaseCrewAIAgent):
     - Missing data handling
     - Bulk operations
     """
-    
+
     def __init__(self, tools: List[Any], llm: Any = None, **kwargs):
         """Initialize with proper CrewAI configuration"""
         if llm is None:
             llm = get_crewai_llm()
-        
+
         super().__init__(
             role="Data Cleansing Specialist",
             goal="Clean and standardize data to ensure quality and consistency",
@@ -42,7 +43,7 @@ class DataCleansingAgent(BaseCrewAIAgent):
             llm=llm,
             **kwargs
         )
-    
+
     @classmethod
     def agent_metadata(cls) -> AgentMetadata:
         """Define agent metadata for registry"""
@@ -54,16 +55,16 @@ class DataCleansingAgent(BaseCrewAIAgent):
                 "DataStandardizerTool",
                 "FormatNormalizerTool",
                 "ValueValidatorTool",
-                "BulkOperationTool"
+                "BulkOperationTool",
             ],
             capabilities=[
                 "data_cleansing",
-                "data_standardization", 
+                "data_standardization",
                 "format_normalization",
-                "bulk_operations"
+                "bulk_operations",
             ],
             max_iter=12,
             memory=True,
             verbose=True,
-            allow_delegation=False
+            allow_delegation=False,
         )

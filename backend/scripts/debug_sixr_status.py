@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
 import asyncio
-import sys
-import os
+
+from sqlalchemy import select
 
 from app.core.database import AsyncSessionLocal
-from app.models.sixr_analysis import SixRAnalysis, SixRRecommendation as SixRRecommendationModel
-from sqlalchemy import select
+from app.models.sixr_analysis import SixRAnalysis
+from app.models.sixr_analysis import SixRRecommendation as SixRRecommendationModel
+
 
 async def check_sixr_status():
     async with AsyncSessionLocal() as session:

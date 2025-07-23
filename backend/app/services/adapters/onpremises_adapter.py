@@ -16,15 +16,15 @@ The implementation has been refactored into separate modules:
 
 # Re-export all public interfaces for backward compatibility
 from .onpremises_adapter import (
+    ONPREMISES_ADAPTER_METADATA,
+    DiscoveredHost,
     OnPremisesAdapter,
     OnPremisesCredentials,
-    DiscoveredHost,
-    ONPREMISES_ADAPTER_METADATA
 )
 
 __all__ = [
     "OnPremisesAdapter",
-    "OnPremisesCredentials", 
+    "OnPremisesCredentials",
     "DiscoveredHost",
-    "ONPREMISES_ADAPTER_METADATA"
+    "ONPREMISES_ADAPTER_METADATA",
 ]

@@ -5,7 +5,7 @@ import {
   Clock 
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { CrewStatus, BadgeVariant } from './types';
+import type { CrewStatus, BadgeVariant } from './types';
 
 export const getStatusIcon = (status: string) => {
   switch (status) {

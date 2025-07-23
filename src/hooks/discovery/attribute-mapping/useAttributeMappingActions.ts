@@ -2,8 +2,9 @@ import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { apiCall } from '../../../config/api';
-import { FieldMapping } from './useFieldMappings';
-import { useFlowUpdates, FlowUpdate } from '../../useFlowUpdates';
+import type { FieldMapping } from './useFieldMappings';
+import type { FlowUpdate } from '../../useFlowUpdates'
+import { useFlowUpdates } from '../../useFlowUpdates'
 
 // Agent decision structure from backend
 interface AgentDecision {

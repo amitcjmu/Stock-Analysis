@@ -1,4 +1,4 @@
-import { QueryCache, MutationCache } from '@tanstack/react-query';
+import type { QueryCache, MutationCache } from '@tanstack/react-query';
 import { toast } from '@/components/ui/use-toast';
 import { tokenStorage } from '@/contexts/AuthContext/storage';
 import type { ApiError } from '@/types/shared/api-types';

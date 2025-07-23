@@ -4,12 +4,12 @@ Quick Security Check - Minimal dependencies
 Runs basic security checks without external tools
 """
 
-import os
-import re
 import json
-from pathlib import Path
+import re
 from datetime import datetime
-from typing import Dict, List, Tuple
+from pathlib import Path
+from typing import Dict, List
+
 
 class QuickSecurityChecker:
     def __init__(self, backend_dir: str = "backend"):
@@ -132,7 +132,7 @@ class QuickSecurityChecker:
                         'description': 'No token expiration implemented',
                         'recommendation': 'Add token expiration time'
                     })
-            except:
+            except (OSError, UnicodeDecodeError):
                 pass
                 
     def check_rate_limiting(self) -> None:
@@ -149,7 +149,7 @@ class QuickSecurityChecker:
                     if any(term in content.lower() for term in ['ratelimit', 'rate_limit', 'slowapi', 'limiter']):
                         rate_limit_found = True
                         break
-            except:
+            except (OSError, UnicodeDecodeError):
                 pass
                 
         if not rate_limit_found:
@@ -184,7 +184,7 @@ class QuickSecurityChecker:
                                 'description': 'Potential SQL injection with f-strings',
                                 'code': line.strip()[:80]
                             })
-            except:
+            except (OSError, UnicodeDecodeError):
                 pass
                 
     def generate_report(self) -> str:
@@ -296,8 +296,8 @@ def main():
     checker.save_report(report_dir)
     
     # Print summary
-    print(f"\n✅ Security scan complete!")
-    print(f"\nSummary:")
+    print("\n✅ Security scan complete!")
+    print("\nSummary:")
     print(f"  Critical: {len(checker.issues['critical'])}")
     print(f"  High: {len(checker.issues['high'])}")
     print(f"  Medium: {len(checker.issues['medium'])}")

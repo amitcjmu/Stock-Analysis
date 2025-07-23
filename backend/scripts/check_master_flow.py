@@ -5,20 +5,21 @@ Check the master flow and its relationship to discovery flows.
 
 import asyncio
 import json
-from datetime import datetime
-from sqlalchemy import select, text
-from sqlalchemy.ext.asyncio import AsyncSession
+import os
 
 # Add parent directory to Python path
 import sys
-import os
+from datetime import datetime
+
+from sqlalchemy import select, text
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.core.database import AsyncSessionLocal
-from app.models.discovery_flow import DiscoveryFlow
+from app.models.asset import Asset
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.models.data_import.core import DataImport
-from app.models.asset import Asset
+from app.models.discovery_flow import DiscoveryFlow
 
 
 async def check_master_flow():
@@ -27,7 +28,7 @@ async def check_master_flow():
     master_flow_id = "582b87c4-0df1-4c2f-aa3b-e4b5a287d725"
     
     print(f"\n{'='*80}")
-    print(f"MASTER FLOW AND DISCOVERY FLOW INVESTIGATION")
+    print("MASTER FLOW AND DISCOVERY FLOW INVESTIGATION")
     print(f"Investigation Time: {datetime.utcnow().isoformat()}")
     print(f"{'='*80}\n")
     
@@ -44,7 +45,7 @@ async def check_master_flow():
         master_flow = master_flow.scalar_one_or_none()
         
         if master_flow:
-            print(f"✅ Found flow in CrewAI extensions!")
+            print("✅ Found flow in CrewAI extensions!")
             print(f"  Extension ID: {master_flow.id}")
             print(f"  Flow ID: {master_flow.flow_id}")
             print(f"  Flow Type: {master_flow.flow_type}")
@@ -57,7 +58,7 @@ async def check_master_flow():
                 print("\n  Execution State:")
                 print(json.dumps(master_flow.execution_state, indent=4))
         else:
-            print(f"❌ Flow not found in CrewAI extensions!")
+            print("❌ Flow not found in CrewAI extensions!")
         
         # 2. Find all discovery flows that reference this master flow
         print("\n\n2. DISCOVERY FLOWS LINKED TO THIS MASTER FLOW")
@@ -109,7 +110,7 @@ async def check_master_flow():
                 if discovery_ext:
                     print(f"    ✅ Has CrewAI Extension (Active: {discovery_ext.is_active})")
                 else:
-                    print(f"    ❌ Missing CrewAI Extension")
+                    print("    ❌ Missing CrewAI Extension")
         else:
             print("❌ No discovery flows linked to this master flow")
         
@@ -141,14 +142,14 @@ async def check_master_flow():
         
         if master_flow and master_flow.flow_type == "master":
             print(f"✅ {master_flow_id} is a MASTER flow, not a discovery flow")
-            print(f"   This explains why it's not in the discovery_flows table")
+            print("   This explains why it's not in the discovery_flows table")
             
             if linked_flows:
-                print(f"\n   The actual discovery flow to check is:")
+                print("\n   The actual discovery flow to check is:")
                 for flow in linked_flows:
                     print(f"   • {flow.id} (Status: {flow.status}, Phase: {flow.current_phase})")
             else:
-                print(f"\n   ❌ However, no discovery flows are linked to this master flow")
+                print("\n   ❌ However, no discovery flows are linked to this master flow")
         else:
             print(f"❌ Unable to determine the nature of flow {master_flow_id}")
 

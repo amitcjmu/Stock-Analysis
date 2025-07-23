@@ -4,7 +4,7 @@
  */
 
 import { useMemo } from 'react';
-import { AgentDetailData, PerformanceMetrics } from '../types/AgentDetailTypes';
+import type { AgentDetailData, PerformanceMetrics } from '../types/AgentDetailTypes';
 
 interface UseAgentMetricsResult {
   performanceMetrics: PerformanceMetrics | null;

@@ -3,19 +3,18 @@ Integration tests for V3 API with current database state
 These tests work with the existing database schema before consolidation
 """
 
-import pytest
-import pytest_asyncio
 import asyncio
-from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, text
 import uuid
 
+import pytest
+import pytest_asyncio
+from sqlalchemy import select, text
+
 from app.core.database import AsyncSessionLocal
-from app.models.discovery_flow import DiscoveryFlow
+from app.models.asset import Asset
 from app.models.data_import.core import DataImport
 from app.models.data_import.mapping import ImportFieldMapping
-from app.models.asset import Asset
+from app.models.discovery_flow import DiscoveryFlow
 
 # Configure pytest to use asyncio
 pytestmark = pytest.mark.asyncio

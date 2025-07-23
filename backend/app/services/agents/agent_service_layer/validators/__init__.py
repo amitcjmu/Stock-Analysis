@@ -2,4 +2,4 @@
 
 from .service_validator import ServiceValidator
 
-__all__ = ['ServiceValidator']
+__all__ = ["ServiceValidator"]

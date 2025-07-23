@@ -1,5 +1,7 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
+import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../contexts/AuthContext';
 import masterFlowServiceExtended from '../services/api/masterFlowService.extensions';
 import type { FlowStatusResponse } from '../services/api/masterFlowService';
@@ -105,23 +107,23 @@ interface UnifiedDiscoveryFlowState {
   updated_at: string;
   // Additional properties that might be present
   data_cleansing_results?: {
-    quality_issues: Array<unknown>;
-    recommendations: Array<unknown>;
+    quality_issues: unknown[];
+    recommendations: unknown[];
     metadata?: {
       original_records: number;
     };
   };
   data_cleansing?: {
-    quality_issues: Array<unknown>;
-    recommendations: Array<unknown>;
+    quality_issues: unknown[];
+    recommendations: unknown[];
     metadata?: {
       original_records: number;
     };
   };
   results?: {
     data_cleansing: {
-      quality_issues: Array<unknown>;
-      recommendations: Array<unknown>;
+      quality_issues: unknown[];
+      recommendations: unknown[];
       metadata?: {
         original_records: number;
       };
@@ -506,7 +508,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
   return {
     flowState: flowState || null,
     isLoading,
-    error: error as Error | null,
+    error: error,
     isHealthy: healthStatus?.status === 'healthy',
     initializeFlow,
     executeFlowPhase,

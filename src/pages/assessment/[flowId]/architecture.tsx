@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react'
+import { useState } from 'react'
+import { useEffect } from 'react'
 import { useParams } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
+import type { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { ArchitectureStandardsForm } from '@/components/assessment/ArchitectureStandardsForm';
 import { TemplateSelector } from '@/components/assessment/TemplateSelector';
 import { ApplicationOverrides } from '@/components/assessment/ApplicationOverrides';

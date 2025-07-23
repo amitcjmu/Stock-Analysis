@@ -13,12 +13,10 @@ This script tests the complete agentic intelligence system to verify:
 This demonstrates the complete replacement of rule-based systems with agentic intelligence.
 """
 
-import sys
 import asyncio
+import sys
 import uuid
-import json
 from datetime import datetime
-from typing import Dict, Any, List
 
 # Add the app directory to the Python path
 sys.path.append('/app')
@@ -32,8 +30,8 @@ async def test_agentic_intelligence_system():
     # Test 1: Create Test Tenant Context
     print("\n1️⃣ Creating Test Tenant Context...")
     try:
-        from app.models.client_account import ClientAccount  
         from app.core.database import AsyncSessionLocal
+        from app.models.client_account import ClientAccount
         
         # Create test entities with proper foreign key relationships
         client_account_id = uuid.uuid4()
@@ -277,8 +275,8 @@ async def test_agentic_intelligence_system():
     # Test 8: Test Memory Pattern Discovery
     print("\n8️⃣ Testing Memory Pattern Discovery...")
     try:
-        from app.services.agentic_memory import ThreeTierMemoryManager, MemoryQuery
         from app.models.agent_memory import PatternType
+        from app.services.agentic_memory import MemoryQuery, ThreeTierMemoryManager
         
         memory_manager = ThreeTierMemoryManager(client_account_id, engagement_id)
         
@@ -293,7 +291,7 @@ async def test_agentic_intelligence_system():
         
         discovered_patterns = await memory_manager.query_memory(search_query)
         
-        print(f"✅ Memory pattern discovery completed:")
+        print("✅ Memory pattern discovery completed:")
         print(f"   - Patterns found: {len(discovered_patterns)}")
         
         for i, pattern in enumerate(discovered_patterns[:3]):  # Show first 3
@@ -312,8 +310,8 @@ async def test_agentic_intelligence_system():
     # Test 9: Test Integration with Discovery Flow Data Cleansing
     print("\n9️⃣ Testing Integration with Discovery Flow...")
     try:
-        from app.services.crewai_flows.handlers.phase_executors.data_cleansing_executor import DataCleansingExecutor
         from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
+        from app.services.crewai_flows.handlers.phase_executors.data_cleansing_executor import DataCleansingExecutor
         
         # Create mock state with raw data
         mock_state = UnifiedDiscoveryFlowState()
@@ -402,10 +400,10 @@ if __name__ == "__main__":
             success = await test_agentic_intelligence_system()
             
             if success:
-                print(f"\n✅ CONCLUSION: Agentic intelligence system is fully operational!")
+                print("\n✅ CONCLUSION: Agentic intelligence system is fully operational!")
                 exit(0)
             else:
-                print(f"\n❌ CONCLUSION: Agentic intelligence system has issues.")
+                print("\n❌ CONCLUSION: Agentic intelligence system has issues.")
                 exit(1)
                 
         except Exception as e:

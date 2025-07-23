@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 import { CheckCircle, AlertTriangle, Clock, X, FileText, Download, RefreshCw, Database } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useVerification, useRunVerification, useGenerateReport } from '@/hooks/decommission/useVerification';

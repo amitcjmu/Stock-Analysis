@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Code, Sparkles, Play, Clock, CheckCircle, AlertTriangle, Filter, Loader2 } from 'lucide-react';
+import React, { useState } from 'react'
+import type { Clock, CheckCircle, Filter } from 'lucide-react'
+import { Code, Sparkles, Play, AlertTriangle, Loader2 } from 'lucide-react'
 import { useRefactor } from '@/hooks/useRefactor';
 import { Sidebar } from '@/components/ui/sidebar';
 import { Alert } from '@/components/ui/alert';

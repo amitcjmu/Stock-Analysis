@@ -484,7 +484,7 @@ export type RequireFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
 /**
  * Extract array element type
  */
-export type ArrayElement<T> = T extends (infer U)[] ? U : never;
+export type ArrayElement<T> = T extends Array<infer U> ? U : never;
 
 /**
  * Function type constraints

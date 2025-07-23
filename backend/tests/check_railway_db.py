@@ -34,8 +34,8 @@ async def check_database_setup():
     
     # Test database connection
     try:
-        from app.core.database import engine, AsyncSessionLocal
         from app.core.config import settings
+        from app.core.database import engine
         
         print(f"🔗 Using database URL: {settings.database_url_async[:50]}...")
         
@@ -44,7 +44,7 @@ async def check_database_setup():
         async with engine.begin() as conn:
             result = await conn.execute(text("SELECT version()"))
             version = result.fetchone()[0]
-            print(f"✅ PostgreSQL Connection: SUCCESS")
+            print("✅ PostgreSQL Connection: SUCCESS")
             print(f"📋 Database Version: {version}")
         
         # Test table creation
@@ -56,7 +56,7 @@ async def check_database_setup():
         return True
         
     except Exception as e:
-        print(f"❌ Database Connection: FAILED")
+        print("❌ Database Connection: FAILED")
         print(f"💥 Error: {e}")
         print("\n🔧 Troubleshooting Steps:")
         print("1. Verify PostgreSQL service is running in Railway")
@@ -70,8 +70,9 @@ async def check_tables():
     print("\n📋 Checking Database Tables...")
     
     try:
-        from app.core.database import engine
         from sqlalchemy import text
+
+        from app.core.database import engine
         
         async with engine.begin() as conn:
             # Query for table existence
@@ -114,8 +115,9 @@ async def test_data_operations():
     print("\n🧪 Testing Data Operations...")
     
     try:
-        from app.core.database import AsyncSessionLocal
         from sqlalchemy import text
+
+        from app.core.database import AsyncSessionLocal
         
         async with AsyncSessionLocal() as session:
             # Test a simple query
@@ -136,8 +138,9 @@ async def test_data_operations():
 async def test_table_access():
     """Test access to application tables."""
     try:
-        from app.core.database import AsyncSessionLocal
         from sqlalchemy import text
+
+        from app.core.database import AsyncSessionLocal
         
         async with AsyncSessionLocal() as session:
             # Try to access feedback table (if it exists)
@@ -145,7 +148,7 @@ async def test_table_access():
                 result = await session.execute(text("SELECT COUNT(*) FROM feedback LIMIT 1"))
                 count = result.fetchone()[0]
                 print(f"📊 Feedback table: {count} records found")
-            except:
+            except Exception:
                 print("⚠️  Feedback table not accessible (may not exist yet)")
             
             # Try to access assets table (if it exists)
@@ -153,7 +156,7 @@ async def test_table_access():
                 result = await session.execute(text("SELECT COUNT(*) FROM assets LIMIT 1"))
                 count = result.fetchone()[0]
                 print(f"📊 Assets table: {count} records found")
-            except:
+            except Exception:
                 print("⚠️  Assets table not accessible (may not exist yet)")
                 
     except Exception as e:

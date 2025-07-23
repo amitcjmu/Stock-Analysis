@@ -11,4 +11,4 @@ export { useAttributeMappingActions } from './useAttributeMappingActions';
 export { useAttributeMappingState } from './useAttributeMappingState';
 
 // Types (re-export from centralized types file)
-export * from './types';
+export type * from './types';

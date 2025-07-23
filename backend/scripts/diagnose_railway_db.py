@@ -4,11 +4,10 @@ Railway Database Diagnosis Script
 Checks migration state, table existence, and constraint issues
 """
 
-import os
-import sys
 import asyncio
 import logging
-from typing import Dict, List, Any
+import os
+import sys
 
 # Add backend to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -21,6 +20,7 @@ async def check_migration_state():
     """Check current migration state"""
     try:
         from sqlalchemy import create_engine, text
+
         from app.core.config import get_settings
         
         settings = get_settings()
@@ -133,12 +133,12 @@ def check_crewai_installation():
         import crewai
         logger.info(f"✅ CrewAI version: {crewai.__version__}")
         
-        from crewai import Agent, Task, Crew, Process
+        from crewai import Agent, Crew, Process, Task
         logger.info("✅ CrewAI core classes imported successfully")
         
         try:
-            from crewai.memory import LongTermMemory
             from crewai.knowledge.knowledge import Knowledge
+            from crewai.memory import LongTermMemory
             logger.info("✅ CrewAI advanced features available")
         except ImportError as e:
             logger.warning(f"⚠️ CrewAI advanced features not available: {e}")

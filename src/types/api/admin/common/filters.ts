@@ -7,7 +7,7 @@
  * Generated with CC for modular admin type organization.
  */
 
-import { FilterOperator, ConditionOperator } from './enums';
+import type { FilterOperator, ConditionOperator } from './enums';
 
 /**
  * Base filter interface

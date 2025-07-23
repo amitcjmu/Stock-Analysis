@@ -4,8 +4,9 @@ Test script to verify the database migration works correctly.
 This script performs a dry-run test of the migration logic.
 """
 
-import sys
 import asyncio
+import sys
+
 from sqlalchemy import text
 
 # Add the parent directory to sys.path to import app modules
@@ -62,7 +63,7 @@ async def test_migration():
                 else:
                     print(f"❌ {constraint.table_name}: References {constraint.foreign_column_name} (should be flow_id)")
             
-            print(f"\n📊 Summary:")
+            print("\n📊 Summary:")
             print(f"   Total constraints: {len(constraints)}")
             print(f"   Correct constraints: {len(correct_constraints)}")
             print(f"   Migration needed: {'No' if len(correct_constraints) == len(constraints) else 'Yes'}")

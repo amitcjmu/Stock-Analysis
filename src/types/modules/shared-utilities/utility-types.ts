@@ -49,7 +49,7 @@ export interface NumberUtilityService {
 
 export interface ArrayUtilityService {
   chunk: <T>(array: T[], size: number) => T[][];
-  flatten: <T>(array: (T | T[])[], depth?: number) => T[];
+  flatten: <T>(array: Array<T | T[]>, depth?: number) => T[];
   unique: <T>(array: T[], key?: keyof T) => T[];
   groupBy: <T>(array: T[], key: keyof T) => Record<string, T[]>;
   sortBy: <T>(array: T[], key: keyof T, order?: 'asc' | 'desc') => T[];
@@ -64,7 +64,7 @@ export interface ArrayUtilityService {
 
 export interface ObjectUtilityService {
   clone: <T>(obj: T) => T;
-  merge: <T>(target: T, ...sources: Partial<T>[]) => T;
+  merge: <T>(target: T, ...sources: Array<Partial<T>>) => T;
   pick: <T, K extends keyof T>(obj: T, keys: K[]) => Pick<T, K>;
   omit: <T, K extends keyof T>(obj: T, keys: K[]) => Omit<T, K>;
   has: (obj: unknown, path: string) => boolean;
@@ -74,7 +74,7 @@ export interface ObjectUtilityService {
   isEqual: (obj1: unknown, obj2: unknown) => boolean;
   keys: (obj: unknown) => string[];
   values: (obj: unknown) => unknown[];
-  entries: (obj: unknown) => [string, unknown][];
+  entries: (obj: unknown) => Array<[string, unknown]>;
   invert: (obj: Record<string, unknown>) => Record<string, string>;
 }
 

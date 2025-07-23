@@ -6,9 +6,9 @@ including mock CMDB data, field mappings, and expected agent decisions.
 """
 
 import json
-from datetime import datetime
-from typing import Dict, List, Any
 import uuid
+from datetime import datetime
+from typing import Any, Dict
 
 # Test client and engagement IDs
 TEST_CLIENT_ACCOUNT_ID = 99999

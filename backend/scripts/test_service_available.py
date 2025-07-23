@@ -12,8 +12,9 @@ try:
     print(f"CREWAI_FLOW_AVAILABLE from discovery_flow_redesigned: {REDESIGNED_AVAILABLE}")
     
     # Test the actual service
-    from app.services.crewai_flow_service import CrewAIFlowService
     from unittest.mock import Mock
+
+    from app.services.crewai_flow_service import CrewAIFlowService
     
     mock_db = Mock()
     service = CrewAIFlowService(mock_db)
@@ -25,8 +26,8 @@ try:
     
     # Test flow creation
     try:
-        from app.services.crewai_flows.discovery_flow import create_discovery_flow
         from app.core.context import RequestContext
+        from app.services.crewai_flows.discovery_flow import create_discovery_flow
         
         context = RequestContext(
             client_account_id="test-client",

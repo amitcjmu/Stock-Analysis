@@ -8,16 +8,16 @@
  */
 
 // Shared Base Types - Common across all 6R strategies
-export * from './shared';
+export type * from './shared';
 
 // Assessment Strategy - Application and infrastructure assessment
-export * from './assessment';
+export type * from './assessment';
 
 // Modernize Strategy - Application modernization and refactoring
-export * from './modernize';
+export type * from './modernize';
 
 // Decommission Strategy - Legacy system decommissioning
-export * from './decommission';
+export type * from './decommission';
 
 // Re-export commonly used types for convenience
 export type {

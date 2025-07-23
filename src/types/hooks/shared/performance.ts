@@ -27,7 +27,7 @@ export interface UseVirtualizedParams<T> {
 }
 
 export interface UseVirtualizedReturn<T> {
-  virtualItems: VirtualItem<T>[];
+  virtualItems: Array<VirtualItem<T>>;
   totalHeight: number;
   startIndex: number;
   endIndex: number;

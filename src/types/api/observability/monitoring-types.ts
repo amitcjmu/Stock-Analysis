@@ -5,7 +5,7 @@
  * and managing monitoring infrastructure across different environments.
  */
 
-import {
+import type {
   BaseApiRequest,
   CreateRequest,
   CreateResponse,
@@ -13,9 +13,10 @@ import {
   GetResponse,
   MultiTenantContext
 } from '../shared';
-import { FilterValue, PrimitiveValue } from '../shared/value-types';
-import { GenericMetadata } from '../shared/metadata-types';
-import { CostBreakdown, MetricThreshold, RetryPolicy, DeploymentStatus } from './core-types';
+import type { FilterValue, PrimitiveValue } from '../shared/value-types';
+import type { GenericMetadata } from '../shared/metadata-types';
+import type { RetryPolicy, DeploymentStatus } from './core-types'
+import type { CostBreakdown, MetricThreshold } from './core-types'
 
 // Monitoring Configuration
 export interface CreateMonitoringConfigurationRequest extends CreateRequest<MonitoringConfigurationData> {

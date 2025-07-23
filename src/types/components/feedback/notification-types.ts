@@ -4,8 +4,8 @@
  * Type definitions for notification, toast, and badge components.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps } from '../shared';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps } from '../shared';
 
 // Position types
 export type NotificationPosition = 

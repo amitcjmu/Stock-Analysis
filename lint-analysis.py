@@ -6,9 +6,7 @@ Analyzes ESLint output to categorize issues by priority and type
 
 import subprocess
 import re
-import json
 from collections import defaultdict, Counter
-from pathlib import Path
 
 def run_eslint():
     """Run ESLint and capture output"""
@@ -213,14 +211,14 @@ Common Issues:
     for rule, count in low_rules.most_common(5):
         report += f"- {rule}: {count} occurrences\n"
     
-    report += f"""
+    report += """
 ## Most Problematic Files (Top 20)
 """
     
     for file_path, count in file_counts.most_common(20):
         report += f"- {file_path}: {count} issues\n"
     
-    report += f"""
+    report += """
 ## Most Common Issue Types (Top 15)
 """
     

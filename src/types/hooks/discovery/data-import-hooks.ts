@@ -5,7 +5,7 @@
  * preview data, column schemas, and import statistics.
  */
 
-import { BaseHookParams, BaseHookReturn } from './base-hooks';
+import type { BaseHookParams, BaseHookReturn } from './base-hooks';
 
 // Filter and Sort Types
 export interface MappingFilter {

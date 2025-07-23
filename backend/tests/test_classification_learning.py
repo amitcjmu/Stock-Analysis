@@ -5,12 +5,12 @@ Test script for Asset Classification Learning
 
 import asyncio
 import sys
-import os
 
 # Add the backend directory to the path
 sys.path.append('/app')
 
-from app.services.asset_classification_learner import AssetClassificationLearner, AssetClassification
+from app.services.asset_classification_learner import AssetClassificationLearner
+
 
 async def test_classification_learning():
     """Test asset classification learning functionality."""
@@ -36,7 +36,7 @@ async def test_classification_learning():
         "technology_stack": ["apache", "linux"]
     }
     
-    print(f"\n1. Learning from confirmed classification:")
+    print("\n1. Learning from confirmed classification:")
     print(f"   Asset: {asset_name}")
     print(f"   Classification: {classification_result}")
     
@@ -52,7 +52,7 @@ async def test_classification_learning():
             user_id="user_789"
         )
         
-        print(f"   ✅ Learning Result:")
+        print("   ✅ Learning Result:")
         print(f"      Pattern ID: {result.pattern_id}")
         print(f"      Confidence: {result.confidence}")
         print(f"      Success: {result.success}")
@@ -62,7 +62,7 @@ async def test_classification_learning():
         print(f"   ❌ Learning Error: {e}")
     
     # Test learning from incorrect classification
-    print(f"\n2. Learning from incorrect classification:")
+    print("\n2. Learning from incorrect classification:")
     
     incorrect_result = {
         "asset_type": "database",  # Wrong classification
@@ -79,7 +79,7 @@ async def test_classification_learning():
             client_account_id="test_client_123"
         )
         
-        print(f"   ✅ Learning Result:")
+        print("   ✅ Learning Result:")
         print(f"      Pattern ID: {result.pattern_id}")
         print(f"      Confidence: {result.confidence}")
         print(f"      Success: {result.success}")
@@ -89,7 +89,7 @@ async def test_classification_learning():
         print(f"   ❌ Learning Error: {e}")
     
     # Test classification after learning
-    print(f"\n📊 Testing Classification After Learning:")
+    print("\n📊 Testing Classification After Learning:")
     print("=" * 60)
     
     # Test with similar asset name
@@ -104,7 +104,7 @@ async def test_classification_learning():
             client_account_id='test_client_123'
         )
         
-        print(f"\n3. Classification of similar asset:")
+        print("\n3. Classification of similar asset:")
         print(f"   Asset: {similar_asset['name']}")
         print(f"   Type: {classification.asset_type}")
         print(f"   App Type: {classification.application_type}")

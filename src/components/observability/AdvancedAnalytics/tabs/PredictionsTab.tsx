@@ -7,7 +7,7 @@ import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../ui/card';
 import { METRIC_CONFIGS } from '../constants';
-import { AnalyticsData } from '../types';
+import type { AnalyticsData } from '../types';
 
 interface PredictionsTabProps {
   forecasts: AnalyticsData['predictiveInsights']['forecasts'];

@@ -4,10 +4,10 @@ Test script for DeepInfra integration with Llama 4 Maverick model.
 This script verifies that the AI configuration is working correctly.
 """
 
+import asyncio
 import os
 import sys
-import asyncio
-import json
+
 from dotenv import load_dotenv
 
 # Load environment variables
