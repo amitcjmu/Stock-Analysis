@@ -126,7 +126,7 @@ const normalizeFieldName = (fieldName: string): string => {
   
   // Convert to lowercase and remove spaces, underscores, parentheses, and other special chars for comparison
   const normalized = fieldName.toLowerCase()
-    .replace(/[\s_\-\(\)]/g, '')  // Remove spaces, underscores, dashes, parentheses
+    .replace(/[\s_\-()]/g, '')  // Remove spaces, underscores, dashes, parentheses
     .replace(/[^a-z0-9]/g, '');   // Remove any remaining special characters
   
   // Handle common field name variations - return a standardized version

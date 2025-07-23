@@ -103,5 +103,18 @@ export interface FormFieldMeta {
 }
 
 export interface ValidationRule {
-  // Add validation rule properties as needed
+  required?: boolean;
+  min?: number;
+  max?: number;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: RegExp | string;
+  message?: string;
+  validator?: (value: unknown, allValues?: Record<string, unknown>) => boolean | string | Promise<boolean | string>;
+  whitespace?: boolean;
+  type?: 'string' | 'number' | 'boolean' | 'method' | 'regexp' | 'integer' | 'float' | 'array' | 'object' | 'enum' | 'date' | 'url' | 'hex' | 'email';
+  enum?: unknown[];
+  fields?: Record<string, ValidationRule>;
+  defaultField?: ValidationRule;
+  transform?: (value: unknown) => unknown;
 }

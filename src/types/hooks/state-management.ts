@@ -340,9 +340,9 @@ export interface StateMachineState {
   tags?: string[];
 }
 
-export interface StateMachineTransitions<TEvent> {
+export type StateMachineTransitions<TEvent> = {
   [K in keyof TEvent]: string | StateMachineTransition;
-}
+};
 
 export interface StateMachineTransition {
   target: string;
@@ -432,13 +432,13 @@ export interface AsyncRetryConfig {
   onRetry?: (attempt: number, error: Error) => void;
 }
 
-export interface FormErrors<T> {
+export type FormErrors<T> = {
   [K in keyof T]?: string;
-}
+};
 
-export interface FormTouched<T> {
+export type FormTouched<T> = {
   [K in keyof T]?: boolean;
-}
+};
 
 export interface FieldProps<T> {
   name: string;

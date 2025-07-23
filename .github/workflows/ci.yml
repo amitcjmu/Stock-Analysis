@@ -155,8 +155,8 @@ jobs:
                 retries: 5
           EOF
           
-          docker-compose -f docker-compose.test.yml up -d
-          docker-compose -f docker-compose.test.yml down
+          docker compose -f docker-compose.test.yml up -d
+          docker compose -f docker-compose.test.yml down
 
   code-quality:
     name: Code Quality Checks
