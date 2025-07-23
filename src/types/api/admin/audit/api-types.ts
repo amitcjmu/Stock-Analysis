@@ -6,7 +6,7 @@
  * Generated with CC for modular admin type organization.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   ListRequest,
@@ -15,19 +15,13 @@ import {
   CreateResponse
 } from '../../shared';
 
-import { TimeRange } from '../common';
-import { 
-  AuditLog, 
-  AuditLogData,
-  ActionSummary,
-  UserActivitySummary
-} from './audit-log';
-import { 
-  SecurityEvent,
-  IncidentSummary,
-  SecurityRecommendation
-} from './security-events';
-import { AuditSeverity, SecuritySeverity, SecurityEventType, ThreatLevel } from './enums';
+import type { TimeRange } from '../common';
+import type { AuditLogData, ActionSummary, UserActivitySummary } from './audit-log'
+import { AuditLog } from './audit-log'
+import type { SecurityEvent, IncidentSummary } from './security-events'
+import { SecurityRecommendation } from './security-events'
+import type { SecurityEventType, ThreatLevel } from './enums'
+import { AuditSeverity, SecuritySeverity } from './enums'
 
 // Audit Log APIs
 export interface GetAuditLogsRequest extends ListRequest {

@@ -8,7 +8,7 @@ import { Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Client } from '../types';
+import type { Client } from '../types';
 
 interface EngagementSummaryCardProps {
   client: Client;

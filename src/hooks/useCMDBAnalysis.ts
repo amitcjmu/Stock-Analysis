@@ -1,12 +1,14 @@
-import { useState, useCallback } from 'react';
+import type { useState } from 'react'
+import { useCallback } from 'react'
 import { apiCall, API_CONFIG } from '../config/api';
-import { FileUpload, AnalysisResult } from '../components/discovery/FileList';
+import type { AnalysisResult } from '../components/discovery/FileList'
+import { FileUpload } from '../components/discovery/FileList'
 
 export const useCMDBAnalysis = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const parseCSVData = useCallback((csvContent: string): Record<string, string>[] => {
+  const parseCSVData = useCallback((csvContent: string): Array<Record<string, string>> => {
     const lines = csvContent.trim().split('\n');
     if (lines.length < 2) return [];
     

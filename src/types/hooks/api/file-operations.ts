@@ -5,7 +5,7 @@
  * including chunked uploads and progress tracking.
  */
 
-import { RequestConfig } from './shared';
+import type { RequestConfig } from './shared';
 
 // Upload response interface
 export interface UploadResponse {

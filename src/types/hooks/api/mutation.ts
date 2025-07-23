@@ -5,7 +5,7 @@
  * mutations with optimistic updates and query invalidation.
  */
 
-import {
+import type {
   BaseMutationHookParams,
   BaseMutationHookReturn
 } from '../shared/base-patterns';
@@ -21,7 +21,7 @@ export interface UseMutationParams<TData = unknown, TError = Error, TVariables =
   withCredentials?: boolean;
   optimisticUpdate?: OptimisticUpdateConfig<TData, TVariables>;
   invalidateQueries?: string[];
-  updateQueries?: QueryUpdateConfig<TData, TVariables>[];
+  updateQueries?: Array<QueryUpdateConfig<TData, TVariables>>;
   onMutate?: (variables: TVariables) => Promise<TContext | void> | TContext | void;
   onSuccess?: (data: TData, variables: TVariables, context: TContext | undefined) => Promise<void> | void;
   onError?: (error: TError, variables: TVariables, context: TContext | undefined) => Promise<void> | void;

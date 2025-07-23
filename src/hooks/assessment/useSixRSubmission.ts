@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import type { useState } from 'react';
 import type { SixRDecision } from '@/hooks/useAssessmentFlow';
 import type { FieldValues } from 'react-hook-form';
 

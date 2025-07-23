@@ -9,7 +9,7 @@
 import { useMemo, useCallback } from 'react';
 import { useAssessmentFlow as useNewAssessmentFlow } from './useFlow';
 import { flowToast } from '../utils/toast';
-import { FlowStatus } from '../types/flow';
+import type { FlowStatus } from '../types/flow';
 
 // Assessment-specific types
 interface Application {

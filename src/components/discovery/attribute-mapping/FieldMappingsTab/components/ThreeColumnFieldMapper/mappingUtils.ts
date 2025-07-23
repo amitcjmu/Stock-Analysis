@@ -5,7 +5,8 @@
  */
 
 import { FieldMapping } from '../../types';
-import { MappingBuckets, ProgressInfo } from './types';
+import type { ProgressInfo } from './types'
+import { MappingBuckets } from './types'
 
 export const categorizeMappings = (fieldMappings: FieldMapping[]): MappingBuckets => {
   console.log('🔍 ThreeColumnFieldMapper - Field mappings data:', {

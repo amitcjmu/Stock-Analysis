@@ -2,8 +2,10 @@
  * Lazy Loading Provider - Context and hooks for lazy loading
  */
 
-import React, { createContext, useContext, useCallback, useEffect, useState } from 'react';
-import { LoadingPriority, LazyComponentOptions, LoadingState } from '@/types/lazy';
+import React from 'react'
+import type { createContext, useContext, useState } from 'react'
+import { useCallback, useEffect } from 'react'
+import type { LoadingPriority, LazyComponentOptions, LoadingState } from '@/types/lazy';
 import { loadingManager } from '@/utils/lazy/loadingManager';
 
 interface LazyLoadingContextType {

@@ -2,7 +2,8 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ApplicationComponent, ComponentTreatment } from '@/hooks/useAssessmentFlow';
-import { Cpu, ArrowRight, CheckCircle, AlertTriangle } from 'lucide-react';
+import type { ArrowRight } from 'lucide-react'
+import { Cpu, CheckCircle, AlertTriangle } from 'lucide-react'
 
 interface ComponentBreakdownViewProps {
   components: ApplicationComponent[];

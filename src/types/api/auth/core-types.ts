@@ -4,8 +4,8 @@
  * Shared interfaces and types used across authentication modules.
  */
 
-import { ActivityMetadata, PermissionMetadata } from '../shared/metadata-types';
-import { ConditionValue, PrimitiveValue } from '../shared/value-types';
+import type { ActivityMetadata, PermissionMetadata } from '../shared/metadata-types';
+import type { ConditionValue, PrimitiveValue } from '../shared/value-types';
 
 // Core Authentication Types
 export interface AuthenticationResult {

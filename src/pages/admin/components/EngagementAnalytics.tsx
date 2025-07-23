@@ -4,16 +4,17 @@
  */
 
 import React from 'react';
-import { 
+import type {
   Plus, 
   BarChart3, 
   Activity 
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ProgressCard, ProgressItemData } from '@/components/admin/shared/components/ProgressCard';
+import type { ProgressItemData } from '@/components/admin/shared/components/ProgressCard'
+import { ProgressCard } from '@/components/admin/shared/components/ProgressCard'
 import { ActionCard, ActionItem } from '@/components/admin/shared/components/ActionCard';
-import { DashboardStatsData } from './DashboardStats';
+import type { DashboardStatsData } from './DashboardStats';
 import { getPhaseLabel } from '@/components/admin/shared/utils/adminFormatters';
 
 export interface EngagementAnalyticsProps {

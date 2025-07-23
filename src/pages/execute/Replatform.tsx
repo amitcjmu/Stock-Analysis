@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import type React, { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext';
 import { useReplatformProjects, useExecutionMetrics, useUpdateReplatformProject } from '@/hooks/execute/useExecuteQueries';
 import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';
-import { Cloud, Sparkles, Play, Clock, CheckCircle, Settings, ArrowRight } from 'lucide-react';
+import type { Settings, ArrowRight } from 'lucide-react'
+import { Cloud, Sparkles, Play, Clock, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';

@@ -2,7 +2,9 @@
  * Performance Dashboard - Visual monitoring for lazy loading performance
  */
 
-import React, { useState, useEffect } from 'react';
+import React from 'react'
+import type { useState } from 'react'
+import { useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,7 +21,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { performanceMonitor } from '@/utils/lazy/performanceMonitor';
-import { BundleAnalysis } from '@/types/lazy';
+import type { BundleAnalysis } from '@/types/lazy';
 
 interface PerformanceInsight {
   type: 'optimization' | 'warning' | 'error' | 'info';

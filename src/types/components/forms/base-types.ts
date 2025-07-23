@@ -4,8 +4,8 @@
  * Common base interfaces and utilities used across all form components.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps } from '../shared';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps } from '../shared';
 
 // Form field control interface
 export interface FormFieldControl {
@@ -38,7 +38,7 @@ export interface FormFieldEntity {
   name: string | string[];
   validateTrigger?: string | string[];
   rules?: ValidationRule[];
-  dependencies?: string[][];
+  dependencies?: Array<string[]>;
   initialValue?: unknown;
 }
 

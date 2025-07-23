@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import type { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '@/config/api';
-import masterFlowServiceExtended from '@/services/api/masterFlowService.extensions';
+import type masterFlowServiceExtended from '@/services/api/masterFlowService.extensions';
 
 export interface DiscoveryFlow {
   flow_id: string;

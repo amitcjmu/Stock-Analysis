@@ -6,7 +6,7 @@
  * Generated with CC for modular admin type organization.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext

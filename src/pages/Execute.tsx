@@ -1,7 +1,8 @@
 
-import React from 'react';
+import type React from 'react';
 import Sidebar from '../components/Sidebar';
-import { Wrench, Sparkles, RefreshCw, ArrowRight, Server, Cloud, Activity, Calendar } from 'lucide-react';
+import type { Server, Cloud, Activity, Calendar } from 'lucide-react'
+import { Wrench, Sparkles, RefreshCw, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom';
 
 const Execute = () => {

@@ -1,24 +1,11 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useParams, useNavigate } from 'react-router-dom';
+import type { useQuery } from '@tanstack/react-query';
+import type { useParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  Calendar, 
-  DollarSign, 
-  Users, 
-  MapPin, 
-  Cloud,
-  ArrowLeft,
-  Edit,
-  Archive,
-  CheckCircle,
-  XCircle,
-  Building2,
-  User,
-  Clock,
-  Target
-} from 'lucide-react';
+import type { MapPin } from 'lucide-react'
+import { Calendar, DollarSign, Users, Cloud, ArrowLeft, Edit, Archive, CheckCircle, XCircle, Building2, User, Clock, Target } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

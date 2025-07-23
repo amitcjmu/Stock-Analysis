@@ -1,9 +1,10 @@
-import { Input } from '@/components/ui/input';
+import type { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import type { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, X, Filter as FilterIcon } from 'lucide-react';
-import { TechDebtCategory, RiskLevel, StatusFilter } from '@/types/tech-debt';
+import type { Filter as FilterIcon } from 'lucide-react'
+import { Search, X } from 'lucide-react'
+import type { TechDebtCategory, RiskLevel, StatusFilter } from '@/types/tech-debt';
 
 interface TechDebtFiltersProps {
   searchQuery: string;

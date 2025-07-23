@@ -8,7 +8,7 @@
  */
 
 import type { FlexibilityLevel } from './supporting-types';
-import { ConfigurationValue } from '@/types/shared/config-types';
+import type { ConfigurationValue } from '@/types/shared/config-types';
 
 // Analysis and Optimization Types
 export interface ResourceOptimization {

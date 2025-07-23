@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { User, Client, Engagement, Session } from '../types';
-import { tokenStorage } from '../storage';
+import type { User, Client, Engagement, Session } from '../types';
+import type { tokenStorage } from '../storage';
 
 export const useDebugLogging = (
   user: User | null,

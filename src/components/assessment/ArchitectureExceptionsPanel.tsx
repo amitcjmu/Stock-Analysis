@@ -1,7 +1,8 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { SixRDecision, ArchitectureStandard } from '@/hooks/useAssessmentFlow';
+import type { SixRDecision } from '@/hooks/useAssessmentFlow'
+import { ArchitectureStandard } from '@/hooks/useAssessmentFlow'
 import { Shield, AlertTriangle } from 'lucide-react';
 
 interface ArchitectureExceptionsPanelProps {

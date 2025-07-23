@@ -4,7 +4,7 @@
  * Loading indicators, progress bars, and skeleton component interfaces.
  */
 
-import { BaseComponentProps } from './base-props';
+import type { BaseComponentProps } from './base-props';
 
 // Loading and feedback component types
 export interface LoadingSpinnerProps extends BaseComponentProps {

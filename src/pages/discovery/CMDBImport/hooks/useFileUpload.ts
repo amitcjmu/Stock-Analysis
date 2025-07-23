@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import type { useState } from 'react'
+import { useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { apiCall } from '@/config/api';

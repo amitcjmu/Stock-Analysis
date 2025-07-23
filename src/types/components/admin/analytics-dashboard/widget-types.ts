@@ -4,8 +4,8 @@
  * Widget-related type definitions including configuration and layout.
  */
 
-import { DataSource, VisualizationConfig } from './data-types';
-import { WidgetFilter, AggregationConfig, FormattingConfig, InteractionConfig, RefreshConfig } from './configuration-types';
+import type { DataSource, VisualizationConfig } from './data-types';
+import type { WidgetFilter, AggregationConfig, FormattingConfig, InteractionConfig, RefreshConfig } from './configuration-types';
 
 export interface DashboardWidget {
   id: string;

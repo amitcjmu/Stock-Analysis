@@ -1,9 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain } from 'lucide-react';
+import type { Brain } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
+import type { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
 
 // Components
 import Sidebar from '../../../components/Sidebar';

@@ -1,4 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { useMutation, useQuery } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -33,7 +34,7 @@ export interface UploadedFile {
 
 export interface DiscoveryFlowRequest {
   headers: string[];
-  sample_data: Record<string, unknown>[];
+  sample_data: Array<Record<string, unknown>>;
   filename: string;
   options?: Record<string, unknown>;
 }
@@ -82,7 +83,7 @@ interface AnalysisStatusResponse {
 }
 
 // Helper function to parse CSV file into structured data
-const parseCSVFile = (file: File): Promise<{ headers: string[]; sample_data: Record<string, unknown>[] }> => {
+const parseCSVFile = (file: File): Promise<{ headers: string[]; sample_data: Array<Record<string, unknown>> }> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -99,7 +100,7 @@ const parseCSVFile = (file: File): Promise<{ headers: string[]; sample_data: Rec
         const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
         
         // Parse data rows
-        const sample_data: Record<string, unknown>[] = [];
+        const sample_data: Array<Record<string, unknown>> = [];
         for (let i = 1; i < Math.min(lines.length, 11); i++) { // Take first 10 data rows
           const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
           const row: Record<string, unknown> = {};

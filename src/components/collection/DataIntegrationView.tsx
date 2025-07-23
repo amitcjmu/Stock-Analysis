@@ -5,7 +5,8 @@
  * Agent Team B3 - Task B3.6 Frontend Implementation
  */
 
-import React, { useState } from 'react';
+import React from 'react'
+import type { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

@@ -1,17 +1,13 @@
 import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import type { useParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  CheckCircle2, 
-  Circle, 
-  Clock, 
-  AlertCircle,
-  ChevronRight,
-  Loader2 
-} from 'lucide-react';
-import { useAssessmentFlow, AssessmentPhase } from '@/hooks/useAssessmentFlow';
+import type { ChevronRight } from 'lucide-react'
+import { CheckCircle2, Circle, Clock, AlertCircle, Loader2 } from 'lucide-react'
+import type { AssessmentPhase } from '@/hooks/useAssessmentFlow'
+import { useAssessmentFlow } from '@/hooks/useAssessmentFlow'
 import { cn } from '@/lib/utils';
 
 import MainSidebar from '../Sidebar';

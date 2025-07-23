@@ -5,9 +5,9 @@
  */
 
 import React from 'react';
-import { Brain, Target, BarChart3, CheckCircle, TrendingUp, AlertCircle, XCircle } from 'lucide-react';
+import type { Brain, Target, BarChart3, CheckCircle, TrendingUp, AlertCircle, XCircle } from 'lucide-react';
 import { FieldMapping } from '../../types';
-import { AgentTypeInfo, ConfidenceDisplayInfo } from './types';
+import type { AgentTypeInfo, ConfidenceDisplayInfo } from './types';
 
 // AGENTIC UI HELPERS: Agent reasoning and confidence display functions
 export const getAgentReasoningForMapping = (mapping: FieldMapping): string => {

@@ -1,23 +1,14 @@
 import React from 'react';
-import { 
-  Loader2, 
-  Brain, 
-  Cog, 
-  CheckCircle, 
-  AlertTriangle, 
-  ArrowRight,
-  FileText,
-  Shield,
-  Database,
-  Info
-} from 'lucide-react';
+import type { Info } from 'lucide-react'
+import { Loader2, Brain, Cog, CheckCircle, AlertTriangle, ArrowRight, FileText, Shield, Database } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { UploadFile } from '../CMDBImport.types';
-import { getStatusIcon, getStatusColor } from '../utils/statusUtils';
+import type { getStatusColor } from '../utils/statusUtils'
+import { getStatusIcon } from '../utils/statusUtils'
 
 interface CMDBDataTableProps {
   files?: UploadFile[]; // Legacy prop name

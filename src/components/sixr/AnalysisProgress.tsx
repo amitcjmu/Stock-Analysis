@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react'
+import type { useState } from 'react'
+import { useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Progress } from '../ui/progress';
 import { Badge } from '../ui/badge';

@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import type { useState } from 'react'
+import { useEffect } from 'react'
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Routes, Route } from "react-router-dom";
+import type { Route } from 'react-router-dom'
+import { Routes } from 'react-router-dom'
 import { ChatFeedbackProvider } from "./contexts/ChatFeedbackContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ClientProvider } from "./contexts/ClientContext";
@@ -10,124 +12,19 @@ import { FieldOptionsProvider } from "./contexts/FieldOptionsContext";
 import { DialogProvider } from "./contexts/DialogContext";
 import GlobalChatFeedback from "./components/GlobalChatFeedback";
 import { AppInitializer } from "./services/appInitializer";
-import { useGlobalErrorHandler } from "./hooks/useGlobalErrorHandler";
+import type { useGlobalErrorHandler } from "./hooks/useGlobalErrorHandler";
 
 // Lazy Loading Infrastructure
 import { LazyLoadingProvider, LoadingPriority } from "./components/lazy";
 import { routePreloader } from "./utils/lazy/routePreloader";
 
 // Lazy-loaded route components (organized by priority)
-import {
-  // CRITICAL PRIORITY - Core app routes
-  LazyIndex,
-  LazyLogin,
-  
-  // HIGH PRIORITY - Main workflow pages
-  LazyDiscovery,
-  LazyAssess,
-  LazyPlan,
-  LazyExecute,
-  
-  // NORMAL PRIORITY - Secondary workflow pages
-  LazyModernize,
-  LazyFinOps,
-  LazyObservability,
-  LazyDecommission,
-  
-  // Discovery sub-routes
-  LazyDiscoveryIndex,
-  LazyDataImport,
-  LazyInventory,
-  LazyDependencies,
-  LazyDataCleansing,
-  LazyAttributeMapping,
-  LazyTechDebtAnalysis,
-  LazyDiscoveryDashboard,
-  
-  // Collection sub-routes
-  LazyCollectionIndex,
-  LazyAdaptiveForms,
-  LazyBulkUpload,
-  LazyDataIntegration,
-  LazyCollectionProgress,
-  LazyCollectionFlowManagement,
-  
-  // Assessment sub-routes
-  LazyAssessIndex,
-  LazyTreatment,
-  LazyWavePlanning,
-  LazyRoadmap,
-  LazyEditor,
-  
-  // Assessment Flow routes
-  LazyInitializeAssessmentFlow,
-  LazyAssessmentFlowOverview,
-  LazyInitializeFlowWithInventory,
-  LazyAssessmentArchitecture,
-  LazyAssessmentTechDebt,
-  LazyAssessmentSixRReview,
-  LazyAssessmentAppOnPage,
-  LazyAssessmentSummary,
-  
-  // Plan sub-routes
-  LazyPlanIndex,
-  LazyTimeline,
-  LazyResource,
-  LazyTarget,
-  
-  // Execute sub-routes
-  LazyExecuteIndex,
-  LazyRehost,
-  LazyReplatform,
-  LazyCutovers,
-  LazyReports,
-  
-  // Modernize sub-routes
-  LazyModernizeIndex,
-  LazyRefactor,
-  LazyRearchitect,
-  LazyRewrite,
-  LazyProgress,
-  
-  // Decommission sub-routes
-  LazyDecommissionIndex,
-  LazyDecommissionPlanning,
-  LazyDataRetention,
-  LazyDecommissionExecution,
-  LazyDecommissionValidation,
-  
-  // FinOps sub-routes
-  LazyCloudComparison,
-  LazySavingsAnalysis,
-  LazyCostAnalysis,
-  LazyLLMCosts,
-  LazyWaveBreakdown,
-  LazyCostTrends,
-  LazyBudgetAlerts,
-  
-  // LOW PRIORITY - Admin and utility pages
-  LazyAgentMonitoring,
-  LazyEnhancedObservabilityDashboard,
-  LazyAgentDetailPage,
-  LazyFeedbackView,
-  LazyNotFound,
-  LazyAdminDashboard,
-  LazyClientManagement,
-  LazyClientDetails,
-  LazyEngagementManagement,
-  LazyEngagementDetails,
-  LazyUserApprovals,
-  LazyCreateUser,
-  LazyCreateClient,
-  LazyCreateEngagement,
-  LazyUserProfile,
-  LazyPlatformAdmin,
-  LazyDebugContext
-} from "./components/lazy";
+import type { LazyDiscoveryIndex, LazyAssessIndex, LazyInitializeAssessmentFlow, LazyAssessmentAppOnPage, LazyAssessmentSummary, LazyAgentMonitoring, LazyAgentDetailPage, LazyClientDetails, LazyEngagementDetails, LazyDebugContext } from './components/lazy'
+import { LazyIndex, LazyLogin, LazyDiscovery, LazyAssess, LazyPlan, LazyExecute, LazyModernize, LazyFinOps, LazyObservability, LazyDecommission, LazyDataImport, LazyInventory, LazyDependencies, LazyDataCleansing, LazyAttributeMapping, LazyTechDebtAnalysis, LazyDiscoveryDashboard, LazyCollectionIndex, LazyAdaptiveForms, LazyBulkUpload, LazyDataIntegration, LazyCollectionProgress, LazyCollectionFlowManagement, LazyTreatment, LazyWavePlanning, LazyRoadmap, LazyEditor, LazyAssessmentFlowOverview, LazyInitializeFlowWithInventory, LazyAssessmentArchitecture, LazyAssessmentTechDebt, LazyAssessmentSixRReview, LazyPlanIndex, LazyTimeline, LazyResource, LazyTarget, LazyExecuteIndex, LazyRehost, LazyReplatform, LazyCutovers, LazyReports, LazyModernizeIndex, LazyRefactor, LazyRearchitect, LazyRewrite, LazyProgress, LazyDecommissionIndex, LazyDecommissionPlanning, LazyDataRetention, LazyDecommissionExecution, LazyDecommissionValidation, LazyCloudComparison, LazySavingsAnalysis, LazyCostAnalysis, LazyLLMCosts, LazyWaveBreakdown, LazyCostTrends, LazyBudgetAlerts, LazyEnhancedObservabilityDashboard, LazyFeedbackView, LazyNotFound, LazyAdminDashboard, LazyClientManagement, LazyEngagementManagement, LazyUserApprovals, LazyCreateUser, LazyCreateClient, LazyCreateEngagement, LazyUserProfile, LazyPlatformAdmin } from './components/lazy'
 
 // Non-lazy components that are always needed
-import AdminLayout from "./components/admin/AdminLayout";
-import AdminRoute from "./components/admin/AdminRoute";
+import type AdminLayout from "./components/admin/AdminLayout";
+import type AdminRoute from "./components/admin/AdminRoute";
 
 
 // Component to handle authenticated routes

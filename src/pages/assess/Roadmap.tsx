@@ -1,6 +1,7 @@
-import React from 'react';
+import type React from 'react';
 import Sidebar from '../../components/Sidebar';
-import { Calendar, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import type { Calendar } from 'lucide-react'
+import { CheckCircle, Clock, AlertCircle } from 'lucide-react'
 import { useRoadmap } from '@/hooks/useRoadmap';
 import { useAuth } from '@/contexts/AuthContext';
 import { Spinner } from '@/components/ui/spinner';

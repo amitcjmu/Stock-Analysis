@@ -5,7 +5,7 @@
 
 import { format, addDays } from 'date-fns';
 import { agentObservabilityService } from '../../../../services/api/agentObservabilityService';
-import { AnalyticsData } from '../types';
+import type { AnalyticsData } from '../types';
 
 export const generateAnalyticsData = async (
   agentNames: string[],

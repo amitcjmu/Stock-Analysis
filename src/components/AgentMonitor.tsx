@@ -1,5 +1,6 @@
-import React from 'react';
-import { Bot, Loader2, AlertTriangle, Activity, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import type React from 'react';
+import type { XCircle } from 'lucide-react'
+import { Bot, Loader2, AlertTriangle, Activity, Clock, CheckCircle, AlertCircle } from 'lucide-react'
 import { useAgentMonitor } from '@/hooks/useAgentMonitor';
 import { Alert } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';

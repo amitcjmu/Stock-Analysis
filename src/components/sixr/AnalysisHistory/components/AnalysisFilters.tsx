@@ -1,10 +1,11 @@
 import React from 'react';
-import { Input } from '../../../ui/input';
+import type { Input } from '../../../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../ui/select';
 import { Button } from '../../../ui/button';
-import { Search, X, Calendar, Filter } from 'lucide-react';
-import { FilterState } from '../types';
-import { dateRangeOptions } from '../constants';
+import type { Filter } from 'lucide-react'
+import { Search, X, Calendar } from 'lucide-react'
+import type { FilterState } from '../types';
+import type { dateRangeOptions } from '../constants';
 
 interface AnalysisFiltersProps {
   filters: FilterState;

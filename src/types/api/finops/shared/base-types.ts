@@ -9,7 +9,7 @@
  */
 
 import type { BaseMetadata } from '../../../shared/metadata-types';
-import { CostAmount } from '../cost-analysis';
+import type { CostAmount } from '../cost-analysis';
 import type { ConfigurationValue, TypedConstraint } from '../../../shared/config-types';
 
 // Base FinOps Interfaces

@@ -7,21 +7,11 @@
  * Generated with CC - Code Companion
  */
 
-import {
-  BaseComponentProps,
-  ColumnDefinition,
-  TabDefinition,
-  PhaseDefinition
-} from './base-types';
+import type { BaseComponentProps } from './base-types'
+import { ColumnDefinition, TabDefinition, PhaseDefinition } from './base-types'
 
-import {
-  FieldMapping,
-  CriticalAttribute,
-  CrewAnalysis,
-  TrainingProgress,
-  DataImport,
-  MappingFilter
-} from './data-models';
+import type { MappingFilter } from './data-models'
+import { FieldMapping, CriticalAttribute, CrewAnalysis, TrainingProgress, DataImport } from './data-models'
 
 /**
  * Component Types Namespace

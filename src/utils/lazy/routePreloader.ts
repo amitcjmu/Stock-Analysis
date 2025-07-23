@@ -9,7 +9,7 @@ interface RouteConfig {
   path: string;
   importFn: () => Promise<{ default: React.ComponentType<unknown> }>;
   priority: LoadingPriority;
-  preloadOn?: ('hover' | 'visible' | 'idle' | 'prefetch')[];
+  preloadOn?: Array<'hover' | 'visible' | 'idle' | 'prefetch'>;
   dependencies?: string[];
 }
 
@@ -306,4 +306,4 @@ class RoutePreloader {
   }
 }
 
-export const routePreloader = RoutePreloader.getInstance();
+export const routePreloader: RoutePreloader = RoutePreloader.getInstance();

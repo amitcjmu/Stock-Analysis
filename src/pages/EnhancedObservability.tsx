@@ -4,18 +4,10 @@
  * Part of the Agent Observability Enhancement Phase 4A
  */
 
-import React, { useState } from 'react';
+import type React, { useState } from 'react'
 import Sidebar from '../components/Sidebar';
-import { 
-  Activity, 
-  Clock, 
-  AlertCircle, 
-  CheckCircle, 
-  Users,
-  BarChart3,
-  TrendingUp,
-  Network
-} from 'lucide-react';
+import type { Clock } from 'lucide-react'
+import { Activity, AlertCircle, CheckCircle, Users, BarChart3, TrendingUp, Network } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Badge } from '../components/ui/badge';

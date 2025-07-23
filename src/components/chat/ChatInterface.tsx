@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react'
+import type { useState } from 'react'
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMutation } from '@tanstack/react-query';
+import type { useMutation } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';

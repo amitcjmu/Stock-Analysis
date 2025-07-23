@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
+import type React, { useState } from 'react'
 import Sidebar from '../../components/Sidebar';
-import { CheckCircle, AlertTriangle, X, FileText, Database, Shield, Clock, Search, Download } from 'lucide-react';
+import type { FileText, Database, Shield, Clock } from 'lucide-react'
+import { CheckCircle, AlertTriangle, X, Search, Download } from 'lucide-react'
 
 const DecommissionValidation = () => {
   const [selectedTab, setSelectedTab] = useState('validation');

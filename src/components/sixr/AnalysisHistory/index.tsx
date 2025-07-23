@@ -1,17 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react'
+import type { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../ui/dialog';
-import { 
-  Download, 
-  BarChart3,
-  FileText,
-  Building2,
-  TrendingUp,
-  Users,
-  CheckCircle
-} from 'lucide-react';
+import type { Users } from 'lucide-react'
+import { Download, BarChart3, FileText, Building2, TrendingUp, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner';
 
 // Components
@@ -26,7 +20,7 @@ import { useAnalysisSelection } from './hooks/useAnalysisSelection';
 import { useAnalysisAnalytics } from './hooks/useAnalysisAnalytics';
 
 // Types
-import { AnalysisHistoryProps } from './types';
+import type { AnalysisHistoryProps } from './types';
 
 export const AnalysisHistory: React.FC<AnalysisHistoryProps> = ({
   analyses,

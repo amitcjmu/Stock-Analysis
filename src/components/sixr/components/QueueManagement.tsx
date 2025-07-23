@@ -7,7 +7,7 @@ import React from 'react';
 import { Play, Pause, Trash2, Clock } from 'lucide-react';
 import { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
-import { QueueManagementProps, AnalysisQueue } from '../types/ApplicationSelectorTypes';
+import type { QueueManagementProps, AnalysisQueue } from '../types/ApplicationSelectorTypes';
 
 export const QueueManagement: React.FC<QueueManagementProps> = ({
   analysisQueues,

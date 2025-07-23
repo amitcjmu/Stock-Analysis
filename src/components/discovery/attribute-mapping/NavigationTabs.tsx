@@ -1,5 +1,5 @@
 import React from 'react';
-import { Database, MapPin, Target, Brain } from 'lucide-react';
+import type { Database, MapPin, Target, Brain } from 'lucide-react';
 
 interface NavigationTabsProps {
   activeTab: string;

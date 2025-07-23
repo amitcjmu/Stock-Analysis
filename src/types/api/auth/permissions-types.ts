@@ -4,7 +4,7 @@
  * Permission checking, role management, and authorization API types.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext

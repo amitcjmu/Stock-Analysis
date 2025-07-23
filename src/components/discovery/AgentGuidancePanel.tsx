@@ -5,7 +5,8 @@
  * and provides clear next steps for flow continuation.
  */
 
-import React, { useState } from 'react';
+import React from 'react'
+import type { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

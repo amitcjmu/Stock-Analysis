@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import type { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
 import { apiCall } from '../../../config/api';
 import { useLatestImport } from '../../api/useLatestImport';

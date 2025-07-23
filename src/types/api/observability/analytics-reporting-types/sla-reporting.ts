@@ -5,17 +5,13 @@
  * and generating SLA reports and forecasts.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext
 } from '../../shared';
-import {
-  ImpactMeasure,
-  TrendData,
-  SeasonalPattern,
-  PredictionFactor
-} from './shared-types';
+import type { ImpactMeasure, TrendData } from './shared-types'
+import { SeasonalPattern, PredictionFactor } from './shared-types'
 
 // SLA Reporting Requests and Responses
 export interface GetSLAReportRequest extends BaseApiRequest {

@@ -1,4 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { useQuery, useMutation } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { AnalysisQueueItem } from '@/types/assessment';
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';

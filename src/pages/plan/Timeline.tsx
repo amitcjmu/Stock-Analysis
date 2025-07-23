@@ -1,5 +1,6 @@
 import React from 'react';
-import { Calendar, Loader2, AlertTriangle, Clock, Flag, AlertCircle, ChevronRight } from 'lucide-react';
+import type { Flag } from 'lucide-react'
+import { Calendar, Loader2, AlertTriangle, Clock, AlertCircle, ChevronRight } from 'lucide-react'
 import { useTimeline } from '@/hooks/useTimeline';
 import { Sidebar, SidebarProvider } from '@/components/ui/sidebar';
 import { Alert } from '@/components/ui/alert';

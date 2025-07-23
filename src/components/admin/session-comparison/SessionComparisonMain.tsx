@@ -3,21 +3,19 @@
  * Provides side-by-side session comparison with comprehensive diff visualization
  */
 
-import React, { useState, useEffect } from 'react';
+import React from 'react'
+import type { useState } from 'react'
+import { useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Progress } from '@/components/ui/progress';
+import type { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import type { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import {
-  GitCompare, TrendingUp, TrendingDown, Equal, Plus, Minus, Edit, DollarSign,
-  AlertTriangle, Settings, Activity, BarChart3, PieChart, Clock, Database,
-  Zap, Shield, Users, Building, Server, HardDrive, Globe, CheckCircle,
-  XCircle, Info, ArrowRight, Download, RefreshCw
-} from 'lucide-react';
+import type { TrendingUp, TrendingDown, Equal, Plus, Minus, Edit, DollarSign, AlertTriangle, Settings, Activity, BarChart3, PieChart, Clock, Database, Zap, Shield, Users, Building, Server, HardDrive, Globe, CheckCircle, XCircle, Info, ArrowRight } from 'lucide-react'
+import { GitCompare, Download, RefreshCw } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast';
 
 // Types for session comparison

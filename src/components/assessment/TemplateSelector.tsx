@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react'
+import type { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { ArchitectureStandard } from '@/hooks/useAssessmentFlow';
-import { Building2, Cloud, Shield, Cpu, Database, Network } from 'lucide-react';
+import type { Network } from 'lucide-react'
+import { Building2, Cloud, Shield, Cpu, Database } from 'lucide-react'
 
 interface Template {
   id: string;

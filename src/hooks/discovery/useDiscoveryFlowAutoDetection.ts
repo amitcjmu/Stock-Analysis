@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import type { useParams } from 'react-router-dom';
 import { useDiscoveryFlowList } from './useDiscoveryFlowList';
 
 interface FlowAutoDetectionOptions {

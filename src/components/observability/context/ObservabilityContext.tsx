@@ -3,9 +3,11 @@
  * Provides centralized state for agent data and filters
  */
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React from 'react'
+import type { createContext, useContext, useState, ReactNode } from 'react'
+import { useCallback } from 'react'
 import type { AgentCardData } from '../../../types/api/observability/agent-performance';
-import { useAgentData } from '../hooks/useAgentData';
+import type { useAgentData } from '../hooks/useAgentData';
 import { useAgentFilters } from '../hooks/useAgentFilters';
 
 interface ObservabilityContextValue {
@@ -19,7 +21,7 @@ interface ObservabilityContextValue {
   // Filters
   filters: {
     searchQuery?: string;
-    status?: ('active' | 'idle' | 'error' | 'offline')[];
+    status?: Array<'active' | 'idle' | 'error' | 'offline'>;
     sortBy?: 'name' | 'successRate' | 'totalTasks' | 'lastActive';
     sortOrder?: 'asc' | 'desc';
   };

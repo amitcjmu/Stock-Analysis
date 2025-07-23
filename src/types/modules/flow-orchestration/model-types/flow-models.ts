@@ -4,15 +4,8 @@
  * Type definitions for flow configuration, execution, status, and state management.
  */
 
-import {
-  FlowExecutionContext,
-  TimeRange,
-  ExecutionError,
-  ExecutionWarning,
-  ValidationResult,
-  RetryPolicy,
-  ExecutionConstraints
-} from '../base-types';
+import type { FlowExecutionContext, TimeRange, ExecutionError, ValidationResult, RetryPolicy, ExecutionConstraints } from '../base-types'
+import { ExecutionWarning } from '../base-types'
 
 // Flow Configuration and Execution Models
 export interface FlowInitializationConfig {

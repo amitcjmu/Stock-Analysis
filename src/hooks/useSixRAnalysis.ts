@@ -1,28 +1,15 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import type { useState, useRef } from 'react'
+import { useCallback, useEffect } from 'react'
 import { toast } from 'sonner';
-import { 
-  sixrApi, 
-  type CreateAnalysisRequest, 
-  type UpdateParametersRequest,
-  type SubmitQuestionsRequest,
-  type IterateAnalysisRequest,
-  type BulkAnalysisRequest,
-  type ApiError
-} from '../lib/api/sixr';
-import { 
-  SixRParameters, 
-  QualifyingQuestion, 
-  QuestionResponse, 
-  SixRRecommendation,
-  AnalysisProgressType,
-  AnalysisHistoryItem,
-  BulkAnalysisJob,
-  BulkAnalysisResult,
-  BulkAnalysisSummary
-} from '../components/sixr';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiCall } from '@/config/api';
-import { AnalysisProgress, Analysis } from '@/types/assessment';
+import type { type CreateAnalysisRequest, type UpdateParametersRequest, type SubmitQuestionsRequest, type IterateAnalysisRequest, type BulkAnalysisRequest, type ApiError } from '../lib/api/sixr'
+import { sixrApi } from '../lib/api/sixr'
+import type { QuestionResponse, SixRRecommendation, AnalysisProgressType, BulkAnalysisResult, BulkAnalysisSummary } from '../components/sixr'
+import { SixRParameters, QualifyingQuestion, AnalysisHistoryItem, BulkAnalysisJob } from '../components/sixr'
+import type { useQuery, useMutation } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
+import type { apiCall } from '@/config/api';
+import type { AnalysisProgress } from '@/types/assessment'
+import { Analysis } from '@/types/assessment'
 
 // State interfaces
 export interface AnalysisState {

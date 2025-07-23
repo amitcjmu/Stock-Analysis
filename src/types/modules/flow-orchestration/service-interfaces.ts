@@ -4,7 +4,7 @@
  * Service interface definitions for the flow orchestration system.
  */
 
-import {
+import type {
   FlowExecutionContext,
   TimeRange,
   ValidationResult,
@@ -16,38 +16,8 @@ import {
   AgentConfiguration
 } from './base-types';
 
-import {
-  FlowInitializationConfig,
-  FlowExecutionResult,
-  FlowStatusDetail,
-  FlowHistoryEntry,
-  ActiveFlowSummary,
-  FlowStateData,
-  AgentInstance,
-  AgentStatus,
-  AgentMetrics,
-  AgentCoordination,
-  CoordinationResult,
-  AgentMessage,
-  AgentCommunication,
-  CrewConfiguration,
-  CrewInstance,
-  CrewExecutionContext,
-  CrewExecutionResult,
-  CrewStatus,
-  CrewResults,
-  CrewMetrics,
-  FlowEvent,
-  EventSubscription,
-  EventMetrics,
-  FlowMetrics,
-  SystemMetrics,
-  PerformanceMetrics,
-  ResourceUsage,
-  HealthStatus,
-  AlertConfiguration,
-  Alert
-} from './model-types';
+import type { FlowInitializationConfig, FlowExecutionResult, ActiveFlowSummary, FlowStateData, AgentStatus, CoordinationResult, AgentMessage, CrewExecutionContext, CrewExecutionResult, CrewStatus, FlowEvent, HealthStatus, AlertConfiguration } from './model-types'
+import { FlowStatusDetail, FlowHistoryEntry, AgentInstance, AgentMetrics, AgentCoordination, AgentCommunication, CrewConfiguration, CrewInstance, CrewResults, CrewMetrics, EventSubscription, EventMetrics, FlowMetrics, SystemMetrics, PerformanceMetrics, ResourceUsage, Alert } from './model-types'
 
 export interface MasterFlowOrchestratorService {
   initializeFlow: (config: FlowInitializationConfig) => Promise<FlowExecutionResult>;

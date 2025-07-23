@@ -1,15 +1,6 @@
 import React from 'react';
-import { 
-  Activity, 
-  Users, 
-  CheckCircle, 
-  AlertTriangle, 
-  Clock, 
-  Zap,
-  Brain,
-  Network,
-  Target
-} from 'lucide-react';
+import type { CheckCircle, AlertTriangle, Clock, Brain } from 'lucide-react'
+import { Activity, Users, Zap, Network, Target } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';

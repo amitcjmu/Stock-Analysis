@@ -1,5 +1,6 @@
 import React from 'react';
-import { Upload, FileSpreadsheet, Database, Monitor, Activity, FileText } from 'lucide-react';
+import type { FileSpreadsheet, Database, Monitor, Activity, FileText } from 'lucide-react'
+import { Upload } from 'lucide-react'
 
 interface UploadAreaProps {
   area: {

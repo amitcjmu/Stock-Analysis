@@ -1,26 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react'
+import type { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  Play, 
-  Trash2, 
-  ExternalLink, 
-  Activity, 
-  Clock, 
-  AlertTriangle,
-  CheckCircle,
-  Database,
-  Zap,
-  Server,
-  Network,
-  Loader2,
-  BarChart3,
-  FileText,
-  Users
-} from 'lucide-react';
+import type { Activity, Clock, AlertTriangle, Database, Zap, Server, Network, BarChart3, FileText, Users } from 'lucide-react'
+import { Play, Trash2, ExternalLink, CheckCircle, Loader2 } from 'lucide-react'
 import { BatchDeletionConfirmDialog } from '../discovery/BatchDeletionConfirmDialog';
 import { FlowDeletionConfirmDialog } from '../discovery/FlowDeletionConfirmDialog';
 

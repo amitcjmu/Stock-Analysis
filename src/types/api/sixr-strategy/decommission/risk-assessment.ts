@@ -204,7 +204,7 @@ export interface RiskDistribution {
 export interface RiskHeatMap {
   categories: string[];
   systems: string[];
-  riskLevels: number[][];
+  riskLevels: Array<number[]>;
   hotSpots: HotSpot[];
 }
 

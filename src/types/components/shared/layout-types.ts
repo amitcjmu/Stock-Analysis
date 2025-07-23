@@ -4,7 +4,7 @@
  * Layout-related component interfaces including flexbox and grid layouts.
  */
 
-import { BaseComponentProps, ContainerComponentProps } from './base-props';
+import type { BaseComponentProps, ContainerComponentProps } from './base-props';
 
 // Layout component types
 export interface LayoutProps extends ContainerComponentProps {

@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react'
+import type { useState } from 'react'
+import { useEffect } from 'react'
 import { ChevronRight, Home, Building2, Calendar, Settings, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -16,7 +18,8 @@ import {
 } from '@/components/ui/popover';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { useQuery } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { apiCall } from '@/config/api';
 
 // Types

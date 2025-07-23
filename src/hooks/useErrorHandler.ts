@@ -2,7 +2,7 @@
  * Error Handler Hook - CC hook for async error handling
  */
 
-import { ErrorInfo } from 'react';
+import type { ErrorInfo } from 'react';
 import { toast } from 'sonner';
 
 export const useErrorHandler = () => {

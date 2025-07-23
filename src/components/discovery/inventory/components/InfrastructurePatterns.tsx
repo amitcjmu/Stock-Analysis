@@ -6,7 +6,7 @@
 import React from 'react';
 import { Server } from 'lucide-react';
 import { Badge } from '../../../ui/badge';
-import { InfrastructurePatternsProps } from '../types/InventoryInsightsTypes';
+import type { InfrastructurePatternsProps } from '../types/InventoryInsightsTypes';
 
 export const InfrastructurePatterns: React.FC<InfrastructurePatternsProps> = ({ patterns }) => {
   return (

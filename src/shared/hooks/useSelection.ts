@@ -3,7 +3,8 @@
  * Common pattern for item selection across components
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import type { useState } from 'react'
+import { useCallback, useMemo } from 'react'
 
 export interface UseSelectionResult<T = number | string> {
   selectedItems: T[];
@@ -19,7 +20,7 @@ export interface UseSelectionResult<T = number | string> {
 
 export interface UseSelectionOptions {
   maxSelections?: number;
-  initialSelection?: (number | string)[];
+  initialSelection?: Array<number | string>;
 }
 
 export function useSelection<T = number | string>(

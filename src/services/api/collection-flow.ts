@@ -23,7 +23,7 @@ export interface NotificationConfig {
   email_notifications: boolean;
   slack_notifications: boolean;
   webhook_notifications: boolean;
-  notification_levels: ('error' | 'warning' | 'info' | 'success')[];
+  notification_levels: Array<'error' | 'warning' | 'info' | 'success'>;
 }
 
 export interface CollectionFlowCreateRequest {
@@ -88,7 +88,7 @@ export interface ConditionalLogic {
 
 export interface QuestionnaireResponse {
   question_id: string;
-  response_value: string | number | boolean | string[];
+  response_value: string | number | boolean | Array<string>;
   confidence_level?: number;
   notes?: string;
   validation_passed: boolean;
@@ -164,7 +164,7 @@ class CollectionFlowApi {
   async submitQuestionnaireResponse(
     flowId: string, 
     questionnaireId: string, 
-    responses: QuestionnaireResponse[]
+    responses: Array<QuestionnaireResponse>
   ): Promise<{ status: string; message: string; questionnaire_id: string }> {
     return await apiCall(
       `${this.baseUrl}/flows/${flowId}/questionnaires/${questionnaireId}/submit`,
@@ -191,7 +191,7 @@ class CollectionFlowApi {
     return await apiCall(`${this.baseUrl}/flows/${flowId}?force=${force}`, { method: 'DELETE' });
   }
 
-  async batchDeleteFlows(flowIds: string[], force: boolean = false): Promise<{
+  async batchDeleteFlows(flowIds: Array<string>, force: boolean = false): Promise<{
     status: string;
     deleted_count: number;
     failed_count: number;

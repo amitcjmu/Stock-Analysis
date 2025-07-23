@@ -1,14 +1,6 @@
 import React from 'react';
-import { 
-  Activity, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Clock, 
-  Zap,
-  Eye,
-  Play,
-  Trash2
-} from 'lucide-react';
+import type { Play } from 'lucide-react'
+import { Activity, CheckCircle2, AlertTriangle, Clock, Zap, Eye, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

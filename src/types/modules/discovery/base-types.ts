@@ -7,7 +7,7 @@
  * Generated with CC - Code Companion
  */
 
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 /**
  * Base props interface for all Discovery Flow components

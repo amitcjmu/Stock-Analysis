@@ -4,10 +4,12 @@
  * Card component for mappings that need manual review and configuration.
  */
 
-import React, { useState, useCallback } from 'react';
+import React from 'react'
+import type { useState } from 'react'
+import { useCallback } from 'react'
 import { CheckCircle } from 'lucide-react';
 import { EnhancedFieldDropdown } from '../EnhancedFieldDropdown';
-import { CardProps } from './types';
+import type { CardProps } from './types';
 import { TargetField } from '../../types';
 import { formatFieldValue } from './mappingUtils';
 

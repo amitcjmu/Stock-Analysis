@@ -9,14 +9,14 @@
 
 import type { AuditableMetadata } from '../../../shared/metadata-types';
 import type { ConfigurationValue } from '../../../shared/config-types';
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext,
   CreateRequest,
   CreateResponse
 } from '../../shared';
-import { CostAmount } from '../cost-analysis';
+import type { CostAmount } from '../cost-analysis';
 // Forward type declarations - actual types defined in respective modules
 export interface AllocationRule {
   id: string;

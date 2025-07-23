@@ -4,8 +4,8 @@
  * Type definitions for alert components and their variants.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps } from '../shared';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps } from '../shared';
 
 export interface AlertProps extends BaseComponentProps {
   type?: 'info' | 'success' | 'warning' | 'error';

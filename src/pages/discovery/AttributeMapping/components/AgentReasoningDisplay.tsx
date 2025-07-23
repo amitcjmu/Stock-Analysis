@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React from 'react'
+import type { useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { 
   Brain, 
   Zap, 

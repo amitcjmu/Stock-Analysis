@@ -1,19 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react'
+import type { useState } from 'react'
+import { useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Brain, 
-  TrendingUp, 
-  Target, 
-  Database, 
-  CheckCircle, 
-  AlertCircle,
-  RefreshCw,
-  Lightbulb
-} from 'lucide-react';
+import type { CheckCircle } from 'lucide-react'
+import { Brain, TrendingUp, Target, Database, AlertCircle, RefreshCw, Lightbulb } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCall, API_CONFIG } from '@/config/api';
 

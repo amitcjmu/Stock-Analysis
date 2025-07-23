@@ -5,7 +5,7 @@
  * to prevent runaway polling and implement pull-based request patterns.
  */
 
-import React from 'react';
+import type React from 'react';
 
 interface PollingConfig {
   id: string;

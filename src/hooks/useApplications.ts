@@ -1,5 +1,7 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiCall, API_CONFIG } from '@/config/api';
+import type { useQuery } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
+import type { apiCall } from '@/config/api'
+import { API_CONFIG } from '@/config/api'
 import { SixRApiClient } from '@/lib/api/sixr';
 import { Application } from '@/components/sixr';
 

@@ -76,7 +76,7 @@ class EnhancedContextRepository(Generic[ModelType]):
             query = select(EnhancedUserProfile).where(
                 and_(
                     EnhancedUserProfile.user_id == self.user_id,
-                    EnhancedUserProfile.is_deleted is False
+                    EnhancedUserProfile.is_deleted == False
                 )
             )
             result = await self.db.execute(query)
@@ -127,7 +127,7 @@ class EnhancedContextRepository(Generic[ModelType]):
         # Platform admins can see soft deleted items if they choose
         # For now, exclude soft deleted by default
         if self.has_is_deleted:
-            filters.append(self.model_class.is_deleted is False)
+            filters.append(self.model_class.is_deleted == False)
         
         if filters:
             query = query.where(and_(*filters))
@@ -140,23 +140,23 @@ class EnhancedContextRepository(Generic[ModelType]):
         
         # Exclude soft deleted items for non-platform admins
         if self.has_is_deleted:
-            filters.append(self.model_class.is_deleted is False)
+            filters.append(self.model_class.is_deleted == False)
         
         # Exclude inactive items
         if self.has_is_active:
-            filters.append(self.model_class.is_active is True)
+            filters.append(self.model_class.is_active == True)
         
         # Apply client scope filter
         if self.has_client_account and user_profile.scope_client_account_id:
             client_filter = or_(
                 self.model_class.client_account_id == user_profile.scope_client_account_id,
                 # Also include demo data
-                self.model_class.is_mock is True if self.has_is_mock else False
+                self.model_class.is_mock == True if self.has_is_mock else False
             )
             filters.append(client_filter)
         elif self.has_is_mock:
             # No client scope - only demo data
-            filters.append(self.model_class.is_mock is True)
+            filters.append(self.model_class.is_mock == True)
         
         if filters:
             query = query.where(and_(*filters))
@@ -169,30 +169,30 @@ class EnhancedContextRepository(Generic[ModelType]):
         
         # Exclude soft deleted items
         if self.has_is_deleted:
-            filters.append(self.model_class.is_deleted is False)
+            filters.append(self.model_class.is_deleted == False)
         
         # Exclude inactive items
         if self.has_is_active:
-            filters.append(self.model_class.is_active is True)
+            filters.append(self.model_class.is_active == True)
         
         # Apply engagement scope filter
         if self.has_engagement and user_profile.scope_engagement_id:
             engagement_filter = or_(
                 self.model_class.engagement_id == user_profile.scope_engagement_id,
                 # Also include demo data
-                self.model_class.is_mock is True if self.has_is_mock else False
+                self.model_class.is_mock == True if self.has_is_mock else False
             )
             filters.append(engagement_filter)
         elif self.has_client_account and user_profile.scope_client_account_id:
             # If no engagement field but has client field, filter by client
             client_filter = or_(
                 self.model_class.client_account_id == user_profile.scope_client_account_id,
-                self.model_class.is_mock is True if self.has_is_mock else False
+                self.model_class.is_mock == True if self.has_is_mock else False
             )
             filters.append(client_filter)
         elif self.has_is_mock:
             # No scope - only demo data
-            filters.append(self.model_class.is_mock is True)
+            filters.append(self.model_class.is_mock == True)
         
         if filters:
             query = query.where(and_(*filters))
@@ -205,15 +205,15 @@ class EnhancedContextRepository(Generic[ModelType]):
         
         # Exclude soft deleted items
         if self.has_is_deleted:
-            filters.append(self.model_class.is_deleted is False)
+            filters.append(self.model_class.is_deleted == False)
         
         # Exclude inactive items
         if self.has_is_active:
-            filters.append(self.model_class.is_active is True)
+            filters.append(self.model_class.is_active == True)
         
         # Only mock/demo data
         if self.has_is_mock:
-            filters.append(self.model_class.is_mock is True)
+            filters.append(self.model_class.is_mock == True)
         
         if filters:
             query = query.where(and_(*filters))
@@ -226,10 +226,10 @@ class EnhancedContextRepository(Generic[ModelType]):
         
         # Basic exclusions
         if self.has_is_deleted:
-            filters.append(self.model_class.is_deleted is False)
+            filters.append(self.model_class.is_deleted == False)
         
         if self.has_is_active:
-            filters.append(self.model_class.is_active is True)
+            filters.append(self.model_class.is_active == True)
         
         if filters:
             query = query.where(and_(*filters))

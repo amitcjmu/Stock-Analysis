@@ -4,27 +4,18 @@
  * Part of the Agent Observability Enhancement Phase 4A
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react'
+import type { useState } from 'react'
+import { useEffect, useCallback } from 'react'
 import { cn } from '../../lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import type { CardHeader, CardTitle } from '../ui/card'
+import { Card, CardContent } from '../ui/card'
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Badge } from '../ui/badge';
+import type { Input } from '../ui/input';
+import type { Badge } from '../ui/badge';
 import { Alert, AlertDescription } from '../ui/alert';
-import { 
-  RefreshCw, 
-  Search, 
-  Filter, 
-  Grid, 
-  List,
-  Settings,
-  Activity,
-  AlertCircle,
-  Users,
-  TrendingUp,
-  Wifi,
-  WifiOff
-} from 'lucide-react';
+import type { Filter, Activity } from 'lucide-react'
+import { RefreshCw, Search, Grid, List, Settings, AlertCircle, Users, TrendingUp, Wifi, WifiOff } from 'lucide-react'
 import { 
   Select,
   SelectContent,
@@ -36,15 +27,12 @@ import {
 // Import our components
 import { AgentPerformanceCard, AgentPerformanceCardCompact } from './AgentPerformanceCard';
 import { AgentStatusGroup } from './AgentStatusIndicator';
-import { ObservabilityErrorBoundary, LoadingError, NetworkError } from './ErrorBoundary';
-import { 
-  AgentOverviewLoading, 
-  AgentListSkeleton, 
-  LoadingSpinner, 
-  EmptyState,
-  ProgressiveLoader 
-} from './LoadingStates';
-import { useResponsiveLayout, useGridLayout, useComponentVisibility } from './hooks/useResponsiveLayout';
+import type { LoadingError, NetworkError } from './ErrorBoundary'
+import { ObservabilityErrorBoundary } from './ErrorBoundary'
+import type { AgentOverviewLoading, AgentListSkeleton, EmptyState } from './LoadingStates'
+import { LoadingSpinner, ProgressiveLoader } from './LoadingStates'
+import type { useResponsiveLayout, useGridLayout } from './hooks/useResponsiveLayout'
+import { useComponentVisibility } from './hooks/useResponsiveLayout'
 import { agentObservabilityService } from '../../services/api/agentObservabilityService';
 
 import type { 

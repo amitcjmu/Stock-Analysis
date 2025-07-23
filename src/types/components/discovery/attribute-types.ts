@@ -4,8 +4,9 @@
  * Types for critical attribute management, editing, and configuration.
  */
 
-import { ReactNode } from 'react';
-import { BaseDiscoveryProps, CriticalAttribute, ValidationError, BusinessRule } from './base-types';
+import type { ReactNode } from 'react';
+import type { BaseDiscoveryProps, ValidationError } from './base-types'
+import { CriticalAttribute, BusinessRule } from './base-types'
 
 // Critical Attributes component types
 export interface CriticalAttributesTabProps extends BaseDiscoveryProps {

@@ -4,8 +4,8 @@
  * Types for sliders, file uploads, and other advanced form components.
  */
 
-import { ReactNode, RefObject } from 'react';
-import { BaseFormProps, UploadFileActions } from './base-types';
+import type { ReactNode, RefObject } from 'react';
+import type { BaseFormProps, UploadFileActions } from './base-types';
 
 // Slider component types
 export interface SliderProps extends BaseFormProps {

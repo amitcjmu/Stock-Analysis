@@ -4,11 +4,12 @@
  * Standard CRUD operation request/response patterns.
  */
 
-import { BaseApiRequest, BaseApiResponse, PaginationInfo } from './base-types';
-import { MultiTenantContext } from './tenant-types';
-import { SortParameter, FilterParameter, SearchParameter, AppliedFilter, AppliedSort, Aggregation } from './query-types';
-import { ValidationResult, ValidationError, ValidationWarning } from './validation-types';
-import { PrimitiveValue } from './value-types';
+import type { BaseApiRequest, BaseApiResponse, PaginationInfo } from './base-types';
+import type { MultiTenantContext } from './tenant-types';
+import type { SearchParameter, AppliedFilter, AppliedSort } from './query-types'
+import { SortParameter, FilterParameter, Aggregation } from './query-types'
+import type { ValidationResult, ValidationError, ValidationWarning } from './validation-types';
+import type { PrimitiveValue } from './value-types';
 
 // Request/Response patterns
 export interface ListRequest extends BaseApiRequest {

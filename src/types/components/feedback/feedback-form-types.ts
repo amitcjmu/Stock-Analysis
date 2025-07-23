@@ -4,8 +4,8 @@
  * Type definitions for feedback forms and user feedback components.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps } from '../shared';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps } from '../shared';
 
 // Feedback category and contact field types
 export interface FeedbackCategory {

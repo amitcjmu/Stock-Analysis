@@ -26,7 +26,7 @@ export interface Toast extends ToastOptions {
 // Toast store
 class ToastStore {
   private toasts: Toast[] = [];
-  private listeners: ((toasts: Toast[]) => void)[] = [];
+  private listeners: Array<(toasts: Toast[]) => void> = [];
   private idCounter = 0;
 
   public subscribe(listener: (toasts: Toast[]) => void): () => void {
@@ -77,10 +77,17 @@ class ToastStore {
 }
 
 // Global toast instance
-export const toastStore = new ToastStore();
+export const toastStore: ToastStore = new ToastStore();
 
 // Convenience methods
-export const toast = {
+export const toast: {
+  success: (title: string, message?: string, options?: Partial<ToastOptions>) => string;
+  error: (title: string, message?: string, options?: Partial<ToastOptions>) => string;
+  warning: (title: string, message?: string, options?: Partial<ToastOptions>) => string;
+  info: (title: string, message?: string, options?: Partial<ToastOptions>) => string;
+  dismiss: (id: string) => void;
+  dismissAll: () => void;
+} = {
   success: (title: string, message?: string, options?: Partial<ToastOptions>) => 
     toastStore.show({ ...options, title, message, type: 'success' }),
   
@@ -99,7 +106,18 @@ export const toast = {
 };
 
 // Flow-specific toast helpers
-export const flowToast = {
+export const flowToast: {
+  created: (flowType: string, flowId: string) => string;
+  executing: (phase: string) => string;
+  phaseCompleted: (phase: string) => string;
+  paused: (flowId: string) => string;
+  resumed: (flowId: string) => string;
+  deleted: (flowId: string) => string;
+  error: (error: Error | string, phase?: string) => void;
+  networkError: () => string;
+  validationError: (errors: string[]) => string;
+  authError: () => string;
+} = {
   created: (flowType: string, flowId: string) => 
     toast.success(`${flowType} flow created`, `Flow ID: ${flowId}`),
   

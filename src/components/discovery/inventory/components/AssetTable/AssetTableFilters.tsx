@@ -1,8 +1,9 @@
 import React from 'react';
-import { Input } from '@/components/ui/input';
+import type { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Filter, Download, RefreshCw } from 'lucide-react';
+import type { Filter } from 'lucide-react'
+import { Search, Download, RefreshCw } from 'lucide-react'
 
 interface AssetTableFiltersProps {
   searchTerm: string;

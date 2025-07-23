@@ -4,7 +4,7 @@
  * Type definitions for flow events, subscriptions, and event metrics.
  */
 
-import { TimeRange, EventFilters } from '../base-types';
+import type { TimeRange, EventFilters } from '../base-types';
 
 // Event Models
 export interface FlowEvent {

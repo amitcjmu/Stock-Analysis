@@ -1,23 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Lightbulb, 
-  Brain, 
-  TrendingUp, 
-  AlertCircle, 
-  CheckCircle, 
-  RefreshCw,
-  ChevronDown,
-  ChevronUp,
-  Zap,
-  Target,
-  ArrowRight,
-  Star,
-  Loader2,
-  Eye,
-  ThumbsUp,
-  ThumbsDown
-} from 'lucide-react';
-import { apiCall, API_CONFIG } from '../../config/api';
+import React from 'react'
+import type { useState } from 'react'
+import { useEffect } from 'react'
+import type { TrendingUp, CheckCircle, Zap, Target, Star, Eye } from 'lucide-react'
+import { Lightbulb, Brain, AlertCircle, RefreshCw, ChevronDown, ChevronUp, ArrowRight, Loader2, ThumbsUp, ThumbsDown } from 'lucide-react'
+import type { API_CONFIG } from '../../config/api'
+import { apiCall } from '../../config/api'
 
 interface AgentInsight {
   id: string;

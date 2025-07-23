@@ -1,8 +1,8 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { TrendingUp, Target, Activity, CheckCircle } from 'lucide-react';
-import { InventoryProgress } from '../types/inventory.types';
+import type { TrendingUp, Target, Activity, CheckCircle } from 'lucide-react';
+import type { InventoryProgress } from '../types/inventory.types';
 
 interface InventoryOverviewProps {
   inventoryProgress: InventoryProgress;

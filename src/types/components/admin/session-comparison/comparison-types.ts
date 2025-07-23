@@ -4,10 +4,10 @@
  * Session comparison and analysis types for comparison functionality.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps } from '../../shared';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps } from '../../shared';
 import { UserSession } from './session-types';
-import { 
+import type {
   SignificanceLevel, 
   DifferenceCategory, 
   SimilarityCategory, 
@@ -18,11 +18,8 @@ import {
   PriorityLevel, 
   EffortLevel 
 } from './enum-types';
-import { 
-  SessionComparisonColumn, 
-  SessionFilter, 
-  ExportFormat 
-} from './filter-types';
+import type { SessionFilter } from './filter-types'
+import { SessionComparisonColumn, ExportFormat } from './filter-types'
 
 export interface SessionComparisonProps extends BaseComponentProps {
   sessions: UserSession[];

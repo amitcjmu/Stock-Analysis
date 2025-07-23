@@ -3,9 +3,9 @@
  * Provides optimized build configuration for code splitting
  */
 
-import { defineConfig, UserConfig } from 'vite';
+import type { defineConfig, UserConfig } from 'vite';
 
-export const createLazyLoadingConfig = (baseConfig: UserConfig = {}) => {
+export const createLazyLoadingConfig = (baseConfig: UserConfig = {}): ReturnType<typeof defineConfig> => {
   return defineConfig({
     ...baseConfig,
     build: {
@@ -231,7 +231,26 @@ export const createLazyLoadingConfig = (baseConfig: UserConfig = {}) => {
   });
 };
 
-export const getLazyLoadingAnalysis = () => {
+export const getLazyLoadingAnalysis = (): {
+  chunkStrategy: {
+    critical: string[];
+    high: string[];
+    normal: string[];
+    low: string[];
+  };
+  targetSizes: {
+    initial: string;
+    critical: string;
+    features: string;
+    admin: string;
+  };
+  loadingStrategy: {
+    immediate: string[];
+    preload: string[];
+    onDemand: string[];
+    lazy: string[];
+  };
+} => {
   return {
     chunkStrategy: {
       critical: ['vendor-react', 'vendor-query'],

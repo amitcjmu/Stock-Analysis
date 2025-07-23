@@ -62,7 +62,7 @@ class AuthenticationService:
             
             # Get user roles
             user_roles_query = select(UserRole).where(
-                and_(UserRole.user_id == user.id, UserRole.is_active is True)
+                and_(UserRole.user_id == user.id, UserRole.is_active == True)
             )
             roles_result = await self.db.execute(user_roles_query)
             user_roles = roles_result.scalars().all()
@@ -273,7 +273,7 @@ class AuthenticationService:
             total_users = total_users_result.scalar_one()
 
             # Active users
-            active_users_query = select(func.count()).select_from(User).where(User.is_active is True)
+            active_users_query = select(func.count()).select_from(User).where(User.is_active == True)
             active_users_result = await self.db.execute(active_users_query)
             active_users = active_users_result.scalar_one()
 

@@ -4,14 +4,17 @@
  * Main dashboard component for agent planning and task management.
  */
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React from 'react'
+import type { useState } from 'react'
+import { useEffect } from 'react'
+import type { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Brain, RefreshCw, AlertCircle, X } from 'lucide-react';
 
-import { AgentPlan, AgentPlanningDashboardProps, FeedbackType, TaskInput } from './types';
+import type { AgentPlanningDashboardProps, FeedbackType, TaskInput } from './types'
+import { AgentPlan } from './types'
 import * as api from './api';
 import PlanOverview from './PlanOverview';
 import FeedbackForm from './FeedbackForm';

@@ -9,9 +9,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { LogOut, ChevronsUpDown } from 'lucide-react';
+import type { ChevronsUpDown } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext';
-import { User } from '@/types';
+import type { User } from '@/types';
 import { Client } from '@/contexts/ClientContext';
 import {
   Select,

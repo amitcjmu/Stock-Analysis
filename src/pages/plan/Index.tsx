@@ -1,8 +1,9 @@
 
-import React from 'react';
+import type React from 'react';
 import Sidebar from '../../components/Sidebar';
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
-import { Brain, Calendar, Users, Target, TrendingUp, ArrowRight } from 'lucide-react';
+import type { Calendar, Users, Target, TrendingUp } from 'lucide-react'
+import { Brain, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
 

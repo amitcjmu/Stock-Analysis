@@ -5,8 +5,8 @@
  * selection, expansion, and tree configuration options.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps } from '../shared';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps } from '../shared';
 
 export interface TreeSwitcherProps {
   expanded: boolean;

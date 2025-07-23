@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
-import { updateApiContext } from '@/config/api';
-import { User, Client, Engagement, Flow } from '../types';
+import type { useRef } from 'react'
+import { useEffect } from 'react'
+import type { updateApiContext } from '@/config/api';
+import type { User, Client, Engagement, Flow } from '../types';
 
 export const useApiContextSync = (
   user: User | null,

@@ -7,7 +7,7 @@ import React from 'react';
 import { TrendingUp, Activity, Clock, Brain } from 'lucide-react';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Progress } from '../../../components/ui/progress';
-import { AgentDetailData, PerformanceMetrics } from '../types/AgentDetailTypes';
+import type { AgentDetailData, PerformanceMetrics } from '../types/AgentDetailTypes';
 
 interface MetricsCardsProps {
   agentData: AgentDetailData;

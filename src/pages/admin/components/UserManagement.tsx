@@ -4,15 +4,11 @@
  */
 
 import React from 'react';
-import { 
-  Users, 
-  UserCheck, 
-  Clock, 
-  Settings 
-} from 'lucide-react';
+import type { Settings } from 'lucide-react'
+import { Users, UserCheck, Clock } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ActionCard, ActionItem } from '@/components/admin/shared/components/ActionCard';
-import { DashboardStatsData } from './DashboardStats';
+import type { DashboardStatsData } from './DashboardStats';
 
 export interface UserManagementProps {
   usersData: DashboardStatsData['users'];

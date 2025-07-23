@@ -1,14 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react'
+import type { useState } from 'react'
+import { useEffect, useCallback } from 'react'
 import { RefreshCw } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../../../config/api';
 import { useAuth } from '../../../../contexts/AuthContext';
-import { 
-  FieldMappingsTabProps, 
-  FieldMapping, 
-  TargetField, 
-  FilterOptions, 
-  RejectionDialogState
-} from './types';
+import type { FieldMappingsTabProps, FilterOptions, RejectionDialogState } from './types'
+import { FieldMapping, TargetField } from './types'
 import MappingFilters from './MappingFilters';
 import FieldMappingsList from './FieldMappingsList';
 import MappingPagination from './MappingPagination';

@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react'
+import type { useState } from 'react'
+import { useEffect } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Components
@@ -12,8 +14,8 @@ import { MemoryTab } from './components/tabs/MemoryTab';
 import { useEnhancedMonitoring } from './hooks/useEnhancedMonitoring';
 
 // Types and Constants
-import { EnhancedAgentOrchestrationPanelProps } from './types';
-import { TAB_ITEMS } from './constants';
+import type { EnhancedAgentOrchestrationPanelProps } from './types';
+import type { TAB_ITEMS } from './constants';
 
 const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelProps> = ({
   flowId,

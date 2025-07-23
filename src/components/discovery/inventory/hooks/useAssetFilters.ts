@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import type { useState } from 'react'
+import { useMemo } from 'react'
 import { AssetInventory, AssetFilters } from '../types/inventory.types';
 
 export const useAssetFilters = (assets: AssetInventory[]) => {

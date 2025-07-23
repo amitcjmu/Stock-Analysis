@@ -1,19 +1,12 @@
 import React from 'react';
-import { 
-  Users, 
-  Bot, 
-  Activity, 
-  Clock, 
-  CheckCircle, 
-  AlertTriangle,
-  Brain,
-  Network
-} from 'lucide-react';
+import type { CheckCircle, AlertTriangle, Brain } from 'lucide-react'
+import { Users, Bot, Activity, Clock, Network } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import type { Progress } from '@/components/ui/progress';
 import type { Agent, Crew } from '../types';
-import { getStatusIcon, getStatusColor, formatDuration } from '../utils/agentDataProcessor';
+import type { getStatusColor } from '../utils/agentDataProcessor'
+import { getStatusIcon, formatDuration } from '../utils/agentDataProcessor'
 
 interface AgentListProps {
   crews: Crew[];

@@ -5,7 +5,7 @@
  * and model management within the discovery flow.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   GetRequest,
@@ -89,7 +89,7 @@ export interface TrainingMetrics {
   loss: number;
   validationAccuracy: number;
   validationLoss: number;
-  confusionMatrix: number[][];
+  confusionMatrix: Array<number[]>;
   learningCurve: LearningCurvePoint[];
   performanceByClass: Record<string, ClassMetrics>;
   convergenceStatus: ConvergenceStatus;
@@ -102,7 +102,7 @@ export interface ValidationMetrics {
   recall: number;
   f1Score: number;
   auc: number;
-  confusionMatrix: number[][];
+  confusionMatrix: Array<number[]>;
 }
 
 export interface EarlyStoppingCriteria {
@@ -418,7 +418,7 @@ export interface PolynomialConfig {
 export interface InteractionConfig {
   maxDegree: number;
   includeOriginal: boolean;
-  specificPairs?: string[][];
+  specificPairs?: Array<string[]>;
 }
 
 export interface TransformationConfig {

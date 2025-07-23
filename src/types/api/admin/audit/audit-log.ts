@@ -6,7 +6,7 @@
  * Generated with CC for modular admin type organization.
  */
 
-import { 
+import type {
   AuditMetadata, 
   GeoLocation, 
   DeviceInfo,
@@ -18,7 +18,7 @@ import {
   DataSensitivity,
   ChangeType
 } from '../common';
-import { 
+import type {
   AuditSeverity, 
   AuditAction, 
   AuditResource, 

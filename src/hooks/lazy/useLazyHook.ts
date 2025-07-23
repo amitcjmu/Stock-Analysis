@@ -2,9 +2,11 @@
  * useLazyHook - Hook-level code splitting for complex hooks
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { LoadingPriority, LazyHookModule } from '@/types/lazy';
-import { loadingManager } from '@/utils/lazy/loadingManager';
+import type { useState, useRef } from 'react'
+import { useEffect, useCallback } from 'react'
+import type { LazyHookModule } from '@/types/lazy'
+import { LoadingPriority } from '@/types/lazy'
+import type { loadingManager } from '@/utils/lazy/loadingManager';
 
 interface UseLazyHookOptions {
   priority?: LoadingPriority;

@@ -6,7 +6,7 @@
  * Generated with CC for modular admin type organization.
  */
 
-import { TrendDirection } from '../common';
+import type { TrendDirection } from '../common';
 
 // Main usage analytics container
 export interface UsageAnalytics {

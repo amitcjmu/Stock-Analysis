@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCostMetrics, useResourceCosts, useSavingsOpportunities, useBudgetAlerts } from '@/hooks/finops/useFinOpsQueries';
 import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';

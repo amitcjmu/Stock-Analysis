@@ -4,7 +4,7 @@
  * Data source and transformation type definitions.
  */
 
-import { ChartConfig, TableConfig, MetricConfig, TextConfig, MapConfig } from './visualization-types';
+import type { ChartConfig, TableConfig, MetricConfig, TextConfig, MapConfig } from './visualization-types';
 
 export interface DataSource {
   type: DataSourceType;

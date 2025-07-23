@@ -4,8 +4,8 @@
  * Divider and separator component interfaces.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps } from './base-props';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps } from './base-props';
 
 // Divider component types
 export interface DividerProps extends BaseComponentProps {

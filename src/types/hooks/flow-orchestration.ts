@@ -5,7 +5,8 @@
  * agent coordination, task execution, and workflow state management.
  */
 
-import { BaseAsyncHookParams, BaseAsyncHookReturn } from './shared';
+import type { BaseAsyncHookParams } from './shared'
+import { BaseAsyncHookReturn } from './shared'
 
 // Flow Management Hook Types
 export interface UseFlowManagementParams extends BaseAsyncHookParams {

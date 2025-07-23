@@ -4,19 +4,13 @@
  * Part of the Agent Observability Enhancement Phase 4A
  */
 
-import React, { useMemo } from 'react';
+import React from 'react'
+import { useMemo } from 'react'
 import { cn } from '../../lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Activity, 
-  BarChart3,
-  Target,
-  Timer,
-  Zap
-} from 'lucide-react';
+import type { Zap } from 'lucide-react'
+import { TrendingUp, TrendingDown, Activity, BarChart3, Target, Timer } from 'lucide-react'
 import type { 
   MetricsChartProps, 
   SparklineData, 

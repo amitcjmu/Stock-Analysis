@@ -3,7 +3,8 @@
  * Provides role-based access control functionality with hierarchical permissions
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import type { useState } from 'react'
+import { useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '@/config/api';
 import { 

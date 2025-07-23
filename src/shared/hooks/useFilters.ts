@@ -3,7 +3,8 @@
  * Common pattern for filter state management across components
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import type { useState } from 'react'
+import { useMemo, useCallback } from 'react'
 
 type FilterValue = string | number | boolean | string[] | number[] | null | undefined;
 

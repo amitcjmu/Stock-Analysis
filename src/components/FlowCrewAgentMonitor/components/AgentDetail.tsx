@@ -14,7 +14,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import type { Agent } from '../types';
-import { getStatusIcon, getStatusColor, formatDuration } from '../utils/agentDataProcessor';
+import type { getStatusColor } from '../utils/agentDataProcessor'
+import { getStatusIcon, formatDuration } from '../utils/agentDataProcessor'
 
 interface AgentDetailProps {
   agent: Agent | null;

@@ -4,7 +4,7 @@
  * Security, anomaly, and threat types for session comparison.
  */
 
-import { 
+import type {
   RiskLevel, 
   AnomalyType, 
   ViolationType, 

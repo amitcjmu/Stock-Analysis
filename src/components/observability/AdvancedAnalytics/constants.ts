@@ -3,7 +3,7 @@
  * Part of the Agent Observability Enhancement Phase 4B - Advanced Features
  */
 
-import { MetricConfig } from './types';
+import type { MetricConfig } from './types';
 
 export const METRIC_CONFIGS: MetricConfig[] = [
   {

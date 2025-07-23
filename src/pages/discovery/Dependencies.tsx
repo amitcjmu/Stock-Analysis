@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams } from 'react-router-dom';
+import type { useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { RefreshCw, Zap, Building2 } from 'lucide-react';
 

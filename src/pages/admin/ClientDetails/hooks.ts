@@ -3,12 +3,13 @@
  * Generated with CC for UI modularization
  */
 
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import type { useState } from 'react';
+import type { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCallWithFallback } from '@/config/api';
-import { Client, ClientFormData } from './types';
+import type { ClientFormData } from './types'
+import { Client } from './types'
 
 export const useClient = (clientId: string | undefined) => {
   const { toast } = useToast();

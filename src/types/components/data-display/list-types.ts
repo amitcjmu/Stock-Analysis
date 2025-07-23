@@ -5,8 +5,8 @@
  * search, filtering, sorting, and list configuration options.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps, InteractiveComponentProps } from '../shared';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps, InteractiveComponentProps } from '../shared';
 
 // Basic list data types
 export interface ListItemData {

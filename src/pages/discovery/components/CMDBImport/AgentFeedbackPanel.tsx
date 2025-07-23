@@ -11,14 +11,8 @@ import {
   Alert,
   AlertDescription,
 } from '@/components/ui/alert';
-import { 
-  Bot, 
-  FileSpreadsheet, 
-  Info,
-  AlertCircle,
-  CheckCircle,
-  Clock
-} from 'lucide-react';
+import type { Info } from 'lucide-react'
+import { Bot, FileSpreadsheet, AlertCircle, CheckCircle, Clock } from 'lucide-react'
 
 interface ProcessingSummary {
   records_found?: number;
@@ -44,8 +38,8 @@ interface StatusData {
   };
   message?: string;
   processing_summary?: ProcessingSummary;
-  agent_insights?: (string | Record<string, unknown>)[];
-  clarification_questions?: (string | Record<string, unknown>)[];
+  agent_insights?: Array<string | Record<string, unknown>>;
+  clarification_questions?: Array<string | Record<string, unknown>>;
   data_quality_assessment?: Record<string, unknown>;
   field_mappings?: Record<string, string | number | boolean>;
   agent_results?: Record<string, unknown>;

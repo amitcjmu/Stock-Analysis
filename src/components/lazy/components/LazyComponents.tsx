@@ -2,7 +2,8 @@
  * Lazy Components - Component-level code splitting for heavy components
  */
 
-import React, { lazy, Suspense } from 'react';
+import React from 'react'
+import { lazy, Suspense } from 'react'
 import { LoadingFallback, ErrorFallback, SkeletonFallback } from '../LoadingFallback';
 import { LoadingPriority } from '@/types/lazy';
 import { ErrorBoundary } from 'react-error-boundary';

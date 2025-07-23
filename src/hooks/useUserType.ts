@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import type { useState } from 'react'
+import { useEffect } from 'react'
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 

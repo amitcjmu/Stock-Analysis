@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 import Sidebar from '../components/Sidebar';
 import FlowCrewAgentMonitor from '../components/FlowCrewAgentMonitor';
 import { Network } from 'lucide-react';

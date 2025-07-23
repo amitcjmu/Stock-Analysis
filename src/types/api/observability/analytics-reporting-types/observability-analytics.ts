@@ -5,7 +5,7 @@
  * KPI tracking, and overall system health assessment.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext

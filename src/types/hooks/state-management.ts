@@ -5,7 +5,7 @@
  * local state, context management, and state persistence patterns.
  */
 
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 // Global State Hook Types
 export interface UseGlobalStateParams<T> {
@@ -50,7 +50,7 @@ export interface UseStoreReturn<T, R = T> {
 export interface UseReducerWithMiddlewareParams<TState, TAction> {
   reducer: Reducer<TState, TAction>;
   initialState: TState | (() => TState);
-  middleware?: Middleware<TState, TAction>[];
+  middleware?: Array<Middleware<TState, TAction>>;
   onStateChange?: (state: TState, action: TAction) => void;
   onError?: (error: Error, action: TAction) => void;
   devTools?: boolean;
@@ -87,7 +87,7 @@ export interface CreateContextStateParams<T> {
   name: string;
   initialState: T;
   actions?: ContextActionCreators<T>;
-  middleware?: ContextMiddleware<T>[];
+  middleware?: Array<ContextMiddleware<T>>;
   persist?: boolean;
   devTools?: boolean;
 }
@@ -211,7 +211,7 @@ export interface UseOptimisticStateReturn<T> {
   commit: (finalState: T) => void;
   rollback: () => void;
   resolve: (serverState: T) => void;
-  conflicts: OptimisticConflict<T>[];
+  conflicts: Array<OptimisticConflict<T>>;
 }
 
 // State History Hook Types
@@ -222,7 +222,7 @@ export interface UseStateHistoryParams<T> {
   shouldSaveToHistory?: (currentState: T, newState: T) => boolean;
   onUndo?: (state: T) => void;
   onRedo?: (state: T) => void;
-  onHistoryChange?: (history: StateHistoryEntry<T>[]) => void;
+  onHistoryChange?: (history: Array<StateHistoryEntry<T>>) => void;
 }
 
 export interface UseStateHistoryReturn<T> {
@@ -235,8 +235,8 @@ export interface UseStateHistoryReturn<T> {
   canUndo: boolean;
   canRedo: boolean;
   historyIndex: number;
-  history: StateHistoryEntry<T>[];
-  future: StateHistoryEntry<T>[];
+  history: Array<StateHistoryEntry<T>>;
+  future: Array<StateHistoryEntry<T>>;
 }
 
 // Synchronized State Hook Types
@@ -258,7 +258,7 @@ export interface UseSynchronizedStateReturn<T> {
   forceSync: (state: T) => void;
   isSyncing: boolean;
   lastSync?: number;
-  conflicts: SyncConflict<T>[];
+  conflicts: Array<SyncConflict<T>>;
   resolveConflict: (resolution: T) => void;
   peers: SyncPeer[];
 }
@@ -391,9 +391,9 @@ export interface StateValidator<T> {
 }
 
 export interface StateHistory<TState, TAction> {
-  past: StateHistoryEntry<TState>[];
+  past: Array<StateHistoryEntry<TState>>;
   present: TState;
-  future: StateHistoryEntry<TState>[];
+  future: Array<StateHistoryEntry<TState>>;
   actions: TAction[];
 }
 

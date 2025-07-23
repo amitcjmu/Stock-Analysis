@@ -4,13 +4,14 @@
  * API token creation, management, and validation types.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext
 } from '../shared';
 
-import { ApiToken, TokenValidationResult } from './core-types';
+import type { TokenValidationResult } from './core-types'
+import { ApiToken } from './core-types'
 
 // API Token Management APIs
 export interface CreateApiTokenRequest extends BaseApiRequest {

@@ -1,5 +1,8 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import React from 'react'
+import type { useState } from 'react'
+import { useMemo, useEffect } from 'react'
+import type { useQuery } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { 
   Database, 
   FileText, 
@@ -9,7 +12,8 @@ import {
   ChevronRight,
   RefreshCw
 } from 'lucide-react';
-import { apiCall, API_CONFIG } from '../../../config/api';
+import type { API_CONFIG } from '../../../config/api'
+import { apiCall } from '../../../config/api'
 import { useToast } from '../../../hooks/use-toast';
 import { useAuth } from '../../../contexts/AuthContext';
 

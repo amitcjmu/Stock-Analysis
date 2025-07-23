@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import type { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../../contexts/AuthContext';
 import { API_CONFIG, apiCall } from '../../../config/api';
 import { FieldMapping } from './useFieldMappings';

@@ -1,18 +1,7 @@
-import React, { useState } from 'react';
-import { 
-  AlertTriangle, 
-  Upload, 
-  Play, 
-  Trash2, 
-  Eye, 
-  Clock,
-  TrendingUp,
-  Activity,
-  Shield,
-  Sparkles,
-  RefreshCw,
-  Zap
-} from 'lucide-react';
+import React from 'react'
+import type { useState } from 'react'
+import type { Clock, TrendingUp, RefreshCw, Zap } from 'lucide-react'
+import { AlertTriangle, Upload, Play, Trash2, Eye, Activity, Shield, Sparkles } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

@@ -5,8 +5,8 @@
  * sorting, pagination, and table configuration options.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps } from '../shared';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps } from '../shared';
 
 // Basic table data types
 export interface TableRowData {
@@ -135,7 +135,7 @@ export interface TableColumn<TData extends TableRowData = TableRowData> {
   validateValue?: (value: unknown, row: TData, index: number) => boolean | string;
   sorter?: boolean | ((a: TData, b: TData) => number);
   sortOrder?: 'asc' | 'desc' | null;
-  sortDirections?: ('asc' | 'desc')[];
+  sortDirections?: Array<'asc' | 'desc'>;
   defaultSortOrder?: 'asc' | 'desc';
   filters?: TableFilter[];
   filterDropdown?: ReactNode | ((props: TableFilterDropdownProps) => ReactNode);
@@ -198,7 +198,7 @@ export interface TablePaginationConfig {
   size?: 'default' | 'small';
   simple?: boolean;
   hideOnSinglePage?: boolean;
-  position?: ('topLeft' | 'topCenter' | 'topRight' | 'bottomLeft' | 'bottomCenter' | 'bottomRight')[];
+  position?: Array<'topLeft' | 'topCenter' | 'topRight' | 'bottomLeft' | 'bottomCenter' | 'bottomRight'>;
   onChange?: (page: number, pageSize: number) => void;
   onShowSizeChange?: (current: number, size: number) => void;
 }

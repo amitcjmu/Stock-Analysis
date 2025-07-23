@@ -7,28 +7,17 @@
  * Generated with CC - Code Companion
  */
 
-import {
+import type {
   MultiTenantContext,
   ResponseMetadata,
   FlowStatus
 } from './base-types';
 
-import {
-  FieldMapping,
-  FieldMappingInput,
-  FlowState,
-  CriticalAttribute,
-  CrewAnalysis
-} from './data-models';
+import type { FieldMappingInput, FlowState } from './data-models'
+import { FieldMapping, CriticalAttribute, CrewAnalysis } from './data-models'
 
-import {
-  ValidationOptions,
-  ValidationResult,
-  FlowConfiguration,
-  ImportOptions,
-  ImportError,
-  AgentInsight
-} from './validation-types';
+import type { ValidationOptions, ValidationResult, FlowConfiguration, ImportOptions, ImportError } from './validation-types'
+import { AgentInsight } from './validation-types'
 
 /**
  * API Types Namespace

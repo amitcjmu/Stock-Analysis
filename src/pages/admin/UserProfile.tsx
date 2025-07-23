@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import React from 'react'
+import type { useState } from 'react'
+import type { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { User, Lock, Eye, EyeOff, Save, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import type { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';

@@ -1,4 +1,4 @@
-import { VariantProps } from "class-variance-authority";
+import type { VariantProps } from "class-variance-authority";
 
 export type SidebarContext = {
   state: "expanded" | "collapsed";

@@ -3,7 +3,9 @@
  * MFO-078: Add error handling with toast notifications
  */
 
-import React, { useEffect, useState } from 'react';
+import React from 'react'
+import type { useState } from 'react'
+import { useEffect } from 'react'
 import { Toast as ToastType, toastStore } from '../../utils/toast';
 import styles from './Toast.module.css';
 

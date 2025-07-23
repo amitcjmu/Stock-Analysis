@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, Clock, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react';
-import { TechDebtSummary } from '@/types/tech-debt';
+import type { CheckCircle } from 'lucide-react'
+import { AlertTriangle, Clock, TrendingUp, AlertCircle } from 'lucide-react'
+import type { TechDebtSummary } from '@/types/tech-debt';
 
 interface TechDebtSummaryCardsProps {
   summary: TechDebtSummary;

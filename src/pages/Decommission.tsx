@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
+import type React, { useState } from 'react'
 import Sidebar from '../components/Sidebar';
-import { Archive, Shield, Trash2, Database, Clock, CheckCircle, AlertTriangle, FileText } from 'lucide-react';
+import type { Archive, Database, FileText } from 'lucide-react'
+import { Shield, Trash2, Clock, CheckCircle, AlertTriangle } from 'lucide-react'
 
 const Decommission = () => {
   const [selectedPhase, setSelectedPhase] = useState('planning');

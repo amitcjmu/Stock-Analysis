@@ -6,23 +6,18 @@
  * Generated with CC for modular admin type organization.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext
 } from '../../shared';
 
-import { AnalyticsTimeRange, BaseFilter } from '../common';
-import {
-  PlatformAnalytics,
-  UsageAnalytics,
-  PerformanceAnalytics,
-  AdoptionAnalytics,
-  AnalyticsTrend,
-  AnalyticsForecast
-} from './platform';
-import { AdminReport, ReportCustomization } from './reports';
-import { ReportType, ReportFormat, AggregationType } from './enums';
+import type { AnalyticsTimeRange, BaseFilter } from '../common';
+import type { UsageAnalytics, PerformanceAnalytics, AdoptionAnalytics } from './platform'
+import { PlatformAnalytics, AnalyticsTrend, AnalyticsForecast } from './platform'
+import type { ReportCustomization } from './reports'
+import { AdminReport } from './reports'
+import type { ReportType, ReportFormat, AggregationType } from './enums';
 
 // Platform Analytics APIs
 export interface GetPlatformAnalyticsRequest extends BaseApiRequest {

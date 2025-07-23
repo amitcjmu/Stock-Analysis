@@ -5,7 +5,7 @@
  * Handles metric definitions, data retrieval, and metric analytics.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   CreateRequest,

@@ -4,31 +4,18 @@
  * Part of the Agent Observability Enhancement Phase 4B - Advanced Features
  */
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React from 'react'
+import type { useState, useRef } from 'react'
+import { useEffect, useMemo } from 'react'
 import { formatDistanceToNow } from 'date-fns';
-import { 
-  Activity, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  AlertTriangle, 
-  User, 
-  Brain, 
-  Zap, 
-  Play, 
-  Pause, 
-  RotateCcw,
-  Filter,
-  Search,
-  Volume2,
-  VolumeX
-} from 'lucide-react';
+import type { Brain, Filter, Search } from 'lucide-react'
+import { Activity, CheckCircle, XCircle, Clock, AlertTriangle, User, Zap, Play, Pause, RotateCcw, Volume2, VolumeX } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
+import type { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Switch } from '../ui/switch';
+import type { Switch } from '../ui/switch';
 import { agentObservabilityService } from '../../services/api/agentObservabilityService';
 
 // Activity types and interfaces

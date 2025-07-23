@@ -8,7 +8,7 @@
  */
 
 import type { ConfigurationValue } from '../../shared/config-types';
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext,

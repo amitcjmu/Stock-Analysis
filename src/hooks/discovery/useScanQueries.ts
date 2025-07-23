@@ -1,14 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  fetchScanProgress, 
-  fetchScanLogs, 
-  startScan, 
-  pauseScan, 
-  resumeScan, 
-  stopScan,
-  ScanProgress,
-  ScanLog
-} from '@/services/scanService';
+import type { useQuery, useMutation } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
+import type { fetchScanProgress, fetchScanLogs } from '@/services/scanService'
+import { startScan, pauseScan, resumeScan, stopScan, ScanProgress, ScanLog } from '@/services/scanService'
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { logger } from '@/utils/logger';

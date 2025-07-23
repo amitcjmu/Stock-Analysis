@@ -4,10 +4,11 @@
  */
 
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import type { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { useUnifiedDiscoveryFlow } from '../../../../hooks/useUnifiedDiscoveryFlow';
-import { CrewAIInsight, ProcessedInsights } from '../types/InventoryInsightsTypes';
+import type { ProcessedInsights } from '../types/InventoryInsightsTypes'
+import { CrewAIInsight } from '../types/InventoryInsightsTypes'
 
 interface UseCrewAIInsightsResult {
   processedInsights: ProcessedInsights | null;

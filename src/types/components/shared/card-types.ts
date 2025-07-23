@@ -4,8 +4,8 @@
  * Card component interfaces and related types.
  */
 
-import { ReactNode } from 'react';
-import { ContainerComponentProps } from './base-props';
+import type { ReactNode } from 'react';
+import type { ContainerComponentProps } from './base-props';
 
 // Card component types
 export interface CardProps extends ContainerComponentProps {

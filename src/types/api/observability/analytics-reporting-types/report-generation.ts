@@ -5,12 +5,12 @@
  * and managing report templates and branding configurations.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext
 } from '../../shared';
-import { TimeRange } from '../core-types';
+import type { TimeRange } from '../core-types';
 
 // Report Generation Requests and Responses
 export interface GenerateObservabilityReportRequest extends BaseApiRequest {
@@ -105,7 +105,7 @@ export interface ReportTable {
   id: string;
   title: string;
   headers: string[];
-  rows: unknown[][];
+  rows: Array<unknown[]>;
   formatting?: TableFormatting;
 }
 

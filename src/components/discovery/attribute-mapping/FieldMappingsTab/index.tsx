@@ -1,12 +1,12 @@
 import React from 'react';
 import { RefreshCw } from 'lucide-react';
-import { useFieldOptions } from '../../../../contexts/FieldOptionsContext';
+import type { useFieldOptions } from '../../../../contexts/FieldOptionsContext';
 
 // Components
 import ThreeColumnFieldMapper from './components/ThreeColumnFieldMapper/ThreeColumnFieldMapper';
 
 // Types
-import { FieldMappingsTabProps } from './types';
+import type { FieldMappingsTabProps } from './types';
 
 const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   fieldMappings,

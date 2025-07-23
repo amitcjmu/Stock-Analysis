@@ -166,7 +166,7 @@ export async function uploadFile(file: File, metadata?: Record<string, unknown>)
 }
 
 // Example: Batch operations
-export async function batchCreateUsers(users: Omit<UserData, 'id'>[]): Promise<UserData[]> {
+export async function batchCreateUsers(users: Array<Omit<UserData, 'id'>>): Promise<Array<UserData>> {
   const requests = users.map((user, index) => ({
     id: `user-${index}`,
     method: 'POST',

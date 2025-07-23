@@ -4,13 +4,8 @@
  * Type definitions for agent instances, status, metrics, coordination, and communication.
  */
 
-import {
-  AgentConfiguration,
-  TimeRange,
-  MetricSample,
-  ExecutionError,
-  RetryPolicy
-} from '../base-types';
+import type { AgentConfiguration, TimeRange, ExecutionError, RetryPolicy } from '../base-types'
+import { MetricSample } from '../base-types'
 
 // Agent Models
 export interface AgentInstance {

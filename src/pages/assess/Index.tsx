@@ -1,11 +1,12 @@
-import React from 'react';
+import type React from 'react';
 import { Link } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
 import ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import type { useQuery } from '@tanstack/react-query';
 import { apiCall } from '../../config/api';
-import { BarChart3, Calendar, Filter, Download, ClipboardList, Route, Edit, ArrowRight } from 'lucide-react';
+import type { Filter, Route } from 'lucide-react'
+import { BarChart3, Calendar, Download, ClipboardList, Edit, ArrowRight } from 'lucide-react'
 
 const AssessIndex = () => {
   const { getAuthHeaders } = useAuth();

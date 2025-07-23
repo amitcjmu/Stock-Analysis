@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { MessageSquare, Clock, User, Filter, Search, Star, ThumbsUp, AlertTriangle, CheckCircle } from 'lucide-react';
+import React from 'react'
+import type { useState } from 'react'
+import { useEffect } from 'react'
+import type { Filter, ThumbsUp } from 'lucide-react'
+import { MessageSquare, Clock, User, Search, Star, AlertTriangle, CheckCircle } from 'lucide-react'
 import { apiCall, API_CONFIG } from '../config/api';
 
 interface FeedbackItem {

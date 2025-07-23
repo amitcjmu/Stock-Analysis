@@ -4,8 +4,8 @@
  * Types for crew analysis panels, training progress, and analysis-related functionality.
  */
 
-import { ReactNode } from 'react';
-import { BaseDiscoveryProps, LogLevel } from './base-types';
+import type { ReactNode } from 'react';
+import type { BaseDiscoveryProps, LogLevel } from './base-types';
 import { ExportFormat } from './data-import-types';
 
 // Analysis component types

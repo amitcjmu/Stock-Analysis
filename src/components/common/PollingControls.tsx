@@ -5,7 +5,8 @@
  * to replace automatic polling with pull-based requests and manage errors.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import type React, { useState } from 'react'
+import { useEffect, useCallback } from 'react'
 
 // CC: Global window extensions for polling control
 declare global {

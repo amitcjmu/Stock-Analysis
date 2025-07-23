@@ -5,7 +5,7 @@
  * for observability data visualization and monitoring interfaces.
  */
 
-import {
+import type {
   BaseApiResponse,
   CreateRequest,
   CreateResponse,
@@ -14,8 +14,9 @@ import {
   UpdateRequest,
   UpdateResponse
 } from '../shared';
-import { FilterValue, PrimitiveValue, DynamicValue } from '../shared/value-types';
-import { GenericMetadata } from '../shared/metadata-types';
+import type { FilterValue } from '../shared/value-types'
+import { PrimitiveValue, DynamicValue } from '../shared/value-types'
+import type { GenericMetadata } from '../shared/metadata-types';
 
 // Dashboard Management
 export interface CreateDashboardRequest extends CreateRequest<DashboardData> {

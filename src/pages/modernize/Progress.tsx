@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Activity, Sparkles, TrendingUp, Clock, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import type React, { useState } from 'react'
+import type { Clock } from 'lucide-react'
+import { Activity, Sparkles, TrendingUp, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react'
 import { useModernizationProgress } from '@/hooks/useModernizationProgress';
 import { Sidebar } from '@/components/ui/sidebar';
 import { Alert } from '@/components/ui/alert';

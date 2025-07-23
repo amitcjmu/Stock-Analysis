@@ -8,7 +8,7 @@
  */
 
 import type { BaseMetadata, AuditableMetadata } from '../../shared/metadata-types';
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext,
@@ -19,7 +19,7 @@ import {
   GetRequest,
   GetResponse
 } from '../shared';
-import { CostAmount } from './cost-analysis';
+import type { CostAmount } from './cost-analysis';
 import type { ConfigurationValue, TypedConstraint } from '../../shared/config-types';
 
 // Budget Management APIs

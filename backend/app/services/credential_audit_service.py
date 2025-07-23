@@ -174,7 +174,7 @@ class CredentialAuditService:
                 and_(
                     CredentialAccessLog.accessed_by == user_id,
                     CredentialAccessLog.accessed_at >= cutoff_time,
-                    CredentialAccessLog.success is False
+                    CredentialAccessLog.success == False
                 )
             )
         )
@@ -252,7 +252,7 @@ class CredentialAuditService:
         )
         
         if not include_failed:
-            query = query.where(CredentialAccessLog.success is True)
+            query = query.where(CredentialAccessLog.success == True)
         
         query = query.order_by(desc(CredentialAccessLog.accessed_at))
         

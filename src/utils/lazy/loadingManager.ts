@@ -3,13 +3,8 @@
  * Handles component loading, caching, and performance monitoring
  */
 
-import { 
-  LoadingPriority, 
-  LazyComponentOptions, 
-  LazyLoadingMetrics, 
-  LoadingState,
-  LazyComponentImport 
-} from '@/types/lazy';
+import type { LazyComponentOptions, LoadingState, LazyComponentImport } from '@/types/lazy'
+import { LoadingPriority, LazyLoadingMetrics } from '@/types/lazy'
 
 class LoadingManager {
   private static instance: LoadingManager;
@@ -356,4 +351,4 @@ class LoadingManager {
   }
 }
 
-export const loadingManager = LoadingManager.getInstance();
+export const loadingManager: LoadingManager = LoadingManager.getInstance();

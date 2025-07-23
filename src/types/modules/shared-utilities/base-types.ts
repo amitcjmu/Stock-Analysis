@@ -4,7 +4,7 @@
  * Common base types and interfaces used across shared utilities.
  */
 
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 // Base shared types
 export interface BaseUtilityProps {

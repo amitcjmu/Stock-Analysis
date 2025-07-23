@@ -11,7 +11,7 @@ import { Save, Send } from 'lucide-react';
 // Import collection components
 import { AdaptiveForm } from '@/components/collection/AdaptiveForm';
 import { ProgressTracker } from '@/components/collection/ProgressTracker';
-import { ValidationDisplay } from '@/components/collection/ValidationDisplay';
+import type { ValidationDisplay } from '@/components/collection/ValidationDisplay';
 import { BulkDataGrid } from '@/components/collection/BulkDataGrid';
 
 // Import types

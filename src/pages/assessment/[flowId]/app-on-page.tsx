@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { GetServerSideProps } from 'next/router';
-import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
+import React from 'react'
+import type { useState } from 'react'
+import { useEffect } from 'react'
+import type { GetServerSideProps } from 'next/router';
+import type { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { ApplicationSummaryCard } from '@/components/assessment/ApplicationSummaryCard';
 import { ComponentBreakdownView } from '@/components/assessment/ComponentBreakdownView';
 import { TechDebtSummaryChart } from '@/components/assessment/TechDebtSummaryChart';
@@ -12,10 +14,11 @@ import { ExportAndSharingControls } from '@/components/assessment/ExportAndShari
 import { ApplicationTabs } from '@/components/assessment/ApplicationTabs';
 import { useAssessmentFlow } from '@/hooks/useAssessmentFlow';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import type { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertCircle, Save, ArrowRight, Loader2, FileText, CheckCircle, Eye, Download } from 'lucide-react';
+import type { Save, FileText } from 'lucide-react'
+import { AlertCircle, ArrowRight, Loader2, CheckCircle, Eye, Download } from 'lucide-react'
 import { cn } from '@/lib/utils';
 
 interface AppOnPageProps {

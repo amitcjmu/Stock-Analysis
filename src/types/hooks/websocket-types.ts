@@ -4,7 +4,8 @@
  * Common types used for WebSocket communication in hooks.
  */
 
-import { PrimitiveValue, DynamicValue } from '../api/shared/value-types';
+import type { DynamicValue } from '../api/shared/value-types'
+import { PrimitiveValue } from '../api/shared/value-types'
 
 // WebSocket message data types based on message type
 export type WebSocketMessageData = 

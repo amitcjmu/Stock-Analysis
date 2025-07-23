@@ -1,8 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import type { useQuery } from '@tanstack/react-query';
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAuthHeaders } from '@/utils/contextUtils';
-import { ApiError } from '../../types/shared/api-types';
+import type { ApiError } from '../../types/shared/api-types';
 
 export interface CrewPerformanceMetric {
   crew_id: string;

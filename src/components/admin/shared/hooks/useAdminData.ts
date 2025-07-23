@@ -3,7 +3,8 @@
  * Provides common data fetching patterns for admin components
  */
 
-import { useState, useCallback } from 'react';
+import type { useState } from 'react'
+import { useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '@/config/api';
 import { useAdminToasts } from './useAdminToasts';

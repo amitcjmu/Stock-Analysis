@@ -2,7 +2,8 @@
  * Lazy Routes - Route-based code splitting for main pages
  */
 
-import React, { lazy, Suspense } from 'react';
+import React from 'react'
+import { lazy, Suspense } from 'react'
 import { LoadingFallback, ErrorFallback } from '../LoadingFallback';
 import { LoadingPriority } from '@/types/lazy';
 import { ErrorBoundary } from 'react-error-boundary';

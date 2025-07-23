@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 import { Users, Loader2, AlertTriangle, UserPlus, BarChart, Calendar, Briefcase } from 'lucide-react';
 import { useResource } from '@/hooks/useResource';
 import { Sidebar, SidebarProvider } from '@/components/ui/sidebar';

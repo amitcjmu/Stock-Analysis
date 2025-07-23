@@ -1,5 +1,6 @@
 import React from 'react';
-import { CheckCircle, AlertTriangle, XCircle, TrendingUp, Database, Target } from 'lucide-react';
+import type { Target } from 'lucide-react'
+import { CheckCircle, AlertTriangle, XCircle, TrendingUp, Database } from 'lucide-react'
 
 interface QualityMetrics {
   total_assets: number;

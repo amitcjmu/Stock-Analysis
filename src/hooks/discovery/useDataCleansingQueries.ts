@@ -1,7 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { useQuery, useMutation } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext';
 import * as dataCleansingService from '@/services/dataCleansingService';
-import { QualityMetrics, QualityIssue, AgentRecommendation, AgentAnalysisResult } from '@/types/discovery';
+import type { QualityMetrics, QualityIssue, AgentRecommendation, AgentAnalysisResult } from '@/types/discovery';
 
 // Query keys
 const queryKeys = {

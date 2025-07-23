@@ -7,8 +7,8 @@
  */
 
 import type { BaseMetadata, AuditableMetadata } from '../../../shared/metadata-types';
-import { ChannelType, TrackingEventType } from './enums';
-import { UtmParameters } from './notification';
+import type { ChannelType, TrackingEventType } from './enums';
+import type { UtmParameters } from './notification';
 
 // Notification tracking configuration
 export interface NotificationTracking {

@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React from 'react'
+import type { createContext, useContext, useState, ReactNode } from 'react'
+import { useCallback } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -18,8 +20,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { AlertTriangle, Info, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import type { Input } from '@/components/ui/input';
+import type { Info } from 'lucide-react'
+import { AlertTriangle, CheckCircle, XCircle, Loader2 } from 'lucide-react'
 
 // Dialog types
 type DialogType = 'confirm' | 'alert' | 'prompt' | 'loading';

@@ -1,5 +1,8 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { AuthContextType, User, Client, Engagement, Flow } from './types';
+import React from 'react'
+import type { createContext, useContext, useState } from 'react'
+import { useCallback } from 'react'
+import type { AuthContextType } from './types'
+import { User, Client, Engagement, Flow } from './types'
 import { tokenStorage } from './storage';
 import { useAuthHeaders } from './hooks/useAuthHeaders';
 import { useAuthInitialization } from './hooks/useAuthInitialization';

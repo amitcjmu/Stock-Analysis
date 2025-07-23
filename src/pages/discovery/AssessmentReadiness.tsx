@@ -1,13 +1,16 @@
-import React, { useState, useCallback } from 'react';
+import React from 'react'
+import type { useState } from 'react'
+import { useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/components/ui/use-toast';
-import { Download, FileText, RefreshCw, CheckCircle, AlertCircle, Database, Briefcase, Shield, TrendingUp } from 'lucide-react';
+import type { Download, CheckCircle, Database, Briefcase, Shield, TrendingUp } from 'lucide-react'
+import { FileText, RefreshCw, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
+import type { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import type { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { Progress } from '@/components/ui/progress';
+import type { Badge } from '@/components/ui/badge';
 
 // Components
 import { ReadinessScoreCard } from './AssessmentReadiness/components/ReadinessScoreCard';
@@ -24,7 +27,7 @@ import {
 import type { ReadinessAssessment, SignoffPackage } from './AssessmentReadiness/types';
 
 // Utils
-import { getReadinessColor, getRiskColor } from './AssessmentReadiness/utils';
+import type { getReadinessColor, getRiskColor } from './AssessmentReadiness/utils';
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {

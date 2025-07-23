@@ -4,8 +4,8 @@
  * Button and button group component interfaces.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps, InteractiveComponentProps } from './base-props';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps, InteractiveComponentProps } from './base-props';
 
 // Button component types
 export interface ButtonProps extends InteractiveComponentProps {

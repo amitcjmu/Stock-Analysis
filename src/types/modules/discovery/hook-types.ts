@@ -7,20 +7,10 @@
  * Generated with CC - Code Companion
  */
 
-import {
-  FieldMapping,
-  CriticalAttribute,
-  CrewAnalysis,
-  MappingProgress,
-  FlowState,
-  DiscoveryFlowData,
-  DataImport,
-  AgentClarification,
-  BulkMappingUpdate,
-  MappingApprovalStatus
-} from './data-models';
+import type { MappingProgress, FlowState, DiscoveryFlowData, MappingApprovalStatus } from './data-models'
+import { FieldMapping, CriticalAttribute, CrewAnalysis, DataImport, AgentClarification, BulkMappingUpdate } from './data-models'
 
-import { ValidationResult } from './validation-types';
+import type { ValidationResult } from './validation-types';
 
 /**
  * Hooks Namespace

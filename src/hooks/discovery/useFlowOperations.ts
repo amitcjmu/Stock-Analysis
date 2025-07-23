@@ -1,10 +1,11 @@
-import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { useState } from 'react';
+import type { useMutation, useQuery } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { masterFlowService } from '@/services/api/masterFlowService';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
-import { apiCall } from '@/config/api';
+import type { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
+import type { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Type definitions

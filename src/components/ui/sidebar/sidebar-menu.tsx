@@ -5,8 +5,9 @@
  */
 
 import * as React from "react"
-import { Slot } from "@radix-ui/react-slot"
-import { VariantProps, cva } from "class-variance-authority"
+import type { Slot } from "@radix-ui/react-slot"
+import type { VariantProps } from 'class-variance-authority'
+import { cva } from 'class-variance-authority'
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"

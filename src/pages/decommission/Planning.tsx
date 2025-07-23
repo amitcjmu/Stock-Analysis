@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
+import type React, { useState } from 'react'
 import Sidebar from '../../components/Sidebar';
-import { FileText, Search, Filter, Download, AlertTriangle, CheckCircle, Clock, Users } from 'lucide-react';
+import type { Filter, AlertTriangle, Users } from 'lucide-react'
+import { FileText, Search, Download, CheckCircle, Clock } from 'lucide-react'
 
 const DecommissionPlanning = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');

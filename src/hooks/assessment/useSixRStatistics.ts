@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { SixRDecision } from '@/hooks/useAssessmentFlow';
+import type { SixRDecision } from '@/hooks/useAssessmentFlow';
 import { SIX_R_STRATEGIES } from '@/utils/assessment/sixrHelpers';
 
 interface UseSixRStatisticsProps {

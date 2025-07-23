@@ -1,7 +1,8 @@
 
-import React from 'react';
+import type React from 'react';
 import Sidebar from '../../components/Sidebar';
-import { Sparkles, Code, Layers, Zap, Activity, TrendingUp, RefreshCw, ArrowRight } from 'lucide-react';
+import type { Code, Layers, Zap, Activity } from 'lucide-react'
+import { Sparkles, TrendingUp, RefreshCw, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom';
 
 const ModernizeIndex = () => {

@@ -1,5 +1,8 @@
-import React, { useState, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React from 'react'
+import type { useState } from 'react'
+import { useCallback } from 'react'
+import type { useQuery, useMutation } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -11,7 +14,8 @@ import { EngagementFilters } from './EngagementFilters';
 import { EngagementStats } from './EngagementStats';
 import { EngagementList } from './EngagementList';
 import { EngagementForm } from './EngagementForm';
-import { Engagement, EngagementFormData, Client } from './types';
+import type { EngagementFormData } from './types'
+import { Engagement, Client } from './types'
 
 const EngagementManagementMain: React.FC = () => {
   const { toast } = useToast();

@@ -6,18 +6,13 @@
  */
 
 import type { BaseMetadata, AuditableMetadata } from '../../../shared/metadata-types';
-import {
+import type {
   CreateRequest,
   CreateResponse,
   MultiTenantContext
 } from '../../shared';
-import {
-  ProjectedUsage,
-  RequiredCapacity,
-  UtilizationForecast,
-  BottleneckPrediction,
-  UsageFactor
-} from './shared-types';
+import type { UsageFactor } from './shared-types'
+import { ProjectedUsage, RequiredCapacity, UtilizationForecast, BottleneckPrediction } from './shared-types'
 
 // Capacity Planning Requests and Responses
 export interface CreateCapacityPlanRequest extends CreateRequest<CapacityPlanData> {

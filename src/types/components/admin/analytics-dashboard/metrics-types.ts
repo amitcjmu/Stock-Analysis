@@ -4,9 +4,10 @@
  * Metrics overview and metric-specific type definitions.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps } from '../../shared';
-import { TimeRange, ExportFormat } from './widget-types';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps } from '../../shared';
+import type { TimeRange } from './widget-types'
+import { ExportFormat } from './widget-types'
 
 export interface MetricsOverviewProps extends BaseComponentProps {
   metrics: Metric[];

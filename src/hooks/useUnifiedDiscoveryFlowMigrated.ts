@@ -9,7 +9,7 @@
 import { useMemo, useCallback } from 'react';
 import { useDiscoveryFlow } from './useFlow';
 import { flowToast } from '../utils/toast';
-import { FlowStatus, PhaseInfo } from '../types/flow';
+import type { FlowStatus, PhaseInfo } from '../types/flow';
 
 interface UseUnifiedDiscoveryFlowReturn {
   flowState: unknown | null;

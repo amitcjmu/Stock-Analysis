@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { CheckCircle, XCircle, ArrowRight, Zap } from 'lucide-react';
-import { CardProps } from './types';
+import type { CardProps } from './types';
 import { getAgentReasoningForMapping, getAgentTypeForMapping, getConfidenceDisplay } from './agentHelpers';
 import { formatFieldValue, formatTargetAttribute } from './mappingUtils';
 

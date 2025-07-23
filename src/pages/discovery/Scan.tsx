@@ -1,5 +1,5 @@
 
-import React from 'react';
+import type React from 'react';
 import Sidebar from '../../components/Sidebar';
 import { Activity, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 

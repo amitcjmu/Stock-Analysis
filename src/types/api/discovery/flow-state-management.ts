@@ -5,7 +5,7 @@
  * checkpoints, agent states, and state history management.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   GetRequest,

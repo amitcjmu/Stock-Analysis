@@ -4,7 +4,9 @@
  * Part of the Agent Observability Enhancement Phase 4B - Advanced Features
  */
 
-import React, { useState, useEffect } from 'react';
+import React from 'react'
+import type { useState } from 'react'
+import { useEffect } from 'react'
 import { Download, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';

@@ -1,21 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { 
-  CheckCircle, 
-  AlertTriangle, 
-  RefreshCw, 
-  FileSpreadsheet, 
-  ExternalLink,
-  AlertCircle,
-  Lightbulb,
-  ArrowRight,
-  Loader2,
-  Bot,
-  Clock,
-  StopCircle,
-  Play
-} from 'lucide-react';
+import React from 'react'
+import type { useRef, useState } from 'react'
+import { useEffect } from 'react'
+import type { ExternalLink, AlertCircle, Lightbulb, Bot, Play } from 'lucide-react'
+import { CheckCircle, AlertTriangle, RefreshCw, FileSpreadsheet, ArrowRight, Loader2, Clock, StopCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button';
-import { UploadedFile, useAuthenticatedDiscoveryStatus } from '../../hooks/useCMDBImport';
+import type { UploadedFile, useAuthenticatedDiscoveryStatus } from '../../hooks/useCMDBImport';
 import { useQueryClient } from '@tanstack/react-query';
 import AgentFeedbackPanel from './AgentFeedbackPanel';
 

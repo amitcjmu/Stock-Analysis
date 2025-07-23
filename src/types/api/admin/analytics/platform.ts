@@ -6,8 +6,9 @@
  * Generated with CC for modular admin type organization.
  */
 
-import { AnalyticsMetadata, AnalyticsPeriod, ConfidenceLevel, TrendDirection } from '../common';
-import { ForecastType, TrendPrediction, ContributingFactor } from './insights';
+import type { AnalyticsMetadata, AnalyticsPeriod, ConfidenceLevel, TrendDirection } from '../common';
+import type { ForecastType } from './insights'
+import { TrendPrediction, ContributingFactor } from './insights'
 
 // Platform analytics summary
 export interface PlatformAnalytics {

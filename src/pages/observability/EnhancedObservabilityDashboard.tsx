@@ -4,8 +4,11 @@
  * Part of the Agent Observability Enhancement project
  */
 
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React from 'react'
+import type { useState } from 'react'
+import { useEffect } from 'react'
+import type { useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';

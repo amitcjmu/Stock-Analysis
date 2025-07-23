@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React from 'react'
+import type { createContext, useContext, useState } from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { apiCall } from '@/config/api';
 import { useAuth } from './AuthContext';

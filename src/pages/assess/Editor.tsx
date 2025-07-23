@@ -1,5 +1,5 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
+import type React from 'react';
+import type { useParams } from 'react-router-dom';
 import { Save, User, Shield, Database, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import Sidebar from '../../components/Sidebar';

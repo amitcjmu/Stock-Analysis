@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import type { useState } from 'react'
+import { useEffect } from 'react'
 import { SixRDecision, ComponentTreatment } from '@/hooks/useAssessmentFlow';
 
 interface UseSixRReviewStateProps {

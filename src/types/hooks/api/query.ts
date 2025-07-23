@@ -5,7 +5,8 @@
  * and infinite/paginated queries.
  */
 
-import { UseApiParams, UseApiReturn } from './core';
+import type { UseApiParams } from './core'
+import { UseApiReturn } from './core'
 
 // Query Hook Types
 export interface UseQueryParams<TParams = unknown> extends UseApiParams<TParams> {

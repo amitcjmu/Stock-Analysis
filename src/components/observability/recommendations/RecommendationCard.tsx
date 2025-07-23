@@ -3,7 +3,8 @@
  * Displays a single recommendation with expandable details
  */
 
-import React, { useState } from 'react';
+import React from 'react'
+import type { useState } from 'react'
 import { 
   TrendingUp, CheckCircle, Zap, Target, Brain, 
   ArrowRight, X, RefreshCw, ThumbsUp, ThumbsDown, AlertTriangle 
@@ -12,7 +13,8 @@ import { Card, CardContent, CardHeader } from '../../ui/card';
 import { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
 import { Progress } from '../../ui/progress';
-import { PRIORITY_CONFIG, IMPACT_CONFIG, EFFORT_CONFIG, RECOMMENDATION_CATEGORIES } from '../utils/constants';
+import type { IMPACT_CONFIG, RECOMMENDATION_CATEGORIES } from '../utils/constants'
+import { PRIORITY_CONFIG, EFFORT_CONFIG } from '../utils/constants'
 
 export interface Recommendation {
   id: string;

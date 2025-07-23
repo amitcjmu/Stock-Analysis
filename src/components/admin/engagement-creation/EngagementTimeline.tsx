@@ -1,10 +1,11 @@
 import React from 'react';
 import { AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import type { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CreateEngagementData, Currencies } from './types';
+import type { CreateEngagementData } from './types'
+import { Currencies } from './types'
 
 interface EngagementTimelineProps {
   formData: CreateEngagementData;

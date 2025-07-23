@@ -5,7 +5,7 @@
  * creation, validation, approval workflows, and bulk operations.
  */
 
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext,

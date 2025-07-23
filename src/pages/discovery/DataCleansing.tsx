@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react'
+import type { useState } from 'react'
+import { useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext';
 import { useUnifiedDiscoveryFlow } from '../../hooks/useUnifiedDiscoveryFlow';
 import { useDiscoveryFlowAutoDetection } from '../../hooks/discovery/useDiscoveryFlowAutoDetection';
 import { useLatestImport, useAssets } from '../../hooks/discovery/useDataCleansingQueries';
-import { apiCall, API_CONFIG } from '../../config/api';
+import type { API_CONFIG } from '../../config/api'
+import { apiCall } from '../../config/api'
 
 // Components
 import Sidebar from '../../components/Sidebar';
@@ -21,7 +24,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
-import { Download, FileText, CheckCircle, AlertTriangle, Activity } from 'lucide-react';
+import type { AlertTriangle } from 'lucide-react'
+import { Download, FileText, CheckCircle, Activity } from 'lucide-react'
 
 const DataCleansing: React.FC = () => {
   const { user, client, engagement } = useAuth();

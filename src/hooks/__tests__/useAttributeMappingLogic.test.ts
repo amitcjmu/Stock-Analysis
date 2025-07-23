@@ -1,5 +1,6 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { vi, describe, it, expect, beforeEach, Mock, MockedFunction } from 'vitest';
+import type { MockedFunction } from 'vitest'
+import { vi, describe, it, expect, beforeEach, Mock } from 'vitest'
 import { useAttributeMappingLogic } from '../discovery/useAttributeMappingLogic';
 import { useDiscoveryFlowV2 } from '../discovery/useDiscoveryFlowV2';
 import { useAttributeMappingFlowDetection } from '../discovery/useDiscoveryFlowAutoDetection';

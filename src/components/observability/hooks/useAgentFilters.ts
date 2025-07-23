@@ -3,12 +3,13 @@
  * Extracted from ResponsiveAgentListOverview
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import type { useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import type { AgentCardData } from '../../../types/api/observability/agent-performance';
 
 export interface AgentFilters {
   searchQuery?: string;
-  status?: ('active' | 'idle' | 'error' | 'offline')[];
+  status?: Array<'active' | 'idle' | 'error' | 'offline'>;
   sortBy?: 'name' | 'successRate' | 'totalTasks' | 'lastActive';
   sortOrder?: 'asc' | 'desc';
 }

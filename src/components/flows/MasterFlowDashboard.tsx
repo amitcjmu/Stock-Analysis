@@ -6,29 +6,21 @@
  * through the Master Flow Orchestrator system
  */
 
-import React, { useState, useEffect } from 'react';
+import React from 'react'
+import type { useState } from 'react'
+import { useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Activity,
-  CheckCircle,
-  XCircle,
-  Clock,
-  PauseCircle,
-  PlayCircle,
-  RefreshCw,
-  Plus,
-  Filter,
-  Search
-} from 'lucide-react';
+import type { CheckCircle, Filter } from 'lucide-react'
+import { Activity, XCircle, Clock, PauseCircle, PlayCircle, RefreshCw, Plus, Search } from 'lucide-react'
 import { useFlows } from '../../hooks/useFlow';
-import { FlowStatus, FlowType } from '../../types/flow';
+import type { FlowStatus, FlowType } from '../../types/flow';
 import { flowToast } from '../../utils/toast';
-import { getFlowPhaseRoute } from '@/config/flowRoutes';
+import type { getFlowPhaseRoute } from '@/config/flowRoutes';
 import { useNavigate } from 'react-router-dom';
 import { useFlowDeletion } from '../../hooks/useFlowDeletion';
 import { FlowDeletionModal } from './FlowDeletionModal';

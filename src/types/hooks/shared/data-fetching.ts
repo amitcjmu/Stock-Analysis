@@ -4,7 +4,7 @@
  * Hook interfaces for data operations including pagination, sorting, filtering, and search functionality.
  */
 
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 // Data fetching hooks
 export interface UsePaginationParams {

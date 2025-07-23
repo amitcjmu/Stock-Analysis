@@ -7,7 +7,8 @@ import { AssetInventory } from '../../types/inventory.types';
 import { AssetTableFilters } from './AssetTableFilters';
 import { AssetTablePagination } from './AssetTablePagination';
 import { ColumnSelector } from './ColumnSelector';
-import { getTypeIcon, getReadinessColor } from '../../utils/iconHelpers';
+import type { getReadinessColor } from '../../utils/iconHelpers'
+import { getTypeIcon } from '../../utils/iconHelpers'
 
 interface AssetTableProps {
   assets: AssetInventory[];

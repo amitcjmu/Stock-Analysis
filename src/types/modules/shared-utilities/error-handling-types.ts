@@ -4,8 +4,8 @@
  * Types for error handling, error boundaries, and error recovery.
  */
 
-import { ReactNode } from 'react';
-import { ErrorContext } from './base-types';
+import type { ReactNode } from 'react';
+import type { ErrorContext } from './base-types';
 
 // Error handling service interfaces
 export interface ErrorService {

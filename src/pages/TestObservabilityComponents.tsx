@@ -4,41 +4,18 @@
  * Part of the Agent Observability Enhancement Phase 4A
  */
 
-import React, { useState } from 'react';
+import type React, { useState } from 'react'
 import Sidebar from '../components/Sidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { 
-  TestTube, 
-  Activity, 
-  Users, 
-  BarChart3,
-  AlertTriangle,
-  CheckCircle,
-  Clock
-} from 'lucide-react';
+import type { Activity, BarChart3, Clock } from 'lucide-react'
+import { TestTube, Users, AlertTriangle, CheckCircle } from 'lucide-react'
 
 // Import all observability components
-import {
-  AgentListOverview,
-  ResponsiveAgentListOverview,
-  AgentPerformanceCard,
-  AgentPerformanceCardCompact,
-  AgentStatusIndicator,
-  AgentStatusGroup,
-  SparklineChart,
-  SuccessRateGauge,
-  PerformanceDistributionChart,
-  ObservabilityErrorBoundary,
-  LoadingSpinner,
-  AgentListSkeleton,
-  ProgressiveLoader,
-  EmptyState,
-  type AgentCardData,
-  type SparklineData
-} from '../components/observability';
+import type { AgentListOverview, ResponsiveAgentListOverview, ObservabilityErrorBoundary, EmptyState, type AgentCardData, type SparklineData } from '../components/observability'
+import { AgentPerformanceCard, AgentPerformanceCardCompact, AgentStatusIndicator, AgentStatusGroup, SparklineChart, SuccessRateGauge, PerformanceDistributionChart, LoadingSpinner, AgentListSkeleton, ProgressiveLoader } from '../components/observability'
 
 // Mock data for testing
 const mockAgents: AgentCardData[] = [

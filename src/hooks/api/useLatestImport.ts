@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import type { useQuery } from '@tanstack/react-query';
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { ApiError } from '../../types/shared/api-types';
+import type { ApiError } from '../../types/shared/api-types';
 
 /**
  * Unified hook for fetching latest import data

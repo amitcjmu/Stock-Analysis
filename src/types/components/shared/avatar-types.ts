@@ -4,8 +4,8 @@
  * Avatar component interfaces and related types.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps } from './base-props';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps } from './base-props';
 
 // Avatar component types
 export interface AvatarProps extends BaseComponentProps {

@@ -4,24 +4,24 @@
  * Core session and user type definitions for session comparison.
  */
 
-import { ReactNode } from 'react';
-import { 
+import type { ReactNode } from 'react';
+import type {
   DeviceType, 
   AuthMethod, 
   ActivityType, 
   ActivityStatus, 
   RiskLevel 
 } from './enum-types';
-import { 
+import type {
   DeviceInfo, 
   LocationInfo, 
   NetworkInfo, 
   BrowserInfo 
 } from './device-types';
-import { 
+import type {
   SessionSecurity 
 } from './security-types';
-import { 
+import type {
   SessionMetrics 
 } from './metric-types';
 

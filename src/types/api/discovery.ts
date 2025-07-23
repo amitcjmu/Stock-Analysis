@@ -18,7 +18,7 @@ export * from './discovery/progress-tracking';
 export * from './discovery/training-learning';
 
 // Import shared types
-import {
+import type {
   BaseApiRequest,
   BaseApiResponse,
   MultiTenantContext,

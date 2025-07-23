@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React from 'react'
+import type { useState } from 'react'
+import type { useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/components/ui/use-toast';
 
 // Import modular components
-import CollectionPageLayout from '@/components/collection/layout/CollectionPageLayout';
+import type CollectionPageLayout from '@/components/collection/layout/CollectionPageLayout';
 import AdaptiveFormContainer from '@/components/collection/forms/AdaptiveFormContainer';
 import { CollectionUploadBlocker } from '@/components/collection/CollectionUploadBlocker';
 

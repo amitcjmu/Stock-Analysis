@@ -3,9 +3,10 @@
  * Extracted from AgentDetailPage.tsx for modularization
  */
 
-import { useState, useEffect } from 'react';
+import type { useState } from 'react'
+import { useEffect } from 'react'
 import { agentObservabilityService } from '../../../services/api/agentObservabilityService';
-import { AgentDetailData } from '../types/AgentDetailTypes';
+import type { AgentDetailData } from '../types/AgentDetailTypes';
 import { getAgentMetadataHelpers } from '../utils/agentMetadataHelpers';
 
 interface UseAgentDetailResult {

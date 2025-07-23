@@ -4,8 +4,8 @@
  * Types for select components, dropdowns, and select-related functionality.
  */
 
-import { ReactNode, RefObject } from 'react';
-import { BaseFormProps } from './base-types';
+import type { ReactNode, RefObject } from 'react';
+import type { BaseFormProps } from './base-types';
 
 // Select-related interfaces
 export interface SelectState {

@@ -4,8 +4,8 @@
  * Type definitions for progress indicators and status components.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps } from '../shared';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps } from '../shared';
 
 // Progress component types
 export interface ProgressGradient {

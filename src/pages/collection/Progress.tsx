@@ -1,8 +1,9 @@
 import React from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import type { useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 // Import modular components
-import CollectionPageLayout from '@/components/collection/layout/CollectionPageLayout';
+import type CollectionPageLayout from '@/components/collection/layout/CollectionPageLayout';
 import ProgressMonitorContainer from '@/components/collection/progress/ProgressMonitorContainer';
 
 // Import custom hooks

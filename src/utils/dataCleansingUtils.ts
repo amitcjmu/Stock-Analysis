@@ -7,7 +7,7 @@ import { AgentRecommendation } from '../components/discovery/data-cleansing/Reco
 export const getFieldHighlight = (
   fieldName: string, 
   assetId: string, 
-  rawData: Record<string, unknown>[], 
+  rawData: Array<Record<string, unknown>>, 
   qualityIssues: QualityIssue[], 
   agentRecommendations: AgentRecommendation[],
   selectedIssue: string | null,
@@ -160,7 +160,7 @@ const normalizeFieldName = (fieldName: string): string => {
 /**
  * Find asset by various identifier formats - MUST match table's getAssetIdentifier logic exactly
  */
-const findAssetByIdentifier = (rawData: Record<string, unknown>[], identifier: string): Record<string, unknown> | null => {
+const findAssetByIdentifier = (rawData: Array<Record<string, unknown>>, identifier: string): Record<string, unknown> | null => {
   if (!identifier || !rawData || rawData.length === 0) return null;
   
   return rawData.find(asset => {

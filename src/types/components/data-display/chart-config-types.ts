@@ -5,28 +5,10 @@
  * tooltips, legends, axes, grids, zoom, brush, and export configurations.
  */
 
-import { ReactNode } from 'react';
-import { BaseComponentProps } from '../shared';
-import { 
-  ChartDataPoint, 
-  ChartLegendItem, 
-  ChartTooltipItem, 
-  ChartDomain, 
-  ChartScale, 
-  ChartContext, 
-  ChartEvent, 
-  ChartSize, 
-  ChartFont, 
-  ChartLabels, 
-  ChartTitle, 
-  ChartTicks, 
-  ChartGrid, 
-  ChartBorder, 
-  ChartTimeOptions, 
-  ChartAdapters, 
-  ChartInteractionOptions,
-  ChartType 
-} from './chart-types';
+import type { ReactNode } from 'react';
+import type { BaseComponentProps } from '../shared';
+import type { ChartTooltipItem, ChartDomain, ChartScale, ChartContext, ChartEvent, ChartSize, ChartFont, ChartLabels, ChartTitle, ChartTicks, ChartBorder, ChartTimeOptions, ChartAdapters, ChartInteractionOptions, ChartType } from './chart-types'
+import { ChartDataPoint, ChartLegendItem, ChartGrid } from './chart-types'
 
 export interface ChartProps extends BaseComponentProps {
   type: ChartType;

@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
-import { CardProps } from './types';
+import type { CardProps } from './types';
 import { formatFieldValue, formatTargetAttribute } from './mappingUtils';
 
 const ApprovedCard: React.FC<CardProps> = ({ mapping }) => (

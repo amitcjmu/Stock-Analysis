@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react'
+import type { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getVersionInfo } from '../../../utils/version';
+import type { getVersionInfo } from '../../../utils/version';
 import { useAuth } from '../../../contexts/AuthContext';
-import { 
+import type {
   Home, 
   Search, 
   FileText, 
@@ -41,7 +42,8 @@ import {
   GitBranch,
   Cloud
 } from 'lucide-react';
-import { SidebarProps, NavigationItem, ExpandedStates } from './types';
+import type { SidebarProps } from './types'
+import { NavigationItem, ExpandedStates } from './types'
 import SidebarHeader from './SidebarHeader';
 import NavigationMenu from './NavigationMenu';
 import AuthenticationIndicator from './AuthenticationIndicator';

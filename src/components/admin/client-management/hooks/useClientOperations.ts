@@ -1,8 +1,10 @@
-import { useState, useCallback } from 'react';
+import type { useState } from 'react'
+import { useCallback } from 'react'
 import { useToast } from '@/components/ui/use-toast';
 import { useDialog } from '@/hooks/useDialog';
 import { apiCall } from '@/config/api';
-import { Client, ClientFormData } from '../types';
+import type { ClientFormData } from '../types'
+import { Client } from '../types'
 
 export const useClientOperations = () => {
   const { toast } = useToast();

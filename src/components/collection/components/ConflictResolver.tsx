@@ -5,7 +5,8 @@
  * Agent Team B3 - Data conflict resolution component
  */
 
-import React, { useState } from 'react';
+import React from 'react'
+import type { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,16 +14,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  GitMerge, 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock, 
-  User, 
-  Database,
-  Upload,
-  FormInput
-} from 'lucide-react';
+import type { FormInput } from 'lucide-react'
+import { GitMerge, AlertTriangle, CheckCircle, Clock, User, Database, Upload } from 'lucide-react'
 import { cn } from '@/lib/utils';
 
 import type { ConflictResolverProps, DataConflict, ConflictingValue, ConflictResolution } from '../types';

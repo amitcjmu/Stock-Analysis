@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import type { useState, useRef } from 'react'
+import { useEffect, useCallback } from 'react'
 import { toast } from 'sonner';
 import type { WebSocketMessageData, AgentActivityData, WebSocketOutgoingMessage } from '../types/hooks/websocket-types';
 

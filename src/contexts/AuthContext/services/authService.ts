@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '@/lib/api/auth';
-import { apiCall, updateApiContext } from '@/config/api';
+import type { updateApiContext } from '@/config/api'
+import { apiCall } from '@/config/api'
 import { updateUserDefaults } from '@/lib/api/context';
 import { User, Client, Engagement, Flow } from '../types';
 
@@ -26,7 +27,8 @@ interface GuardedFunction {
   (...args: unknown[]): Promise<unknown>;
   isRunning?: boolean;
 }
-import { tokenStorage, contextStorage, persistClientData, persistEngagementData } from '../storage';
+import type { persistClientData, persistEngagementData } from '../storage'
+import { tokenStorage, contextStorage } from '../storage'
 
 export const useAuthService = (
   user: User | null,

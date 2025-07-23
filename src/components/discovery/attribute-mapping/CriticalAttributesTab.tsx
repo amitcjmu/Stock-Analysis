@@ -1,4 +1,6 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React from 'react'
+import type { useState } from 'react'
+import { useMemo, useEffect } from 'react'
 import { Target, AlertTriangle } from 'lucide-react';
 import ThreeColumnFieldMapper from './FieldMappingsTab/components/ThreeColumnFieldMapper/ThreeColumnFieldMapper';
 import { TargetField } from './FieldMappingsTab/types';

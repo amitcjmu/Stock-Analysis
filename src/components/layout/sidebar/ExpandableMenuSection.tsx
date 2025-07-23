@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { ExpandableMenuSectionProps } from './types';
+import type { ExpandableMenuSectionProps } from './types';
 import NavigationItem from './NavigationItem';
 
 const ExpandableMenuSection: React.FC<ExpandableMenuSectionProps> = ({
