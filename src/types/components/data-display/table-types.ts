@@ -282,26 +282,14 @@ export interface TableFooterConfig {
   // Add footer config properties as needed
 }
 
-export interface TableState {
-  // Add state properties as needed
-}
+export type TableState = Record<string, unknown>;
 
-export interface TableColumnValidation {
-  // Add validation properties as needed
-}
+export type TableColumnValidation = Record<string, unknown>;
 
-export interface TableSortInfo {
-  // Add sort info properties as needed
-}
+export type TableSortInfo = Record<string, unknown>;
 
-export interface TableFilterInfo {
-  // Add filter info properties as needed
-}
+export type TableFilterInfo = Record<string, unknown>;
 
-export interface TablePaginationState {
-  // Add pagination state properties as needed
-}
+export type TablePaginationState = Record<string, unknown>;
 
-export interface TableSorterTooltip {
-  // Add sorter tooltip properties as needed
-}
+export type TableSorterTooltip = Record<string, unknown>;
