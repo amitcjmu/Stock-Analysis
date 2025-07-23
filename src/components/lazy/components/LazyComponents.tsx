@@ -8,7 +8,7 @@ import { LoadingFallback, ErrorFallback, SkeletonFallback } from '../LoadingFall
 import { LoadingPriority } from '@/types/lazy';
 import { ErrorBoundary } from 'react-error-boundary';
 
-const createLazyComponent = <P extends {} = {}>(
+const createLazyComponent = <P extends Record<string, any> = Record<string, any>>(
   importFn: () => Promise<{ default: React.ComponentType<P> }>,
   componentName: string,
   fallbackType: 'loading' | 'skeleton' | 'minimal' = 'loading',
@@ -289,7 +289,7 @@ interface ProgressiveLazyComponentProps<P = {}> {
   props: P;
 }
 
-export const ProgressiveLazyComponent = <P extends {} = {}>({
+export const ProgressiveLazyComponent = <P extends Record<string, any> = Record<string, any>>({
   baseComponent: BaseComponent,
   enhancedImport,
   enhancementCondition,

@@ -245,14 +245,14 @@ export interface LocationRestriction {
   whitelist: boolean;
 }
 
-// Placeholder interfaces for complex workflow settings
-export interface AutomationSettings { /* automation configuration */ }
-export interface ApprovalSettings { /* approval workflow settings */ }
-export interface WorkflowNotificationSettings { /* workflow notification configuration */ }
-export interface WorkflowIntegrationSettings { /* workflow integration settings */ }
-export interface UserIntegrationSettings { /* user integration preferences */ }
-export interface DataSettings { /* data management settings */ }
-export interface UserBillingSettings { /* user billing preferences */ }
+// Placeholder types for complex workflow settings
+export type AutomationSettings = Record<string, unknown>; /* automation configuration */
+export type ApprovalSettings = Record<string, unknown>; /* approval workflow settings */
+export type WorkflowNotificationSettings = Record<string, unknown>; /* workflow notification configuration */
+export type WorkflowIntegrationSettings = Record<string, unknown>; /* workflow integration settings */
+export type UserIntegrationSettings = Record<string, unknown>; /* user integration preferences */
+export type DataSettings = Record<string, unknown>; /* data management settings */
+export type UserBillingSettings = Record<string, unknown>; /* user billing preferences */
 
 // User preference enums
 export type ThemeType = 'light' | 'dark' | 'auto' | 'high_contrast';

@@ -11,13 +11,13 @@ import type { AuditableMetadata } from '../../../shared/metadata-types';
 import type { ConfigurationValue } from '../../../shared/config-types';
 
 // Forward declarations for types from other modules
-export interface CostEstimate {}
-export interface CostBreakdown {}
-export interface CostTimelineResult {}
-export interface CostScenarioResult {}
-export interface CostOptimization {}
-export interface CostBenchmark {}
-export interface CostRecommendation {}
+export type CostEstimate = Record<string, unknown>;
+export type CostBreakdown = Record<string, unknown>;
+export type CostTimelineResult = Record<string, unknown>;
+export type CostScenarioResult = Record<string, unknown>;
+export type CostOptimization = Record<string, unknown>;
+export type CostBenchmark = Record<string, unknown>;
+export type CostRecommendation = Record<string, unknown>;
 
 // Core Data Types
 export interface CostPlanData {
@@ -528,34 +528,34 @@ export interface ContingencyGovernance {
 }
 
 // Forward declaration supporting types that will be defined in utility module
-export interface AllocationDriver {}
-export interface UnitConversion {}
-export interface QuantityAdjustment {}
-export interface RateAdjustment {}
-export interface CostAdjustment {}
-export interface TimingDistribution {}
-export interface ComparisonResult {}
-export interface ComparisonVariance {}
-export interface ComparisonRanking {}
-export interface HedgingInstrument {}
-export interface CurrencyExposure {}
-export interface CurrencyVolatility {}
-export interface CurrencyMonitoring {}
-export interface AllocationDistribution {}
-export interface AllocationRule {}
-export interface ApprovalLevel {}
-export interface ApprovalThreshold {}
-export interface ApprovalAuthority {}
-export interface ApprovalProcess {}
-export interface StructureLevel {}
-export interface StructureComponent {}
-export interface StructureRelationship {}
-export interface StructureConstraint {}
-export interface ParameterDistribution {}
-export interface AlgorithmParameter {}
-export interface AlgorithmPerformance {}
-export interface CalibrationData {}
-export interface CalibrationMetric {}
-export interface CalibrationValidation {}
-export interface ValidationCriteria {}
-export interface ValidationResult {}
+export type AllocationDriver = Record<string, unknown>;
+export type UnitConversion = Record<string, unknown>;
+export type QuantityAdjustment = Record<string, unknown>;
+export type RateAdjustment = Record<string, unknown>;
+export type CostAdjustment = Record<string, unknown>;
+export type TimingDistribution = Record<string, unknown>;
+export type ComparisonResult = Record<string, unknown>;
+export type ComparisonVariance = Record<string, unknown>;
+export type ComparisonRanking = Record<string, unknown>;
+export type HedgingInstrument = Record<string, unknown>;
+export type CurrencyExposure = Record<string, unknown>;
+export type CurrencyVolatility = Record<string, unknown>;
+export type CurrencyMonitoring = Record<string, unknown>;
+export type AllocationDistribution = Record<string, unknown>;
+export type AllocationRule = Record<string, unknown>;
+export type ApprovalLevel = Record<string, unknown>;
+export type ApprovalThreshold = Record<string, unknown>;
+export type ApprovalAuthority = Record<string, unknown>;
+export type ApprovalProcess = Record<string, unknown>;
+export type StructureLevel = Record<string, unknown>;
+export type StructureComponent = Record<string, unknown>;
+export type StructureRelationship = Record<string, unknown>;
+export type StructureConstraint = Record<string, unknown>;
+export type ParameterDistribution = Record<string, unknown>;
+export type AlgorithmParameter = Record<string, unknown>;
+export type AlgorithmPerformance = Record<string, unknown>;
+export type CalibrationData = Record<string, unknown>;
+export type CalibrationMetric = Record<string, unknown>;
+export type CalibrationValidation = Record<string, unknown>;
+export type ValidationCriteria = Record<string, unknown>;
+export type ValidationResult = Record<string, unknown>;

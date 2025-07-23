@@ -120,8 +120,8 @@ export const VALIDATION_MESSAGES = {
 // Common regex patterns
 export const VALIDATION_PATTERNS = {
   EMAIL: VALIDATION_RULES.EMAIL.PATTERN,
-  URL: /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/,
-  PHONE: /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{4,6}$/,
+  URL: /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)$/,
+  PHONE: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{4,6}$/,
   ALPHANUMERIC: /^[a-zA-Z0-9]+$/,
   ALPHABETIC: /^[a-zA-Z]+$/,
   NUMERIC: /^[0-9]+$/,

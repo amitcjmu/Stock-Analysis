@@ -9,7 +9,7 @@ import { LoadingPriority } from '@/types/lazy';
 import { ErrorBoundary } from 'react-error-boundary';
 
 // Define lazy loading strategies for different route categories
-const createLazyRoute = <P extends {} = {}>(
+const createLazyRoute = <P extends Record<string, any> = Record<string, any>>(
   importFn: () => Promise<{ default: React.ComponentType<P> }>,
   componentName: string,
   priority: LoadingPriority = LoadingPriority.NORMAL

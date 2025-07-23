@@ -10,11 +10,11 @@
 import type { ConfigurationValue } from '@/types/shared/config-types';
 
 // Forward declarations for types from other modules
-export interface CostOptimizationResult {}
-export interface CostSaving {}
-export interface CostAlternative {}
-export interface CostRecommendation {}
-export interface CostTradeoff {}
+export type CostOptimizationResult = Record<string, unknown>;
+export type CostSaving = Record<string, unknown>;
+export type CostAlternative = Record<string, unknown>;
+export type CostRecommendation = Record<string, unknown>;
+export type CostTradeoff = Record<string, unknown>;
 
 // Optimization Supporting Types
 export interface CostOptimization {
