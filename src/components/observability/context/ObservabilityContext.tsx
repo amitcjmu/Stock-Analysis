@@ -4,8 +4,7 @@
  */
 
 import React from 'react'
-import type { createContext }
-import { useContext, useState, ReactNode  } from 'react'
+import { createContext, useContext, useState, ReactNode } from 'react'
 import { useCallback } from 'react'
 import type { AgentCardData } from '../../../types/api/observability/agent-performance';
 import type { useAgentData } from '../hooks/useAgentData';

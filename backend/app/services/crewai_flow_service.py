@@ -558,11 +558,11 @@ class CrewAIFlowService:
                         
                         # Initialize flow through MasterFlowOrchestrator
                         from app.services.master_flow_orchestrator import MasterFlowOrchestrator
-                        MasterFlowOrchestrator(db, context)
+                        orchestrator = MasterFlowOrchestrator(db, context)
                         
-                        # Note: For resume functionality, we should use orchestrator.resume_flow
-                        # instead of creating a new flow instance
-                        logger.info("Flow resume should be handled through MasterFlowOrchestrator")
+                        # Resume the flow using the orchestrator
+                        resume_result = await orchestrator.resume_flow(flow_id)
+                        logger.info(f"Flow resumed through MasterFlowOrchestrator: {resume_result}")
                         
                         # Initialize actual CrewAI flow for resumption
                         try:
