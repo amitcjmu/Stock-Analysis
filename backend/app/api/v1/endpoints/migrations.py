@@ -35,8 +35,12 @@ except ImportError:
 
 from app.core.database import get_db
 from app.models.migration import Migration, MigrationPhase, MigrationStatus
-from app.schemas.migration import (MigrationCreate, MigrationListResponse,
-                                   MigrationResponse, MigrationUpdate)
+from app.schemas.migration import (
+    MigrationCreate,
+    MigrationListResponse,
+    MigrationResponse,
+    MigrationUpdate,
+)
 from app.websocket.manager import ConnectionManager
 
 router = APIRouter()

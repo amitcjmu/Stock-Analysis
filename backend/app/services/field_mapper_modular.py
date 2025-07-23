@@ -9,8 +9,11 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from .agent_learning_system import LearningContext
-from .field_mapper_handlers import (AgentInterfaceHandler,
-                                    MappingEngineHandler, ValidationHandler)
+from .field_mapper_handlers import (
+    AgentInterfaceHandler,
+    MappingEngineHandler,
+    ValidationHandler,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -600,8 +603,7 @@ class FieldMapperService:
                     )
 
                     # Get asset to check current completeness
-                    from app.repositories.asset_repository import \
-                        AssetRepository
+                    from app.repositories.asset_repository import AssetRepository
 
                     asset_repo = AssetRepository(db, client_account_id, engagement_id)
                     asset = await asset_repo.get_by_id(asset_id)

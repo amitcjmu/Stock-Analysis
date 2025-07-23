@@ -13,8 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 from app.core.logging import get_logger
-from app.repositories.crewai_flow_state_extensions_repository import \
-    CrewAIFlowStateExtensionsRepository
+from app.repositories.crewai_flow_state_extensions_repository import (
+    CrewAIFlowStateExtensionsRepository,
+)
 
 logger = get_logger(__name__)
 

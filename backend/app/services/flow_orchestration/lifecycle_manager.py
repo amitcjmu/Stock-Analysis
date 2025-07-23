@@ -10,12 +10,12 @@ from typing import Any, Dict, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
-from app.core.exceptions import (FlowError, FlowNotFoundError,
-                                 InvalidFlowStateError)
+from app.core.exceptions import FlowError, FlowNotFoundError, InvalidFlowStateError
 from app.core.logging import get_logger
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from app.repositories.crewai_flow_state_extensions_repository import \
-    CrewAIFlowStateExtensionsRepository
+from app.repositories.crewai_flow_state_extensions_repository import (
+    CrewAIFlowStateExtensionsRepository,
+)
 
 from .state_transition_utils import FlowStateTransitionValidator
 

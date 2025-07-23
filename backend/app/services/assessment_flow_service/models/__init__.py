@@ -2,11 +2,16 @@
 Assessment flow service models and data structures.
 """
 
-from .assessment_schemas import (AssessmentRequest, AssessmentResponse,
-                                 AssetReadinessResponse,
-                                 ComplexityAssessmentResponse,
-                                 FlowCompletionRequest, FlowCompletionResponse,
-                                 RiskAssessmentResponse, ValidationResult)
+from .assessment_schemas import (
+    AssessmentRequest,
+    AssessmentResponse,
+    AssetReadinessResponse,
+    ComplexityAssessmentResponse,
+    FlowCompletionRequest,
+    FlowCompletionResponse,
+    RiskAssessmentResponse,
+    ValidationResult,
+)
 
 __all__ = [
     "AssessmentRequest",

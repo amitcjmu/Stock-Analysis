@@ -22,8 +22,7 @@ class AnalysisToolsHandler:
             # Try to import dependencies
             from app.services.field_mapper_modular import FieldMapperService
             from app.services.sixr_engine_modular import SixRDecisionEngine
-            from app.services.tech_debt_analysis_service import \
-                TechDebtAnalysisService
+            from app.services.tech_debt_analysis_service import TechDebtAnalysisService
 
             self.field_mapper = FieldMapperService()
             self.decision_engine = SixRDecisionEngine()

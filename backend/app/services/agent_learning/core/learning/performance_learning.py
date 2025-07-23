@@ -7,8 +7,10 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from app.services.agent_learning.models import (LearningContext,
-                                                PerformanceLearningPattern)
+from app.services.agent_learning.models import (
+    LearningContext,
+    PerformanceLearningPattern,
+)
 
 # Performance monitoring integration
 try:

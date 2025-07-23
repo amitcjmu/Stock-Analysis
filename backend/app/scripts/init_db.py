@@ -25,12 +25,28 @@ try:
     import numpy as np
 
     from app.core.database import AsyncSessionLocal, engine, init_db
-    from app.models.asset import (Asset, AssetStatus, AssetType, MigrationWave,
-                                  SixRStrategy)
-    from app.models.client_account import (ClientAccount, Engagement, User,
-                                           UserAccountAssociation)
-    from app.models.rbac import (AccessLevel, ClientAccess, EngagementAccess,
-                                 RoleType, UserProfile, UserRole, UserStatus)
+    from app.models.asset import (
+        Asset,
+        AssetStatus,
+        AssetType,
+        MigrationWave,
+        SixRStrategy,
+    )
+    from app.models.client_account import (
+        ClientAccount,
+        Engagement,
+        User,
+        UserAccountAssociation,
+    )
+    from app.models.rbac import (
+        AccessLevel,
+        ClientAccess,
+        EngagementAccess,
+        RoleType,
+        UserProfile,
+        UserRole,
+        UserStatus,
+    )
     from app.models.sixr_analysis import AnalysisStatus, SixRAnalysis
     from app.models.tags import AssetEmbedding, AssetTag, Tag
 

@@ -16,6 +16,7 @@ from app.repositories.context_aware_repository import ContextAwareRepository
 
 # Import command handlers
 from .commands import AssetCommands, FlowCommands
+
 # Import query handlers
 from .queries import AnalyticsQueries, AssetQueries, FlowQueries
 

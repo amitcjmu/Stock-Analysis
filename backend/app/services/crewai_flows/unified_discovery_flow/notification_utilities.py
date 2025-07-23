@@ -234,8 +234,9 @@ class NotificationUtilities:
         try:
             if hasattr(self.flow, "flow_bridge") and self.flow.flow_bridge:
                 from app.core.database import AsyncSessionLocal
-                from app.services.crewai_flows.persistence.postgres_store import \
-                    PostgresFlowStateStore
+                from app.services.crewai_flows.persistence.postgres_store import (
+                    PostgresFlowStateStore,
+                )
 
                 async with AsyncSessionLocal() as db:
                     store = PostgresFlowStateStore(db, self.flow.context)

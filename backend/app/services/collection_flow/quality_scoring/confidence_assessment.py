@@ -12,8 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 
-from .constants import (CONFIDENCE_WEIGHTS, PLATFORM_CONFIDENCE,
-                        SOURCE_RELIABILITY, TIER_CONFIDENCE)
+from .constants import (
+    CONFIDENCE_WEIGHTS,
+    PLATFORM_CONFIDENCE,
+    SOURCE_RELIABILITY,
+    TIER_CONFIDENCE,
+)
 from .enums import ConfidenceLevel
 from .models import ConfidenceScore, QualityScore
 

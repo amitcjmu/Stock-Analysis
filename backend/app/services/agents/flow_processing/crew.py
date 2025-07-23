@@ -10,11 +10,22 @@ from typing import Any, Dict, List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .crewai_imports import (CREWAI_AVAILABLE, LLM_AVAILABLE, Agent, Crew,
-                             Process, Task, get_crewai_llm)
+from .crewai_imports import (
+    CREWAI_AVAILABLE,
+    LLM_AVAILABLE,
+    Agent,
+    Crew,
+    Process,
+    Task,
+    get_crewai_llm,
+)
 from .models import FlowContinuationResult, RouteDecision
-from .tools import (FlowStateAnalysisTool, FlowValidationTool,
-                    PhaseValidationTool, RouteDecisionTool)
+from .tools import (
+    FlowStateAnalysisTool,
+    FlowValidationTool,
+    PhaseValidationTool,
+    RouteDecisionTool,
+)
 
 logger = logging.getLogger(__name__)
 

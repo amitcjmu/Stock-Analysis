@@ -12,9 +12,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext
 from app.core.flow_state_validator import FlowStateValidator
 
-from .persistence.postgres_store import (ConcurrentModificationError,
-                                         PostgresFlowStateStore,
-                                         StateValidationError)
+from .persistence.postgres_store import (
+    ConcurrentModificationError,
+    PostgresFlowStateStore,
+    StateValidationError,
+)
 from .persistence.state_recovery import FlowStateRecovery, StateRecoveryError
 
 logger = logging.getLogger(__name__)
@@ -118,8 +120,9 @@ class FlowStateManager:
             )
 
             # First, determine flow type to get appropriate child flow
-            from app.repositories.crewai_flow_state_extensions_repository import \
-                CrewAIFlowStateExtensionsRepository
+            from app.repositories.crewai_flow_state_extensions_repository import (
+                CrewAIFlowStateExtensionsRepository,
+            )
 
             master_repo = CrewAIFlowStateExtensionsRepository(
                 self.db,
@@ -135,8 +138,9 @@ class FlowStateManager:
 
             # Get child flow based on type (assuming discovery for now)
             if master_flow.flow_type == "discovery":
-                from app.repositories.discovery_flow_repository import \
-                    DiscoveryFlowRepository
+                from app.repositories.discovery_flow_repository import (
+                    DiscoveryFlowRepository,
+                )
 
                 child_repo = DiscoveryFlowRepository(
                     self.db,

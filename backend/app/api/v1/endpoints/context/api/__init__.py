@@ -7,6 +7,7 @@ Combines all context-related routes into a single router.
 from fastapi import APIRouter
 
 from .admin_routes import router as admin_router
+
 # Import individual routers
 from .client_routes import router as client_router
 from .demo_routes import router as demo_router

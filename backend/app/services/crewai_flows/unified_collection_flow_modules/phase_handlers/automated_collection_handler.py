@@ -8,13 +8,18 @@ import logging
 from datetime import datetime
 from typing import Any, Dict
 
-from app.models.collection_flow import (CollectionFlowError,
-                                        CollectionFlowState, CollectionPhase,
-                                        CollectionStatus)
-from app.services.crewai_flows.handlers.enhanced_error_handler import \
-    enhanced_error_handler
-from app.services.crewai_flows.unified_collection_flow_modules.flow_utilities import \
-    get_available_adapters
+from app.models.collection_flow import (
+    CollectionFlowError,
+    CollectionFlowState,
+    CollectionPhase,
+    CollectionStatus,
+)
+from app.services.crewai_flows.handlers.enhanced_error_handler import (
+    enhanced_error_handler,
+)
+from app.services.crewai_flows.unified_collection_flow_modules.flow_utilities import (
+    get_available_adapters,
+)
 from app.services.crewai_flows.utils.retry_utils import retry_with_backoff
 
 logger = logging.getLogger(__name__)
@@ -51,8 +56,9 @@ class AutomatedCollectionHandler:
             )
 
             # Create automated collection crew
-            from app.services.crewai_flows.crews.collection.automated_collection_crew import \
-                create_automated_collection_crew
+            from app.services.crewai_flows.crews.collection.automated_collection_crew import (
+                create_automated_collection_crew,
+            )
 
             crew = create_automated_collection_crew(
                 crewai_service=self.crewai_service,

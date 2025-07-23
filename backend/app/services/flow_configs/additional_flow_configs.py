@@ -5,8 +5,12 @@ MFO-049 through MFO-054: Planning, Execution, Modernize, FinOps, Observability, 
 Contains configurations for all remaining flow types.
 """
 
-from app.services.flow_type_registry import (FlowCapabilities, FlowTypeConfig,
-                                             PhaseConfig, RetryConfig)
+from app.services.flow_type_registry import (
+    FlowCapabilities,
+    FlowTypeConfig,
+    PhaseConfig,
+    RetryConfig,
+)
 
 
 def get_planning_flow_config() -> FlowTypeConfig:

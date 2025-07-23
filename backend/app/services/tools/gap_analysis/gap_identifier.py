@@ -8,8 +8,13 @@ from typing import Any, Dict, List, Optional
 from app.services.tools.base_tool import AsyncBaseDiscoveryTool
 from app.services.tools.registry import ToolMetadata
 
-from .constants import (ATTRIBUTE_CATEGORIES, DIFFICULTY_MAP, PRIORITY_MAP,
-                        SOURCE_MAP, STRATEGY_REQUIREMENTS)
+from .constants import (
+    ATTRIBUTE_CATEGORIES,
+    DIFFICULTY_MAP,
+    PRIORITY_MAP,
+    SOURCE_MAP,
+    STRATEGY_REQUIREMENTS,
+)
 
 logger = logging.getLogger(__name__)
 

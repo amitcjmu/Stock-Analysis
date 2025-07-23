@@ -16,14 +16,17 @@ from app.core.database import AsyncSessionLocal
 from app.core.exceptions import FlowError
 from app.core.logging import get_logger
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from app.repositories.crewai_flow_state_extensions_repository import \
-    CrewAIFlowStateExtensionsRepository
+from app.repositories.crewai_flow_state_extensions_repository import (
+    CrewAIFlowStateExtensionsRepository,
+)
 from app.services.flow_error_handler import ErrorContext, RetryConfig
-from app.services.flow_orchestration import (FlowAuditLogger, FlowErrorHandler,
-                                             FlowExecutionEngine,
-                                             FlowLifecycleManager)
-from app.services.flow_orchestration.audit_logger import (AuditCategory,
-                                                          AuditLevel)
+from app.services.flow_orchestration import (
+    FlowAuditLogger,
+    FlowErrorHandler,
+    FlowExecutionEngine,
+    FlowLifecycleManager,
+)
+from app.services.flow_orchestration.audit_logger import AuditCategory, AuditLevel
 
 from .enums import FlowOperationType
 from .mock_monitor import MockFlowPerformanceMonitor
@@ -325,8 +328,7 @@ class FlowOperations:
             master_flow = await self.master_repo.get_by_flow_id(flow_id)
             if master_flow and master_flow.flow_type == "discovery":
                 try:
-                    from app.services.crewai_flow_service import \
-                        CrewAIFlowService
+                    from app.services.crewai_flow_service import CrewAIFlowService
 
                     crewai_service = CrewAIFlowService(self.db)
 

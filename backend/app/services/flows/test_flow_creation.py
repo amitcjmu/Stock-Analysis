@@ -16,8 +16,10 @@ async def test_flow_creation():
     try:
         from app.core.context import RequestContext
         from app.core.database import AsyncSessionLocal
-        from app.services.flows.discovery_flow import (DiscoveryFlowState,
-                                                       UnifiedDiscoveryFlow)
+        from app.services.flows.discovery_flow import (
+            DiscoveryFlowState,
+            UnifiedDiscoveryFlow,
+        )
 
         logger.info("🧪 Testing Phase 2 Flow Creation")
 
@@ -165,8 +167,10 @@ async def test_decorators():
 async def test_crew_factory():
     """Test crew factory integration"""
     try:
-        from app.services.flows.discovery_flow import (CREW_FACTORY_AVAILABLE,
-                                                       CrewFactory)
+        from app.services.flows.discovery_flow import (
+            CREW_FACTORY_AVAILABLE,
+            CrewFactory,
+        )
 
         logger.info("🧪 Testing Crew Factory Integration")
 

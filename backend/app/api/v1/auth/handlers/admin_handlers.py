@@ -13,11 +13,9 @@ from app.api.v1.auth.auth_utils import get_current_user
 from app.core.database import get_db
 from app.models.client_account import User
 from app.schemas.auth_schemas import UserRegistrationResponse
-from app.services.auth_services.admin_operations_service import \
-    AdminOperationsService
+from app.services.auth_services.admin_operations_service import AdminOperationsService
 from app.services.auth_services.rbac_core_service import RBACCoreService
-from app.services.auth_services.user_management_service import \
-    UserManagementService
+from app.services.auth_services.user_management_service import UserManagementService
 
 logger = logging.getLogger(__name__)
 

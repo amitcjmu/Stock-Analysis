@@ -10,8 +10,12 @@ Built by: Agent Team B2 (AI Analysis & Intelligence)
 import logging
 from typing import Any, Dict, List
 
-from .enums import (BusinessDomain, MigrationDriverType, OrganizationSize,
-                    StakeholderRole)
+from .enums import (
+    BusinessDomain,
+    MigrationDriverType,
+    OrganizationSize,
+    StakeholderRole,
+)
 
 logger = logging.getLogger(__name__)
 

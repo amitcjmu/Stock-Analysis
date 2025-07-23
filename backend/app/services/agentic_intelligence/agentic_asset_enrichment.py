@@ -26,6 +26,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from app.services.agentic_memory import ThreeTierMemoryManager
 
 from .agent_reasoning_patterns import AgentReasoningEngine
+
 # Import agentic intelligence modules
 from .business_value_agent import BusinessValueAgent
 from .modernization_agent import ModernizationAgent

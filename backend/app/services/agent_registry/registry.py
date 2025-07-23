@@ -8,11 +8,17 @@ import logging
 from typing import Any, Dict
 
 from .lifecycle_manager import AgentLifecycleManager
-from .phase_agents import (AssessmentAgentManager, DecommissionAgentManager,
-                           DiscoveryAgentManager, FinOpsAgentManager,
-                           LearningContextAgentManager, MigrationAgentManager,
-                           ModernizationAgentManager,
-                           ObservabilityAgentManager, PlanningAgentManager)
+from .phase_agents import (
+    AssessmentAgentManager,
+    DecommissionAgentManager,
+    DiscoveryAgentManager,
+    FinOpsAgentManager,
+    LearningContextAgentManager,
+    MigrationAgentManager,
+    ModernizationAgentManager,
+    ObservabilityAgentManager,
+    PlanningAgentManager,
+)
 from .registry_core import AgentRegistryCore
 
 logger = logging.getLogger(__name__)

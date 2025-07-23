@@ -10,8 +10,7 @@ from sqlalchemy import and_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.assessment_flow import AssessmentFlow
-from app.models.assessment_flow_state import (AssessmentFlowStatus,
-                                              AssessmentPhase)
+from app.models.assessment_flow_state import AssessmentFlowStatus, AssessmentPhase
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +45,9 @@ class FlowCommands:
         await self.db.refresh(flow_record)
 
         # Register with master flow system
-        from app.repositories.crewai_flow_state_extensions_repository import \
-            CrewAIFlowStateExtensionsRepository
+        from app.repositories.crewai_flow_state_extensions_repository import (
+            CrewAIFlowStateExtensionsRepository,
+        )
 
         try:
             extensions_repo = CrewAIFlowStateExtensionsRepository(

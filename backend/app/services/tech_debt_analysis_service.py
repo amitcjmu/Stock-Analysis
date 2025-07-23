@@ -6,9 +6,13 @@ Refactored to use a modular handler architecture.
 import logging
 from typing import Any, Dict, List, Optional
 
-from .tech_debt_handlers import (AppAnalysisHandler, InfraAnalysisHandler,
-                                 OSAnalysisHandler, RiskAssessmentHandler,
-                                 SecurityAnalysisHandler)
+from .tech_debt_handlers import (
+    AppAnalysisHandler,
+    InfraAnalysisHandler,
+    OSAnalysisHandler,
+    RiskAssessmentHandler,
+    SecurityAnalysisHandler,
+)
 
 logger = logging.getLogger(__name__)
 

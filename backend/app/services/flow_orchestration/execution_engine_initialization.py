@@ -13,8 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext
 from app.core.logging import get_logger
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
-from app.repositories.crewai_flow_state_extensions_repository import \
-    CrewAIFlowStateExtensionsRepository
+from app.repositories.crewai_flow_state_extensions_repository import (
+    CrewAIFlowStateExtensionsRepository,
+)
 from app.services.flow_type_registry import FlowTypeRegistry
 from app.services.handler_registry import HandlerRegistry
 from app.services.validator_registry import ValidatorRegistry
@@ -132,8 +133,9 @@ class FlowInitializer:
 
             # Import discovery flow components
             from app.services.crewai_flow_service import CrewAIFlowService
-            from app.services.crewai_flows.unified_discovery_flow import \
-                create_unified_discovery_flow
+            from app.services.crewai_flows.unified_discovery_flow import (
+                create_unified_discovery_flow,
+            )
 
             # Create CrewAI service
             crewai_service = CrewAIFlowService(self.db)
@@ -216,8 +218,9 @@ class FlowInitializer:
 
             # Import required modules
             from app.services.crewai_flow_service import CrewAIFlowService
-            from app.services.crewai_flows.unified_collection_flow import \
-                create_unified_collection_flow
+            from app.services.crewai_flows.unified_collection_flow import (
+                create_unified_collection_flow,
+            )
 
             # Create CrewAI service
             crewai_service = CrewAIFlowService(self.db)
@@ -273,8 +276,9 @@ class FlowInitializer:
     ):
         """Create discovery flow record in database"""
         try:
-            from app.repositories.unified_discovery_flow_state_repository import \
-                UnifiedDiscoveryFlowStateRepository
+            from app.repositories.unified_discovery_flow_state_repository import (
+                UnifiedDiscoveryFlowStateRepository,
+            )
 
             # Create repository
             discovery_repo = UnifiedDiscoveryFlowStateRepository(self.db)

@@ -16,8 +16,13 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from .adaptive_form_service import (AdaptiveForm, ConditionalDisplayRule,
-                                    FieldType, FormField, ValidationRule)
+from .adaptive_form_service import (
+    AdaptiveForm,
+    ConditionalDisplayRule,
+    FieldType,
+    FormField,
+    ValidationRule,
+)
 
 
 class ValidationResult(str, Enum):

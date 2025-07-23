@@ -15,10 +15,13 @@ Migration guide:
 """
 
 # Re-export everything from the modular structure for backward compatibility
-from app.services.agent_learning import (AgentLearningSystem,
-                                         ContextScopedAgentLearning,
-                                         LearningContext, LearningPattern,
-                                         PerformanceLearningPattern)
+from app.services.agent_learning import (
+    AgentLearningSystem,
+    ContextScopedAgentLearning,
+    LearningContext,
+    LearningPattern,
+    PerformanceLearningPattern,
+)
 
 # Create global instance for backward compatibility
 agent_learning_system = ContextScopedAgentLearning()

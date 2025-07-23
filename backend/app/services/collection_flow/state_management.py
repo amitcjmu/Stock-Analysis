@@ -15,8 +15,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
-from app.models.collection_flow import (AutomationTier, CollectionFlow,
-                                        CollectionFlowStatus)
+from app.models.collection_flow import (
+    AutomationTier,
+    CollectionFlow,
+    CollectionFlowStatus,
+)
 
 logger = logging.getLogger(__name__)
 

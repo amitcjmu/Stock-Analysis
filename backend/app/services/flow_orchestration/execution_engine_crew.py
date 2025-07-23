@@ -12,8 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext
 from app.core.logging import get_logger
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from app.repositories.crewai_flow_state_extensions_repository import \
-    CrewAIFlowStateExtensionsRepository
+from app.repositories.crewai_flow_state_extensions_repository import (
+    CrewAIFlowStateExtensionsRepository,
+)
 from app.services.flow_type_registry import FlowTypeRegistry
 from app.services.handler_registry import HandlerRegistry
 from app.services.validator_registry import ValidatorRegistry
@@ -300,8 +301,9 @@ class FlowCrewExecutor:
             logger.info(f"🤖 Creating crew using factory: {crew_factory_name}")
 
             if crew_factory_name == "create_platform_detection_crew":
-                from app.services.crewai_flows.crews.collection import \
-                    create_platform_detection_crew
+                from app.services.crewai_flows.crews.collection import (
+                    create_platform_detection_crew,
+                )
 
                 crew = create_platform_detection_crew(
                     crewai_service=crewai_service,
@@ -317,8 +319,9 @@ class FlowCrewExecutor:
                     ),
                 )
             elif crew_factory_name == "create_automated_collection_crew":
-                from app.services.crewai_flows.crews.collection import \
-                    create_automated_collection_crew
+                from app.services.crewai_flows.crews.collection import (
+                    create_automated_collection_crew,
+                )
 
                 crew = create_automated_collection_crew(
                     crewai_service=crewai_service,
@@ -330,8 +333,9 @@ class FlowCrewExecutor:
                     available_adapters=["aws", "azure", "gcp", "vmware", "kubernetes"],
                 )
             elif crew_factory_name == "create_gap_analysis_crew":
-                from app.services.crewai_flows.crews.collection import \
-                    create_gap_analysis_crew
+                from app.services.crewai_flows.crews.collection import (
+                    create_gap_analysis_crew,
+                )
 
                 crew = create_gap_analysis_crew(
                     crewai_service=crewai_service,
@@ -347,8 +351,9 @@ class FlowCrewExecutor:
                     ),
                 )
             elif crew_factory_name == "create_manual_collection_crew":
-                from app.services.crewai_flows.crews.collection import \
-                    create_manual_collection_crew
+                from app.services.crewai_flows.crews.collection import (
+                    create_manual_collection_crew,
+                )
 
                 crew = create_manual_collection_crew(
                     crewai_service=crewai_service,
@@ -362,8 +367,9 @@ class FlowCrewExecutor:
                     questionnaire_templates=crew_inputs.get("templates", {}),
                 )
             elif crew_factory_name == "create_data_synthesis_crew":
-                from app.services.crewai_flows.crews.collection import \
-                    create_data_synthesis_crew
+                from app.services.crewai_flows.crews.collection import (
+                    create_data_synthesis_crew,
+                )
 
                 crew = create_data_synthesis_crew(
                     crewai_service=crewai_service,

@@ -12,13 +12,20 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.exceptions import (NotFoundException, PermissionDeniedException,
-                                 ValidationException)
-from app.models.platform_credentials import (CredentialAccessLog,
-                                             CredentialPermission,
-                                             CredentialRotationHistory,
-                                             CredentialStatus, CredentialType,
-                                             PlatformCredential, VaultProvider)
+from app.core.exceptions import (
+    NotFoundException,
+    PermissionDeniedException,
+    ValidationException,
+)
+from app.models.platform_credentials import (
+    CredentialAccessLog,
+    CredentialPermission,
+    CredentialRotationHistory,
+    CredentialStatus,
+    CredentialType,
+    PlatformCredential,
+    VaultProvider,
+)
 from app.models.security_audit import SecurityAuditLog
 from app.utils.encryption_utils import decrypt_credential, encrypt_credential
 from app.utils.security_utils import InputSanitizer

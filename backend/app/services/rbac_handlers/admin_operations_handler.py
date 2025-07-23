@@ -14,8 +14,15 @@ from .base_handler import BaseRBACHandler
 
 # Import RBAC models with fallback
 try:
-    from app.models.rbac import (AccessLevel, ClientAccess, EngagementAccess,
-                                 RoleType, UserProfile, UserRole, UserStatus)
+    from app.models.rbac import (
+        AccessLevel,
+        ClientAccess,
+        EngagementAccess,
+        RoleType,
+        UserProfile,
+        UserRole,
+        UserStatus,
+    )
 
     RBAC_MODELS_AVAILABLE = True
 except ImportError:
@@ -359,16 +366,14 @@ class AdminOperationsHandler(BaseRBACHandler):
                 try:
                     if operation == "approve":
                         # Use the user management handler for approval
-                        from .user_management_handler import \
-                            UserManagementHandler
+                        from .user_management_handler import UserManagementHandler
 
                         user_mgmt = UserManagementHandler(self.db)
                         result = await user_mgmt.approve_user(
                             user_id, admin_user_id, operation_data or {}
                         )
                     elif operation == "reject":
-                        from .user_management_handler import \
-                            UserManagementHandler
+                        from .user_management_handler import UserManagementHandler
 
                         user_mgmt = UserManagementHandler(self.db)
                         result = await user_mgmt.reject_user(
@@ -377,8 +382,7 @@ class AdminOperationsHandler(BaseRBACHandler):
                             operation_data.get("reason", "Bulk rejection"),
                         )
                     elif operation == "deactivate":
-                        from .user_management_handler import \
-                            UserManagementHandler
+                        from .user_management_handler import UserManagementHandler
 
                         user_mgmt = UserManagementHandler(self.db)
                         result = await user_mgmt.deactivate_user(

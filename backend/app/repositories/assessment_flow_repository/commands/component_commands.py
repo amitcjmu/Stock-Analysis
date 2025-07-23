@@ -8,12 +8,17 @@ from typing import List
 from sqlalchemy import and_, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.assessment_flow import (ApplicationComponent,
-                                        ComponentTreatment, TechDebtAnalysis)
-from app.models.assessment_flow_state import \
-    ApplicationComponent as ApplicationComponentState
-from app.models.assessment_flow_state import \
-    ComponentTreatment as ComponentTreatmentState
+from app.models.assessment_flow import (
+    ApplicationComponent,
+    ComponentTreatment,
+    TechDebtAnalysis,
+)
+from app.models.assessment_flow_state import (
+    ApplicationComponent as ApplicationComponentState,
+)
+from app.models.assessment_flow_state import (
+    ComponentTreatment as ComponentTreatmentState,
+)
 from app.models.assessment_flow_state import TechDebtItem
 
 logger = logging.getLogger(__name__)

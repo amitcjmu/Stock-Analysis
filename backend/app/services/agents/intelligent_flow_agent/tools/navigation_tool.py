@@ -28,7 +28,11 @@ except ImportError:
 
 
 from app.knowledge_bases.flow_intelligence_knowledge import (
-    FlowType, get_navigation_path, get_next_phase, get_user_actions)
+    FlowType,
+    get_navigation_path,
+    get_next_phase,
+    get_user_actions,
+)
 
 logger = logging.getLogger(__name__)
 

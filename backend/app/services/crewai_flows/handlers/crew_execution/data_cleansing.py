@@ -23,8 +23,9 @@ class DataCleansingExecutor(CrewExecutionBase):
         try:
             # Execute enhanced Data Cleansing Crew
             try:
-                from app.services.crewai_flows.crews.data_cleansing_crew import \
-                    create_data_cleansing_crew
+                from app.services.crewai_flows.crews.data_cleansing_crew import (
+                    create_data_cleansing_crew,
+                )
 
                 # Pass shared memory and field mappings
                 shared_memory = getattr(state, "shared_memory_reference", None)

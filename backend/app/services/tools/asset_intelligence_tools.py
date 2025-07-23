@@ -57,8 +57,7 @@ if CREWAI_TOOLS_AVAILABLE:
             """Get field mapper service instance when needed."""
             if not self.field_mapper:
                 try:
-                    from app.services.field_mapper_modular import \
-                        FieldMapperService
+                    from app.services.field_mapper_modular import FieldMapperService
 
                     self.field_mapper = FieldMapperService()
                 except ImportError:
@@ -312,8 +311,7 @@ if CREWAI_TOOLS_AVAILABLE:
             """Get field mapper service instance when needed."""
             if not self.field_mapper:
                 try:
-                    from app.services.field_mapper_modular import \
-                        FieldMapperService
+                    from app.services.field_mapper_modular import FieldMapperService
 
                     self.field_mapper = FieldMapperService()
                 except ImportError:
@@ -420,8 +418,7 @@ else:
             """Get field mapper service instance when needed."""
             if not self.field_mapper:
                 try:
-                    from app.services.field_mapper_modular import \
-                        FieldMapperService
+                    from app.services.field_mapper_modular import FieldMapperService
 
                     self.field_mapper = FieldMapperService()
                 except ImportError:
@@ -449,8 +446,7 @@ else:
             """Get field mapper service instance when needed."""
             if not self.field_mapper:
                 try:
-                    from app.services.field_mapper_modular import \
-                        FieldMapperService
+                    from app.services.field_mapper_modular import FieldMapperService
 
                     self.field_mapper = FieldMapperService()
                 except ImportError:

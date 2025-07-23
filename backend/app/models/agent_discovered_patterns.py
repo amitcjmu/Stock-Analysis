@@ -8,9 +8,19 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict
 
-from sqlalchemy import (DECIMAL, Boolean, CheckConstraint, Column, DateTime,
-                        ForeignKey, Integer, String, Text, UniqueConstraint,
-                        func)
+from sqlalchemy import (
+    DECIMAL,
+    Boolean,
+    CheckConstraint,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text

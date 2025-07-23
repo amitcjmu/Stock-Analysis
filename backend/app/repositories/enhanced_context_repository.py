@@ -19,8 +19,7 @@ ModelType = TypeVar("ModelType")
 # Import enhanced RBAC models
 try:
     from app.models.client_account import ClientAccount, Engagement
-    from app.models.rbac_enhanced import (DataScope, EnhancedUserProfile,
-                                          RoleLevel)
+    from app.models.rbac_enhanced import DataScope, EnhancedUserProfile, RoleLevel
 
     ENHANCED_RBAC_AVAILABLE = True
 except ImportError:

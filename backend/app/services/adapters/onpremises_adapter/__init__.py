@@ -5,9 +5,9 @@ This package provides modular components for on-premises infrastructure discover
 """
 
 from app.models.collection_flow import AutomationTier
+
 # Re-export metadata for backward compatibility
-from app.services.collection_flow.adapters import (AdapterCapability,
-                                                   AdapterMetadata)
+from app.services.collection_flow.adapters import AdapterCapability, AdapterMetadata
 
 from .adapter import OnPremisesAdapter
 from .models import DiscoveredHost, OnPremisesCredentials

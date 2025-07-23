@@ -16,10 +16,10 @@ CREWAI_AVAILABLE = bool(
 )
 
 try:
-    from app.services.crewai_flows.crews.inventory_building_crew import \
-        create_inventory_building_crew
-    from app.services.crewai_flows.data_cleansing_crew import \
-        create_data_cleansing_crew
+    from app.services.crewai_flows.crews.inventory_building_crew import (
+        create_inventory_building_crew,
+    )
+    from app.services.crewai_flows.data_cleansing_crew import create_data_cleansing_crew
 
     CREWS_AVAILABLE = True
 except ImportError:

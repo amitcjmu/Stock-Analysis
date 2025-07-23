@@ -33,8 +33,9 @@ class FieldMappingExecutor(CrewExecutionBase):
                 logger.warning(
                     "⚠️ BYPASS_CREWAI_FOR_FIELD_MAPPING is enabled, using simple field mapper"
                 )
-                from app.services.crewai_flows.crews.simple_field_mapper import \
-                    get_simple_field_mappings
+                from app.services.crewai_flows.crews.simple_field_mapper import (
+                    get_simple_field_mappings,
+                )
 
                 field_mapping_result = get_simple_field_mappings(state.raw_data)
                 field_mappings = field_mapping_result.get("mappings", {})
@@ -58,8 +59,9 @@ class FieldMappingExecutor(CrewExecutionBase):
 
             # Execute enhanced Field Mapping Crew with shared memory
             try:
-                from app.services.crewai_flows.crews.field_mapping_crew import \
-                    create_field_mapping_crew
+                from app.services.crewai_flows.crews.field_mapping_crew import (
+                    create_field_mapping_crew,
+                )
 
                 # Pass shared memory and knowledge base if available
                 shared_memory = getattr(state, "shared_memory_reference", None)
@@ -88,8 +90,9 @@ class FieldMappingExecutor(CrewExecutionBase):
                     )
 
                     # Use simple field mapper that doesn't use LLMs
-                    from app.services.crewai_flows.crews.simple_field_mapper import \
-                        get_simple_field_mappings
+                    from app.services.crewai_flows.crews.simple_field_mapper import (
+                        get_simple_field_mappings,
+                    )
 
                     field_mapping_result = get_simple_field_mappings(state.raw_data)
                     field_mappings = field_mapping_result.get("mappings", {})

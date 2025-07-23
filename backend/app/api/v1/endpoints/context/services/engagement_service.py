@@ -14,8 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.client_account import Engagement
 from app.models.rbac import ClientAccess
 
-from ..models.context_schemas import (EngagementResponse,
-                                      EngagementsListResponse)
+from ..models.context_schemas import EngagementResponse, EngagementsListResponse
 
 logger = logging.getLogger(__name__)
 

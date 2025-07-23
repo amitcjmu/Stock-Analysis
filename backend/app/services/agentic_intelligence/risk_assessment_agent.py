@@ -25,10 +25,13 @@ from crewai import Agent, Crew, Process, Task
 
 # Internal imports
 from app.services.agentic_intelligence.agent_reasoning_patterns import (
-    AgentReasoning, AgentReasoningEngine)
+    AgentReasoning,
+    AgentReasoningEngine,
+)
 from app.services.agentic_memory import ThreeTierMemoryManager
-from app.services.agentic_memory.agent_tools_functional import \
-    create_functional_agent_tools
+from app.services.agentic_memory.agent_tools_functional import (
+    create_functional_agent_tools,
+)
 
 logger = logging.getLogger(__name__)
 

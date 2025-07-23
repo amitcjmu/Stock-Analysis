@@ -21,21 +21,28 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext
 from app.core.exceptions import FlowError, InvalidFlowStateError
 from app.core.logging import get_logger
-from app.services.ai_analysis import (BusinessContextAnalyzer,
-                                      GapAnalysisAgent, LearningOptimizer)
+from app.services.ai_analysis import (
+    BusinessContextAnalyzer,
+    GapAnalysisAgent,
+    LearningOptimizer,
+)
+
 # Import Phase 1 & 2 components
-from app.services.collection_flow import (CollectionFlowStateService,
-                                          TierDetectionService)
+from app.services.collection_flow import (
+    CollectionFlowStateService,
+    TierDetectionService,
+)
+
 # Import flow registry components
 from app.services.flow_type_registry import flow_type_registry
 from app.services.handler_registry import handler_registry
+
 # Import Master Flow Orchestrator for integration
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 from app.services.validator_registry import validator_registry
 
 # Import Collection Phase Engine
-from .collection_phase_engine import (AutomationTier,
-                                      CollectionPhaseExecutionEngine)
+from .collection_phase_engine import AutomationTier, CollectionPhaseExecutionEngine
 
 logger = get_logger(__name__)
 

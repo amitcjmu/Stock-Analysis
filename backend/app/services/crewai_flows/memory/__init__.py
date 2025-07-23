@@ -1,8 +1,11 @@
 """CrewAI Memory Management Module"""
 
 try:
-    from .tenant_memory_manager import (LearningScope, MemoryIsolationLevel,
-                                        TenantMemoryManager)
+    from .tenant_memory_manager import (
+        LearningScope,
+        MemoryIsolationLevel,
+        TenantMemoryManager,
+    )
 
     MEMORY_MANAGEMENT_AVAILABLE = True
 except ImportError:

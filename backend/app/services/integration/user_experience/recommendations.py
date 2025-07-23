@@ -7,8 +7,12 @@ Generates UX improvement recommendations based on analysis.
 import logging
 from typing import List
 
-from .base import (OptimizationContext, UserJourneyAnalytics,
-                   UXOptimizationArea, UXRecommendation)
+from .base import (
+    OptimizationContext,
+    UserJourneyAnalytics,
+    UXOptimizationArea,
+    UXRecommendation,
+)
 
 logger = logging.getLogger(__name__)
 

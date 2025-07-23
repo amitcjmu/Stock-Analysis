@@ -7,8 +7,11 @@ Supports both local development and Railway.app deployment.
 
 try:
     from sqlalchemy import event, text
-    from sqlalchemy.ext.asyncio import (AsyncSession, async_sessionmaker,
-                                        create_async_engine)
+    from sqlalchemy.ext.asyncio import (
+        AsyncSession,
+        async_sessionmaker,
+        create_async_engine,
+    )
     from sqlalchemy.ext.declarative import declarative_base
     from sqlalchemy.pool import NullPool, QueuePool
 

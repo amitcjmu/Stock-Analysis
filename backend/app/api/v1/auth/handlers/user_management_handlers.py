@@ -12,20 +12,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.auth.auth_utils import get_current_user
 from app.core.database import get_db
 from app.models.client_account import User
-from app.schemas.auth_schemas import (AccessValidationRequest,
-                                      AccessValidationResponse,
-                                      ClientAccessGrant,
-                                      ClientAccessGrantResponse, FilterParams,
-                                      PaginationParams,
-                                      PendingApprovalsResponse,
-                                      UserApprovalRequest,
-                                      UserApprovalResponse,
-                                      UserRegistrationRequest,
-                                      UserRegistrationResponse,
-                                      UserRejectionRequest,
-                                      UserRejectionResponse)
-from app.services.auth_services.user_management_service import \
-    UserManagementService
+from app.schemas.auth_schemas import (
+    AccessValidationRequest,
+    AccessValidationResponse,
+    ClientAccessGrant,
+    ClientAccessGrantResponse,
+    FilterParams,
+    PaginationParams,
+    PendingApprovalsResponse,
+    UserApprovalRequest,
+    UserApprovalResponse,
+    UserRegistrationRequest,
+    UserRegistrationResponse,
+    UserRejectionRequest,
+    UserRejectionResponse,
+)
+from app.services.auth_services.user_management_service import UserManagementService
 
 logger = logging.getLogger(__name__)
 

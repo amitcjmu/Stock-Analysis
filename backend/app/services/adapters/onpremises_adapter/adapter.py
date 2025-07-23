@@ -8,10 +8,12 @@ from typing import Any, Dict, List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.collection_flow.adapters import (AdapterMetadata,
-                                                   BaseAdapter,
-                                                   CollectionRequest,
-                                                   CollectionResponse)
+from app.services.collection_flow.adapters import (
+    AdapterMetadata,
+    BaseAdapter,
+    CollectionRequest,
+    CollectionResponse,
+)
 
 from .data_transformer import DataTransformer
 from .models import DiscoveredHost, OnPremisesCredentials

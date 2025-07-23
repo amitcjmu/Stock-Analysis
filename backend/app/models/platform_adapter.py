@@ -7,9 +7,8 @@ This model represents platform adapters for data collection.
 import uuid
 from enum import Enum
 
-from sqlalchemy import UUID, Column
+from sqlalchemy import UUID, Column, String, UniqueConstraint
 from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 

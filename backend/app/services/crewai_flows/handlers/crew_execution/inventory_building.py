@@ -25,8 +25,9 @@ class InventoryBuildingExecutor(CrewExecutionBase):
         try:
             # Execute enhanced Inventory Building Crew
             try:
-                from app.services.crewai_flows.crews.inventory_building_crew import \
-                    create_inventory_building_crew
+                from app.services.crewai_flows.crews.inventory_building_crew import (
+                    create_inventory_building_crew,
+                )
 
                 # Pass shared memory and cleaned data
                 shared_memory = getattr(state, "shared_memory_reference", None)

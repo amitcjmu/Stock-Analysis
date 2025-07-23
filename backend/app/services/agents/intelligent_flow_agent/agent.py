@@ -51,8 +51,12 @@ except ImportError:
 
 
 from .models import FlowIntelligenceResult
-from .tools import (FlowContextTool, FlowStatusTool, NavigationDecisionTool,
-                    PhaseValidationTool)
+from .tools import (
+    FlowContextTool,
+    FlowStatusTool,
+    NavigationDecisionTool,
+    PhaseValidationTool,
+)
 
 logger = logging.getLogger(__name__)
 

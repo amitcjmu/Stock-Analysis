@@ -9,12 +9,18 @@ import asyncio
 import logging
 from typing import Any, Dict
 
-from app.services.adapters import (AdapterConfiguration, EnhancedBaseAdapter,
-                                   PerformanceThresholds, RetryConfig,
-                                   adapter_manager)
-from app.services.collection_flow.adapters import (AdapterMetadata,
-                                                   CollectionRequest,
-                                                   CollectionResponse)
+from app.services.adapters import (
+    AdapterConfiguration,
+    EnhancedBaseAdapter,
+    PerformanceThresholds,
+    RetryConfig,
+    adapter_manager,
+)
+from app.services.collection_flow.adapters import (
+    AdapterMetadata,
+    CollectionRequest,
+    CollectionResponse,
+)
 
 
 class ExampleEnhancedAWSAdapter(EnhancedBaseAdapter):

@@ -13,8 +13,7 @@ logger = logging.getLogger(__name__)
 
 # CrewAI imports for advanced features
 try:
-    from crewai.knowledge import (JSONKnowledgeSource, Knowledge,
-                                  TextFileKnowledgeSource)
+    from crewai.knowledge import JSONKnowledgeSource, Knowledge, TextFileKnowledgeSource
     from crewai.memory import LongTermMemory
 
     CREWAI_ADVANCED_AVAILABLE = True

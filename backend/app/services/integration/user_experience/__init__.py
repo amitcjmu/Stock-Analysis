@@ -10,9 +10,15 @@ Generated with CC for modular backend architecture.
 # Core types and enums
 # Analysis and recommendations
 from .analyzer import UXAnalyzer
-from .base import (OptimizationContext, UserJourneyAnalytics, UXMetricType,
-                   UXOptimizationArea, UXRecommendation)
+from .base import (
+    OptimizationContext,
+    UserJourneyAnalytics,
+    UXMetricType,
+    UXOptimizationArea,
+    UXRecommendation,
+)
 from .optimization_manager import OptimizationManager
+
 # Main optimizer class
 from .optimizer import UserExperienceOptimizer
 from .recommendations import UXRecommendationEngine

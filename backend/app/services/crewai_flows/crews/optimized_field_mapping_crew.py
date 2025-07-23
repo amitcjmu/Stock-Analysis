@@ -13,8 +13,7 @@ from typing import Any, Dict, List, Optional
 
 from crewai import Agent, Process, Task
 
-from app.services.agent_learning_system import (LearningContext,
-                                                agent_learning_system)
+from app.services.agent_learning_system import LearningContext, agent_learning_system
 from app.services.enhanced_agent_memory import enhanced_agent_memory
 from app.services.performance.response_optimizer import optimize_response
 

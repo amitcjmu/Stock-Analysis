@@ -13,8 +13,12 @@ from app.core.database import get_db
 from app.core.database_timeout import get_db_for_asset_analysis
 from app.services.crewai_flow_service import CrewAIFlowService
 
-from .models import (AssetAnalysisRequest, AssetClassificationRequest,
-                     AssetFeedbackRequest, BulkUpdatePlanRequest)
+from .models import (
+    AssetAnalysisRequest,
+    AssetClassificationRequest,
+    AssetFeedbackRequest,
+    BulkUpdatePlanRequest,
+)
 from .utils import get_asset_data
 
 logger = logging.getLogger(__name__)
@@ -234,10 +238,12 @@ async def auto_classify_assets(
         }
 
         # Use real CrewAI inventory building crew for classification
-        from app.services.crewai_flows.crews.inventory_building_crew import \
-            InventoryBuildingCrew
-        from app.services.crewai_flows.handlers.unified_flow_crew_manager import \
-            UnifiedFlowCrewManager
+        from app.services.crewai_flows.crews.inventory_building_crew import (
+            InventoryBuildingCrew,
+        )
+        from app.services.crewai_flows.handlers.unified_flow_crew_manager import (
+            UnifiedFlowCrewManager,
+        )
 
         # Create crew manager and inventory crew
         UnifiedFlowCrewManager()

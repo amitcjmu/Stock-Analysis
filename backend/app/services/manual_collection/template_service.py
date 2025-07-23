@@ -16,8 +16,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID, uuid4
 
 from ..collection_flow.quality_scoring import QualityAssessmentService
-from .adaptive_form_service import (AdaptiveForm, FieldType, FormField,
-                                    FormSection)
+from .adaptive_form_service import AdaptiveForm, FieldType, FormField, FormSection
 
 
 class TemplateType(str, Enum):

@@ -87,9 +87,14 @@ class SixRStrategyCrew:
         # Import tools (will be implemented in separate task)
         try:
             from app.services.crewai_flows.tools.sixr_tools import (
-                BusinessValueCalculator, CompatibilityChecker,
-                ComponentAnalyzer, DependencyOptimizer, IntegrationAnalyzer,
-                MoveGroupAnalyzer, SixRDecisionEngine)
+                BusinessValueCalculator,
+                CompatibilityChecker,
+                ComponentAnalyzer,
+                DependencyOptimizer,
+                IntegrationAnalyzer,
+                MoveGroupAnalyzer,
+                SixRDecisionEngine,
+            )
 
             tools_available = True
         except ImportError:

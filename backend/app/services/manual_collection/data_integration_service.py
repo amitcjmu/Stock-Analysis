@@ -20,8 +20,10 @@ from uuid import UUID, uuid4
 import numpy as np
 
 from ..collection_flow.data_transformation import DataTransformationService
-from ..collection_flow.quality_scoring import (ConfidenceAssessmentService,
-                                               QualityAssessmentService)
+from ..collection_flow.quality_scoring import (
+    ConfidenceAssessmentService,
+    QualityAssessmentService,
+)
 from .validation_service import FormValidationResult
 
 

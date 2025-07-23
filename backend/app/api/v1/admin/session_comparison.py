@@ -42,8 +42,7 @@ async def get_flows_for_comparison(
     """Get flows available for comparison."""
     try:
         # Import here to avoid circular dependencies
-        from app.services.master_flow_orchestrator import \
-            MasterFlowOrchestrator
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
         # Initialize the orchestrator
         orchestrator = MasterFlowOrchestrator(db)
@@ -102,8 +101,7 @@ async def perform_flow_comparison(
             )
 
         # Import here to avoid circular dependencies
-        from app.services.master_flow_orchestrator import \
-            MasterFlowOrchestrator
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
         # Initialize the orchestrator
         orchestrator = MasterFlowOrchestrator(db)

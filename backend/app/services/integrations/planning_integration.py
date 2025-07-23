@@ -38,8 +38,9 @@ class PlanningFlowIntegration:
         """
         try:
             # Get assessment flow state
-            from app.repositories.assessment_flow_repository import \
-                AssessmentFlowRepository
+            from app.repositories.assessment_flow_repository import (
+                AssessmentFlowRepository,
+            )
 
             repository = AssessmentFlowRepository(db, client_account_id)
             flow_state = await repository.get_assessment_flow_state(flow_id)
@@ -279,8 +280,9 @@ class PlanningFlowIntegration:
         """
         try:
             # Get assessment flow state
-            from app.repositories.assessment_flow_repository import \
-                AssessmentFlowRepository
+            from app.repositories.assessment_flow_repository import (
+                AssessmentFlowRepository,
+            )
 
             repository = AssessmentFlowRepository(db, client_account_id)
             flow_state = await repository.get_assessment_flow_state(assessment_flow_id)

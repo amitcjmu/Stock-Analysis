@@ -3,8 +3,18 @@
 """
 
 try:
-    from sqlalchemy import (JSON, Boolean, Column, DateTime, Enum, Float,
-                            ForeignKey, Integer, String, Text)
+    from sqlalchemy import (
+        JSON,
+        Boolean,
+        Column,
+        DateTime,
+        Enum,
+        Float,
+        ForeignKey,
+        Integer,
+        String,
+        Text,
+    )
     from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
     from sqlalchemy.orm import relationship
     from sqlalchemy.sql import func
@@ -34,8 +44,7 @@ from typing import Any, Dict, List, Optional
 try:
     from app.core.database import Base
     from app.models.asset import SixRStrategy
-    from app.schemas.sixr_analysis import (AnalysisStatus, ApplicationType,
-                                           QuestionType)
+    from app.schemas.sixr_analysis import AnalysisStatus, ApplicationType, QuestionType
 except ImportError:
     Base = object
 

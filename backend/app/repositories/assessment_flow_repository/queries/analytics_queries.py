@@ -8,8 +8,12 @@ from typing import Any, Dict
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.assessment_flow import (ApplicationComponent, AssessmentFlow,
-                                        SixRDecision, TechDebtAnalysis)
+from app.models.assessment_flow import (
+    ApplicationComponent,
+    AssessmentFlow,
+    SixRDecision,
+    TechDebtAnalysis,
+)
 
 logger = logging.getLogger(__name__)
 

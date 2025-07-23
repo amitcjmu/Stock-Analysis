@@ -11,12 +11,16 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.context import (RequestContext, extract_context_from_request,
-                              get_current_context)
+from app.core.context import (
+    RequestContext,
+    extract_context_from_request,
+    get_current_context,
+)
 from app.core.database import get_db
 from app.core.logging import get_logger
 from app.middleware.error_tracking import track_async_errors
 from app.schemas.data_import_schemas import StoreImportRequest
+
 # Import the new modular service
 from app.services.data_import import ImportStorageHandler
 
@@ -202,8 +206,9 @@ async def get_import_data_by_flow_id(
 
             # Try to find data import directly using master flow ID
             # This handles cases where discovery flow record is missing but data exists
-            from app.models.crewai_flow_state_extensions import \
-                CrewAIFlowStateExtensions
+            from app.models.crewai_flow_state_extensions import (
+                CrewAIFlowStateExtensions,
+            )
             from app.models.data_import import DataImport
 
             # Get the database ID for this flow_id (FK references id, not flow_id)
@@ -262,8 +267,9 @@ async def get_import_data_by_flow_id(
 
             # Try to find data import directly using master flow ID
             # This handles cases where discovery flow exists but data_import_id is None
-            from app.models.crewai_flow_state_extensions import \
-                CrewAIFlowStateExtensions
+            from app.models.crewai_flow_state_extensions import (
+                CrewAIFlowStateExtensions,
+            )
             from app.models.data_import import DataImport
 
             # Get the database ID for this flow_id (FK references id, not flow_id)

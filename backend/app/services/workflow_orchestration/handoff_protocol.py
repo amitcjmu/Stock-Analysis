@@ -21,19 +21,26 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext
 from app.core.exceptions import FlowError, InvalidFlowStateError
 from app.core.logging import get_logger
+
 # Import AI analysis for validation
-from app.services.ai_analysis import (AIValidationService,
-                                      BusinessContextAnalyzer,
-                                      ConfidenceScoring)
+from app.services.ai_analysis import (
+    AIValidationService,
+    BusinessContextAnalyzer,
+    ConfidenceScoring,
+)
+
 # Import Collection Flow components
-from app.services.collection_flow import (AuditLoggingService,
-                                          CollectionFlowStateService,
-                                          DataTransformationService,
-                                          QualityAssessmentService)
+from app.services.collection_flow import (
+    AuditLoggingService,
+    CollectionFlowStateService,
+    DataTransformationService,
+    QualityAssessmentService,
+)
+
 # Import Discovery Flow integration
 from app.services.discovery_flow_service import DiscoveryFlowService
-from app.services.integrations.discovery_integration import \
-    DiscoveryIntegrationService
+from app.services.integrations.discovery_integration import DiscoveryIntegrationService
+
 # Import Master Flow Orchestrator for flow coordination
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 

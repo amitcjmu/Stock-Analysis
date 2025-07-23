@@ -10,12 +10,20 @@ Generated with CC for modular backend architecture.
 # Core registry components
 from .base import AgentPhase, AgentRegistration, AgentStatus
 from .lifecycle_manager import AgentLifecycleManager
+
 # Phase-specific agent groups
-from .phase_agents import (AssessmentAgentManager, DecommissionAgentManager,
-                           DiscoveryAgentManager, FinOpsAgentManager,
-                           LearningContextAgentManager, MigrationAgentManager,
-                           ModernizationAgentManager,
-                           ObservabilityAgentManager, PlanningAgentManager)
+from .phase_agents import (
+    AssessmentAgentManager,
+    DecommissionAgentManager,
+    DiscoveryAgentManager,
+    FinOpsAgentManager,
+    LearningContextAgentManager,
+    MigrationAgentManager,
+    ModernizationAgentManager,
+    ObservabilityAgentManager,
+    PlanningAgentManager,
+)
+
 # Main registry class
 from .registry import AgentRegistry
 from .registry_core import AgentRegistryCore

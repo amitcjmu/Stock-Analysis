@@ -6,8 +6,7 @@ Consolidates asset intelligence, classification, and workflow management.
 import logging
 from typing import Any, Dict
 
-from .asset_processing_handlers import (AssetValidationHandler,
-                                        AssetWorkflowHandler)
+from .asset_processing_handlers import AssetValidationHandler, AssetWorkflowHandler
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +20,9 @@ class AssetProcessingService:
 
     def _get_intelligence_handler(self):
         if self._intelligence_handler is None:
-            from .asset_processing_handlers.asset_intelligence_handler import \
-                AssetIntelligenceHandler
+            from .asset_processing_handlers.asset_intelligence_handler import (
+                AssetIntelligenceHandler,
+            )
 
             self._intelligence_handler = AssetIntelligenceHandler()
         return self._intelligence_handler

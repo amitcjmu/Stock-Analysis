@@ -27,8 +27,7 @@ except ImportError:
     CREWAI_AVAILABLE = False
 
 try:
-    from app.models.unified_discovery_flow_state import \
-        UnifiedDiscoveryFlowState
+    from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
     from app.services.agentic_memory import ThreeTierMemoryManager
     from app.services.agentic_memory.agent_tools import create_agent_tools
 

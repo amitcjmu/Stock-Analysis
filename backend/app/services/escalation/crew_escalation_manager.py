@@ -18,12 +18,15 @@ logger = logging.getLogger(__name__)
 
 # Import strategic crews from Phase 3
 try:
-    from ..crewai_flows.crews.asset_intelligence_crew import \
-        create_asset_intelligence_crew
-    from ..crewai_flows.crews.dependency_analysis_crew import \
-        create_dependency_analysis_crew
-    from ..crewai_flows.crews.tech_debt_analysis_crew import \
-        create_tech_debt_analysis_crew
+    from ..crewai_flows.crews.asset_intelligence_crew import (
+        create_asset_intelligence_crew,
+    )
+    from ..crewai_flows.crews.dependency_analysis_crew import (
+        create_dependency_analysis_crew,
+    )
+    from ..crewai_flows.crews.tech_debt_analysis_crew import (
+        create_tech_debt_analysis_crew,
+    )
 
     STRATEGIC_CREWS_AVAILABLE = True
 except ImportError:

@@ -4,9 +4,15 @@ Infrastructure abstractions for deployment flexibility.
 
 from .authentication import AuthenticationBackend
 from .credentials import CredentialManager
-from .deployment import (DeploymentConfig, DeploymentMode, ServiceDetector,
-                         ServiceFactory, get_deployment_config, get_service,
-                         get_service_factory)
+from .deployment import (
+    DeploymentConfig,
+    DeploymentMode,
+    ServiceDetector,
+    ServiceFactory,
+    get_deployment_config,
+    get_service,
+    get_service_factory,
+)
 from .telemetry import TelemetryService
 
 __all__ = [

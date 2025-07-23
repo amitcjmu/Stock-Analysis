@@ -12,8 +12,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from app.services.agent_learning_system import (LearningContext,
-                                                agent_learning_system)
+from app.services.agent_learning_system import LearningContext, agent_learning_system
 from app.services.agent_performance_monitor import agent_performance_monitor
 from app.services.enhanced_agent_memory import enhanced_agent_memory
 from app.services.llm_config import get_crewai_llm

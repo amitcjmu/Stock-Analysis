@@ -13,10 +13,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext
 from app.models.data_import import DataImport, RawImportRecord
 
-from ..models.attribute_schemas import (AnalysisStatistics,
-                                        AttributeAnalysisRequest,
-                                        AttributeAnalysisResponse,
-                                        AttributeSuggestion, CriticalAttribute)
+from ..models.attribute_schemas import (
+    AnalysisStatistics,
+    AttributeAnalysisRequest,
+    AttributeAnalysisResponse,
+    AttributeSuggestion,
+    CriticalAttribute,
+)
 from .agent_coordinator import AgentCoordinator
 
 logger = logging.getLogger(__name__)

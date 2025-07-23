@@ -116,8 +116,9 @@ if CREWAI_TOOLS_AVAILABLE:
                         return assets_to_check
 
                     # Get existing assets
-                    from app.repositories.discovery_flow_repository.queries.asset_queries import \
-                        AssetQueries
+                    from app.repositories.discovery_flow_repository.queries.asset_queries import (
+                        AssetQueries,
+                    )
 
                     asset_queries = AssetQueries(
                         db, context["client_account_id"], context["engagement_id"]

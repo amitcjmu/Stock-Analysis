@@ -115,8 +115,9 @@ class FlowFinalizer:
         try:
             from app.core.context import RequestContext
             from app.core.database import AsyncSessionLocal
-            from app.repositories.crewai_flow_state_extensions_repository import \
-                CrewAIFlowStateExtensionsRepository
+            from app.repositories.crewai_flow_state_extensions_repository import (
+                CrewAIFlowStateExtensionsRepository,
+            )
 
             async with AsyncSessionLocal() as db:
                 context = RequestContext(

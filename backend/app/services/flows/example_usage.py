@@ -86,8 +86,7 @@ async def example_flow_creation():
 async def example_event_monitoring():
     """Example: Monitoring flow events"""
     try:
-        from app.services.flows.events import (flow_event_bus,
-                                               publish_flow_event)
+        from app.services.flows.events import flow_event_bus, publish_flow_event
 
         logger.info("📝 Example: Event monitoring")
 

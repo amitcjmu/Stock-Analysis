@@ -89,8 +89,9 @@ class FlowStateAnalysisTool(BaseTool):
     ) -> dict:
         """Get real flow status with detailed analysis"""
         try:
-            from app.api.v1.discovery_handlers.flow_management import \
-                FlowManagementHandler
+            from app.api.v1.discovery_handlers.flow_management import (
+                FlowManagementHandler,
+            )
             from app.core.database import AsyncSessionLocal
 
             async with AsyncSessionLocal() as session:

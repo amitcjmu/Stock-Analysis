@@ -9,21 +9,29 @@ import logging
 from collections import defaultdict
 from typing import Any, Dict, List
 
-from .calculations import (assess_adaptation_success, assess_context_fit,
-                           assess_domain_optimization,
-                           assess_priority_performance,
-                           assess_size_effectiveness,
-                           calculate_adaptation_effectiveness,
-                           calculate_context_effectiveness,
-                           calculate_effectiveness_score,
-                           calculate_improvement_rate,
-                           calculate_resolution_effectiveness,
-                           calculate_temporal_effectiveness,
-                           calculate_trend_direction, calculate_variance,
-                           classify_clarity, classify_completion_tier,
-                           classify_effectiveness, classify_engagement_level,
-                           classify_performance, classify_success_tier,
-                           get_length_bucket, get_time_bucket)
+from .calculations import (
+    assess_adaptation_success,
+    assess_context_fit,
+    assess_domain_optimization,
+    assess_priority_performance,
+    assess_size_effectiveness,
+    calculate_adaptation_effectiveness,
+    calculate_context_effectiveness,
+    calculate_effectiveness_score,
+    calculate_improvement_rate,
+    calculate_resolution_effectiveness,
+    calculate_temporal_effectiveness,
+    calculate_trend_direction,
+    calculate_variance,
+    classify_clarity,
+    classify_completion_tier,
+    classify_effectiveness,
+    classify_engagement_level,
+    classify_performance,
+    classify_success_tier,
+    get_length_bucket,
+    get_time_bucket,
+)
 from .models import LearningEvent
 
 logger = logging.getLogger(__name__)

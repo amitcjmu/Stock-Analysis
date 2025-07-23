@@ -16,7 +16,9 @@ from app.core.database import get_db
 # Import the REAL single intelligent CrewAI agent
 try:
     from app.services.agents.intelligent_flow_agent import (
-        FlowIntelligenceResult, IntelligentFlowAgent)
+        FlowIntelligenceResult,
+        IntelligentFlowAgent,
+    )
 
     INTELLIGENT_AGENT_AVAILABLE = True
     logger = logging.getLogger(__name__)

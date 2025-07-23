@@ -9,8 +9,7 @@ from the modularized aws_adapter package.
 """
 
 # Re-export all public interfaces for backward compatibility
-from .aws_adapter.base import (AWS_ADAPTER_METADATA, AWSCredentials,
-                               AWSResourceMetrics)
+from .aws_adapter.base import AWS_ADAPTER_METADATA, AWSCredentials, AWSResourceMetrics
 from .aws_adapter.main import AWSAdapter
 
 # Maintain backward compatibility with direct imports

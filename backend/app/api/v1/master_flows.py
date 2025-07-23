@@ -136,8 +136,7 @@ async def get_active_master_flows(
     try:
         from sqlalchemy import and_, select
 
-        from app.models.crewai_flow_state_extensions import \
-            CrewAIFlowStateExtensions
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 
         # Build query conditions
         conditions = [
@@ -468,8 +467,7 @@ async def delete_master_flow(
 
     from sqlalchemy import select, update
 
-    from app.models.crewai_flow_state_extensions import \
-        CrewAIFlowStateExtensions
+    from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
     from app.models.discovery_flow import DiscoveryFlow
     from app.models.flow_deletion_audit import FlowDeletionAudit
 

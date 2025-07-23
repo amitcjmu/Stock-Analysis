@@ -11,9 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 from app.core.database import get_db
-from app.models.data_import import \
-    DataImport  # DataQualityIssue removed in consolidation
-from app.models.data_import import RawImportRecord
+from app.models.data_import import (  # DataQualityIssue removed in consolidation
+    DataImport,
+    RawImportRecord,
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

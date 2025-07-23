@@ -11,8 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 from app.core.logging import get_logger
-from app.repositories.crewai_flow_state_extensions_repository import \
-    CrewAIFlowStateExtensionsRepository
+from app.repositories.crewai_flow_state_extensions_repository import (
+    CrewAIFlowStateExtensionsRepository,
+)
 from app.services.agent_ui_bridge import AgentUIBridge
 from app.services.flow_type_registry import FlowTypeRegistry
 
@@ -490,8 +491,9 @@ class FlowStatusManager:
         try:
             from sqlalchemy import or_, select
 
-            from app.models.crewai_flow_state_extensions import \
-                CrewAIFlowStateExtensions
+            from app.models.crewai_flow_state_extensions import (
+                CrewAIFlowStateExtensions,
+            )
             from app.models.data_import.mapping import ImportFieldMapping
 
             logger.info(
@@ -573,8 +575,9 @@ class FlowStatusManager:
             flow_id = master_flow.flow_id
 
             # Get the database ID for this flow_id (FK references id, not flow_id)
-            from app.models.crewai_flow_state_extensions import \
-                CrewAIFlowStateExtensions
+            from app.models.crewai_flow_state_extensions import (
+                CrewAIFlowStateExtensions,
+            )
 
             db_id_query = select(CrewAIFlowStateExtensions.id).where(
                 CrewAIFlowStateExtensions.flow_id == flow_id
@@ -794,8 +797,9 @@ class FlowStatusManager:
         try:
             from sqlalchemy import and_, or_, select
 
-            from app.models.crewai_flow_state_extensions import \
-                CrewAIFlowStateExtensions
+            from app.models.crewai_flow_state_extensions import (
+                CrewAIFlowStateExtensions,
+            )
             from app.models.data_import import DataImport
 
             flow_id = master_flow.flow_id

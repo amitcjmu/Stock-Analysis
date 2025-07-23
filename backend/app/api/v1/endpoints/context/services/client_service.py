@@ -15,8 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import User
 from app.models.client_account import ClientAccount, Engagement
 from app.models.rbac import ClientAccess, UserRole
-from app.schemas.context import (ClientBase, EngagementBase, SessionBase,
-                                 UserContext)
+from app.schemas.context import ClientBase, EngagementBase, SessionBase, UserContext
 
 from ..models.context_schemas import ClientResponse, ClientsListResponse
 

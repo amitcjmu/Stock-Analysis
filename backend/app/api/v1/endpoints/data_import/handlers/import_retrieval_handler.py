@@ -12,8 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.models.data_import import DataImport, RawImportRecord
-from app.repositories.deduplicating_repository import \
-    create_deduplicating_repository
+from app.repositories.deduplicating_repository import create_deduplicating_repository
 
 from ..utilities import import_to_dict
 

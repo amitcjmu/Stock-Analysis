@@ -59,8 +59,7 @@ class FlowTriggerService:
             )
 
             # Use existing session for atomicity
-            from app.services.master_flow_orchestrator import \
-                MasterFlowOrchestrator
+            from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
             # Initialize Master Flow Orchestrator with existing session
             orchestrator = MasterFlowOrchestrator(self.db, context)
@@ -95,8 +94,7 @@ class FlowTriggerService:
                     # Generate unique discovery flow ID for CrewAI
                     import uuid
 
-                    from app.services.discovery_flow_service import \
-                        DiscoveryFlowService
+                    from app.services.discovery_flow_service import DiscoveryFlowService
 
                     discovery_flow_id = str(uuid.uuid4())
 
@@ -178,8 +176,7 @@ class FlowTriggerService:
             )
 
             from app.core.database import AsyncSessionLocal
-            from app.services.master_flow_orchestrator import \
-                MasterFlowOrchestrator
+            from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
             async with AsyncSessionLocal() as fresh_db:
                 # Initialize Master Flow Orchestrator with fresh session

@@ -8,11 +8,16 @@ import logging
 from datetime import datetime
 from typing import Any, Dict
 
-from app.models.collection_flow import (AutomationTier, CollectionFlowError,
-                                        CollectionFlowState, CollectionPhase,
-                                        CollectionStatus)
-from app.services.crewai_flows.handlers.enhanced_error_handler import \
-    enhanced_error_handler
+from app.models.collection_flow import (
+    AutomationTier,
+    CollectionFlowError,
+    CollectionFlowState,
+    CollectionPhase,
+    CollectionStatus,
+)
+from app.services.crewai_flows.handlers.enhanced_error_handler import (
+    enhanced_error_handler,
+)
 from app.services.crewai_flows.utils.retry_utils import retry_with_backoff
 
 logger = logging.getLogger(__name__)
@@ -61,8 +66,9 @@ class GapAnalysisHandler:
             )
 
             # Create gap analysis crew
-            from app.services.crewai_flows.crews.collection.gap_analysis_crew import \
-                create_gap_analysis_crew
+            from app.services.crewai_flows.crews.collection.gap_analysis_crew import (
+                create_gap_analysis_crew,
+            )
 
             crew = create_gap_analysis_crew(
                 crewai_service=self.crewai_service,

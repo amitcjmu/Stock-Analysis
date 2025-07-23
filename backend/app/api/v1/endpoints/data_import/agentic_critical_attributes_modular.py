@@ -6,12 +6,15 @@ This replaces the monolithic agentic_critical_attributes.py file.
 from fastapi import APIRouter
 
 # Import all modular routers
-from .agentic_critical_attributes.routes.analysis_routes import \
-    router as analysis_router
-from .agentic_critical_attributes.routes.feedback_routes import \
-    router as feedback_router
-from .agentic_critical_attributes.routes.suggestion_routes import \
-    router as suggestion_router
+from .agentic_critical_attributes.routes.analysis_routes import (
+    router as analysis_router,
+)
+from .agentic_critical_attributes.routes.feedback_routes import (
+    router as feedback_router,
+)
+from .agentic_critical_attributes.routes.suggestion_routes import (
+    router as suggestion_router,
+)
 
 # Create main router
 router = APIRouter(
@@ -24,10 +27,12 @@ router.include_router(suggestion_router)
 router.include_router(feedback_router)
 
 # Legacy compatibility routes - these delegate to the new modular structure
-from .agentic_critical_attributes.routes.analysis_routes import \
-    get_agentic_critical_attributes as legacy_get_analysis
-from .agentic_critical_attributes.routes.analysis_routes import \
-    trigger_field_mapping_crew_analysis as legacy_trigger_crew
+from .agentic_critical_attributes.routes.analysis_routes import (
+    get_agentic_critical_attributes as legacy_get_analysis,
+)
+from .agentic_critical_attributes.routes.analysis_routes import (
+    trigger_field_mapping_crew_analysis as legacy_trigger_crew,
+)
 
 
 # Add legacy routes for backward compatibility

@@ -24,12 +24,13 @@ class ParameterManagementHandler:
         """Initialize dependencies with graceful fallbacks."""
         try:
             from app.models.sixr_analysis import SixRAnalysis
-            from app.models.sixr_analysis import \
-                SixRParameters as SixRParametersModel
-            from app.schemas.sixr_analysis import (AnalysisStatus,
-                                                   SixRAnalysisResponse,
-                                                   SixRParameterBase,
-                                                   SixRParameterUpdateRequest)
+            from app.models.sixr_analysis import SixRParameters as SixRParametersModel
+            from app.schemas.sixr_analysis import (
+                AnalysisStatus,
+                SixRAnalysisResponse,
+                SixRParameterBase,
+                SixRParameterUpdateRequest,
+            )
             from app.services.sixr_engine_modular import SixRDecisionEngine
 
             self.SixRAnalysis = SixRAnalysis

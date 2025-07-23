@@ -14,8 +14,9 @@ try:
     from app.schemas.sixr_analysis import SixRParameterBase, SixRStrategy
     from app.services.field_mapper_modular import FieldMapperService
     from app.services.sixr_engine_modular import SixRDecisionEngine
-    from app.services.tech_debt_analysis_service import \
-        TechDebtAnalysisService as TechDebtService
+    from app.services.tech_debt_analysis_service import (
+        TechDebtAnalysisService as TechDebtService,
+    )
 
     SIXR_AVAILABLE = True
 except ImportError as e:

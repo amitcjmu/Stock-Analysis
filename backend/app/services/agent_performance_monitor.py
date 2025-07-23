@@ -13,8 +13,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
-from app.services.agent_learning_system import (LearningContext,
-                                                agent_learning_system)
+from app.services.agent_learning_system import LearningContext, agent_learning_system
 from app.services.enhanced_agent_memory import enhanced_agent_memory
 from app.services.performance.response_optimizer import response_optimizer
 

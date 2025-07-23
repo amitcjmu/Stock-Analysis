@@ -10,6 +10,7 @@ from .handlers.agent_ui_integration import router as agent_ui_router
 from .handlers.analysis import router as analysis_router
 from .handlers.dependencies import router as dependencies_router
 from .handlers.learning import router as learning_router
+
 # Import handlers
 from .handlers.status import router as status_router
 

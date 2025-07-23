@@ -11,25 +11,38 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.assessment_flow import AssessmentFlow
-from app.models.assessment_flow_state import \
-    ApplicationArchitectureOverride as ApplicationArchitectureOverrideState
-from app.models.assessment_flow_state import \
-    ApplicationComponent as ApplicationComponentState
-from app.models.assessment_flow_state import (ArchitectureRequirement,
-                                              AssessmentFlowState)
-from app.models.assessment_flow_state import \
-    AssessmentLearningFeedback as AssessmentLearningFeedbackState
-from app.models.assessment_flow_state import \
-    ComponentTreatment as ComponentTreatmentState
+from app.models.assessment_flow_state import (
+    ApplicationArchitectureOverride as ApplicationArchitectureOverrideState,
+)
+from app.models.assessment_flow_state import (
+    ApplicationComponent as ApplicationComponentState,
+)
+from app.models.assessment_flow_state import (
+    ArchitectureRequirement,
+    AssessmentFlowState,
+    TechDebtItem,
+)
+from app.models.assessment_flow_state import (
+    AssessmentLearningFeedback as AssessmentLearningFeedbackState,
+)
+from app.models.assessment_flow_state import (
+    ComponentTreatment as ComponentTreatmentState,
+)
 from app.models.assessment_flow_state import SixRDecision as SixRDecisionState
-from app.models.assessment_flow_state import TechDebtItem
 from app.repositories.base import ContextAwareRepository
 
 # Import command handlers
-from .commands import (ArchitectureCommands, ComponentCommands,
-                       DecisionCommands, FeedbackCommands, FlowCommands)
+from .commands import (
+    ArchitectureCommands,
+    ComponentCommands,
+    DecisionCommands,
+    FeedbackCommands,
+    FlowCommands,
+)
+
 # Import query handlers
 from .queries import AnalyticsQueries, FlowQueries, StateQueries
+
 # Import specifications
 from .specifications import FlowSpecifications
 

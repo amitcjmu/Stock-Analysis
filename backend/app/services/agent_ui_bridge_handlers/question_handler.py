@@ -9,8 +9,7 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from ..models.agent_communication import (AgentQuestion, ConfidenceLevel,
-                                          QuestionType)
+from ..models.agent_communication import AgentQuestion, ConfidenceLevel, QuestionType
 
 logger = logging.getLogger(__name__)
 

@@ -11,10 +11,11 @@ from typing import Any, Dict
 from fastapi import APIRouter, HTTPException
 
 try:
-    from app.services.monitoring.performance_monitor import \
-        get_performance_dashboard
+    from app.services.monitoring.performance_monitor import get_performance_dashboard
     from app.services.performance.response_optimizer import (
-        clear_response_cache, get_performance_metrics)
+        clear_response_cache,
+        get_performance_metrics,
+    )
 
     PERFORMANCE_SERVICES_AVAILABLE = True
 except ImportError as e:

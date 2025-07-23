@@ -390,8 +390,8 @@ async def get_flow_data_cleansing(
     """Get data cleansing analysis for a discovery flow."""
     try:
         # Import the data cleansing function from the new endpoint
-        from app.api.v1.endpoints.data_cleansing import \
-            get_data_cleansing_analysis
+        from app.api.v1.endpoints.data_cleansing import get_data_cleansing_analysis
+
         # Create a mock current user for compatibility (will be properly handled by auth middleware)
         from app.models.client_account import User
 

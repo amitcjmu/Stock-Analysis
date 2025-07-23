@@ -73,8 +73,7 @@ class FlowValidationTool(BaseTool):
     async def _validate_flow_real(self, flow_id: str, context: "RequestContext") -> str:
         """Use real validation service to check flow completion with actionable guidance"""
         try:
-            from app.api.v1.endpoints.flow_processing import \
-                validate_flow_phases
+            from app.api.v1.endpoints.flow_processing import validate_flow_phases
             from app.core.database import AsyncSessionLocal
 
             async with AsyncSessionLocal() as session:

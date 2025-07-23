@@ -12,15 +12,19 @@ from typing import Any, Dict, List, Optional
 from app.models.collection_flow import CollectionPhase, CollectionStatus
 from app.services.ai_analysis import AdaptiveQuestionnaireGenerator
 from app.services.collection_flow import QualityAssessmentService
-from app.services.crewai_flows.handlers.enhanced_error_handler import \
-    enhanced_error_handler
-from app.services.crewai_flows.handlers.unified_flow_management import \
-    UnifiedFlowManagement
+from app.services.crewai_flows.handlers.enhanced_error_handler import (
+    enhanced_error_handler,
+)
+from app.services.crewai_flows.handlers.unified_flow_management import (
+    UnifiedFlowManagement,
+)
 from app.services.crewai_flows.utils.retry_utils import retry_with_backoff
-from app.services.manual_collection import (AdaptiveFormService,
-                                            DataIntegrationService,
-                                            ProgressTrackingService,
-                                            QuestionnaireValidationService)
+from app.services.manual_collection import (
+    AdaptiveFormService,
+    DataIntegrationService,
+    ProgressTrackingService,
+    QuestionnaireValidationService,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -273,8 +277,9 @@ class ManualCollectionManager:
         flow_state.last_user_interaction = datetime.utcnow()
 
         # Execute manual collection with responses
-        from app.services.crewai_flows.unified_collection_flow import \
-            UnifiedCollectionFlow
+        from app.services.crewai_flows.unified_collection_flow import (
+            UnifiedCollectionFlow,
+        )
 
         collection_flow = UnifiedCollectionFlow(
             crewai_service=None,  # Will be provided by execute method
@@ -296,8 +301,9 @@ class ManualCollectionManager:
         logger.info("🤖 Creating manual collection crew")
 
         # Import crew creation function
-        from app.services.crewai_flows.crews.collection.manual_collection_crew import \
-            create_manual_collection_crew
+        from app.services.crewai_flows.crews.collection.manual_collection_crew import (
+            create_manual_collection_crew,
+        )
 
         # Create crew with context
         crew = create_manual_collection_crew(

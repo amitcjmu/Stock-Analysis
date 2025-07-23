@@ -9,9 +9,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 # Import RBAC models with fallback
 try:
-    from app.models.rbac import (AccessAuditLog, AccessLevel, ClientAccess,
-                                 EngagementAccess, RoleType, UserProfile,
-                                 UserRole, UserStatus)
+    from app.models.rbac import (
+        AccessAuditLog,
+        AccessLevel,
+        ClientAccess,
+        EngagementAccess,
+        RoleType,
+        UserProfile,
+        UserRole,
+        UserStatus,
+    )
 
     RBAC_MODELS_AVAILABLE = True
 except ImportError:

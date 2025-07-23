@@ -11,11 +11,19 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from .agent_ui_bridge_handlers import (AnalysisHandler, ClassificationHandler,
-                                       ContextHandler, InsightHandler,
-                                       QuestionHandler, StorageManager)
-from .models.agent_communication import (ConfidenceLevel, DataClassification,
-                                         QuestionType)
+from .agent_ui_bridge_handlers import (
+    AnalysisHandler,
+    ClassificationHandler,
+    ContextHandler,
+    InsightHandler,
+    QuestionHandler,
+    StorageManager,
+)
+from .models.agent_communication import (
+    ConfidenceLevel,
+    DataClassification,
+    QuestionType,
+)
 
 logger = logging.getLogger(__name__)
 

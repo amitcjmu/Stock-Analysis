@@ -542,8 +542,7 @@ class DatabaseInitializer:
 
         # Import RBAC models and create access
         try:
-            from app.models.rbac import (AccessLevel, ClientAccess,
-                                         EngagementAccess)
+            from app.models.rbac import AccessLevel, ClientAccess, EngagementAccess
 
             # Get platform admin ID
             admin_result = await self.db.execute(
@@ -743,8 +742,7 @@ class DatabaseInitializer:
 
         # Import RBAC models conditionally to avoid circular imports
         try:
-            from app.models.rbac import (AccessLevel, ClientAccess,
-                                         EngagementAccess)
+            from app.models.rbac import AccessLevel, ClientAccess, EngagementAccess
 
             # Get platform admin ID to use as granted_by
             admin_result = await self.db.execute(
@@ -940,8 +938,9 @@ class DatabaseInitializer:
         try:
             # Import here to avoid circular imports
             if ASSESSMENT_MODELS_AVAILABLE:
-                from app.core.seed_data.assessment_standards import \
-                    initialize_assessment_standards
+                from app.core.seed_data.assessment_standards import (
+                    initialize_assessment_standards,
+                )
 
             # Get all active engagements
             result = await self.db.execute(

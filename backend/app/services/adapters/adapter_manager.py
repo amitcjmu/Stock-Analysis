@@ -12,8 +12,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Type
 
-from app.services.collection_flow.adapters import (CollectionRequest,
-                                                   CollectionResponse)
+from app.services.collection_flow.adapters import CollectionRequest, CollectionResponse
 
 from .enhanced_base_adapter import AdapterConfiguration, EnhancedBaseAdapter
 from .performance_monitor import PerformanceMonitor

@@ -22,8 +22,11 @@ from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.services.user_context_service import UserContextService
 
-from .response_mappers import (DiscoveryFlowResponse,
-                               DiscoveryFlowStatusResponse, ResponseMappers)
+from .response_mappers import (
+    DiscoveryFlowResponse,
+    DiscoveryFlowStatusResponse,
+    ResponseMappers,
+)
 from .status_calculator import StatusCalculator
 
 logger = logging.getLogger(__name__)
@@ -185,8 +188,7 @@ async def get_flow_status(
         # Import required models
         import uuid as uuid_lib
 
-        from app.models.crewai_flow_state_extensions import \
-            CrewAIFlowStateExtensions
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
         from app.models.discovery_flow import DiscoveryFlow
 
         # Convert flow_id to UUID if needed
@@ -241,8 +243,9 @@ async def get_flow_status(
             return status_response
 
         # Fallback to flow state persistence data
-        from app.services.crewai_flows.persistence.postgres_store import \
-            PostgresFlowStateStore
+        from app.services.crewai_flows.persistence.postgres_store import (
+            PostgresFlowStateStore,
+        )
 
         try:
             store = PostgresFlowStateStore(db, context)
@@ -276,8 +279,9 @@ async def get_flow_status(
             logger.warning(f"Failed to get flow state from store: {store_error}")
 
         # Final fallback to orchestrator
-        from app.api.v1.unified_discovery.services.discovery_orchestrator import \
-            DiscoveryOrchestrator
+        from app.api.v1.unified_discovery.services.discovery_orchestrator import (
+            DiscoveryOrchestrator,
+        )
 
         orchestrator = DiscoveryOrchestrator(db, context)
         result = await orchestrator.get_discovery_flow_status(flow_id)
@@ -336,8 +340,7 @@ async def get_flow_agent_insights(
         # Import required models
         import uuid as uuid_lib
 
-        from app.models.crewai_flow_state_extensions import \
-            CrewAIFlowStateExtensions
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
         from app.models.discovery_flow import DiscoveryFlow
 
         # Convert flow_id to UUID if needed

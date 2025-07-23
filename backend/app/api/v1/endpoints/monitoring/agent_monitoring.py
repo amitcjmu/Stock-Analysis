@@ -78,8 +78,9 @@ async def get_agent_status(
         # Add individual agent performance if requested
         if include_individual_agents and context:
             try:
-                from app.services.agent_performance_aggregation_service import \
-                    agent_performance_aggregation_service
+                from app.services.agent_performance_aggregation_service import (
+                    agent_performance_aggregation_service,
+                )
 
                 # Get performance summary for all agents
                 agent_summaries = (
@@ -158,8 +159,9 @@ async def get_task_history(
         if include_performance_data and context:
             try:
                 from app.core.database import get_db
-                from app.services.agent_task_history_service import \
-                    AgentTaskHistoryService
+                from app.services.agent_task_history_service import (
+                    AgentTaskHistoryService,
+                )
 
                 db = next(get_db())
                 service = AgentTaskHistoryService(db)

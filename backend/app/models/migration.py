@@ -4,8 +4,18 @@ Defines database schema for migration projects and related entities.
 """
 
 try:
-    from sqlalchemy import (JSON, UUID, Boolean, Column, DateTime, Enum,
-                            ForeignKey, Integer, String, Text)
+    from sqlalchemy import (
+        JSON,
+        UUID,
+        Boolean,
+        Column,
+        DateTime,
+        Enum,
+        ForeignKey,
+        Integer,
+        String,
+        Text,
+    )
     from sqlalchemy.orm import relationship
     from sqlalchemy.sql import func
 

@@ -19,8 +19,7 @@ from app.services.ai_analysis import ConfidenceScorer, LearningOptimizer
 from .analyzers import RecommendationAnalyzers
 from .evaluators import RecommendationEvaluator
 from .generators.config_recommendations import ConfigRecommendationGenerator
-from .generators.performance_recommendations import \
-    PerformanceRecommendationGenerator
+from .generators.performance_recommendations import PerformanceRecommendationGenerator
 from .generators.phase_recommendations import PhaseRecommendationGenerator
 from .generators.quality_recommendations import QualityRecommendationGenerator
 from .generators.tier_recommendations import TierRecommendationGenerator

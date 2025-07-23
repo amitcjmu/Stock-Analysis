@@ -6,8 +6,12 @@ Comprehensive asset discovery and inventory flow configuration
 with all 6 phases and associated validators/handlers.
 """
 
-from app.services.flow_type_registry import (FlowCapabilities, FlowTypeConfig,
-                                             PhaseConfig, RetryConfig)
+from app.services.flow_type_registry import (
+    FlowCapabilities,
+    FlowTypeConfig,
+    PhaseConfig,
+    RetryConfig,
+)
 
 
 def get_discovery_flow_config() -> FlowTypeConfig:

@@ -14,10 +14,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 from app.core.exceptions import FlowNotFoundError
-from app.repositories.assessment_flow_repository import \
-    AssessmentFlowRepository
-from app.repositories.crewai_flow_state_extensions_repository import \
-    CrewAIFlowStateExtensionsRepository
+from app.repositories.assessment_flow_repository import AssessmentFlowRepository
+from app.repositories.crewai_flow_state_extensions_repository import (
+    CrewAIFlowStateExtensionsRepository,
+)
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 
 logger = logging.getLogger(__name__)
@@ -305,8 +305,9 @@ class MFOSyncAgent:
             # Get all active master flows
             from sqlalchemy import select
 
-            from app.models.crewai_flow_state_extensions import \
-                CrewAIFlowStateExtensions
+            from app.models.crewai_flow_state_extensions import (
+                CrewAIFlowStateExtensions,
+            )
 
             master_flows_query = select(CrewAIFlowStateExtensions).where(
                 CrewAIFlowStateExtensions.client_account_id

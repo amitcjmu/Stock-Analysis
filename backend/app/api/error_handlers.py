@@ -14,11 +14,17 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.core.exceptions import (AuthenticationError, AuthorizationError,
-                                 BaseApplicationError, DatabaseError,
-                                 FlowNotFoundError, NetworkTimeoutError,
-                                 ResourceExhaustedError, TenantIsolationError,
-                                 ValidationError)
+from app.core.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+    BaseApplicationError,
+    DatabaseError,
+    FlowNotFoundError,
+    NetworkTimeoutError,
+    ResourceExhaustedError,
+    TenantIsolationError,
+    ValidationError,
+)
 from app.core.logging import get_logger, trace_id_context
 
 logger = get_logger(__name__)

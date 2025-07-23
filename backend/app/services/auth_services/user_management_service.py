@@ -10,18 +10,21 @@ from typing import Any, Dict
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas.auth_schemas import (AccessValidationRequest,
-                                      AccessValidationResponse,
-                                      ClientAccessGrant,
-                                      ClientAccessGrantResponse, FilterParams,
-                                      PaginationParams,
-                                      PendingApprovalsResponse,
-                                      UserApprovalRequest,
-                                      UserApprovalResponse,
-                                      UserRegistrationRequest,
-                                      UserRegistrationResponse,
-                                      UserRejectionRequest,
-                                      UserRejectionResponse)
+from app.schemas.auth_schemas import (
+    AccessValidationRequest,
+    AccessValidationResponse,
+    ClientAccessGrant,
+    ClientAccessGrantResponse,
+    FilterParams,
+    PaginationParams,
+    PendingApprovalsResponse,
+    UserApprovalRequest,
+    UserApprovalResponse,
+    UserRegistrationRequest,
+    UserRegistrationResponse,
+    UserRejectionRequest,
+    UserRejectionResponse,
+)
 from app.services.rbac_service import create_rbac_service
 
 logger = logging.getLogger(__name__)

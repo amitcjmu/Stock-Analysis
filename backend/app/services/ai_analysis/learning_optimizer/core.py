@@ -9,26 +9,34 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-from .analyzers import (analyze_business_context_pattern,
-                        analyze_completion_rates_pattern,
-                        analyze_complexity_adaptation_pattern,
-                        analyze_gap_resolution_pattern,
-                        analyze_question_effectiveness_pattern,
-                        analyze_response_quality_pattern,
-                        analyze_stakeholder_engagement_pattern,
-                        analyze_temporal_optimization_pattern)
+from .analyzers import (
+    analyze_business_context_pattern,
+    analyze_completion_rates_pattern,
+    analyze_complexity_adaptation_pattern,
+    analyze_gap_resolution_pattern,
+    analyze_question_effectiveness_pattern,
+    analyze_response_quality_pattern,
+    analyze_stakeholder_engagement_pattern,
+    analyze_temporal_optimization_pattern,
+)
 from .enums import LearningPattern
-from .insights import (calculate_pattern_correlation,
-                       generate_adaptation_insights,
-                       generate_completion_insights, generate_context_insights,
-                       generate_correlation_insights,
-                       generate_correlation_recommendations,
-                       generate_effectiveness_insights,
-                       generate_engagement_insights, generate_quality_insights,
-                       generate_resolution_insights,
-                       generate_temporal_insights, identify_next_actions,
-                       identify_pattern_interactions,
-                       optimize_recommendation_set, prioritize_recommendations)
+from .insights import (
+    calculate_pattern_correlation,
+    generate_adaptation_insights,
+    generate_completion_insights,
+    generate_context_insights,
+    generate_correlation_insights,
+    generate_correlation_recommendations,
+    generate_effectiveness_insights,
+    generate_engagement_insights,
+    generate_quality_insights,
+    generate_resolution_insights,
+    generate_temporal_insights,
+    identify_next_actions,
+    identify_pattern_interactions,
+    optimize_recommendation_set,
+    prioritize_recommendations,
+)
 from .models import LearningEvent, LearningInsight, OptimizationRecommendation
 
 logger = logging.getLogger(__name__)

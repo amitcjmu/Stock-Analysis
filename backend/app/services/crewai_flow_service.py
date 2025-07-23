@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.exceptions import CrewAIExecutionError, InvalidFlowStateError
+
 # from app.models.discovery_asset import DiscoveryAsset  # Model removed - using Asset model instead
 # V2 Discovery Flow Models
 # V2 Discovery Flow Services
@@ -20,12 +21,10 @@ from app.services.discovery_flow_service import DiscoveryFlowService
 
 # CrewAI Flow Integration (Conditional)
 if TYPE_CHECKING:
-    from app.services.crewai_flows.unified_discovery_flow import \
-        UnifiedDiscoveryFlow
+    from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow
 
 try:
-    from app.services.crewai_flows.unified_discovery_flow import \
-        UnifiedDiscoveryFlow
+    from app.services.crewai_flows.unified_discovery_flow import UnifiedDiscoveryFlow
 
     CREWAI_FLOWS_AVAILABLE = True
 except ImportError:
@@ -452,10 +451,12 @@ class CrewAIFlowService:
                 try:
                     from app.core.context import RequestContext
                     from app.core.database import AsyncSessionLocal
-                    from app.repositories.crewai_flow_state_extensions_repository import \
-                        CrewAIFlowStateExtensionsRepository
-                    from app.services.crewai_flows.unified_discovery_flow.base_flow import \
-                        UnifiedDiscoveryFlow
+                    from app.repositories.crewai_flow_state_extensions_repository import (
+                        CrewAIFlowStateExtensionsRepository,
+                    )
+                    from app.services.crewai_flows.unified_discovery_flow.base_flow import (
+                        UnifiedDiscoveryFlow,
+                    )
 
                     # If context fields are missing, fetch from master flow record
                     if not resume_context.get("client_account_id"):
@@ -498,8 +499,9 @@ class CrewAIFlowService:
                         async with AsyncSessionLocal() as db:
                             from sqlalchemy import select
 
-                            from app.models.crewai_flow_state_extensions import \
-                                CrewAIFlowStateExtensions
+                            from app.models.crewai_flow_state_extensions import (
+                                CrewAIFlowStateExtensions,
+                            )
 
                             master_flow_query = select(CrewAIFlowStateExtensions).where(
                                 CrewAIFlowStateExtensions.flow_id == flow_id,
@@ -513,8 +515,7 @@ class CrewAIFlowService:
                                     "🔧 Master flow found but discovery flow missing, creating discovery flow record"
                                 )
                                 # Create missing discovery flow record
-                                from app.models.discovery_flow import \
-                                    DiscoveryFlow
+                                from app.models.discovery_flow import DiscoveryFlow
 
                                 discovery_flow = DiscoveryFlow(
                                     flow_id=master_flow.flow_id,
@@ -594,8 +595,9 @@ class CrewAIFlowService:
                             )
 
                         # Initialize flow through MasterFlowOrchestrator
-                        from app.services.master_flow_orchestrator import \
-                            MasterFlowOrchestrator
+                        from app.services.master_flow_orchestrator import (
+                            MasterFlowOrchestrator,
+                        )
 
                         orchestrator = MasterFlowOrchestrator(db, context)
 

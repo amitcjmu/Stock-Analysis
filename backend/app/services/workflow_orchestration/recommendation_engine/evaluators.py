@@ -13,8 +13,7 @@ from typing import Any, Dict, List
 from app.core.exceptions import FlowError
 from app.core.logging import get_logger
 
-from .models import (LearningPattern, RecommendationPackage,
-                     WorkflowRecommendation)
+from .models import LearningPattern, RecommendationPackage, WorkflowRecommendation
 
 logger = get_logger(__name__)
 

@@ -6,8 +6,15 @@ Handles the conditional import of Google Cloud SDK libraries.
 
 try:
     from google.auth.exceptions import DefaultCredentialsError
-    from google.cloud import (asset_v1, compute_v1, container_v1, functions_v1,
-                              monitoring_v3, sql_v1, storage)
+    from google.cloud import (
+        asset_v1,
+        compute_v1,
+        container_v1,
+        functions_v1,
+        monitoring_v3,
+        sql_v1,
+        storage,
+    )
     from google.oauth2 import service_account
     from googleapiclient import discovery
     from googleapiclient.errors import HttpError

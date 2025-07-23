@@ -95,8 +95,9 @@ async def check_assessment_flow_service():
     """Check assessment flow service availability"""
     try:
         # Try to import assessment flow components
-        from app.services.crewai_flows.unified_assessment_flow import \
-            UnifiedAssessmentFlow
+        from app.services.crewai_flows.unified_assessment_flow import (
+            UnifiedAssessmentFlow,
+        )
 
         # Basic import successful
         logger.debug("Assessment flow service import successful")

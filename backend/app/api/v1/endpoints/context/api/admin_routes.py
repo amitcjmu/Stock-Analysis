@@ -10,8 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import get_current_context
 from app.core.database import get_db
 
-from ..models.context_schemas import (ValidateContextRequest,
-                                      ValidateContextResponse)
+from ..models.context_schemas import ValidateContextRequest, ValidateContextResponse
 from ..services.validation_service import ValidationService
 
 router = APIRouter()

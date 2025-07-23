@@ -5,17 +5,22 @@ Service factory for creating appropriate service implementations based on deploy
 import logging
 from typing import Any, Dict, Optional, Type
 
-from ..authentication import (AuthenticationBackend, DatabaseAuthBackend,
-                              SSOAuthBackend)
-from ..credentials import (CloudKMSCredentialManager, CredentialManager,
-                           LocalCredentialManager)
-from ..telemetry import (CloudTelemetryService, NoOpTelemetryService,
-                         TelemetryService)
+from ..authentication import AuthenticationBackend, DatabaseAuthBackend, SSOAuthBackend
+from ..credentials import (
+    CloudKMSCredentialManager,
+    CredentialManager,
+    LocalCredentialManager,
+)
+from ..telemetry import CloudTelemetryService, NoOpTelemetryService, TelemetryService
 from .config import DeploymentConfig, ServiceConfig
 from .detector import service_detector
-from .noop_services import (NoOpCacheService, NoOpExternalAPIService,
-                            NoOpNotificationService, NoOpQueueService,
-                            NoOpSearchService)
+from .noop_services import (
+    NoOpCacheService,
+    NoOpExternalAPIService,
+    NoOpNotificationService,
+    NoOpQueueService,
+    NoOpSearchService,
+)
 
 logger = logging.getLogger(__name__)
 

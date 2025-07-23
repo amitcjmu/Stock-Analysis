@@ -194,10 +194,10 @@ async def debug_flow_status(
     Useful for debugging ADR-012 implementation
     """
     try:
-        from app.repositories.crewai_flow_state_extensions_repository import \
-            CrewAIFlowStateExtensionsRepository
-        from app.repositories.discovery_flow_repository import \
-            DiscoveryFlowRepository
+        from app.repositories.crewai_flow_state_extensions_repository import (
+            CrewAIFlowStateExtensionsRepository,
+        )
+        from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 
         # Get master flow status
         master_repo = CrewAIFlowStateExtensionsRepository(

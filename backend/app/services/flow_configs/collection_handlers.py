@@ -153,8 +153,7 @@ async def collection_finalization(
         )
 
         # Update master flow
-        from app.models.crewai_flow_state_extensions import \
-            CrewAIFlowStateExtensions
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 
         master_flow_query = select(CrewAIFlowStateExtensions).where(
             CrewAIFlowStateExtensions.flow_id == flow_id
@@ -1088,8 +1087,9 @@ async def _start_crewai_collection_flow_background(
             # Import required modules
             from app.core.context import RequestContext
             from app.services.crewai_flow_service import CrewAIFlowService
-            from app.services.crewai_flows.unified_collection_flow import \
-                create_unified_collection_flow
+            from app.services.crewai_flows.unified_collection_flow import (
+                create_unified_collection_flow,
+            )
 
             # Extract context information
             if context and hasattr(context, "client_account_id"):

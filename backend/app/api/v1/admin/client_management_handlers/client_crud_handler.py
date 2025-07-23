@@ -10,10 +10,12 @@ from fastapi import HTTPException
 from sqlalchemy import and_, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas.admin_schemas import (AdminSuccessResponse,
-                                       ClientAccountCreate,
-                                       ClientAccountResponse,
-                                       ClientAccountUpdate)
+from app.schemas.admin_schemas import (
+    AdminSuccessResponse,
+    ClientAccountCreate,
+    ClientAccountResponse,
+    ClientAccountUpdate,
+)
 
 # Import models with fallback
 try:

@@ -137,8 +137,7 @@ async def get_data_cleansing_analysis(
         # Get data import for this flow using the same logic as import storage handler
         from sqlalchemy import select
 
-        from app.models.crewai_flow_state_extensions import \
-            CrewAIFlowStateExtensions
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 
         # First try to get data import via discovery flow's data_import_id
         data_import = None
@@ -248,8 +247,7 @@ async def get_data_cleansing_stats(
             )
 
         # Get data import for this flow using the same logic as import storage handler
-        from app.models.crewai_flow_state_extensions import \
-            CrewAIFlowStateExtensions
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 
         # First try to get data import via discovery flow's data_import_id
         data_import = None
@@ -372,8 +370,7 @@ async def trigger_data_cleansing_analysis(
 
         # Import the MasterFlowOrchestrator to execute the data cleansing phase
         try:
-            from app.services.master_flow_orchestrator import \
-                MasterFlowOrchestrator
+            from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
             flow_orchestrator = MasterFlowOrchestrator(db, context)
 
@@ -398,8 +395,9 @@ async def trigger_data_cleansing_analysis(
                 # Get data import for this flow to perform analysis
                 from sqlalchemy import select
 
-                from app.models.crewai_flow_state_extensions import \
-                    CrewAIFlowStateExtensions
+                from app.models.crewai_flow_state_extensions import (
+                    CrewAIFlowStateExtensions,
+                )
 
                 # First try to get data import via discovery flow's data_import_id
                 data_import = None

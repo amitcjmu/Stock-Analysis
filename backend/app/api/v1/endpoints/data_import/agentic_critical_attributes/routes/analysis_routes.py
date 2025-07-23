@@ -12,10 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 
-from ..models.attribute_schemas import (AttributeAnalysisRequest,
-                                        AttributeAnalysisResponse,
-                                        CrewExecutionRequest,
-                                        CrewExecutionResponse)
+from ..models.attribute_schemas import (
+    AttributeAnalysisRequest,
+    AttributeAnalysisResponse,
+    CrewExecutionRequest,
+    CrewExecutionResponse,
+)
 from ..services.agent_coordinator import AgentCoordinator
 from ..services.attribute_analyzer import AttributeAnalyzer
 

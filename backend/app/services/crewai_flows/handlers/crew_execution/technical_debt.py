@@ -25,8 +25,9 @@ class TechnicalDebtExecutor(CrewExecutionBase):
         try:
             # Execute enhanced Technical Debt Crew
             try:
-                from app.services.crewai_flows.crews.technical_debt_crew import \
-                    create_technical_debt_crew
+                from app.services.crewai_flows.crews.technical_debt_crew import (
+                    create_technical_debt_crew,
+                )
 
                 # Pass shared memory and full discovery context
                 shared_memory = getattr(state, "shared_memory_reference", None)

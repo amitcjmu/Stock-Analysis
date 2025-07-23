@@ -202,8 +202,9 @@ async def _get_agentic_critical_attributes(
                 # Additional fallback: Look for discovery flows where the master flow configuration contains this data import ID
                 from sqlalchemy import text as sql_text
 
-                from app.models.crewai_flow_state_extensions import \
-                    CrewAIFlowStateExtensions
+                from app.models.crewai_flow_state_extensions import (
+                    CrewAIFlowStateExtensions,
+                )
 
                 config_query = select(CrewAIFlowStateExtensions).where(
                     sql_text(f"flow_configuration::text LIKE '%{data_import.id}%'")
@@ -498,8 +499,9 @@ async def _trigger_field_mapping_reanalysis(
                 # Additional fallback: Look for discovery flows where the master flow configuration contains this data import ID
                 from sqlalchemy import text as sql_text
 
-                from app.models.crewai_flow_state_extensions import \
-                    CrewAIFlowStateExtensions
+                from app.models.crewai_flow_state_extensions import (
+                    CrewAIFlowStateExtensions,
+                )
 
                 config_query = select(CrewAIFlowStateExtensions).where(
                     sql_text(f"flow_configuration::text LIKE '%{data_import.id}%'")
@@ -556,10 +558,12 @@ async def _trigger_field_mapping_reanalysis(
 
         # Use the field mapping executor to regenerate mappings
         from app.services.crewai_flow_service import CrewAIFlowService
-        from app.services.crewai_flows.handlers.phase_executors.field_mapping_executor import \
-            FieldMappingExecutor
-        from app.services.crewai_flows.handlers.unified_flow_crew_manager import \
-            UnifiedFlowCrewManager
+        from app.services.crewai_flows.handlers.phase_executors.field_mapping_executor import (
+            FieldMappingExecutor,
+        )
+        from app.services.crewai_flows.handlers.unified_flow_crew_manager import (
+            UnifiedFlowCrewManager,
+        )
 
         # Create a minimal state object for the executor
         class FlowState:

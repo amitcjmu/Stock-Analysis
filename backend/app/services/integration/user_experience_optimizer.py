@@ -18,11 +18,14 @@ Generated with CC for modular backend architecture.
 from app.core.logging import get_logger
 
 # Import modular components
-from .user_experience import OptimizationContext
-from .user_experience import \
-    UserExperienceOptimizer as ModularUserExperienceOptimizer
-from .user_experience import (UserJourneyAnalytics, UXMetricType,
-                              UXOptimizationArea, UXRecommendation)
+from .user_experience import (
+    OptimizationContext,
+    UserJourneyAnalytics,
+    UXMetricType,
+    UXOptimizationArea,
+    UXRecommendation,
+)
+from .user_experience import UserExperienceOptimizer as ModularUserExperienceOptimizer
 
 logger = get_logger(__name__)
 

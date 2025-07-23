@@ -38,8 +38,7 @@ class UnifiedFlowCrewManager:
 
         # Initialize callback handler if not provided
         if not self.callback_handler and hasattr(state, "flow_id"):
-            from .callback_handler_integration import \
-                CallbackHandlerIntegration
+            from .callback_handler_integration import CallbackHandlerIntegration
 
             # Extract metadata from state if available
             metadata = getattr(state, "metadata", {})
@@ -58,24 +57,32 @@ class UnifiedFlowCrewManager:
         """Initialize CrewAI crew factory functions for on-demand creation"""
         try:
             # Import state model for proper type checking
-            from app.models.unified_discovery_flow_state import \
-                UnifiedDiscoveryFlowState
+            from app.models.unified_discovery_flow_state import (
+                UnifiedDiscoveryFlowState,
+            )
+
             # 🚀 PERFORMANCE OPTIMIZATION: Always use optimized crews
-            from app.services.crewai_flows.crews.field_mapping_crew_fast import \
-                create_fast_field_mapping_crew
+            from app.services.crewai_flows.crews.field_mapping_crew_fast import (
+                create_fast_field_mapping_crew,
+            )
 
             field_mapping_factory = create_fast_field_mapping_crew
             logger.info("✅ Using OPTIMIZED field mapping crew for performance")
-            from app.services.crewai_flows.crews.data_cleansing_crew import \
-                create_data_cleansing_crew
-            from app.services.crewai_flows.crews.data_import_validation_crew import \
-                create_data_import_validation_crew
-            from app.services.crewai_flows.crews.dependency_analysis_crew import \
-                create_dependency_analysis_crew
-            from app.services.crewai_flows.crews.inventory_building_crew import \
-                create_inventory_building_crew
-            from app.services.crewai_flows.crews.technical_debt_crew import \
-                create_technical_debt_crew
+            from app.services.crewai_flows.crews.data_cleansing_crew import (
+                create_data_cleansing_crew,
+            )
+            from app.services.crewai_flows.crews.data_import_validation_crew import (
+                create_data_import_validation_crew,
+            )
+            from app.services.crewai_flows.crews.dependency_analysis_crew import (
+                create_dependency_analysis_crew,
+            )
+            from app.services.crewai_flows.crews.inventory_building_crew import (
+                create_inventory_building_crew,
+            )
+            from app.services.crewai_flows.crews.technical_debt_crew import (
+                create_technical_debt_crew,
+            )
 
             # Store factory functions
             self.crew_factories = {

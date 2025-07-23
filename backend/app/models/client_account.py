@@ -3,8 +3,18 @@ Client Account models for multi-tenant data segregation.
 """
 
 try:
-    from sqlalchemy import (JSON, UUID, Boolean, Column, DateTime, ForeignKey,
-                            Integer, String, Text, UniqueConstraint)
+    from sqlalchemy import (
+        JSON,
+        UUID,
+        Boolean,
+        Column,
+        DateTime,
+        ForeignKey,
+        Integer,
+        String,
+        Text,
+        UniqueConstraint,
+    )
     from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
     from sqlalchemy.ext.associationproxy import association_proxy
     from sqlalchemy.orm import relationship

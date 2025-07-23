@@ -29,8 +29,7 @@ except ImportError:
     CREWAI_MEMORY_AVAILABLE = False
     logging.warning("CrewAI memory features not available, using fallback")
 
-from app.services.agent_learning_system import (LearningContext,
-                                                agent_learning_system)
+from app.services.agent_learning_system import LearningContext, agent_learning_system
 from app.services.embedding_service import EmbeddingService
 
 logger = logging.getLogger(__name__)

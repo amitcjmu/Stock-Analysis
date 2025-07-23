@@ -5,8 +5,7 @@ Validators for field mapping operations.
 import re
 from typing import Any, Dict, List, Optional
 
-from ..models.mapping_schemas import (FieldMappingCreate,
-                                      MappingValidationResponse)
+from ..models.mapping_schemas import FieldMappingCreate, MappingValidationResponse
 
 
 class MappingValidator:

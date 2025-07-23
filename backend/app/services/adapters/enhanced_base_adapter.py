@@ -12,13 +12,19 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from app.services.collection_flow.adapters import (AdapterMetadata,
-                                                   BaseAdapter,
-                                                   CollectionRequest,
-                                                   CollectionResponse)
+from app.services.collection_flow.adapters import (
+    AdapterMetadata,
+    BaseAdapter,
+    CollectionRequest,
+    CollectionResponse,
+)
 
-from .performance_monitor import (MetricType, PerformanceMonitor,
-                                  PerformanceThresholds, monitor_performance)
+from .performance_monitor import (
+    MetricType,
+    PerformanceMonitor,
+    PerformanceThresholds,
+    monitor_performance,
+)
 from .retry_handler import AdapterErrorHandler, RetryConfig
 
 

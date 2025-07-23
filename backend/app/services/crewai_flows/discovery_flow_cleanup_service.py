@@ -16,10 +16,12 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
+
 # Legacy imports for backward compatibility
 from app.models.asset import Asset
 from app.models.asset import Asset as DiscoveryAsset
 from app.models.data_import.core import DataImport as DataImportSession
+
 # V2 Discovery Flow imports (target architecture)
 from app.models.discovery_flow import DiscoveryFlow
 from app.services.discovery_flow_service import DiscoveryFlowService

@@ -12,11 +12,13 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
+
 # from app.models.discovery_asset import DiscoveryAsset  # Model removed - using Asset model instead
 from app.models.asset import Asset
 from app.models.discovery_flow import DiscoveryFlow
-from app.repositories.crewai_flow_state_extensions_repository import \
-    CrewAIFlowStateExtensionsRepository
+from app.repositories.crewai_flow_state_extensions_repository import (
+    CrewAIFlowStateExtensionsRepository,
+)
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 
 logger = logging.getLogger(__name__)

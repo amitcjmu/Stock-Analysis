@@ -3,8 +3,18 @@ Role-Based Access Control (RBAC) models for multi-tenant access management.
 """
 
 try:
-    from sqlalchemy import (JSON, UUID, Boolean, Column, DateTime, Enum,
-                            ForeignKey, Integer, String, Text)
+    from sqlalchemy import (
+        JSON,
+        UUID,
+        Boolean,
+        Column,
+        DateTime,
+        Enum,
+        ForeignKey,
+        Integer,
+        String,
+        Text,
+    )
     from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
     from sqlalchemy.orm import relationship
     from sqlalchemy.sql import func

@@ -9,8 +9,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List
 
-from .enums import (RecommendationConfidence, RecommendationSource,
-                    RecommendationType)
+from .enums import RecommendationConfidence, RecommendationSource, RecommendationType
 
 
 @dataclass

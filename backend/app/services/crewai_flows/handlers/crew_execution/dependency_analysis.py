@@ -26,8 +26,9 @@ class DependencyAnalysisExecutor(CrewExecutionBase):
         try:
             # Execute enhanced App-Server Dependency Crew
             try:
-                from app.services.crewai_flows.crews.app_server_dependency_crew import \
-                    create_app_server_dependency_crew
+                from app.services.crewai_flows.crews.app_server_dependency_crew import (
+                    create_app_server_dependency_crew,
+                )
 
                 # Pass shared memory and asset inventory
                 shared_memory = getattr(state, "shared_memory_reference", None)
@@ -81,8 +82,9 @@ class DependencyAnalysisExecutor(CrewExecutionBase):
         try:
             # Execute enhanced App-App Dependency Crew
             try:
-                from app.services.crewai_flows.crews.app_app_dependency_crew import \
-                    create_app_app_dependency_crew
+                from app.services.crewai_flows.crews.app_app_dependency_crew import (
+                    create_app_app_dependency_crew,
+                )
 
                 # Pass shared memory and asset inventory
                 shared_memory = getattr(state, "shared_memory_reference", None)

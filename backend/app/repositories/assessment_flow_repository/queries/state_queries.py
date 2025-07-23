@@ -9,20 +9,29 @@ from typing import Any, Dict, List
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.assessment_flow import (ApplicationArchitectureOverride,
-                                        ApplicationComponent,
-                                        ComponentTreatment,
-                                        EngagementArchitectureStandard,
-                                        SixRDecision, TechDebtAnalysis)
-from app.models.assessment_flow_state import \
-    ApplicationArchitectureOverride as ApplicationArchitectureOverrideState
-from app.models.assessment_flow_state import \
-    ApplicationComponent as ApplicationComponentState
-from app.models.assessment_flow_state import ArchitectureRequirement
-from app.models.assessment_flow_state import \
-    ComponentTreatment as ComponentTreatmentState
+from app.models.assessment_flow import (
+    ApplicationArchitectureOverride,
+    ApplicationComponent,
+    ComponentTreatment,
+    EngagementArchitectureStandard,
+    SixRDecision,
+    TechDebtAnalysis,
+)
+from app.models.assessment_flow_state import (
+    ApplicationArchitectureOverride as ApplicationArchitectureOverrideState,
+)
+from app.models.assessment_flow_state import (
+    ApplicationComponent as ApplicationComponentState,
+)
+from app.models.assessment_flow_state import (
+    ArchitectureRequirement,
+    SixRStrategy,
+    TechDebtItem,
+)
+from app.models.assessment_flow_state import (
+    ComponentTreatment as ComponentTreatmentState,
+)
 from app.models.assessment_flow_state import SixRDecision as SixRDecisionState
-from app.models.assessment_flow_state import SixRStrategy, TechDebtItem
 
 logger = logging.getLogger(__name__)
 

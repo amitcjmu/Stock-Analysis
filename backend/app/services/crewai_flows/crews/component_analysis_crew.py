@@ -59,8 +59,11 @@ except ImportError as e:
             }
 
 
-from app.models.assessment_flow import (ComponentType, CrewExecutionError,
-                                        TechDebtSeverity)
+from app.models.assessment_flow import (
+    ComponentType,
+    CrewExecutionError,
+    TechDebtSeverity,
+)
 
 
 class ComponentAnalysisCrew:
@@ -87,8 +90,11 @@ class ComponentAnalysisCrew:
         # Import tools (will be implemented in separate task)
         try:
             from app.services.crewai_flows.tools.component_tools import (
-                ComponentDiscoveryTool, DependencyMapper, MetadataAnalyzer,
-                TechDebtCalculator)
+                ComponentDiscoveryTool,
+                DependencyMapper,
+                MetadataAnalyzer,
+                TechDebtCalculator,
+            )
 
             tools_available = True
         except ImportError:

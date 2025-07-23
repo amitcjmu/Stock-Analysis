@@ -14,9 +14,13 @@ Generated with CC for modular backend architecture.
 import logging
 
 # For backward compatibility - re-export all classes
-from .decision import (AgentDecision, BaseDecisionAgent,
-                       FieldMappingDecisionAgent, PhaseAction,
-                       PhaseTransitionAgent)
+from .decision import (
+    AgentDecision,
+    BaseDecisionAgent,
+    FieldMappingDecisionAgent,
+    PhaseAction,
+    PhaseTransitionAgent,
+)
 
 logger = logging.getLogger(__name__)
 

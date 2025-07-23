@@ -21,14 +21,26 @@ from .console_manager import console_manager
 
 try:
     from crewai.utilities.events import (  # Agent and Task Events - For detailed progress; Crew Events - For crew-level progress; Flow Events - These are what we need for flow tracking; Tool and LLM Events - For operational insights
-        AgentExecutionCompletedEvent, AgentExecutionErrorEvent,
-        AgentExecutionStartedEvent, CrewKickoffCompletedEvent,
-        CrewKickoffFailedEvent, CrewKickoffStartedEvent, FlowCreatedEvent,
-        FlowFinishedEvent, FlowStartedEvent, LLMCallCompletedEvent,
-        LLMCallStartedEvent, MethodExecutionFailedEvent,
-        MethodExecutionFinishedEvent, MethodExecutionStartedEvent,
-        TaskCompletedEvent, TaskFailedEvent, TaskStartedEvent,
-        ToolUsageFinishedEvent, ToolUsageStartedEvent)
+        AgentExecutionCompletedEvent,
+        AgentExecutionErrorEvent,
+        AgentExecutionStartedEvent,
+        CrewKickoffCompletedEvent,
+        CrewKickoffFailedEvent,
+        CrewKickoffStartedEvent,
+        FlowCreatedEvent,
+        FlowFinishedEvent,
+        FlowStartedEvent,
+        LLMCallCompletedEvent,
+        LLMCallStartedEvent,
+        MethodExecutionFailedEvent,
+        MethodExecutionFinishedEvent,
+        MethodExecutionStartedEvent,
+        TaskCompletedEvent,
+        TaskFailedEvent,
+        TaskStartedEvent,
+        ToolUsageFinishedEvent,
+        ToolUsageStartedEvent,
+    )
     from crewai.utilities.events.base_event_listener import BaseEventListener
 
     CREWAI_EVENTS_AVAILABLE = True

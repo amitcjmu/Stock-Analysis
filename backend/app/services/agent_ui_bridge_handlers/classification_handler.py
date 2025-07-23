@@ -8,11 +8,9 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import Any, Dict, List
 
-from app.services.agent_ui_bridge_handlers.storage_manager import \
-    classification_storage
+from app.services.agent_ui_bridge_handlers.storage_manager import classification_storage
 
-from ..models.agent_communication import (ConfidenceLevel, DataClassification,
-                                          DataItem)
+from ..models.agent_communication import ConfidenceLevel, DataClassification, DataItem
 
 logger = logging.getLogger(__name__)
 

@@ -13,11 +13,17 @@ from sqlalchemy.orm import selectinload
 # Import enhanced RBAC models
 try:
     from app.models.client_account import ClientAccount, Engagement, User
-    from app.models.rbac_enhanced import (DEFAULT_ROLE_PERMISSIONS,
-                                          AccessAuditLog, DataScope,
-                                          DeletedItemType, EnhancedUserProfile,
-                                          RoleLevel, RolePermissions,
-                                          SoftDeletedItems, UserStatus)
+    from app.models.rbac_enhanced import (
+        DEFAULT_ROLE_PERMISSIONS,
+        AccessAuditLog,
+        DataScope,
+        DeletedItemType,
+        EnhancedUserProfile,
+        RoleLevel,
+        RolePermissions,
+        SoftDeletedItems,
+        UserStatus,
+    )
 
     ENHANCED_RBAC_AVAILABLE = True
 except ImportError:

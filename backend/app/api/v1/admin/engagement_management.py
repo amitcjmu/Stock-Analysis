@@ -11,16 +11,21 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.admin.engagement_management_handlers.engagement_crud_handler import \
-    EngagementCRUDHandler
+from app.api.v1.admin.engagement_management_handlers.engagement_crud_handler import (
+    EngagementCRUDHandler,
+)
 from app.core.auth import get_current_user_id
 from app.core.database import get_db
 from app.core.rbac_middleware import require_admin_access
-from app.schemas.admin_schemas import (AdminPaginationParams,
-                                       AdminSuccessResponse, EngagementCreate,
-                                       EngagementDashboardStats,
-                                       EngagementResponse, EngagementUpdate,
-                                       PaginatedResponse)
+from app.schemas.admin_schemas import (
+    AdminPaginationParams,
+    AdminSuccessResponse,
+    EngagementCreate,
+    EngagementDashboardStats,
+    EngagementResponse,
+    EngagementUpdate,
+    PaginatedResponse,
+)
 from app.schemas.engagement import EngagementSession
 
 logger = logging.getLogger(__name__)

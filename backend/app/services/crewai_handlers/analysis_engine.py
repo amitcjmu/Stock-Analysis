@@ -20,8 +20,7 @@ class AnalysisEngine:
     def _initialize_dependencies(self):
         """Initialize dependencies with graceful fallbacks."""
         try:
-            from app.services.analysis_modular import \
-                IntelligentAnalysisService
+            from app.services.analysis_modular import IntelligentAnalysisService
             from app.services.memory import AgentMemory
 
             self.memory = AgentMemory()

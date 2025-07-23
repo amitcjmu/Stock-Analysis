@@ -8,11 +8,15 @@ import logging
 from datetime import datetime
 from typing import Any, Dict
 
-from app.models.collection_flow import (CollectionFlowError,
-                                        CollectionFlowState, CollectionPhase,
-                                        CollectionStatus)
-from app.services.crewai_flows.handlers.enhanced_error_handler import \
-    enhanced_error_handler
+from app.models.collection_flow import (
+    CollectionFlowError,
+    CollectionFlowState,
+    CollectionPhase,
+    CollectionStatus,
+)
+from app.services.crewai_flows.handlers.enhanced_error_handler import (
+    enhanced_error_handler,
+)
 from app.services.crewai_flows.utils.retry_utils import retry_with_backoff
 
 logger = logging.getLogger(__name__)
@@ -61,8 +65,9 @@ class ValidationHandler:
             )
 
             # Create data synthesis crew
-            from app.services.crewai_flows.crews.collection.data_synthesis_crew import \
-                create_data_synthesis_crew
+            from app.services.crewai_flows.crews.collection.data_synthesis_crew import (
+                create_data_synthesis_crew,
+            )
 
             crew = create_data_synthesis_crew(
                 crewai_service=self.crewai_service,

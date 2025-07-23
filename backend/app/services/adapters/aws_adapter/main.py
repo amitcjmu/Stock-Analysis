@@ -8,8 +8,11 @@ from typing import Any, Dict, List
 
 try:
     import boto3
-    from botocore.exceptions import (ClientError, NoCredentialsError,
-                                     PartialCredentialsError)
+    from botocore.exceptions import (
+        ClientError,
+        NoCredentialsError,
+        PartialCredentialsError,
+    )
 
     AWS_SDK_AVAILABLE = True
 except ImportError:
@@ -25,9 +28,11 @@ except ImportError:
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.collection_flow.adapters import (BaseAdapter,
-                                                   CollectionRequest,
-                                                   CollectionResponse)
+from app.services.collection_flow.adapters import (
+    BaseAdapter,
+    CollectionRequest,
+    CollectionResponse,
+)
 
 from .base import AWS_ADAPTER_METADATA, AWSCredentials
 from .compute_services import ComputeServicesCollector

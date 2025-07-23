@@ -10,10 +10,8 @@ from typing import Any, Dict, List, Optional
 
 from app.core.logging import get_logger
 
-from ..enums import (RecommendationConfidence, RecommendationSource,
-                     RecommendationType)
-from ..models import (LearningPattern, RecommendationInsight,
-                      WorkflowRecommendation)
+from ..enums import RecommendationConfidence, RecommendationSource, RecommendationType
+from ..models import LearningPattern, RecommendationInsight, WorkflowRecommendation
 
 logger = get_logger(__name__)
 

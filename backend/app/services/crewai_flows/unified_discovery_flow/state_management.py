@@ -161,8 +161,9 @@ class StateManager:
         try:
             from app.core.context import RequestContext
             from app.core.database import AsyncSessionLocal
-            from app.repositories.discovery_flow_repository import \
-                DiscoveryFlowRepository
+            from app.repositories.discovery_flow_repository import (
+                DiscoveryFlowRepository,
+            )
 
             async with AsyncSessionLocal() as db:
                 # Ensure all IDs are strings and not empty

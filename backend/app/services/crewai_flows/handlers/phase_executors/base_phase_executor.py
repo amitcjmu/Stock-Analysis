@@ -185,8 +185,7 @@ class BasePhaseExecutor(ABC):
 
                 flow_id = getattr(self.state, "flow_id", None)
 
-                from app.services.models.agent_communication import \
-                    ConfidenceLevel
+                from app.services.models.agent_communication import ConfidenceLevel
 
                 agent_ui_bridge.add_agent_insight(
                     agent_id=f"{phase_name}_executor",

@@ -297,8 +297,9 @@ class AssetInventoryExecutor(BasePhaseExecutor):
                 logger.info(f"🔗 Using discovery flow ID: {discovery_flow_id}")
 
                 # Use AssetManager to persist assets
-                from app.services.discovery_flow_service.managers.asset_manager import \
-                    AssetManager
+                from app.services.discovery_flow_service.managers.asset_manager import (
+                    AssetManager,
+                )
 
                 asset_manager = AssetManager(db, context)
 

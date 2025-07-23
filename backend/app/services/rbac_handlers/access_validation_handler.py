@@ -13,8 +13,15 @@ from .base_handler import BaseRBACHandler
 
 # Import RBAC models with fallback
 try:
-    from app.models.rbac import (AccessLevel, ClientAccess, EngagementAccess,
-                                 RoleType, UserProfile, UserRole, UserStatus)
+    from app.models.rbac import (
+        AccessLevel,
+        ClientAccess,
+        EngagementAccess,
+        RoleType,
+        UserProfile,
+        UserRole,
+        UserStatus,
+    )
 
     RBAC_MODELS_AVAILABLE = True
 except ImportError:

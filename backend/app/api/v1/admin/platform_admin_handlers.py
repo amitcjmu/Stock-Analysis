@@ -15,11 +15,14 @@ from app.core.database import get_db
 
 # Import enhanced RBAC models and services
 try:
-    from app.models.rbac_enhanced import (DataScope, DeletedItemType,
-                                          EnhancedUserProfile, RoleLevel,
-                                          SoftDeletedItems)
-    from app.services.rbac_handlers.enhanced_rbac_service import \
-        EnhancedRBACService
+    from app.models.rbac_enhanced import (
+        DataScope,
+        DeletedItemType,
+        EnhancedUserProfile,
+        RoleLevel,
+        SoftDeletedItems,
+    )
+    from app.services.rbac_handlers.enhanced_rbac_service import EnhancedRBACService
 
     ENHANCED_RBAC_AVAILABLE = True
 except ImportError:

@@ -24,10 +24,8 @@ class IterationHandler:
         """Initialize dependencies with graceful fallbacks."""
         try:
             from app.models.sixr_analysis import SixRAnalysis, SixRIteration
-            from app.models.sixr_analysis import \
-                SixRParameters as SixRParametersModel
-            from app.schemas.sixr_analysis import (AnalysisStatus,
-                                                   SixRParameterBase)
+            from app.models.sixr_analysis import SixRParameters as SixRParametersModel
+            from app.schemas.sixr_analysis import AnalysisStatus, SixRParameterBase
 
             try:
                 from app.services.sixr_engine_modular import SixRDecisionEngine

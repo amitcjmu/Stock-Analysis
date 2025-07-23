@@ -28,8 +28,9 @@ class FlowSpecifications:
     ):
         """Update master flow status and phase data"""
         from app.models.assessment_flow import AssessmentFlow
-        from app.repositories.crewai_flow_state_extensions_repository import \
-            CrewAIFlowStateExtensionsRepository
+        from app.repositories.crewai_flow_state_extensions_repository import (
+            CrewAIFlowStateExtensionsRepository,
+        )
 
         try:
             # Get engagement_id for this flow
@@ -67,8 +68,9 @@ class FlowSpecifications:
     ):
         """Log agent collaboration to master flow"""
         from app.models.assessment_flow import AssessmentFlow
-        from app.repositories.crewai_flow_state_extensions_repository import \
-            CrewAIFlowStateExtensionsRepository
+        from app.repositories.crewai_flow_state_extensions_repository import (
+            CrewAIFlowStateExtensionsRepository,
+        )
 
         try:
             # Get engagement_id for this flow

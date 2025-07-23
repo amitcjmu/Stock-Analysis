@@ -14,10 +14,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth.auth_utils import get_current_user
 from app.core.database import get_db
+
 # from app.core.context import verify_client_access
 # TODO: This function doesn't exist - need to implement proper access verification
-from app.repositories.assessment_flow_repository import \
-    AssessmentFlowRepository
+from app.repositories.assessment_flow_repository import AssessmentFlowRepository
 from app.schemas.assessment_flow import AgentProgressEvent, AssessmentFlowEvent
 
 logger = logging.getLogger(__name__)

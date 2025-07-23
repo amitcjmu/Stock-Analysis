@@ -1,14 +1,21 @@
 """Agent service layer utilities."""
 
-from .service_utils import (build_error_response,
-                            calculate_completion_percentage,
-                            calculate_confidence_score,
-                            calculate_data_quality_score,
-                            create_success_response, extract_error_category,
-                            format_duration, generate_asset_summary,
-                            merge_performance_data, normalize_asset_type,
-                            parse_time_range, sanitize_string,
-                            validate_phase_order, validate_uuid)
+from .service_utils import (
+    build_error_response,
+    calculate_completion_percentage,
+    calculate_confidence_score,
+    calculate_data_quality_score,
+    create_success_response,
+    extract_error_category,
+    format_duration,
+    generate_asset_summary,
+    merge_performance_data,
+    normalize_asset_type,
+    parse_time_range,
+    sanitize_string,
+    validate_phase_order,
+    validate_uuid,
+)
 
 __all__ = [
     "validate_uuid",

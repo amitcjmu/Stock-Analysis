@@ -7,9 +7,14 @@ This file remains for backward compatibility and re-exports all public interface
 """
 
 # Re-export everything from the modularized structure
-from .asset_inventory import (AssetAnalysisRequest, AssetClassificationRequest,
-                              AssetFeedbackRequest, BulkUpdatePlanRequest,
-                              get_asset_data, router)
+from .asset_inventory import (
+    AssetAnalysisRequest,
+    AssetClassificationRequest,
+    AssetFeedbackRequest,
+    BulkUpdatePlanRequest,
+    get_asset_data,
+    router,
+)
 
 # Export the router as the main interface
 __all__ = [

@@ -9,12 +9,15 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from app.models.collection_flow import (AutomationTier, CollectionPhase,
-                                        CollectionStatus)
-from app.services.ai_analysis import (BusinessContextAnalyzer,
-                                      ConfidenceScorer, GapAnalysisAgent)
-from app.services.crewai_flows.handlers.enhanced_error_handler import \
-    enhanced_error_handler
+from app.models.collection_flow import AutomationTier, CollectionPhase, CollectionStatus
+from app.services.ai_analysis import (
+    BusinessContextAnalyzer,
+    ConfidenceScorer,
+    GapAnalysisAgent,
+)
+from app.services.crewai_flows.handlers.enhanced_error_handler import (
+    enhanced_error_handler,
+)
 from app.services.crewai_flows.utils.retry_utils import retry_with_backoff
 
 logger = logging.getLogger(__name__)
@@ -229,8 +232,9 @@ class GapAnalysisManager:
         logger.info("🤖 Creating gap analysis crew")
 
         # Import crew creation function
-        from app.services.crewai_flows.crews.collection.gap_analysis_crew import \
-            create_gap_analysis_crew
+        from app.services.crewai_flows.crews.collection.gap_analysis_crew import (
+            create_gap_analysis_crew,
+        )
 
         # Extract SIXR requirements
         sixr_requirements = client_requirements.get("sixr_requirements", {})

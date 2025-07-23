@@ -11,10 +11,8 @@ from typing import Any, Dict, List
 from app.core.logging import get_logger
 
 from ...tier_routing_service.enums import AutomationTier
-from ..enums import (RecommendationConfidence, RecommendationSource,
-                     RecommendationType)
-from ..models import (LearningPattern, RecommendationInsight,
-                      WorkflowRecommendation)
+from ..enums import RecommendationConfidence, RecommendationSource, RecommendationType
+from ..models import LearningPattern, RecommendationInsight, WorkflowRecommendation
 
 logger = get_logger(__name__)
 

@@ -50,19 +50,34 @@ except ImportError as e:
 
 # Import models and dependencies
 from app.core.context import RequestContext
-from app.models.collection_flow import (AutomationTier, CollectionFlowError,
-                                        CollectionFlowState, CollectionPhase,
-                                        CollectionStatus)
+from app.models.collection_flow import (
+    AutomationTier,
+    CollectionFlowError,
+    CollectionFlowState,
+    CollectionPhase,
+    CollectionStatus,
+)
 from app.services.crewai_flows.flow_state_manager import FlowStateManager
+
 # Import handlers and utilities
-from app.services.crewai_flows.handlers.unified_flow_management import \
-    UnifiedFlowManagement
+from app.services.crewai_flows.handlers.unified_flow_management import (
+    UnifiedFlowManagement,
+)
+
 # Import modularized components
 from app.services.crewai_flows.unified_collection_flow_modules import (  # Phase handlers
-    AutomatedCollectionHandler, FinalizationHandler, FlowContext,
-    GapAnalysisHandler, InitializationHandler, ManualCollectionHandler,
-    PlatformDetectionHandler, QuestionnaireGenerationHandler,
-    ServiceInitializer, ValidationHandler, get_previous_phase)
+    AutomatedCollectionHandler,
+    FinalizationHandler,
+    FlowContext,
+    GapAnalysisHandler,
+    InitializationHandler,
+    ManualCollectionHandler,
+    PlatformDetectionHandler,
+    QuestionnaireGenerationHandler,
+    ServiceInitializer,
+    ValidationHandler,
+    get_previous_phase,
+)
 
 
 class UnifiedCollectionFlow(Flow[CollectionFlowState]):

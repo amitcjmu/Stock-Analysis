@@ -13,14 +13,17 @@ from app.core.context import RequestContext
 from app.core.exceptions import FlowNotFoundError
 from app.core.logging import get_logger
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
-from app.repositories.crewai_flow_state_extensions_repository import \
-    CrewAIFlowStateExtensionsRepository
+from app.repositories.crewai_flow_state_extensions_repository import (
+    CrewAIFlowStateExtensionsRepository,
+)
 from app.services.crewai_flows.agents.decision import AgentDecision
 from app.services.crewai_flows.agents.decision.base import PhaseAction
-from app.services.crewai_flows.agents.decision.field_mapping import \
-    FieldMappingDecisionAgent
-from app.services.crewai_flows.agents.decision.phase_transition import \
-    PhaseTransitionAgent
+from app.services.crewai_flows.agents.decision.field_mapping import (
+    FieldMappingDecisionAgent,
+)
+from app.services.crewai_flows.agents.decision.phase_transition import (
+    PhaseTransitionAgent,
+)
 from app.services.flow_type_registry import FlowTypeRegistry
 from app.services.handler_registry import HandlerRegistry
 from app.services.validator_registry import ValidatorRegistry
@@ -467,8 +470,7 @@ class FlowExecutionCore:
             master_flow = await self.master_repo.get_by_flow_id(flow_id)
             if master_flow and master_flow.flow_type == "discovery":
                 # Import discovery state utilities
-                from app.services.crewai_flows.flow_state_bridge import \
-                    FlowStateBridge
+                from app.services.crewai_flows.flow_state_bridge import FlowStateBridge
 
                 # Create bridge and get state
                 bridge = FlowStateBridge(self.context)

@@ -48,8 +48,7 @@ async def resume_discovery_flow(
         logger.info(f"Resuming discovery flow {flow_id} via Master Flow Orchestrator")
 
         # Import Master Flow Orchestrator
-        from app.services.master_flow_orchestrator import \
-            MasterFlowOrchestrator
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
         # Initialize Master Flow Orchestrator
         orchestrator = MasterFlowOrchestrator(db, context)
@@ -69,8 +68,7 @@ async def resume_discovery_flow(
         # Check if this is a master flow or a child flow
         import uuid as uuid_lib
 
-        from app.models.crewai_flow_state_extensions import \
-            CrewAIFlowStateExtensions
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
         from app.models.discovery_flow import DiscoveryFlow
 
         try:
@@ -111,8 +109,9 @@ async def resume_discovery_flow(
                 )
 
                 # Use the new background execution service to resume with phase control
-                from app.services.data_import.background_execution_service import \
-                    BackgroundExecutionService
+                from app.services.data_import.background_execution_service import (
+                    BackgroundExecutionService,
+                )
 
                 background_service = BackgroundExecutionService(
                     db, str(context.client_account_id)
@@ -243,10 +242,12 @@ async def resume_flow_intelligent(
         from app.models.data_import import DataImport
         from app.models.discovery_flow import DiscoveryFlow
         from app.models.raw_import_record import RawImportRecord
-        from app.services.crewai_flows.unified_discovery_flow.flow_finalization import \
-            UnifiedDiscoveryFlowFinalizer
-        from app.services.crewai_flows.unified_discovery_flow.flow_management import \
-            UnifiedDiscoveryFlowManager
+        from app.services.crewai_flows.unified_discovery_flow.flow_finalization import (
+            UnifiedDiscoveryFlowFinalizer,
+        )
+        from app.services.crewai_flows.unified_discovery_flow.flow_management import (
+            UnifiedDiscoveryFlowManager,
+        )
 
         # Convert flow_id to UUID
         try:
@@ -415,8 +416,7 @@ async def resume_flow_intelligent(
                 raw_data = [record.raw_data for record in raw_records]
 
                 # Restart flow processing using MasterFlowOrchestrator
-                from app.services.master_flow_orchestrator import \
-                    MasterFlowOrchestrator
+                from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
                 # Create orchestrator instance
                 orchestrator = MasterFlowOrchestrator(db, context)
@@ -552,13 +552,14 @@ async def execute_flow_phase(
             # Add more validation as needed
 
         # Import required modules for phase execution
-        from app.models.unified_discovery_flow_state import \
-            UnifiedDiscoveryFlowState
+        from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
         from app.services.crewai_flows.flow_state_bridge import FlowStateBridge
-        from app.services.crewai_flows.handlers.phase_executors import \
-            PhaseExecutionManager
-        from app.services.crewai_flows.handlers.unified_flow_crew_manager import \
-            UnifiedFlowCrewManager
+        from app.services.crewai_flows.handlers.phase_executors import (
+            PhaseExecutionManager,
+        )
+        from app.services.crewai_flows.handlers.unified_flow_crew_manager import (
+            UnifiedFlowCrewManager,
+        )
 
         logger.info(f"📊 Executing phase: {execution_phase}")
 

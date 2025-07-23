@@ -43,8 +43,7 @@ class PhaseExecutionManager:
         # Initialize phase executors with flow bridge
         from .asset_inventory_executor import AssetInventoryExecutor
         from .data_cleansing_executor import DataCleansingExecutor
-        from .data_import_validation_executor import \
-            DataImportValidationExecutor
+        from .data_import_validation_executor import DataImportValidationExecutor
         from .dependency_analysis_executor import DependencyAnalysisExecutor
         from .field_mapping_executor import FieldMappingExecutor
         from .tech_debt_executor import TechDebtExecutor

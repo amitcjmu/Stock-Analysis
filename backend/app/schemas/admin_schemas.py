@@ -7,8 +7,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import (BaseModel, ConfigDict, Field, ValidationInfo,
-                      field_validator)
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
 # =========================
 # Enums for Business Context

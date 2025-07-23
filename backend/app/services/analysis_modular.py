@@ -7,8 +7,11 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List
 
-from .analysis_handlers import (CoreAnalysisHandler, IntelligenceEngineHandler,
-                                PlaceholderHandler)
+from .analysis_handlers import (
+    CoreAnalysisHandler,
+    IntelligenceEngineHandler,
+    PlaceholderHandler,
+)
 
 logger = logging.getLogger(__name__)
 

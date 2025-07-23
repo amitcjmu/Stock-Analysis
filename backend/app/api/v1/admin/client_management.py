@@ -12,18 +12,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.admin.client_management_handlers import ClientCRUDHandler
 from app.core.database import get_db
 from app.core.rbac_middleware import require_admin_access
-from app.schemas.admin_schemas import (AdminPaginationParams,
-                                       AdminSuccessResponse, BulkClientImport,
-                                       BulkOperationResponse,
-                                       ClientAccountCreate,
-                                       ClientAccountUpdate,
-                                       ClientDashboardStats,
-                                       ClientSearchFilters, PaginatedResponse)
+from app.schemas.admin_schemas import (
+    AdminPaginationParams,
+    AdminSuccessResponse,
+    BulkClientImport,
+    BulkOperationResponse,
+    ClientAccountCreate,
+    ClientAccountUpdate,
+    ClientDashboardStats,
+    ClientSearchFilters,
+    PaginatedResponse,
+)
 
 # Import handlers with fallback
 try:
-    from .client_management_handlers.client_crud_handler import \
-        ClientCRUDHandler
+    from .client_management_handlers.client_crud_handler import ClientCRUDHandler
 
     HANDLERS_AVAILABLE = True
 except ImportError:

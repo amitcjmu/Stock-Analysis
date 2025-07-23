@@ -8,8 +8,11 @@ import logging
 import uuid
 from typing import Any, Dict, List, Optional
 
-from app.models.collection_flow import (AdaptiveQuestionnaire, AutomationTier,
-                                        CollectionPhase)
+from app.models.collection_flow import (
+    AdaptiveQuestionnaire,
+    AutomationTier,
+    CollectionPhase,
+)
 
 logger = logging.getLogger(__name__)
 

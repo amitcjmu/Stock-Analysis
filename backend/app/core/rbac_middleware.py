@@ -14,8 +14,7 @@ from app.core.database import AsyncSessionLocal
 
 # Import RBAC service with fallback
 try:
-    from app.services.rbac_service import (RBAC_MODELS_AVAILABLE,
-                                           create_rbac_service)
+    from app.services.rbac_service import RBAC_MODELS_AVAILABLE, create_rbac_service
 
     RBAC_SERVICE_AVAILABLE = True
 except ImportError:
@@ -132,8 +131,7 @@ class RBACMiddleware:
 
                 # Try JWT token first
                 try:
-                    from app.services.auth_services.jwt_service import \
-                        JWTService
+                    from app.services.auth_services.jwt_service import JWTService
 
                     jwt_service = JWTService()
                     payload = jwt_service.verify_token(token)

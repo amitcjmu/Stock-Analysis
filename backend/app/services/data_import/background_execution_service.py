@@ -75,8 +75,9 @@ class BackgroundExecutionService:
             # Create CrewAI service with fresh session (safe after commit)
             async with AsyncSessionLocal() as fresh_db:
                 from app.services.crewai_flow_service import CrewAIFlowService
-                from app.services.crewai_flows.unified_discovery_flow import \
-                    create_unified_discovery_flow
+                from app.services.crewai_flows.unified_discovery_flow import (
+                    create_unified_discovery_flow,
+                )
 
                 crewai_service = CrewAIFlowService(fresh_db)
 
@@ -108,8 +109,9 @@ class BackgroundExecutionService:
             logger.info(
                 f"🚀 Starting controlled phase-by-phase execution for {flow_id}"
             )
-            from app.services.crewai_flows.unified_discovery_flow.phase_controller import \
-                PhaseController
+            from app.services.crewai_flows.unified_discovery_flow.phase_controller import (
+                PhaseController,
+            )
 
             phase_controller = PhaseController(discovery_flow)
             result = await phase_controller.start_flow_execution()
@@ -252,8 +254,9 @@ class BackgroundExecutionService:
         """
         try:
             async with AsyncSessionLocal() as fresh_db:
-                from app.repositories.crewai_flow_state_extensions_repository import \
-                    CrewAIFlowStateExtensionsRepository
+                from app.repositories.crewai_flow_state_extensions_repository import (
+                    CrewAIFlowStateExtensionsRepository,
+                )
 
                 fresh_repo = CrewAIFlowStateExtensionsRepository(
                     fresh_db,
@@ -321,8 +324,9 @@ class BackgroundExecutionService:
                     try:
                         # Check flow status
                         async with AsyncSessionLocal() as fresh_db:
-                            from app.repositories.crewai_flow_state_extensions_repository import \
-                                CrewAIFlowStateExtensionsRepository
+                            from app.repositories.crewai_flow_state_extensions_repository import (
+                                CrewAIFlowStateExtensionsRepository,
+                            )
 
                             repo = CrewAIFlowStateExtensionsRepository(
                                 fresh_db,
@@ -417,10 +421,13 @@ class BackgroundExecutionService:
             # Create CrewAI service with fresh session
             async with AsyncSessionLocal() as fresh_db:
                 from app.services.crewai_flow_service import CrewAIFlowService
-                from app.services.crewai_flows.unified_discovery_flow import \
-                    create_unified_discovery_flow
+                from app.services.crewai_flows.unified_discovery_flow import (
+                    create_unified_discovery_flow,
+                )
                 from app.services.crewai_flows.unified_discovery_flow.phase_controller import (
-                    FlowPhase, PhaseController)
+                    FlowPhase,
+                    PhaseController,
+                )
 
                 crewai_service = CrewAIFlowService(fresh_db)
 
@@ -511,8 +518,9 @@ class BackgroundExecutionService:
         """
         try:
             async with AsyncSessionLocal() as fresh_db:
-                from app.repositories.crewai_flow_state_extensions_repository import \
-                    CrewAIFlowStateExtensionsRepository
+                from app.repositories.crewai_flow_state_extensions_repository import (
+                    CrewAIFlowStateExtensionsRepository,
+                )
 
                 repo = CrewAIFlowStateExtensionsRepository(
                     fresh_db,

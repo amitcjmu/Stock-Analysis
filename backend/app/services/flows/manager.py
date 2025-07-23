@@ -33,8 +33,7 @@ class FlowManager:
         self, db: AsyncSession, context: RequestContext, import_data: Dict[str, Any]
     ) -> str:
         """Create and start a new discovery flow through MasterFlowOrchestrator"""
-        from app.services.master_flow_orchestrator import \
-            MasterFlowOrchestrator
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
         orchestrator = MasterFlowOrchestrator(db, context)
 
@@ -61,8 +60,7 @@ class FlowManager:
         """Get current status of a flow through MasterFlowOrchestrator"""
         from app.core.context import RequestContext
         from app.core.database import AsyncSessionLocal
-        from app.services.master_flow_orchestrator import \
-            MasterFlowOrchestrator
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
         # Create a new session for status check
         async with AsyncSessionLocal() as db:
@@ -96,8 +94,7 @@ class FlowManager:
     ) -> bool:
         """Resume a paused flow from last checkpoint"""
         # Flow resumption should be handled through MasterFlowOrchestrator
-        from app.services.master_flow_orchestrator import \
-            MasterFlowOrchestrator
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
         orchestrator = MasterFlowOrchestrator(db, context)
 
@@ -146,8 +143,7 @@ class FlowManager:
         """Force complete a flow (for emergency situations) - delegated to MasterFlowOrchestrator"""
         from app.core.context import RequestContext
         from app.core.database import AsyncSessionLocal
-        from app.services.master_flow_orchestrator import \
-            MasterFlowOrchestrator
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
         async with AsyncSessionLocal() as db:
             context = RequestContext()

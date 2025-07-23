@@ -27,8 +27,9 @@ class FlowHandler:
         async with AsyncSessionLocal() as db:
             try:
                 # ADR-012: First determine flow type from master flow
-                from app.repositories.crewai_flow_state_extensions_repository import \
-                    CrewAIFlowStateExtensionsRepository
+                from app.repositories.crewai_flow_state_extensions_repository import (
+                    CrewAIFlowStateExtensionsRepository,
+                )
 
                 master_repo = CrewAIFlowStateExtensionsRepository(
                     db,

@@ -8,10 +8,12 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.endpoints.data_import.field_mapping.models.mapping_schemas import \
-    FieldMappingUpdate
-from app.api.v1.endpoints.data_import.field_mapping.services.mapping_service import \
-    MappingService
+from app.api.v1.endpoints.data_import.field_mapping.models.mapping_schemas import (
+    FieldMappingUpdate,
+)
+from app.api.v1.endpoints.data_import.field_mapping.services.mapping_service import (
+    MappingService,
+)
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 

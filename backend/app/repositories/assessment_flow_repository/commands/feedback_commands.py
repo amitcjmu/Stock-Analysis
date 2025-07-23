@@ -7,8 +7,9 @@ import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.assessment_flow import AssessmentLearningFeedback
-from app.models.assessment_flow_state import \
-    AssessmentLearningFeedback as AssessmentLearningFeedbackState
+from app.models.assessment_flow_state import (
+    AssessmentLearningFeedback as AssessmentLearningFeedbackState,
+)
 
 logger = logging.getLogger(__name__)
 

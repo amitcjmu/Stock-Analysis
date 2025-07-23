@@ -7,9 +7,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from app.services.agent_learning.models import (LearningContext,
-                                                LearningPattern,
-                                                PerformanceLearningPattern)
+from app.services.agent_learning.models import (
+    LearningContext,
+    LearningPattern,
+    PerformanceLearningPattern,
+)
 from app.services.embedding_service import EmbeddingService
 from app.services.memory import AgentMemory
 from app.utils.vector_utils import VectorUtils

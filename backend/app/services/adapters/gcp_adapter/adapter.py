@@ -9,9 +9,11 @@ from typing import Any, Dict, List, Set
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.collection_flow.adapters import (BaseAdapter,
-                                                   CollectionRequest,
-                                                   CollectionResponse)
+from app.services.collection_flow.adapters import (
+    BaseAdapter,
+    CollectionRequest,
+    CollectionResponse,
+)
 
 from .assets import GCPAssetCollector
 from .auth import GCPAuthManager

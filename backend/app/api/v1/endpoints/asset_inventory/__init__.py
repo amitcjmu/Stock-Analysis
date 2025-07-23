@@ -8,12 +8,19 @@ from fastapi import APIRouter
 from .analysis import router as analysis_router
 from .audit import router as audit_router
 from .crud import router as crud_router
+
 # Import all sub-routers
 from .intelligence import router as intelligence_router
+
 # Import models for re-export
-from .models import (AssetAnalysisRequest, AssetClassificationRequest,
-                     AssetFeedbackRequest, BulkUpdatePlanRequest)
+from .models import (
+    AssetAnalysisRequest,
+    AssetClassificationRequest,
+    AssetFeedbackRequest,
+    BulkUpdatePlanRequest,
+)
 from .pagination import router as pagination_router
+
 # Import utils for re-export
 from .utils import get_asset_data
 

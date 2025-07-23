@@ -19,8 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import DatabaseError
 from app.core.logging import get_logger
-from app.models.data_import import (DataImport, ImportFieldMapping,
-                                    RawImportRecord)
+from app.models.data_import import DataImport, ImportFieldMapping, RawImportRecord
 
 logger = get_logger(__name__)
 
@@ -172,7 +171,9 @@ class ImportStorageManager:
 
                 # Import the intelligent mapping helper
                 from app.api.v1.endpoints.data_import.field_mapping.utils.mapping_helpers import (
-                    calculate_mapping_confidence, intelligent_field_mapping)
+                    calculate_mapping_confidence,
+                    intelligent_field_mapping,
+                )
 
                 logger.info(
                     f"🔍 DEBUG: Sample record keys: {list(sample_record.keys())}"
@@ -398,8 +399,9 @@ class ImportStorageManager:
             # The foreign key constraint references crewai_flow_state_extensions.id, not flow_id
             from sqlalchemy import select
 
-            from app.models.crewai_flow_state_extensions import \
-                CrewAIFlowStateExtensions
+            from app.models.crewai_flow_state_extensions import (
+                CrewAIFlowStateExtensions,
+            )
 
             result = await self.db.execute(
                 select(CrewAIFlowStateExtensions.id).where(

@@ -33,8 +33,9 @@ logger.info("✅ Discovery flow now handled by unified discovery router")
 
 # Include agent discovery endpoints
 try:
-    from app.api.v1.endpoints.agents.discovery.router import \
-        router as agents_discovery_router
+    from app.api.v1.endpoints.agents.discovery.router import (
+        router as agents_discovery_router,
+    )
 
     router.include_router(
         agents_discovery_router, prefix="/agents", tags=["discovery-agents"]
@@ -54,8 +55,7 @@ except ImportError as e:
 
 # Include dependency endpoints
 try:
-    from app.api.v1.discovery.dependency_endpoints import \
-        router as dependency_router
+    from app.api.v1.discovery.dependency_endpoints import router as dependency_router
 
     router.include_router(dependency_router, tags=["discovery-dependencies"])
     logger.info("✅ Dependency router included in discovery")

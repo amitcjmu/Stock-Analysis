@@ -82,8 +82,10 @@ class ArchitectureStandardsCrew:
         # Import tools (will be implemented in separate task)
         try:
             from app.services.crewai_flows.tools.architecture_tools import (
-                ComplianceChecker, StandardsTemplateGenerator,
-                TechnologyVersionAnalyzer)
+                ComplianceChecker,
+                StandardsTemplateGenerator,
+                TechnologyVersionAnalyzer,
+            )
 
             tools_available = True
         except ImportError:

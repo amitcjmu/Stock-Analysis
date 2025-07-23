@@ -12,16 +12,14 @@ import logging
 from datetime import datetime
 from typing import Any, AsyncGenerator, Dict, Optional
 
-from fastapi import (APIRouter, Depends, Header, HTTPException, Request,
-                     Response)
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.services.agent_ui_bridge import agent_ui_bridge
-from app.services.crewai_flows.persistence.postgres_store import \
-    PostgresFlowStateStore
+from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
 
 logger = logging.getLogger(__name__)
 

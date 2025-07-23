@@ -16,8 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 from app.models.collection_flow import AutomationTier
-from app.services.collection_flow.adapters import (AdapterCapability,
-                                                   adapter_registry)
+from app.services.collection_flow.adapters import AdapterCapability, adapter_registry
 
 logger = logging.getLogger(__name__)
 

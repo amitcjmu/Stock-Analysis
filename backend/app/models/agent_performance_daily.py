@@ -7,8 +7,18 @@ Part of the Agent Observability Enhancement
 import uuid
 from typing import Any, Dict
 
-from sqlalchemy import (DECIMAL, CheckConstraint, Column, Date, DateTime,
-                        ForeignKey, Integer, String, UniqueConstraint, func)
+from sqlalchemy import (
+    DECIMAL,
+    CheckConstraint,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 

@@ -157,8 +157,7 @@ class ContextMiddleware(BaseHTTPMiddleware):
             # Security audit logging for admin access
             try:
                 from app.core.database import AsyncSessionLocal
-                from app.services.security_audit_service import \
-                    SecurityAuditService
+                from app.services.security_audit_service import SecurityAuditService
 
                 async with AsyncSessionLocal() as audit_db:
                     audit_service = SecurityAuditService(audit_db)
@@ -180,9 +179,12 @@ class ContextMiddleware(BaseHTTPMiddleware):
 
         # Extract context from request
         try:
-            from app.core.context import (extract_context_from_request,
-                                          is_demo_client, set_request_context,
-                                          validate_context)
+            from app.core.context import (
+                extract_context_from_request,
+                is_demo_client,
+                set_request_context,
+                validate_context,
+            )
 
             context = extract_context_from_request(request)
 

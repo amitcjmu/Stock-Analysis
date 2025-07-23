@@ -11,8 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext
 from app.models.data_import import DataImport, RawImportRecord
 
-from ..models.mapping_schemas import (FieldMappingAnalysis,
-                                      FieldMappingSuggestion)
+from ..models.mapping_schemas import FieldMappingAnalysis, FieldMappingSuggestion
 
 # Legacy hardcoded mapping helpers removed - using CrewAI agents only
 # from ..utils.mapping_helpers import intelligent_field_mapping, calculate_mapping_confidence
@@ -21,8 +20,9 @@ logger = logging.getLogger(__name__)
 
 # Import CrewAI Field Mapping Crew with fallback
 try:
-    from app.services.crewai_flows.crews.field_mapping_crew import \
-        create_field_mapping_crew
+    from app.services.crewai_flows.crews.field_mapping_crew import (
+        create_field_mapping_crew,
+    )
 
     CREWAI_FIELD_MAPPING_AVAILABLE = True
 except ImportError:

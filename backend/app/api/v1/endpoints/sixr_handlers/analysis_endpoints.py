@@ -25,15 +25,16 @@ class AnalysisEndpointsHandler:
         """Initialize dependencies with graceful fallbacks."""
         try:
             from app.models.sixr_analysis import SixRAnalysis
-            from app.models.sixr_analysis import \
-                SixRParameters as SixRParametersModel
-            from app.schemas.sixr_analysis import (AnalysisStatus,
-                                                   BulkAnalysisRequest,
-                                                   BulkAnalysisResponse,
-                                                   SixRAnalysisListResponse,
-                                                   SixRAnalysisRequest,
-                                                   SixRAnalysisResponse,
-                                                   SixRParameterBase)
+            from app.models.sixr_analysis import SixRParameters as SixRParametersModel
+            from app.schemas.sixr_analysis import (
+                AnalysisStatus,
+                BulkAnalysisRequest,
+                BulkAnalysisResponse,
+                SixRAnalysisListResponse,
+                SixRAnalysisRequest,
+                SixRAnalysisResponse,
+                SixRParameterBase,
+            )
             from app.services.sixr_engine_modular import SixRDecisionEngine
 
             self.SixRAnalysis = SixRAnalysis

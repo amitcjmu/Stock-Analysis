@@ -14,8 +14,10 @@ from app.core.database import get_db
 from app.models import User
 from app.schemas.context import UserContext
 
-from ..models.context_schemas import (UpdateUserDefaultsRequest,
-                                      UpdateUserDefaultsResponse)
+from ..models.context_schemas import (
+    UpdateUserDefaultsRequest,
+    UpdateUserDefaultsResponse,
+)
 from ..services.user_service import UserService
 
 router = APIRouter()
@@ -92,8 +94,7 @@ async def activate_flow(
 
     try:
         # Import here to avoid circular dependencies
-        from app.services.master_flow_orchestrator import \
-            MasterFlowOrchestrator
+        from app.services.master_flow_orchestrator import MasterFlowOrchestrator
 
         # Initialize the orchestrator
         orchestrator = MasterFlowOrchestrator(db)

@@ -20,8 +20,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 from app.models.discovery_flow import DiscoveryFlow
-from app.repositories.crewai_flow_state_extensions_repository import \
-    CrewAIFlowStateExtensionsRepository
+from app.repositories.crewai_flow_state_extensions_repository import (
+    CrewAIFlowStateExtensionsRepository,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -54,8 +55,9 @@ class OrphanFlowMigrator:
                 total_discovery_flows = discovery_result.scalar()
 
                 # Count total master flows (should be 0 based on user report)
-                from app.models.crewai_flow_state_extensions import \
-                    CrewAIFlowStateExtensions
+                from app.models.crewai_flow_state_extensions import (
+                    CrewAIFlowStateExtensions,
+                )
 
                 master_count_stmt = select(func.count(CrewAIFlowStateExtensions.id))
                 master_result = await db_session.execute(master_count_stmt)
@@ -64,8 +66,9 @@ class OrphanFlowMigrator:
                 # Get discovery flows without corresponding extensions records
                 from sqlalchemy import exists
 
-                from app.models.crewai_flow_state_extensions import \
-                    CrewAIFlowStateExtensions
+                from app.models.crewai_flow_state_extensions import (
+                    CrewAIFlowStateExtensions,
+                )
 
                 orphaned_flows_stmt = select(DiscoveryFlow).where(
                     ~exists().where(
@@ -134,8 +137,9 @@ class OrphanFlowMigrator:
                 # Get all discovery flows without corresponding extensions records
                 from sqlalchemy import exists
 
-                from app.models.crewai_flow_state_extensions import \
-                    CrewAIFlowStateExtensions
+                from app.models.crewai_flow_state_extensions import (
+                    CrewAIFlowStateExtensions,
+                )
 
                 orphaned_flows_stmt = select(DiscoveryFlow).where(
                     ~exists().where(
@@ -268,8 +272,9 @@ class OrphanFlowMigrator:
                 total_discovery_flows = discovery_result.scalar()
 
                 # Count total master flows
-                from app.models.crewai_flow_state_extensions import \
-                    CrewAIFlowStateExtensions
+                from app.models.crewai_flow_state_extensions import (
+                    CrewAIFlowStateExtensions,
+                )
 
                 master_count_stmt = select(func.count(CrewAIFlowStateExtensions.id))
                 master_result = await db_session.execute(master_count_stmt)
@@ -279,8 +284,9 @@ class OrphanFlowMigrator:
                 # Join to check for matching flow_id values
                 from sqlalchemy import exists
 
-                from app.models.crewai_flow_state_extensions import \
-                    CrewAIFlowStateExtensions
+                from app.models.crewai_flow_state_extensions import (
+                    CrewAIFlowStateExtensions,
+                )
 
                 linked_flows_stmt = select(func.count(DiscoveryFlow.id)).where(
                     exists().where(

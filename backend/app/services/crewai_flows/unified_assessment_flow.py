@@ -66,12 +66,15 @@ except ImportError as e:
 
 # Import models and dependencies
 from app.core.context import RequestContext
-from app.models.assessment_flow import (AssessmentFlowError,
-                                        AssessmentFlowState, AssessmentPhase,
-                                        AssessmentStatus, SixRDecision)
+from app.models.assessment_flow import (
+    AssessmentFlowError,
+    AssessmentFlowState,
+    AssessmentPhase,
+    AssessmentStatus,
+    SixRDecision,
+)
 from app.services.crewai_flows.flow_state_manager import FlowStateManager
-from app.services.crewai_flows.persistence.postgres_store import \
-    PostgresFlowStateStore
+from app.services.crewai_flows.persistence.postgres_store import PostgresFlowStateStore
 
 
 class FlowContext:
@@ -168,12 +171,15 @@ class UnifiedAssessmentFlow(Flow[AssessmentFlowState]):
 
         # Import crews (will be implemented in separate task)
         try:
-            from app.services.crewai_flows.crews.architecture_standards_crew import \
-                ArchitectureStandardsCrew
-            from app.services.crewai_flows.crews.component_analysis_crew import \
-                ComponentAnalysisCrew
-            from app.services.crewai_flows.crews.sixr_strategy_crew import \
-                SixRStrategyCrew
+            from app.services.crewai_flows.crews.architecture_standards_crew import (
+                ArchitectureStandardsCrew,
+            )
+            from app.services.crewai_flows.crews.component_analysis_crew import (
+                ComponentAnalysisCrew,
+            )
+            from app.services.crewai_flows.crews.sixr_strategy_crew import (
+                SixRStrategyCrew,
+            )
 
             # Initialize crews
             self.architecture_standards_crew = ArchitectureStandardsCrew(

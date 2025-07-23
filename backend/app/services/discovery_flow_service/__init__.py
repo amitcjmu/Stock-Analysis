@@ -11,17 +11,28 @@ Modularized discovery flow service functionality with clear separation:
 
 from .core.flow_manager import FlowManager
 from .discovery_flow_integration_service import DiscoveryFlowIntegrationService
+
 # Main service classes that replace the original monolithic services
 from .discovery_flow_service import DiscoveryFlowService
 from .integrations.crewai_integration import CrewAIIntegrationService
 from .managers.asset_manager import AssetManager
 from .managers.summary_manager import SummaryManager
-from .models.flow_schemas import (AssetValidationRequest, CrewAIStateSync,
-                                  FlowCreationRequest, FlowResponse,
-                                  FlowSummaryResponse, PhaseCompletionRequest)
-from .utils.flow_utils import (FlowPhase, FlowStatus, ValidationStatus,
-                               calculate_progress_percentage, validate_flow_id,
-                               validate_phase_name)
+from .models.flow_schemas import (
+    AssetValidationRequest,
+    CrewAIStateSync,
+    FlowCreationRequest,
+    FlowResponse,
+    FlowSummaryResponse,
+    PhaseCompletionRequest,
+)
+from .utils.flow_utils import (
+    FlowPhase,
+    FlowStatus,
+    ValidationStatus,
+    calculate_progress_percentage,
+    validate_flow_id,
+    validate_phase_name,
+)
 
 __all__ = [
     # Core components

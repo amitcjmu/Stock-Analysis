@@ -13,8 +13,7 @@ Key Components:
 
 from .core.context_scoped_learning import ContextScopedAgentLearning
 from .models.learning_context import LearningContext
-from .models.learning_pattern import (LearningPattern,
-                                      PerformanceLearningPattern)
+from .models.learning_pattern import LearningPattern, PerformanceLearningPattern
 
 # Compatibility imports for backward compatibility
 AgentLearningSystem = ContextScopedAgentLearning

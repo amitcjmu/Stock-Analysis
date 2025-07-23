@@ -12,10 +12,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 
-from ..models.mapping_schemas import (FieldMappingCreate, FieldMappingResponse,
-                                      FieldMappingUpdate,
-                                      MappingValidationRequest,
-                                      MappingValidationResponse)
+from ..models.mapping_schemas import (
+    FieldMappingCreate,
+    FieldMappingResponse,
+    FieldMappingUpdate,
+    MappingValidationRequest,
+    MappingValidationResponse,
+)
 from ..services.mapping_service import MappingService
 
 logger = logging.getLogger(__name__)
@@ -155,8 +158,9 @@ async def trigger_field_mapping_reanalysis(
             )
 
         # Trigger re-analysis via critical attributes module
-        from app.api.v1.endpoints.data_import.critical_attributes import \
-            _trigger_field_mapping_reanalysis
+        from app.api.v1.endpoints.data_import.critical_attributes import (
+            _trigger_field_mapping_reanalysis,
+        )
 
         await _trigger_field_mapping_reanalysis(context, data_import, db)
 

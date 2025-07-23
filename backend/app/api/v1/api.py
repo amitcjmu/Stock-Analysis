@@ -9,15 +9,20 @@ from fastapi import APIRouter, Depends
 
 logger = logging.getLogger(__name__)
 
-from app.api.v1.endpoints import (agent_learning_router, agents_router,
-                                  assessment_events_router,
-                                  assessment_flow_router,
-                                  asset_inventory_router, chat_router,
-                                  context_router, data_import_router,
-                                  monitoring_router, sixr_router,
-                                  test_discovery_router)
-from app.api.v1.endpoints.flow_sync_debug import \
-    router as flow_sync_debug_router
+from app.api.v1.endpoints import (
+    agent_learning_router,
+    agents_router,
+    assessment_events_router,
+    assessment_flow_router,
+    asset_inventory_router,
+    chat_router,
+    context_router,
+    data_import_router,
+    monitoring_router,
+    sixr_router,
+    test_discovery_router,
+)
+from app.api.v1.endpoints.flow_sync_debug import router as flow_sync_debug_router
 
 # Decommission endpoints
 try:
@@ -29,12 +34,13 @@ except ImportError:
 
 # Admin endpoints
 try:
-    from app.api.v1.admin.platform_admin_handlers import \
-        router as platform_admin_router
-    from app.api.v1.admin.security_monitoring_handlers.security_audit_handler import \
-        router as security_audit_router
-    from app.api.v1.admin.user_management_handlers.user_approval_handler import \
-        router as user_approval_router
+    from app.api.v1.admin.platform_admin_handlers import router as platform_admin_router
+    from app.api.v1.admin.security_monitoring_handlers.security_audit_handler import (
+        router as security_audit_router,
+    )
+    from app.api.v1.admin.user_management_handlers.user_approval_handler import (
+        router as user_approval_router,
+    )
 
     ADMIN_ENDPOINTS_AVAILABLE = True
 except ImportError as e:
@@ -53,13 +59,15 @@ except ImportError as e:
 #     DISCOVERY_FLOW_V2_AVAILABLE = False
 
 # Import only existing endpoint files
-from app.api.v1.endpoints.context_establishment import \
-    router as context_establishment_router
+from app.api.v1.endpoints.context_establishment import (
+    router as context_establishment_router,
+)
 
 # Unified Discovery Flow API - Master Flow Orchestrator Integration
 try:
-    from app.api.v1.endpoints.unified_discovery import \
-        router as unified_discovery_router
+    from app.api.v1.endpoints.unified_discovery import (
+        router as unified_discovery_router,
+    )
 
     UNIFIED_DISCOVERY_AVAILABLE = True
 except ImportError as e:
@@ -76,8 +84,7 @@ except ImportError:
 
 # Wave Planning endpoints
 try:
-    from app.api.v1.endpoints.wave_planning import \
-        router as wave_planning_router
+    from app.api.v1.endpoints.wave_planning import router as wave_planning_router
 
     WAVE_PLANNING_AVAILABLE = True
 except ImportError:
@@ -130,15 +137,13 @@ except ImportError:
     LLM_HEALTH_AVAILABLE = False
 
 try:
-    from app.api.v1.endpoints.data_cleansing import \
-        router as data_cleansing_router
+    from app.api.v1.endpoints.data_cleansing import router as data_cleansing_router
 
     DATA_CLEANSING_AVAILABLE = True
 except ImportError:
     DATA_CLEANSING_AVAILABLE = False
 try:
-    from app.api.v1.endpoints.observability import \
-        router as observability_router
+    from app.api.v1.endpoints.observability import router as observability_router
 
     OBSERVABILITY_AVAILABLE = True
 except ImportError:
@@ -154,8 +159,7 @@ except ImportError as e:
     logger.warning(f"Agent Events router not available: {e}")
 
 try:
-    from app.api.v1.endpoints.observability import \
-        router as observability_router
+    from app.api.v1.endpoints.observability import router as observability_router
 
     OBSERVABILITY_AVAILABLE = True
 except ImportError:
@@ -163,40 +167,39 @@ except ImportError:
 
 # Admin Routers
 try:
-    from app.api.v1.admin.client_management import \
-        router as client_management_router
+    from app.api.v1.admin.client_management import router as client_management_router
 
     CLIENT_MANAGEMENT_AVAILABLE = True
 except ImportError:
     CLIENT_MANAGEMENT_AVAILABLE = False
 
 try:
-    from app.api.v1.admin.engagement_management import \
-        export_router as engagement_management_router
+    from app.api.v1.admin.engagement_management import (
+        export_router as engagement_management_router,
+    )
 
     ENGAGEMENT_MANAGEMENT_AVAILABLE = True
 except ImportError:
     ENGAGEMENT_MANAGEMENT_AVAILABLE = False
 
 try:
-    from app.api.v1.admin.platform_admin_handlers import \
-        router as platform_admin_router
+    from app.api.v1.admin.platform_admin_handlers import router as platform_admin_router
 
     PLATFORM_ADMIN_AVAILABLE = True
 except ImportError:
     PLATFORM_ADMIN_AVAILABLE = False
 
 try:
-    from app.api.v1.admin.session_comparison import \
-        router as flow_comparison_router
+    from app.api.v1.admin.session_comparison import router as flow_comparison_router
 
     FLOW_COMPARISON_AVAILABLE = True
 except ImportError:
     FLOW_COMPARISON_AVAILABLE = False
 
 try:
-    from app.api.v1.auth.handlers.user_management_handlers import \
-        user_management_router as user_approvals_router
+    from app.api.v1.auth.handlers.user_management_handlers import (
+        user_management_router as user_approvals_router,
+    )
 
     USER_APPROVALS_AVAILABLE = True
 except ImportError:
@@ -381,8 +384,7 @@ api_router.include_router(
 
 # Discovery Flows API - Minimal implementation for frontend compatibility
 try:
-    from app.api.v1.endpoints.discovery_flows import \
-        router as discovery_flows_router
+    from app.api.v1.endpoints.discovery_flows import router as discovery_flows_router
 
     api_router.include_router(
         discovery_flows_router, prefix="/discovery", tags=["Discovery Flows"]
@@ -445,8 +447,7 @@ api_router.include_router(
 
 # Top-level Field Mapping API (frontend compatibility)
 try:
-    from app.api.v1.endpoints.field_mapping import \
-        router as field_mapping_router
+    from app.api.v1.endpoints.field_mapping import router as field_mapping_router
 
     api_router.include_router(field_mapping_router, tags=["Field Mapping"])
     logger.info("✅ Top-level Field Mapping router included for frontend compatibility")
@@ -458,8 +459,9 @@ api_router.include_router(monitoring_router, prefix="/monitoring", tags=["Monito
 
 # Agent Performance API (Phase 3 - Agent Observability Enhancement)
 try:
-    from app.api.v1.endpoints.agent_performance import \
-        router as agent_performance_router
+    from app.api.v1.endpoints.agent_performance import (
+        router as agent_performance_router,
+    )
 
     api_router.include_router(
         agent_performance_router, prefix="/monitoring", tags=["Agent Performance"]
@@ -488,8 +490,7 @@ else:
 
 # Flow Processing Agent (Central routing for all flow continuations)
 try:
-    from app.api.v1.endpoints.flow_processing import \
-        router as flow_processing_router
+    from app.api.v1.endpoints.flow_processing import router as flow_processing_router
 
     api_router.include_router(
         flow_processing_router,
@@ -562,8 +563,7 @@ if ADMIN_ENDPOINTS_AVAILABLE:
 
 # Rate Limit Admin endpoints
 try:
-    from app.api.v1.endpoints.admin_rate_limit import \
-        router as admin_rate_limit_router
+    from app.api.v1.endpoints.admin_rate_limit import router as admin_rate_limit_router
 
     api_router.include_router(
         admin_rate_limit_router, prefix="/admin", tags=["Admin - Rate Limiting"]
@@ -587,8 +587,7 @@ api_router.include_router(
 
 # Emergency system controls
 try:
-    from app.api.v1.endpoints.system.emergency import \
-        router as emergency_router
+    from app.api.v1.endpoints.system.emergency import router as emergency_router
 
     api_router.include_router(
         emergency_router, prefix="/system", tags=["System", "Emergency"]

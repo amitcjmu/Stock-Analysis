@@ -13,9 +13,9 @@ from app.core.database import get_db
 # Import modular handlers
 from .handlers.clean_api_handler import router as clean_api_router
 from .handlers.field_handler import router as field_handler
+
 # from .handlers.legacy_upload_handler import router as legacy_upload_router  # File doesn't exist
-from .handlers.import_retrieval_handler import \
-    router as import_retrieval_router
+from .handlers.import_retrieval_handler import router as import_retrieval_router
 from .handlers.import_storage_handler import router as import_storage_handler
 
 # Import agentic intelligence modules

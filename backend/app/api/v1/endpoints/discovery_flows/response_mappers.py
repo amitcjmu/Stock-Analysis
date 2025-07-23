@@ -307,8 +307,7 @@ class ResponseMappers:
                     # Also get field mappings from the data import system
                     from sqlalchemy import select
 
-                    from app.models.data_import.mapping import \
-                        ImportFieldMapping
+                    from app.models.data_import.mapping import ImportFieldMapping
 
                     mapping_stmt = select(ImportFieldMapping).where(
                         ImportFieldMapping.data_import_id == flow.data_import_id

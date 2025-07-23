@@ -352,8 +352,9 @@ class InventoryBuildingCrew:
 
         # Add task completion tools to the inventory manager
         if context_info:
-            from app.services.crewai_flows.tools.task_completion_tools import \
-                create_task_completion_tools
+            from app.services.crewai_flows.tools.task_completion_tools import (
+                create_task_completion_tools,
+            )
 
             completion_tools = create_task_completion_tools(context_info)
             # Add tools to the inventory manager (first agent)

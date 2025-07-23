@@ -19,8 +19,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 
-from .response_mappers import (FlowInitializeResponse, FlowOperationResponse,
-                               ResponseMappers)
+from .response_mappers import (
+    FlowInitializeResponse,
+    FlowOperationResponse,
+    ResponseMappers,
+)
 from .status_calculator import StatusCalculator
 
 logger = logging.getLogger(__name__)
@@ -95,8 +98,7 @@ async def pause_discovery_flow(
         # Import required models
         import uuid as uuid_lib
 
-        from app.models.crewai_flow_state_extensions import \
-            CrewAIFlowStateExtensions
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
         from app.models.discovery_flow import DiscoveryFlow
 
         # Convert flow_id to UUID if needed
@@ -207,8 +209,7 @@ async def delete_discovery_flow(
         # Import required models
         import uuid as uuid_lib
 
-        from app.models.crewai_flow_state_extensions import \
-            CrewAIFlowStateExtensions
+        from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
         from app.models.discovery_flow import DiscoveryFlow
         from app.models.flow_deletion_audit import FlowDeletionAudit
 

@@ -12,8 +12,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Set
 
 try:
-    from azure.core.exceptions import (ClientAuthenticationError,
-                                       HttpResponseError)
+    from azure.core.exceptions import ClientAuthenticationError, HttpResponseError
     from azure.identity import ClientSecretCredential, DefaultAzureCredential
     from azure.mgmt.compute import ComputeManagementClient
     from azure.mgmt.monitor import MonitorManagementClient
@@ -39,11 +38,13 @@ logger = logging.getLogger(__name__)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.collection_flow import AutomationTier
-from app.services.collection_flow.adapters import (AdapterCapability,
-                                                   AdapterMetadata,
-                                                   BaseAdapter,
-                                                   CollectionRequest,
-                                                   CollectionResponse)
+from app.services.collection_flow.adapters import (
+    AdapterCapability,
+    AdapterMetadata,
+    BaseAdapter,
+    CollectionRequest,
+    CollectionResponse,
+)
 
 
 @dataclass

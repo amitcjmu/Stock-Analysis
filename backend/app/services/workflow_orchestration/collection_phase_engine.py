@@ -19,12 +19,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext
 from app.core.exceptions import FlowError
 from app.core.logging import get_logger
+
 # Import models for backward compatibility
 from app.models.collection_flow import AutomationTier
+
 # Import the new unified collection flow
 from app.services.crewai_flows.unified_collection_flow import (
-    CREWAI_FLOW_AVAILABLE, UnifiedCollectionFlow,
-    create_unified_collection_flow)
+    CREWAI_FLOW_AVAILABLE,
+    UnifiedCollectionFlow,
+    create_unified_collection_flow,
+)
 
 logger = get_logger(__name__)
 

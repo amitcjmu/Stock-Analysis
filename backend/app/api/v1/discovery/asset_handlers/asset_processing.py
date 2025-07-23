@@ -22,7 +22,9 @@ class AssetProcessingHandler:
         """Initialize optional dependencies with graceful fallbacks."""
         try:
             from app.api.v1.discovery.persistence import (
-                backup_processed_assets, get_processed_assets)
+                backup_processed_assets,
+                get_processed_assets,
+            )
 
             self.get_processed_assets = get_processed_assets
             self.backup_processed_assets = backup_processed_assets

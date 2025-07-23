@@ -9,6 +9,7 @@ Built by: Agent Team B2 (AI Analysis & Intelligence)
 # Import main class
 from .core import LearningOptimizer, optimize_questionnaire_learning
 from .enums import LearningPattern, OptimizationStrategy
+
 # Import models
 from .models import LearningEvent, LearningInsight, OptimizationRecommendation
 

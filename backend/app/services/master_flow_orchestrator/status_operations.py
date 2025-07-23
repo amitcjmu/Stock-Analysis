@@ -10,13 +10,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import RequestContext
 from app.core.logging import get_logger
-from app.repositories.crewai_flow_state_extensions_repository import \
-    CrewAIFlowStateExtensionsRepository
+from app.repositories.crewai_flow_state_extensions_repository import (
+    CrewAIFlowStateExtensionsRepository,
+)
 from app.services.flow_orchestration import FlowAuditLogger, FlowStatusManager
-from app.services.flow_orchestration.audit_logger import (AuditCategory,
-                                                          AuditLevel)
-from app.services.flow_orchestration.smart_discovery_service import \
-    SmartDiscoveryService
+from app.services.flow_orchestration.audit_logger import AuditCategory, AuditLevel
+from app.services.flow_orchestration.smart_discovery_service import (
+    SmartDiscoveryService,
+)
 
 from .enums import FlowOperationType
 from .mock_monitor import MockFlowPerformanceMonitor

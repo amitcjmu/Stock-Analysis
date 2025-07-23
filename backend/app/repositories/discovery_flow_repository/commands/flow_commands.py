@@ -272,8 +272,9 @@ class FlowCommands:
         state_data["completed_at"] = datetime.utcnow().isoformat()
 
         # Calculate final readiness scores
-        from app.services.crewai_flows.readiness_calculator import \
-            calculate_readiness_scores
+        from app.services.crewai_flows.readiness_calculator import (
+            calculate_readiness_scores,
+        )
 
         readiness_scores = calculate_readiness_scores(state_data)
         state_data["readiness_scores"] = readiness_scores

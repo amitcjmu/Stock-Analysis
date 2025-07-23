@@ -8,40 +8,42 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import (APIRouter, BackgroundTasks, Depends, Header,
-                     HTTPException, Query)
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth.auth_utils import get_current_user
-from app.core.context_helpers import (verify_client_access,
-                                      verify_engagement_access,
-                                      verify_standards_modification_permission)
+from app.core.context_helpers import (
+    verify_client_access,
+    verify_engagement_access,
+    verify_standards_modification_permission,
+)
 from app.core.database import get_db
 from app.models.assessment_flow import AssessmentFlowStatus, AssessmentPhase
-from app.repositories.assessment_flow_repository import \
-    AssessmentFlowRepository
-from app.schemas.assessment_flow import (AppOnPageResponse,
-                                         ArchitectureStandardsUpdateRequest,
-                                         AssessmentFinalization,
-                                         AssessmentFlowCreateRequest,
-                                         AssessmentFlowResponse,
-                                         AssessmentFlowStatusResponse,
-                                         AssessmentReport, ComponentUpdate,
-                                         ResumeFlowRequest, SixRDecisionUpdate,
-                                         TechDebtUpdates)
+from app.repositories.assessment_flow_repository import AssessmentFlowRepository
+from app.schemas.assessment_flow import (
+    AppOnPageResponse,
+    ArchitectureStandardsUpdateRequest,
+    AssessmentFinalization,
+    AssessmentFlowCreateRequest,
+    AssessmentFlowResponse,
+    AssessmentFlowStatusResponse,
+    AssessmentReport,
+    ComponentUpdate,
+    ResumeFlowRequest,
+    SixRDecisionUpdate,
+    TechDebtUpdates,
+)
 
 # Import integration services
 try:
-    from app.services.integrations.discovery_integration import \
-        DiscoveryFlowIntegration
+    from app.services.integrations.discovery_integration import DiscoveryFlowIntegration
 
     DISCOVERY_INTEGRATION_AVAILABLE = True
 except ImportError:
     DISCOVERY_INTEGRATION_AVAILABLE = False
 
 try:
-    from app.services.crewai_flows.unified_assessment_flow import \
-        UnifiedAssessmentFlow
+    from app.services.crewai_flows.unified_assessment_flow import UnifiedAssessmentFlow
 
     ASSESSMENT_FLOW_SERVICE_AVAILABLE = True
 except ImportError:

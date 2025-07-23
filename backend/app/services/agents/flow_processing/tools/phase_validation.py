@@ -75,8 +75,7 @@ class PhaseValidationTool(BaseTool):
     ) -> str:
         """Use real validation service to check phase completion"""
         try:
-            from app.api.v1.endpoints.flow_processing import \
-                validate_phase_data
+            from app.api.v1.endpoints.flow_processing import validate_phase_data
             from app.core.database import AsyncSessionLocal
 
             async with AsyncSessionLocal() as session:

@@ -35,8 +35,9 @@ class DataCleansingExecutor(BasePhaseExecutor):
 
         try:
             # Import agentic intelligence
-            from app.services.agentic_intelligence.agentic_asset_enrichment import \
-                enrich_assets_with_agentic_intelligence
+            from app.services.agentic_intelligence.agentic_asset_enrichment import (
+                enrich_assets_with_agentic_intelligence,
+            )
 
             # Get raw import records from database with their IDs for proper linkage
             raw_import_records = await self._get_raw_import_records_with_ids()
@@ -512,8 +513,9 @@ class DataCleansingExecutor(BasePhaseExecutor):
             async def update_records():
                 try:
                     from app.core.database import AsyncSessionLocal
-                    from app.services.data_import.storage_manager import \
-                        ImportStorageManager
+                    from app.services.data_import.storage_manager import (
+                        ImportStorageManager,
+                    )
 
                     async with AsyncSessionLocal() as db:
                         storage_manager = ImportStorageManager(

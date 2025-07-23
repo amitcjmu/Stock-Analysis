@@ -98,8 +98,7 @@ class DiscoveryIntegrationExecutor(CrewExecutionBase):
         from sqlalchemy.exc import SQLAlchemyError
 
         from app.core.database import AsyncSessionLocal
-        from app.models.data_import import (DataImport, ImportStatus,
-                                            RawImportRecord)
+        from app.models.data_import import DataImport, ImportStatus, RawImportRecord
         from app.models.data_import.mapping import ImportFieldMapping
 
         assets_created = 0

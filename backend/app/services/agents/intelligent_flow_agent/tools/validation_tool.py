@@ -30,7 +30,10 @@ except ImportError:
 
 from app.core.context import RequestContext
 from app.knowledge_bases.flow_intelligence_knowledge import (
-    FlowType, get_phase_definition, get_success_criteria)
+    FlowType,
+    get_phase_definition,
+    get_success_criteria,
+)
 
 logger = logging.getLogger(__name__)
 

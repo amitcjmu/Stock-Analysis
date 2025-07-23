@@ -7,8 +7,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List
 
-from app.services.crewai_flows.monitoring import (CollaborationMonitor,
-                                                  CollaborationType)
+from app.services.crewai_flows.monitoring import CollaborationMonitor, CollaborationType
 
 logger = logging.getLogger(__name__)
 

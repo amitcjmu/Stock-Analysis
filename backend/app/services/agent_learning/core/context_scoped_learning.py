@@ -11,11 +11,17 @@ backward compatibility for all existing functionality.
 import logging
 
 # Import all learning modules
-from .learning import (AssetClassificationLearning, BaseLearningMixin,
-                       ClientContextManager, DataSourceLearning,
-                       FeedbackProcessor, FieldMappingLearning,
-                       LearningUtilities, PerformanceLearning,
-                       QualityAssessmentLearning)
+from .learning import (
+    AssetClassificationLearning,
+    BaseLearningMixin,
+    ClientContextManager,
+    DataSourceLearning,
+    FeedbackProcessor,
+    FieldMappingLearning,
+    LearningUtilities,
+    PerformanceLearning,
+    QualityAssessmentLearning,
+)
 
 logger = logging.getLogger(__name__)
 

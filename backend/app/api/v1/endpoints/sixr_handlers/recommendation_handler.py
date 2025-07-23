@@ -24,8 +24,9 @@ class RecommendationHandler:
         """Initialize dependencies with graceful fallbacks."""
         try:
             from app.models.sixr_analysis import SixRAnalysis
-            from app.models.sixr_analysis import \
-                SixRRecommendation as SixRRecommendationModel
+            from app.models.sixr_analysis import (
+                SixRRecommendation as SixRRecommendationModel,
+            )
             from app.schemas.sixr_analysis import SixRRecommendationResponse
 
             self.SixRAnalysis = SixRAnalysis

@@ -15,9 +15,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.client_account import User
 from app.models.rbac import UserProfile, UserRole
-from app.schemas.auth_schemas import (LoginRequest, LoginResponse,
-                                      PasswordChangeRequest,
-                                      PasswordChangeResponse, Token)
+from app.schemas.auth_schemas import (
+    LoginRequest,
+    LoginResponse,
+    PasswordChangeRequest,
+    PasswordChangeResponse,
+    Token,
+)
 
 logger = logging.getLogger(__name__)
 

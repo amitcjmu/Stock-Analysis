@@ -10,8 +10,12 @@ This module provides a comprehensive multi-agent orchestration system that:
 """
 
 from .agent_manager import AgentManager
-from .agents import (BackendMonitoringAgent, BaseAgent, SecurityAuditAgent,
-                     UITestingAgent)
+from .agents import (
+    BackendMonitoringAgent,
+    BaseAgent,
+    SecurityAuditAgent,
+    UITestingAgent,
+)
 from .communication import InterAgentCommunicator
 from .orchestrator import MultiAgentOrchestrator
 from .state_machine import WorkflowStateMachine

@@ -24,10 +24,15 @@ class AssetCRUDHandler:
         """Initialize optional dependencies with graceful fallbacks."""
         try:
             from app.api.v1.discovery.persistence import (
-                backup_processed_assets, bulk_delete_assets,
-                bulk_update_assets, cleanup_duplicates, find_duplicate_assets,
-                get_processed_assets, initialize_persistence,
-                update_asset_by_id)
+                backup_processed_assets,
+                bulk_delete_assets,
+                bulk_update_assets,
+                cleanup_duplicates,
+                find_duplicate_assets,
+                get_processed_assets,
+                initialize_persistence,
+                update_asset_by_id,
+            )
 
             self.get_processed_assets = get_processed_assets
             self.update_asset_by_id = update_asset_by_id
@@ -50,8 +55,7 @@ class AssetCRUDHandler:
             self.persistence_available = False
 
         try:
-            from app.api.v1.discovery.serialization import \
-                clean_for_json_serialization
+            from app.api.v1.discovery.serialization import clean_for_json_serialization
 
             self.clean_for_json_serialization = clean_for_json_serialization
             self.serialization_available = True
@@ -283,8 +287,9 @@ class AssetCRUDHandler:
                 return self._fallback_cleanup_duplicates()
 
             # Call the persistence cleanup function with a different alias to avoid naming conflict
-            from app.api.v1.discovery.persistence import \
-                cleanup_duplicates as persistence_cleanup_func
+            from app.api.v1.discovery.persistence import (
+                cleanup_duplicates as persistence_cleanup_func,
+            )
 
             removed_count = persistence_cleanup_func()
 

@@ -24,7 +24,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext
 from app.models.assessment_flow import AssessmentStatus
 from app.services.crewai_flows.unified_assessment_flow import (
-    UnifiedAssessmentFlow, create_unified_assessment_flow)
+    UnifiedAssessmentFlow,
+    create_unified_assessment_flow,
+)
 
 # from app.services.crewai_flows.persistence.postgres_store import PostgresStore  # Handled by master orchestrator
 
@@ -180,8 +182,9 @@ class AssessmentFlowService:
                     }
 
             # Try to load from PostgreSQL persistence
-            from app.services.crewai_flows.persistence.postgres_store import \
-                PostgresFlowStateStore
+            from app.services.crewai_flows.persistence.postgres_store import (
+                PostgresFlowStateStore,
+            )
 
             PostgresFlowStateStore(self.db, context)
             try:
@@ -264,8 +267,9 @@ class AssessmentFlowService:
                 )
 
                 # Try to load state from persistence and recreate flow
-                from app.services.crewai_flows.persistence.postgres_store import \
-                    PostgresFlowStateStore
+                from app.services.crewai_flows.persistence.postgres_store import (
+                    PostgresFlowStateStore,
+                )
 
                 PostgresFlowStateStore(self.db, context)
                 # This would need to be implemented to load assessment flow state

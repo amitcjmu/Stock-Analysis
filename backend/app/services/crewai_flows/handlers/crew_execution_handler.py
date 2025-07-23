@@ -8,10 +8,14 @@ import logging
 from typing import Any, Dict
 
 # Import all modularized components
-from .crew_execution import (DataCleansingExecutor, DependencyAnalysisExecutor,
-                             DiscoveryIntegrationExecutor,
-                             FieldMappingExecutor, InventoryBuildingExecutor,
-                             TechnicalDebtExecutor)
+from .crew_execution import (
+    DataCleansingExecutor,
+    DependencyAnalysisExecutor,
+    DiscoveryIntegrationExecutor,
+    FieldMappingExecutor,
+    InventoryBuildingExecutor,
+    TechnicalDebtExecutor,
+)
 
 logger = logging.getLogger(__name__)
 

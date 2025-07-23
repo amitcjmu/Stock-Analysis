@@ -98,8 +98,9 @@ class FlowStatusTool(BaseTool):
             import asyncio
 
             from app.core.context import RequestContext
-            from app.services.agents.agent_service_layer.handlers.flow_handler import \
-                FlowHandler
+            from app.services.agents.agent_service_layer.handlers.flow_handler import (
+                FlowHandler,
+            )
 
             # Create proper context for FlowHandler
             request_context = RequestContext(
@@ -228,8 +229,9 @@ class FlowStatusTool(BaseTool):
         try:
             # Import our fixed FlowHandler directly
             from app.core.context import RequestContext
-            from app.services.agents.agent_service_layer.handlers.flow_handler import \
-                FlowHandler
+            from app.services.agents.agent_service_layer.handlers.flow_handler import (
+                FlowHandler,
+            )
 
             # Create proper context for FlowHandler
             request_context = RequestContext(
@@ -306,8 +308,9 @@ class FlowStatusTool(BaseTool):
     ) -> Dict[str, Any]:
         """Async flow status lookup with proper error handling"""
         try:
-            from app.api.v1.discovery_handlers.flow_management import \
-                FlowManagementHandler
+            from app.api.v1.discovery_handlers.flow_management import (
+                FlowManagementHandler,
+            )
             from app.core.context import RequestContext
             from app.core.database import AsyncSessionLocal
 

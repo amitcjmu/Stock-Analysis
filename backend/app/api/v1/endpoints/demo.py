@@ -11,10 +11,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.repositories.demo_repository import DemoRepository
-from app.schemas.demo import (DemoAnalysisResponse, DemoAssetCreate,
-                              DemoAssetResponse, DemoAssetUpdate,
-                              DemoEngagementResponse, DemoSummaryResponse,
-                              DemoTagResponse, DemoWaveResponse)
+from app.schemas.demo import (
+    DemoAnalysisResponse,
+    DemoAssetCreate,
+    DemoAssetResponse,
+    DemoAssetUpdate,
+    DemoEngagementResponse,
+    DemoSummaryResponse,
+    DemoTagResponse,
+    DemoWaveResponse,
+)
 from app.services.embedding_service import EmbeddingService
 
 logger = logging.getLogger(__name__)

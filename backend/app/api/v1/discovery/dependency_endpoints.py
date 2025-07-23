@@ -9,9 +9,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.context import extract_context_from_request
 from app.core.database import get_db
-from app.schemas.dependency_schemas import (DependencyAnalysisResponse,
-                                            DependencyCreate,
-                                            DependencyResponse)
+from app.schemas.dependency_schemas import (
+    DependencyAnalysisResponse,
+    DependencyCreate,
+    DependencyResponse,
+)
 from app.services.dependency_analysis_service import DependencyAnalysisService
 
 router = APIRouter()

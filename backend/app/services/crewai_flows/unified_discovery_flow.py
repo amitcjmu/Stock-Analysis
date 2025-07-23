@@ -14,9 +14,11 @@ For backward compatibility, all exports are maintained.
 """
 
 # Re-export everything from the modularized structure
-from .unified_discovery_flow.base_flow import (CREWAI_FLOW_AVAILABLE,
-                                               UnifiedDiscoveryFlow,
-                                               create_unified_discovery_flow)
+from .unified_discovery_flow.base_flow import (
+    CREWAI_FLOW_AVAILABLE,
+    UnifiedDiscoveryFlow,
+    create_unified_discovery_flow,
+)
 from .unified_discovery_flow.crew_coordination import CrewCoordinator
 from .unified_discovery_flow.flow_config import FlowConfig, PhaseNames
 from .unified_discovery_flow.flow_finalization import FlowFinalizer
