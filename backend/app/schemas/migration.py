@@ -12,6 +12,7 @@ from app.models.migration import MigrationPhase, MigrationStatus
 
 class MigrationBase(BaseModel):
     """Base migration schema with common fields."""
+
     name: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
     source_environment: Optional[str] = None
@@ -21,6 +22,7 @@ class MigrationBase(BaseModel):
 
 class MigrationCreate(MigrationBase):
     """Schema for creating a new migration."""
+
     start_date: Optional[datetime] = None
     target_completion_date: Optional[datetime] = None
     settings: Optional[Dict[str, Any]] = None
@@ -28,6 +30,7 @@ class MigrationCreate(MigrationBase):
 
 class MigrationUpdate(BaseModel):
     """Schema for updating a migration."""
+
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = None
     source_environment: Optional[str] = None
@@ -49,8 +52,9 @@ class MigrationUpdate(BaseModel):
 
 class MigrationListResponse(BaseModel):
     """Schema for migration list response."""
+
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
     name: str
     status: MigrationStatus
@@ -64,8 +68,9 @@ class MigrationListResponse(BaseModel):
 
 class MigrationResponse(BaseModel):
     """Schema for detailed migration response."""
+
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
     name: str
     description: Optional[str]
@@ -90,6 +95,7 @@ class MigrationResponse(BaseModel):
 
 class MigrationProgressResponse(BaseModel):
     """Schema for migration progress response."""
+
     migration_id: int
     overall_progress: int
     phase_progress: Dict[str, float]
@@ -100,6 +106,7 @@ class MigrationProgressResponse(BaseModel):
 
 class MigrationAIAssessmentResponse(BaseModel):
     """Schema for AI assessment response."""
+
     message: str
     migration_id: int
-    assessment: Dict[str, Any] 
+    assessment: Dict[str, Any]

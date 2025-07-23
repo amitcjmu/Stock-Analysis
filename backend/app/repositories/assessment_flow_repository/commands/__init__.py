@@ -11,9 +11,9 @@ from .feedback_commands import FeedbackCommands
 from .flow_commands import FlowCommands
 
 __all__ = [
-    'FlowCommands',
-    'ArchitectureCommands', 
-    'ComponentCommands',
-    'DecisionCommands',
-    'FeedbackCommands'
+    "FlowCommands",
+    "ArchitectureCommands",
+    "ComponentCommands",
+    "DecisionCommands",
+    "FeedbackCommands",
 ]

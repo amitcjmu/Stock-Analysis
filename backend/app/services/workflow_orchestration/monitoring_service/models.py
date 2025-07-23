@@ -15,6 +15,7 @@ from .types import AlertSeverity, MetricType, MonitoringLevel
 @dataclass
 class MetricPoint:
     """Individual metric data point"""
+
     timestamp: datetime
     metric_name: str
     metric_type: MetricType
@@ -27,6 +28,7 @@ class MetricPoint:
 @dataclass
 class ProgressMilestone:
     """Progress milestone definition"""
+
     milestone_id: str
     name: str
     description: str
@@ -41,6 +43,7 @@ class ProgressMilestone:
 @dataclass
 class WorkflowProgress:
     """Comprehensive workflow progress tracking"""
+
     workflow_id: str
     overall_progress: float  # 0.0 to 1.0
     phase_progress: Dict[str, float]
@@ -57,6 +60,7 @@ class WorkflowProgress:
 @dataclass
 class PerformanceMetrics:
     """Performance metrics for workflows"""
+
     workflow_id: str
     execution_time_ms: Optional[int]
     throughput: float  # Items processed per minute
@@ -72,6 +76,7 @@ class PerformanceMetrics:
 @dataclass
 class AlertDefinition:
     """Alert rule definition"""
+
     alert_id: str
     name: str
     description: str
@@ -88,6 +93,7 @@ class AlertDefinition:
 @dataclass
 class Alert:
     """Active alert instance"""
+
     alert_id: str
     alert_definition_id: str
     workflow_id: Optional[str]
@@ -106,6 +112,7 @@ class Alert:
 @dataclass
 class MonitoringSession:
     """Monitoring session for a workflow"""
+
     session_id: str
     workflow_id: str
     monitoring_level: MonitoringLevel

@@ -14,5 +14,5 @@ __all__ = [
     "FlowStateAnalysisTool",
     "PhaseValidationTool",
     "FlowValidationTool",
-    "RouteDecisionTool"
+    "RouteDecisionTool",
 ]

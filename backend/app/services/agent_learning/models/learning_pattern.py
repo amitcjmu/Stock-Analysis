@@ -12,6 +12,7 @@ from .learning_context import LearningContext
 @dataclass
 class LearningPattern:
     """Represents a learned pattern with context isolation."""
+
     pattern_id: str
     pattern_type: str
     context: LearningContext
@@ -26,6 +27,7 @@ class LearningPattern:
 @dataclass
 class PerformanceLearningPattern:
     """Performance-based learning pattern for optimization."""
+
     pattern_id: str
     operation_type: str
     performance_metrics: Dict[str, float]

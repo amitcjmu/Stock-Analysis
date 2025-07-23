@@ -12,7 +12,7 @@ from app.services.llm_config import get_crewai_llm
 class QuestionnaireDynamicsAgent(BaseCrewAIAgent):
     """
     Generates intelligent, adaptive questionnaires for manual data collection.
-    
+
     Capabilities:
     - Dynamic question generation based on gaps
     - Conditional logic for follow-up questions
@@ -20,12 +20,12 @@ class QuestionnaireDynamicsAgent(BaseCrewAIAgent):
     - Context-aware question sequencing
     - Multi-format support (text, dropdown, checkbox, etc.)
     """
-    
+
     def __init__(self, tools: List[Any], llm: Any = None, **kwargs):
         """Initialize with proper CrewAI configuration"""
         if llm is None:
             llm = get_crewai_llm()
-        
+
         super().__init__(
             role="Questionnaire Dynamics Specialist",
             goal="Create intelligent adaptive questionnaires that efficiently collect missing critical data through user-friendly forms",
@@ -43,7 +43,7 @@ class QuestionnaireDynamicsAgent(BaseCrewAIAgent):
             llm=llm,
             **kwargs
         )
-    
+
     @classmethod
     def agent_metadata(cls) -> AgentMetadata:
         """Define agent metadata for registry"""
@@ -56,17 +56,17 @@ class QuestionnaireDynamicsAgent(BaseCrewAIAgent):
                 "question_generator",
                 "validation_rule_builder",
                 "form_template_selector",
-                "conditional_logic_builder"
+                "conditional_logic_builder",
             ],
             capabilities=[
                 "questionnaire_generation",
                 "conditional_logic",
                 "validation_rules",
                 "adaptive_forms",
-                "user_experience_optimization"
+                "user_experience_optimization",
             ],
             max_iter=12,
             memory=True,
             verbose=True,
-            allow_delegation=False
+            allow_delegation=False,
         )

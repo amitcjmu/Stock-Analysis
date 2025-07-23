@@ -5,7 +5,7 @@ This module provides comprehensive integration services for the complete
 Collection → Discovery → Assessment smart workflow, including:
 
 - Smart workflow orchestration
-- Cross-flow state synchronization  
+- Cross-flow state synchronization
 - End-to-end data flow validation
 - Comprehensive error handling and recovery
 - User experience optimization
@@ -21,8 +21,8 @@ from .user_experience_optimizer import UserExperienceOptimizer
 
 __all__ = [
     "SmartWorkflowOrchestrator",
-    "DataFlowValidator", 
+    "DataFlowValidator",
     "StateSynchronizer",
     "ErrorRecoveryManager",
-    "UserExperienceOptimizer"
+    "UserExperienceOptimizer",
 ]

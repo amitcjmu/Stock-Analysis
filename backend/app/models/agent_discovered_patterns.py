@@ -8,19 +8,9 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict
 
-from sqlalchemy import (
-    DECIMAL,
-    Boolean,
-    CheckConstraint,
-    Column,
-    DateTime,
-    ForeignKey,
-    Integer,
-    String,
-    Text,
-    UniqueConstraint,
-    func,
-)
+from sqlalchemy import (DECIMAL, Boolean, CheckConstraint, Column, DateTime,
+                        ForeignKey, Integer, String, Text, UniqueConstraint,
+                        func)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
@@ -34,83 +24,156 @@ class AgentDiscoveredPatterns(Base):
     This table captures insights and patterns that agents identify, which can be used
     to improve future task execution and system optimization.
     """
+
     __tablename__ = "agent_discovered_patterns"
-    
+
     # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4,
-                comment="Unique identifier for the discovered pattern")
-    
+    id = Column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        comment="Unique identifier for the discovered pattern",
+    )
+
     # Pattern identification
-    pattern_id = Column(String(255), nullable=False, index=True,
-                        comment="Unique identifier for the pattern")
-    pattern_type = Column(String(100), nullable=False, index=True,
-                          comment="Type of pattern discovered")
-    pattern_name = Column(String(255), nullable=False,
-                          comment="Human-readable name of the pattern")
-    pattern_description = Column(Text, nullable=True,
-                                 comment="Detailed description of the pattern")
-    
+    pattern_id = Column(
+        String(255),
+        nullable=False,
+        index=True,
+        comment="Unique identifier for the pattern",
+    )
+    pattern_type = Column(
+        String(100), nullable=False, index=True, comment="Type of pattern discovered"
+    )
+    pattern_name = Column(
+        String(255), nullable=False, comment="Human-readable name of the pattern"
+    )
+    pattern_description = Column(
+        Text, nullable=True, comment="Detailed description of the pattern"
+    )
+
     # Discovery information
-    discovered_by_agent = Column(String(100), nullable=False, index=True,
-                                 comment="Agent that discovered this pattern")
-    task_id = Column(String(255), nullable=True,
-                     comment="Task ID where pattern was discovered")
-    
+    discovered_by_agent = Column(
+        String(100),
+        nullable=False,
+        index=True,
+        comment="Agent that discovered this pattern",
+    )
+    task_id = Column(
+        String(255), nullable=True, comment="Task ID where pattern was discovered"
+    )
+
     # Pattern quality metrics
-    confidence_score = Column(DECIMAL(3, 2), nullable=False,
-                              comment="Confidence score of the pattern (0-1)")
-    evidence_count = Column(Integer, nullable=False, server_default='1',
-                            comment="Number of instances supporting this pattern")
-    times_referenced = Column(Integer, nullable=False, server_default='0',
-                              comment="Number of times this pattern has been referenced")
-    pattern_effectiveness_score = Column(DECIMAL(3, 2), nullable=True,
-                                         comment="Effectiveness score based on usage and feedback (0-1)")
-    
+    confidence_score = Column(
+        DECIMAL(3, 2), nullable=False, comment="Confidence score of the pattern (0-1)"
+    )
+    evidence_count = Column(
+        Integer,
+        nullable=False,
+        server_default="1",
+        comment="Number of instances supporting this pattern",
+    )
+    times_referenced = Column(
+        Integer,
+        nullable=False,
+        server_default="0",
+        comment="Number of times this pattern has been referenced",
+    )
+    pattern_effectiveness_score = Column(
+        DECIMAL(3, 2),
+        nullable=True,
+        comment="Effectiveness score based on usage and feedback (0-1)",
+    )
+
     # Pattern data and context
-    pattern_data = Column(JSONB, nullable=False, server_default=text("'{}'::jsonb"),
-                          comment="Detailed pattern data and parameters")
-    execution_context = Column(JSONB, nullable=False, server_default=text("'{}'::jsonb"),
-                               comment="Context in which pattern was discovered")
-    
+    pattern_data = Column(
+        JSONB,
+        nullable=False,
+        server_default=text("'{}'::jsonb"),
+        comment="Detailed pattern data and parameters",
+    )
+    execution_context = Column(
+        JSONB,
+        nullable=False,
+        server_default=text("'{}'::jsonb"),
+        comment="Context in which pattern was discovered",
+    )
+
     # Usage and feedback tracking
-    user_feedback_given = Column(Boolean, nullable=False, server_default='false',
-                                 comment="Whether user has provided feedback on this pattern")
-    last_used_at = Column(DateTime(timezone=True), nullable=True,
-                          comment="Last time this pattern was used")
-    
+    user_feedback_given = Column(
+        Boolean,
+        nullable=False,
+        server_default="false",
+        comment="Whether user has provided feedback on this pattern",
+    )
+    last_used_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Last time this pattern was used",
+    )
+
     # Multi-tenant fields
-    client_account_id = Column(UUID(as_uuid=True), ForeignKey("client_accounts.id"), 
-                               nullable=False, index=True,
-                               comment="Client account this pattern belongs to")
-    engagement_id = Column(UUID(as_uuid=True), ForeignKey("engagements.id"), 
-                           nullable=False, index=True,
-                           comment="Engagement this pattern is part of")
-    
+    client_account_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("client_accounts.id"),
+        nullable=False,
+        index=True,
+        comment="Client account this pattern belongs to",
+    )
+    engagement_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("engagements.id"),
+        nullable=False,
+        index=True,
+        comment="Engagement this pattern is part of",
+    )
+
     # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=func.now(),
-                        comment="When this pattern was discovered")
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(),
-                        comment="When this record was last updated")
-    
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        comment="When this pattern was discovered",
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        comment="When this record was last updated",
+    )
+
     # Foreign key relationships
-    client_account = relationship("ClientAccount", foreign_keys=[client_account_id],
-                                  primaryjoin="AgentDiscoveredPatterns.client_account_id == ClientAccount.id")
-    engagement = relationship("Engagement", foreign_keys=[engagement_id],
-                              primaryjoin="AgentDiscoveredPatterns.engagement_id == Engagement.id")
-    
+    client_account = relationship(
+        "ClientAccount",
+        foreign_keys=[client_account_id],
+        primaryjoin="AgentDiscoveredPatterns.client_account_id == ClientAccount.id",
+    )
+    engagement = relationship(
+        "Engagement",
+        foreign_keys=[engagement_id],
+        primaryjoin="AgentDiscoveredPatterns.engagement_id == Engagement.id",
+    )
+
     # Table constraints
     __table_args__ = (
-        UniqueConstraint('pattern_id', 'client_account_id', 'engagement_id',
-                         name='uq_agent_discovered_patterns_pattern_client_engagement'),
-        CheckConstraint('confidence_score >= 0 AND confidence_score <= 1',
-                        name='chk_agent_discovered_patterns_confidence_score'),
-        CheckConstraint('pattern_effectiveness_score >= 0 AND pattern_effectiveness_score <= 1',
-                        name='chk_agent_discovered_patterns_effectiveness_score'),
+        UniqueConstraint(
+            "pattern_id",
+            "client_account_id",
+            "engagement_id",
+            name="uq_agent_discovered_patterns_pattern_client_engagement",
+        ),
+        CheckConstraint(
+            "confidence_score >= 0 AND confidence_score <= 1",
+            name="chk_agent_discovered_patterns_confidence_score",
+        ),
+        CheckConstraint(
+            "pattern_effectiveness_score >= 0 AND pattern_effectiveness_score <= 1",
+            name="chk_agent_discovered_patterns_effectiveness_score",
+        ),
     )
-    
+
     def __repr__(self):
         return f"<AgentDiscoveredPatterns(id={self.id}, pattern={self.pattern_name}, agent={self.discovered_by_agent}, confidence={self.confidence_score})>"
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API responses"""
         return {
@@ -121,70 +184,82 @@ class AgentDiscoveredPatterns(Base):
             "pattern_description": self.pattern_description,
             "discovered_by_agent": self.discovered_by_agent,
             "task_id": self.task_id,
-            "confidence_score": float(self.confidence_score) if self.confidence_score else None,
+            "confidence_score": (
+                float(self.confidence_score) if self.confidence_score else None
+            ),
             "evidence_count": self.evidence_count,
             "times_referenced": self.times_referenced,
-            "pattern_effectiveness_score": float(self.pattern_effectiveness_score) if self.pattern_effectiveness_score else None,
+            "pattern_effectiveness_score": (
+                float(self.pattern_effectiveness_score)
+                if self.pattern_effectiveness_score
+                else None
+            ),
             "pattern_data": self.pattern_data or {},
             "execution_context": self.execution_context or {},
             "user_feedback_given": self.user_feedback_given,
-            "last_used_at": self.last_used_at.isoformat() if self.last_used_at else None,
+            "last_used_at": (
+                self.last_used_at.isoformat() if self.last_used_at else None
+            ),
             "client_account_id": str(self.client_account_id),
             "engagement_id": str(self.engagement_id),
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
-    
+
     def increment_reference_count(self):
         """Increment the times this pattern has been referenced"""
         self.times_referenced += 1
         self.last_used_at = datetime.utcnow()
-    
+
     def update_effectiveness_score(self, new_score: float):
         """Update the pattern effectiveness score based on usage and feedback"""
         if 0 <= new_score <= 1:
             self.pattern_effectiveness_score = round(new_score, 2)
-    
+
     def add_evidence(self, evidence_data: Dict[str, Any]):
         """Add new evidence supporting this pattern"""
         self.evidence_count += 1
-        
+
         if not self.pattern_data:
             self.pattern_data = {}
-        
-        if 'evidence' not in self.pattern_data:
-            self.pattern_data['evidence'] = []
-        
-        self.pattern_data['evidence'].append({
-            'timestamp': datetime.utcnow().isoformat(),
-            'data': evidence_data
-        })
-        
+
+        if "evidence" not in self.pattern_data:
+            self.pattern_data["evidence"] = []
+
+        self.pattern_data["evidence"].append(
+            {"timestamp": datetime.utcnow().isoformat(), "data": evidence_data}
+        )
+
         # Keep only last 50 evidence entries to prevent unbounded growth
-        if len(self.pattern_data['evidence']) > 50:
-            self.pattern_data['evidence'] = self.pattern_data['evidence'][-50:]
-    
+        if len(self.pattern_data["evidence"]) > 50:
+            self.pattern_data["evidence"] = self.pattern_data["evidence"][-50:]
+
     def apply_user_feedback(self, feedback_type: str, feedback_value: Any):
         """Apply user feedback to the pattern"""
         self.user_feedback_given = True
-        
+
         if not self.pattern_data:
             self.pattern_data = {}
-        
-        if 'user_feedback' not in self.pattern_data:
-            self.pattern_data['user_feedback'] = []
-        
-        self.pattern_data['user_feedback'].append({
-            'timestamp': datetime.utcnow().isoformat(),
-            'type': feedback_type,
-            'value': feedback_value
-        })
-        
+
+        if "user_feedback" not in self.pattern_data:
+            self.pattern_data["user_feedback"] = []
+
+        self.pattern_data["user_feedback"].append(
+            {
+                "timestamp": datetime.utcnow().isoformat(),
+                "type": feedback_type,
+                "value": feedback_value,
+            }
+        )
+
         # Adjust effectiveness score based on feedback
-        if feedback_type == 'rating' and isinstance(feedback_value, (int, float)):
+        if feedback_type == "rating" and isinstance(feedback_value, (int, float)):
             # Simple averaging of ratings for effectiveness score
-            ratings = [f['value'] for f in self.pattern_data['user_feedback'] 
-                      if f['type'] == 'rating' and isinstance(f['value'], (int, float))]
+            ratings = [
+                f["value"]
+                for f in self.pattern_data["user_feedback"]
+                if f["type"] == "rating" and isinstance(f["value"], (int, float))
+            ]
             if ratings:
                 avg_rating = sum(ratings) / len(ratings)
                 # Normalize to 0-1 scale (assuming ratings are 1-5)

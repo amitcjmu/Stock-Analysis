@@ -13,7 +13,7 @@ from app.services.llm_config import get_crewai_llm
 class CredentialValidationAgent(BaseCrewAIAgent):
     """
     Validates credential scope and access permissions using CrewAI patterns.
-    
+
     Capabilities:
     - Credential format validation
     - Permission scope verification
@@ -21,12 +21,12 @@ class CredentialValidationAgent(BaseCrewAIAgent):
     - Service account validation
     - Role and policy analysis
     """
-    
+
     def __init__(self, tools: List[Any], llm: Any = None, **kwargs):
         """Initialize with proper CrewAI configuration"""
         if llm is None:
             llm = get_crewai_llm()
-        
+
         super().__init__(
             role="Credential Validation Specialist",
             goal="Ensure all credentials have appropriate permissions and access levels for migration operations",
@@ -45,7 +45,7 @@ class CredentialValidationAgent(BaseCrewAIAgent):
             llm=llm,
             **kwargs
         )
-    
+
     @classmethod
     def agent_metadata(cls) -> AgentMetadata:
         """Define agent metadata for registry"""
@@ -58,17 +58,17 @@ class CredentialValidationAgent(BaseCrewAIAgent):
                 "PermissionScopeChecker",
                 "AccessLevelAnalyzer",
                 "ServiceAccountValidator",
-                "RolePolicyAnalyzer"
+                "RolePolicyAnalyzer",
             ],
             capabilities=[
                 "credential_validation",
                 "permission_verification",
                 "access_level_assessment",
                 "service_account_validation",
-                "role_policy_analysis"
+                "role_policy_analysis",
             ],
             max_iter=10,
             memory=True,
             verbose=True,
-            allow_delegation=False
+            allow_delegation=False,
         )

@@ -14,6 +14,7 @@ from .enums import AutomationTier, EnvironmentComplexity
 @dataclass
 class TierAnalysis:
     """Result of tier detection analysis"""
+
     recommended_tier: AutomationTier
     confidence_score: float
     environment_complexity: EnvironmentComplexity
@@ -30,6 +31,7 @@ class TierAnalysis:
 @dataclass
 class RoutingDecision:
     """Routing decision with execution path"""
+
     selected_tier: AutomationTier
     execution_path: List[str]
     phase_configuration: Dict[str, Any]

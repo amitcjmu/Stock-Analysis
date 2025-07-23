@@ -16,12 +16,11 @@ router = APIRouter()
 
 @router.get("/")
 async def get_wave_planning(
-    db: AsyncSession = Depends(get_db),
-    context = Depends(get_current_context)
+    db: AsyncSession = Depends(get_db), context=Depends(get_current_context)
 ) -> Dict[str, Any]:
     """Get wave planning data with waves and groups."""
     current_date = datetime.now()
-    
+
     wave_planning_data = {
         "waves": [
             {
@@ -30,7 +29,7 @@ async def get_wave_planning(
                 "targetDate": (current_date + timedelta(days=90)).strftime("%Y-%m-%d"),
                 "groups": ["Finance Apps", "HR Systems", "Email & Collaboration"],
                 "apps": 45,
-                "status": "Scheduled"
+                "status": "Scheduled",
             },
             {
                 "wave": "Wave 2",
@@ -38,7 +37,7 @@ async def get_wave_planning(
                 "targetDate": (current_date + timedelta(days=135)).strftime("%Y-%m-%d"),
                 "groups": ["ERP Systems", "Supply Chain", "Customer Service"],
                 "apps": 38,
-                "status": "Planning"
+                "status": "Planning",
             },
             {
                 "wave": "Wave 3",
@@ -46,16 +45,12 @@ async def get_wave_planning(
                 "targetDate": (current_date + timedelta(days=180)).strftime("%Y-%m-%d"),
                 "groups": ["Legacy Systems", "Data Warehouses", "Analytics"],
                 "apps": 42,
-                "status": "Draft"
-            }
+                "status": "Draft",
+            },
         ],
-        "summary": {
-            "totalWaves": 3,
-            "totalApps": 125,
-            "totalGroups": 9
-        }
+        "summary": {"totalWaves": 3, "totalApps": 125, "totalGroups": 9},
     }
-    
+
     return wave_planning_data
 
 
@@ -63,7 +58,7 @@ async def get_wave_planning(
 async def update_wave_planning(
     data: Dict[str, Any],
     db: AsyncSession = Depends(get_db),
-    context = Depends(get_current_context)
+    context=Depends(get_current_context),
 ) -> Dict[str, str]:
     """Update wave planning data."""
     # In a real implementation, this would save to database

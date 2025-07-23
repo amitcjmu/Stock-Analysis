@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ClientForm } from './components/ClientForm';
 import { ClientTable } from './components/ClientTable';
-import type { useClientData } from './hooks/useClientData';
+import { useClientData } from './hooks/useClientData';
 import { useClientOperations } from './hooks/useClientOperations';
 import type { ClientFormData , Client} from './types'
 import { Industries } from './types'

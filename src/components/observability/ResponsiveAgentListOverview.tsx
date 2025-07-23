@@ -31,8 +31,7 @@ import type { LoadingError, NetworkError } from './ErrorBoundary'
 import { ObservabilityErrorBoundary } from './ErrorBoundary'
 import type { AgentOverviewLoading, AgentListSkeleton, EmptyState } from './LoadingStates'
 import { LoadingSpinner, ProgressiveLoader } from './LoadingStates'
-import type { useResponsiveLayout, useGridLayout } from './hooks/useResponsiveLayout'
-import { useComponentVisibility } from './hooks/useResponsiveLayout'
+import { useComponentVisibility, useGridLayout } from './hooks/useResponsiveLayout'
 import { agentObservabilityService } from '../../services/api/agentObservabilityService';
 
 import type { 

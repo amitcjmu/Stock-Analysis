@@ -8,14 +8,15 @@ from app.core.database import get_db
 
 router = APIRouter()
 
+
 @router.get("/applications", response_model=Dict[str, Any])
 async def get_applications(
     db: AsyncSession = Depends(get_db),
-    context: RequestContext = Depends(get_current_context)
+    context: RequestContext = Depends(get_current_context),
 ):
     """
     Placeholder for fetching applications.
     In a real implementation, this would fetch all unique applications
     related to the current engagement.
     """
-    return {"applications": []} 
+    return {"applications": []}

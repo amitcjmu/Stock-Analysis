@@ -11,5 +11,5 @@ __all__ = [
     "DeploymentConfig",
     "get_deployment_config",
     "ServiceDetector",
-    "ServiceFactory"
+    "ServiceFactory",
 ]

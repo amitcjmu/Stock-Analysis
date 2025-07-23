@@ -9,5 +9,5 @@ __all__ = [
     "AppAnalysisHandler",
     "InfraAnalysisHandler",
     "SecurityAnalysisHandler",
-    "RiskAssessmentHandler"
-] 
+    "RiskAssessmentHandler",
+]

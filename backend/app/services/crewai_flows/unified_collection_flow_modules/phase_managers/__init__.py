@@ -11,8 +11,8 @@ from .manual_collection_manager import ManualCollectionManager
 from .platform_detection_manager import PlatformDetectionManager
 
 __all__ = [
-    'PlatformDetectionManager',
-    'AutomatedCollectionManager',
-    'GapAnalysisManager',
-    'ManualCollectionManager'
+    "PlatformDetectionManager",
+    "AutomatedCollectionManager",
+    "GapAnalysisManager",
+    "ManualCollectionManager",
 ]

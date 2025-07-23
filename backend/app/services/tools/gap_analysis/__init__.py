@@ -13,12 +13,12 @@ from .priority_ranker import PriorityRankerTool
 from .quality_scorer import QualityScorerTool
 
 __all__ = [
-    'AttributeMapperTool',
-    'CompletenessAnalyzerTool',
-    'QualityScorerTool',
-    'GapIdentifierTool',
-    'ImpactCalculatorTool',
-    'EffortEstimatorTool',
-    'PriorityRankerTool',
-    'CollectionPlannerTool'
+    "AttributeMapperTool",
+    "CompletenessAnalyzerTool",
+    "QualityScorerTool",
+    "GapIdentifierTool",
+    "ImpactCalculatorTool",
+    "EffortEstimatorTool",
+    "PriorityRankerTool",
+    "CollectionPlannerTool",
 ]

@@ -16,11 +16,10 @@ router = APIRouter()
 
 @router.get("/data-retention")
 async def get_data_retention(
-    db: AsyncSession = Depends(get_db),
-    context = Depends(get_current_context)
+    db: AsyncSession = Depends(get_db), context=Depends(get_current_context)
 ) -> Dict[str, Any]:
     """Get data retention policy and requirements for system decommissioning."""
-    
+
     # Return data retention info in the format expected by frontend
     data_retention_info = {
         "metrics": [
@@ -28,26 +27,26 @@ async def get_data_retention(
                 "label": "Data Archived",
                 "value": "2.4 TB",
                 "color": "#22C55E",
-                "icon": "archive"
+                "icon": "archive",
             },
             {
                 "label": "Systems Retired",
                 "value": "12",
                 "color": "#F59E0B",
-                "icon": "server"
+                "icon": "server",
             },
             {
                 "label": "Retention Policies",
                 "value": "8",
                 "color": "#3B82F6",
-                "icon": "file-text"
+                "icon": "file-text",
             },
             {
                 "label": "Compliance Score",
                 "value": "98%",
                 "color": "#10B981",
-                "icon": "shield-check"
-            }
+                "icon": "shield-check",
+            },
         ],
         "policies": [
             {
@@ -59,7 +58,7 @@ async def get_data_retention(
                 "dataTypes": ["Financial Records", "Audit Trails", "Compliance Data"],
                 "storageLocation": "Encrypted Cloud Archive",
                 "status": "Active",
-                "affectedSystems": 15
+                "affectedSystems": 15,
             },
             {
                 "id": "pol-002",
@@ -70,7 +69,7 @@ async def get_data_retention(
                 "dataTypes": ["User Data", "Application Logs", "Configuration Files"],
                 "storageLocation": "Secure Archive Storage",
                 "status": "Active",
-                "affectedSystems": 8
+                "affectedSystems": 8,
             },
             {
                 "id": "pol-003",
@@ -81,8 +80,8 @@ async def get_data_retention(
                 "dataTypes": ["Security Logs", "System Events", "Monitoring Data"],
                 "storageLocation": "Log Archive System",
                 "status": "Active",
-                "affectedSystems": 25
-            }
+                "affectedSystems": 25,
+            },
         ],
         "archiveJobs": [
             {
@@ -94,7 +93,7 @@ async def get_data_retention(
                 "startDate": "2025-01-15",
                 "estimatedCompletion": "2025-01-20",
                 "priority": "High",
-                "policy": "Business Critical Data"
+                "policy": "Business Critical Data",
             },
             {
                 "id": "job-002",
@@ -105,7 +104,7 @@ async def get_data_retention(
                 "startDate": "2025-01-22",
                 "estimatedCompletion": "2025-01-28",
                 "priority": "Medium",
-                "policy": "Application Data"
+                "policy": "Application Data",
             },
             {
                 "id": "job-003",
@@ -116,43 +115,43 @@ async def get_data_retention(
                 "startDate": "2025-01-10",
                 "estimatedCompletion": "2025-01-12",
                 "priority": "High",
-                "policy": "Business Critical Data"
-            }
+                "policy": "Business Critical Data",
+            },
         ],
         "retentionSteps": [
             {
                 "step": 1,
                 "title": "Data Classification",
                 "description": "Classify all data according to retention requirements",
-                "status": "completed"
+                "status": "completed",
             },
             {
                 "step": 2,
                 "title": "Policy Assignment",
                 "description": "Assign appropriate retention policies to each data type",
-                "status": "completed"
+                "status": "completed",
             },
             {
                 "step": 3,
                 "title": "Archive Setup",
                 "description": "Configure secure archive storage systems",
-                "status": "in-progress"
+                "status": "in-progress",
             },
             {
                 "step": 4,
                 "title": "Data Migration",
                 "description": "Migrate data to long-term archive storage",
-                "status": "pending"
+                "status": "pending",
             },
             {
                 "step": 5,
                 "title": "Verification",
                 "description": "Verify data integrity and accessibility",
-                "status": "pending"
-            }
-        ]
+                "status": "pending",
+            },
+        ],
     }
-    
+
     return data_retention_info
 
 
@@ -160,14 +159,16 @@ async def get_data_retention(
 async def initialize_decommission(
     data: Dict[str, Any],
     db: AsyncSession = Depends(get_db),
-    context = Depends(get_current_context)
+    context=Depends(get_current_context),
 ) -> Dict[str, Any]:
     """Initialize decommission process for specified systems."""
-    
+
     systems = data.get("systems", [])
     if not systems:
-        raise HTTPException(status_code=400, detail="No systems specified for decommission")
-    
+        raise HTTPException(
+            status_code=400, detail="No systems specified for decommission"
+        )
+
     # Create decommission plan
     decommission_plan = {
         "id": f"decom_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
@@ -179,26 +180,26 @@ async def initialize_decommission(
                 "name": "decommission_planning",
                 "status": "active",
                 "description": "Plan safe system decommissioning",
-                "estimated_duration": "2-4 weeks"
+                "estimated_duration": "2-4 weeks",
             },
             {
                 "name": "data_migration",
                 "status": "pending",
                 "description": "Migrate and archive critical data",
-                "estimated_duration": "1-3 weeks"
+                "estimated_duration": "1-3 weeks",
             },
             {
                 "name": "system_shutdown",
-                "status": "pending", 
+                "status": "pending",
                 "description": "Safely shutdown systems",
-                "estimated_duration": "1 week"
-            }
-        ]
+                "estimated_duration": "1 week",
+            },
+        ],
     }
-    
+
     return {
         "message": "Decommission process initialized successfully",
-        "decommission_plan": decommission_plan
+        "decommission_plan": decommission_plan,
     }
 
 
@@ -206,10 +207,10 @@ async def initialize_decommission(
 async def get_decommission_status(
     decommission_id: str,
     db: AsyncSession = Depends(get_db),
-    context = Depends(get_current_context)
+    context=Depends(get_current_context),
 ) -> Dict[str, Any]:
     """Get status of decommission process."""
-    
+
     # Mock status response
     status_info = {
         "id": decommission_id,
@@ -222,99 +223,86 @@ async def get_decommission_status(
                 "name": "decommission_planning",
                 "status": "completed",
                 "progress": 100,
-                "completed_at": (datetime.now() - timedelta(days=7)).isoformat()
+                "completed_at": (datetime.now() - timedelta(days=7)).isoformat(),
             },
             {
-                "name": "data_migration", 
+                "name": "data_migration",
                 "status": "in_progress",
                 "progress": 45,
-                "started_at": (datetime.now() - timedelta(days=3)).isoformat()
+                "started_at": (datetime.now() - timedelta(days=3)).isoformat(),
             },
-            {
-                "name": "system_shutdown",
-                "status": "pending",
-                "progress": 0
-            }
-        ]
+            {"name": "system_shutdown", "status": "pending", "progress": 0},
+        ],
     }
-    
+
     return status_info
 
 
 @router.get("/checklist")
 async def get_decommission_checklist(
-    db: AsyncSession = Depends(get_db),
-    context = Depends(get_current_context)
+    db: AsyncSession = Depends(get_db), context=Depends(get_current_context)
 ) -> Dict[str, Any]:
     """Get comprehensive decommission checklist."""
-    
+
     checklist = {
         "pre_decommission": [
             {
                 "task": "Inventory all applications and systems",
                 "status": "pending",
-                "priority": "high"
+                "priority": "high",
             },
             {
                 "task": "Identify data retention requirements",
-                "status": "pending", 
-                "priority": "high"
+                "status": "pending",
+                "priority": "high",
             },
             {
                 "task": "Assess compliance obligations",
                 "status": "pending",
-                "priority": "high"
+                "priority": "high",
             },
             {
                 "task": "Create communication plan",
                 "status": "pending",
-                "priority": "medium"
-            }
+                "priority": "medium",
+            },
         ],
         "data_migration": [
             {
                 "task": "Export critical business data",
                 "status": "pending",
-                "priority": "high"
+                "priority": "high",
             },
             {
                 "task": "Archive system configurations",
                 "status": "pending",
-                "priority": "medium"
+                "priority": "medium",
             },
             {
                 "task": "Preserve security logs",
                 "status": "pending",
-                "priority": "medium"
+                "priority": "medium",
             },
             {
                 "task": "Validate data integrity",
                 "status": "pending",
-                "priority": "high"
-            }
+                "priority": "high",
+            },
         ],
         "system_shutdown": [
             {
                 "task": "Graceful service shutdown",
                 "status": "pending",
-                "priority": "high"
+                "priority": "high",
             },
-            {
-                "task": "Secure data wiping",
-                "status": "pending",
-                "priority": "high"
-            },
+            {"task": "Secure data wiping", "status": "pending", "priority": "high"},
             {
                 "task": "Infrastructure cleanup",
                 "status": "pending",
-                "priority": "medium"
+                "priority": "medium",
             },
-            {
-                "task": "Access revocation",
-                "status": "pending",
-                "priority": "high"
-            }
-        ]
+            {"task": "Access revocation", "status": "pending", "priority": "high"},
+        ],
     }
-    
+
     return checklist

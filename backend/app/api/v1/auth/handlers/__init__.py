@@ -10,7 +10,7 @@ from .user_management_handlers import user_management_router
 
 __all__ = [
     "authentication_router",
-    "user_management_router", 
+    "user_management_router",
     "admin_router",
-    "demo_router"
-] 
+    "demo_router",
+]

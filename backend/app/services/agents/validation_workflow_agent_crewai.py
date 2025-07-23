@@ -12,7 +12,7 @@ from app.services.llm_config import get_crewai_llm
 class ValidationWorkflowAgent(BaseCrewAIAgent):
     """
     Creates and manages validation workflows for manually collected data.
-    
+
     Capabilities:
     - Multi-level validation workflow design
     - Approval chain configuration
@@ -20,12 +20,12 @@ class ValidationWorkflowAgent(BaseCrewAIAgent):
     - Data consistency checks
     - Error handling and correction workflows
     """
-    
+
     def __init__(self, tools: List[Any], llm: Any = None, **kwargs):
         """Initialize with proper CrewAI configuration"""
         if llm is None:
             llm = get_crewai_llm()
-        
+
         super().__init__(
             role="Validation Workflow Architect",
             goal="Design comprehensive validation workflows that ensure manually collected data meets quality standards before migration",
@@ -43,7 +43,7 @@ class ValidationWorkflowAgent(BaseCrewAIAgent):
             llm=llm,
             **kwargs
         )
-    
+
     @classmethod
     def agent_metadata(cls) -> AgentMetadata:
         """Define agent metadata for registry"""
@@ -56,17 +56,17 @@ class ValidationWorkflowAgent(BaseCrewAIAgent):
                 "validation_rule_engine",
                 "approval_chain_builder",
                 "error_handler",
-                "consistency_checker"
+                "consistency_checker",
             ],
             capabilities=[
                 "workflow_design",
                 "validation_orchestration",
                 "approval_management",
                 "error_handling",
-                "data_consistency"
+                "data_consistency",
             ],
             max_iter=10,
             memory=True,
             verbose=True,
-            allow_delegation=False
+            allow_delegation=False,
         )

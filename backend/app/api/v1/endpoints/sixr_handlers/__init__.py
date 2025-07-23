@@ -10,9 +10,9 @@ from .parameter_management import ParameterManagementHandler
 from .recommendation_handler import RecommendationHandler
 
 __all__ = [
-    'AnalysisEndpointsHandler',
-    'ParameterManagementHandler',
-    'IterationHandler',
-    'RecommendationHandler',
-    'BackgroundTasksHandler'
-] 
+    "AnalysisEndpointsHandler",
+    "ParameterManagementHandler",
+    "IterationHandler",
+    "RecommendationHandler",
+    "BackgroundTasksHandler",
+]

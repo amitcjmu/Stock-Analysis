@@ -13,5 +13,5 @@ __all__ = [
     "ImportFieldMapping",
     "ImportStatus",
     "ImportType",
-    "CustomTargetField"
-] 
+    "CustomTargetField",
+]

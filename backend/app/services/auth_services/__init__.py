@@ -10,7 +10,7 @@ from .user_management_service import UserManagementService
 
 __all__ = [
     "AuthenticationService",
-    "UserManagementService", 
+    "UserManagementService",
     "AdminOperationsService",
-    "RBACCoreService"
-] 
+    "RBACCoreService",
+]

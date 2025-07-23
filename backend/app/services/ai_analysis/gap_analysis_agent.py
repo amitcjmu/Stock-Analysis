@@ -18,6 +18,7 @@ try:
     from crewai import Agent, Process, Task
 
     from app.services.crews.base_crew import BaseDiscoveryCrew
+
     CREWAI_AVAILABLE = True
 except ImportError:
     CREWAI_AVAILABLE = False
@@ -31,47 +32,63 @@ logger = logging.getLogger(__name__)
 CRITICAL_ATTRIBUTES_FRAMEWORK = {
     "infrastructure": {
         "primary": [
-            "hostname", "environment", "os_type", "os_version", 
-            "cpu_cores", "memory_gb", "storage_gb", "network_zone"
+            "hostname",
+            "environment",
+            "os_type",
+            "os_version",
+            "cpu_cores",
+            "memory_gb",
+            "storage_gb",
+            "network_zone",
         ],
         "business_impact": "high",
-        "6r_relevance": ["rehost", "replatform", "refactor"]
+        "6r_relevance": ["rehost", "replatform", "refactor"],
     },
     "application": {
         "primary": [
-            "application_name", "application_type", "technology_stack",
-            "criticality_level", "data_classification", "compliance_scope"
+            "application_name",
+            "application_type",
+            "technology_stack",
+            "criticality_level",
+            "data_classification",
+            "compliance_scope",
         ],
-        "business_impact": "critical", 
-        "6r_relevance": ["refactor", "repurchase", "retire"]
+        "business_impact": "critical",
+        "6r_relevance": ["refactor", "repurchase", "retire"],
     },
     "operational": {
         "primary": [
-            "owner", "cost_center", "backup_strategy", "monitoring_status",
-            "patch_level", "last_scan_date"
+            "owner",
+            "cost_center",
+            "backup_strategy",
+            "monitoring_status",
+            "patch_level",
+            "last_scan_date",
         ],
         "business_impact": "medium",
-        "6r_relevance": ["retain", "rehost", "replatform"]
+        "6r_relevance": ["retain", "rehost", "replatform"],
     },
     "dependencies": {
         "primary": [
-            "application_dependencies", "database_dependencies", 
-            "integration_points", "data_flows"
+            "application_dependencies",
+            "database_dependencies",
+            "integration_points",
+            "data_flows",
         ],
         "business_impact": "critical",
-        "6r_relevance": ["refactor", "replatform", "repurchase"]
-    }
+        "6r_relevance": ["refactor", "replatform", "repurchase"],
+    },
 }
 
 
 class GapAnalysisAgent(BaseDiscoveryCrew):
     """
     AI-powered gap analysis agent using CrewAI framework.
-    
+
     Analyzes collected data to identify missing critical attributes
     for 6R migration strategy recommendations.
     """
-    
+
     def __init__(self):
         """Initialize gap analysis crew"""
         super().__init__(
@@ -80,13 +97,13 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
             process=Process.sequential,
             verbose=True,
             memory=True,
-            cache=True
+            cache=True,
         )
-        
+
     def create_agents(self) -> List[Any]:
         """Create specialized AI agents for gap analysis"""
         agents = []
-        
+
         try:
             # Primary Gap Analysis Specialist
             gap_specialist = Agent(
@@ -113,10 +130,10 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
                 llm=self.llm,
                 verbose=True,
                 allow_delegation=False,
-                tools=[]
+                tools=[],
             )
             agents.append(gap_specialist)
-            
+
             # Business Impact Assessor
             impact_assessor = Agent(
                 role="Business Impact Assessment Agent",
@@ -136,10 +153,10 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
                 llm=self.llm,
                 verbose=True,
                 allow_delegation=False,
-                tools=[]
+                tools=[],
             )
             agents.append(impact_assessor)
-            
+
             # Data Quality Validator
             quality_validator = Agent(
                 role="Data Quality Validation Expert",
@@ -159,10 +176,10 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
                 llm=self.llm,
                 verbose=True,
                 allow_delegation=False,
-                tools=[]
+                tools=[],
             )
             agents.append(quality_validator)
-            
+
         except Exception as e:
             logger.error(f"Failed to create gap analysis agents: {e}")
             # Create minimal fallback agent
@@ -173,21 +190,21 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
                 llm=self.llm,
                 verbose=True,
                 allow_delegation=False,
-                tools=[]
+                tools=[],
             )
             agents.append(fallback_agent)
-        
+
         return agents
-    
+
     def create_tasks(self, inputs: Dict[str, Any]) -> List[Task]:
         """Create gap analysis tasks"""
         collected_data = inputs.get("collected_data", [])
         collection_flow_id = inputs.get("collection_flow_id")
         automation_tier = inputs.get("automation_tier", "tier_2")
         business_context = inputs.get("business_context", {})
-        
+
         tasks = []
-        
+
         # Task 1: Primary Gap Analysis
         gap_analysis_task = Task(
             description=f"""
@@ -292,10 +309,10 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
             }}
             """,
             agent=self.agents[0],
-            expected_output="Comprehensive JSON gap analysis with 6R strategy impact assessment"
+            expected_output="Comprehensive JSON gap analysis with 6R strategy impact assessment",
         )
         tasks.append(gap_analysis_task)
-        
+
         # Task 2: Business Impact Assessment
         if len(self.agents) > 1:
             business_impact_task = Task(
@@ -333,10 +350,10 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
                 """,
                 agent=self.agents[1],
                 expected_output="Business impact assessment with risk analysis and stakeholder implications",
-                context=[gap_analysis_task]
+                context=[gap_analysis_task],
             )
             tasks.append(business_impact_task)
-        
+
         # Task 3: Quality Validation
         if len(self.agents) > 2:
             validation_task = Task(
@@ -373,12 +390,16 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
                 """,
                 agent=self.agents[2],
                 expected_output="Quality validation report with accuracy assessment and recommendations",
-                context=[gap_analysis_task, business_impact_task] if len(tasks) > 1 else [gap_analysis_task]
+                context=(
+                    [gap_analysis_task, business_impact_task]
+                    if len(tasks) > 1
+                    else [gap_analysis_task]
+                ),
             )
             tasks.append(validation_task)
-        
+
         return tasks
-    
+
     def process_results(self, raw_results: Any) -> Dict[str, Any]:
         """Process gap analysis results"""
         try:
@@ -386,41 +407,53 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
             if isinstance(raw_results, str):
                 try:
                     import re
-                    json_match = re.search(r'\{.*\}', raw_results, re.DOTALL)
+
+                    json_match = re.search(r"\{.*\}", raw_results, re.DOTALL)
                     if json_match:
                         parsed_results = json.loads(json_match.group())
                     else:
                         parsed_results = self._parse_text_results(raw_results)
                 except Exception as e:
-                    logger.warning(f"Could not parse JSON from gap analysis results: {e}")
+                    logger.warning(
+                        f"Could not parse JSON from gap analysis results: {e}"
+                    )
                     parsed_results = self._parse_text_results(raw_results)
             else:
                 parsed_results = raw_results
-            
+
             # Ensure required structure
             if not isinstance(parsed_results, dict):
                 parsed_results = {"error": "Unexpected result format"}
-            
+
             # Extract key components
             gap_summary = parsed_results.get("gap_analysis_summary", {})
             category_analysis = parsed_results.get("category_analysis", {})
             sixr_impact = parsed_results.get("sixr_strategy_impact", {})
             prioritized_gaps = parsed_results.get("prioritized_gaps", [])
             recommendations = parsed_results.get("collection_recommendations", {})
-            
+
             # Calculate additional metrics
             total_gaps = len(prioritized_gaps)
-            critical_gaps = len([gap for gap in prioritized_gaps if gap.get("priority") == 1])
-            high_priority_gaps = len([gap for gap in prioritized_gaps if gap.get("priority") == 2])
-            
+            critical_gaps = len(
+                [gap for gap in prioritized_gaps if gap.get("priority") == 1]
+            )
+            high_priority_gaps = len(
+                [gap for gap in prioritized_gaps if gap.get("priority") == 2]
+            )
+
             # Calculate confidence impact on 6R strategies
             strategy_confidence_impact = {}
             for strategy, impact_data in sixr_impact.items():
                 confidence_impact = impact_data.get("confidence_impact", 100)
                 strategy_confidence_impact[strategy] = confidence_impact
-            
-            avg_confidence_impact = sum(strategy_confidence_impact.values()) / len(strategy_confidence_impact) if strategy_confidence_impact else 100
-            
+
+            avg_confidence_impact = (
+                sum(strategy_confidence_impact.values())
+                / len(strategy_confidence_impact)
+                if strategy_confidence_impact
+                else 100
+            )
+
             return {
                 "crew_name": self.name,
                 "status": "completed",
@@ -429,19 +462,29 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
                         "total_gaps_identified": total_gaps,
                         "critical_gaps": critical_gaps,
                         "high_priority_gaps": high_priority_gaps,
-                        "overall_coverage": gap_summary.get("overall_coverage_percentage", 0),
-                        "avg_confidence_impact": round(avg_confidence_impact, 2)
+                        "overall_coverage": gap_summary.get(
+                            "overall_coverage_percentage", 0
+                        ),
+                        "avg_confidence_impact": round(avg_confidence_impact, 2),
                     },
                     "category_breakdown": category_analysis,
                     "sixr_strategy_impact": sixr_impact,
                     "prioritized_gaps": prioritized_gaps,
-                    "collection_recommendations": recommendations
+                    "collection_recommendations": recommendations,
                 },
                 "business_intelligence": {
-                    "migration_readiness_score": self._calculate_migration_readiness(prioritized_gaps, strategy_confidence_impact),
-                    "business_risk_level": self._assess_business_risk(critical_gaps, high_priority_gaps),
-                    "collection_effort_estimate": recommendations.get("estimated_effort_hours", 0),
-                    "automation_enhancement_score": self._calculate_automation_score(recommendations)
+                    "migration_readiness_score": self._calculate_migration_readiness(
+                        prioritized_gaps, strategy_confidence_impact
+                    ),
+                    "business_risk_level": self._assess_business_risk(
+                        critical_gaps, high_priority_gaps
+                    ),
+                    "collection_effort_estimate": recommendations.get(
+                        "estimated_effort_hours", 0
+                    ),
+                    "automation_enhancement_score": self._calculate_automation_score(
+                        recommendations
+                    ),
                 },
                 "recommendations": {
                     "immediate_actions": recommendations.get("immediate_actions", []),
@@ -450,17 +493,17 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
                     "success_metrics": [
                         f"Fill {critical_gaps} critical gaps to improve strategy confidence",
                         f"Complete {high_priority_gaps} high-priority data collection activities",
-                        "Achieve >85% coverage of critical attributes framework"
-                    ]
+                        "Achieve >85% coverage of critical attributes framework",
+                    ],
                 },
                 "metadata": {
                     "analysis_timestamp": datetime.now(timezone.utc).isoformat(),
                     "framework_version": "critical_attributes_v1.0",
                     "agent_count": len(self.agents),
-                    "task_count": len(self.tasks)
-                }
+                    "task_count": len(self.tasks),
+                },
             }
-            
+
         except Exception as e:
             logger.error(f"Error processing gap analysis results: {e}")
             return {
@@ -470,60 +513,67 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
                 "gap_analysis": {"summary": {"error": True}},
                 "metadata": {
                     "analysis_timestamp": datetime.now(timezone.utc).isoformat()
-                }
+                },
             }
-    
+
     def _parse_text_results(self, text_result: str) -> Dict[str, Any]:
         """Parse gap analysis from text when JSON parsing fails"""
         result = {
             "gap_analysis_summary": {"parsing_fallback": True},
             "prioritized_gaps": [],
-            "collection_recommendations": {}
+            "collection_recommendations": {},
         }
-        
+
         # Extract basic metrics from text
-        lines = text_result.split('\n')
+        lines = text_result.split("\n")
         gap_count = 0
-        
+
         for line in lines:
             line = line.strip().lower()
-            if 'gap' in line and ('critical' in line or 'high' in line or 'priority' in line):
+            if "gap" in line and (
+                "critical" in line or "high" in line or "priority" in line
+            ):
                 gap_count += 1
-            elif 'coverage' in line or 'percentage' in line:
+            elif "coverage" in line or "percentage" in line:
                 try:
                     import re
-                    numbers = re.findall(r'\d+', line)
+
+                    numbers = re.findall(r"\d+", line)
                     if numbers:
-                        result["gap_analysis_summary"]["overall_coverage_percentage"] = int(numbers[0])
+                        result["gap_analysis_summary"][
+                            "overall_coverage_percentage"
+                        ] = int(numbers[0])
                 except Exception:
                     pass
-        
+
         result["gap_analysis_summary"]["total_gaps_identified"] = gap_count
         return result
-    
-    def _calculate_migration_readiness(self, gaps: List[Dict[str, Any]], strategy_impact: Dict[str, float]) -> float:
+
+    def _calculate_migration_readiness(
+        self, gaps: List[Dict[str, Any]], strategy_impact: Dict[str, float]
+    ) -> float:
         """Calculate overall migration readiness score"""
         if not gaps:
             return 100.0
-            
+
         # Weight gaps by priority
         priority_weights = {1: 0.5, 2: 0.3, 3: 0.15, 4: 0.05}
         total_impact = 0
         total_weight = 0
-        
+
         for gap in gaps:
             priority = gap.get("priority", 4)
             weight = priority_weights.get(priority, 0.05)
             impact = 100 - (priority * 20)  # Higher priority = higher impact
             total_impact += impact * weight
             total_weight += weight
-        
+
         if total_weight == 0:
             return 100.0
-            
+
         readiness_score = 100 - (total_impact / total_weight)
         return max(0, min(100, readiness_score))
-    
+
     def _assess_business_risk(self, critical_gaps: int, high_priority_gaps: int) -> str:
         """Assess business risk level based on gap analysis"""
         if critical_gaps >= 3:
@@ -534,12 +584,12 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
             return "low"
         else:
             return "minimal"
-    
+
     def _calculate_automation_score(self, recommendations: Dict[str, Any]) -> float:
         """Calculate automation enhancement score"""
         opportunities = recommendations.get("automation_enhancement_opportunities", [])
         manual_required = recommendations.get("manual_collection_required", True)
-        
+
         if not manual_required:
             return 100.0
         elif len(opportunities) >= 3:
@@ -548,23 +598,23 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
             return 50.0
         else:
             return 25.0
-    
+
     async def analyze_data_gaps(
         self,
         collected_data: List[Dict[str, Any]],
         existing_gaps: List[Dict[str, Any]],
         sixr_requirements: Dict[str, Any],
-        automation_tier: str
+        automation_tier: str,
     ) -> Dict[str, Any]:
         """
         Analyze data gaps for given collected data.
-        
+
         Args:
             collected_data: List of collected asset data
             existing_gaps: List of existing gaps identified
             sixr_requirements: 6R strategy requirements
             automation_tier: Current automation tier
-            
+
         Returns:
             Gap analysis results
         """
@@ -574,16 +624,16 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
                 "collected_data": collected_data,
                 "existing_gaps": existing_gaps,
                 "sixr_requirements": sixr_requirements,
-                "automation_tier": automation_tier
+                "automation_tier": automation_tier,
             }
-            
+
             # Execute gap analysis
             logger.info(f"Starting gap analysis for {len(collected_data)} assets")
             results = await self.kickoff_async(analysis_inputs)
-            
+
             logger.info("Gap analysis completed")
             return self.process_results(results)
-            
+
         except Exception as e:
             logger.error(f"Failed to perform gap analysis: {e}")
             return {
@@ -592,7 +642,7 @@ class GapAnalysisAgent(BaseDiscoveryCrew):
                 "gap_analysis": {"summary": {"error": True}},
                 "metadata": {
                     "analysis_timestamp": datetime.now(timezone.utc).isoformat()
-                }
+                },
             }
 
 
@@ -600,39 +650,39 @@ async def analyze_collection_gaps(
     collection_flow_id: UUID,
     collected_data: List[Dict[str, Any]],
     automation_tier: str = "tier_2",
-    business_context: Optional[Dict[str, Any]] = None
+    business_context: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     High-level function to perform gap analysis using the AI agent.
-    
+
     Args:
         collection_flow_id: UUID of the collection flow
         collected_data: List of collected asset data
         automation_tier: Current automation tier (tier_1, tier_2, tier_3, tier_4)
         business_context: Additional business context for analysis
-        
+
     Returns:
         Comprehensive gap analysis results
     """
     try:
         # Initialize gap analysis agent
         gap_agent = GapAnalysisAgent()
-        
+
         # Prepare analysis inputs
         analysis_inputs = {
             "collection_flow_id": str(collection_flow_id),
             "collected_data": collected_data,
             "automation_tier": automation_tier,
-            "business_context": business_context or {}
+            "business_context": business_context or {},
         }
-        
+
         # Execute gap analysis
         logger.info(f"Starting gap analysis for collection flow: {collection_flow_id}")
         results = await gap_agent.kickoff_async(analysis_inputs)
-        
+
         logger.info(f"Gap analysis completed for collection flow: {collection_flow_id}")
         return gap_agent.process_results(results)
-        
+
     except Exception as e:
         logger.error(f"Failed to perform gap analysis: {e}")
         return {
@@ -640,7 +690,5 @@ async def analyze_collection_gaps(
             "status": "error",
             "error": str(e),
             "gap_analysis": {"summary": {"error": True}},
-            "metadata": {
-                "analysis_timestamp": datetime.now(timezone.utc).isoformat()
-            }
+            "metadata": {"analysis_timestamp": datetime.now(timezone.utc).isoformat()},
         }

@@ -13,4 +13,4 @@ Re-exports main repository for backward compatibility with existing imports.
 # Re-export main repository for backward compatibility
 from .base_repository import AssessmentFlowRepository
 
-__all__ = ['AssessmentFlowRepository']
+__all__ = ["AssessmentFlowRepository"]

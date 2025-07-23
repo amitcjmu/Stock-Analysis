@@ -9,8 +9,8 @@ from .feedback import FeedbackHandler
 from .templates import TemplateHandler
 
 __all__ = [
-    'CMDBAnalysisHandler',
-    'DataProcessingHandler', 
-    'TemplateHandler',
-    'FeedbackHandler'
-] 
+    "CMDBAnalysisHandler",
+    "DataProcessingHandler",
+    "TemplateHandler",
+    "FeedbackHandler",
+]

@@ -3,6 +3,7 @@ Dependencies handler for discovery agent.
 
 This module contains the dependencies-related endpoints for the discovery agent.
 """
+
 import logging
 from typing import Any, Dict
 
@@ -17,15 +18,17 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["dependencies"])
 
+
 class DependencyAnalysisRequest(BaseModel):
     client_account_id: str
     engagement_id: str
     dependency_type: str = "app-server"  # "app-server" or "app-app"
 
+
 @router.get("/dependencies")
 async def get_dependencies(
     db: AsyncSession = Depends(get_db),
-    context: RequestContext = Depends(get_current_context)
+    context: RequestContext = Depends(get_current_context),
 ) -> Dict[str, Any]:
     """Get dependency analysis results."""
     return {
@@ -35,30 +38,28 @@ async def get_dependencies(
                 "source": "app-1",
                 "target": "db-1",
                 "type": "database_connection",
-                "strength": "strong"
+                "strength": "strong",
             }
         ],
-        "total_count": 1
+        "total_count": 1,
     }
+
 
 @router.get("/health")
 async def dependencies_health():
     """Health check for dependencies endpoints."""
-    return {
-        "status": "healthy",
-        "service": "dependencies",
-        "version": "1.0.0"
-    }
+    return {"status": "healthy", "service": "dependencies", "version": "1.0.0"}
+
 
 @router.post("/dependency-analysis")
 async def dependency_analysis(
     request: DependencyAnalysisRequest,
     db: AsyncSession = Depends(get_db),
-    context: RequestContext = Depends(get_current_context)
+    context: RequestContext = Depends(get_current_context),
 ) -> Dict[str, Any]:
     """
     Execute dependency analysis based on type.
-    
+
     Args:
         request: The dependency analysis request containing:
             - client_account_id: Client account ID
@@ -67,7 +68,7 @@ async def dependency_analysis(
     """
     try:
         logger.info(f"Starting dependency analysis for type: {request.dependency_type}")
-        
+
         if request.dependency_type == "app-server":
             # Analyze application-to-server dependencies
             return {
@@ -76,15 +77,15 @@ async def dependency_analysis(
                 "dependency_analysis": {
                     "hosting_relationships": [],
                     "suggested_mappings": [],
-                    "confidence_scores": {}
+                    "confidence_scores": {},
                 },
                 "clarification_questions": [],
                 "dependency_recommendations": [],
                 "intelligence_metadata": {
                     "analysis_type": "app-server",
                     "timestamp": "2024-03-21T22:17:51Z",
-                    "confidence_level": "high"
-                }
+                    "confidence_level": "high",
+                },
             }
         elif request.dependency_type == "app-app":
             # Analyze application-to-application dependencies
@@ -95,25 +96,24 @@ async def dependency_analysis(
                     "communication_patterns": [],
                     "suggested_patterns": [],
                     "confidence_scores": {},
-                    "application_clusters": []
+                    "application_clusters": [],
                 },
                 "clarification_questions": [],
                 "dependency_recommendations": [],
                 "intelligence_metadata": {
                     "analysis_type": "app-app",
                     "timestamp": "2024-03-21T22:17:51Z",
-                    "confidence_level": "high"
-                }
+                    "confidence_level": "high",
+                },
             }
         else:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid dependency type: {request.dependency_type}. Must be 'app-server' or 'app-app'"
+                detail=f"Invalid dependency type: {request.dependency_type}. Must be 'app-server' or 'app-app'",
             )
-            
+
     except Exception as e:
         logger.error(f"Error in dependency analysis: {e}")
         raise HTTPException(
-            status_code=500,
-            detail=f"Failed to execute dependency analysis: {str(e)}"
+            status_code=500, detail=f"Failed to execute dependency analysis: {str(e)}"
         )

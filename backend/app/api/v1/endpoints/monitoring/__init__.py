@@ -20,5 +20,5 @@ __all__ = [
     "health_metrics_router",
     "crewai_flow_monitoring_router",
     "crew_monitoring_router",
-    "error_monitoring_router"
+    "error_monitoring_router",
 ]

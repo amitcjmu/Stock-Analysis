@@ -12,14 +12,16 @@ from app.services.agents.metadata import AgentMetadata
 try:
     from app.services.llm_config import get_crewai_llm
 except ImportError:
+
     def get_crewai_llm():
         # Return None when CrewAI is not available
         return None
 
+
 class CollectionOrchestratorAgent(BaseCrewAIAgent):
     """
     Orchestrates the entire automated collection strategy across platforms using CrewAI patterns.
-    
+
     Capabilities:
     - Platform adapter coordination
     - Collection strategy planning
@@ -28,12 +30,12 @@ class CollectionOrchestratorAgent(BaseCrewAIAgent):
     - Quality assurance
     - Error recovery orchestration
     """
-    
+
     def __init__(self, tools: List[Any], llm: Any = None, **kwargs):
         """Initialize with proper CrewAI configuration"""
         if llm is None:
             llm = get_crewai_llm()
-        
+
         super().__init__(
             role="Collection Strategy Orchestrator",
             goal="Coordinate and optimize automated data collection across all detected platforms while ensuring quality and completeness",
@@ -59,7 +61,7 @@ class CollectionOrchestratorAgent(BaseCrewAIAgent):
             llm=llm,
             **kwargs
         )
-    
+
     @classmethod
     def agent_metadata(cls) -> AgentMetadata:
         """Define agent metadata for registry"""
@@ -72,7 +74,7 @@ class CollectionOrchestratorAgent(BaseCrewAIAgent):
                 "CollectionStrategyPlanner",
                 "ProgressMonitor",
                 "QualityValidator",
-                "ErrorRecoveryManager"
+                "ErrorRecoveryManager",
             ],
             capabilities=[
                 "adapter_coordination",
@@ -80,10 +82,10 @@ class CollectionOrchestratorAgent(BaseCrewAIAgent):
                 "resource_prioritization",
                 "progress_tracking",
                 "quality_assurance",
-                "error_recovery"
+                "error_recovery",
             ],
             max_iter=20,
             memory=True,
             verbose=True,
-            allow_delegation=False
+            allow_delegation=False,
         )

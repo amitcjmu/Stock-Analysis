@@ -11,18 +11,12 @@ import logging
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.auth.handlers.admin_handlers import (
-    admin_router,
-)
-from app.api.v1.auth.handlers.authentication_handlers import (
-    authentication_router,
-)
-from app.api.v1.auth.handlers.demo_handlers import (
-    demo_router,
-)
-from app.api.v1.auth.handlers.user_management_handlers import (
-    user_management_router,
-)
+from app.api.v1.auth.handlers.admin_handlers import admin_router
+from app.api.v1.auth.handlers.authentication_handlers import \
+    authentication_router
+from app.api.v1.auth.handlers.demo_handlers import demo_router
+from app.api.v1.auth.handlers.user_management_handlers import \
+    user_management_router
 from app.core.database import get_db
 from app.services.auth_services.rbac_core_service import RBACCoreService
 
@@ -44,11 +38,11 @@ async def initialize_rbac_system():
     """Initialize RBAC system - called from main app lifespan."""
     try:
         logger.info("Initializing modular RBAC system...")
-        
+
         # Note: This would be called during application startup
         # For now, we'll handle role initialization on-demand
         logger.info("Modular RBAC system ready")
-        
+
     except Exception as e:
         logger.error(f"Failed to initialize RBAC system: {e}")
 
@@ -62,28 +56,39 @@ async def get_system_info():
         "version": "2.0.0",
         "components": {
             "authentication_service": "active",
-            "user_management_service": "active", 
+            "user_management_service": "active",
             "admin_operations_service": "active",
-            "rbac_core_service": "active"
+            "rbac_core_service": "active",
         },
         "endpoints": {
             "authentication": ["/login", "/change-password"],
             "user_management": [
-                "/register", "/registration-status/{user_id}",
-                "/pending-approvals", "/approve-user", "/reject-user",
-                "/validate-access", "/grant-client-access",
-                "/user-profile/{user_id}", "/deactivate-user", "/activate-user"
+                "/register",
+                "/registration-status/{user_id}",
+                "/pending-approvals",
+                "/approve-user",
+                "/reject-user",
+                "/validate-access",
+                "/grant-client-access",
+                "/user-profile/{user_id}",
+                "/deactivate-user",
+                "/activate-user",
             ],
             "admin_operations": [
-                "/admin/dashboard-stats", "/active-users", 
-                "/admin/access-logs", "/admin/create-user",
-                "/admin/role-statistics", "/admin/ensure-roles"
+                "/admin/dashboard-stats",
+                "/active-users",
+                "/admin/access-logs",
+                "/admin/create-user",
+                "/admin/role-statistics",
+                "/admin/ensure-roles",
             ],
             "demo": [
-                "/demo/create-admin-user", "/demo/status", 
-                "/demo/reset", "/demo/health"
+                "/demo/create-admin-user",
+                "/demo/status",
+                "/demo/reset",
+                "/demo/health",
             ],
-            "system": ["/health", "/system/info"]
+            "system": ["/health", "/system/info"],
         },
         "migration_status": "completed",
         "original_endpoints": 17,
@@ -92,8 +97,8 @@ async def get_system_info():
             "Role statistics endpoint",
             "System information endpoint",
             "Demo status and management",
-            "Enhanced health checking"
-        ]
+            "Enhanced health checking",
+        ],
     }
 
 
@@ -107,7 +112,7 @@ async def ensure_basic_roles_exist(db: AsyncSession = Depends(get_db)):
         rbac_core_service = RBACCoreService(db)
         await rbac_core_service.ensure_basic_roles_exist()
         logger.info("Basic roles ensured in system")
-        
+
     except Exception as e:
         logger.error(f"Error ensuring basic roles exist: {e}")
 
@@ -119,10 +124,10 @@ def get_role_permissions(role_type: str) -> dict:
     Maintains backward compatibility with existing code.
     """
     from app.services.auth_services.rbac_core_service import RBACCoreService
-    
+
     # Create a dummy service instance for static method access
     class DummyDB:
         pass
-    
+
     dummy_service = RBACCoreService(DummyDB())
-    return dummy_service.get_role_permissions(role_type) 
+    return dummy_service.get_role_permissions(role_type)

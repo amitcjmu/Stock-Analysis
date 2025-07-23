@@ -19,81 +19,85 @@ from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
 try:
     from crewai.knowledge.knowledge import Knowledge
     from crewai.memory import LongTermMemory
+
     CREWAI_ADVANCED_AVAILABLE = True
 except ImportError:
     CREWAI_ADVANCED_AVAILABLE = False
+
     # Fallback classes
     class LongTermMemory:
         def __init__(self, **kwargs):
             pass
+
     class Knowledge:
         def __init__(self, **kwargs):
             pass
 
+
 logger = logging.getLogger(__name__)
+
 
 class DataCleansingCrew:
     """Enhanced Data Cleansing Crew with CrewAI best practices"""
-    
+
     def __init__(self, crewai_service, shared_memory=None, knowledge_base=None):
         self.crewai_service = crewai_service
-        
+
         # Get proper LLM configuration from our LLM config service
         try:
             from app.services.llm_config import get_crewai_llm
+
             self.llm_model = get_crewai_llm()
             logger.info("✅ Data Cleansing Crew using configured DeepInfra LLM")
         except Exception as e:
             logger.warning(f"Failed to get configured LLM, using fallback: {e}")
-            self.llm_model = getattr(crewai_service, 'llm', None)
-        
+            self.llm_model = getattr(crewai_service, "llm", None)
+
         # Setup shared memory and knowledge base
         self.shared_memory = shared_memory or self._setup_shared_memory()
         self.knowledge_base = knowledge_base or self._setup_knowledge_base()
-        
+
         logger.info("✅ Data Cleansing Crew initialized with advanced features")
-    
+
     def _setup_shared_memory(self) -> Optional[LongTermMemory]:
         """Setup shared memory to access field mapping insights"""
         if not CREWAI_ADVANCED_AVAILABLE:
             logger.warning("Shared memory not available - using fallback")
             return None
-        
+
         try:
             return LongTermMemory(
                 storage_type="vector",
                 embedder_config={
-                    "provider": "openai", 
-                    "model": "text-embedding-3-small"
-                }
+                    "provider": "openai",
+                    "model": "text-embedding-3-small",
+                },
             )
         except Exception as e:
             logger.warning(f"Failed to setup shared memory: {e}")
             return None
-    
+
     def _setup_knowledge_base(self) -> Optional[Knowledge]:
         """Setup knowledge base for data quality standards"""
         if not CREWAI_ADVANCED_AVAILABLE:
             logger.warning("Knowledge base not available - using fallback")
             return None
-        
+
         try:
             return Knowledge(
-                sources=[
-                    "backend/app/knowledge_bases/data_quality_standards.yaml"
-                ],
+                sources=["backend/app/knowledge_bases/data_quality_standards.yaml"],
                 embedder_config={
                     "provider": "openai",
-                    "model": "text-embedding-3-small"
-                }
+                    "model": "text-embedding-3-small",
+                },
             )
         except Exception as e:
             logger.warning(f"Failed to setup knowledge base: {e}")
             return None
-    
+
     def create_agents(self):
         """Create agents with hierarchical management"""
-        
+
         # 🚀 PERFORMANCE FIX: Single agent, no delegation, memory disabled
         data_quality_manager = Agent(
             role="Data Quality Specialist",
@@ -101,22 +105,24 @@ class DataCleansingCrew:
             backstory="""You are a data quality expert who processes data directly and efficiently. 
             You provide comprehensive data cleansing results without requiring additional agents or conversations.""",
             llm=self.llm_model,
-            memory=True,   # RE-ENABLED MEMORY - APIStatusError was from auth issues, not memory
+            memory=True,  # RE-ENABLED MEMORY - APIStatusError was from auth issues, not memory
             verbose=True,
             allow_delegation=False,  # DISABLE DELEGATION - Prevents agent conversations
             max_iter=1,  # LIMIT ITERATIONS - Prevents infinite loops
-            max_execution_time=30  # 30 SECOND TIMEOUT
+            max_execution_time=30,  # 30 SECOND TIMEOUT
         )
-        
+
         return [data_quality_manager]  # SINGLE AGENT PATTERN
-    
-    def create_tasks(self, agents, cleaned_data: List[Dict[str, Any]], field_mappings: Dict[str, Any]):
+
+    def create_tasks(
+        self, agents, cleaned_data: List[Dict[str, Any]], field_mappings: Dict[str, Any]
+    ):
         """Create single task for direct processing"""
         manager = agents[0]  # SINGLE AGENT PATTERN
-        
+
         data_sample = cleaned_data[:5] if cleaned_data else []
         mapped_fields = field_mappings.get("mappings", {})
-        
+
         # 🚀 SINGLE TASK - Direct data processing without delegation
         data_processing_task = Task(
             description=f"""Process and validate data quality directly for {len(cleaned_data)} records.
@@ -136,60 +142,78 @@ class DataCleansingCrew:
             - standardized_data: processed records
             - quality_metrics: completion, consistency, accuracy scores""",
             expected_output="JSON with validation results, standardized data, and quality metrics",
-            agent=manager
+            agent=manager,
         )
-        
+
         return [data_processing_task]  # SINGLE TASK PATTERN
-    
-    def create_crew(self, cleaned_data: List[Dict[str, Any]], field_mappings: Dict[str, Any]):
+
+    def create_crew(
+        self, cleaned_data: List[Dict[str, Any]], field_mappings: Dict[str, Any]
+    ):
         """Create hierarchical crew with manager coordination"""
         agents = self.create_agents()
         tasks = self.create_tasks(agents, cleaned_data, field_mappings)
-        
+
         # Use hierarchical process if advanced features available
-        process = Process.hierarchical if CREWAI_ADVANCED_AVAILABLE else Process.sequential
-        
+        process = (
+            Process.hierarchical if CREWAI_ADVANCED_AVAILABLE else Process.sequential
+        )
+
         crew_config = {
             "agents": agents,
             "tasks": tasks,
             "process": process,
-            "verbose": True
+            "verbose": True,
         }
-        
+
         # Add advanced features if available
         if CREWAI_ADVANCED_AVAILABLE:
             # Ensure manager_llm uses our configured LLM and not gpt-4o-mini
-            crew_config.update({
-                "manager_llm": self.llm_model,  # Critical: Use our DeepInfra LLM
-                "planning": True,
-                "planning_llm": self.llm_model,  # Force planning to use our LLM too
-                "memory": True,
-                "knowledge": self.knowledge_base,
-                "share_crew": True
-            })
-            
+            crew_config.update(
+                {
+                    "manager_llm": self.llm_model,  # Critical: Use our DeepInfra LLM
+                    "planning": True,
+                    "planning_llm": self.llm_model,  # Force planning to use our LLM too
+                    "memory": True,
+                    "knowledge": self.knowledge_base,
+                    "share_crew": True,
+                }
+            )
+
             # Additional environment override to prevent any gpt-4o-mini fallback
             import os
-            os.environ["OPENAI_MODEL_NAME"] = str(self.llm_model) if isinstance(self.llm_model, str) else "deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
-        
-        logger.info(f"Creating Data Cleansing Crew with {process.name if hasattr(process, 'name') else 'sequential'} process")
-        logger.info(f"Using LLM: {self.llm_model if isinstance(self.llm_model, str) else 'Unknown'}")
+
+            os.environ["OPENAI_MODEL_NAME"] = (
+                str(self.llm_model)
+                if isinstance(self.llm_model, str)
+                else "deepinfra/meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+            )
+
+        logger.info(
+            f"Creating Data Cleansing Crew with {process.name if hasattr(process, 'name') else 'sequential'} process"
+        )
+        logger.info(
+            f"Using LLM: {self.llm_model if isinstance(self.llm_model, str) else 'Unknown'}"
+        )
         return Crew(**crew_config)
-    
+
     def _create_validation_tools(self):
         """Create tools for data validation"""
         # For now, return empty list - tools will be implemented in Task 7
         return []
-    
+
     def _create_standardization_tools(self):
         """Create tools for data standardization"""
-        # For now, return empty list - tools will be implemented in Task 7  
+        # For now, return empty list - tools will be implemented in Task 7
         return []
 
-def create_data_cleansing_crew(crewai_service, state: UnifiedDiscoveryFlowState) -> Crew:
+
+def create_data_cleansing_crew(
+    crewai_service, state: UnifiedDiscoveryFlowState
+) -> Crew:
     """
     🧠 AGENTIC INTELLIGENCE: Create Data Cleansing Crew with integrated asset enrichment agents.
-    
+
     NEW ARCHITECTURE:
     - Replaces rule-based data processing with true agentic intelligence
     - Integrates BusinessValue, Risk, and Modernization agents for asset analysis
@@ -198,11 +222,11 @@ def create_data_cleansing_crew(crewai_service, state: UnifiedDiscoveryFlowState)
     """
     try:
         logger.info("🧠 Creating AGENTIC Data Cleansing Crew with intelligence agents")
-        
+
         # Get LLM configuration
         llm = crewai_service.get_llm()
         logger.info(f"Using LLM: {llm.model}")
-        
+
         # 🧠 AGENTIC INTELLIGENCE AGENT: Data enrichment orchestrator
         agentic_enrichment_agent = Agent(
             role="Agentic Asset Intelligence Orchestrator",
@@ -225,9 +249,9 @@ def create_data_cleansing_crew(crewai_service, state: UnifiedDiscoveryFlowState)
             allow_delegation=False,  # Direct orchestration without delegation
             llm=llm,
             max_iter=1,  # Single comprehensive analysis
-            max_execution_time=120  # Allow time for agent orchestration
+            max_execution_time=120,  # Allow time for agent orchestration
         )
-        
+
         # 🧠 AGENTIC INTELLIGENCE TASK: Complete asset enrichment
         enrichment_task = Task(
             description=f"""
@@ -279,9 +303,9 @@ def create_data_cleansing_crew(crewai_service, state: UnifiedDiscoveryFlowState)
             - Overall intelligence quality score (0-100)
             - Migration planning insights and recommendations
             """,
-            max_execution_time=100  # Allow time for comprehensive analysis
+            max_execution_time=100,  # Allow time for comprehensive analysis
         )
-        
+
         # 🧠 AGENTIC CREW: Intelligence-focused process
         crew = Crew(
             agents=[agentic_enrichment_agent],
@@ -289,23 +313,28 @@ def create_data_cleansing_crew(crewai_service, state: UnifiedDiscoveryFlowState)
             process=Process.sequential,
             verbose=True,  # Enable detailed intelligence logging
             max_execution_time=180,  # Extended time for comprehensive analysis
-            memory=True,   # Enable memory for continuous learning
-            embedder=None  # Disable embedding overhead
+            memory=True,  # Enable memory for continuous learning
+            embedder=None,  # Disable embedding overhead
         )
-        
-        logger.info("✅ AGENTIC Data Cleansing Crew created - intelligence-driven asset enrichment")
+
+        logger.info(
+            "✅ AGENTIC Data Cleansing Crew created - intelligence-driven asset enrichment"
+        )
         return crew
-        
+
     except Exception as e:
         logger.error(f"Failed to create agentic Data Cleansing Crew: {e}")
         # Fallback to minimal crew
         return _create_minimal_fallback_crew(crewai_service, state)
 
-def _create_minimal_fallback_crew(crewai_service, state: UnifiedDiscoveryFlowState) -> Crew:
+
+def _create_minimal_fallback_crew(
+    crewai_service, state: UnifiedDiscoveryFlowState
+) -> Crew:
     """Minimal fallback crew for when optimization fails"""
     try:
         llm = crewai_service.get_llm()
-        
+
         minimal_agent = Agent(
             role="Data Processor",
             goal="Process data quickly",
@@ -313,25 +342,26 @@ def _create_minimal_fallback_crew(crewai_service, state: UnifiedDiscoveryFlowSta
             verbose=False,
             allow_delegation=False,
             llm=llm,
-            max_iter=1
+            max_iter=1,
         )
-        
+
         minimal_task = Task(
             description=f"Quick data validation for {len(state.raw_data)} records. Return: PROCESSED",
             agent=minimal_agent,
-            expected_output="PROCESSED"
+            expected_output="PROCESSED",
         )
-        
+
         return Crew(
             agents=[minimal_agent],
             tasks=[minimal_task],
             process=Process.sequential,
             verbose=False,
-            memory=True   # RE-ENABLED: Memory system working correctly
+            memory=True,  # RE-ENABLED: Memory system working correctly
         )
     except Exception as e:
         logger.error(f"Even fallback crew creation failed: {e}")
         raise
+
 
 def _create_field_aware_validation_tool(field_mappings: Dict[str, Any]):
     """Create validation tool that uses field mapping insights"""
@@ -339,11 +369,13 @@ def _create_field_aware_validation_tool(field_mappings: Dict[str, Any]):
     # Return empty list for now to avoid validation errors
     return []
 
+
 def _create_quality_metrics_tool():
     """Create quality metrics tool"""
     # Placeholder for Task 7 - Agent Tools Infrastructure
     # Return empty list for now to avoid validation errors
     return []
+
 
 def _create_data_profiling_tool():
     """Create data profiling tool"""
@@ -351,17 +383,20 @@ def _create_data_profiling_tool():
     # Return empty list for now to avoid validation errors
     return []
 
+
 def _create_field_aware_standardization_tool(field_mappings: Dict[str, Any]):
     """Create standardization tool that uses field mapping context"""
     # Placeholder for Task 7 - Agent Tools Infrastructure
     # Return empty list for now to avoid validation errors
     return []
 
+
 def _create_format_normalization_tool():
     """Create format normalization tool"""
     # Placeholder for Task 7 - Agent Tools Infrastructure
     # Return empty list for now to avoid validation errors
     return []
+
 
 def _create_data_transformation_tool():
     """Create data transformation tool"""

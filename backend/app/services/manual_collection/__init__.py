@@ -16,10 +16,10 @@ from .template_service import TemplateService
 from .validation_service import QuestionnaireValidationService
 
 __all__ = [
-    'AdaptiveFormService',
-    'BulkDataService', 
-    'QuestionnaireValidationService',
-    'TemplateService',
-    'ProgressTrackingService',
-    'DataIntegrationService',
+    "AdaptiveFormService",
+    "BulkDataService",
+    "QuestionnaireValidationService",
+    "TemplateService",
+    "ProgressTrackingService",
+    "DataIntegrationService",
 ]

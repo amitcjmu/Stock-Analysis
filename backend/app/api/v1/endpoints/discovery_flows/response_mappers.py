@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 class DiscoveryFlowResponse(BaseModel):
     """Standardized discovery flow response model"""
+
     flow_id: str
     data_import_id: Optional[str] = None
     status: str
@@ -38,6 +39,7 @@ class DiscoveryFlowResponse(BaseModel):
 
 class DiscoveryFlowStatusResponse(BaseModel):
     """Detailed discovery flow status response"""
+
     flow_id: str
     data_import_id: Optional[str] = None
     status: str
@@ -60,6 +62,7 @@ class DiscoveryFlowStatusResponse(BaseModel):
 
 class FlowInitializeResponse(BaseModel):
     """Flow initialization response"""
+
     flow_id: str
     status: str
     type: str = "discovery"
@@ -72,6 +75,7 @@ class FlowInitializeResponse(BaseModel):
 
 class FlowOperationResponse(BaseModel):
     """Generic flow operation response"""
+
     success: bool
     flow_id: str
     status: str
@@ -83,7 +87,7 @@ class FlowOperationResponse(BaseModel):
 
 class ResponseMappers:
     """Utility class for response data transformation and standardization"""
-    
+
     @staticmethod
     def map_flow_to_response(flow, context=None) -> Dict[str, Any]:
         """Convert a DiscoveryFlow model to standardized response format"""
@@ -91,8 +95,10 @@ class ResponseMappers:
             # Get current phase from flow state
             current_phase = flow.current_phase
             if not current_phase and flow.crewai_state_data:
-                current_phase = flow.crewai_state_data.get("current_phase", "field_mapping")
-            
+                current_phase = flow.crewai_state_data.get(
+                    "current_phase", "field_mapping"
+                )
+
             # Build phase completion list
             phases_completed = []
             if flow.data_import_completed:
@@ -107,10 +113,14 @@ class ResponseMappers:
                 phases_completed.append("dependency_analysis")
             if flow.tech_debt_assessment_completed:
                 phases_completed.append("tech_debt_assessment")
-            
+
             return {
                 "flow_id": str(flow.flow_id),
-                "data_import_id": str(flow.data_import_id) if flow.data_import_id else str(flow.flow_id),
+                "data_import_id": (
+                    str(flow.data_import_id)
+                    if flow.data_import_id
+                    else str(flow.flow_id)
+                ),
                 "status": flow.status,
                 "type": "discovery",
                 "current_phase": current_phase or "field_mapping",
@@ -125,27 +135,32 @@ class ResponseMappers:
                 "metadata": flow.flow_state or {},
                 "error": None,
                 "flow_name": flow.flow_name,
-                "flow_description": flow.description if hasattr(flow, 'description') else None,
-                "can_resume": flow.status in ['initialized', 'paused', 'waiting_for_approval']
+                "flow_description": (
+                    flow.description if hasattr(flow, "description") else None
+                ),
+                "can_resume": flow.status
+                in ["initialized", "paused", "waiting_for_approval"],
             }
         except Exception as e:
             logger.error(f"Error mapping flow to response: {e}")
             return {
-                "flow_id": str(flow.flow_id) if hasattr(flow, 'flow_id') else "unknown",
+                "flow_id": str(flow.flow_id) if hasattr(flow, "flow_id") else "unknown",
                 "status": "error",
                 "type": "discovery",
                 "error": str(e),
-                "metadata": {}
+                "metadata": {},
             }
-    
+
     @staticmethod
-    async def map_flow_to_status_response(flow, extensions=None, context=None, db=None) -> Dict[str, Any]:
+    async def map_flow_to_status_response(
+        flow, extensions=None, context=None, db=None
+    ) -> Dict[str, Any]:
         """Convert a DiscoveryFlow model to detailed status response format"""
         try:
             # Calculate current phase from completion flags
             current_phase = "unknown"
             steps_completed = 0
-            
+
             if not flow.data_import_completed:
                 current_phase = "data_import"
             elif not flow.field_mapping_completed:
@@ -166,49 +181,53 @@ class ResponseMappers:
             else:
                 current_phase = "completed"
                 steps_completed = 6
-            
+
             # Extract agent insights from discovery_flows table first
             agent_insights = []
             if flow.crewai_state_data and "agent_insights" in flow.crewai_state_data:
                 agent_insights = flow.crewai_state_data["agent_insights"]
-            
+
             # Get awaiting_user_approval from discovery_flows table JSONB
             awaiting_approval = False
             if flow.crewai_state_data:
-                awaiting_approval = flow.crewai_state_data.get("awaiting_user_approval", False)
-            
+                awaiting_approval = flow.crewai_state_data.get(
+                    "awaiting_user_approval", False
+                )
+
             actual_status = flow.status
             actual_progress = flow.progress_percentage
-            
+
             # ADR-012: Trust the agent's phase determination
             # Use the stored current_phase from the database, which is set by agents
             actual_current_phase = flow.current_phase
-            
+
             # If no phase is stored (shouldn't happen), use a sensible fallback
             if not actual_current_phase:
-                logger.warning(f"No current_phase stored for flow {flow.flow_id}, using calculated fallback")
+                logger.warning(
+                    f"No current_phase stored for flow {flow.flow_id}, using calculated fallback"
+                )
                 actual_current_phase = current_phase
-            
+
             if extensions and extensions.flow_persistence_data:
                 # Get additional state from master table if available
                 persistence_data = extensions.flow_persistence_data
-                
+
                 # Only use master table insights if not found in child table
                 if not agent_insights and "agent_insights" in persistence_data:
                     agent_insights = persistence_data.get("agent_insights", [])
-                
+
                 # Update phase completion from persistence data
                 if "phase_completion" in persistence_data:
                     phase_completion = persistence_data["phase_completion"]
                     steps_completed = len([p for p in phase_completion.values() if p])
-            
+
             # Use actual values from persistence data if available
             final_status = actual_status
-            
+
             # Preserve special statuses like waiting_for_approval
             if final_status == "active" and not awaiting_approval:
                 final_status = "processing"
-            
+
             # Build phase completion from discovery_flows table
             phase_completion = {
                 "data_import": flow.data_import_completed,
@@ -216,67 +235,87 @@ class ResponseMappers:
                 "data_cleansing": flow.data_cleansing_completed,
                 "asset_inventory": flow.asset_inventory_completed,
                 "dependency_analysis": flow.dependency_analysis_completed,
-                "tech_debt_assessment": flow.tech_debt_assessment_completed
+                "tech_debt_assessment": flow.tech_debt_assessment_completed,
             }
-            
+
             # Calculate actual progress based on completed phases
             completed_phases = sum(1 for v in phase_completion.values() if v)
             total_phases = 6
-            
+
             # ADR-012: Trust the stored progress from agents/flow state
             # Only use calculated progress as a fallback if no progress is stored
             if actual_progress is None or actual_progress == 0:
                 # Fallback calculation if no progress is stored
                 calculated_progress = (completed_phases / total_phases) * 100
                 actual_progress = calculated_progress
-                logger.info(f"No progress stored for flow {flow.flow_id}, using calculated: {calculated_progress}%")
-            
+                logger.info(
+                    f"No progress stored for flow {flow.flow_id}, using calculated: {calculated_progress}%"
+                )
+
             # Override with persistence data if available
-            if extensions and extensions.flow_persistence_data and "phase_completion" in extensions.flow_persistence_data:
-                phase_completion.update(extensions.flow_persistence_data["phase_completion"])
-            
+            if (
+                extensions
+                and extensions.flow_persistence_data
+                and "phase_completion" in extensions.flow_persistence_data
+            ):
+                phase_completion.update(
+                    extensions.flow_persistence_data["phase_completion"]
+                )
+
             # Extract field mappings from CrewAI state extensions
             field_mappings = {}
             if extensions and extensions.flow_persistence_data:
-                field_mappings = extensions.flow_persistence_data.get("field_mappings", {})
-            
+                field_mappings = extensions.flow_persistence_data.get(
+                    "field_mappings", {}
+                )
+
             # Also check discovery_flows table JSONB for field mappings
             if not field_mappings and flow.crewai_state_data:
                 field_mappings = flow.crewai_state_data.get("field_mappings", {})
-            
+
             # Fetch actual import data if we have a data_import_id and db session
             raw_data = []
             import_metadata = {}
             actual_field_mappings = field_mappings
-            
+
             if flow.data_import_id and db:
                 try:
                     # Import the service and get import data
                     from app.services.data_import import ImportStorageHandler
-                    import_handler = ImportStorageHandler(db, context.client_account_id if context else "system")
-                    
+
+                    import_handler = ImportStorageHandler(
+                        db, context.client_account_id if context else "system"
+                    )
+
                     # Get the import data
-                    import_data = await import_handler.get_import_data(str(flow.data_import_id))
-                    
+                    import_data = await import_handler.get_import_data(
+                        str(flow.data_import_id)
+                    )
+
                     # FIXED: ImportStorageHandler.get_import_data() doesn't return "success" field, just check if data exists
                     if import_data and import_data.get("data"):
                         raw_data = import_data.get("data", [])
                         import_metadata = import_data.get("import_metadata", {})
-                        logger.info(f"✅ Retrieved {len(raw_data)} import records for flow {flow.flow_id}")
+                        logger.info(
+                            f"✅ Retrieved {len(raw_data)} import records for flow {flow.flow_id}"
+                        )
                     else:
-                        logger.warning(f"No import data found for flow {flow.flow_id} with data_import_id {flow.data_import_id}")
-                    
+                        logger.warning(
+                            f"No import data found for flow {flow.flow_id} with data_import_id {flow.data_import_id}"
+                        )
+
                     # Also get field mappings from the data import system
                     from sqlalchemy import select
 
-                    from app.models.data_import.mapping import ImportFieldMapping
-                    
+                    from app.models.data_import.mapping import \
+                        ImportFieldMapping
+
                     mapping_stmt = select(ImportFieldMapping).where(
                         ImportFieldMapping.data_import_id == flow.data_import_id
                     )
                     mapping_result = await db.execute(mapping_stmt)
                     mappings = mapping_result.scalars().all()
-                    
+
                     if mappings:
                         # Convert database field mappings to dict format
                         db_field_mappings = {}
@@ -285,21 +324,32 @@ class ResponseMappers:
                                 "target_field": mapping.target_field,
                                 "confidence": mapping.confidence,
                                 "is_approved": mapping.is_approved,
-                                "is_critical": getattr(mapping, 'is_critical', False)
+                                "is_critical": getattr(mapping, "is_critical", False),
                             }
-                        
+
                         # Use database field mappings if we have them and they're more complete
-                        if db_field_mappings and (not actual_field_mappings or len(db_field_mappings) > len(actual_field_mappings)):
+                        if db_field_mappings and (
+                            not actual_field_mappings
+                            or len(db_field_mappings) > len(actual_field_mappings)
+                        ):
                             actual_field_mappings = db_field_mappings
-                            logger.info(f"✅ Retrieved {len(db_field_mappings)} field mappings from database for flow {flow.flow_id}")
-                    
+                            logger.info(
+                                f"✅ Retrieved {len(db_field_mappings)} field mappings from database for flow {flow.flow_id}"
+                            )
+
                 except Exception as import_error:
-                    logger.warning(f"Failed to retrieve import data for flow {flow.flow_id}: {import_error}")
+                    logger.warning(
+                        f"Failed to retrieve import data for flow {flow.flow_id}: {import_error}"
+                    )
                     # Continue with empty data rather than failing completely
-            
+
             return {
                 "flow_id": str(flow.flow_id),
-                "data_import_id": str(flow.data_import_id) if flow.data_import_id else str(flow.flow_id),
+                "data_import_id": (
+                    str(flow.data_import_id)
+                    if flow.data_import_id
+                    else str(flow.flow_id)
+                ),
                 "status": final_status,
                 "type": "discovery",
                 "current_phase": actual_current_phase,
@@ -311,7 +361,7 @@ class ResponseMappers:
                     "current_phase": actual_current_phase,
                     "completion_percentage": actual_progress,
                     "steps_completed": steps_completed,
-                    "total_steps": 6
+                    "total_steps": 6,
                 },
                 "metadata": {},
                 "crewai_status": final_status,
@@ -320,35 +370,45 @@ class ResponseMappers:
                 "field_mappings": actual_field_mappings,
                 "raw_data": raw_data,
                 "import_metadata": import_metadata,
-                "last_updated": flow.updated_at.isoformat() if flow.updated_at else ""
+                "last_updated": flow.updated_at.isoformat() if flow.updated_at else "",
             }
         except Exception as e:
             logger.error(f"Error mapping flow to status response: {e}")
             return {
-                "flow_id": str(flow.flow_id) if hasattr(flow, 'flow_id') else "unknown",
+                "flow_id": str(flow.flow_id) if hasattr(flow, "flow_id") else "unknown",
                 "status": "error",
                 "type": "discovery",
                 "error": str(e),
                 "metadata": {},
                 "field_mappings": {},
                 "raw_data": [],
-                "import_metadata": {}
+                "import_metadata": {},
             }
-    
+
     @staticmethod
-    def map_state_dict_to_status_response(flow_id: str, state_dict: Dict[str, Any], context=None) -> Dict[str, Any]:
+    def map_state_dict_to_status_response(
+        flow_id: str, state_dict: Dict[str, Any], context=None
+    ) -> Dict[str, Any]:
         """Convert flow state dict to status response format"""
         try:
             progress_percentage = float(state_dict.get("progress_percentage", 0))
             current_phase = state_dict.get("current_phase", "unknown")
             status = state_dict.get("status", "running")
-            
+
             # Preserve special statuses, only override if generic
-            if progress_percentage >= 100 and status not in ["paused", "waiting_for_approval", "waiting_for_user_approval"]:
+            if progress_percentage >= 100 and status not in [
+                "paused",
+                "waiting_for_approval",
+                "waiting_for_user_approval",
+            ]:
                 status = "completed"
-            elif status in ["running", "active", "initialized"] and status not in ["paused", "waiting_for_approval", "waiting_for_user_approval"]:
+            elif status in ["running", "active", "initialized"] and status not in [
+                "paused",
+                "waiting_for_approval",
+                "waiting_for_user_approval",
+            ]:
                 status = "processing"
-            
+
             # Use context values for client_account_id and engagement_id since state_dict is just the persistence data
             return {
                 "flow_id": flow_id,
@@ -362,8 +422,14 @@ class ResponseMappers:
                 "progress": {
                     "current_phase": current_phase,
                     "completion_percentage": progress_percentage,
-                    "steps_completed": len([p for p in state_dict.get("phase_completion", {}).values() if p]),
-                    "total_steps": 6
+                    "steps_completed": len(
+                        [
+                            p
+                            for p in state_dict.get("phase_completion", {}).values()
+                            if p
+                        ]
+                    ),
+                    "total_steps": 6,
                 },
                 "metadata": state_dict.get("metadata", {}),
                 "crewai_status": "active" if status == "processing" else status,
@@ -372,8 +438,10 @@ class ResponseMappers:
                 "field_mappings": state_dict.get("field_mappings", {}),
                 "raw_data": state_dict.get("raw_data", []),
                 "import_metadata": state_dict.get("import_metadata", {}),
-                "awaiting_user_approval": state_dict.get("awaiting_user_approval", False),
-                "last_updated": state_dict.get("updated_at", "")
+                "awaiting_user_approval": state_dict.get(
+                    "awaiting_user_approval", False
+                ),
+                "last_updated": state_dict.get("updated_at", ""),
             }
         except Exception as e:
             logger.error(f"Error mapping state dict to status response: {e}")
@@ -382,11 +450,13 @@ class ResponseMappers:
                 "status": "error",
                 "type": "discovery",
                 "error": str(e),
-                "metadata": {}
+                "metadata": {},
             }
-    
+
     @staticmethod
-    def map_orchestrator_result_to_status_response(flow_id: str, result: Dict[str, Any], context=None) -> Dict[str, Any]:
+    def map_orchestrator_result_to_status_response(
+        flow_id: str, result: Dict[str, Any], context=None
+    ) -> Dict[str, Any]:
         """Convert orchestrator result to status response format"""
         try:
             progress_percentage = float(result.get("progress_percentage", 0))
@@ -395,17 +465,28 @@ class ResponseMappers:
                 "data_import_id": flow_id,
                 "status": result.get("status", "unknown"),
                 "type": "discovery",
-                "client_account_id": str(result.get("client_account_id", context.client_account_id if context else "")),
-                "engagement_id": str(result.get("engagement_id", context.engagement_id if context else "")),
+                "client_account_id": str(
+                    result.get(
+                        "client_account_id",
+                        context.client_account_id if context else "",
+                    )
+                ),
+                "engagement_id": str(
+                    result.get(
+                        "engagement_id", context.engagement_id if context else ""
+                    )
+                ),
                 "progress": {
                     "current_phase": result.get("current_phase", "unknown"),
                     "completion_percentage": progress_percentage,
-                    "steps_completed": int(progress_percentage / 20),  # 5 phases = 20% each
-                    "total_steps": 5
+                    "steps_completed": int(
+                        progress_percentage / 20
+                    ),  # 5 phases = 20% each
+                    "total_steps": 5,
                 },
                 "metadata": result.get("metadata", {}),
                 "crewai_status": result.get("crewai_status", "unknown"),
-                "agent_insights": result.get("agent_insights", [])
+                "agent_insights": result.get("agent_insights", []),
             }
         except Exception as e:
             logger.error(f"Error mapping orchestrator result to status response: {e}")
@@ -414,11 +495,13 @@ class ResponseMappers:
                 "status": "error",
                 "type": "discovery",
                 "error": str(e),
-                "metadata": {}
+                "metadata": {},
             }
-    
+
     @staticmethod
-    def create_error_response(flow_id: str, error: str, status_code: int = 500) -> Dict[str, Any]:
+    def create_error_response(
+        flow_id: str, error: str, status_code: int = 500
+    ) -> Dict[str, Any]:
         """Create standardized error response"""
         return {
             "flow_id": flow_id,
@@ -427,17 +510,19 @@ class ResponseMappers:
             "error": error,
             "error_code": status_code,
             "timestamp": datetime.utcnow().isoformat(),
-            "metadata": {}
+            "metadata": {},
         }
-    
+
     @staticmethod
-    def create_success_response(flow_id: str, message: str, data: Dict[str, Any] = None) -> Dict[str, Any]:
+    def create_success_response(
+        flow_id: str, message: str, data: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
         """Create standardized success response"""
         response = {
             "success": True,
             "flow_id": flow_id,
             "message": message,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
         if data:
             response.update(data)

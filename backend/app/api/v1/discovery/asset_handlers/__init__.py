@@ -10,9 +10,9 @@ from .asset_utils import AssetUtilsHandler
 from .asset_validation import AssetValidationHandler
 
 __all__ = [
-    'AssetCRUDHandler',
-    'AssetProcessingHandler', 
-    'AssetValidationHandler',
-    'AssetAnalysisHandler',
-    'AssetUtilsHandler'
-] 
+    "AssetCRUDHandler",
+    "AssetProcessingHandler",
+    "AssetValidationHandler",
+    "AssetAnalysisHandler",
+    "AssetUtilsHandler",
+]

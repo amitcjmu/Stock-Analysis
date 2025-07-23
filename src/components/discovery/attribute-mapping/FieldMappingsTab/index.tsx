@@ -1,6 +1,6 @@
 import React from 'react';
 import { RefreshCw } from 'lucide-react';
-import type { useFieldOptions } from '../../../../contexts/FieldOptionsContext';
+import { useFieldOptions } from '../../../../contexts/FieldOptionsContext';
 
 // Components
 import ThreeColumnFieldMapper from './components/ThreeColumnFieldMapper/ThreeColumnFieldMapper';

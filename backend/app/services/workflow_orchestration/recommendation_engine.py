@@ -22,55 +22,36 @@ This file now re-exports all public interfaces for backward compatibility.
 """
 
 # Re-export all public interfaces from the modularized structure
-from .recommendation_engine import (
-    ConfigRecommendationGenerator,
-    LearningPattern,
-    PerformanceRecommendationGenerator,
-    PhaseRecommendationGenerator,
-    QualityRecommendationGenerator,
-    # Core components (for advanced usage)
-    RecommendationAnalyzers,
-    RecommendationConfidence,
-    RecommendationEvaluator,
-    # Models
-    RecommendationInsight,
-    RecommendationOptimizer,
-    RecommendationPackage,
-    RecommendationSource,
-    # Enums
-    RecommendationType,
-    # Main engine
-    SmartWorkflowRecommendationEngine,
-    # Generators (for advanced usage)
-    TierRecommendationGenerator,
-    WorkflowRecommendation,
-)
+from .recommendation_engine import (  # Core components (for advanced usage); Models; Enums; Main engine; Generators (for advanced usage)
+    ConfigRecommendationGenerator, LearningPattern,
+    PerformanceRecommendationGenerator, PhaseRecommendationGenerator,
+    QualityRecommendationGenerator, RecommendationAnalyzers,
+    RecommendationConfidence, RecommendationEvaluator, RecommendationInsight,
+    RecommendationOptimizer, RecommendationPackage, RecommendationSource,
+    RecommendationType, SmartWorkflowRecommendationEngine,
+    TierRecommendationGenerator, WorkflowRecommendation)
 
 # Maintain backward compatibility by exporting all symbols
 __all__ = [
     # Main engine
-    'SmartWorkflowRecommendationEngine',
-    
+    "SmartWorkflowRecommendationEngine",
     # Enums
-    'RecommendationType',
-    'RecommendationConfidence', 
-    'RecommendationSource',
-    
+    "RecommendationType",
+    "RecommendationConfidence",
+    "RecommendationSource",
     # Models
-    'RecommendationInsight',
-    'WorkflowRecommendation',
-    'RecommendationPackage',
-    'LearningPattern',
-    
+    "RecommendationInsight",
+    "WorkflowRecommendation",
+    "RecommendationPackage",
+    "LearningPattern",
     # Core components
-    'RecommendationAnalyzers',
-    'RecommendationEvaluator',
-    'RecommendationOptimizer',
-    
+    "RecommendationAnalyzers",
+    "RecommendationEvaluator",
+    "RecommendationOptimizer",
     # Generators
-    'TierRecommendationGenerator',
-    'ConfigRecommendationGenerator',
-    'PhaseRecommendationGenerator',
-    'QualityRecommendationGenerator',
-    'PerformanceRecommendationGenerator',
+    "TierRecommendationGenerator",
+    "ConfigRecommendationGenerator",
+    "PhaseRecommendationGenerator",
+    "QualityRecommendationGenerator",
+    "PerformanceRecommendationGenerator",
 ]

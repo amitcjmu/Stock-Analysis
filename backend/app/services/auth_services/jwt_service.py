@@ -16,16 +16,16 @@ logger = logging.getLogger(__name__)
 
 class JWTService:
     """Service for JWT token operations."""
-    
+
     def __init__(self):
         try:
             self.secret_key = settings.SECRET_KEY
             self.algorithm = settings.ALGORITHM
             self.access_token_expire_minutes = settings.ACCESS_TOKEN_EXPIRE_MINUTES
-            
+
             if not self.secret_key:
                 raise ValueError("SECRET_KEY is not configured")
-                
+
         except Exception as e:
             logger.error(f"JWT Service initialization error: {e}")
             raise
@@ -34,12 +34,8 @@ class JWTService:
         """Create a JWT access token with expiration."""
         to_encode = data.copy()
         expire = datetime.utcnow() + timedelta(minutes=self.access_token_expire_minutes)
-        to_encode.update({
-            "exp": expire,
-            "iat": datetime.utcnow(),
-            "type": "access"
-        })
-        
+        to_encode.update({"exp": expire, "iat": datetime.utcnow(), "type": "access"})
+
         try:
             token = jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
             logger.info(f"Created access token for user: {data.get('sub', 'unknown')}")
@@ -51,19 +47,15 @@ class JWTService:
     def verify_token(self, token: str) -> Optional[Dict[str, Any]]:
         """Verify and decode a JWT token."""
         try:
-            payload = jwt.decode(
-                token, 
-                self.secret_key, 
-                algorithms=[self.algorithm]
-            )
-            
+            payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
+
             # Verify token type
             if payload.get("type") != "access":
                 logger.warning("Invalid token type")
                 return None
-                
+
             return payload
-            
+
         except jwt.ExpiredSignatureError:
             logger.warning("Token has expired")
             return None
@@ -77,10 +69,7 @@ class JWTService:
     def decode_token_without_verification(self, token: str) -> Optional[Dict[str, Any]]:
         """Decode token without verification (for debugging/logging)."""
         try:
-            return jwt.decode(
-                token, 
-                options={"verify_signature": False}
-            )
+            return jwt.decode(token, options={"verify_signature": False})
         except Exception as e:
             logger.error(f"Token decoding error: {e}")
             return None
@@ -88,10 +77,7 @@ class JWTService:
     def is_token_expired(self, token: str) -> bool:
         """Check if token is expired without full verification."""
         try:
-            payload = jwt.decode(
-                token, 
-                options={"verify_signature": False}
-            )
+            payload = jwt.decode(token, options={"verify_signature": False})
             exp = payload.get("exp")
             if exp:
                 return datetime.utcnow() > datetime.fromtimestamp(exp)
@@ -102,10 +88,7 @@ class JWTService:
     def get_token_remaining_time(self, token: str) -> Optional[int]:
         """Get remaining time in seconds for a token."""
         try:
-            payload = jwt.decode(
-                token, 
-                options={"verify_signature": False}
-            )
+            payload = jwt.decode(token, options={"verify_signature": False})
             exp = payload.get("exp")
             if exp:
                 remaining = datetime.fromtimestamp(exp) - datetime.utcnow()

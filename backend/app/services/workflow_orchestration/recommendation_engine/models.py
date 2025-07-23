@@ -9,12 +9,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List
 
-from .enums import RecommendationConfidence, RecommendationSource, RecommendationType
+from .enums import (RecommendationConfidence, RecommendationSource,
+                    RecommendationType)
 
 
 @dataclass
 class RecommendationInsight:
     """Individual insight supporting a recommendation"""
+
     insight_type: str
     description: str
     confidence: float
@@ -26,6 +28,7 @@ class RecommendationInsight:
 @dataclass
 class WorkflowRecommendation:
     """Individual workflow recommendation"""
+
     recommendation_id: str
     recommendation_type: RecommendationType
     title: str
@@ -46,6 +49,7 @@ class WorkflowRecommendation:
 @dataclass
 class RecommendationPackage:
     """Complete package of recommendations for a workflow"""
+
     package_id: str
     target_environment: Dict[str, Any]
     target_requirements: Dict[str, Any]
@@ -61,6 +65,7 @@ class RecommendationPackage:
 @dataclass
 class LearningPattern:
     """Pattern identified from historical executions"""
+
     pattern_id: str
     pattern_type: str
     description: str

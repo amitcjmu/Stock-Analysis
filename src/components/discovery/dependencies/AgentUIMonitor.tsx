@@ -17,8 +17,7 @@ import {
   Send,
   Network
 } from 'lucide-react';
-import type { useAgentStatus } from '../../../hooks/useAgentQuestions'
-import { useAgentQuestions, useAnswerAgentQuestion, useAgentInsights, useConfidenceScores, useAgentThink, useAgentPonderMore } from '../../../hooks/useAgentQuestions'
+import { useAgentQuestions, useAnswerAgentQuestion, useAgentInsights, useConfidenceScores, useAgentThink, useAgentPonderMore, useAgentStatus } from '../../../hooks/useAgentQuestions'
 
 interface AgentUIMonitorProps {
   className?: string;

@@ -3,6 +3,7 @@ Agent API endpoints package.
 
 This package contains all agent-related API endpoints organized into submodules.
 """
+
 from fastapi import APIRouter
 
 # Create the main router without a prefix since it's already included in api.py

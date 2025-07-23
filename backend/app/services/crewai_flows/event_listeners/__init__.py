@@ -11,4 +11,4 @@ exactly like CrewAI's built-in agentops_listener is registered.
 from .discovery_flow_listener import discovery_flow_listener
 
 # Export the listener instance to ensure it's loaded and active
-__all__ = ['discovery_flow_listener'] 
+__all__ = ["discovery_flow_listener"]

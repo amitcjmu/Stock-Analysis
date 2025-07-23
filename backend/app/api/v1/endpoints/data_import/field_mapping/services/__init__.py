@@ -6,8 +6,8 @@ from .transformation_service import TransformationService
 from .validation_service import ValidationService
 
 __all__ = [
-    'MappingService',
-    'ValidationService', 
-    'SuggestionService',
-    'TransformationService'
+    "MappingService",
+    "ValidationService",
+    "SuggestionService",
+    "TransformationService",
 ]

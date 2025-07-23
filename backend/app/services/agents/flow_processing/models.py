@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 @dataclass
 class FlowAnalysisResult:
     """Result of flow state analysis"""
+
     flow_id: str
     flow_type: str
     current_phase: str
@@ -25,6 +26,7 @@ class FlowAnalysisResult:
 @dataclass
 class RouteDecision:
     """Routing decision made by the agent"""
+
     target_page: str
     flow_id: str
     phase: str
@@ -38,6 +40,7 @@ class RouteDecision:
 @dataclass
 class FlowContinuationResult:
     """Complete result of flow continuation analysis"""
+
     flow_id: str
     flow_type: str
     current_phase: str

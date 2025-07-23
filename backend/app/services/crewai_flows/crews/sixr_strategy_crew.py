@@ -8,7 +8,7 @@ the optimal migration strategy (Rewrite, ReArchitect, Refactor, Replatform, Reho
 Key Responsibilities:
 - Determine optimal 6R strategy for each application component
 - Validate compatibility between component treatments within applications
-- Generate move group hints for Planning Flow wave coordination  
+- Generate move group hints for Planning Flow wave coordination
 - Assess business value, effort, and risk factors for each strategy
 - Provide confidence scoring and detailed rationale for decisions
 
@@ -25,6 +25,7 @@ from typing import Any, Dict, List
 # CrewAI imports with fallback
 try:
     from crewai import Agent, Crew, Task
+
     CREWAI_AVAILABLE = True
     logger = logging.getLogger(__name__)
     logger.info("✅ CrewAI imports successful for SixRStrategyCrew")
@@ -32,26 +33,31 @@ except ImportError as e:
     logger = logging.getLogger(__name__)
     logger.warning(f"CrewAI not available: {e}")
     CREWAI_AVAILABLE = False
-    
+
     # Fallback classes
     class Agent:
         def __init__(self, **kwargs):
-            self.role = kwargs.get('role', '')
-            self.goal = kwargs.get('goal', '')
-            self.backstory = kwargs.get('backstory', '')
-    
+            self.role = kwargs.get("role", "")
+            self.goal = kwargs.get("goal", "")
+            self.backstory = kwargs.get("backstory", "")
+
     class Task:
         def __init__(self, **kwargs):
-            self.description = kwargs.get('description', '')
-            self.expected_output = kwargs.get('expected_output', '')
-    
+            self.description = kwargs.get("description", "")
+            self.expected_output = kwargs.get("expected_output", "")
+
     class Crew:
         def __init__(self, **kwargs):
-            self.agents = kwargs.get('agents', [])
-            self.tasks = kwargs.get('tasks', [])
-        
+            self.agents = kwargs.get("agents", [])
+            self.tasks = kwargs.get("tasks", [])
+
         def kickoff(self, inputs=None):
-            return {"status": "fallback_mode", "component_treatments": [], "overall_strategy": "replatform"}
+            return {
+                "status": "fallback_mode",
+                "component_treatments": [],
+                "overall_strategy": "replatform",
+            }
+
 
 from app.models.assessment_flow import CrewExecutionError
 from app.models.asset import SixRStrategy
@@ -59,11 +65,13 @@ from app.models.asset import SixRStrategy
 
 class SixRStrategyCrew:
     """Determines component-level 6R strategies with validation"""
-    
+
     def __init__(self, flow_context):
         self.flow_context = flow_context
-        logger.info(f"📋 Initializing Six R Strategy Crew for flow {flow_context.flow_id}")
-        
+        logger.info(
+            f"📋 Initializing Six R Strategy Crew for flow {flow_context.flow_id}"
+        )
+
         if CREWAI_AVAILABLE:
             self.agents = self._create_agents()
             self.crew = self._create_crew()
@@ -72,41 +80,46 @@ class SixRStrategyCrew:
             logger.warning("CrewAI not available, using fallback mode")
             self.agents = []
             self.crew = None
-    
+
     def _create_agents(self) -> List[Agent]:
         """Create specialized agents for 6R strategy determination"""
-        
+
         # Import tools (will be implemented in separate task)
         try:
             from app.services.crewai_flows.tools.sixr_tools import (
-                BusinessValueCalculator,
-                CompatibilityChecker,
-                ComponentAnalyzer,
-                DependencyOptimizer,
-                IntegrationAnalyzer,
-                MoveGroupAnalyzer,
-                SixRDecisionEngine,
-            )
+                BusinessValueCalculator, CompatibilityChecker,
+                ComponentAnalyzer, DependencyOptimizer, IntegrationAnalyzer,
+                MoveGroupAnalyzer, SixRDecisionEngine)
+
             tools_available = True
         except ImportError:
-            logger.warning("Six R strategy tools not yet available, agents will have limited functionality")
+            logger.warning(
+                "Six R strategy tools not yet available, agents will have limited functionality"
+            )
             tools_available = False
+
             # Create placeholder tool classes
             class SixRDecisionEngine:
                 pass
+
             class ComponentAnalyzer:
                 pass
+
             class BusinessValueCalculator:
                 pass
+
             class CompatibilityChecker:
                 pass
+
             class IntegrationAnalyzer:
                 pass
+
             class MoveGroupAnalyzer:
                 pass
+
             class DependencyOptimizer:
                 pass
-        
+
         component_strategy_expert = Agent(
             role="Component Modernization Strategist",
             goal="Determine optimal 6R strategy for each application component based on technical characteristics and business constraints",
@@ -135,17 +148,17 @@ class SixRStrategyCrew:
             - Team capabilities and available expertise
             - Budget constraints and timeline requirements
             - Risk tolerance and change management capacity""",
-            tools=[
-                SixRDecisionEngine(),
-                ComponentAnalyzer(),
-                BusinessValueCalculator()
-            ] if tools_available else [],
+            tools=(
+                [SixRDecisionEngine(), ComponentAnalyzer(), BusinessValueCalculator()]
+                if tools_available
+                else []
+            ),
             verbose=True,
-            allow_delegation=True
+            allow_delegation=True,
         )
-        
+
         compatibility_validator = Agent(
-            role="Architecture Compatibility Validator", 
+            role="Architecture Compatibility Validator",
             goal="Validate treatment compatibility between dependent components and identify integration risks",
             backstory="""You are an integration architecture expert specializing in validating that 
             component modernization strategies will work together cohesively. With 12+ years of experience
@@ -172,14 +185,15 @@ class SixRStrategyCrew:
             - Transaction boundary preservation across component treatments
             - Performance impact of mixed architecture patterns
             - Testing and validation strategies for integrated systems""",
-            tools=[
-                CompatibilityChecker(),
-                IntegrationAnalyzer()
-            ] if tools_available else [],
+            tools=(
+                [CompatibilityChecker(), IntegrationAnalyzer()]
+                if tools_available
+                else []
+            ),
             verbose=True,
-            allow_delegation=False
+            allow_delegation=False,
         )
-        
+
         move_group_advisor = Agent(
             role="Migration Wave Planning Advisor",
             goal="Identify move group hints based on technology proximity, dependencies, and migration logistics",
@@ -209,19 +223,18 @@ class SixRStrategyCrew:
             - Business continuity and risk mitigation requirements
             - Timeline optimization and parallel execution opportunities
             - Testing and validation dependencies between applications""",
-            tools=[
-                MoveGroupAnalyzer(),
-                DependencyOptimizer()
-            ] if tools_available else [],
+            tools=(
+                [MoveGroupAnalyzer(), DependencyOptimizer()] if tools_available else []
+            ),
             verbose=True,
-            allow_delegation=False
+            allow_delegation=False,
         )
-        
+
         return [component_strategy_expert, compatibility_validator, move_group_advisor]
-    
+
     def _create_crew(self) -> Crew:
         """Create crew with 6R strategy tasks"""
-        
+
         determine_component_strategies_task = Task(
             description="""Analyze each component and determine the optimal 6R strategy based on comprehensive
             assessment of technical and business factors:
@@ -347,9 +360,9 @@ class SixRStrategyCrew:
                - Budget-constrained options and trade-offs
                - Accelerated timeline options and associated risks
                - Risk-averse alternatives with lower complexity""",
-            agent=self.agents[0] if self.agents else None
+            agent=self.agents[0] if self.agents else None,
         )
-        
+
         validate_component_compatibility_task = Task(
             description="""Validate compatibility between component 6R strategies within the application
             and identify potential integration issues:
@@ -424,9 +437,9 @@ class SixRStrategyCrew:
                - Timeline adjustments to sequence migrations appropriately
                - Team coordination requirements for successful integration""",
             agent=self.agents[1] if len(self.agents) > 1 else None,
-            context=[determine_component_strategies_task]
+            context=[determine_component_strategies_task],
         )
-        
+
         generate_move_group_hints_task = Task(
             description="""Analyze component 6R strategies and generate move group hints for Planning Flow
             wave coordination:
@@ -509,29 +522,38 @@ class SixRStrategyCrew:
                - Early warning indicators and monitoring requirements
                - Escalation procedures and decision points""",
             agent=self.agents[2] if len(self.agents) > 2 else None,
-            context=[determine_component_strategies_task, validate_component_compatibility_task]
+            context=[
+                determine_component_strategies_task,
+                validate_component_compatibility_task,
+            ],
         )
-        
+
         if not CREWAI_AVAILABLE:
             return None
-            
+
         return Crew(
             agents=self.agents,
-            tasks=[determine_component_strategies_task, validate_component_compatibility_task, generate_move_group_hints_task],
+            tasks=[
+                determine_component_strategies_task,
+                validate_component_compatibility_task,
+                generate_move_group_hints_task,
+            ],
             verbose=True,
-            process="sequential"
+            process="sequential",
         )
-    
+
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Execute the six R strategy crew"""
-        
+
         try:
-            logger.info(f"📋 Starting Six R Strategy Crew for application {context.get('application_id')}")
-            
+            logger.info(
+                f"📋 Starting Six R Strategy Crew for application {context.get('application_id')}"
+            )
+
             if not CREWAI_AVAILABLE or not self.crew:
                 logger.warning("CrewAI not available, using fallback implementation")
                 return await self._execute_fallback(context)
-            
+
             # Prepare context for crew execution
             crew_context = {
                 "components": context.get("components", []),
@@ -543,37 +565,41 @@ class SixRStrategyCrew:
                 "integration_patterns": context.get("integration_patterns", {}),
                 "application_dependencies": context.get("application_dependencies", {}),
                 "business_priorities": context.get("business_priorities", {}),
-                "flow_context": self.flow_context
+                "flow_context": self.flow_context,
             }
-            
+
             # Execute crew
             result = self.crew.kickoff(inputs=crew_context)
-            
+
             # Process and structure the results
-            processed_result = await self._process_crew_results(result, context["application_id"])
-            
-            logger.info(f"✅ Six R Strategy Crew completed for application {context.get('application_id')}")
+            processed_result = await self._process_crew_results(
+                result, context["application_id"]
+            )
+
+            logger.info(
+                f"✅ Six R Strategy Crew completed for application {context.get('application_id')}"
+            )
             return processed_result
-            
+
         except Exception as e:
             logger.error(f"❌ Six R Strategy Crew execution failed: {str(e)}")
             raise CrewExecutionError(f"Six R strategy determination failed: {str(e)}")
-    
+
     async def _execute_fallback(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Fallback implementation when CrewAI is not available"""
         app_id = context.get("application_id", "unknown")
         components = context.get("components", [])
         context.get("tech_debt_analysis", [])
-        
+
         logger.info(f"Executing Six R Strategy analysis in fallback mode for {app_id}")
-        
+
         # Generate component treatments based on simple heuristics
         component_treatments = []
         for component in components:
             component_name = component.get("name", "unknown")
             component_type = component.get("type", "unknown")
             complexity_score = component.get("complexity_score", 5.0)
-            
+
             # Simple strategy selection based on complexity and type
             if complexity_score >= 8.0:
                 strategy = SixRStrategy.REWRITE.value
@@ -587,38 +613,53 @@ class SixRStrategyCrew:
                 strategy = SixRStrategy.REPLATFORM.value
                 confidence = 0.75
                 rationale = "Low complexity suitable for replatforming"
-            
+
             # Adjust for component type
             if "database" in component_type.lower():
                 strategy = SixRStrategy.REHOST.value
-                rationale = "Database components typically rehosted with minimal changes"
+                rationale = (
+                    "Database components typically rehosted with minimal changes"
+                )
             elif "frontend" in component_type.lower():
                 strategy = SixRStrategy.REFACTOR.value
                 rationale = "Frontend components benefit from modernization"
-            
-            component_treatments.append({
-                "component_name": component_name,
-                "component_type": component_type,
-                "strategy": strategy,
-                "confidence": confidence,
-                "rationale": rationale,
-                "effort_estimate_hours": int(complexity_score * 20),
-                "risk_factors": ["Limited analysis in fallback mode"],
-                "business_benefits": ["Cloud cost optimization", "Improved maintainability"]
-            })
-        
+
+            component_treatments.append(
+                {
+                    "component_name": component_name,
+                    "component_type": component_type,
+                    "strategy": strategy,
+                    "confidence": confidence,
+                    "rationale": rationale,
+                    "effort_estimate_hours": int(complexity_score * 20),
+                    "risk_factors": ["Limited analysis in fallback mode"],
+                    "business_benefits": [
+                        "Cloud cost optimization",
+                        "Improved maintainability",
+                    ],
+                }
+            )
+
         # Determine overall strategy (most common component strategy)
         strategy_counts = {}
         for treatment in component_treatments:
             strategy = treatment["strategy"]
             strategy_counts[strategy] = strategy_counts.get(strategy, 0) + 1
-        
-        overall_strategy = max(strategy_counts, key=strategy_counts.get) if strategy_counts else SixRStrategy.REPLATFORM.value
-        
+
+        overall_strategy = (
+            max(strategy_counts, key=strategy_counts.get)
+            if strategy_counts
+            else SixRStrategy.REPLATFORM.value
+        )
+
         # Calculate overall confidence
         confidence_scores = [t["confidence"] for t in component_treatments]
-        overall_confidence = sum(confidence_scores) / len(confidence_scores) if confidence_scores else 0.6
-        
+        overall_confidence = (
+            sum(confidence_scores) / len(confidence_scores)
+            if confidence_scores
+            else 0.6
+        )
+
         # Generate move group hints
         move_group_hints = [
             {
@@ -627,10 +668,12 @@ class SixRStrategyCrew:
                 "applications": [app_id],
                 "rationale": "Components within same application should migrate together",
                 "priority": "medium",
-                "estimated_effort": sum(t["effort_estimate_hours"] for t in component_treatments)
+                "estimated_effort": sum(
+                    t["effort_estimate_hours"] for t in component_treatments
+                ),
             }
         ]
-        
+
         return {
             "component_treatments": component_treatments,
             "overall_strategy": overall_strategy,
@@ -639,42 +682,52 @@ class SixRStrategyCrew:
             "move_group_hints": move_group_hints,
             "compatibility_issues": [],  # No detailed analysis in fallback mode
             "crew_confidence": 0.6,  # Lower confidence in fallback mode
-            "execution_mode": "fallback"
+            "execution_mode": "fallback",
         }
-    
-    async def _process_crew_results(self, result, application_id: str) -> Dict[str, Any]:
+
+    async def _process_crew_results(
+        self, result, application_id: str
+    ) -> Dict[str, Any]:
         """Process and structure crew execution results"""
-        
+
         try:
             # Extract component treatments
             component_treatments = result.get("component_treatments", [])
-            
+
             # Structure treatments for consistency
             structured_treatments = []
             for treatment in component_treatments:
-                structured_treatments.append({
-                    "component_name": treatment.get("component_name", ""),
-                    "component_type": treatment.get("component_type", ""),
-                    "strategy": treatment.get("strategy", SixRStrategy.REPLATFORM.value),
-                    "confidence": treatment.get("confidence", 0.7),
-                    "rationale": treatment.get("rationale", ""),
-                    "effort_estimate_hours": treatment.get("effort_estimate_hours", 0),
-                    "risk_factors": treatment.get("risk_factors", []),
-                    "business_benefits": treatment.get("business_benefits", []),
-                    "technical_benefits": treatment.get("technical_benefits", [])
-                })
-            
+                structured_treatments.append(
+                    {
+                        "component_name": treatment.get("component_name", ""),
+                        "component_type": treatment.get("component_type", ""),
+                        "strategy": treatment.get(
+                            "strategy", SixRStrategy.REPLATFORM.value
+                        ),
+                        "confidence": treatment.get("confidence", 0.7),
+                        "rationale": treatment.get("rationale", ""),
+                        "effort_estimate_hours": treatment.get(
+                            "effort_estimate_hours", 0
+                        ),
+                        "risk_factors": treatment.get("risk_factors", []),
+                        "business_benefits": treatment.get("business_benefits", []),
+                        "technical_benefits": treatment.get("technical_benefits", []),
+                    }
+                )
+
             # Extract overall strategy and confidence
-            overall_strategy = result.get("overall_strategy", SixRStrategy.REPLATFORM.value)
+            overall_strategy = result.get(
+                "overall_strategy", SixRStrategy.REPLATFORM.value
+            )
             confidence_score = result.get("confidence_score", 0.7)
             rationale = result.get("rationale", "Strategy determined by crew analysis")
-            
+
             # Extract move group hints
             move_group_hints = result.get("move_group_hints", [])
-            
+
             # Extract compatibility issues
             compatibility_issues = result.get("compatibility_issues", [])
-            
+
             return {
                 "component_treatments": structured_treatments,
                 "overall_strategy": overall_strategy,
@@ -687,10 +740,10 @@ class SixRStrategyCrew:
                     "crew_type": "sixr_strategy",
                     "application_id": application_id,
                     "execution_time": datetime.utcnow().isoformat(),
-                    "flow_id": self.flow_context.flow_id
-                }
+                    "flow_id": self.flow_context.flow_id,
+                },
             }
-            
+
         except Exception as e:
             logger.error(f"Error processing crew results: {e}")
             # Return basic structure to prevent flow failure
@@ -702,5 +755,5 @@ class SixRStrategyCrew:
                 "move_group_hints": [],
                 "compatibility_issues": [],
                 "crew_confidence": 0.5,
-                "processing_error": str(e)
+                "processing_error": str(e),
             }

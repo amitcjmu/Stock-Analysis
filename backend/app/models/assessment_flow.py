@@ -4,24 +4,15 @@ Complete SQLAlchemy models for assessment flow architecture with multi-tenant su
 
 Includes both database models and in-memory state models for CrewAI flow compatibility.
 """
+
 import uuid
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import (
-    Boolean,
-    CheckConstraint,
-    Column,
-    DateTime,
-    Float,
-    ForeignKey,
-    Integer,
-    Numeric,
-    String,
-    Text,
-    UniqueConstraint,
-)
+from sqlalchemy import (Boolean, CheckConstraint, Column, DateTime, Float,
+                        ForeignKey, Integer, Numeric, String, Text,
+                        UniqueConstraint)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -31,6 +22,7 @@ from app.core.database import Base
 
 class AssessmentFlowStatus(str, Enum):
     """Assessment flow status states."""
+
     INITIALIZED = "initialized"
     PROCESSING = "processing"
     PAUSED_FOR_USER_INPUT = "paused_for_user_input"
@@ -40,6 +32,7 @@ class AssessmentFlowStatus(str, Enum):
 
 class AssessmentPhase(str, Enum):
     """Assessment flow phases."""
+
     INITIALIZATION = "initialization"
     ARCHITECTURE_MINIMUMS = "architecture_minimums"
     TECH_DEBT_ANALYSIS = "tech_debt_analysis"
@@ -47,58 +40,111 @@ class AssessmentPhase(str, Enum):
     APP_ON_PAGE_GENERATION = "app_on_page_generation"
     FINALIZATION = "finalization"
 
+
 class AssessmentFlow(Base):
     """
     Main assessment flow tracking with pause points and navigation state.
     Supports component-level 6R treatments with flexible architecture.
     """
-    __tablename__ = 'assessment_flows'
+
+    __tablename__ = "assessment_flows"
 
     # Primary identification
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    
+
     # Multi-tenant isolation
-    client_account_id = Column(UUID(as_uuid=True), ForeignKey('client_accounts.id', ondelete='CASCADE'), nullable=False, index=True)
-    engagement_id = Column(UUID(as_uuid=True), ForeignKey('engagements.id', ondelete='CASCADE'), nullable=False, index=True)
-    
+    client_account_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("client_accounts.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    engagement_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("engagements.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
     # Flow configuration
-    selected_application_ids = Column(JSONB, nullable=False)  # List of application UUIDs
+    selected_application_ids = Column(
+        JSONB, nullable=False
+    )  # List of application UUIDs
     architecture_captured = Column(Boolean, default=False, nullable=False)
-    
+
     # Flow state management
-    status = Column(String(50), nullable=False, default='initialized', index=True)
+    status = Column(String(50), nullable=False, default="initialized", index=True)
     progress = Column(Integer, default=0, nullable=False)
     current_phase = Column(String(100), nullable=True, index=True)
     next_phase = Column(String(100), nullable=True, index=True)
-    
+
     # User interaction tracking
-    pause_points = Column(JSONB, default=list, nullable=False)  # List of pause point identifiers
-    user_inputs = Column(JSONB, default=dict, nullable=False)  # Phase-specific user inputs
-    phase_results = Column(JSONB, default=dict, nullable=False)  # Phase completion results
-    agent_insights = Column(JSONB, default=list, nullable=False)  # Agent-generated insights
-    
+    pause_points = Column(
+        JSONB, default=list, nullable=False
+    )  # List of pause point identifiers
+    user_inputs = Column(
+        JSONB, default=dict, nullable=False
+    )  # Phase-specific user inputs
+    phase_results = Column(
+        JSONB, default=dict, nullable=False
+    )  # Phase completion results
+    agent_insights = Column(
+        JSONB, default=list, nullable=False
+    )  # Agent-generated insights
+
     # Planning readiness
-    apps_ready_for_planning = Column(JSONB, default=list, nullable=False)  # Apps ready for planning flow
-    
+    apps_ready_for_planning = Column(
+        JSONB, default=list, nullable=False
+    )  # Apps ready for planning flow
+
     # Timestamps
     last_user_interaction = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
     completed_at = Column(DateTime(timezone=True), nullable=True)
-    
+
     # Constraints
     __table_args__ = (
-        CheckConstraint('progress >= 0 AND progress <= 100', name='valid_progress'),
+        CheckConstraint("progress >= 0 AND progress <= 100", name="valid_progress"),
     )
-    
+
     # Relationships (using string references to avoid forward reference issues)
     # Note: architecture_standards are linked via engagement_id, not directly
-    application_overrides = relationship("ApplicationArchitectureOverride", back_populates="assessment_flow", cascade="all, delete-orphan")
-    application_components = relationship("ApplicationComponent", back_populates="assessment_flow", cascade="all, delete-orphan")
-    tech_debt_analysis = relationship("TechDebtAnalysis", back_populates="assessment_flow", cascade="all, delete-orphan")
-    component_treatments = relationship("ComponentTreatment", back_populates="assessment_flow", cascade="all, delete-orphan")
-    sixr_decisions = relationship("SixRDecision", back_populates="assessment_flow", cascade="all, delete-orphan")
-    learning_feedback = relationship("AssessmentLearningFeedback", back_populates="assessment_flow", cascade="all, delete-orphan")
+    application_overrides = relationship(
+        "ApplicationArchitectureOverride",
+        back_populates="assessment_flow",
+        cascade="all, delete-orphan",
+    )
+    application_components = relationship(
+        "ApplicationComponent",
+        back_populates="assessment_flow",
+        cascade="all, delete-orphan",
+    )
+    tech_debt_analysis = relationship(
+        "TechDebtAnalysis",
+        back_populates="assessment_flow",
+        cascade="all, delete-orphan",
+    )
+    component_treatments = relationship(
+        "ComponentTreatment",
+        back_populates="assessment_flow",
+        cascade="all, delete-orphan",
+    )
+    sixr_decisions = relationship(
+        "SixRDecision", back_populates="assessment_flow", cascade="all, delete-orphan"
+    )
+    learning_feedback = relationship(
+        "AssessmentLearningFeedback",
+        back_populates="assessment_flow",
+        cascade="all, delete-orphan",
+    )
 
     def __repr__(self):
         return f"<AssessmentFlow(id={self.id}, status='{self.status}', progress={self.progress})>"
@@ -109,33 +155,56 @@ class EngagementArchitectureStandard(Base):
     Engagement-level architecture standards with version management.
     Defines minimum requirements and supported technology versions.
     """
-    __tablename__ = 'engagement_architecture_standards'
+
+    __tablename__ = "engagement_architecture_standards"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    engagement_id = Column(UUID(as_uuid=True), ForeignKey('engagements.id', ondelete='CASCADE'), nullable=False, index=True)
-    
+    engagement_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("engagements.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
     # Standard definition
-    requirement_type = Column(String(100), nullable=False)  # e.g., 'java_versions', 'security_standards'
+    requirement_type = Column(
+        String(100), nullable=False
+    )  # e.g., 'java_versions', 'security_standards'
     description = Column(Text, nullable=True)
     mandatory = Column(Boolean, default=True, nullable=False)
-    
+
     # Version and requirement details
-    supported_versions = Column(JSONB, nullable=True)  # {"java": "11+", "spring": "2.5+"}
-    requirement_details = Column(JSONB, nullable=True)  # Additional requirement specifications
-    
+    supported_versions = Column(
+        JSONB, nullable=True
+    )  # {"java": "11+", "spring": "2.5+"}
+    requirement_details = Column(
+        JSONB, nullable=True
+    )  # Additional requirement specifications
+
     # Audit trail
     created_by = Column(String(100), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
-    
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
     # Constraints
     __table_args__ = (
-        UniqueConstraint('engagement_id', 'requirement_type', name='unique_engagement_requirement'),
+        UniqueConstraint(
+            "engagement_id", "requirement_type", name="unique_engagement_requirement"
+        ),
     )
-    
+
     # Relationships
     # Note: Related to AssessmentFlow via engagement_id, not direct foreign key
-    application_overrides = relationship("ApplicationArchitectureOverride", back_populates="standard")
+    application_overrides = relationship(
+        "ApplicationArchitectureOverride", back_populates="standard"
+    )
 
     def __repr__(self):
         return f"<EngagementArchitectureStandard(engagement_id={self.engagement_id}, type='{self.requirement_type}')>"
@@ -146,30 +215,51 @@ class ApplicationArchitectureOverride(Base):
     Application-specific architecture overrides with business rationale.
     Allows exceptions to engagement-level standards with proper approval.
     """
-    __tablename__ = 'application_architecture_overrides'
+
+    __tablename__ = "application_architecture_overrides"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    assessment_flow_id = Column(UUID(as_uuid=True), ForeignKey('assessment_flows.id', ondelete='CASCADE'), nullable=False, index=True)
+    assessment_flow_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("assessment_flows.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     application_id = Column(UUID(as_uuid=True), nullable=False, index=True)
-    standard_id = Column(UUID(as_uuid=True), ForeignKey('engagement_architecture_standards.id', ondelete='SET NULL'), nullable=True)
-    
+    standard_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("engagement_architecture_standards.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     # Override details
-    override_type = Column(String(100), nullable=False)  # exception, modification, addition
+    override_type = Column(
+        String(100), nullable=False
+    )  # exception, modification, addition
     override_details = Column(JSONB, nullable=True)
     rationale = Column(Text, nullable=True)
     approved_by = Column(String(100), nullable=True)
-    
+
     # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
     # Constraints
     __table_args__ = (
-        CheckConstraint("override_type IN ('exception', 'modification', 'addition')", name='valid_override_type'),
+        CheckConstraint(
+            "override_type IN ('exception', 'modification', 'addition')",
+            name="valid_override_type",
+        ),
     )
-    
+
     # Relationships
-    assessment_flow = relationship("AssessmentFlow", back_populates="application_overrides")
-    standard = relationship("EngagementArchitectureStandard", back_populates="application_overrides")
+    assessment_flow = relationship(
+        "AssessmentFlow", back_populates="application_overrides"
+    )
+    standard = relationship(
+        "EngagementArchitectureStandard", back_populates="application_overrides"
+    )
 
     def __repr__(self):
         return f"<ApplicationArchitectureOverride(app_id={self.application_id}, type='{self.override_type}')>"
@@ -180,30 +270,47 @@ class ApplicationComponent(Base):
     Flexible component identification beyond 3-tier architecture.
     Supports discovery of various component types with technology stacks.
     """
-    __tablename__ = 'application_components'
+
+    __tablename__ = "application_components"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    assessment_flow_id = Column(UUID(as_uuid=True), ForeignKey('assessment_flows.id', ondelete='CASCADE'), nullable=False, index=True)
+    assessment_flow_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("assessment_flows.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     application_id = Column(UUID(as_uuid=True), nullable=False, index=True)
-    
+
     # Component identification
     component_name = Column(String(255), nullable=False)
-    component_type = Column(String(100), nullable=False)  # frontend, middleware, backend, service, etc.
-    
+    component_type = Column(
+        String(100), nullable=False
+    )  # frontend, middleware, backend, service, etc.
+
     # Technical details
     technology_stack = Column(JSONB, nullable=True)  # Technology details and versions
     dependencies = Column(JSONB, nullable=True)  # Other components this depends on
-    
+
     # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
     # Constraints
     __table_args__ = (
-        UniqueConstraint('assessment_flow_id', 'application_id', 'component_name', name='unique_app_component'),
+        UniqueConstraint(
+            "assessment_flow_id",
+            "application_id",
+            "component_name",
+            name="unique_app_component",
+        ),
     )
-    
+
     # Relationships
-    assessment_flow = relationship("AssessmentFlow", back_populates="application_components")
+    assessment_flow = relationship(
+        "AssessmentFlow", back_populates="application_components"
+    )
     tech_debt_items = relationship("TechDebtAnalysis", back_populates="component")
     treatments = relationship("ComponentTreatment", back_populates="component")
 
@@ -216,38 +323,63 @@ class TechDebtAnalysis(Base):
     Component-aware tech debt analysis with severity and remediation tracking.
     Enables component-level debt assessment for migration planning.
     """
-    __tablename__ = 'tech_debt_analysis'
+
+    __tablename__ = "tech_debt_analysis"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    assessment_flow_id = Column(UUID(as_uuid=True), ForeignKey('assessment_flows.id', ondelete='CASCADE'), nullable=False, index=True)
+    assessment_flow_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("assessment_flows.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     application_id = Column(UUID(as_uuid=True), nullable=False, index=True)
-    component_id = Column(UUID(as_uuid=True), ForeignKey('application_components.id', ondelete='SET NULL'), nullable=True)
-    
+    component_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("application_components.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     # Debt classification
-    debt_category = Column(String(100), nullable=False)  # e.g., 'security', 'performance', 'maintainability'
-    severity = Column(String(20), nullable=False, index=True)  # critical, high, medium, low
+    debt_category = Column(
+        String(100), nullable=False
+    )  # e.g., 'security', 'performance', 'maintainability'
+    severity = Column(
+        String(20), nullable=False, index=True
+    )  # critical, high, medium, low
     description = Column(Text, nullable=False)
-    
+
     # Impact assessment
     remediation_effort_hours = Column(Integer, nullable=True)
     impact_on_migration = Column(Text, nullable=True)
-    tech_debt_score = Column(Float, nullable=True)  # Quantified score for prioritization
-    
+    tech_debt_score = Column(
+        Float, nullable=True
+    )  # Quantified score for prioritization
+
     # Agent tracking
     detected_by_agent = Column(String(100), nullable=True)
     agent_confidence = Column(Float, nullable=True)  # 0.0 to 1.0
-    
+
     # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
     # Constraints
     __table_args__ = (
-        CheckConstraint("severity IN ('critical', 'high', 'medium', 'low')", name='valid_severity'),
-        CheckConstraint('agent_confidence >= 0 AND agent_confidence <= 1', name='valid_agent_confidence'),
+        CheckConstraint(
+            "severity IN ('critical', 'high', 'medium', 'low')", name="valid_severity"
+        ),
+        CheckConstraint(
+            "agent_confidence >= 0 AND agent_confidence <= 1",
+            name="valid_agent_confidence",
+        ),
     )
-    
+
     # Relationships
-    assessment_flow = relationship("AssessmentFlow", back_populates="tech_debt_analysis")
+    assessment_flow = relationship(
+        "AssessmentFlow", back_populates="tech_debt_analysis"
+    )
     component = relationship("ApplicationComponent", back_populates="tech_debt_items")
 
     def __repr__(self):
@@ -259,32 +391,53 @@ class ComponentTreatment(Base):
     Individual component 6R decisions with compatibility validation.
     Enables component-level strategy selection within applications.
     """
-    __tablename__ = 'component_treatments'
+
+    __tablename__ = "component_treatments"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    assessment_flow_id = Column(UUID(as_uuid=True), ForeignKey('assessment_flows.id', ondelete='CASCADE'), nullable=False, index=True)
+    assessment_flow_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("assessment_flows.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     application_id = Column(UUID(as_uuid=True), nullable=False, index=True)
-    component_id = Column(UUID(as_uuid=True), ForeignKey('application_components.id', ondelete='CASCADE'), nullable=True)
-    
+    component_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("application_components.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+
     # Strategy decision
     recommended_strategy = Column(String(20), nullable=False, index=True)  # 6R strategy
     rationale = Column(Text, nullable=True)
-    
+
     # Compatibility validation
     compatibility_validated = Column(Boolean, default=False, nullable=False)
-    compatibility_issues = Column(JSONB, nullable=True)  # List of compatibility concerns
-    
+    compatibility_issues = Column(
+        JSONB, nullable=True
+    )  # List of compatibility concerns
+
     # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
     # Constraints
     __table_args__ = (
-        CheckConstraint("recommended_strategy IN ('rewrite', 'rearchitect', 'refactor', 'replatform', 'rehost', 'repurchase', 'retire', 'retain')", name='valid_recommended_strategy'),
-        UniqueConstraint('assessment_flow_id', 'component_id', name='unique_component_treatment'),
+        CheckConstraint(
+            "recommended_strategy IN ('rewrite', 'rearchitect', 'refactor', 'replatform', 'rehost', 'repurchase', 'retire', 'retain')",
+            name="valid_recommended_strategy",
+        ),
+        UniqueConstraint(
+            "assessment_flow_id", "component_id", name="unique_component_treatment"
+        ),
     )
-    
+
     # Relationships
-    assessment_flow = relationship("AssessmentFlow", back_populates="component_treatments")
+    assessment_flow = relationship(
+        "AssessmentFlow", back_populates="component_treatments"
+    )
     component = relationship("ApplicationComponent", back_populates="treatments")
 
     def __repr__(self):
@@ -296,54 +449,85 @@ class SixRDecision(Base):
     Application-level 6R decisions with component rollup and app-on-page data.
     Consolidates component treatments into overall application strategy.
     """
-    __tablename__ = 'sixr_decisions'
+
+    __tablename__ = "sixr_decisions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    assessment_flow_id = Column(UUID(as_uuid=True), ForeignKey('assessment_flows.id', ondelete='CASCADE'), nullable=False, index=True)
+    assessment_flow_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("assessment_flows.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     application_id = Column(UUID(as_uuid=True), nullable=False, index=True)
     application_name = Column(String(255), nullable=False)
-    
+
     # Strategy decision
     overall_strategy = Column(String(20), nullable=False, index=True)  # 6R strategy
     confidence_score = Column(Float, nullable=True)  # 0.0 to 1.0
     rationale = Column(Text, nullable=True)
-    
+
     # Architecture and risk factors
-    architecture_exceptions = Column(JSONB, default=list, nullable=False)  # List of architecture exceptions
+    architecture_exceptions = Column(
+        JSONB, default=list, nullable=False
+    )  # List of architecture exceptions
     tech_debt_score = Column(Float, nullable=True)
     risk_factors = Column(JSONB, default=list, nullable=False)  # List of risk factors
-    
+
     # Migration planning hints
-    move_group_hints = Column(JSONB, default=list, nullable=False)  # Technology proximity, dependencies
+    move_group_hints = Column(
+        JSONB, default=list, nullable=False
+    )  # Technology proximity, dependencies
     estimated_effort_hours = Column(Integer, nullable=True)
     estimated_cost = Column(Numeric(12, 2), nullable=True)
-    
+
     # User modifications
     user_modifications = Column(JSONB, nullable=True)
     modified_by = Column(String(100), nullable=True)
     modified_at = Column(DateTime(timezone=True), nullable=True)
-    
+
     # Complete consolidated view
-    app_on_page_data = Column(JSONB, nullable=True)  # Complete app-on-page representation
-    decision_factors = Column(JSONB, nullable=True)  # Factors that influenced the decision
-    
+    app_on_page_data = Column(
+        JSONB, nullable=True
+    )  # Complete app-on-page representation
+    decision_factors = Column(
+        JSONB, nullable=True
+    )  # Factors that influenced the decision
+
     # Planning readiness
     ready_for_planning = Column(Boolean, default=False, nullable=False, index=True)
-    
+
     # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
-    
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
     # Constraints
     __table_args__ = (
-        CheckConstraint("overall_strategy IN ('rewrite', 'rearchitect', 'refactor', 'replatform', 'rehost', 'repurchase', 'retire', 'retain')", name='valid_overall_strategy'),
-        CheckConstraint('confidence_score >= 0 AND confidence_score <= 1', name='valid_confidence_score'),
-        UniqueConstraint('assessment_flow_id', 'application_id', name='unique_app_decision'),
+        CheckConstraint(
+            "overall_strategy IN ('rewrite', 'rearchitect', 'refactor', 'replatform', 'rehost', 'repurchase', 'retire', 'retain')",
+            name="valid_overall_strategy",
+        ),
+        CheckConstraint(
+            "confidence_score >= 0 AND confidence_score <= 1",
+            name="valid_confidence_score",
+        ),
+        UniqueConstraint(
+            "assessment_flow_id", "application_id", name="unique_app_decision"
+        ),
     )
-    
+
     # Relationships
     assessment_flow = relationship("AssessmentFlow", back_populates="sixr_decisions")
-    learning_feedback = relationship("AssessmentLearningFeedback", back_populates="decision")
+    learning_feedback = relationship(
+        "AssessmentLearningFeedback", back_populates="decision"
+    )
 
     def __repr__(self):
         return f"<SixRDecision(app='{self.application_name}', strategy='{self.overall_strategy}', confidence={self.confidence_score})>"
@@ -354,30 +538,55 @@ class AssessmentLearningFeedback(Base):
     Learning feedback for agent improvement from user modifications and overrides.
     Enables continuous agent learning from user decisions.
     """
-    __tablename__ = 'assessment_learning_feedback'
+
+    __tablename__ = "assessment_learning_feedback"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    assessment_flow_id = Column(UUID(as_uuid=True), ForeignKey('assessment_flows.id', ondelete='CASCADE'), nullable=False, index=True)
-    decision_id = Column(UUID(as_uuid=True), ForeignKey('sixr_decisions.id', ondelete='CASCADE'), nullable=False, index=True)
-    
+    assessment_flow_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("assessment_flows.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    decision_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("sixr_decisions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
     # Learning data
-    original_strategy = Column(String(20), nullable=False)  # Agent's original recommendation
+    original_strategy = Column(
+        String(20), nullable=False
+    )  # Agent's original recommendation
     override_strategy = Column(String(20), nullable=False)  # User's override decision
     feedback_reason = Column(Text, nullable=True)  # User's rationale for change
-    
+
     # Agent learning
-    agent_id = Column(String(100), nullable=True)  # Which agent made the original decision
-    learned_pattern = Column(JSONB, nullable=True)  # Pattern extracted for future learning
-    
+    agent_id = Column(
+        String(100), nullable=True
+    )  # Which agent made the original decision
+    learned_pattern = Column(
+        JSONB, nullable=True
+    )  # Pattern extracted for future learning
+
     # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
     # Constraints
     __table_args__ = (
-        CheckConstraint("original_strategy IN ('rewrite', 'rearchitect', 'refactor', 'replatform', 'rehost', 'repurchase', 'retire', 'retain')", name='valid_original_strategy'),
-        CheckConstraint("override_strategy IN ('rewrite', 'rearchitect', 'refactor', 'replatform', 'rehost', 'repurchase', 'retire', 'retain')", name='valid_override_strategy'),
+        CheckConstraint(
+            "original_strategy IN ('rewrite', 'rearchitect', 'refactor', 'replatform', 'rehost', 'repurchase', 'retire', 'retain')",
+            name="valid_original_strategy",
+        ),
+        CheckConstraint(
+            "override_strategy IN ('rewrite', 'rearchitect', 'refactor', 'replatform', 'rehost', 'repurchase', 'retire', 'retain')",
+            name="valid_override_strategy",
+        ),
     )
-    
+
     # Relationships
     assessment_flow = relationship("AssessmentFlow", back_populates="learning_feedback")
     decision = relationship("SixRDecision", back_populates="learning_feedback")
@@ -390,8 +599,10 @@ class AssessmentLearningFeedback(Base):
 # IN-MEMORY STATE MODELS FOR CREWAI FLOW
 # ========================================
 
+
 class AssessmentStatus(str, Enum):
     """Assessment flow status for in-memory state management"""
+
     INITIALIZING = "initializing"
     PROCESSING = "processing"
     PAUSED_FOR_USER_INPUT = "paused_for_user_input"
@@ -402,7 +613,7 @@ class AssessmentStatus(str, Enum):
 
 class InMemorySixRDecision:
     """In-memory model for 6R decisions"""
-    
+
     def __init__(
         self,
         application_id: str,
@@ -415,7 +626,7 @@ class InMemorySixRDecision:
         tech_debt_score: float = 0.0,
         architecture_exceptions: List[Dict[str, Any]] = None,
         risk_factors: List[str] = None,
-        app_on_page_data: Dict[str, Any] = None
+        app_on_page_data: Dict[str, Any] = None,
     ):
         self.application_id = application_id
         self.application_name = application_name
@@ -432,6 +643,7 @@ class InMemorySixRDecision:
 
 class ArchitectureRequirementType(str, Enum):
     """Types of architecture requirements"""
+
     TECHNOLOGY_VERSION = "technology_version"
     SECURITY_STANDARD = "security_standard"
     COMPLIANCE_REQUIREMENT = "compliance_requirement"
@@ -441,6 +653,7 @@ class ArchitectureRequirementType(str, Enum):
 
 class ComponentType(str, Enum):
     """Types of application components"""
+
     WEB_FRONTEND = "web_frontend"
     API_GATEWAY = "api_gateway"
     MICROSERVICE = "microservice"
@@ -458,6 +671,7 @@ class ComponentType(str, Enum):
 
 class TechDebtSeverity(str, Enum):
     """Severity levels for technical debt"""
+
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"
@@ -466,17 +680,19 @@ class TechDebtSeverity(str, Enum):
 
 class AssessmentFlowError(Exception):
     """Custom exception for assessment flow errors"""
+
     pass
 
 
 class CrewExecutionError(Exception):
     """Custom exception for crew execution errors"""
+
     pass
 
 
 class AssessmentFlowState:
     """In-memory state model for assessment flow execution"""
-    
+
     def __init__(
         self,
         flow_id: str,
@@ -489,7 +705,7 @@ class AssessmentFlowState:
         progress: float = 0.0,
         selected_application_ids: List[str] = None,
         created_at: datetime = None,
-        updated_at: datetime = None
+        updated_at: datetime = None,
     ):
         self.flow_id = flow_id
         self.client_account_id = client_account_id
@@ -503,12 +719,12 @@ class AssessmentFlowState:
         self.created_at = created_at or datetime.utcnow()
         self.updated_at = updated_at or datetime.utcnow()
         self.completed_at: Optional[datetime] = None
-        
+
         # Phase-specific data
         self.phase_results: Dict[str, Any] = {}
         self.user_inputs: Dict[str, Any] = {}
         self.pause_points: List[str] = []
-        
+
         # Assessment-specific data
         self.engagement_architecture_standards: List[Dict[str, Any]] = []
         self.application_components: Dict[str, List[Dict[str, Any]]] = {}
@@ -516,32 +732,34 @@ class AssessmentFlowState:
         self.component_tech_debt: Dict[str, Dict[str, float]] = {}
         self.sixr_decisions: Dict[str, InMemorySixRDecision] = {}
         self.apps_ready_for_planning: List[str] = []
-        
+
         # Interaction tracking
         self.last_user_interaction: Optional[datetime] = None
         self.errors: List[Dict[str, Any]] = []
-    
+
     def add_error(self, phase: str, error_message: str):
         """Add an error to the flow state"""
-        self.errors.append({
-            "phase": phase,
-            "error": error_message,
-            "timestamp": datetime.utcnow().isoformat()
-        })
+        self.errors.append(
+            {
+                "phase": phase,
+                "error": error_message,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        )
         self.status = AssessmentStatus.ERROR
         self.updated_at = datetime.utcnow()
-    
+
     def validate_component_compatibility(self, application_id: str) -> List[str]:
         """Validate component compatibility for an application"""
         # Placeholder implementation
         issues = []
-        
+
         components = self.application_components.get(application_id, [])
         if len(components) > 10:
             issues.append("High component count may indicate complexity")
-        
+
         return issues
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert state to dictionary for serialization"""
         return {
@@ -556,7 +774,9 @@ class AssessmentFlowState:
             "selected_application_ids": self.selected_application_ids,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": (
+                self.completed_at.isoformat() if self.completed_at else None
+            ),
             "phase_results": self.phase_results,
             "user_inputs": self.user_inputs,
             "pause_points": self.pause_points,
@@ -576,11 +796,15 @@ class AssessmentFlowState:
                     "tech_debt_score": decision.tech_debt_score,
                     "architecture_exceptions": decision.architecture_exceptions,
                     "risk_factors": decision.risk_factors,
-                    "app_on_page_data": decision.app_on_page_data
+                    "app_on_page_data": decision.app_on_page_data,
                 }
                 for app_id, decision in self.sixr_decisions.items()
             },
             "apps_ready_for_planning": self.apps_ready_for_planning,
-            "last_user_interaction": self.last_user_interaction.isoformat() if self.last_user_interaction else None,
-            "errors": self.errors
+            "last_user_interaction": (
+                self.last_user_interaction.isoformat()
+                if self.last_user_interaction
+                else None
+            ),
+            "errors": self.errors,
         }

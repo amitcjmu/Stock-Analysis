@@ -5,9 +5,9 @@ This package provides modular components for on-premises infrastructure discover
 """
 
 from app.models.collection_flow import AutomationTier
-
 # Re-export metadata for backward compatibility
-from app.services.collection_flow.adapters import AdapterCapability, AdapterMetadata
+from app.services.collection_flow.adapters import (AdapterCapability,
+                                                   AdapterMetadata)
 
 from .adapter import OnPremisesAdapter
 from .models import DiscoveredHost, OnPremisesCredentials
@@ -23,11 +23,9 @@ ONPREMISES_ADAPTER_METADATA = AdapterMetadata(
         AdapterCapability.SERVER_DISCOVERY,
         AdapterCapability.NETWORK_DISCOVERY,
         AdapterCapability.DEPENDENCY_MAPPING,
-        AdapterCapability.CREDENTIAL_VALIDATION
+        AdapterCapability.CREDENTIAL_VALIDATION,
     ],
-    required_credentials=[
-        "network_ranges"
-    ],
+    required_credentials=["network_ranges"],
     configuration_schema={
         "type": "object",
         "required": ["credentials"],
@@ -39,7 +37,7 @@ ONPREMISES_ADAPTER_METADATA = AdapterMetadata(
                     "network_ranges": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "CIDR network ranges to scan (e.g., ['192.168.1.0/24'])"
+                        "description": "CIDR network ranges to scan (e.g., ['192.168.1.0/24'])",
                     },
                     "ssh_username": {"type": "string"},
                     "ssh_password": {"type": "string"},
@@ -56,8 +54,8 @@ ONPREMISES_ADAPTER_METADATA = AdapterMetadata(
                     "wmi_password": {"type": "string"},
                     "wmi_domain": {"type": "string"},
                     "timeout": {"type": "integer", "default": 10},
-                    "max_concurrent_scans": {"type": "integer", "default": 50}
-                }
+                    "max_concurrent_scans": {"type": "integer", "default": 50},
+                },
             },
             "include_port_scanning": {"type": "boolean", "default": True},
             "include_detailed_info": {"type": "boolean", "default": True},
@@ -66,18 +64,18 @@ ONPREMISES_ADAPTER_METADATA = AdapterMetadata(
             "custom_ports": {
                 "type": "array",
                 "items": {"type": "integer"},
-                "description": "Additional ports to scan"
-            }
-        }
+                "description": "Additional ports to scan",
+            },
+        },
     },
     description="Comprehensive on-premises infrastructure adapter with network scanning, SNMP, SSH, and WMI support",
     author="ADCS Team B1",
-    documentation_url="https://docs.python.org/3/library/socket.html"
+    documentation_url="https://docs.python.org/3/library/socket.html",
 )
 
 __all__ = [
     "OnPremisesAdapter",
     "OnPremisesCredentials",
     "DiscoveredHost",
-    "ONPREMISES_ADAPTER_METADATA"
+    "ONPREMISES_ADAPTER_METADATA",
 ]

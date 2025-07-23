@@ -12,23 +12,15 @@ For new imports, consider importing directly from the submodules:
 """
 
 # Re-export all public interfaces for backward compatibility
-from .tier_routing_service import (
-    # Enums
-    AutomationTier,
-    EnvironmentComplexity,
-    RoutingDecision,
-    RoutingStrategy,
-    # Models
-    TierAnalysis,
-    # Main Service
-    TierRoutingService,
-)
+from .tier_routing_service import (  # Enums; Models; Main Service
+    AutomationTier, EnvironmentComplexity, RoutingDecision, RoutingStrategy,
+    TierAnalysis, TierRoutingService)
 
 __all__ = [
-    'AutomationTier',
-    'RoutingStrategy',
-    'EnvironmentComplexity',
-    'TierAnalysis',
-    'RoutingDecision',
-    'TierRoutingService'
+    "AutomationTier",
+    "RoutingStrategy",
+    "EnvironmentComplexity",
+    "TierAnalysis",
+    "RoutingDecision",
+    "TierRoutingService",
 ]

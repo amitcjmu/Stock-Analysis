@@ -8,9 +8,4 @@ from .analysis_engine import AnalysisEngine
 from .crew_manager import CrewManager
 from .task_processor import TaskProcessor
 
-__all__ = [
-    'CrewManager',
-    'AgentCoordinator',
-    'TaskProcessor', 
-    'AnalysisEngine'
-] 
+__all__ = ["CrewManager", "AgentCoordinator", "TaskProcessor", "AnalysisEngine"]

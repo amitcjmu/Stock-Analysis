@@ -9,8 +9,8 @@ from .cleanup_operations_handler import CleanupOperationsHandler
 from .quality_assessment_handler import QualityAssessmentHandler
 
 __all__ = [
-    'AgentAnalysisHandler',
-    'AgentProcessingHandler', 
-    'QualityAssessmentHandler',
-    'CleanupOperationsHandler'
-] 
+    "AgentAnalysisHandler",
+    "AgentProcessingHandler",
+    "QualityAssessmentHandler",
+    "CleanupOperationsHandler",
+]

@@ -2,4 +2,4 @@
 
 from .crewai_integration import CrewAIIntegrationService
 
-__all__ = ['CrewAIIntegrationService']
+__all__ = ["CrewAIIntegrationService"]

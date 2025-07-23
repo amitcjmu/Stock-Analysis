@@ -7,6 +7,7 @@ from enum import Enum
 
 class FlowOperationType(Enum):
     """Flow operation types for audit logging"""
+
     CREATE = "create"
     EXECUTE = "execute"
     PAUSE = "pause"

@@ -12,6 +12,7 @@ from app.core.database import AsyncSessionLocal
 
 logger = logging.getLogger(__name__)
 
+
 @asynccontextmanager
 async def get_context_db():
     """
@@ -25,25 +26,28 @@ async def get_context_db():
             if context:
                 # Set context in PostgreSQL session
                 await session.execute(
-                    text("SELECT set_tenant_context(:client_account_id, :engagement_id)"),
+                    text(
+                        "SELECT set_tenant_context(:client_account_id, :engagement_id)"
+                    ),
                     {
                         "client_account_id": context.client_account_id,
-                        "engagement_id": context.engagement_id
-                    }
+                        "engagement_id": context.engagement_id,
+                    },
                 )
                 await session.commit()
-                
+
                 logger.debug(
                     f"Set database context for client {context.client_account_id}"
                 )
-            
+
             yield session
-            
+
         except Exception:
             await session.rollback()
             raise
         finally:
             await session.close()
+
 
 # FastAPI dependency
 async def get_db():

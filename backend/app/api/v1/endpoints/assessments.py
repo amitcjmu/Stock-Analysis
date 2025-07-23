@@ -35,4 +35,4 @@ async def generate_6r_analysis():
 @router.post("/risk-assessment")
 async def generate_risk_assessment():
     """Generate risk assessment - placeholder endpoint."""
-    return {"message": "Risk assessment endpoint - coming in Sprint 3"} 
+    return {"message": "Risk assessment endpoint - coming in Sprint 3"}

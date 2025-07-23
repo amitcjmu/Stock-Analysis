@@ -1,4 +1,4 @@
-import type { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { apiCallWithFallback } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 

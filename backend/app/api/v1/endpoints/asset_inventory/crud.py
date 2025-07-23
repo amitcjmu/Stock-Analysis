@@ -24,7 +24,7 @@ async def list_assets(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=100),
     asset_type: Optional[str] = None,
-    environment: Optional[str] = None
+    environment: Optional[str] = None,
 ):
     # This is a placeholder for the agentic, non-DB endpoint
     # The main paginated endpoint is below
@@ -35,7 +35,7 @@ async def list_assets(
 async def get_asset(
     asset_id: str,
     db: Session = Depends(get_db),
-    context: RequestContext = Depends(get_current_context)
+    context: RequestContext = Depends(get_current_context),
 ):
     repo = AssetRepository(db, context.client_account_id)
     asset = await repo.get_asset_by_id(asset_id)
@@ -49,7 +49,7 @@ async def create_asset(
     asset: AssetCreate,
     db: Session = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
-    user_id: str = Depends(get_user_id)
+    user_id: str = Depends(get_user_id),
 ):
     repo = AssetRepository(db, context.client_account_id)
     new_asset = await repo.create_asset(asset, user_id, context.engagement_id)
@@ -61,7 +61,7 @@ async def update_asset(
     asset_id: str,
     asset: AssetUpdate,
     db: Session = Depends(get_db),
-    context: RequestContext = Depends(get_current_context)
+    context: RequestContext = Depends(get_current_context),
 ):
     repo = AssetRepository(db, context.client_account_id)
     updated_asset = await repo.update_asset(asset_id, asset.dict(exclude_unset=True))
@@ -74,7 +74,7 @@ async def update_asset(
 async def delete_asset(
     asset_id: str,
     db: Session = Depends(get_db),
-    context: RequestContext = Depends(get_current_context)
+    context: RequestContext = Depends(get_current_context),
 ):
     repo = AssetRepository(db, context.client_account_id)
     success = await repo.delete_asset(asset_id)
@@ -88,7 +88,7 @@ async def bulk_create_assets(
     assets: List[AssetCreate],
     db: Session = Depends(get_db),
     context: RequestContext = Depends(get_current_context),
-    user_id: str = Depends(get_user_id)
+    user_id: str = Depends(get_user_id),
 ):
     repo = AssetRepository(db, context.client_account_id)
     result = await repo.bulk_create_assets(assets, user_id, context.engagement_id)

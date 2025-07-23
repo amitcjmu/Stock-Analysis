@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 class FlowIntelligenceResult(BaseModel):
     """Result from the intelligent flow agent"""
+
     success: bool
     flow_id: str
     flow_type: str

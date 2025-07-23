@@ -11,4 +11,4 @@ Modularized repository split into:
 # Re-export main repository for backward compatibility
 from .base_repository import DiscoveryFlowRepository
 
-__all__ = ['DiscoveryFlowRepository']
+__all__ = ["DiscoveryFlowRepository"]

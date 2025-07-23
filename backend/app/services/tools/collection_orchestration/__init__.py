@@ -14,10 +14,10 @@ from .quality_validator import QualityValidator
 from .strategy_planner import CollectionStrategyPlanner
 
 __all__ = [
-    'BaseCollectionTool',
-    'PlatformAdapterManager',
-    'CollectionStrategyPlanner', 
-    'ProgressMonitor',
-    'QualityValidator',
-    'ErrorRecoveryManager'
+    "BaseCollectionTool",
+    "PlatformAdapterManager",
+    "CollectionStrategyPlanner",
+    "ProgressMonitor",
+    "QualityValidator",
+    "ErrorRecoveryManager",
 ]

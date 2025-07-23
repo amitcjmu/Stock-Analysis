@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
 import type { AdvancedAnalyticsProps } from './types';
 import { METRIC_CONFIGS } from './constants';
 import { TrendIndicator } from './components';
-import type { useAnalyticsData, useChartData } from './hooks';
+import { useAnalyticsData, useChartData } from './hooks';
 import type { handleExportData } from './utils';
 import { TrendsTab, PatternsTab, CorrelationsTab, PredictionsTab, AnomaliesTab } from './tabs';
 

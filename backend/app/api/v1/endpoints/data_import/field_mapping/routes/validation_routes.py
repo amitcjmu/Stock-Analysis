@@ -11,7 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 
-from ..models.mapping_schemas import FieldMappingCreate, MappingValidationRequest, MappingValidationResponse
+from ..models.mapping_schemas import (FieldMappingCreate,
+                                      MappingValidationRequest,
+                                      MappingValidationResponse)
 from ..services.validation_service import ValidationService
 
 logger = logging.getLogger(__name__)
@@ -21,7 +23,7 @@ router = APIRouter(prefix="/validation", tags=["field-mapping-validation"])
 
 def get_validation_service(
     db: AsyncSession = Depends(get_db),
-    context: RequestContext = Depends(get_current_context)
+    context: RequestContext = Depends(get_current_context),
 ) -> ValidationService:
     """Dependency injection for validation service."""
     return ValidationService(db, context)
@@ -30,7 +32,7 @@ def get_validation_service(
 @router.post("/validate-mapping", response_model=MappingValidationResponse)
 async def validate_field_mapping(
     mapping: FieldMappingCreate,
-    service: ValidationService = Depends(get_validation_service)
+    service: ValidationService = Depends(get_validation_service),
 ):
     """Validate a single field mapping."""
     try:
@@ -44,7 +46,7 @@ async def validate_field_mapping(
 @router.post("/validate-mappings", response_model=MappingValidationResponse)
 async def validate_field_mappings(
     request: MappingValidationRequest,
-    service: ValidationService = Depends(get_validation_service)
+    service: ValidationService = Depends(get_validation_service),
 ):
     """Validate multiple field mappings."""
     try:
@@ -60,7 +62,7 @@ async def validate_field_compatibility(
     source_field: str,
     target_field: str,
     sample_data: List = None,
-    service: ValidationService = Depends(get_validation_service)
+    service: ValidationService = Depends(get_validation_service),
 ):
     """Validate compatibility between source and target fields."""
     try:
@@ -70,4 +72,6 @@ async def validate_field_compatibility(
         return result
     except Exception as e:
         logger.error(f"Error validating field compatibility: {e}")
-        raise HTTPException(status_code=500, detail="Failed to validate field compatibility")
+        raise HTTPException(
+            status_code=500, detail="Failed to validate field compatibility"
+        )

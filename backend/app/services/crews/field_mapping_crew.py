@@ -13,17 +13,18 @@ from app.services.crews.base_crew import BaseDiscoveryCrew
 
 logger = logging.getLogger(__name__)
 
+
 class FieldMappingCrew(BaseDiscoveryCrew):
     """
     Crew for intelligent field mapping using multiple specialized agents.
-    
+
     Process:
     1. Schema analysis
     2. Semantic matching
     3. Confidence scoring
     4. Validation
     """
-    
+
     def __init__(self):
         """Initialize field mapping crew"""
         super().__init__(
@@ -32,36 +33,36 @@ class FieldMappingCrew(BaseDiscoveryCrew):
             process=Process.sequential,
             verbose=True,
             memory=True,
-            cache=True
+            cache=True,
         )
-    
+
     def create_agents(self) -> List[Any]:
         """Create specialized agents for field mapping"""
         agents = []
-        
+
         # Try to create agents through factory, fallback to available agents
         try:
             # Import agent factory locally to avoid circular imports
             from app.services.agents.factory import agent_factory
-            
+
             # Primary field mapping agent
             field_mapper = agent_factory.create_agent("field_mapping_agent")
             if field_mapper:
                 agents.append(field_mapper)
-            
+
             # Data validation agent for validation tasks
             validator = agent_factory.create_agent("data_validation_agent")
             if validator:
                 agents.append(validator)
-            
+
         except Exception as e:
             logger.warning(f"Agent factory creation failed: {e}")
-        
+
         # If no agents were created via factory, create a basic field mapping agent
         if not agents:
             logger.info("Creating basic field mapping agent as fallback")
             from crewai import Agent
-            
+
             basic_mapper = Agent(
                 role="CMDB Field Mapping Specialist",
                 goal="Map source data fields to standard CMDB attributes with confidence scores",
@@ -83,26 +84,26 @@ class FieldMappingCrew(BaseDiscoveryCrew):
                 llm=self.llm,
                 verbose=True,
                 allow_delegation=False,
-                tools=[]
+                tools=[],
             )
             agents.append(basic_mapper)
-        
+
         return agents
-    
+
     def create_tasks(self, inputs: Dict[str, Any]) -> List[Task]:
         """Create field mapping tasks"""
         source_schema = inputs.get("source_schema", {})
         target_fields = inputs.get("target_fields", self._get_default_target_fields())
         sample_data = inputs.get("sample_data", [])
         raw_data = inputs.get("raw_data", [])
-        
+
         # Extract headers from raw_data if source_schema is empty
         if not source_schema and raw_data:
             headers = list(raw_data[0].keys()) if raw_data else []
             source_schema = {field: "string" for field in headers}
-        
+
         tasks = []
-        
+
         # Task 1: Analyze source schema and create mappings
         mapping_task = Task(
             description=f"""
@@ -154,10 +155,10 @@ class FieldMappingCrew(BaseDiscoveryCrew):
             }}
             """,
             agent=self.agents[0],  # Primary mapping agent
-            expected_output="JSON field mapping result with mappings, confidence scores, and summary"
+            expected_output="JSON field mapping result with mappings, confidence scores, and summary",
         )
         tasks.append(mapping_task)
-        
+
         # Task 2: Validation (if we have a validation agent)
         if len(self.agents) > 1:
             validation_task = Task(
@@ -175,17 +176,17 @@ class FieldMappingCrew(BaseDiscoveryCrew):
                 """,
                 agent=self.agents[1],  # Validation agent
                 expected_output="Validation report with issues found and recommendations",
-                context=[mapping_task]
+                context=[mapping_task],
             )
             tasks.append(validation_task)
-        
+
         return tasks
-    
+
     def _get_default_target_fields(self) -> List[str]:
         """Get default CMDB target fields"""
         return [
             "asset_name",
-            "asset_type", 
+            "asset_type",
             "asset_id",
             "environment",
             "business_criticality",
@@ -209,21 +210,22 @@ class FieldMappingCrew(BaseDiscoveryCrew):
             "description",
             "notes",
             "last_discovered",
-            "discovery_source"
+            "discovery_source",
         ]
-    
+
     def process_results(self, raw_results: Any) -> Dict[str, Any]:
         """Process field mapping results"""
         try:
             # Extract final result from the last task
             final_result = raw_results
-            
+
             # Handle different result formats
             if isinstance(final_result, str):
                 try:
                     import re
+
                     # Try to extract JSON from string result
-                    json_match = re.search(r'\{.*\}', final_result, re.DOTALL)
+                    json_match = re.search(r"\{.*\}", final_result, re.DOTALL)
                     if json_match:
                         final_result = json.loads(json_match.group())
                     else:
@@ -232,19 +234,21 @@ class FieldMappingCrew(BaseDiscoveryCrew):
                 except Exception as e:
                     logger.warning(f"Could not parse JSON from results: {e}")
                     final_result = {"mappings": [], "error": "Failed to parse results"}
-            
+
             # Ensure we have the expected structure
             if not isinstance(final_result, dict):
                 final_result = {"mappings": [], "error": "Unexpected result format"}
-            
+
             mappings = final_result.get("mappings", [])
-            
+
             # Calculate summary statistics
             total_mappings = len(mappings)
             high_confidence = sum(1 for m in mappings if m.get("confidence", 0) >= 0.7)
-            medium_confidence = sum(1 for m in mappings if 0.5 <= m.get("confidence", 0) < 0.7)
+            medium_confidence = sum(
+                1 for m in mappings if 0.5 <= m.get("confidence", 0) < 0.7
+            )
             low_confidence = sum(1 for m in mappings if m.get("confidence", 0) < 0.5)
-            
+
             return {
                 "crew_name": self.name,
                 "status": "completed",
@@ -256,19 +260,34 @@ class FieldMappingCrew(BaseDiscoveryCrew):
                     "medium_confidence": medium_confidence,
                     "low_confidence": low_confidence,
                     "requires_review": low_confidence,
-                    "mapping_rate": (total_mappings / (total_mappings + len(final_result.get("unmapped_fields", [])))) * 100 if total_mappings > 0 else 0
+                    "mapping_rate": (
+                        (
+                            total_mappings
+                            / (
+                                total_mappings
+                                + len(final_result.get("unmapped_fields", []))
+                            )
+                        )
+                        * 100
+                        if total_mappings > 0
+                        else 0
+                    ),
                 },
                 "context": {
-                    "client_account_id": self.context.client_account_id if self.context else None,
-                    "engagement_id": self.context.engagement_id if self.context else None
+                    "client_account_id": (
+                        self.context.client_account_id if self.context else None
+                    ),
+                    "engagement_id": (
+                        self.context.engagement_id if self.context else None
+                    ),
                 },
                 "metadata": {
                     "processing_time": final_result.get("processing_time"),
                     "agent_count": len(self.agents),
-                    "task_count": len(self.tasks)
-                }
+                    "task_count": len(self.tasks),
+                },
             }
-            
+
         except Exception as e:
             logger.error(f"Error processing field mapping results: {e}")
             return {
@@ -278,51 +297,57 @@ class FieldMappingCrew(BaseDiscoveryCrew):
                 "mappings": [],
                 "summary": {"total_mappings": 0, "error": True},
                 "context": {
-                    "client_account_id": self.context.client_account_id if self.context else None,
-                    "engagement_id": self.context.engagement_id if self.context else None
-                }
+                    "client_account_id": (
+                        self.context.client_account_id if self.context else None
+                    ),
+                    "engagement_id": (
+                        self.context.engagement_id if self.context else None
+                    ),
+                },
             }
-    
+
     def _parse_text_mappings(self, text_result: str) -> Dict[str, Any]:
         """Parse field mappings from text when JSON parsing fails"""
         mappings = []
-        
+
         # Simple pattern matching for basic mapping extraction
-        lines = text_result.split('\n')
+        lines = text_result.split("\n")
         for line in lines:
-            if '->' in line or '→' in line:
+            if "->" in line or "→" in line:
                 try:
                     # Extract source and target fields
-                    parts = line.split('->' if '->' in line else '→')
+                    parts = line.split("->" if "->" in line else "→")
                     if len(parts) == 2:
                         source = parts[0].strip()
                         target = parts[1].strip()
-                        
+
                         # Extract confidence if present
                         confidence = 0.5  # Default
-                        if '(' in target and ')' in target:
-                            conf_match = re.search(r'\((\d+\.?\d*)\)', target)
+                        if "(" in target and ")" in target:
+                            conf_match = re.search(r"\((\d+\.?\d*)\)", target)
                             if conf_match:
                                 confidence = float(conf_match.group(1))
-                                target = re.sub(r'\s*\([^)]*\)', '', target).strip()
-                        
-                        mappings.append({
-                            "source_field": source,
-                            "target_field": target,
-                            "confidence": confidence,
-                            "reasoning": "Parsed from text output",
-                            "data_type_compatible": True,
-                            "requires_transformation": False
-                        })
+                                target = re.sub(r"\s*\([^)]*\)", "", target).strip()
+
+                        mappings.append(
+                            {
+                                "source_field": source,
+                                "target_field": target,
+                                "confidence": confidence,
+                                "reasoning": "Parsed from text output",
+                                "data_type_compatible": True,
+                                "requires_transformation": False,
+                            }
+                        )
                 except Exception:
                     continue
-        
+
         return {
             "mappings": mappings,
             "unmapped_fields": [],
             "summary": {
                 "total_source_fields": len(mappings),
                 "mapped_fields": len(mappings),
-                "parsing_fallback": True
-            }
+                "parsing_fallback": True,
+            },
         }

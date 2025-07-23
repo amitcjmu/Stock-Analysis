@@ -12,30 +12,25 @@ from .registry import ToolMetadata, tool_registry
 # Auto-discover tools on import
 try:
     from .field_matcher_tool import FieldMatcherTool
-
     # Gap Analysis Tools
-    from .gap_analysis_tools import (
-        AttributeMapperTool,
-        CollectionPlannerTool,
-        CompletenessAnalyzerTool,
-        EffortEstimatorTool,
-        GapIdentifierTool,
-        ImpactCalculatorTool,
-        PriorityRankerTool,
-        QualityScorerTool,
-    )
+    from .gap_analysis_tools import (AttributeMapperTool,
+                                     CollectionPlannerTool,
+                                     CompletenessAnalyzerTool,
+                                     EffortEstimatorTool, GapIdentifierTool,
+                                     ImpactCalculatorTool, PriorityRankerTool,
+                                     QualityScorerTool)
     from .pii_scanner_tool import PIIScannerTool
     from .schema_analyzer_tool import SchemaAnalyzerTool
 except ImportError:
     pass  # Tools will be discovered automatically
 
 __all__ = [
-    'field_mapping_tool',
-    'tool_registry', 
-    'tool_factory',
-    'ToolMetadata',
-    'BaseDiscoveryTool',
-    'AsyncBaseDiscoveryTool',
-    'TOOL_CATEGORIES',
-    'get_tools_for_phase'
-] 
+    "field_mapping_tool",
+    "tool_registry",
+    "tool_factory",
+    "ToolMetadata",
+    "BaseDiscoveryTool",
+    "AsyncBaseDiscoveryTool",
+    "TOOL_CATEGORIES",
+    "get_tools_for_phase",
+]

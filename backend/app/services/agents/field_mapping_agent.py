@@ -13,7 +13,7 @@ from app.services.llm_config import get_crewai_llm
 class FieldMappingAgent(BaseCrewAIAgent):
     """
     Maps source data fields to target schema using CrewAI patterns.
-    
+
     Capabilities:
     - Intelligent field mapping
     - Schema analysis
@@ -21,12 +21,12 @@ class FieldMappingAgent(BaseCrewAIAgent):
     - Confidence scoring
     - Mapping validation
     """
-    
+
     def __init__(self, tools: List[Any], llm: Any = None, **kwargs):
         """Initialize with proper CrewAI configuration"""
         if llm is None:
             llm = get_crewai_llm()
-        
+
         super().__init__(
             role="Field Mapping Specialist",
             goal="Map source data fields to target schema with high accuracy and confidence",
@@ -42,7 +42,7 @@ class FieldMappingAgent(BaseCrewAIAgent):
             llm=llm,
             **kwargs
         )
-    
+
     @classmethod
     def agent_metadata(cls) -> AgentMetadata:
         """Define agent metadata for registry"""
@@ -52,18 +52,18 @@ class FieldMappingAgent(BaseCrewAIAgent):
             agent_class=cls,
             required_tools=[
                 "semantic_matcher",
-                "schema_analyzer", 
+                "schema_analyzer",
                 "mapping_validator",
-                "field_similarity"
+                "field_similarity",
             ],
             capabilities=[
                 "field_mapping",
                 "schema_mapping",
                 "semantic_analysis",
-                "mapping_validation"
+                "mapping_validation",
             ],
             max_iter=15,
             memory=True,
             verbose=True,
-            allow_delegation=False
+            allow_delegation=False,
         )

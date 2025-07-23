@@ -16,29 +16,29 @@ def create_automated_collection_crew(
     platforms: List[Dict[str, Any]],
     tier_assessments: Dict[str, Any],
     context: Dict[str, Any],
-    shared_memory: Optional[Any] = None
+    shared_memory: Optional[Any] = None,
 ):
     """
     Create a crew for automated collection phase
-    
+
     Args:
         crewai_service: CrewAI service instance
         platforms: List of detected platforms from platform detection phase
         tier_assessments: Tier assessments for each platform
         context: Additional context (adapters, credentials, etc.)
         shared_memory: Shared memory for agent learning
-    
+
     Returns:
         CrewAI Crew for automated collection
     """
-    
+
     try:
         # Get LLM from service
         llm = crewai_service.get_llm()
-        
+
         # Import optimized config
         from ..crew_config import DEFAULT_AGENT_CONFIG
-        
+
         # Create collection orchestrator agent
         collection_orchestrator = Agent(
             role="Collection Orchestration Specialist",
@@ -60,9 +60,9 @@ def create_automated_collection_crew(
             Your orchestration maximizes collection efficiency while maintaining data integrity.""",
             llm=llm,
             memory=shared_memory,
-            **DEFAULT_AGENT_CONFIG
+            **DEFAULT_AGENT_CONFIG,
         )
-        
+
         # Create data quality validator agent
         quality_validator = Agent(
             role="Collection Quality Assurance Expert",
@@ -79,9 +79,9 @@ def create_automated_collection_crew(
             You ensure all collected data meets the quality standards required for accurate 6R strategy recommendations.""",
             llm=llm,
             memory=shared_memory,
-            **DEFAULT_AGENT_CONFIG
+            **DEFAULT_AGENT_CONFIG,
         )
-        
+
         # Create collection progress monitor agent
         progress_monitor = Agent(
             role="Collection Progress Analytics Expert",
@@ -98,14 +98,14 @@ def create_automated_collection_crew(
             Your monitoring ensures collection stays on track and identifies issues early.""",
             llm=llm,
             memory=shared_memory,
-            **DEFAULT_AGENT_CONFIG
+            **DEFAULT_AGENT_CONFIG,
         )
-        
+
         # Extract platform and adapter information
-        available_adapters = context.get('available_adapters', {})
-        collection_timeout = context.get('collection_timeout_minutes', 60)
-        quality_thresholds = context.get('quality_thresholds', {'minimum': 0.8})
-        
+        available_adapters = context.get("available_adapters", {})
+        collection_timeout = context.get("collection_timeout_minutes", 60)
+        quality_thresholds = context.get("quality_thresholds", {"minimum": 0.8})
+
         # Create collection orchestration task
         orchestration_task = Task(
             description=f"""Orchestrate automated data collection across detected platforms:
@@ -173,9 +173,9 @@ def create_automated_collection_crew(
                 }}
             }}""",
             agent=collection_orchestrator,
-            expected_output="JSON object with comprehensive collection strategy and configurations"
+            expected_output="JSON object with comprehensive collection strategy and configurations",
         )
-        
+
         # Create quality validation task
         quality_validation_task = Task(
             description=f"""Validate quality of collected data as it arrives:
@@ -237,9 +237,9 @@ def create_automated_collection_crew(
             }}""",
             agent=quality_validator,
             expected_output="JSON object with quality assessment and recommendations",
-            context=[orchestration_task]
+            context=[orchestration_task],
         )
-        
+
         # Create progress monitoring task
         progress_monitoring_task = Task(
             description="""Monitor and analyze collection progress in real-time:
@@ -298,24 +298,28 @@ def create_automated_collection_crew(
             }}""",
             agent=progress_monitor,
             expected_output="JSON object with progress metrics and optimization insights",
-            context=[orchestration_task, quality_validation_task]
+            context=[orchestration_task, quality_validation_task],
         )
-        
+
         # Import crew config
         from ..crew_config import get_optimized_crew_config
-        
+
         # Create crew with optimized settings
         crew_config = get_optimized_crew_config()
         crew = Crew(
             agents=[collection_orchestrator, quality_validator, progress_monitor],
-            tasks=[orchestration_task, quality_validation_task, progress_monitoring_task],
+            tasks=[
+                orchestration_task,
+                quality_validation_task,
+                progress_monitoring_task,
+            ],
             process="sequential",
-            **crew_config  # Apply optimized config
+            **crew_config,  # Apply optimized config
         )
-        
+
         logger.info("✅ Automated Collection Crew created successfully")
         return crew
-        
+
     except Exception as e:
         logger.error(f"❌ Failed to create automated collection crew: {e}")
         raise e

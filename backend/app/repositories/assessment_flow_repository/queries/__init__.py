@@ -8,8 +8,4 @@ from .analytics_queries import AnalyticsQueries
 from .flow_queries import FlowQueries
 from .state_queries import StateQueries
 
-__all__ = [
-    'FlowQueries',
-    'AnalyticsQueries', 
-    'StateQueries'
-]
+__all__ = ["FlowQueries", "AnalyticsQueries", "StateQueries"]

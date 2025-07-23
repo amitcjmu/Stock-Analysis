@@ -3,6 +3,7 @@
 All scripts can import `get_demo_context` to obtain the UUIDs needed for
 multi-tenant inserts.  Assumes `init_db.py` has already seeded the demo data.
 """
+
 import uuid
 from typing import Dict
 

@@ -4,6 +4,7 @@ Scaffold: Seed assessments demo data.
 Run via:
   docker exec migration_backend python app/scripts/seed_assessments.py [--force]
 """
+
 import argparse
 import asyncio
 import logging
@@ -14,16 +15,18 @@ from datetime import datetime
 
 from sqlalchemy import text
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 try:
     from app.core.database import AsyncSessionLocal
+
     DEPENDENCIES_AVAILABLE = True
 except ImportError:
     DEPENDENCIES_AVAILABLE = False
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 async def seed_assessments(session, force: bool):
     if force:
@@ -159,7 +162,10 @@ async def seed_assessments(session, force: bool):
         )
         inserted += 1
 
-    logger.info(f"Inserted {inserted} mock assessment rows for migration {migration_id}.")
+    logger.info(
+        f"Inserted {inserted} mock assessment rows for migration {migration_id}."
+    )
+
 
 async def main(force: bool):
     if not DEPENDENCIES_AVAILABLE:
@@ -172,6 +178,7 @@ async def main(force: bool):
             await seed_assessments(session, force)
         await session.commit()
     logger.info("Assessments seeding completed.")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Seed assessments demo data.")

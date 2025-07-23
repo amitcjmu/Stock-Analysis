@@ -12,7 +12,7 @@ import { FieldOptionsProvider } from "./contexts/FieldOptionsContext";
 import { DialogProvider } from "./contexts/DialogContext";
 import GlobalChatFeedback from "./components/GlobalChatFeedback";
 import { AppInitializer } from "./services/appInitializer";
-import type { useGlobalErrorHandler } from "./hooks/useGlobalErrorHandler";
+import { useGlobalErrorHandler } from "./hooks/useGlobalErrorHandler";
 
 // Lazy Loading Infrastructure
 import { LazyLoadingProvider, LoadingPriority } from "./components/lazy";

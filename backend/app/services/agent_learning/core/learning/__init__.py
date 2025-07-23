@@ -13,13 +13,13 @@ from .quality_assessment import QualityAssessmentLearning
 from .utilities import LearningUtilities
 
 __all__ = [
-    'BaseLearningMixin',
-    'FieldMappingLearning',
-    'DataSourceLearning',
-    'QualityAssessmentLearning',
-    'PerformanceLearning',
-    'FeedbackProcessor',
-    'ClientContextManager',
-    'AssetClassificationLearning',
-    'LearningUtilities'
+    "BaseLearningMixin",
+    "FieldMappingLearning",
+    "DataSourceLearning",
+    "QualityAssessmentLearning",
+    "PerformanceLearning",
+    "FeedbackProcessor",
+    "ClientContextManager",
+    "AssetClassificationLearning",
+    "LearningUtilities",
 ]

@@ -1,6 +1,6 @@
 import React from 'react'
-import type { ReactNode, useState, useRef } from 'react'
-import { useEffect } from 'react'
+import type { ReactNode } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Navigate, useLocation } from 'react-router-dom';
 import { Shield, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

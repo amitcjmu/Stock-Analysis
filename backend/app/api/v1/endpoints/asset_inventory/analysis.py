@@ -21,7 +21,7 @@ router = APIRouter(tags=["Asset Analysis"])
 @router.get("/analysis/overview", response_model=Dict[str, Any])
 async def get_asset_overview(
     db: Session = Depends(get_db),
-    context: RequestContext = Depends(get_current_context)
+    context: RequestContext = Depends(get_current_context),
 ):
     repo = AssetRepository(db, context.client_account_id)
     return await repo.get_asset_overview()
@@ -30,7 +30,7 @@ async def get_asset_overview(
 @router.get("/analysis/by-type", response_model=Dict[str, int])
 async def get_assets_by_type(
     db: Session = Depends(get_db),
-    context: RequestContext = Depends(get_current_context)
+    context: RequestContext = Depends(get_current_context),
 ):
     repo = AssetRepository(db, context.client_account_id)
     return await repo.get_assets_by_type()
@@ -39,7 +39,7 @@ async def get_assets_by_type(
 @router.get("/analysis/by-status", response_model=Dict[str, int])
 async def get_assets_by_status(
     db: Session = Depends(get_db),
-    context: RequestContext = Depends(get_current_context)
+    context: RequestContext = Depends(get_current_context),
 ):
     repo = AssetRepository(db, context.client_account_id)
     return await repo.get_assets_by_status()

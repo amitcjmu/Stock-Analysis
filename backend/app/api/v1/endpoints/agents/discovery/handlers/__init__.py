@@ -9,9 +9,4 @@ from .dependencies import router as dependencies_router
 from .learning import router as learning_router
 from .status import router as status_router
 
-__all__ = [
-    "status_router",
-    "analysis_router",
-    "learning_router",
-    "dependencies_router"
-]
+__all__ = ["status_router", "analysis_router", "learning_router", "dependencies_router"]

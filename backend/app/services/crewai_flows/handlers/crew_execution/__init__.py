@@ -14,13 +14,13 @@ from .parsers import CrewResultParser
 from .technical_debt import TechnicalDebtExecutor
 
 __all__ = [
-    'CrewExecutionBase',
-    'FieldMappingExecutor',
-    'DataCleansingExecutor',
-    'InventoryBuildingExecutor',
-    'DependencyAnalysisExecutor',
-    'TechnicalDebtExecutor',
-    'DiscoveryIntegrationExecutor',
-    'CrewResultParser',
-    'CrewFallbackHandler'
+    "CrewExecutionBase",
+    "FieldMappingExecutor",
+    "DataCleansingExecutor",
+    "InventoryBuildingExecutor",
+    "DependencyAnalysisExecutor",
+    "TechnicalDebtExecutor",
+    "DiscoveryIntegrationExecutor",
+    "CrewResultParser",
+    "CrewFallbackHandler",
 ]

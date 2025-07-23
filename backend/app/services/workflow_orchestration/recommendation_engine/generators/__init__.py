@@ -12,9 +12,9 @@ from .quality_recommendations import QualityRecommendationGenerator
 from .tier_recommendations import TierRecommendationGenerator
 
 __all__ = [
-    'TierRecommendationGenerator',
-    'ConfigRecommendationGenerator',
-    'PhaseRecommendationGenerator',
-    'QualityRecommendationGenerator',
-    'PerformanceRecommendationGenerator',
+    "TierRecommendationGenerator",
+    "ConfigRecommendationGenerator",
+    "PhaseRecommendationGenerator",
+    "QualityRecommendationGenerator",
+    "PerformanceRecommendationGenerator",
 ]

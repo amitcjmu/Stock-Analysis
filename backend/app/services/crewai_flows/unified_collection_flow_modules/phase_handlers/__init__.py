@@ -14,12 +14,12 @@ from .questionnaire_generation_handler import QuestionnaireGenerationHandler
 from .validation_handler import ValidationHandler
 
 __all__ = [
-    'InitializationHandler',
-    'PlatformDetectionHandler',
-    'AutomatedCollectionHandler',
-    'GapAnalysisHandler',
-    'QuestionnaireGenerationHandler',
-    'ManualCollectionHandler',
-    'ValidationHandler',
-    'FinalizationHandler'
+    "InitializationHandler",
+    "PlatformDetectionHandler",
+    "AutomatedCollectionHandler",
+    "GapAnalysisHandler",
+    "QuestionnaireGenerationHandler",
+    "ManualCollectionHandler",
+    "ValidationHandler",
+    "FinalizationHandler",
 ]

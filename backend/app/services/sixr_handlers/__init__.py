@@ -8,8 +8,4 @@ from .cost_calculator import CostCalculator
 from .recommendation_engine import RecommendationEngine
 from .risk_assessor import RiskAssessor
 
-__all__ = [
-    'RiskAssessor',
-    'CostCalculator',
-    'RecommendationEngine'
-] 
+__all__ = ["RiskAssessor", "CostCalculator", "RecommendationEngine"]

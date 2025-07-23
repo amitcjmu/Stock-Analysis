@@ -9,13 +9,14 @@ Backward compatibility is maintained through re-exports of all public interfaces
 
 from .agent import IntelligentFlowAgent
 from .models import FlowIntelligenceResult
-from .tools import FlowContextTool, FlowStatusTool, NavigationDecisionTool, PhaseValidationTool
+from .tools import (FlowContextTool, FlowStatusTool, NavigationDecisionTool,
+                    PhaseValidationTool)
 
 __all__ = [
     "FlowIntelligenceResult",
     "IntelligentFlowAgent",
     "FlowContextTool",
-    "FlowStatusTool", 
+    "FlowStatusTool",
     "PhaseValidationTool",
-    "NavigationDecisionTool"
+    "NavigationDecisionTool",
 ]

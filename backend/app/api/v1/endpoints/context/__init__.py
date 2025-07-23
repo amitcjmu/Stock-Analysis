@@ -11,4 +11,4 @@ Modularized context management endpoints split into:
 from .api import router
 from .api.user_routes import get_user_context
 
-__all__ = ['router', 'get_user_context']
+__all__ = ["router", "get_user_context"]

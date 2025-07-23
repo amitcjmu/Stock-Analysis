@@ -1,6 +1,7 @@
 """
 Context helper functions for multi-tenant access verification.
 """
+
 import logging
 from typing import Optional
 
@@ -19,32 +20,31 @@ async def verify_client_access(
     """
     if not x_client_account_id:
         raise HTTPException(
-            status_code=400, 
-            detail="Client account context is required. Please provide X-Client-Account-ID header."
+            status_code=400,
+            detail="Client account context is required. Please provide X-Client-Account-ID header.",
         )
-    
+
     # TODO: Add actual permission verification here
     # For now, just return the client account ID
     return x_client_account_id
 
 
 async def verify_engagement_access(
-    db: AsyncSession,
-    engagement_id: str,
-    client_account_id: str
+    db: AsyncSession, engagement_id: str, client_account_id: str
 ) -> bool:
     """
     Verify user has access to the specified engagement.
     """
     # TODO: Implement actual engagement access verification
     # For now, just return True
-    logger.info(f"Verifying engagement access: engagement_id={engagement_id}, client_account_id={client_account_id}")
+    logger.info(
+        f"Verifying engagement access: engagement_id={engagement_id}, client_account_id={client_account_id}"
+    )
     return True
 
 
 async def verify_standards_modification_permission(
-    current_user,
-    client_account_id: str
+    current_user, client_account_id: str
 ) -> bool:
     """
     Verify user has permission to modify architecture standards.

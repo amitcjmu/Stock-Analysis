@@ -2,10 +2,10 @@ import { useCallback, useEffect } from 'react';
 import { useUnifiedDiscoveryFlow } from '../../useUnifiedDiscoveryFlow';
 import { useFlowDetection } from './useFlowDetection';
 import { useFieldMappings } from './useFieldMappings';
-import type { useImportData } from './useImportData';
+import { useImportData } from './useImportData';
 import { useCriticalAttributes } from './useCriticalAttributes';
 import { useAttributeMappingActions } from './useAttributeMappingActions';
-import type { useAttributeMappingState } from './useAttributeMappingState';
+import { useAttributeMappingState } from './useAttributeMappingState';
 import type { AttributeMappingLogicResult } from './types';
 
 /**

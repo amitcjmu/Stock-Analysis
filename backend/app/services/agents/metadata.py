@@ -13,9 +13,11 @@ except ImportError:
     class Agent:
         pass
 
+
 @dataclass
 class AgentMetadata:
     """Metadata for registered agents"""
+
     name: str
     description: str
     agent_class: Type[Agent]

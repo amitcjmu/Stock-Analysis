@@ -22,10 +22,10 @@ from .tier_routing_service import TierRoutingService
 from .workflow_orchestrator import WorkflowOrchestrator
 
 __all__ = [
-    'CollectionPhaseExecutionEngine',
-    'WorkflowOrchestrator',
-    'TierRoutingService',
-    'CollectionDiscoveryHandoffProtocol',
-    'SmartWorkflowRecommendationEngine',
-    'WorkflowMonitoringService',
+    "CollectionPhaseExecutionEngine",
+    "WorkflowOrchestrator",
+    "TierRoutingService",
+    "CollectionDiscoveryHandoffProtocol",
+    "SmartWorkflowRecommendationEngine",
+    "WorkflowMonitoringService",
 ]

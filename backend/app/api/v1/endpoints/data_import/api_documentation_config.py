@@ -13,11 +13,11 @@ from fastapi import FastAPI
 def configure_api_documentation(app: FastAPI) -> None:
     """
     Configure API documentation with custom settings and examples.
-    
+
     Args:
         app: FastAPI application instance
     """
-    
+
     # Custom API metadata
     app.title = "AI Modernize Migration Platform - Data Import API"
     app.description = """
@@ -93,17 +93,11 @@ response = requests.post(
 - 📖 **Alternative Docs**: Available at `/redoc` (ReDoc)
 - 📥 **OpenAPI Schema**: Download at `/openapi.json`
     """
-    
+
     app.version = "1.0.0"
-    app.contact = {
-        "name": "API Support",
-        "email": "api-support@aiforce.com"
-    }
-    app.license_info = {
-        "name": "Proprietary",
-        "url": "https://aiforce.com/license"
-    }
-    
+    app.contact = {"name": "API Support", "email": "api-support@aiforce.com"}
+    app.license_info = {"name": "Proprietary", "url": "https://aiforce.com/license"}
+
     # Custom tags for grouping endpoints
     tags_metadata = [
         {
@@ -111,38 +105,35 @@ response = requests.post(
             "description": "Core data import operations including upload, storage, and retrieval",
             "externalDocs": {
                 "description": "Data Import Guide",
-                "url": "https://docs.aiforce.com/api/data-import"
-            }
+                "url": "https://docs.aiforce.com/api/data-import",
+            },
         },
         {
             "name": "Import Storage",
-            "description": "Storage and persistence operations for imported data"
+            "description": "Storage and persistence operations for imported data",
         },
         {
             "name": "Import Retrieval",
-            "description": "Data retrieval and query operations"
+            "description": "Data retrieval and query operations",
         },
         {
             "name": "Field Mapping",
-            "description": "Field mapping and transformation operations"
+            "description": "Field mapping and transformation operations",
         },
         {
             "name": "Clean API",
-            "description": "Simplified API endpoints for common operations"
+            "description": "Simplified API endpoints for common operations",
         },
-        {
-            "name": "Health",
-            "description": "Service health and status checks"
-        }
+        {"name": "Health", "description": "Service health and status checks"},
     ]
-    
+
     app.openapi_tags = tags_metadata
 
 
 def get_custom_openapi_schema() -> Dict[str, Any]:
     """
     Generate custom OpenAPI schema with additional examples and documentation.
-    
+
     Returns:
         Custom OpenAPI schema dictionary
     """
@@ -153,20 +144,20 @@ def get_custom_openapi_schema() -> Dict[str, Any]:
                     "type": "http",
                     "scheme": "bearer",
                     "bearerFormat": "JWT",
-                    "description": "JWT Bearer token authentication"
+                    "description": "JWT Bearer token authentication",
                 },
                 "MultiTenantHeaders": {
                     "type": "apiKey",
                     "in": "header",
                     "name": "X-Client-Account-ID",
-                    "description": "Client account identifier for multi-tenant isolation"
+                    "description": "Client account identifier for multi-tenant isolation",
                 },
                 "EngagementHeader": {
                     "type": "apiKey",
-                    "in": "header", 
+                    "in": "header",
                     "name": "X-Engagement-ID",
-                    "description": "Engagement identifier for data isolation"
-                }
+                    "description": "Engagement identifier for data isolation",
+                },
             },
             "responses": {
                 "UnauthorizedError": {
@@ -178,12 +169,12 @@ def get_custom_openapi_schema() -> Dict[str, Any]:
                                 "properties": {
                                     "detail": {
                                         "type": "string",
-                                        "example": "Not authenticated"
+                                        "example": "Not authenticated",
                                     }
-                                }
+                                },
                             }
                         }
-                    }
+                    },
                 },
                 "ForbiddenError": {
                     "description": "User doesn't have permission to access this resource",
@@ -194,12 +185,12 @@ def get_custom_openapi_schema() -> Dict[str, Any]:
                                 "properties": {
                                     "detail": {
                                         "type": "string",
-                                        "example": "Not enough permissions"
+                                        "example": "Not enough permissions",
                                     }
-                                }
+                                },
                             }
                         }
-                    }
+                    },
                 },
                 "ValidationError": {
                     "description": "Request validation failed",
@@ -215,25 +206,25 @@ def get_custom_openapi_schema() -> Dict[str, Any]:
                                             "properties": {
                                                 "loc": {
                                                     "type": "array",
-                                                    "items": {"type": "string"}
+                                                    "items": {"type": "string"},
                                                 },
                                                 "msg": {"type": "string"},
-                                                "type": {"type": "string"}
-                                            }
-                                        }
+                                                "type": {"type": "string"},
+                                            },
+                                        },
                                     }
-                                }
+                                },
                             }
                         }
-                    }
-                }
-            }
+                    },
+                },
+            },
         },
         "security": [
             {"BearerAuth": []},
             {"MultiTenantHeaders": []},
-            {"EngagementHeader": []}
-        ]
+            {"EngagementHeader": []},
+        ],
     }
 
 
@@ -251,7 +242,7 @@ EXAMPLE_REQUESTS = {
                     "memory_gb": 16,
                     "storage_gb": 500,
                     "environment": "production",
-                    "business_unit": "Sales"
+                    "business_unit": "Sales",
                 },
                 {
                     "server_name": "prod-db-01",
@@ -261,19 +252,19 @@ EXAMPLE_REQUESTS = {
                     "memory_gb": 64,
                     "storage_gb": 2000,
                     "environment": "production",
-                    "business_unit": "Sales"
-                }
+                    "business_unit": "Sales",
+                },
             ],
             "metadata": {
                 "filename": "servers_inventory.csv",
                 "size": 102400,
-                "type": "text/csv"
+                "type": "text/csv",
             },
             "upload_context": {
                 "intended_type": "servers",
-                "upload_timestamp": "2025-01-15T10:30:00Z"
-            }
-        }
+                "upload_timestamp": "2025-01-15T10:30:00Z",
+            },
+        },
     },
     "application_import": {
         "summary": "Import application inventory",
@@ -284,20 +275,20 @@ EXAMPLE_REQUESTS = {
                     "version": "2.3.4",
                     "server_name": "prod-web-01",
                     "technology_stack": "Java Spring Boot",
-                    "criticality": "High"
+                    "criticality": "High",
                 }
             ],
             "metadata": {
                 "filename": "applications.csv",
                 "size": 51200,
-                "type": "text/csv"
+                "type": "text/csv",
             },
             "upload_context": {
                 "intended_type": "applications",
-                "upload_timestamp": "2025-01-15T10:30:00Z"
-            }
-        }
-    }
+                "upload_timestamp": "2025-01-15T10:30:00Z",
+            },
+        },
+    },
 }
 
 
@@ -315,9 +306,9 @@ EXAMPLE_RESPONSES = {
             "next_steps": [
                 "Monitor discovery flow progress",
                 "Review field mappings when available",
-                "Validate critical attributes"
-            ]
-        }
+                "Validate critical attributes",
+            ],
+        },
     },
     "flow_conflict": {
         "summary": "Existing flow conflict",
@@ -329,14 +320,14 @@ EXAMPLE_RESPONSES = {
                 "existing_flow": {
                     "flow_id": "disc_flow_123",
                     "status": "processing",
-                    "created_at": "2025-01-15T09:00:00Z"
+                    "created_at": "2025-01-15T09:00:00Z",
                 }
             },
             "recommendations": [
                 "Complete or cancel the existing discovery flow",
                 "Review the current flow status",
-                "Contact support if the flow is stuck"
-            ]
-        }
-    }
+                "Contact support if the flow is stuck",
+            ],
+        },
+    },
 }

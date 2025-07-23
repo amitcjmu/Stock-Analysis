@@ -10,46 +10,42 @@ for workflow configurations, automation tiers, and execution strategies.
 # Export core components
 from .analyzers import RecommendationAnalyzers
 from .engine import SmartWorkflowRecommendationEngine
-
 # Export enums
-from .enums import RecommendationConfidence, RecommendationSource, RecommendationType
+from .enums import (RecommendationConfidence, RecommendationSource,
+                    RecommendationType)
 from .evaluators import RecommendationEvaluator
 from .generators.config_recommendations import ConfigRecommendationGenerator
-from .generators.performance_recommendations import PerformanceRecommendationGenerator
+from .generators.performance_recommendations import \
+    PerformanceRecommendationGenerator
 from .generators.phase_recommendations import PhaseRecommendationGenerator
 from .generators.quality_recommendations import QualityRecommendationGenerator
-
 # Export generators
 from .generators.tier_recommendations import TierRecommendationGenerator
-
 # Export models
-from .models import LearningPattern, RecommendationInsight, RecommendationPackage, WorkflowRecommendation
+from .models import (LearningPattern, RecommendationInsight,
+                     RecommendationPackage, WorkflowRecommendation)
 from .optimizers import RecommendationOptimizer
 
 __all__ = [
     # Main engine
-    'SmartWorkflowRecommendationEngine',
-    
+    "SmartWorkflowRecommendationEngine",
     # Enums
-    'RecommendationType',
-    'RecommendationConfidence',
-    'RecommendationSource',
-    
+    "RecommendationType",
+    "RecommendationConfidence",
+    "RecommendationSource",
     # Models
-    'RecommendationInsight',
-    'WorkflowRecommendation',
-    'RecommendationPackage',
-    'LearningPattern',
-    
+    "RecommendationInsight",
+    "WorkflowRecommendation",
+    "RecommendationPackage",
+    "LearningPattern",
     # Core components
-    'RecommendationAnalyzers',
-    'RecommendationEvaluator',
-    'RecommendationOptimizer',
-    
+    "RecommendationAnalyzers",
+    "RecommendationEvaluator",
+    "RecommendationOptimizer",
     # Generators
-    'TierRecommendationGenerator',
-    'ConfigRecommendationGenerator',
-    'PhaseRecommendationGenerator',
-    'QualityRecommendationGenerator',
-    'PerformanceRecommendationGenerator',
+    "TierRecommendationGenerator",
+    "ConfigRecommendationGenerator",
+    "PhaseRecommendationGenerator",
+    "QualityRecommendationGenerator",
+    "PerformanceRecommendationGenerator",
 ]

@@ -10,6 +10,7 @@ from enum import Enum
 
 class LearningPattern(str, Enum):
     """Types of learning patterns supported"""
+
     RESPONSE_QUALITY = "response_quality"
     STAKEHOLDER_ENGAGEMENT = "stakeholder_engagement"
     QUESTION_EFFECTIVENESS = "question_effectiveness"
@@ -22,6 +23,7 @@ class LearningPattern(str, Enum):
 
 class OptimizationStrategy(str, Enum):
     """Optimization strategies for questionnaires"""
+
     REDUCE_COMPLEXITY = "reduce_complexity"
     IMPROVE_TARGETING = "improve_targeting"
     ENHANCE_ENGAGEMENT = "enhance_engagement"

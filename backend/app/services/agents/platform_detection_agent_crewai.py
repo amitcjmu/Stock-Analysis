@@ -13,7 +13,7 @@ from app.services.llm_config import get_crewai_llm
 class PlatformDetectionAgent(BaseCrewAIAgent):
     """
     Performs comprehensive platform capability assessment using CrewAI patterns.
-    
+
     Capabilities:
     - Platform feature detection
     - Service availability assessment
@@ -21,12 +21,12 @@ class PlatformDetectionAgent(BaseCrewAIAgent):
     - Resource limit identification
     - Migration path validation
     """
-    
+
     def __init__(self, tools: List[Any], llm: Any = None, **kwargs):
         """Initialize with proper CrewAI configuration"""
         if llm is None:
             llm = get_crewai_llm()
-        
+
         super().__init__(
             role="Platform Detection Specialist",
             goal="Comprehensively assess target platform capabilities and identify optimal migration paths",
@@ -45,7 +45,7 @@ class PlatformDetectionAgent(BaseCrewAIAgent):
             llm=llm,
             **kwargs
         )
-    
+
     @classmethod
     def agent_metadata(cls) -> AgentMetadata:
         """Define agent metadata for registry"""
@@ -58,17 +58,17 @@ class PlatformDetectionAgent(BaseCrewAIAgent):
                 "ServiceAvailabilityChecker",
                 "APICompatibilityAnalyzer",
                 "ResourceQuotaInspector",
-                "FeatureCompatibilityMapper"
+                "FeatureCompatibilityMapper",
             ],
             capabilities=[
                 "platform_capability_detection",
                 "service_availability_check",
                 "api_compatibility_analysis",
                 "resource_limit_assessment",
-                "migration_path_validation"
+                "migration_path_validation",
             ],
             max_iter=15,
             memory=True,
             verbose=True,
-            allow_delegation=False
+            allow_delegation=False,
         )

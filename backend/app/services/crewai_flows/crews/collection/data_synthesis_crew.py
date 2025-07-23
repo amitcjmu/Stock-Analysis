@@ -12,12 +12,12 @@ logger = logging.getLogger(__name__)
 def create_data_synthesis_crew(context: Dict[str, Any]) -> Dict[str, Any]:
     """
     Create a crew for data synthesis phase
-    
+
     This is a placeholder implementation that returns mock results.
     The actual implementation would use CrewAI agents to synthesize data.
     """
     logger.info("Creating data synthesis crew")
-    
+
     # Mock implementation - return synthesized data
     return {
         "final_data": {
@@ -25,7 +25,7 @@ def create_data_synthesis_crew(context: Dict[str, Any]) -> Dict[str, Any]:
                 "metadata": {
                     "platform": "aws",
                     "region": "us-east-1",
-                    "account": "prod-account"
+                    "account": "prod-account",
                 },
                 "resources": [
                     {
@@ -35,31 +35,29 @@ def create_data_synthesis_crew(context: Dict[str, Any]) -> Dict[str, Any]:
                         "tags": {
                             "cost_center": "IT-001",
                             "environment": "production",
-                            "owner": "DevOps Team"
-                        }
+                            "owner": "DevOps Team",
+                        },
                     },
                     {
                         "id": "i-5678",
-                        "type": "ec2", 
+                        "type": "ec2",
                         "name": "web-server-2",
                         "tags": {
                             "cost_center": "IT-001",
                             "environment": "production",
-                            "owner": "DevOps Team"
-                        }
-                    }
-                ]
+                            "owner": "DevOps Team",
+                        },
+                    },
+                ],
             },
             "azure-dev": {
                 "metadata": {
                     "platform": "azure",
                     "region": "eastus",
-                    "subscription": "dev-subscription"
+                    "subscription": "dev-subscription",
                 },
-                "resources": [
-                    {"id": "vm-001", "type": "vm", "name": "dev-vm-1"}
-                ]
-            }
+                "resources": [{"id": "vm-001", "type": "vm", "name": "dev-vm-1"}],
+            },
         },
         "quality_report": {
             "overall_quality": 0.92,
@@ -74,21 +72,18 @@ def create_data_synthesis_crew(context: Dict[str, Any]) -> Dict[str, Any]:
                 "replatform": 0.88,
                 "repurchase": 0.80,
                 "retire": 0.95,
-                "retain": 0.92
-            }
+                "retain": 0.92,
+            },
         },
         "sixr_readiness_score": 0.88,
         "summary": {
             "total_platforms": 2,
             "total_resources": 3,
             "data_quality": "high",
-            "collection_method_mix": {
-                "automated": 0.85,
-                "manual": 0.15
-            },
+            "collection_method_mix": {"automated": 0.85, "manual": 0.15},
             "recommendations": [
                 "Data quality sufficient for 6R assessment",
-                "Consider additional tag collection for cost optimization"
-            ]
-        }
+                "Consider additional tag collection for cost optimization",
+            ],
+        },
     }

@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 
 class FlowManager:
     """Manages flow lifecycle operations"""
-    
+
     def __init__(self, state, state_manager, flow_management):
         """
         Initialize flow manager
-        
+
         Args:
             state: The flow state object
             state_manager: StateManager instance
@@ -26,14 +26,14 @@ class FlowManager:
         self.state = state
         self.state_manager = state_manager
         self.flow_management = flow_management
-    
+
     async def pause_flow(self, reason: str = "user_requested") -> Dict[str, Any]:
         """
         Pause the discovery flow
-        
+
         Args:
             reason: Reason for pausing the flow
-            
+
         Returns:
             Pause operation result
         """
@@ -41,35 +41,37 @@ class FlowManager:
         self.state.status = "paused"
         self.state.pause_reason = reason
         self.state.paused_at = datetime.utcnow()
-        
+
         await self.state_manager.safe_update_flow_state()
         return self.flow_management.pause_flow(reason)
-    
-    async def resume_flow_from_state(self, resume_context: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def resume_flow_from_state(
+        self, resume_context: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Resume flow from saved state
-        
+
         Args:
             resume_context: Context for resuming the flow
-            
+
         Returns:
             Resume operation result
         """
         logger.info("▶️ Resuming flow from saved state")
-        
+
         # Clear pause-related fields
         self.state.status = "running"
         self.state.pause_reason = None
         self.state.paused_at = None
         self.state.resumed_at = datetime.utcnow()
-        
+
         await self.state_manager.safe_update_flow_state()
         return self.flow_management.resume_flow_from_state(resume_context)
-    
+
     def get_flow_info(self) -> Dict[str, Any]:
         """
         Get comprehensive flow information
-        
+
         Returns:
             Flow information including status, progress, and summary
         """
@@ -84,38 +86,44 @@ class FlowManager:
             "phase_completion": self.state.phase_completion,
             "total_assets": self.state.total_assets,
             "errors": self.state.errors,
-            "warnings": self.state.warnings
+            "warnings": self.state.warnings,
         }
-    
-    async def handle_user_approval(self, approval_data: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def handle_user_approval(
+        self, approval_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Handle user approval for paused flows
-        
+
         Args:
             approval_data: User approval data
-            
+
         Returns:
             Approval handling result
         """
         logger.info(f"👤 Processing user approval for flow: {self.state.flow_id}")
-        
+
         # Update state with approval
         self.state.user_approval_received = True
-        self.state.user_approval_data["approvals"] = self.state.user_approval_data.get("approvals", [])
-        self.state.user_approval_data["approvals"].append({
-            "phase": self.state.current_phase,
-            "timestamp": datetime.utcnow().isoformat(),
-            "data": approval_data
-        })
-        
+        self.state.user_approval_data["approvals"] = self.state.user_approval_data.get(
+            "approvals", []
+        )
+        self.state.user_approval_data["approvals"].append(
+            {
+                "phase": self.state.current_phase,
+                "timestamp": datetime.utcnow().isoformat(),
+                "data": approval_data,
+            }
+        )
+
         # Clear waiting status
         self.state.status = "running"
         self.state.awaiting_user_approval = False
-        
+
         await self.state_manager.safe_update_flow_state()
-        
+
         return {
             "status": "approved",
             "flow_id": self.state.flow_id,
-            "phase": self.state.current_phase
+            "phase": self.state.current_phase,
         }

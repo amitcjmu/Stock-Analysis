@@ -10,9 +10,4 @@ from .adapter import GCPAdapter
 from .metadata import GCP_ADAPTER_METADATA
 from .models import GCPCredentials, GCPResourceMetrics
 
-__all__ = [
-    'GCPAdapter',
-    'GCPCredentials',
-    'GCPResourceMetrics',
-    'GCP_ADAPTER_METADATA'
-]
+__all__ = ["GCPAdapter", "GCPCredentials", "GCPResourceMetrics", "GCP_ADAPTER_METADATA"]
