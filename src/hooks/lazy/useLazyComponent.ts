@@ -2,7 +2,7 @@
  * useLazyComponent Hook - Advanced lazy loading with error boundaries and retries
  */
 
-import type { useState, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useEffect, useCallback } from 'react'
 import type { LazyComponentOptions, LoadingState } from '@/types/lazy'
 import { LoadingPriority } from '@/types/lazy'

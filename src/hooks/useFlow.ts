@@ -11,7 +11,7 @@
  * Use: hooks that import from /services/api/masterFlowService.ts instead
  */
 
-import type { useState, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useEffect, useCallback } from 'react'
 import { FlowService } from '../services/FlowService';
 import type { FlowStatus, FlowType, CreateFlowRequest, ExecutePhaseRequest } from '../types/flow';

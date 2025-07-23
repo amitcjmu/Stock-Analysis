@@ -1,5 +1,5 @@
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import type { Clock, TrendingUp, RefreshCw, Zap } from 'lucide-react'
 import { AlertTriangle, Upload, Play, Trash2, Eye, Activity, Shield, Sparkles } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

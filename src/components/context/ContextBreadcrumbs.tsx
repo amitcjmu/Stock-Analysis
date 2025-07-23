@@ -1,5 +1,5 @@
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useEffect } from 'react'
 import { ChevronRight, Home, Building2, Calendar, Settings, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/popover';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import type { useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useQueryClient } from '@tanstack/react-query'
 import { apiCall } from '@/config/api';
 

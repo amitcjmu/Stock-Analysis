@@ -1,6 +1,6 @@
 import React from 'react'
-import type { useState } from 'react'
-import type { useMutation } from '@tanstack/react-query';
+import { useState } from 'react'
+import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { User, Lock, Eye, EyeOff, Save, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

@@ -5,7 +5,7 @@
  */
 
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import type { Calendar, Clock, Brain, Zap, Target, Filter, Eye, Activity, Layers } from 'lucide-react'
 import { BarChart3, AlertTriangle, Download, RefreshCw } from 'lucide-react'
 import type { CardHeader, CardTitle } from '../../ui/card'

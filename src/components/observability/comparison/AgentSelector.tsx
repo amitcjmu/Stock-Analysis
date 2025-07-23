@@ -4,7 +4,7 @@
  */
 
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { Search, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';

@@ -6,7 +6,7 @@
  */
 
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useCallback } from 'react'
 import { Label } from '@/components/ui/label';
 import type { Input } from '@/components/ui/input';

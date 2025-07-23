@@ -3,7 +3,7 @@
  * Extracted from ApplicationSelector.tsx for modularization
  */
 
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useMemo } from 'react'
 import type { FilteredApplicationsResult } from '../types/ApplicationSelectorTypes'
 import type { Application, ApplicationFilters } from '../types/ApplicationSelectorTypes'

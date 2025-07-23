@@ -3,7 +3,7 @@
  * Extracted from observability components for reuse
  */
 
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useEffect, useCallback } from 'react'
 import { agentObservabilityService } from '../../../services/api/agentObservabilityService';
 import type { AgentCardData, AgentMetricsData } from '../../../types/api/observability/agent-performance';

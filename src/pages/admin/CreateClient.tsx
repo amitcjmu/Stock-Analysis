@@ -1,6 +1,6 @@
 import React from 'react'
-import type { useState } from 'react'
-import type { useMutation } from '@tanstack/react-query';
+import { useState } from 'react'
+import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { apiCall } from '@/config/api';
 import { ArrowLeft, Save, AlertCircle, Building2, Mail, MapPin } from 'lucide-react';

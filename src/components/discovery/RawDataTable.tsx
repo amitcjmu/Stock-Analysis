@@ -1,5 +1,5 @@
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { Database } from 'lucide-react';
 
 interface RawDataTableProps {

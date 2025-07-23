@@ -3,7 +3,7 @@
  * Extracted from AgentComparison component
  */
 
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useEffect, useCallback, useMemo } from 'react'
 import { agentObservabilityService } from '../../../services/api/agentObservabilityService';
 

@@ -2,7 +2,7 @@
  * Lazy Loading Hook - CC hook for accessing lazy loading context
  */
 
-import type { useContext } from 'react';
+import { useContext } from 'react';
 import type { LazyLoadingContext } from '@/components/lazy/LazyLoadingProvider';
 
 export const useLazyLoading = () => {

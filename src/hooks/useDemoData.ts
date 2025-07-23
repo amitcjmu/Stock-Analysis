@@ -3,7 +3,7 @@
  * Replaces hardcoded mock data with persistent database-backed demo data.
  */
 
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useEffect, useCallback } from 'react'
 
 // Base configuration

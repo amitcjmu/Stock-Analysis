@@ -2,7 +2,7 @@
  * useLazyHook - Hook-level code splitting for complex hooks
  */
 
-import type { useState, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useEffect, useCallback } from 'react'
 import type { LazyHookModule } from '@/types/lazy'
 import { LoadingPriority } from '@/types/lazy'

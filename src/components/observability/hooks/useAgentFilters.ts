@@ -3,7 +3,7 @@
  * Extracted from ResponsiveAgentListOverview
  */
 
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useCallback, useMemo } from 'react'
 import type { AgentCardData } from '../../../types/api/observability/agent-performance';
 

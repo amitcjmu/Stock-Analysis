@@ -5,7 +5,7 @@
  */
 
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useEffect, useCallback } from 'react'
 import { cn } from '../../lib/utils';
 import type { CardHeader, CardTitle } from '../ui/card'

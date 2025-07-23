@@ -3,7 +3,7 @@
  * Extracted from AgentDetailPage.tsx for modularization
  */
 
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useEffect } from 'react'
 import { agentObservabilityService } from '../../../services/api/agentObservabilityService';
 import type { AgentDetailData } from '../types/AgentDetailTypes';

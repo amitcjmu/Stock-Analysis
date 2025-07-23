@@ -1,5 +1,5 @@
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useEffect, useMemo } from 'react'
 import { Brain, TrendingUp, AlertCircle, CheckCircle, Clock, Target, Users, Bot } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';

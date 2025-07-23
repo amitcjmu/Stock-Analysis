@@ -13,7 +13,7 @@
  * - Single source of truth for flow status
  */
 
-import type { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import { masterFlowService } from '@/services/api/masterFlowService';
 import { useAuth } from '@/contexts/AuthContext';
 import type { FlowStatusResponse } from '@/types/api';

@@ -1,5 +1,5 @@
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useEffect } from 'react'
 import type { Info } from 'lucide-react'
 import { Shield, AlertTriangle, CheckCircle, Eye, EyeOff, Lock } from 'lucide-react'

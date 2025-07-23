@@ -1,8 +1,8 @@
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useCallback } from 'react'
 import { useUnifiedDiscoveryFlow } from '../useUnifiedDiscoveryFlow';
 import { masterFlowService } from '../../services/api/masterFlowService';
-import type { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 
 export const useInventoryLogic = (flowId?: string) => {

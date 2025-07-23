@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useEffect } from 'react'
-import type { useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
 import type ContextBreadcrumbs from '../../components/context/ContextBreadcrumbs';
 import type AgentClarificationPanel from '../../components/discovery/AgentClarificationPanel';

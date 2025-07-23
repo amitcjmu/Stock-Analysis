@@ -5,7 +5,7 @@
  */
 
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useCallback } from 'react'
 import { CheckCircle } from 'lucide-react';
 import { EnhancedFieldDropdown } from '../EnhancedFieldDropdown';

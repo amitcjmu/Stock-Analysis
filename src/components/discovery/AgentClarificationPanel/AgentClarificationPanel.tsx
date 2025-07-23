@@ -5,7 +5,7 @@
  */
 
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useEffect } from 'react'
 import type { AssetDetails, AgentClarificationPanelProps } from './types'
 import type { AgentQuestion } from './types'

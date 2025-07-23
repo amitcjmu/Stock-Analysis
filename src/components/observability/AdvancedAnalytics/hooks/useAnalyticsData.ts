@@ -3,7 +3,7 @@
  * Handles data loading, caching, and refresh logic
  */
 
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useEffect, useCallback } from 'react'
 import { subDays } from 'date-fns';
 import type { AnalyticsData } from '../types';

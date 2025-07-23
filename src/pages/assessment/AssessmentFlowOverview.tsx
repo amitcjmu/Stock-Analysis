@@ -1,6 +1,6 @@
 import type React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import type { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import type { Filter } from 'lucide-react'
 import { Plus, Search, MoreHorizontal, Play, Pause, CheckCircle2, AlertCircle, Clock, Users, Loader2 } from 'lucide-react'
 

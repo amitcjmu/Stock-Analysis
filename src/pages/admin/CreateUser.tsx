@@ -1,7 +1,7 @@
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useEffect } from 'react'
-import type { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, AlertCircle, User, Mail, Building2, Users } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

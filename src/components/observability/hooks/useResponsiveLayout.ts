@@ -4,7 +4,7 @@
  * Part of the Agent Observability Enhancement Phase 4A
  */
 
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useEffect } from 'react'
 
 export interface ResponsiveBreakpoints {

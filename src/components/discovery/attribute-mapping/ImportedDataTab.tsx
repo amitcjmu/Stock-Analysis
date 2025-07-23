@@ -1,7 +1,7 @@
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useMemo, useEffect } from 'react'
-import type { useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useQueryClient } from '@tanstack/react-query'
 import { 
   Database, 

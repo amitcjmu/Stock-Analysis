@@ -1,7 +1,7 @@
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useEffect } from 'react'
-import type { useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Shield, AlertTriangle } from 'lucide-react';
 import { Button } from '../../components/ui/button';

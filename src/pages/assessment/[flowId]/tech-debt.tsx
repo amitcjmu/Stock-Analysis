@@ -1,5 +1,5 @@
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useEffect, useMemo } from 'react'
 import type { GetServerSideProps } from 'next/router';
 import type { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';

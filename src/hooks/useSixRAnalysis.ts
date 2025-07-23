@@ -1,11 +1,11 @@
-import type { useState, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useCallback, useEffect } from 'react'
 import { toast } from 'sonner';
 import type { type CreateAnalysisRequest, type UpdateParametersRequest, type SubmitQuestionsRequest, type IterateAnalysisRequest, type BulkAnalysisRequest, type ApiError } from '../lib/api/sixr'
 import { sixrApi } from '../lib/api/sixr'
 import type { QuestionResponse, SixRRecommendation, AnalysisProgressType, BulkAnalysisResult, BulkAnalysisSummary } from '../components/sixr'
 import type { SixRParameters, QualifyingQuestion, AnalysisHistoryItem, BulkAnalysisJob } from '../components/sixr'
-import type { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { useQueryClient } from '@tanstack/react-query'
 import type { apiCall } from '@/config/api';
 import type { AnalysisProgress } from '@/types/assessment'

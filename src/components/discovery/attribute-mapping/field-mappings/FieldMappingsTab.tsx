@@ -1,5 +1,5 @@
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useEffect, useCallback } from 'react'
 import { RefreshCw } from 'lucide-react';
 import { apiCall, API_CONFIG } from '../../../../config/api';

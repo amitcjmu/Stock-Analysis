@@ -1,5 +1,5 @@
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button';
 import type { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';

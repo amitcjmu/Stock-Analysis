@@ -1,5 +1,5 @@
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useEffect } from 'react'
 import type { CheckCircle, XCircle, Eye, Brain, ChevronDown, ChevronUp, FileText, RefreshCw, ThumbsUp, ThumbsDown, Edit3 } from 'lucide-react'
 import { AlertTriangle, Loader2, BarChart3 } from 'lucide-react'

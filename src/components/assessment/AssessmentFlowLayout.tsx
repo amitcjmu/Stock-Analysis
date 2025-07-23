@@ -1,5 +1,5 @@
 import React from 'react';
-import type { useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';

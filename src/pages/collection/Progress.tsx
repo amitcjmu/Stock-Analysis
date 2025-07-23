@@ -1,5 +1,5 @@
 import React from 'react';
-import type { useParams, useSearchParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 
 // Import modular components

@@ -1,5 +1,5 @@
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { ArrowRight, CheckCircle, X, Tag, RefreshCw } from 'lucide-react';
 import type { FieldMapping } from '../types';
 import { EnhancedFieldDropdown } from './EnhancedFieldDropdown';

@@ -1,5 +1,5 @@
 import React from 'react'
-import type { useState, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useEffect } from 'react'
 import type { MessageCircle } from 'lucide-react'
 import { Send, X, Bot, User, Star, ThumbsUp } from 'lucide-react'

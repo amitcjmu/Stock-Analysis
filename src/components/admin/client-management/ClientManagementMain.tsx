@@ -1,5 +1,5 @@
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useCallback } from 'react'
 import type { Upload } from 'lucide-react'
 import { Building2, Plus, Search, Download } from 'lucide-react'

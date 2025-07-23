@@ -4,7 +4,7 @@
  */
 
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useEffect, useCallback } from 'react'
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';

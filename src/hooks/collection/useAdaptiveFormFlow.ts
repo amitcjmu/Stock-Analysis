@@ -5,9 +5,9 @@
  * for collection workflows with CrewAI integration.
  */
 
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useEffect } from 'react'
-import type { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 
 // Import flow management hooks

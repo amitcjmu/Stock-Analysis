@@ -5,7 +5,7 @@
  */
 
 import React from 'react'
-import type { useState, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useEffect, useMemo } from 'react'
 import { formatDistanceToNow } from 'date-fns';
 import type { Brain, Filter, Search } from 'lucide-react'

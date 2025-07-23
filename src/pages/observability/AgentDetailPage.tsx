@@ -7,8 +7,8 @@
  */
 
 import React from 'react'
-import type { useState } from 'react'
-import type { useParams } from 'react-router-dom'
+import { useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Download, RefreshCw, Settings, AlertTriangle } from 'lucide-react';
 import { Button } from '../../components/ui/button';

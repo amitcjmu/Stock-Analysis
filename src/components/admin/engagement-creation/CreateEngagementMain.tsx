@@ -1,6 +1,6 @@
 import React from 'react'
-import type { useState } from 'react'
-import type { useQuery, useMutation } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';

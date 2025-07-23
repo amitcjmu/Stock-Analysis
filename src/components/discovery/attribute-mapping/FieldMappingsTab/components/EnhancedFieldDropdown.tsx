@@ -1,5 +1,5 @@
 import React from 'react'
-import type { useState, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useEffect } from 'react'
 import { ChevronDown } from 'lucide-react';
 

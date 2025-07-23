@@ -4,7 +4,7 @@
  * Main React hook for managing assessment flow state and operations.
  */
 
-import type { useState, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';

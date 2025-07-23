@@ -1,4 +1,4 @@
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useMemo, useCallback } from 'react'
 
 interface Application {

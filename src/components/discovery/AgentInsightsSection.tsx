@@ -1,5 +1,5 @@
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useEffect } from 'react'
 import type { TrendingUp, CheckCircle, Zap, Target, Star, Eye } from 'lucide-react'
 import { Lightbulb, Brain, AlertCircle, RefreshCw, ChevronDown, ChevronUp, ArrowRight, Loader2, ThumbsUp, ThumbsDown } from 'lucide-react'

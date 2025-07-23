@@ -3,7 +3,7 @@
  * Common pattern for item selection across components
  */
 
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useCallback, useMemo } from 'react'
 
 export interface UseSelectionResult<T = number | string> {

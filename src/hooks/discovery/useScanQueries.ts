@@ -1,4 +1,4 @@
-import type { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { useQueryClient } from '@tanstack/react-query'
 import type { fetchScanProgress, fetchScanLogs , ScanProgress, ScanLog } from '@/services/scanService'
 import { startScan, pauseScan, resumeScan, stopScan } from '@/services/scanService'

@@ -1,5 +1,5 @@
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import type { Filter } from 'lucide-react'
 import { MessageSquare, ThumbsUp, Loader2, AlertTriangle, Send, Plus } from 'lucide-react'
 import { useFeedback } from '@/hooks/useFeedback';

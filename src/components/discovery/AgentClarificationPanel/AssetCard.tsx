@@ -5,7 +5,7 @@
  */
 
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import type { Info } from 'lucide-react'
 import { ChevronDown, ChevronUp, Server, Database, Globe, Monitor, Cpu, Building } from 'lucide-react'
 import type { AssetDetails } from './types';

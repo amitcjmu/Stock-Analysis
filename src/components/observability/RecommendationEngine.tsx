@@ -5,7 +5,7 @@
  */
 
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useMemo } from 'react'
 import { Lightbulb, Brain, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';

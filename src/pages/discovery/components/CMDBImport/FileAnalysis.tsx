@@ -1,5 +1,5 @@
 import React from 'react'
-import type { useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useEffect } from 'react'
 import type { ExternalLink, AlertCircle, Lightbulb, Bot, Play } from 'lucide-react'
 import { CheckCircle, AlertTriangle, RefreshCw, FileSpreadsheet, ArrowRight, Loader2, Clock, StopCircle } from 'lucide-react'

@@ -1,4 +1,4 @@
-import type { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '@/config/api';
 import type masterFlowServiceExtended from '@/services/api/masterFlowService.extensions';

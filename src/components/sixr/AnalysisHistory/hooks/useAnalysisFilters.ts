@@ -1,4 +1,4 @@
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useMemo } from 'react'
 import type { FilterState } from '../types'
 import type { AnalysisHistoryItem } from '../types'

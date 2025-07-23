@@ -3,7 +3,8 @@
  */
 
 import React from 'react'
-import type { createContext, useContext, useState } from 'react'
+import type { createContext }
+import { useContext, useState  } from 'react'
 import { useCallback, useEffect } from 'react'
 import type { LoadingPriority, LazyComponentOptions, LoadingState } from '@/types/lazy';
 import { loadingManager } from '@/utils/lazy/loadingManager';

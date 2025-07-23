@@ -1,4 +1,4 @@
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useEffect, useMemo } from 'react'
 import { toast } from 'sonner';
 import type { BulkAnalysisJob, BulkAnalysisResult, BulkAnalysisSummary, BulkAnalysisState, JobCreationFormData } from '../types';

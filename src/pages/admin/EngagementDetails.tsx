@@ -1,6 +1,6 @@
 import React from 'react';
-import type { useQuery } from '@tanstack/react-query';
-import type { useParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query';
+import { useParams } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import { apiCall } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';

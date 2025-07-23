@@ -1,4 +1,4 @@
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useCallback } from 'react'
 import { apiCall, API_CONFIG } from '../config/api';
 import type { AnalysisResult } from '../components/discovery/FileList'

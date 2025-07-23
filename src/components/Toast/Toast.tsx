@@ -4,7 +4,7 @@
  */
 
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useEffect } from 'react'
 import type { Toast as ToastType} from '../../utils/toast';
 import { toastStore } from '../../utils/toast';

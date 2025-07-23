@@ -1,6 +1,6 @@
-import type { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { useQueryClient } from '@tanstack/react-query'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useCallback } from 'react'
 import { apiCall } from '@/config/api';
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import type { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import type { Link } from 'react-router-dom';
 import type { Plus, Clock } from 'lucide-react'
 import { Settings } from 'lucide-react'

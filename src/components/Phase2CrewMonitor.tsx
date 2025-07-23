@@ -1,5 +1,5 @@
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useEffect, useCallback } from 'react'
 import type { Pause, StopCircle, Zap, Brain, Network, Target, Settings } from 'lucide-react'
 import { Bot, Loader2, AlertTriangle, Activity, Clock, CheckCircle, XCircle, AlertCircle, Play, RefreshCw, Users, TrendingUp, Eye } from 'lucide-react'

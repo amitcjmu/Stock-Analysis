@@ -1,7 +1,7 @@
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { useMemo, useEffect } from 'react'
-import type { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '../../../contexts/AuthContext';

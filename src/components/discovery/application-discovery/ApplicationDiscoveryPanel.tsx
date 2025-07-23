@@ -1,5 +1,5 @@
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Input } from '@/components/ui/input';
 import { Search, AlertCircle, RefreshCw } from 'lucide-react';

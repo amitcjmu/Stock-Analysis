@@ -4,7 +4,7 @@
  */
 
 import React from 'react'
-import type { useState } from 'react'
+import { useState } from 'react'
 import { 
   TrendingUp, CheckCircle, Zap, Target, Brain, 
   ArrowRight, X, RefreshCw, ThumbsUp, ThumbsDown, AlertTriangle 
