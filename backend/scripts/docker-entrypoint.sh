@@ -54,7 +54,11 @@ main() {
     # Step 1: Wait for PostgreSQL
     wait_for_postgres
     
-    # Step 2: Run Alembic migrations
+    # Step 2: Fix alembic version table if needed
+    echo "🔧 Fixing alembic version table..."
+    PGPASSWORD=$POSTGRES_PASSWORD psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /app/scripts/fix_alembic_version.sql 2>/dev/null || true
+    
+    # Step 3: Run Alembic migrations
     # This is the standard and idempotent way to ensure the database schema is up to date.
     echo "🔧 Running database migrations..."
     alembic upgrade head

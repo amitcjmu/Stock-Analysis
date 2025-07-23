@@ -88,7 +88,8 @@ def do_run_migrations(connection: Connection) -> None:
         connection=connection, 
         target_metadata=target_metadata,
         include_schemas=True,
-        version_table_schema='migration'
+        version_table_schema='migration',
+        version_table_pk=False  # This allows for custom version table schema
     )
 
     with context.begin_transaction():
