@@ -40,17 +40,15 @@ repos:
         args: ['--max-line-length=120', '--extend-ignore=E203,W503']
         files: ^backend/.*\.py$
 
-  # Type Checking - Only on staged files (much faster)
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.7.1
+  # Type Checking - Only on staged files using local hook for better control
+  - repo: local
     hooks:
-      - id: mypy
+      - id: mypy-staged
+        name: mypy type checking (staged files only)
+        entry: sh -c 'git diff --staged --name-only --diff-filter=AM | grep "^backend/.*\.py$" | xargs -r mypy --ignore-missing-imports --no-strict-optional'
+        language: system
         files: ^backend/.*\.py$
-        args: ['--ignore-missing-imports', '--no-strict-optional']  # Faster checks
-        additional_dependencies: [
-          types-requests,
-          types-python-dateutil
-        ]  # Reduced dependencies
+        pass_filenames: false
 
   # Dockerfile Security
   - repo: https://github.com/hadolint/hadolint
