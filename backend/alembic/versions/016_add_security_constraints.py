@@ -1,7 +1,7 @@
 """Add security constraints and data protection measures
 
 Revision ID: 016_add_security_constraints
-Revises: 015_add_asset_dependencies_table
+Revises: 015_add_asset_dependencies
 Create Date: 2025-01-24
 
 This migration adds security constraints and data protection measures
@@ -15,7 +15,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "016_add_security_constraints"
-down_revision = "015_add_asset_dependencies_table"
+down_revision = "015_add_asset_dependencies"
 branch_labels = None
 depends_on = None
 
@@ -26,31 +26,48 @@ def upgrade() -> None:
     # Set schema search path
     op.execute("SET search_path TO migration, public")
 
-    # 1. Add encryption validation constraints to platform_credentials
-    op.create_check_constraint(
-        "ck_encryption_key_format",
-        "platform_credentials",
-        "LENGTH(encryption_key_id) >= 32 AND encryption_key_id ~ '^[A-Za-z0-9+/=_-]+$'",
-        schema="migration",
-    )
+    # Skip adding constraint for non-existent encryption_key_id column
+    # The platform_credentials table uses encrypted_data and encryption_metadata instead
 
-    # Add columns for key rotation tracking
-    op.add_column(
-        "platform_credentials",
-        sa.Column("encryption_algorithm", sa.String(50), nullable=True),
-        schema="migration",
-    )
-    op.add_column(
-        "platform_credentials",
-        sa.Column(
-            "key_rotation_required", sa.Boolean(), server_default=sa.text("false")
-        ),
-        schema="migration",
-    )
-    op.add_column(
-        "platform_credentials",
-        sa.Column("last_rotation_checked_at", sa.TIMESTAMP(timezone=True)),
-        schema="migration",
+    # Add columns for key rotation tracking with error handling
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            -- Add encryption_algorithm column if it doesn't exist
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_schema = 'migration'
+                AND table_name = 'platform_credentials'
+                AND column_name = 'encryption_algorithm'
+            ) THEN
+                ALTER TABLE migration.platform_credentials
+                ADD COLUMN encryption_algorithm VARCHAR(50);
+            END IF;
+
+            -- Add key_rotation_required column if it doesn't exist
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_schema = 'migration'
+                AND table_name = 'platform_credentials'
+                AND column_name = 'key_rotation_required'
+            ) THEN
+                ALTER TABLE migration.platform_credentials
+                ADD COLUMN key_rotation_required BOOLEAN DEFAULT false;
+            END IF;
+
+            -- Add last_rotation_checked_at column if it doesn't exist
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_schema = 'migration'
+                AND table_name = 'platform_credentials'
+                AND column_name = 'last_rotation_checked_at'
+            ) THEN
+                ALTER TABLE migration.platform_credentials
+                ADD COLUMN last_rotation_checked_at TIMESTAMP WITH TIME ZONE;
+            END IF;
+        END $$;
+    """
     )
 
     # Add constraint for encryption algorithm
@@ -215,8 +232,8 @@ def upgrade() -> None:
         ('security_audit_logs', 'actor_email', 'PII', 90, 'Security auditing', 'legal_obligation'),
         ('security_audit_logs', 'ip_address', 'PII', 90, 'Security monitoring', 'legitimate_interest'),
         -- platform_credentials sensitive fields
-        ('platform_credentials', 'encrypted_credentials', 'CONFIDENTIAL', 365, 'Platform integration', 'contract'),
-        ('platform_credentials', 'encryption_key_id', 'CONFIDENTIAL', 365, 'Encryption management', 'contract');
+        ('platform_credentials', 'encrypted_data', 'CONFIDENTIAL', 365, 'Platform integration', 'contract'),
+        ('platform_credentials', 'vault_reference', 'CONFIDENTIAL', 365, 'Vault key management', 'contract');
     """
     )
 
@@ -303,9 +320,7 @@ def downgrade() -> None:
     op.drop_constraint(
         "ck_encryption_algorithm", "platform_credentials", schema="migration"
     )
-    op.drop_constraint(
-        "ck_encryption_key_format", "platform_credentials", schema="migration"
-    )
+    # Skip dropping non-existent ck_encryption_key_format constraint
     op.drop_column(
         "platform_credentials", "last_rotation_checked_at", schema="migration"
     )
