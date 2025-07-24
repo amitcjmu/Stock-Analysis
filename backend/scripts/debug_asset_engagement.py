@@ -22,6 +22,7 @@ except Exception as e:
     engine = None
     SessionLocal = None
 
+
 async def inspect_assets():
     if not SessionLocal:
         print("❌ Cannot inspect assets, database session is not available.")
@@ -30,7 +31,9 @@ async def inspect_assets():
     print("\n--- Inspecting Assets in Database ---")
     try:
         async with SessionLocal() as session:
-            result = await session.execute(text("SELECT id, name, client_account_id, engagement_id FROM assets"))
+            result = await session.execute(
+                text("SELECT id, name, client_account_id, engagement_id FROM assets")
+            )
             assets = result.fetchall()
 
             if not assets:
@@ -49,7 +52,9 @@ async def inspect_assets():
     except Exception as e:
         print(f"❌ An error occurred while inspecting assets: {e}")
         import traceback
+
         traceback.print_exc()
 
+
 if __name__ == "__main__":
-    asyncio.run(inspect_assets()) 
+    asyncio.run(inspect_assets())

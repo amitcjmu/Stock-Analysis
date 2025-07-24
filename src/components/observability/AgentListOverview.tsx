@@ -8,12 +8,12 @@ import React from 'react'
 import { useState } from 'react'
 import { useEffect, useCallback } from 'react'
 import { cn } from '../../lib/utils';
-import type { CardHeader, CardTitle } from '@/components/ui/card'
+import { CardHeader, CardTitle } from '@/components/ui/card'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button';
-import type { Input } from '@/components/ui/input';
-import type { Badge } from '@/components/ui/badge';
-import type { Filter } from 'lucide-react'
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Filter } from 'lucide-react'
 import { RefreshCw, Search, Grid, List, Settings, Activity, AlertCircle, Users, TrendingUp } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 

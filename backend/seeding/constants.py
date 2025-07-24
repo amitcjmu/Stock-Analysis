@@ -2,6 +2,7 @@
 Shared constants for database seeding across all agents.
 This file contains hardcoded IDs and values to ensure consistency.
 """
+
 import uuid
 from datetime import datetime, timezone
 
@@ -18,7 +19,7 @@ USER_IDS = {
     "engagement_manager": uuid.UUID("33333333-3333-3333-3333-333333333333"),
     "analyst": uuid.UUID("44444444-4444-4444-4444-444444444444"),
     "viewer": uuid.UUID("55555555-5555-5555-5555-555555555555"),
-    "client_admin": uuid.UUID("66666666-6666-6666-6666-666666666666")
+    "client_admin": uuid.UUID("66666666-6666-6666-6666-666666666666"),
 }
 
 # User Details
@@ -30,7 +31,7 @@ USERS = [
         "full_name": "Demo Manager",
         "role": "ENGAGEMENT_MANAGER",
         "is_active": True,
-        "is_verified": True
+        "is_verified": True,
     },
     {
         "id": USER_IDS["analyst"],
@@ -39,7 +40,7 @@ USERS = [
         "full_name": "Demo Analyst",
         "role": "ANALYST",
         "is_active": True,
-        "is_verified": True
+        "is_verified": True,
     },
     {
         "id": USER_IDS["viewer"],
@@ -48,7 +49,7 @@ USERS = [
         "full_name": "Demo Viewer",
         "role": "VIEWER",
         "is_active": True,
-        "is_verified": True
+        "is_verified": True,
     },
     {
         "id": USER_IDS["client_admin"],
@@ -57,8 +58,8 @@ USERS = [
         "full_name": "Client Administrator",
         "role": "CLIENT_ADMIN",
         "is_active": True,
-        "is_verified": True
-    }
+        "is_verified": True,
+    },
 ]
 
 # Discovery Flow IDs (hardcoded for consistency)
@@ -67,14 +68,14 @@ FLOW_IDS = {
     "field_mapping": uuid.UUID("88888888-8888-8888-8888-888888888888"),
     "asset_inventory": uuid.UUID("99999999-9999-9999-9999-999999999999"),
     "failed_import": uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
-    "just_started": uuid.UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+    "just_started": uuid.UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
 }
 
 # Data Import IDs (hardcoded for consistency)
 IMPORT_IDS = {
     "csv_servers": uuid.UUID("cccccccc-cccc-cccc-cccc-cccccccccccc"),
     "json_applications": uuid.UUID("dddddddd-dddd-dddd-dddd-dddddddddddd"),
-    "excel_dependencies": uuid.UUID("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
+    "excel_dependencies": uuid.UUID("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"),
 }
 
 # Flow States and Details
@@ -88,7 +89,7 @@ FLOWS = [
         "progress": 100,
         "assessment_ready": True,
         "created_by": USER_IDS["engagement_manager"],
-        "description": "Full discovery completed with all assessments ready"
+        "description": "Full discovery completed with all assessments ready",
     },
     {
         "id": FLOW_IDS["field_mapping"],
@@ -99,7 +100,7 @@ FLOWS = [
         "progress": 45,
         "assessment_ready": False,
         "created_by": USER_IDS["analyst"],
-        "description": "Currently mapping fields from imported data"
+        "description": "Currently mapping fields from imported data",
     },
     {
         "id": FLOW_IDS["asset_inventory"],
@@ -110,7 +111,7 @@ FLOWS = [
         "progress": 65,
         "assessment_ready": False,
         "created_by": USER_IDS["analyst"],
-        "description": "Building comprehensive asset inventory"
+        "description": "Building comprehensive asset inventory",
     },
     {
         "id": FLOW_IDS["failed_import"],
@@ -122,7 +123,7 @@ FLOWS = [
         "assessment_ready": False,
         "created_by": USER_IDS["engagement_manager"],
         "error_message": "Data validation failed: Missing required columns",
-        "description": "Import failed due to data quality issues"
+        "description": "Import failed due to data quality issues",
     },
     {
         "id": FLOW_IDS["just_started"],
@@ -133,8 +134,8 @@ FLOWS = [
         "progress": 5,
         "assessment_ready": False,
         "created_by": USER_IDS["client_admin"],
-        "description": "Newly created discovery flow"
-    }
+        "description": "Newly created discovery flow",
+    },
 ]
 
 # Data Import Details
@@ -149,7 +150,7 @@ IMPORTS = [
         "total_rows": 150,
         "processed_rows": 150,
         "failed_rows": 0,
-        "created_by": USER_IDS["analyst"]
+        "created_by": USER_IDS["analyst"],
     },
     {
         "id": IMPORT_IDS["json_applications"],
@@ -161,7 +162,7 @@ IMPORTS = [
         "total_rows": 75,
         "processed_rows": 45,
         "failed_rows": 2,
-        "created_by": USER_IDS["analyst"]
+        "created_by": USER_IDS["analyst"],
     },
     {
         "id": IMPORT_IDS["excel_dependencies"],
@@ -173,15 +174,15 @@ IMPORTS = [
         "total_rows": 200,
         "processed_rows": 198,
         "failed_rows": 2,
-        "created_by": USER_IDS["engagement_manager"]
-    }
+        "created_by": USER_IDS["engagement_manager"],
+    },
 ]
 
 # Agent Learning Configuration
 AGENT_LEARNING_CONFIG = {
     "learning_enabled": True,
     "learning_scope": "engagement",
-    "memory_isolation_level": "client_account"
+    "memory_isolation_level": "client_account",
 }
 
 # Timestamps

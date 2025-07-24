@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Clock } from 'lucide-react'
+import { Clock } from 'lucide-react'
 import { UserCheck, UserX, Mail, Building2, User, CheckCircle, XCircle, Eye, Edit } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

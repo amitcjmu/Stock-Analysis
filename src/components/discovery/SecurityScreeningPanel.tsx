@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState } from 'react'
 import { useEffect } from 'react'
-import type { Info } from 'lucide-react'
+import { Info } from 'lucide-react'
 import { Shield, AlertTriangle, CheckCircle, Eye, EyeOff, Lock } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext';
 import { API_CONFIG } from '../../config/api';

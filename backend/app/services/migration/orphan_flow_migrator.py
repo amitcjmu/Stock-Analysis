@@ -15,14 +15,13 @@ import logging
 from datetime import datetime
 from typing import Any, Dict
 
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.database import AsyncSessionLocal
 from app.models.discovery_flow import DiscoveryFlow
 from app.repositories.crewai_flow_state_extensions_repository import (
     CrewAIFlowStateExtensionsRepository,
 )
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -64,11 +63,10 @@ class OrphanFlowMigrator:
                 total_master_flows = master_result.scalar()
 
                 # Get discovery flows without corresponding extensions records
-                from sqlalchemy import exists
-
                 from app.models.crewai_flow_state_extensions import (
                     CrewAIFlowStateExtensions,
                 )
+                from sqlalchemy import exists
 
                 orphaned_flows_stmt = select(DiscoveryFlow).where(
                     ~exists().where(
@@ -135,11 +133,10 @@ class OrphanFlowMigrator:
 
             async with AsyncSessionLocal() as db_session:
                 # Get all discovery flows without corresponding extensions records
-                from sqlalchemy import exists
-
                 from app.models.crewai_flow_state_extensions import (
                     CrewAIFlowStateExtensions,
                 )
+                from sqlalchemy import exists
 
                 orphaned_flows_stmt = select(DiscoveryFlow).where(
                     ~exists().where(
@@ -282,11 +279,10 @@ class OrphanFlowMigrator:
 
                 # Count discovery flows that have corresponding extensions records
                 # Join to check for matching flow_id values
-                from sqlalchemy import exists
-
                 from app.models.crewai_flow_state_extensions import (
                     CrewAIFlowStateExtensions,
                 )
+                from sqlalchemy import exists
 
                 linked_flows_stmt = select(func.count(DiscoveryFlow.id)).where(
                     exists().where(

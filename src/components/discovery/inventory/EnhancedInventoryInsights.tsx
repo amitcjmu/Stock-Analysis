@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import type { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Database, Shield, AlertTriangle, Zap } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';

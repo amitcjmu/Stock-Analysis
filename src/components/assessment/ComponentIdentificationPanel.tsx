@@ -1,14 +1,14 @@
 import React from 'react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button';
-import type { Input } from '@/components/ui/input';
-import type { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { ApplicationComponent } from '@/hooks/useAssessmentFlow';
-import type { Database, Globe, Cpu } from 'lucide-react'
+import { Database, Globe, Cpu } from 'lucide-react'
 import { Plus, Edit3, Trash2, Server } from 'lucide-react'
 import { cn } from '@/lib/utils';
 

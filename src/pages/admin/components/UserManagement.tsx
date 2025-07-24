@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import type { Settings } from 'lucide-react'
+import { Settings } from 'lucide-react'
 import { Users, UserCheck, Clock } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ActionItem } from '@/components/admin/shared/components/ActionCard';

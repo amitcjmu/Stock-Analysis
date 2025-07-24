@@ -6,10 +6,9 @@ import logging
 from abc import ABC
 from typing import Any, Dict, Optional
 
+from app.core.context import RequestContext, get_required_context, require_context
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.core.context import RequestContext, get_required_context, require_context
 
 logger = logging.getLogger(__name__)
 

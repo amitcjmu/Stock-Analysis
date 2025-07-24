@@ -26,9 +26,9 @@ export const useFileUpload = () => {
       return [];
     }
     
-    const headers = lines[0].split(',').map(h => h.trim().replace(/\"/g, ''));
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
     const records = lines.slice(1).map((line, index) => {
-      const values = line.split(',').map(v => v.trim().replace(/\"/g, ''));
+      const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
       const record: CsvRecord = { row_index: index + 1 };
       headers.forEach((header, headerIndex) => {
         record[header] = values[headerIndex] || '';

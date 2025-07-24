@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import type { ChevronsUpDown } from 'lucide-react'
+import { ChevronsUpDown } from 'lucide-react'
 import { LogOut } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext';
 import type { User } from '@/types';

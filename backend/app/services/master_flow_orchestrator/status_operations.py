@@ -6,8 +6,6 @@ Contains flow status retrieval and management operations.
 
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.context import RequestContext
 from app.core.logging import get_logger
 from app.repositories.crewai_flow_state_extensions_repository import (
@@ -18,6 +16,7 @@ from app.services.flow_orchestration.audit_logger import AuditCategory, AuditLev
 from app.services.flow_orchestration.smart_discovery_service import (
     SmartDiscoveryService,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .enums import FlowOperationType
 from .mock_monitor import MockFlowPerformanceMonitor

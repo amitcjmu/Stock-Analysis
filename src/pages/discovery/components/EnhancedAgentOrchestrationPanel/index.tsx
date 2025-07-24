@@ -15,7 +15,7 @@ import { useEnhancedMonitoring } from './hooks/useEnhancedMonitoring';
 
 // Types and Constants
 import type { EnhancedAgentOrchestrationPanelProps } from './types';
-import type { TAB_ITEMS } from './constants';
+import { TAB_ITEMS } from './constants';
 
 const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelProps> = ({
   flowId,

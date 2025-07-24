@@ -1,0 +1,7 @@
+# These are demo/test UUIDs, not actual secrets
+backend/scripts/debug_import_context.py:generic-api-key:17
+backend/scripts/fix_engagement_data_association.py:generic-api-key:30
+backend/scripts/one-time-fixes/add_client_context.py:generic-api-key:6
+backend/test_fallback.py:generic-api-key:21
+backend/test_flow_fix.py:generic-api-key:26
+backend/test_flow_status_direct.py:generic-api-key:21

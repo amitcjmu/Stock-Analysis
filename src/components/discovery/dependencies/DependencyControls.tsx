@@ -1,6 +1,6 @@
 import React from 'react';
 import { Search } from 'lucide-react';
-import type { Input } from '../../ui/input';
+import { Input } from '../../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Switch } from '../../ui/switch';
 import { Label } from '../../ui/label';

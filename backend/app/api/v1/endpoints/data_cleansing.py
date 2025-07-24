@@ -8,11 +8,6 @@ Integrates with the DataCleansingCrew for processing field mappings and providin
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.api.v1.auth.auth_utils import get_current_user
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
@@ -20,6 +15,10 @@ from app.models.client_account import User
 from app.models.data_import.core import DataImport
 from app.models.data_import.mapping import ImportFieldMapping
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -135,9 +134,8 @@ async def get_data_cleansing_analysis(
         # This endpoint should never modify flow status or trigger execution
 
         # Get data import for this flow using the same logic as import storage handler
-        from sqlalchemy import select
-
         from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+        from sqlalchemy import select
 
         # First try to get data import via discovery flow's data_import_id
         data_import = None
@@ -393,11 +391,10 @@ async def trigger_data_cleansing_analysis(
             # If execution was successful, get the updated analysis
             if execution_result.get("status") == "success":
                 # Get data import for this flow to perform analysis
-                from sqlalchemy import select
-
                 from app.models.crewai_flow_state_extensions import (
                     CrewAIFlowStateExtensions,
                 )
+                from sqlalchemy import select
 
                 # First try to get data import via discovery flow's data_import_id
                 data_import = None

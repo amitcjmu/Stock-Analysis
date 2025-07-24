@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 
 // Import modular components
-import type CollectionPageLayout from '@/components/collection/layout/CollectionPageLayout';
+import CollectionPageLayout from '@/components/collection/layout/CollectionPageLayout';
 import ProgressMonitorContainer from '@/components/collection/progress/ProgressMonitorContainer';
 
 // Import custom hooks

@@ -13,8 +13,6 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import type { Separator } from '@/components/ui/separator';
-import type { Settings, Clock } from 'lucide-react'
 import { CheckCircle, XCircle, AlertTriangle, RefreshCw, Database, Trash2, Shield, Activity, HardDrive, Zap } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast';
 import { useEnhancedFlowManagement, useFlowHealthMonitor } from '@/hooks/discovery/useEnhancedFlowManagement';

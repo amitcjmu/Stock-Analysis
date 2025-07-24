@@ -6,10 +6,9 @@ Reusable query specifications for discovery flows.
 
 from datetime import datetime
 
+from app.models.discovery_flow import DiscoveryFlow
 from sqlalchemy import and_
 from sqlalchemy.sql import ColumnElement
-
-from app.models.discovery_flow import DiscoveryFlow
 
 
 class FlowSpecifications:

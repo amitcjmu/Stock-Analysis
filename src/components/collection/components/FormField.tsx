@@ -9,7 +9,7 @@ import React from 'react'
 import { useState } from 'react'
 import { useCallback } from 'react'
 import { Label } from '@/components/ui/label';
-import type { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -20,7 +20,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { HelpCircle, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-import type { FormFieldProps, FieldType, FieldValue } from '../types';
+import type { FormFieldProps, FieldValue } from '../types';
+import { FieldType } from '../types';
 
 export const FormField: React.FC<FormFieldProps> = ({
   field,

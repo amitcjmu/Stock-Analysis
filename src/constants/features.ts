@@ -152,11 +152,11 @@ export const FEATURE_DEPENDENCIES = {
 // Helper function to check if a feature is enabled
 export const isFeatureEnabled = (featurePath: string): boolean => {
   const keys = featurePath.split('.');
-  let current: any = FEATURES;
+  let current: unknown = FEATURES;
   
   for (const key of keys) {
     if (current && typeof current === 'object' && key in current) {
-      current = current[key];
+      current = (current as Record<string, unknown>)[key];
     } else {
       return false;
     }

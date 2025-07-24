@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Trash2, RotateCcw } from 'lucide-react';
-import type { getItemTypeColor } from '@/components/admin/shared/utils/adminFormatters'
+import { getItemTypeColor } from '@/components/admin/shared/utils/adminFormatters'
 import { formatDate, getItemTypeLabel } from '@/components/admin/shared/utils/adminFormatters'
 import type { SoftDeletedItem } from './PlatformStats';
 

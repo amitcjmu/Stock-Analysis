@@ -12,9 +12,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Type
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.collection_flow import AutomationTier
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

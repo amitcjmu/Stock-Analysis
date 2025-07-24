@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import type { AlertCircle, CheckCircle } from 'lucide-react'
+import { AlertCircle, CheckCircle } from 'lucide-react'
 import { Users, RefreshCw, HelpCircle } from 'lucide-react'
 
 interface DiscoveryMetadata {

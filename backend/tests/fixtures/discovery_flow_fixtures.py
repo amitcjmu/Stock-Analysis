@@ -30,7 +30,7 @@ MOCK_CMDB_DATA = {
             "business_criticality": "High",
             "owner": "Web Team",
             "last_updated": "2024-01-15",
-            "tags": ["web", "frontend", "critical"]
+            "tags": ["web", "frontend", "critical"],
         },
         {
             "server_name": "APP-DB-01",
@@ -44,7 +44,7 @@ MOCK_CMDB_DATA = {
             "business_criticality": "Critical",
             "owner": "Database Team",
             "last_updated": "2024-01-10",
-            "tags": ["database", "oracle", "critical"]
+            "tags": ["database", "oracle", "critical"],
         },
         {
             "server_name": "APP-API-01",
@@ -58,7 +58,7 @@ MOCK_CMDB_DATA = {
             "business_criticality": "High",
             "owner": "API Team",
             "last_updated": "2024-01-20",
-            "tags": ["api", "microservices", "kubernetes"]
+            "tags": ["api", "microservices", "kubernetes"],
         },
         {
             "server_name": "DEV-TEST-01",
@@ -72,8 +72,8 @@ MOCK_CMDB_DATA = {
             "business_criticality": "Low",
             "owner": "Dev Team",
             "last_updated": "2024-01-05",
-            "tags": ["development", "test", "non-critical"]
-        }
+            "tags": ["development", "test", "non-critical"],
+        },
     ],
     "applications": [
         {
@@ -85,7 +85,7 @@ MOCK_CMDB_DATA = {
             "business_unit": "Customer Service",
             "criticality": "Critical",
             "users": 50000,
-            "data_classification": "Confidential"
+            "data_classification": "Confidential",
         },
         {
             "app_name": "Internal Dashboard",
@@ -96,8 +96,8 @@ MOCK_CMDB_DATA = {
             "business_unit": "Operations",
             "criticality": "Medium",
             "users": 500,
-            "data_classification": "Internal"
-        }
+            "data_classification": "Internal",
+        },
     ],
     "databases": [
         {
@@ -108,7 +108,7 @@ MOCK_CMDB_DATA = {
             "server": "APP-DB-01",
             "replication": "Master-Slave",
             "backup_frequency": "Daily",
-            "data_classification": "Confidential"
+            "data_classification": "Confidential",
         },
         {
             "db_name": "AnalyticsDB",
@@ -118,9 +118,9 @@ MOCK_CMDB_DATA = {
             "server": "APP-DB-01",
             "replication": "None",
             "backup_frequency": "Weekly",
-            "data_classification": "Internal"
-        }
-    ]
+            "data_classification": "Internal",
+        },
+    ],
 }
 
 # Field mapping suggestions for testing
@@ -129,51 +129,51 @@ FIELD_MAPPING_SUGGESTIONS = {
         "server_name": {
             "suggested_mapping": "hostname",
             "confidence": 0.95,
-            "alternatives": ["name", "server_id"]
+            "alternatives": ["name", "server_id"],
         },
         "ip_address": {
             "suggested_mapping": "private_ip",
             "confidence": 0.90,
-            "alternatives": ["ip", "network_address"]
+            "alternatives": ["ip", "network_address"],
         },
         "operating_system": {
             "suggested_mapping": "os_type",
             "confidence": 0.85,
-            "alternatives": ["os", "platform"]
+            "alternatives": ["os", "platform"],
         },
         "cpu_cores": {
             "suggested_mapping": "cpu_count",
             "confidence": 0.88,
-            "alternatives": ["cores", "vcpus"]
+            "alternatives": ["cores", "vcpus"],
         },
         "memory_gb": {
             "suggested_mapping": "memory_size",
             "confidence": 0.87,
-            "alternatives": ["ram", "memory"]
+            "alternatives": ["ram", "memory"],
         },
         "environment": {
             "suggested_mapping": "environment",
             "confidence": 0.99,
-            "alternatives": ["env", "stage"]
-        }
+            "alternatives": ["env", "stage"],
+        },
     },
     "applications": {
         "app_name": {
             "suggested_mapping": "application_name",
             "confidence": 0.93,
-            "alternatives": ["name", "app_id"]
+            "alternatives": ["name", "app_id"],
         },
         "technology_stack": {
             "suggested_mapping": "tech_stack",
             "confidence": 0.85,
-            "alternatives": ["technologies", "stack"]
+            "alternatives": ["technologies", "stack"],
         },
         "criticality": {
             "suggested_mapping": "business_criticality",
             "confidence": 0.91,
-            "alternatives": ["priority", "importance"]
-        }
-    }
+            "alternatives": ["priority", "importance"],
+        },
+    },
 }
 
 # Expected agent decisions for testing
@@ -186,23 +186,23 @@ AGENT_DECISIONS = {
                 "field": "patch_level",
                 "affected_records": 4,
                 "severity": "medium",
-                "recommendation": "Consider adding OS patch information for security assessment"
+                "recommendation": "Consider adding OS patch information for security assessment",
             },
             {
                 "type": "outdated_os",
                 "field": "operating_system",
                 "affected_records": 1,
                 "severity": "high",
-                "recommendation": "Windows Server 2016 is approaching end of support"
-            }
+                "recommendation": "Windows Server 2016 is approaching end of support",
+            },
         ],
-        "data_quality_score": 0.85
+        "data_quality_score": 0.85,
     },
     "field_mapping": {
         "status": "completed",
         "mappings_confirmed": 12,
         "mappings_suggested": 3,
-        "confidence_average": 0.89
+        "confidence_average": 0.89,
     },
     "asset_classification": {
         "status": "completed",
@@ -210,34 +210,34 @@ AGENT_DECISIONS = {
             "production_critical": 3,
             "production_non_critical": 0,
             "development": 1,
-            "total": 4
+            "total": 4,
         },
         "migration_candidates": {
             "rehost": ["APP-WEB-01", "APP-API-01"],
             "replatform": ["APP-DB-01"],
-            "retire": ["DEV-TEST-01"]
-        }
+            "retire": ["DEV-TEST-01"],
+        },
     },
     "dependency_analysis": {
         "status": "completed",
         "dependencies_found": 8,
         "critical_paths": [
             ["Customer Portal", "APP-WEB-01", "APP-API-01", "APP-DB-01", "CustomerDB"],
-            ["Internal Dashboard", "APP-WEB-01", "APP-DB-01", "AnalyticsDB"]
+            ["Internal Dashboard", "APP-WEB-01", "APP-DB-01", "AnalyticsDB"],
         ],
         "migration_groups": [
             {
                 "group_id": 1,
                 "assets": ["APP-DB-01", "CustomerDB", "AnalyticsDB"],
-                "reason": "Database tier - must migrate together"
+                "reason": "Database tier - must migrate together",
             },
             {
                 "group_id": 2,
                 "assets": ["APP-WEB-01", "APP-API-01"],
-                "reason": "Application tier - can migrate after database"
-            }
-        ]
-    }
+                "reason": "Application tier - can migrate after database",
+            },
+        ],
+    },
 }
 
 # SSE event test data
@@ -247,16 +247,16 @@ SSE_EVENT_SEQUENCE = [
         "data": {
             "phase": "data_import",
             "message": "Starting data import phase",
-            "timestamp": datetime.utcnow().isoformat()
-        }
+            "timestamp": datetime.utcnow().isoformat(),
+        },
     },
     {
         "event": "agent_thinking",
         "data": {
             "agent": "DataValidationAgent",
             "thought": "Analyzing CMDB data structure and quality...",
-            "timestamp": datetime.utcnow().isoformat()
-        }
+            "timestamp": datetime.utcnow().isoformat(),
+        },
     },
     {
         "event": "agent_decision",
@@ -264,8 +264,8 @@ SSE_EVENT_SEQUENCE = [
             "agent": "DataValidationAgent",
             "decision": "Found 4 servers with complete data. Identified 2 data quality issues.",
             "confidence": 0.85,
-            "timestamp": datetime.utcnow().isoformat()
-        }
+            "timestamp": datetime.utcnow().isoformat(),
+        },
     },
     {
         "event": "phase_complete",
@@ -273,9 +273,9 @@ SSE_EVENT_SEQUENCE = [
             "phase": "data_import",
             "status": "success",
             "next_phase": "field_mapping",
-            "timestamp": datetime.utcnow().isoformat()
-        }
-    }
+            "timestamp": datetime.utcnow().isoformat(),
+        },
+    },
 ]
 
 # Test flow states
@@ -285,7 +285,7 @@ FLOW_STATES = {
         "status": "initialized",
         "current_phase": None,
         "phases_completed": [],
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.utcnow().isoformat(),
     },
     "data_import_in_progress": {
         "flow_id": str(uuid.uuid4()),
@@ -293,7 +293,7 @@ FLOW_STATES = {
         "current_phase": "data_import",
         "phases_completed": [],
         "data_import_id": str(uuid.uuid4()),
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.utcnow().isoformat(),
     },
     "field_mapping_in_progress": {
         "flow_id": str(uuid.uuid4()),
@@ -302,32 +302,43 @@ FLOW_STATES = {
         "phases_completed": ["data_import"],
         "data_import_id": str(uuid.uuid4()),
         "field_mapping_id": str(uuid.uuid4()),
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.utcnow().isoformat(),
     },
     "completed": {
         "flow_id": str(uuid.uuid4()),
         "status": "completed",
         "current_phase": None,
-        "phases_completed": ["data_import", "field_mapping", "asset_inventory", "dependency_analysis"],
+        "phases_completed": [
+            "data_import",
+            "field_mapping",
+            "asset_inventory",
+            "dependency_analysis",
+        ],
         "data_import_id": str(uuid.uuid4()),
         "field_mapping_id": str(uuid.uuid4()),
         "created_at": datetime.utcnow().isoformat(),
-        "completed_at": datetime.utcnow().isoformat()
-    }
+        "completed_at": datetime.utcnow().isoformat(),
+    },
 }
+
 
 def get_mock_file_content(file_type: str = "csv") -> bytes:
     """Generate mock file content for testing file uploads."""
     if file_type == "csv":
-        csv_content = "server_name,ip_address,operating_system,cpu_cores,memory_gb,environment\n"
+        csv_content = (
+            "server_name,ip_address,operating_system,cpu_cores,memory_gb,environment\n"
+        )
         for server in MOCK_CMDB_DATA["servers"]:
             csv_content += f"{server['server_name']},{server['ip_address']},{server['operating_system']},"
-            csv_content += f"{server['cpu_cores']},{server['memory_gb']},{server['environment']}\n"
-        return csv_content.encode('utf-8')
+            csv_content += (
+                f"{server['cpu_cores']},{server['memory_gb']},{server['environment']}\n"
+            )
+        return csv_content.encode("utf-8")
     elif file_type == "json":
-        return json.dumps(MOCK_CMDB_DATA, indent=2).encode('utf-8')
+        return json.dumps(MOCK_CMDB_DATA, indent=2).encode("utf-8")
     else:
         raise ValueError(f"Unsupported file type: {file_type}")
+
 
 def create_test_discovery_flow() -> Dict[str, Any]:
     """Create a test discovery flow with all required fields."""
@@ -343,11 +354,9 @@ def create_test_discovery_flow() -> Dict[str, Any]:
         "phases_completed": [],
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow(),
-        "metadata": {
-            "source": "test_fixture",
-            "test_run": True
-        }
+        "metadata": {"source": "test_fixture", "test_run": True},
     }
+
 
 def create_test_data_import() -> Dict[str, Any]:
     """Create a test data import record."""
@@ -362,8 +371,9 @@ def create_test_data_import() -> Dict[str, Any]:
         "status": "completed",
         "validation_results": AGENT_DECISIONS["data_validation"],
         "created_at": datetime.utcnow(),
-        "completed_at": datetime.utcnow()
+        "completed_at": datetime.utcnow(),
     }
+
 
 def create_test_field_mapping() -> Dict[str, Any]:
     """Create a test field mapping record."""
@@ -374,40 +384,48 @@ def create_test_field_mapping() -> Dict[str, Any]:
         "client_account_id": TEST_CLIENT_ACCOUNT_ID,
         "engagement_id": TEST_ENGAGEMENT_ID,
         "source_schema": list(MOCK_CMDB_DATA["servers"][0].keys()),
-        "target_schema": ["hostname", "private_ip", "os_type", "cpu_count", "memory_size", "environment"],
+        "target_schema": [
+            "hostname",
+            "private_ip",
+            "os_type",
+            "cpu_count",
+            "memory_size",
+            "environment",
+        ],
         "mappings": FIELD_MAPPING_SUGGESTIONS["servers"],
         "status": "completed",
         "created_at": datetime.utcnow(),
-        "completed_at": datetime.utcnow()
+        "completed_at": datetime.utcnow(),
     }
+
 
 # Error scenarios for testing
 ERROR_SCENARIOS = {
     "file_too_large": {
         "error": "File size exceeds maximum allowed size of 10MB",
         "code": "FILE_TOO_LARGE",
-        "status_code": 413
+        "status_code": 413,
     },
     "invalid_file_format": {
         "error": "Invalid file format. Supported formats: CSV, JSON, XML",
         "code": "INVALID_FORMAT",
-        "status_code": 400
+        "status_code": 400,
     },
     "parsing_error": {
         "error": "Failed to parse file content. Please check the file structure.",
         "code": "PARSE_ERROR",
-        "status_code": 422
+        "status_code": 422,
     },
     "unauthorized": {
         "error": "User does not have permission to access this resource",
         "code": "UNAUTHORIZED",
-        "status_code": 403
+        "status_code": 403,
     },
     "flow_not_found": {
         "error": "Discovery flow not found",
         "code": "NOT_FOUND",
-        "status_code": 404
-    }
+        "status_code": 404,
+    },
 }
 
 # Performance test data
@@ -417,10 +435,12 @@ PERFORMANCE_TEST_DATA = {
             {
                 "server_name": f"SERVER-{i:04d}",
                 "ip_address": f"10.0.{i // 256}.{i % 256}",
-                "operating_system": ["Windows Server 2019", "Ubuntu 20.04", "RHEL 8"][i % 3],
+                "operating_system": ["Windows Server 2019", "Ubuntu 20.04", "RHEL 8"][
+                    i % 3
+                ],
                 "cpu_cores": [4, 8, 16, 32][i % 4],
                 "memory_gb": [16, 32, 64, 128][i % 4],
-                "environment": ["Production", "Development", "Testing"][i % 3]
+                "environment": ["Production", "Development", "Testing"][i % 3],
             }
             for i in range(1000)
         ]

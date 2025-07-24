@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import type { Database, Settings, Clock, Zap, Play } from 'lucide-react'
+import { Database, Settings, Clock, Zap, Play } from 'lucide-react'
 import { CheckCircle, XCircle, AlertTriangle, RefreshCw, Trash2, Shield, Activity, HardDrive, BarChart3, Users } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast';
 import { useCollectionFlowManagement } from '@/hooks/collection/useCollectionFlowManagement';

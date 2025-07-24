@@ -11,7 +11,7 @@ import {
   Alert,
   AlertDescription,
 } from '@/components/ui/alert';
-import type { Info } from 'lucide-react'
+import { Info } from 'lucide-react'
 import { Bot, FileSpreadsheet, AlertCircle, CheckCircle, Clock } from 'lucide-react'
 
 interface ProcessingSummary {

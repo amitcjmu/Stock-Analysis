@@ -5,10 +5,9 @@ Handles demo user creation and demo functionality for development/testing.
 
 import logging
 
+from app.core.database import get_db
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.core.database import get_db
 
 logger = logging.getLogger(__name__)
 

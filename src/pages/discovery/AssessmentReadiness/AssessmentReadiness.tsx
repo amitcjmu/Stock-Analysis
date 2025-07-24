@@ -19,7 +19,8 @@ import {
 } from './hooks/useReadinessAssessment';
 
 // Types
-import type { ReadinessAssessment, SignoffPackage } from './types';
+import type { SignoffPackage } from './types';
+import { ReadinessAssessment } from './types';
 
 // Main component
 const AssessmentReadiness: React.FC = () => {

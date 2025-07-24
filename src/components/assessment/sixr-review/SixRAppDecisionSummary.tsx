@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ConfidenceScoreIndicator } from '@/components/assessment/ConfidenceScoreIndicator';
 import type { SixRDecision } from '@/hooks/useAssessmentFlow';
-import type { getStrategyColor } from '@/utils/assessment/sixrHelpers'
+import { getStrategyColor } from '@/utils/assessment/sixrHelpers'
 import { getStrategyLabel } from '@/utils/assessment/sixrHelpers'
 
 interface SixRAppDecisionSummaryProps {

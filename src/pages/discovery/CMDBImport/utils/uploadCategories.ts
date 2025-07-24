@@ -1,4 +1,4 @@
-import type { Database, Monitor, Activity, Lock } from 'lucide-react';
+import { Database, Monitor, Activity, Lock } from 'lucide-react';
 import type { UploadCategory } from '../CMDBImport.types';
 
 export const uploadCategories: UploadCategory[] = [

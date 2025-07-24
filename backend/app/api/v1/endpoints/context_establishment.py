@@ -13,19 +13,17 @@ These endpoints are exempt from the global engagement requirement middleware.
 import logging
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-from sqlalchemy import and_, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.api.v1.auth.auth_utils import get_current_user
 from app.core.database import get_db
 from app.models import User
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy import and_, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Make client_account import conditional to avoid deployment failures
 try:
-    from app.models.client_account import ClientAccount, Engagement
-    from app.models.rbac import ClientAccess, UserRole
+    from app.models import ClientAccess, ClientAccount, Engagement, UserRole
 
     CLIENT_ACCOUNT_AVAILABLE = True
 except ImportError:
@@ -37,6 +35,9 @@ except ImportError:
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+# Demo data constants
+DEMO_CLIENT_ID = "11111111-1111-1111-1111-111111111111"
 
 
 # Response models for context establishment
@@ -85,7 +86,7 @@ async def get_context_clients(
             # Return demo data if models not available
             demo_clients = [
                 ClientResponse(
-                    id="11111111-1111-1111-1111-111111111111",
+                    id=DEMO_CLIENT_ID,
                     name="Democorp",
                     industry="Technology",
                     company_size="Enterprise",
@@ -99,7 +100,7 @@ async def get_context_clients(
             and_(
                 UserRole.user_id == str(current_user.id),
                 UserRole.role_type == "platform_admin",
-                UserRole.is_active is True,
+                UserRole.is_active == True,
             )
         )
         role_result = await db.execute(role_query)
@@ -109,7 +110,7 @@ async def get_context_clients(
             # Platform admins: Get all active clients
             clients_query = (
                 select(ClientAccount)
-                .where(ClientAccount.is_active is True)
+                .where(ClientAccount.is_active == True)
                 .order_by(ClientAccount.name)
             )
 
@@ -132,20 +133,63 @@ async def get_context_clients(
 
         else:
             # Regular users: Get clients with explicit access via client_access table
+            logger.info(
+                f"🔍 Looking for client access for user_profile_id: {current_user.id}"
+            )
             access_query = (
                 select(ClientAccess, ClientAccount)
                 .join(ClientAccount, ClientAccess.client_account_id == ClientAccount.id)
                 .where(
                     and_(
                         ClientAccess.user_profile_id == str(current_user.id),
-                        ClientAccess.is_active is True,
-                        ClientAccount.is_active is True,
+                        ClientAccess.is_active == True,
+                        ClientAccount.is_active == True,
                     )
                 )
             )
 
+            # Debug: Print the actual SQL query (only in development)
+            if logger.isEnabledFor(logging.DEBUG):
+                try:
+                    compiled_query = str(access_query.compile())
+                    logger.debug(f"🔍 SQL Query structure: {compiled_query}")
+                except Exception as e:
+                    logger.debug(f"🔍 SQL Query compilation failed: {e}")
+
             result = await db.execute(access_query)
             accessible_clients = result.all()
+            logger.info(
+                f"🔍 Found {len(accessible_clients)} accessible clients for user {current_user.id}"
+            )
+
+            if len(accessible_clients) == 0:
+                # Check if ClientAccess records exist at all
+                debug_query = select(ClientAccess).where(
+                    ClientAccess.user_profile_id == str(current_user.id)
+                )
+                debug_result = await db.execute(debug_query)
+                debug_access = debug_result.all()
+                logger.info(
+                    f"🔍 Debug: Found {len(debug_access)} ClientAccess records for user {current_user.id}"
+                )
+                for access in debug_access:
+                    logger.info(
+                        f"🔍 Debug: ClientAccess {access.id}, client_account_id: {access.client_account_id}, is_active: {access.is_active}"
+                    )
+
+                # Check if ClientAccount records exist
+                debug_client_query = select(ClientAccount).where(
+                    ClientAccount.id == DEMO_CLIENT_ID
+                )
+                debug_client_result = await db.execute(debug_client_query)
+                debug_clients = debug_client_result.all()
+                logger.info(
+                    f"🔍 Debug: Found {len(debug_clients)} demo ClientAccount records"
+                )
+                for client in debug_clients:
+                    logger.info(
+                        f"🔍 Debug: ClientAccount {client.id}, name: {client.name}, is_active: {client.is_active}"
+                    )
 
             client_responses = []
             for client_access, client in accessible_clients:
@@ -167,8 +211,8 @@ async def get_context_clients(
             ):
                 demo_client_query = select(ClientAccount).where(
                     and_(
-                        ClientAccount.id == "11111111-1111-1111-1111-111111111111",
-                        ClientAccount.is_active is True,
+                        ClientAccount.id == DEMO_CLIENT_ID,
+                        ClientAccount.is_active == True,
                     )
                 )
                 demo_result = await db.execute(demo_client_query)
@@ -193,7 +237,7 @@ async def get_context_clients(
         if current_user.email and current_user.email.endswith("@demo-corp.com"):
             demo_clients = [
                 ClientResponse(
-                    id="11111111-1111-1111-1111-111111111111",
+                    id=DEMO_CLIENT_ID,
                     name="Democorp",
                     industry="Technology",
                     company_size="Enterprise",
@@ -228,7 +272,7 @@ async def get_context_engagements(
 
         if not CLIENT_ACCOUNT_AVAILABLE:
             # Return demo data if models not available (only for demo client)
-            if client_id == "11111111-1111-1111-1111-111111111111":
+            if client_id == DEMO_CLIENT_ID:
                 demo_engagements = [
                     EngagementResponse(
                         id="22222222-2222-2222-2222-222222222222",
@@ -247,21 +291,41 @@ async def get_context_engagements(
             and_(
                 UserRole.user_id == str(current_user.id),
                 UserRole.role_type == "platform_admin",
-                UserRole.is_active is True,
+                UserRole.is_active == True,
             )
         )
         role_result = await db.execute(role_query)
         is_platform_admin = role_result.scalar_one_or_none() is not None
 
         # Verify client exists and is active
+        logger.info(f"🔍 Looking for client: {client_id} (type: {type(client_id)})")
+
+        # First check if client exists at all
+        client_exists_query = select(ClientAccount).where(ClientAccount.id == client_id)
+        exists_result = await db.execute(client_exists_query)
+        client_exists = exists_result.scalar_one_or_none()
+
+        if not client_exists:
+            logger.error(f"❌ Client not found in database: {client_id}")
+            raise HTTPException(status_code=404, detail="Client not found")
+
+        # Now check if it's active (handle NULL as active for backward compatibility)
         client_query = select(ClientAccount).where(
-            and_(ClientAccount.id == client_id, ClientAccount.is_active is True)
+            and_(
+                ClientAccount.id == client_id,
+                or_(ClientAccount.is_active == True, ClientAccount.is_active.is_(None)),
+            )
         )
         client_result = await db.execute(client_query)
         client = client_result.scalar_one_or_none()
 
         if not client:
-            raise HTTPException(status_code=404, detail="Client not found")
+            logger.error(
+                f"❌ Client {client_id} exists but is marked as inactive (is_active=False)"
+            )
+            raise HTTPException(status_code=404, detail="Client not found or inactive")
+
+        logger.info(f"✅ Found active client: {client.name} ({client.id})")
 
         if not is_platform_admin:
             # Regular users: Verify they have access to this client
@@ -279,7 +343,7 @@ async def get_context_engagements(
             is_demo_access = (
                 current_user.email
                 and current_user.email.endswith("@demo-corp.com")
-                and client_id == "11111111-1111-1111-1111-111111111111"
+                and client_id == DEMO_CLIENT_ID
             )
 
             if not client_access and not is_demo_access:
@@ -288,13 +352,14 @@ async def get_context_engagements(
                     detail="Access denied: No permission for this client",
                 )
 
-        # Get engagements for this client (platform admins and authorized users)
+        # Get ONLY ACTIVE engagements for this client that the user is authorized to see
+        # Handle NULL is_active as active for backward compatibility
         query = (
             select(Engagement)
             .where(
                 and_(
                     Engagement.client_account_id == client_id,
-                    Engagement.is_active is True,
+                    or_(Engagement.is_active == True, Engagement.is_active.is_(None)),
                 )
             )
             .order_by(Engagement.name)
@@ -334,12 +399,15 @@ async def get_context_engagements(
         raise
     except Exception as e:
         logger.error(f"Error in context establishment - get engagements: {e}")
+        import traceback
+
+        logger.error(f"Traceback: {traceback.format_exc()}")
         # Return demo data as fallback only for demo client
-        if client_id == "11111111-1111-1111-1111-111111111111":
+        if client_id == DEMO_CLIENT_ID:
             demo_engagements = [
                 EngagementResponse(
                     id="22222222-2222-2222-2222-222222222222",
-                    name="Cloud Migration 2024",
+                    name="Demo Cloud Migration Project",
                     client_id=client_id,
                     status="active",
                     type="migration",

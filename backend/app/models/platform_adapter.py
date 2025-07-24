@@ -7,12 +7,12 @@ This model represents platform adapters for data collection.
 import uuid
 from enum import Enum
 
-from sqlalchemy import UUID, Column, String, UniqueConstraint
+from app.models.base import Base, TimestampMixin
+from sqlalchemy import UUID, Column
 from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
-
-from app.models.base import Base, TimestampMixin
 
 
 class AdapterStatus(str, Enum):
@@ -44,7 +44,11 @@ class PlatformAdapter(Base, TimestampMixin):
 
     # Status
     status = Column(
-        SQLEnum(AdapterStatus, values_callable=lambda obj: [e.value for e in obj]),
+        SQLEnum(
+            AdapterStatus,
+            values_callable=lambda obj: [e.value for e in obj],
+            create_type=False,
+        ),
         nullable=False,
         default=AdapterStatus.ACTIVE,
         server_default="active",

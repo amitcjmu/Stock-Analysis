@@ -1,5 +1,5 @@
 import React from 'react';
-import type { CheckCircle, AlertCircle } from 'lucide-react'
+import { CheckCircle, AlertCircle } from 'lucide-react'
 import { Play, Pause, Square, RotateCcw, Eye, Trash2, Clock, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../ui/card';
 import { Button } from '../../../ui/button';

@@ -7,7 +7,6 @@ import asyncio
 from datetime import datetime
 
 import pytest
-
 from app.models.collection_flow import (
     AutomationTier,
     CollectionFlowState,
@@ -26,7 +25,7 @@ async def test_collection_flow_initialization():
     pass
 
 
-@pytest.mark.asyncio  
+@pytest.mark.asyncio
 async def test_collection_flow_state_creation():
     """Test CollectionFlowState can be created"""
     # Create a state
@@ -36,9 +35,9 @@ async def test_collection_flow_state_creation():
         engagement_id="test-engagement",
         automation_tier=AutomationTier.TIER_2,
         status=CollectionStatus.INITIALIZING,
-        current_phase=CollectionPhase.INITIALIZATION
+        current_phase=CollectionPhase.INITIALIZATION,
     )
-    
+
     # Verify state properties
     assert state.flow_id == "test-flow-123"
     assert state.automation_tier == AutomationTier.TIER_2
@@ -47,7 +46,7 @@ async def test_collection_flow_state_creation():
     assert state.detected_platforms == []
     assert state.collected_data == {}
     assert state.gap_analysis_results == {}
-    
+
     print("✅ CollectionFlowState created successfully")
 
 
@@ -60,27 +59,27 @@ async def test_platform_detection_phase():
         engagement_id="test-engagement",
         automation_tier=AutomationTier.TIER_1,
         status=CollectionStatus.DETECTING_PLATFORMS,
-        current_phase=CollectionPhase.PLATFORM_DETECTION
+        current_phase=CollectionPhase.PLATFORM_DETECTION,
     )
-    
+
     # Simulate adding detected platforms
     state.detected_platforms = [
         {
             "platform_type": PlatformType.AWS.value,
             "confidence": 0.95,
-            "detected_at": datetime.utcnow().isoformat()
+            "detected_at": datetime.utcnow().isoformat(),
         },
         {
             "platform_type": PlatformType.VMWARE.value,
             "confidence": 0.88,
-            "detected_at": datetime.utcnow().isoformat()
-        }
+            "detected_at": datetime.utcnow().isoformat(),
+        },
     ]
-    
+
     assert len(state.detected_platforms) == 2
     assert state.detected_platforms[0]["platform_type"] == PlatformType.AWS.value
     assert state.detected_platforms[0]["confidence"] == 0.95
-    
+
     print("✅ Platform detection phase tested successfully")
 
 

@@ -8,10 +8,9 @@ import logging
 from datetime import datetime
 from typing import AsyncGenerator, Optional
 
+from app.core.database import AsyncSessionLocal, connection_health
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.core.database import AsyncSessionLocal, connection_health
 
 logger = logging.getLogger(__name__)
 

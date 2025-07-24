@@ -6,10 +6,9 @@ Handles relationships between applications and servers.
 import logging
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, HTTPException
-
 from app.api.v1.discovery.persistence import get_processed_assets
 from app.api.v1.discovery.serialization import clean_for_json_serialization
+from fastapi import APIRouter, HTTPException
 
 logger = logging.getLogger(__name__)
 

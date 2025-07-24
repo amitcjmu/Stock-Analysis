@@ -21,12 +21,11 @@ from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
+from app.core.context import RequestContext
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.core.context import RequestContext
 
 from .flow_state_manager import FlowStateManager
 

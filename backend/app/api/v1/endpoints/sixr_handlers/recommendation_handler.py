@@ -23,7 +23,9 @@ class RecommendationHandler:
     def _initialize_dependencies(self):
         """Initialize dependencies with graceful fallbacks."""
         try:
-            from app.models.sixr_analysis import SixRAnalysis
+            from app.models.sixr_analysis import (
+                SixRAnalysis,
+            )
             from app.models.sixr_analysis import (
                 SixRRecommendation as SixRRecommendationModel,
             )

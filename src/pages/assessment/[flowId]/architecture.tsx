@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useEffect } from 'react'
 import { useParams } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import type { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
+import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { ArchitectureStandardsForm } from '@/components/assessment/ArchitectureStandardsForm';
 import { TemplateSelector } from '@/components/assessment/TemplateSelector';
 import { ApplicationOverrides } from '@/components/assessment/ApplicationOverrides';

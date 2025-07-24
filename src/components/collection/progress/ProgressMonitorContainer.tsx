@@ -10,9 +10,9 @@ import { RefreshCw, Download } from 'lucide-react';
 
 // Import modular progress components
 import FlowMetricsGrid from './FlowMetricsGrid'
-import type { type FlowMetrics } from './FlowMetricsGrid'
+import type { FlowMetrics } from './FlowMetricsGrid'
 import FlowListSidebar from './FlowListSidebar'
-import type { type CollectionFlow } from './FlowListSidebar'
+import type { CollectionFlow } from './FlowListSidebar'
 import FlowDetailsCard from './FlowDetailsCard';
 import { ProgressTracker } from '@/components/collection/ProgressTracker';
 

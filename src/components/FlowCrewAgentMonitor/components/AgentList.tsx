@@ -1,11 +1,11 @@
 import React from 'react';
-import type { CheckCircle, AlertTriangle, Brain } from 'lucide-react'
+import { CheckCircle, AlertTriangle, Brain } from 'lucide-react'
 import { Users, Bot, Activity, Clock, Network } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import type { Progress } from '@/components/ui/progress';
+import { Progress } from '@/components/ui/progress';
 import type { Agent, Crew } from '../types';
-import type { getStatusColor } from '../utils/agentDataProcessor'
+import { getStatusColor } from '../utils/agentDataProcessor'
 import { getStatusIcon, formatDuration } from '../utils/agentDataProcessor'
 
 interface AgentListProps {

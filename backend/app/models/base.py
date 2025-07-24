@@ -4,9 +4,8 @@ Base model classes for the application
 
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime
-
 from app.core.database import Base
+from sqlalchemy import Column, DateTime
 
 
 class TimestampMixin:

@@ -7,16 +7,13 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.api.v1.endpoints.sixr_analysis_modular.services.analysis_service import (
     analysis_service,
 )
 from app.core.database import get_db
-from app.models.sixr_analysis import SixRAnalysis, SixRIteration, SixRQuestionResponse
+from app.models.sixr_analysis import SixRAnalysis
 from app.models.sixr_analysis import SixRAnalysisParameters as SixRParametersModel
+from app.models.sixr_analysis import SixRIteration, SixRQuestionResponse
 from app.models.sixr_analysis import SixRRecommendation as SixRRecommendationModel
 from app.schemas.sixr_analysis import (
     AnalysisStatus,
@@ -34,6 +31,9 @@ from app.schemas.sixr_analysis import (
     SixRRecommendationResponse,
 )
 from app.services.sixr_engine_modular import SixRDecisionEngine
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Conditional import for CrewAI technical debt crew
 try:

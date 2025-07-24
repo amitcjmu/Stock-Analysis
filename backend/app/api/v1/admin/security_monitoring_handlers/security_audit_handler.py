@@ -6,12 +6,11 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from app.core.context import RequestContext, get_current_context
+from app.core.database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.core.context import RequestContext, get_current_context
-from app.core.database import get_db
 
 # Import security audit service
 try:
@@ -69,9 +68,8 @@ async def verify_platform_admin_access(
 ) -> None:
     """Verify that the current user is a platform administrator."""
     try:
-        from sqlalchemy import and_, select
-
         from app.models.rbac import UserRole
+        from sqlalchemy import and_, select
 
         # Check if user has platform_admin role
         query = select(UserRole).where(

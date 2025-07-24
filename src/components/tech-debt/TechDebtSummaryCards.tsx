@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { CheckCircle } from 'lucide-react'
+import { CheckCircle } from 'lucide-react'
 import { AlertTriangle, Clock, TrendingUp, AlertCircle } from 'lucide-react'
 import type { TechDebtSummary } from '@/types/tech-debt';
 

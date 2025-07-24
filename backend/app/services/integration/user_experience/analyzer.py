@@ -9,15 +9,14 @@ from datetime import datetime
 from typing import Any, Dict, List
 from uuid import UUID
 
-from sqlalchemy import and_, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.database import AsyncSessionLocal
 from app.models.assessment_flow import AssessmentFlow
 from app.models.asset import Asset
 from app.models.collection_flow import CollectionFlow
 from app.models.discovery_flow import DiscoveryFlow
 from app.models.user_active_flows import UserActiveFlow
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .base import OptimizationContext, UserJourneyAnalytics
 

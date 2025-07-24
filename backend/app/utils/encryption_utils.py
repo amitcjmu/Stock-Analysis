@@ -10,12 +10,11 @@ import os
 import secrets
 from typing import Any, Dict, Optional, Tuple
 
+from app.core.config import settings
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-
-from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 

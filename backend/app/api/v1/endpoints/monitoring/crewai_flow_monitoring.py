@@ -7,12 +7,11 @@ agent task details, and performance metrics.
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-
 from app.api.v1.dependencies import get_crewai_flow_service
 from app.core.context import extract_context_from_request
 from app.core.logging import get_logger as enhanced_get_logger
 from app.services.crewai_flow_service import CrewAIFlowService
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 logger = enhanced_get_logger(__name__)
 

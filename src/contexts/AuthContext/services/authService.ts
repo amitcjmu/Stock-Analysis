@@ -27,8 +27,7 @@ interface GuardedFunction {
   (...args: unknown[]): Promise<unknown>;
   isRunning?: boolean;
 }
-import type { persistClientData, persistEngagementData } from '../storage'
-import { tokenStorage, contextStorage } from '../storage'
+import { tokenStorage, contextStorage, persistClientData, persistEngagementData } from '../storage'
 
 export const useAuthService = (
   user: User | null,
@@ -438,6 +437,27 @@ export const useAuthService = (
         console.log('🔍 Calling switchClient with:', targetClient.id);
         await switchClient(targetClient.id, targetClient);
         console.log('🔍 switchClient completed');
+      } else if (targetClient && !engagement) {
+        // Client is already set but engagement is missing
+        console.log('🔍 Client already set but engagement missing, fetching engagements');
+        
+        try {
+          const engagementsResponse = await apiCall(`/api/v1/context-establishment/engagements?client_id=${targetClient.id}`, {
+            method: 'GET',
+            headers: getAuthHeaders()
+          }, false); // Don't include context - we're establishing it
+          
+          console.log('🔍 Got engagements response:', engagementsResponse);
+          
+          if (engagementsResponse?.engagements && engagementsResponse.engagements.length > 0) {
+            const defaultEngagement = engagementsResponse.engagements[0];
+            console.log('🔍 Switching to default engagement:', defaultEngagement.id);
+            await switchEngagement(defaultEngagement.id, defaultEngagement);
+            console.log('🔍 switchEngagement completed');
+          }
+        } catch (error) {
+          console.error('🔍 Failed to fetch engagements:', error);
+        }
       } else {
         console.log('🔍 No client switch needed');
       }

@@ -8,7 +8,7 @@ import React from 'react';
 import { cn } from '../../lib/utils';
 import { Card, CardContent, CardHeader } from '../ui/card';
 import { Skeleton } from '../ui/skeleton';
-import type { Activity, BarChart3 } from 'lucide-react'
+import { Activity, BarChart3 } from 'lucide-react'
 import { RefreshCw, Users } from 'lucide-react'
 
 // Skeleton Loader Components

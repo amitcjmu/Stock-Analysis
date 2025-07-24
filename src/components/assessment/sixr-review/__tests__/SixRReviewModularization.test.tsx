@@ -4,12 +4,12 @@
  */
 
 import React from 'react';
-import type { fireEvent, waitFor } from '@testing-library/react'
+import { fireEvent, waitFor } from '@testing-library/react'
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom';
-import type { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SixROverallStats } from '../SixROverallStats';
-import type { SixRAppDecisionSummary } from '../SixRAppDecisionSummary';
+import { SixRAppDecisionSummary } from '../SixRAppDecisionSummary';
 import { SixRActionButtons } from '../SixRActionButtons';
 import { SixRStatusAlert } from '../SixRStatusAlert';
 
@@ -96,4 +96,91 @@ describe('SixR Review Modularization', () => {
 
   describe('SixRAppDecisionSummary Component', () => {
     it('should render application decision details', () => {
-      render(\n        <SixRAppDecisionSummary \n          selectedApp=\"test-app\" \n          decision={mockDecision} \n        />\n      );\n      \n      expect(screen.getByText('test-app Strategy')).toBeInTheDocument();\n      expect(screen.getByText('Test rationale')).toBeInTheDocument();\n      expect(screen.getByText('High complexity')).toBeInTheDocument();\n      expect(screen.getByText('Legacy dependencies')).toBeInTheDocument();\n    });\n\n    it('should display confidence score', () => {\n      render(\n        <SixRAppDecisionSummary \n          selectedApp=\"test-app\" \n          decision={mockDecision} \n        />\n      );\n      \n      expect(screen.getByTestId('confidence-indicator')).toHaveTextContent('0.8');\n    });\n  });\n\n  describe('SixRActionButtons Component', () => {\n    const mockProps = {\n      isDraft: false,\n      isSubmitting: false,\n      isLoading: false,\n      selectedApp: 'test-app',\n      onSaveDraft: jest.fn(),\n      onSubmit: jest.fn()\n    };\n\n    beforeEach(() => {\n      jest.clearAllMocks();\n    });\n\n    it('should render save and submit buttons', () => {\n      render(<SixRActionButtons {...mockProps} />);\n      \n      expect(screen.getByText('Save Progress')).toBeInTheDocument();\n      expect(screen.getByText('Continue to Application Review')).toBeInTheDocument();\n    });\n\n    it('should call onSaveDraft when save button is clicked', () => {\n      render(<SixRActionButtons {...mockProps} />);\n      \n      fireEvent.click(screen.getByText('Save Progress'));\n      expect(mockProps.onSaveDraft).toHaveBeenCalledTimes(1);\n    });\n\n    it('should call onSubmit when submit button is clicked', () => {\n      render(<SixRActionButtons {...mockProps} />);\n      \n      fireEvent.click(screen.getByText('Continue to Application Review'));\n      expect(mockProps.onSubmit).toHaveBeenCalledTimes(1);\n    });\n\n    it('should disable buttons when submitting', () => {\n      render(<SixRActionButtons {...mockProps} isSubmitting={true} />);\n      \n      const submitButton = screen.getByText('Processing...');\n      expect(submitButton.closest('button')).toBeDisabled();\n    });\n  });\n\n  describe('SixRStatusAlert Component', () => {\n    it('should render error alert', () => {\n      render(<SixRStatusAlert status=\"error\" error=\"Test error message\" />);\n      \n      expect(screen.getByText('Test error message')).toBeInTheDocument();\n    });\n\n    it('should render processing alert', () => {\n      render(<SixRStatusAlert status=\"processing\" />);\n      \n      expect(screen.getByText(/AI agents are analyzing/)).toBeInTheDocument();\n    });\n\n    it('should render nothing for idle status', () => {\n      const { container } = render(<SixRStatusAlert status=\"idle\" />);\n      \n      expect(container.firstChild).toBeNull();\n    });\n  });\n});"
+      render(
+        <SixRAppDecisionSummary 
+          selectedApp="test-app" 
+          decision={mockDecision} 
+        />
+      );
+      
+      expect(screen.getByText('test-app Strategy')).toBeInTheDocument();
+      expect(screen.getByText('Test rationale')).toBeInTheDocument();
+      expect(screen.getByText('High complexity')).toBeInTheDocument();
+      expect(screen.getByText('Legacy dependencies')).toBeInTheDocument();
+    });
+
+    it('should display confidence score', () => {
+      render(
+        <SixRAppDecisionSummary 
+          selectedApp="test-app" 
+          decision={mockDecision} 
+        />
+      );
+      
+      expect(screen.getByTestId('confidence-indicator')).toHaveTextContent('0.8');
+    });
+  });
+
+  describe('SixRActionButtons Component', () => {
+    const mockProps = {
+      isDraft: false,
+      isSubmitting: false,
+      isLoading: false,
+      selectedApp: 'test-app',
+      onSaveDraft: jest.fn(),
+      onSubmit: jest.fn()
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should render save and submit buttons', () => {
+      render(<SixRActionButtons {...mockProps} />);
+      
+      expect(screen.getByText('Save Progress')).toBeInTheDocument();
+      expect(screen.getByText('Continue to Application Review')).toBeInTheDocument();
+    });
+
+    it('should call onSaveDraft when save button is clicked', () => {
+      render(<SixRActionButtons {...mockProps} />);
+      
+      fireEvent.click(screen.getByText('Save Progress'));
+      expect(mockProps.onSaveDraft).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call onSubmit when submit button is clicked', () => {
+      render(<SixRActionButtons {...mockProps} />);
+      
+      fireEvent.click(screen.getByText('Continue to Application Review'));
+      expect(mockProps.onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    it('should disable buttons when submitting', () => {
+      render(<SixRActionButtons {...mockProps} isSubmitting={true} />);
+      
+      const submitButton = screen.getByText('Processing...');
+      expect(submitButton.closest('button')).toBeDisabled();
+    });
+  });
+
+  describe('SixRStatusAlert Component', () => {
+    it('should render error alert', () => {
+      render(<SixRStatusAlert status="error" error="Test error message" />);
+      
+      expect(screen.getByText('Test error message')).toBeInTheDocument();
+    });
+
+    it('should render processing alert', () => {
+      render(<SixRStatusAlert status="processing" />);
+      
+      expect(screen.getByText(/AI agents are analyzing/)).toBeInTheDocument();
+    });
+
+    it('should render nothing for idle status', () => {
+      const { container } = render(<SixRStatusAlert status="idle" />);
+      
+      expect(container.firstChild).toBeNull();
+    });
+  });
+});

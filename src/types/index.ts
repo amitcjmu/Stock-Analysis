@@ -22,7 +22,7 @@
  */
 
 // Module Namespace Declarations
-export * from './modules';
+export type * from './modules';
 
 // Component Type Libraries
 export type * from './components';

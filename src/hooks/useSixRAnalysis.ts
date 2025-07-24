@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useCallback, useEffect } from 'react'
 import { toast } from 'sonner';
-import type { type CreateAnalysisRequest, type UpdateParametersRequest, type SubmitQuestionsRequest, type IterateAnalysisRequest, type BulkAnalysisRequest, type ApiError } from '../lib/api/sixr'
+import type { CreateAnalysisRequest, UpdateParametersRequest, SubmitQuestionsRequest, IterateAnalysisRequest, BulkAnalysisRequest, ApiError } from '../lib/api/sixr'
 import { sixrApi } from '../lib/api/sixr'
 import type { QuestionResponse, SixRRecommendation, AnalysisProgressType, BulkAnalysisResult, BulkAnalysisSummary } from '../components/sixr'
 import type { SixRParameters, QualifyingQuestion, AnalysisHistoryItem, BulkAnalysisJob } from '../components/sixr'

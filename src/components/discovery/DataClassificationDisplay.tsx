@@ -1,9 +1,9 @@
 import React from 'react'
 import { useState } from 'react'
 import { useEffect } from 'react'
-import type { CheckCircle, XCircle, Eye, Brain, ChevronDown, ChevronUp, FileText, RefreshCw, ThumbsUp, ThumbsDown, Edit3 } from 'lucide-react'
+import { CheckCircle, XCircle, Eye, Brain, ChevronDown, ChevronUp, FileText, RefreshCw, ThumbsUp, ThumbsDown, Edit3 } from 'lucide-react'
 import { AlertTriangle, Loader2, BarChart3 } from 'lucide-react'
-import type { API_CONFIG } from '../../config/api'
+import { API_CONFIG } from '../../config/api'
 import { apiCall } from '../../config/api'
 import { useAuth } from '@/contexts/AuthContext';
 

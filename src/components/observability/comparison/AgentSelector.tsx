@@ -9,7 +9,7 @@ import { Search, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
-import type { Input } from '../../ui/input';
+import { Input } from '../../ui/input';
 
 export interface AgentSelectorProps {
   availableAgents: string[];

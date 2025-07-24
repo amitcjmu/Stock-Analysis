@@ -23,12 +23,11 @@ import uuid
 from datetime import datetime, timezone
 from typing import Dict
 
-from sqlalchemy import select, text
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models import ClientAccount, Engagement, User
 from app.models.client_account import UserAccountAssociation
 from app.models.rbac import RoleType, UserProfile, UserRole, UserStatus
+from sqlalchemy import select, text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

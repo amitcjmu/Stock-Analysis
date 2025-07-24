@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Download, CheckCircle, FileText, RefreshCw } from 'lucide-react';
 import type { ReadinessAssessment, SignoffPackage } from '../types';
-import type { getReadinessColor, getRiskColor, getRiskBadgeVariant } from '../utils';
+import { getReadinessColor, getRiskColor, getRiskBadgeVariant } from '../utils';
 
 interface ReadinessTabsProps {
   assessment: ReadinessAssessment & {

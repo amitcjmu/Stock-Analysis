@@ -7,8 +7,6 @@ Handles status retrieval, flow information aggregation, and status calculation l
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.context import RequestContext
 from app.core.logging import get_logger
 from app.repositories.crewai_flow_state_extensions_repository import (
@@ -16,6 +14,7 @@ from app.repositories.crewai_flow_state_extensions_repository import (
 )
 from app.services.agent_ui_bridge import AgentUIBridge
 from app.services.flow_type_registry import FlowTypeRegistry
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = get_logger(__name__)
 
@@ -489,12 +488,11 @@ class FlowStatusManager:
     ) -> List[Dict[str, Any]]:
         """Load field mappings by data_import_id"""
         try:
-            from sqlalchemy import or_, select
-
             from app.models.crewai_flow_state_extensions import (
                 CrewAIFlowStateExtensions,
             )
             from app.models.data_import.mapping import ImportFieldMapping
+            from sqlalchemy import or_, select
 
             logger.info(
                 f"🔍 Loading field mappings for data_import_id: {data_import_id}"
@@ -567,10 +565,9 @@ class FlowStatusManager:
     async def _smart_discover_field_mappings(self, master_flow) -> List[Dict[str, Any]]:
         """Smart discovery of field mappings for orphaned data"""
         try:
-            from sqlalchemy import and_, or_, select
-
             from app.models.data_import import DataImport
             from app.models.data_import.mapping import ImportFieldMapping
+            from sqlalchemy import and_, or_, select
 
             flow_id = master_flow.flow_id
 
@@ -732,9 +729,8 @@ class FlowStatusManager:
     ) -> tuple[List[Dict[str, Any]], Dict[str, Any]]:
         """Load import data by data_import_id"""
         try:
-            from sqlalchemy import select
-
             from app.models.data_import import DataImport, RawImportRecord
+            from sqlalchemy import select
 
             # Get the data import record
             import_query = select(DataImport).where(DataImport.id == data_import_id)
@@ -795,12 +791,11 @@ class FlowStatusManager:
     ) -> tuple[List[Dict[str, Any]], Dict[str, Any]]:
         """Smart discovery of import data for orphaned flows"""
         try:
-            from sqlalchemy import and_, or_, select
-
             from app.models.crewai_flow_state_extensions import (
                 CrewAIFlowStateExtensions,
             )
             from app.models.data_import import DataImport
+            from sqlalchemy import and_, or_, select
 
             flow_id = master_flow.flow_id
 

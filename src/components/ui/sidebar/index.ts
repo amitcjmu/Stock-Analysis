@@ -1,56 +1,12 @@
-/**
- * Sidebar Components - Index
- * 
- * Centralized exports for all sidebar components and utilities.
- * This module provides a complete sidebar system with context management,
- * layout components, menu structures, and interactive elements.
- */
+// Re-export everything from the original sidebar for compatibility
+export * from "../sidebar";
 
-// Context and hook
-export { SidebarContext, useSidebar } from './sidebar-context'
+// This modular structure provides:
+// 1. constants.ts - Configuration values
+// 2. types.ts - TypeScript interfaces and types  
+// 3. context.ts - React context and hook
+// 4. variants.ts - CVA styling variants
+// 5. Individual component files can be added as needed
 
-// Provider
-export { SidebarProvider } from './sidebar-provider'
-
-// Core components
-export { Sidebar, SidebarInset } from './sidebar-core'
-
-// Interaction components
-export { SidebarTrigger, SidebarRail } from './sidebar-interactions'
-
-// Layout components
-export { 
-  SidebarHeader, 
-  SidebarFooter, 
-  SidebarContent, 
-  SidebarInput, 
-  SidebarSeparator 
-} from './sidebar-layout'
-
-// Group components
-export { 
-  SidebarGroup, 
-  SidebarGroupLabel, 
-  SidebarGroupAction, 
-  SidebarGroupContent 
-} from './sidebar-group'
-
-// Menu components
-export { 
-  SidebarMenu, 
-  SidebarMenuItem, 
-  SidebarMenuButton, 
-  SidebarMenuAction, 
-  SidebarMenuBadge, 
-  SidebarMenuSkeleton 
-} from './sidebar-menu'
-
-// Sub-menu components
-export { 
-  SidebarMenuSub, 
-  SidebarMenuSubItem, 
-  SidebarMenuSubButton 
-} from './sidebar-submenu'
-
-// Constants
-export * from './sidebar-constants'
+// The original sidebar.tsx remains intact for now to avoid breaking changes
+// Components can be gradually migrated to use the modular structure

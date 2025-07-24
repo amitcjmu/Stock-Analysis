@@ -8,9 +8,8 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.context import RequestContext
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .constants import (
     CONFIDENCE_WEIGHTS,

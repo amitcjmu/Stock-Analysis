@@ -8,10 +8,6 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
-from sqlalchemy import and_, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
-
 from app.core.exceptions import (
     NotFoundException,
     PermissionDeniedException,
@@ -29,6 +25,9 @@ from app.models.platform_credentials import (
 from app.models.security_audit import SecurityAuditLog
 from app.utils.encryption_utils import decrypt_credential, encrypt_credential
 from app.utils.security_utils import InputSanitizer
+from sqlalchemy import and_, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 logger = logging.getLogger(__name__)
 

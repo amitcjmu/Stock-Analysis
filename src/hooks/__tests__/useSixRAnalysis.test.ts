@@ -1,10 +1,10 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import type { Mock, MockedFunction } from 'vitest'
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
-import type { type AnalysisState } from '../useSixRAnalysis'
+import type { AnalysisState } from '../useSixRAnalysis'
 import { useSixRAnalysis } from '../useSixRAnalysis'
 import { sixrApi } from '../../lib/api/sixr';
-import type { type WebSocketMessage } from '../useSixRWebSocket'
+import type { WebSocketMessage } from '../useSixRWebSocket'
 import { useSixRWebSocket } from '../useSixRWebSocket'
 import type { 
   SixRParameters, 

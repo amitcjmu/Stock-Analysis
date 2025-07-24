@@ -2,10 +2,9 @@
 RBAC utility functions for role-based access control
 """
 
-from fastapi import HTTPException, status
-
 from app.models import User
 from app.models.rbac import RoleType
+from fastapi import HTTPException, status
 
 
 def check_user_role(user: User, allowed_roles: list[str]) -> bool:

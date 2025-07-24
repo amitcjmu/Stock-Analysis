@@ -9,11 +9,9 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import type { CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
-import type { Info } from 'lucide-react'
+import { Info } from 'lucide-react'
 import { AlertCircle, CheckCircle, AlertTriangle, Target, TrendingUp, ChevronDown, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils';
 

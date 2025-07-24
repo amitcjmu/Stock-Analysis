@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Card } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
-import type { Input } from '../../ui/input';
+import { Input } from '../../ui/input';
 import type { DependencyData } from '../../../types/dependency';
 import { Plus } from 'lucide-react';
 

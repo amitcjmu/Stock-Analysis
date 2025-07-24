@@ -6,11 +6,10 @@ This model represents questionnaire responses for filling data gaps.
 
 import uuid
 
+from app.models.base import Base, TimestampMixin
 from sqlalchemy import UUID, Column, DateTime, Float, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
-
-from app.models.base import Base, TimestampMixin
 
 
 class CollectionQuestionnaireResponse(Base, TimestampMixin):

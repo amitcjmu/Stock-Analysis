@@ -5,6 +5,7 @@ Models for tracking LLM API usage, costs, and performance metrics.
 
 import uuid
 
+from app.core.database import Base
 from sqlalchemy import (
     BigInteger,
     Boolean,
@@ -21,8 +22,6 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-
-from app.core.database import Base
 
 
 class LLMUsageLog(Base):

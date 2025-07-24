@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext';
 import { useRehostProjects, useExecutionMetrics, useUpdateRehostProject } from '@/hooks/execute/useExecuteQueries';
 import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';
-import type { AlertTriangle, ArrowRight } from 'lucide-react'
+import { AlertTriangle, ArrowRight } from 'lucide-react'
 import { Server, Sparkles, Play, Clock, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';

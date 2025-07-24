@@ -8,7 +8,6 @@ import uuid
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from app.services.flow_configs.collection_handlers import (
     _get_question_template,
     _normalize_platform_data,
@@ -57,7 +56,7 @@ def sample_context():
     return {
         "client_account_id": str(uuid.uuid4()),
         "engagement_id": str(uuid.uuid4()),
-        "user_id": str(uuid.uuid4())
+        "user_id": str(uuid.uuid4()),
     }
 
 
@@ -70,10 +69,7 @@ def sample_initial_state():
         "automation_tier": "tier_2",
         "environment": "production",
         "collection_scope": "full",
-        "collection_config": {
-            "timeout": 300,
-            "retry_count": 3
-        }
+        "collection_config": {"timeout": 300, "retry_count": 3},
     }
 
 
@@ -85,7 +81,7 @@ def sample_collection_flow():
         "flow_id": uuid.uuid4(),
         "status": "initialized",
         "current_phase": "platform_detection",
-        "automation_tier": "tier_2"
+        "automation_tier": "tier_2",
     }
 
 
@@ -93,21 +89,20 @@ class TestCollectionFlowLifecycleHandlers:
     """Test collection flow lifecycle handlers"""
 
     @pytest.mark.asyncio
-    async def test_collection_initialization_success(self, mock_db_session, mock_master_flow, 
-                                                   sample_context, sample_initial_state):
+    async def test_collection_initialization_success(
+        self, mock_db_session, mock_master_flow, sample_context, sample_initial_state
+    ):
         """Test successful collection flow initialization"""
         # Arrange
         flow_id = str(uuid.uuid4())
-        mock_db_session.execute.return_value.scalar_one_or_none.return_value = mock_master_flow
+        mock_db_session.execute.return_value.scalar_one_or_none.return_value = (
+            mock_master_flow
+        )
         mock_db_session.execute.return_value.fetchall.return_value = []
 
         # Act
         result = await collection_initialization(
-            mock_db_session,
-            flow_id,
-            "collection",
-            sample_initial_state,
-            sample_context
+            mock_db_session, flow_id, "collection", sample_initial_state, sample_context
         )
 
         # Assert
@@ -118,8 +113,9 @@ class TestCollectionFlowLifecycleHandlers:
         assert mock_db_session.execute.called
 
     @pytest.mark.asyncio
-    async def test_collection_initialization_master_flow_not_found(self, mock_db_session, 
-                                                                 sample_context, sample_initial_state):
+    async def test_collection_initialization_master_flow_not_found(
+        self, mock_db_session, sample_context, sample_initial_state
+    ):
         """Test initialization when master flow is not found"""
         # Arrange
         flow_id = str(uuid.uuid4())
@@ -127,11 +123,7 @@ class TestCollectionFlowLifecycleHandlers:
 
         # Act
         result = await collection_initialization(
-            mock_db_session,
-            flow_id,
-            "collection",
-            sample_initial_state,
-            sample_context
+            mock_db_session, flow_id, "collection", sample_initial_state, sample_context
         )
 
         # Assert
@@ -140,39 +132,36 @@ class TestCollectionFlowLifecycleHandlers:
         assert mock_db_session.rollback.called
 
     @pytest.mark.asyncio
-    async def test_collection_finalization_success(self, mock_db_session, mock_master_flow,
-                                                  sample_context, sample_collection_flow):
+    async def test_collection_finalization_success(
+        self, mock_db_session, mock_master_flow, sample_context, sample_collection_flow
+    ):
         """Test successful collection flow finalization"""
         # Arrange
         flow_id = str(uuid.uuid4())
         final_state = {
             "crew_results": {
-                "quality_report": {
-                    "overall_quality": 0.85,
-                    "total_resources": 150
-                },
+                "quality_report": {"overall_quality": 0.85, "total_resources": 150},
                 "sixr_readiness_score": 0.90,
                 "final_data": {"platform1": {}, "platform2": {}},
-                "summary": {"total_platforms": 2}
+                "summary": {"total_platforms": 2},
             }
         }
-        
+
         # Mock collection flow lookup
         mock_db_session.execute.return_value.fetchone.return_value = MagicMock(
             id=sample_collection_flow["id"],
             flow_id=sample_collection_flow["flow_id"],
             status=sample_collection_flow["status"],
             current_phase=sample_collection_flow["current_phase"],
-            automation_tier=sample_collection_flow["automation_tier"]
+            automation_tier=sample_collection_flow["automation_tier"],
         )
-        mock_db_session.execute.return_value.scalar_one_or_none.return_value = mock_master_flow
+        mock_db_session.execute.return_value.scalar_one_or_none.return_value = (
+            mock_master_flow
+        )
 
         # Act
         result = await collection_finalization(
-            mock_db_session,
-            flow_id,
-            final_state,
-            sample_context
+            mock_db_session, flow_id, final_state, sample_context
         )
 
         # Assert
@@ -183,32 +172,27 @@ class TestCollectionFlowLifecycleHandlers:
         assert mock_db_session.commit.called
 
     @pytest.mark.asyncio
-    async def test_collection_error_handler_recoverable(self, mock_db_session, sample_context):
+    async def test_collection_error_handler_recoverable(
+        self, mock_db_session, sample_context
+    ):
         """Test error handler with recoverable error"""
         # Arrange
         flow_id = str(uuid.uuid4())
         error = ConnectionError("Connection failed")
-        error_context = {
-            "phase": "automated_collection",
-            "operation": "fetch_data"
-        }
-        
+        error_context = {"phase": "automated_collection", "operation": "fetch_data"}
+
         # Mock collection flow lookup
         mock_db_session.execute.return_value.fetchone.return_value = MagicMock(
             id=uuid.uuid4(),
             flow_id=uuid.uuid4(),
             status="in_progress",
             current_phase="automated_collection",
-            automation_tier="tier_3"
+            automation_tier="tier_3",
         )
 
         # Act
         result = await collection_error_handler(
-            mock_db_session,
-            flow_id,
-            error,
-            error_context,
-            sample_context
+            mock_db_session, flow_id, error, error_context, sample_context
         )
 
         # Assert
@@ -219,32 +203,27 @@ class TestCollectionFlowLifecycleHandlers:
         assert mock_db_session.commit.called
 
     @pytest.mark.asyncio
-    async def test_collection_error_handler_non_recoverable(self, mock_db_session, sample_context):
+    async def test_collection_error_handler_non_recoverable(
+        self, mock_db_session, sample_context
+    ):
         """Test error handler with non-recoverable error"""
         # Arrange
         flow_id = str(uuid.uuid4())
         error = ValueError("Invalid configuration")
-        error_context = {
-            "phase": "gap_analysis",
-            "operation": "analyze_gaps"
-        }
-        
+        error_context = {"phase": "gap_analysis", "operation": "analyze_gaps"}
+
         # Mock collection flow lookup
         mock_db_session.execute.return_value.fetchone.return_value = MagicMock(
             id=uuid.uuid4(),
             flow_id=uuid.uuid4(),
             status="in_progress",
             current_phase="gap_analysis",
-            automation_tier="tier_2"
+            automation_tier="tier_2",
         )
 
         # Act
         result = await collection_error_handler(
-            mock_db_session,
-            flow_id,
-            error,
-            error_context,
-            sample_context
+            mock_db_session, flow_id, error, error_context, sample_context
         )
 
         # Assert
@@ -254,28 +233,26 @@ class TestCollectionFlowLifecycleHandlers:
         assert result["recovery_strategy"] == "manual_intervention"
 
     @pytest.mark.asyncio
-    async def test_collection_rollback_handler(self, mock_db_session, sample_context,
-                                             sample_collection_flow):
+    async def test_collection_rollback_handler(
+        self, mock_db_session, sample_context, sample_collection_flow
+    ):
         """Test rollback handler"""
         # Arrange
         flow_id = str(uuid.uuid4())
         rollback_to_phase = "automated_collection"
-        
+
         # Mock collection flow lookup
         mock_db_session.execute.return_value.fetchone.return_value = MagicMock(
             id=sample_collection_flow["id"],
             flow_id=sample_collection_flow["flow_id"],
             status="failed",
             current_phase="gap_analysis",
-            automation_tier="tier_2"
+            automation_tier="tier_2",
         )
 
         # Act
         result = await collection_rollback_handler(
-            mock_db_session,
-            flow_id,
-            rollback_to_phase,
-            sample_context
+            mock_db_session, flow_id, rollback_to_phase, sample_context
         )
 
         # Assert
@@ -285,8 +262,9 @@ class TestCollectionFlowLifecycleHandlers:
         assert mock_db_session.commit.called
 
     @pytest.mark.asyncio
-    async def test_collection_checkpoint_handler(self, mock_db_session, sample_context,
-                                               sample_collection_flow):
+    async def test_collection_checkpoint_handler(
+        self, mock_db_session, sample_context, sample_collection_flow
+    ):
         """Test checkpoint creation"""
         # Arrange
         flow_id = str(uuid.uuid4())
@@ -294,24 +272,21 @@ class TestCollectionFlowLifecycleHandlers:
             "phase": "automated_collection",
             "progress": 75,
             "platforms_collected": 3,
-            "resources_count": 250
+            "resources_count": 250,
         }
-        
+
         # Mock collection flow lookup
         mock_db_session.execute.return_value.fetchone.return_value = MagicMock(
             id=sample_collection_flow["id"],
             flow_id=sample_collection_flow["flow_id"],
             status="in_progress",
             current_phase="automated_collection",
-            automation_tier="tier_3"
+            automation_tier="tier_3",
         )
 
         # Act
         result = await collection_checkpoint_handler(
-            mock_db_session,
-            flow_id,
-            checkpoint_data,
-            sample_context
+            mock_db_session, flow_id, checkpoint_data, sample_context
         )
 
         # Assert
@@ -333,34 +308,31 @@ class TestPhaseSpecificHandlers:
             "crew_results": {
                 "platforms": [
                     {"id": "aws", "name": "Amazon Web Services"},
-                    {"id": "azure", "name": "Microsoft Azure"}
+                    {"id": "azure", "name": "Microsoft Azure"},
                 ],
                 "recommended_adapters": {
                     "aws": "aws_adapter_v2",
-                    "azure": "azure_adapter_v1"
+                    "azure": "azure_adapter_v1",
                 },
                 "platform_metadata": {
                     "aws": {"region": "us-east-1"},
-                    "azure": {"subscription": "prod"}
-                }
+                    "azure": {"subscription": "prod"},
+                },
             }
         }
-        
+
         # Mock collection flow lookup
         mock_db_session.execute.return_value.fetchone.return_value = MagicMock(
             id=uuid.uuid4(),
             flow_id=uuid.uuid4(),
             status="in_progress",
             current_phase="platform_detection",
-            automation_tier="tier_2"
+            automation_tier="tier_2",
         )
 
         # Act
         result = await platform_inventory_creation(
-            mock_db_session,
-            flow_id,
-            phase_results,
-            sample_context
+            mock_db_session, flow_id, phase_results, sample_context
         )
 
         # Assert
@@ -378,27 +350,34 @@ class TestPhaseSpecificHandlers:
             "adapter_configs": {
                 "aws": {
                     "adapter_name": "aws_adapter_v2",
-                    "config": {"region": "us-east-1"}
+                    "config": {"region": "us-east-1"},
                 },
                 "azure": {
                     "adapter_name": "azure_adapter_v1",
-                    "config": {"subscription": "prod"}
-                }
+                    "config": {"subscription": "prod"},
+                },
             }
         }
-        
+
         # Mock adapter lookups
         mock_db_session.execute.return_value.fetchone.side_effect = [
-            MagicMock(id=uuid.uuid4(), adapter_name="aws_adapter_v2", status="active", capabilities={}),
-            MagicMock(id=uuid.uuid4(), adapter_name="azure_adapter_v1", status="active", capabilities={})
+            MagicMock(
+                id=uuid.uuid4(),
+                adapter_name="aws_adapter_v2",
+                status="active",
+                capabilities={},
+            ),
+            MagicMock(
+                id=uuid.uuid4(),
+                adapter_name="azure_adapter_v1",
+                status="active",
+                capabilities={},
+            ),
         ]
 
         # Act
         result = await adapter_preparation(
-            mock_db_session,
-            flow_id,
-            phase_input,
-            sample_context
+            mock_db_session, flow_id, phase_input, sample_context
         )
 
         # Assert
@@ -418,21 +397,18 @@ class TestPhaseSpecificHandlers:
                     "aws": {
                         "resources": [{"type": "ec2", "id": "i-123"}],
                         "data_type": "infrastructure",
-                        "adapter_name": "aws_adapter_v2"
+                        "adapter_name": "aws_adapter_v2",
                     },
                     "azure": {
                         "assets": [{"type": "vm", "id": "vm-456"}],
                         "data_type": "infrastructure",
-                        "adapter_name": "azure_adapter_v1"
-                    }
+                        "adapter_name": "azure_adapter_v1",
+                    },
                 },
-                "quality_scores": {
-                    "aws": 0.85,
-                    "azure": 0.90
-                }
+                "quality_scores": {"aws": 0.85, "azure": 0.90},
             }
         }
-        
+
         # Mock collection flow lookup
         collection_flow_id = uuid.uuid4()
         mock_db_session.execute.return_value.fetchone.return_value = MagicMock(
@@ -440,15 +416,12 @@ class TestPhaseSpecificHandlers:
             flow_id=uuid.uuid4(),
             status="in_progress",
             current_phase="automated_collection",
-            automation_tier="tier_3"
+            automation_tier="tier_3",
         )
 
         # Act
         result = await collection_data_normalization(
-            mock_db_session,
-            flow_id,
-            phase_results,
-            sample_context
+            mock_db_session, flow_id, phase_results, sample_context
         )
 
         # Assert
@@ -463,40 +436,37 @@ class TestPhaseSpecificHandlers:
         # Arrange
         flow_id = str(uuid.uuid4())
         phase_input = {}
-        
+
         collection_flow_id = uuid.uuid4()
-        
+
         # Mock collection flow lookup
         mock_db_session.execute.return_value.fetchone.return_value = MagicMock(
             id=collection_flow_id,
             flow_id=uuid.uuid4(),
             status="in_progress",
             current_phase="gap_analysis",
-            automation_tier="tier_2"
+            automation_tier="tier_2",
         )
-        
+
         # Mock collected data query
         mock_db_session.execute.return_value.fetchall.return_value = [
             MagicMock(
                 platform="aws",
                 normalized_data={"resources": [{"type": "ec2"}]},
                 quality_score=0.85,
-                resource_count=10
+                resource_count=10,
             ),
             MagicMock(
                 platform="azure",
                 normalized_data={"resources": [{"type": "vm"}]},
                 quality_score=0.90,
-                resource_count=15
-            )
+                resource_count=15,
+            ),
         ]
 
         # Act
         result = await gap_analysis_preparation(
-            mock_db_session,
-            flow_id,
-            phase_input,
-            sample_context
+            mock_db_session, flow_id, phase_input, sample_context
         )
 
         # Assert
@@ -522,7 +492,7 @@ class TestPhaseSpecificHandlers:
                         "priority": 9,
                         "resolution": "Manual collection required",
                         "platform": "aws",
-                        "resource_type": "ec2"
+                        "resource_type": "ec2",
                     },
                     {
                         "type": "incomplete_data",
@@ -533,12 +503,12 @@ class TestPhaseSpecificHandlers:
                         "priority": 6,
                         "resolution": "Query network API",
                         "platform": "azure",
-                        "resource_type": "vnet"
-                    }
+                        "resource_type": "vnet",
+                    },
                 ]
             }
         }
-        
+
         # Mock collection flow lookup
         collection_flow_id = uuid.uuid4()
         mock_db_session.execute.return_value.fetchone.return_value = MagicMock(
@@ -546,15 +516,12 @@ class TestPhaseSpecificHandlers:
             flow_id=uuid.uuid4(),
             status="in_progress",
             current_phase="gap_analysis",
-            automation_tier="tier_2"
+            automation_tier="tier_2",
         )
 
         # Act
         result = await gap_prioritization(
-            mock_db_session,
-            flow_id,
-            phase_results,
-            sample_context
+            mock_db_session, flow_id, phase_results, sample_context
         )
 
         # Assert
@@ -570,18 +537,18 @@ class TestPhaseSpecificHandlers:
         # Arrange
         flow_id = str(uuid.uuid4())
         phase_input = {}
-        
+
         collection_flow_id = uuid.uuid4()
-        
+
         # Mock collection flow lookup
         mock_db_session.execute.return_value.fetchone.return_value = MagicMock(
             id=collection_flow_id,
             flow_id=uuid.uuid4(),
             status="in_progress",
             current_phase="manual_collection",
-            automation_tier="tier_2"
+            automation_tier="tier_2",
         )
-        
+
         # Mock gaps query
         gap_id = uuid.uuid4()
         mock_db_session.execute.return_value.fetchall.return_value = [
@@ -591,16 +558,13 @@ class TestPhaseSpecificHandlers:
                 field_name="security_groups",
                 description="Missing security group configuration",
                 priority=9,
-                suggested_resolution="Provide security group details"
+                suggested_resolution="Provide security group details",
             )
         ]
 
         # Act
         result = await questionnaire_generation(
-            mock_db_session,
-            flow_id,
-            phase_input,
-            sample_context
+            mock_db_session, flow_id, phase_input, sample_context
         )
 
         # Assert
@@ -616,24 +580,24 @@ class TestPhaseSpecificHandlers:
         flow_id = str(uuid.uuid4())
         gap_id_1 = str(uuid.uuid4())
         gap_id_2 = str(uuid.uuid4())
-        
+
         phase_results = {
             "crew_results": {
                 "responses": {
                     gap_id_1: {
                         "value": {"security_groups": ["sg-123", "sg-456"]},
                         "confidence": 0.95,
-                        "is_valid": True
+                        "is_valid": True,
                     },
                     gap_id_2: {
                         "value": {"subnet_config": {"cidr": "10.0.0.0/24"}},
                         "confidence": 0.80,
-                        "is_valid": False
-                    }
+                        "is_valid": False,
+                    },
                 }
             }
         }
-        
+
         # Mock collection flow lookup
         collection_flow_id = uuid.uuid4()
         mock_db_session.execute.return_value.fetchone.return_value = MagicMock(
@@ -641,15 +605,12 @@ class TestPhaseSpecificHandlers:
             flow_id=uuid.uuid4(),
             status="in_progress",
             current_phase="manual_collection",
-            automation_tier="tier_2"
+            automation_tier="tier_2",
         )
 
         # Act
         result = await response_processing(
-            mock_db_session,
-            flow_id,
-            phase_results,
-            sample_context
+            mock_db_session, flow_id, phase_results, sample_context
         )
 
         # Assert
@@ -664,18 +625,18 @@ class TestPhaseSpecificHandlers:
         # Arrange
         flow_id = str(uuid.uuid4())
         phase_input = {}
-        
+
         collection_flow_id = uuid.uuid4()
-        
+
         # Mock collection flow lookup
         mock_db_session.execute.return_value.fetchone.return_value = MagicMock(
             id=collection_flow_id,
             flow_id=uuid.uuid4(),
             status="in_progress",
             current_phase="synthesis",
-            automation_tier="tier_2"
+            automation_tier="tier_2",
         )
-        
+
         # Mock collected data query
         mock_collected_result = MagicMock()
         mock_collected_result.fetchall.return_value = [
@@ -683,16 +644,16 @@ class TestPhaseSpecificHandlers:
                 platform="aws",
                 collection_method="automated",
                 normalized_data={"resources": [{"type": "ec2"}]},
-                quality_score=0.85
+                quality_score=0.85,
             ),
             MagicMock(
                 platform="azure",
                 collection_method="automated",
                 normalized_data={"resources": [{"type": "vm"}]},
-                quality_score=0.90
-            )
+                quality_score=0.90,
+            ),
         ]
-        
+
         # Mock resolved gaps query
         mock_gaps_result = MagicMock()
         mock_gaps_result.fetchall.return_value = [
@@ -700,22 +661,19 @@ class TestPhaseSpecificHandlers:
                 field_name="security_groups",
                 platform="aws",
                 response_value={"sg": ["sg-123"]},
-                confidence_score=0.95
+                confidence_score=0.95,
             )
         ]
-        
+
         mock_db_session.execute.side_effect = [
             mock_collected_result,  # First call for collection flow lookup
             mock_collected_result,  # Second call for collected data
-            mock_gaps_result        # Third call for resolved gaps
+            mock_gaps_result,  # Third call for resolved gaps
         ]
 
         # Act
         result = await synthesis_preparation(
-            mock_db_session,
-            flow_id,
-            phase_input,
-            sample_context
+            mock_db_session, flow_id, phase_input, sample_context
         )
 
         # Assert
@@ -736,7 +694,7 @@ class TestHelperFunctions:
             "resources": [{"type": "ec2", "id": "i-123"}],
             "platform": "aws",
             "region": "us-east-1",
-            "custom_field": "value"
+            "custom_field": "value",
         }
 
         # Act
@@ -754,7 +712,7 @@ class TestHelperFunctions:
         raw_data = {
             "assets": [{"type": "vm", "id": "vm-456"}],
             "account": "prod-account",
-            "environment": "production"
+            "environment": "production",
         }
 
         # Act
@@ -770,7 +728,7 @@ class TestHelperFunctions:
         # Arrange
         raw_data = {
             "items": [{"name": "db-1", "type": "database"}],
-            "region": "eu-west-1"
+            "region": "eu-west-1",
         }
 
         # Act
@@ -831,8 +789,9 @@ class TestErrorScenarios:
     """Test error scenarios and edge cases"""
 
     @pytest.mark.asyncio
-    async def test_initialization_database_error(self, mock_db_session, sample_context, 
-                                               sample_initial_state):
+    async def test_initialization_database_error(
+        self, mock_db_session, sample_context, sample_initial_state
+    ):
         """Test initialization with database error"""
         # Arrange
         flow_id = str(uuid.uuid4())
@@ -840,11 +799,7 @@ class TestErrorScenarios:
 
         # Act
         result = await collection_initialization(
-            mock_db_session,
-            flow_id,
-            "collection",
-            sample_initial_state,
-            sample_context
+            mock_db_session, flow_id, "collection", sample_initial_state, sample_context
         )
 
         # Assert
@@ -853,21 +808,20 @@ class TestErrorScenarios:
         assert mock_db_session.rollback.called
 
     @pytest.mark.asyncio
-    async def test_finalization_missing_collection_flow(self, mock_db_session, sample_context):
+    async def test_finalization_missing_collection_flow(
+        self, mock_db_session, sample_context
+    ):
         """Test finalization when collection flow is missing"""
         # Arrange
         flow_id = str(uuid.uuid4())
         final_state = {"crew_results": {}}
-        
+
         # Mock collection flow not found
         mock_db_session.execute.return_value.fetchone.return_value = None
 
         # Act
         result = await collection_finalization(
-            mock_db_session,
-            flow_id,
-            final_state,
-            sample_context
+            mock_db_session, flow_id, final_state, sample_context
         )
 
         # Assert
@@ -880,27 +834,20 @@ class TestErrorScenarios:
         """Test gap prioritization with no gaps identified"""
         # Arrange
         flow_id = str(uuid.uuid4())
-        phase_results = {
-            "crew_results": {
-                "data_gaps": []
-            }
-        }
-        
+        phase_results = {"crew_results": {"data_gaps": []}}
+
         # Mock collection flow lookup
         mock_db_session.execute.return_value.fetchone.return_value = MagicMock(
             id=uuid.uuid4(),
             flow_id=uuid.uuid4(),
             status="in_progress",
             current_phase="gap_analysis",
-            automation_tier="tier_2"
+            automation_tier="tier_2",
         )
 
         # Act
         result = await gap_prioritization(
-            mock_db_session,
-            flow_id,
-            phase_results,
-            sample_context
+            mock_db_session, flow_id, phase_results, sample_context
         )
 
         # Assert
@@ -910,7 +857,9 @@ class TestErrorScenarios:
         assert result["critical_sixr_gaps"] == 0
 
     @pytest.mark.asyncio
-    async def test_adapter_preparation_no_adapters_found(self, mock_db_session, sample_context):
+    async def test_adapter_preparation_no_adapters_found(
+        self, mock_db_session, sample_context
+    ):
         """Test adapter preparation when no adapters are found"""
         # Arrange
         flow_id = str(uuid.uuid4())
@@ -918,20 +867,17 @@ class TestErrorScenarios:
             "adapter_configs": {
                 "unknown_platform": {
                     "adapter_name": "non_existent_adapter",
-                    "config": {}
+                    "config": {},
                 }
             }
         }
-        
+
         # Mock adapter not found
         mock_db_session.execute.return_value.fetchone.return_value = None
 
         # Act
         result = await adapter_preparation(
-            mock_db_session,
-            flow_id,
-            phase_input,
-            sample_context
+            mock_db_session, flow_id, phase_input, sample_context
         )
 
         # Assert

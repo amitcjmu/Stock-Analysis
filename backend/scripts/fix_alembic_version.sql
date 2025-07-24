@@ -10,5 +10,4 @@ CREATE TABLE migration.alembic_version (
     CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num)
 );
 
--- Set initial version (if needed)
--- INSERT INTO migration.alembic_version (version_num) VALUES ('001_comprehensive_initial_schema');
+-- Don't set initial version - let alembic handle it

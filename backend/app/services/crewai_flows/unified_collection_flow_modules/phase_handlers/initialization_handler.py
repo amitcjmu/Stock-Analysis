@@ -9,8 +9,6 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict
 
-from sqlalchemy import update
-
 from app.models.collection_flow import (
     CollectionFlow,
     CollectionFlowError,
@@ -22,6 +20,7 @@ from app.models.collection_flow import (
 from app.services.crewai_flows.handlers.enhanced_error_handler import (
     enhanced_error_handler,
 )
+from sqlalchemy import update
 
 logger = logging.getLogger(__name__)
 

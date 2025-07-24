@@ -1,5 +1,5 @@
 import React from 'react';
-import type { FileText, Server } from 'lucide-react'
+import { FileText, Server } from 'lucide-react'
 import { AlertTriangle, Database, Clock, Users } from 'lucide-react'
 import {
   Dialog,

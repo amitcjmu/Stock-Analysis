@@ -24,10 +24,10 @@ interface EngagementSubmissionData extends CreateEngagementData {
   user_id?: string;
   [key: string]: unknown;
 }
-import type { EngagementBasicInfo } from './EngagementBasicInfo';
+import { EngagementBasicInfo } from './EngagementBasicInfo';
 import { EngagementTimeline } from './EngagementTimeline';
 import { EngagementScope } from './EngagementScope';
-import type { EngagementSummary } from './EngagementSummary';
+import { EngagementSummary } from './EngagementSummary';
 
 export const CreateEngagementMain: React.FC = () => {
   const navigate = useNavigate();

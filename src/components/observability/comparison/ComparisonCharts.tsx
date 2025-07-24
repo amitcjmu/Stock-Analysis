@@ -5,7 +5,7 @@
 
 import React from 'react'
 import { useMemo } from 'react'
-import type { BarChart, Bar } from 'recharts'
+import { BarChart, Bar } from 'recharts'
 import { XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, LineChart, Line } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import type { AgentComparisonData } from '../hooks/useAgentComparison';

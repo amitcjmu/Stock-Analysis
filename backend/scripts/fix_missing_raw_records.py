@@ -32,17 +32,20 @@ async def fix_missing_raw_records():
         try:
             # Find all imports without raw records
             imports_without_records = await session.execute(
-                select(DataImport).outerjoin(RawImportRecord).where(
-                    RawImportRecord.id.is_(None)
-                ).order_by(DataImport.created_at.desc())
+                select(DataImport)
+                .outerjoin(RawImportRecord)
+                .where(RawImportRecord.id.is_(None))
+                .order_by(DataImport.created_at.desc())
             )
-            
+
             imports_to_fix = imports_without_records.scalars().all()
             logger.info(f"Found {len(imports_to_fix)} imports without raw records")
-            
+
             for data_import in imports_to_fix:
-                logger.info(f"Processing import {data_import.id} ({data_import.source_filename})")
-                
+                logger.info(
+                    f"Processing import {data_import.id} ({data_import.source_filename})"
+                )
+
                 # Check if this import has field mappings
                 field_mappings_result = await session.execute(
                     select(ImportFieldMapping).where(
@@ -50,11 +53,11 @@ async def fix_missing_raw_records():
                     )
                 )
                 field_mappings = field_mappings_result.scalars().all()
-                
+
                 if field_mappings:
                     # Create sample records based on field mappings
                     logger.info(f"  Found {len(field_mappings)} field mappings")
-                    
+
                     # Extract sample data from field mappings
                     sample_data = {}
                     for mapping in field_mappings:
@@ -63,11 +66,16 @@ async def fix_missing_raw_records():
                                 values = json.loads(mapping.sample_values)
                                 sample_data[mapping.source_field] = values
                             except json.JSONDecodeError:
-                                sample_data[mapping.source_field] = [mapping.sample_values]
-                    
+                                sample_data[mapping.source_field] = [
+                                    mapping.sample_values
+                                ]
+
                     # Create 5 sample records (or fewer if less sample data)
-                    num_records = min(5, max(len(v) for v in sample_data.values()) if sample_data else 1)
-                    
+                    num_records = min(
+                        5,
+                        max(len(v) for v in sample_data.values()) if sample_data else 1,
+                    )
+
                     for i in range(num_records):
                         record_data = {}
                         for field, values in sample_data.items():
@@ -75,7 +83,7 @@ async def fix_missing_raw_records():
                                 record_data[field] = values[i]
                             else:
                                 record_data[field] = values[0] if values else ""
-                        
+
                         raw_record = RawImportRecord(
                             data_import_id=data_import.id,
                             client_account_id=data_import.client_account_id,
@@ -83,10 +91,10 @@ async def fix_missing_raw_records():
                             row_number=i + 1,
                             raw_data=record_data,
                             is_processed=True,
-                            is_valid=True
+                            is_valid=True,
                         )
                         session.add(raw_record)
-                    
+
                     # Update import record counts
                     data_import.total_records = num_records
                     data_import.processed_records = num_records
@@ -94,12 +102,12 @@ async def fix_missing_raw_records():
                     data_import.status = "completed"
                     if not data_import.completed_at:
                         data_import.completed_at = datetime.utcnow()
-                    
+
                     logger.info(f"  Created {num_records} raw records")
                 else:
                     # No field mappings - create minimal sample data
                     logger.info("  No field mappings found - creating minimal sample")
-                    
+
                     sample_record = RawImportRecord(
                         data_import_id=data_import.id,
                         client_account_id=data_import.client_account_id,
@@ -108,13 +116,13 @@ async def fix_missing_raw_records():
                         raw_data={
                             "name": "Sample Asset",
                             "type": "Server",
-                            "status": "Active"
+                            "status": "Active",
                         },
                         is_processed=True,
-                        is_valid=True
+                        is_valid=True,
                     )
                     session.add(sample_record)
-                    
+
                     # Update import record
                     data_import.total_records = 1
                     data_import.processed_records = 1
@@ -122,22 +130,28 @@ async def fix_missing_raw_records():
                     data_import.status = "completed"
                     if not data_import.completed_at:
                         data_import.completed_at = datetime.utcnow()
-                    
+
                     logger.info("  Created 1 minimal raw record")
-            
+
             await session.commit()
             logger.info("✅ Successfully fixed missing raw records")
-            
+
             # Verify the fix
             verification = await session.execute(
                 select(
-                    func.count(DataImport.id).label('total_imports'),
-                    func.count(func.distinct(RawImportRecord.data_import_id)).label('imports_with_records')
-                ).select_from(DataImport).outerjoin(RawImportRecord)
+                    func.count(DataImport.id).label("total_imports"),
+                    func.count(func.distinct(RawImportRecord.data_import_id)).label(
+                        "imports_with_records"
+                    ),
+                )
+                .select_from(DataImport)
+                .outerjoin(RawImportRecord)
             )
             result = verification.one()
-            logger.info(f"📊 Verification: {result.imports_with_records}/{result.total_imports} imports now have raw records")
-            
+            logger.info(
+                f"📊 Verification: {result.imports_with_records}/{result.total_imports} imports now have raw records"
+            )
+
         except Exception as e:
             logger.error(f"❌ Error fixing raw records: {e}")
             await session.rollback()

@@ -16,12 +16,11 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import select
-
 from app.core.database import AsyncSessionLocal
 from app.core.logging import get_logger
 from app.models.asset import Asset
 from app.monitoring.metrics import track_performance
+from sqlalchemy import select
 
 logger = get_logger(__name__)
 

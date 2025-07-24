@@ -6,7 +6,7 @@
 import React from 'react';
 import { Search, Grid, List } from 'lucide-react';
 import { Card, CardContent } from '../../ui/card';
-import type { Input } from '../../ui/input';
+import { Input } from '../../ui/input';
 import { Button } from '../../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { cn } from '../../../lib/utils';

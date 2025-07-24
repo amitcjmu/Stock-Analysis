@@ -7,9 +7,6 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.api.v1.auth.auth_utils import get_current_user
 from app.core.database import get_db
 from app.models.client_account import User
@@ -19,6 +16,8 @@ from app.services.crewai_flows.handlers.enhanced_error_handler import (
 from app.services.crewai_flows.monitoring.flow_health_monitor import flow_health_monitor
 from app.services.crewai_flows.persistence.checkpoint_manager import checkpoint_manager
 from app.services.crewai_flows.utils.retry_utils import retry_metrics
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +45,8 @@ async def get_flow_health(
 
         if not health_data:
             # Try to analyze flow from database
-            from sqlalchemy import select
-
             from app.models.discovery_flow import DiscoveryFlow
+            from sqlalchemy import select
 
             result = await db.execute(
                 select(DiscoveryFlow).where(
@@ -193,9 +191,8 @@ async def recover_flow(
     """
     try:
         # Validate flow ownership
-        from sqlalchemy import select
-
         from app.models.discovery_flow import DiscoveryFlow
+        from sqlalchemy import select
 
         result = await db.execute(
             select(DiscoveryFlow).where(
@@ -317,9 +314,8 @@ async def get_flow_checkpoints(
     """
     try:
         # Validate flow ownership
-        from sqlalchemy import select
-
         from app.models.discovery_flow import DiscoveryFlow
+        from sqlalchemy import select
 
         result = await db.execute(
             select(DiscoveryFlow).where(

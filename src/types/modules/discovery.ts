@@ -8,4 +8,4 @@
  */
 
 // Re-export everything from the modular structure
-export * from './discovery/index';
+export type * from './discovery/index';

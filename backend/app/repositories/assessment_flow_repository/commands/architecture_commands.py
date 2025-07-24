@@ -6,10 +6,6 @@ import logging
 from datetime import datetime
 from typing import List
 
-from sqlalchemy import and_, delete
-from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.assessment_flow import (
     ApplicationArchitectureOverride,
     EngagementArchitectureStandard,
@@ -17,7 +13,12 @@ from app.models.assessment_flow import (
 from app.models.assessment_flow_state import (
     ApplicationArchitectureOverride as ApplicationArchitectureOverrideState,
 )
-from app.models.assessment_flow_state import ArchitectureRequirement
+from app.models.assessment_flow_state import (
+    ArchitectureRequirement,
+)
+from sqlalchemy import and_, delete
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

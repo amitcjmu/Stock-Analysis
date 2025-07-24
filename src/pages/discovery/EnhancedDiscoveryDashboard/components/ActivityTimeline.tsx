@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Info } from 'lucide-react'
+import { Info } from 'lucide-react'
 import { Clock, CheckCircle2, AlertTriangle, AlertCircle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

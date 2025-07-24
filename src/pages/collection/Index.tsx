@@ -19,8 +19,7 @@ import { canCreateCollectionFlow, getRoleName } from '@/utils/rbac';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { FormInput } from 'lucide-react'
-import { Upload, Settings, BarChart3, Clock, CheckCircle, AlertCircle, Loader2, Shield } from 'lucide-react'
+import { FormInput, Upload, Settings, BarChart3, Clock, CheckCircle, AlertCircle, Loader2, Shield } from 'lucide-react'
 
 /**
  * Collection workflow index page

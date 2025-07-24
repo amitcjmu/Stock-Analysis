@@ -1,7 +1,8 @@
 import React from 'react'
 import { useCallback, useMemo } from 'react'
 import ReactFlow from 'reactflow'
-import type { Node, Edge, MarkerType } from 'reactflow'
+import type { Edge} from 'reactflow';
+import { Node, MarkerType } from 'reactflow'
 import { Controls, Background, useNodesState, useEdgesState } from 'reactflow'
 import 'reactflow/dist/style.css';
 import { Card } from '../../ui/card';

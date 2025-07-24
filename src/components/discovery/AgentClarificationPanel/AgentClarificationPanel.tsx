@@ -10,9 +10,9 @@ import { useEffect } from 'react'
 import type { AssetDetails, AgentClarificationPanelProps } from './types'
 import type { AgentQuestion } from './types'
 import * as api from './api';
-import type LoadingState from './LoadingState';
-import type ErrorState from './ErrorState';
-import type EmptyState from './EmptyState';
+import LoadingState from './LoadingState';
+import ErrorState from './ErrorState';
+import EmptyState from './EmptyState';
 import PanelHeader from './PanelHeader';
 import QuestionCard from './QuestionCard';
 import ResolvedQuestionsList from './ResolvedQuestionsList';

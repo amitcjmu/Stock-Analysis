@@ -5,9 +5,8 @@ Assessment Flow Pydantic schemas for API request/response validation.
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, validator
-
 from app.models.assessment_flow import AssessmentFlowStatus, AssessmentPhase
+from pydantic import BaseModel, Field, validator
 
 
 class AssessmentFlowCreateRequest(BaseModel):

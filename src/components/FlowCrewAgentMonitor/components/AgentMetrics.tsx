@@ -1,9 +1,10 @@
 import React from 'react';
-import type { Clock } from 'lucide-react'
+import { Clock } from 'lucide-react'
 import { BarChart3, TrendingUp, Activity, Target, Zap, Users, Brain } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import type { Crew, Agent } from '../types';
+import type { Crew} from '../types';
+import { Agent } from '../types';
 import { calculateAverageMetrics } from '../utils/agentDataProcessor';
 
 interface AgentMetricsProps {

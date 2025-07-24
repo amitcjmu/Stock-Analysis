@@ -55,7 +55,7 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
                       value={percentage} 
                       className="w-20 h-2"
                       style={{
-                        // @ts-ignore - Custom CSS properties for progress color
+                        // @ts-expect-error - Custom CSS properties for progress color
                         '--progress-background': item.color || 'hsl(var(--primary))'
                       }}
                     />

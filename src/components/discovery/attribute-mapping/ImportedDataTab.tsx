@@ -12,7 +12,7 @@ import {
   ChevronRight,
   RefreshCw
 } from 'lucide-react';
-import type { API_CONFIG } from '../../../config/api'
+import { API_CONFIG } from '../../../config/api'
 import { apiCall } from '../../../config/api'
 import { useToast } from '../../../hooks/use-toast';
 import { useAuth } from '../../../contexts/AuthContext';

@@ -4,11 +4,16 @@
 import re
 import subprocess
 
-# Get tables from models  
-model_tables_raw = subprocess.run(['grep', '-h', '__tablename__', 'app/models/*.py'], capture_output=True, text=True, shell=True).stdout
+# Get tables from models
+model_tables_raw = subprocess.run(
+    ["grep", "-h", "__tablename__", "app/models/*.py"],
+    capture_output=True,
+    text=True,
+    shell=True,
+).stdout
 model_tables = []
-for line in model_tables_raw.split('\n'):
-    if '__tablename__ =' in line:
+for line in model_tables_raw.split("\n"):
+    if "__tablename__ =" in line:
         match = re.search(r'__tablename__ = ["\']([^"\']+)["\']', line)
         if match:
             model_tables.append(match.group(1))
@@ -66,7 +71,7 @@ users
 wave_plans
 workflow_progress"""
 
-db_tables = sorted([t.strip() for t in db_tables_raw.split('\n') if t.strip()])
+db_tables = sorted([t.strip() for t in db_tables_raw.split("\n") if t.strip()])
 
 print(f"Model tables: {len(model_tables)}")
 print(f"Database tables: {len(db_tables)} (including alembic_version)")
@@ -74,10 +79,10 @@ print(f"Database tables (excluding alembic): {len(db_tables) - 1}")
 
 print("\n=== TABLES IN DATABASE BUT NOT IN MODELS ===")
 for table in db_tables:
-    if table not in model_tables and table != 'alembic_version':
+    if table not in model_tables and table != "alembic_version":
         print(f"❌ {table}")
 
-print("\n=== TABLES IN MODELS BUT NOT IN DATABASE ===")  
+print("\n=== TABLES IN MODELS BUT NOT IN DATABASE ===")
 for table in model_tables:
     if table not in db_tables:
         print(f"❌ {table}")

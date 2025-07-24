@@ -7,9 +7,6 @@ Part of the Agent Observability Enhancement Phase 3
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.api.v1.dependencies import get_db
 from app.core.context import RequestContext, get_request_context
 from app.core.logging import get_logger as enhanced_get_logger
@@ -18,6 +15,8 @@ from app.services.agent_performance_aggregation_service import (
     agent_performance_aggregation_service,
 )
 from app.services.agent_task_history_service import AgentTaskHistoryService
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = enhanced_get_logger(__name__)
 

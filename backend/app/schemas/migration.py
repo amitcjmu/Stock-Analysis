@@ -5,9 +5,8 @@ Pydantic schemas for migration-related API operations.
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
-
 from app.models.migration import MigrationPhase, MigrationStatus
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class MigrationBase(BaseModel):

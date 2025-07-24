@@ -10,9 +10,6 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.context import RequestContext
 from app.core.exceptions import FlowNotFoundError, FlowStateUpdateError
 from app.repositories.assessment_flow_repository import AssessmentFlowRepository
@@ -20,6 +17,8 @@ from app.repositories.crewai_flow_state_extensions_repository import (
     CrewAIFlowStateExtensionsRepository,
 )
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

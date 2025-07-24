@@ -6,9 +6,6 @@ Admin endpoints for managing client accounts with business context and migration
 import logging
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.api.v1.admin.client_management_handlers import ClientCRUDHandler
 from app.core.database import get_db
 from app.core.rbac_middleware import require_admin_access
@@ -23,6 +20,8 @@ from app.schemas.admin_schemas import (
     ClientSearchFilters,
     PaginatedResponse,
 )
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Import handlers with fallback
 try:

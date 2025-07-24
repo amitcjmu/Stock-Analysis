@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom';
-import type { FileSpreadsheet } from 'lucide-react'
+import { FileSpreadsheet } from 'lucide-react'
 import { ArrowLeft, Download, Upload, AlertCircle, CheckCircle } from 'lucide-react'
 
 // Import layout components

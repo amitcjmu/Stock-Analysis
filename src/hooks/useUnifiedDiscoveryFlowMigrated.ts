@@ -84,8 +84,7 @@ export function useUnifiedDiscoveryFlow(): UseUnifiedDiscoveryFlowReturn {
 
   // Initialize flow adapter
   const initializeFlow = useCallback(async (data: unknown) => {
-    try {
-      const flow = await actions.createDiscoveryFlow({
+    const flow = await actions.createDiscoveryFlow({
         flow_name: data.flow_name || 'Discovery Flow',
         configuration: {
           discovery: {
@@ -107,9 +106,6 @@ export function useUnifiedDiscoveryFlow(): UseUnifiedDiscoveryFlowReturn {
         status: 'initialized',
         message: 'Flow initialized successfully'
       };
-    } catch (error) {
-      throw error;
-    }
   }, [actions]);
 
   // Execute phase adapter
@@ -118,8 +114,7 @@ export function useUnifiedDiscoveryFlow(): UseUnifiedDiscoveryFlowReturn {
       throw new Error('No active flow');
     }
 
-    try {
-      const result = await actions.executePhase(state.flow.flow_id, {
+    const result = await actions.executePhase(state.flow.flow_id, {
         phase_name: phase,
         phase_input: {
           // Map legacy phase data to new format
@@ -128,9 +123,6 @@ export function useUnifiedDiscoveryFlow(): UseUnifiedDiscoveryFlowReturn {
       });
 
       return result;
-    } catch (error) {
-      throw error;
-    }
   }, [state.flow, actions]);
 
   // Get phase data

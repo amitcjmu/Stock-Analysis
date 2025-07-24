@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { Progress } from '@/components/ui/progress';
+import { Progress } from '@/components/ui/progress';
 import type { SixRDecision } from '@/hooks/useAssessmentFlow';
 import { ConfidenceScoreIndicator } from './ConfidenceScoreIndicator';
 import { AlertTriangle, CheckCircle, Eye, Clock } from 'lucide-react';

@@ -6,9 +6,8 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
-
 from app.models.asset import AssetStatus, AssetType, SixRStrategy
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AssetBase(BaseModel):

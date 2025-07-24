@@ -1,7 +1,7 @@
 
 import type React from 'react';
 import Sidebar from '../../components/Sidebar';
-import type { Server, Cloud, Activity, Calendar } from 'lucide-react'
+import { Server, Cloud, Activity, Calendar } from 'lucide-react'
 import { Wrench, Sparkles, RefreshCw, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom';
 

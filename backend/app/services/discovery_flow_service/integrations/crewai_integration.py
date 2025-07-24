@@ -5,10 +5,9 @@ CrewAI integration service for bridging CrewAI flows with discovery flow databas
 import logging
 from typing import Any, Dict, List
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.context import RequestContext
 from app.models.discovery_flow import DiscoveryFlow
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.flow_manager import FlowManager
 

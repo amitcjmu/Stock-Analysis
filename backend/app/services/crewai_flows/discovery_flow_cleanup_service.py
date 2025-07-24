@@ -12,9 +12,6 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.database import AsyncSessionLocal
 
 # Legacy imports for backward compatibility
@@ -25,6 +22,8 @@ from app.models.data_import.core import DataImport as DataImportSession
 # V2 Discovery Flow imports (target architecture)
 from app.models.discovery_flow import DiscoveryFlow
 from app.services.discovery_flow_service import DiscoveryFlowService
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Optional dependency model import
 try:

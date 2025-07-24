@@ -6,11 +6,10 @@ Thin controllers that delegate to service layer.
 import logging
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.mapping_schemas import (
     FieldMappingCreate,
@@ -131,9 +130,8 @@ async def trigger_field_mapping_reanalysis(
         # Get the data import
         from uuid import UUID
 
-        from sqlalchemy import select
-
         from app.models.data_import import DataImport
+        from sqlalchemy import select
 
         # Convert string UUID to UUID object if needed
         try:
@@ -191,9 +189,8 @@ async def generate_field_mappings(
         if force_regenerate:
             logger.info(f"🔄 Force regenerating field mappings for import {import_id}")
             # Delete existing mappings to trigger CrewAI regeneration
-            from sqlalchemy import and_, delete
-
             from app.models.data_import import ImportFieldMapping
+            from sqlalchemy import and_, delete
 
             delete_query = delete(ImportFieldMapping).where(
                 and_(
@@ -231,9 +228,8 @@ async def create_field_mapping_latest(
         context = extract_context_from_request(request)
 
         # Get latest import for context
-        from sqlalchemy import and_, select
-
         from app.models.data_import import DataImport
+        from sqlalchemy import and_, select
 
         latest_query = (
             select(DataImport)
@@ -265,9 +261,8 @@ async def create_field_mapping_latest(
                     f"🔄 Force regenerating field mappings for latest import {latest_import.id}"
                 )
                 # Delete existing mappings to trigger CrewAI regeneration
-                from sqlalchemy import and_, delete, select
-
                 from app.models.data_import import ImportFieldMapping
+                from sqlalchemy import and_, delete, select
 
                 delete_query = delete(ImportFieldMapping).where(
                     and_(

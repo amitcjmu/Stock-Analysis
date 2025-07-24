@@ -7,10 +7,9 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.context import RequestContext
 from app.services.flows.base_flow import BaseDiscoveryFlow, BaseFlowState
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

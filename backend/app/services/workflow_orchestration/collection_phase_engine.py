@@ -14,8 +14,6 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.context import RequestContext
 from app.core.exceptions import FlowError
 from app.core.logging import get_logger
@@ -29,6 +27,7 @@ from app.services.crewai_flows.unified_collection_flow import (
     UnifiedCollectionFlow,
     create_unified_collection_flow,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = get_logger(__name__)
 

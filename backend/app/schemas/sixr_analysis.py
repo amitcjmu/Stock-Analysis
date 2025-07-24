@@ -2,9 +2,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-
 from app.models.asset import SixRStrategy
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ApplicationType(str, Enum):

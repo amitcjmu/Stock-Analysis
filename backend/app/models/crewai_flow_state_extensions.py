@@ -8,12 +8,11 @@ import uuid
 from datetime import datetime
 from typing import Any, Optional
 
+from app.core.database import Base
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
-
-from app.core.database import Base
 
 
 class CrewAIFlowStateExtensions(Base):

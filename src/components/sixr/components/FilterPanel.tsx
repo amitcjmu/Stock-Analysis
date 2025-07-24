@@ -4,9 +4,9 @@
  */
 
 import React from 'react';
-import type { Filter } from 'lucide-react'
+import { Filter } from 'lucide-react'
 import { Search } from 'lucide-react'
-import type { Input } from '../../ui/input';
+import { Input } from '../../ui/input';
 import { Button } from '../../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import type { FilterPanelProps } from '../types/ApplicationSelectorTypes';

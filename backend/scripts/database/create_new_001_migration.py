@@ -22,7 +22,7 @@ print("Creating comprehensive migration 001...")
 # Now I need to read ALL the models and create the complete migration
 print("This script would:")
 print("1. Read all model files")
-print("2. Extract all table definitions") 
+print("2. Extract all table definitions")
 print("3. Generate complete CREATE TABLE statements")
 print("4. Include all fields, constraints, and indexes")
 print("5. Handle dependencies correctly")

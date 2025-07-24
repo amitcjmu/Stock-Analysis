@@ -9,23 +9,24 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+from app.models.base import Base, TimestampMixin
 from sqlalchemy import (
     UUID,
     Boolean,
     Column,
     DateTime,
+)
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
     String,
     Text,
 )
-from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-
-from app.models.base import Base, TimestampMixin
 
 
 class AutomationTier(str, Enum):
@@ -106,13 +107,19 @@ class CollectionFlow(Base, TimestampMixin):
 
     # Flow configuration
     automation_tier = Column(
-        SQLEnum(AutomationTier, values_callable=lambda obj: [e.value for e in obj]),
+        SQLEnum(
+            AutomationTier,
+            values_callable=lambda obj: [e.value for e in obj],
+            create_type=False,
+        ),
         nullable=False,
         index=True,
     )
     status = Column(
         SQLEnum(
-            CollectionFlowStatus, values_callable=lambda obj: [e.value for e in obj]
+            CollectionFlowStatus,
+            values_callable=lambda obj: [e.value for e in obj],
+            create_type=False,
         ),
         nullable=False,
         default=CollectionFlowStatus.INITIALIZED,

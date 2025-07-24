@@ -7,8 +7,6 @@ Main service class that orchestrates tier routing operations.
 
 from typing import Any, Dict, List, Optional, Tuple
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.context import RequestContext
 from app.core.exceptions import FlowError
 from app.core.logging import get_logger
@@ -16,6 +14,7 @@ from app.services.ai_analysis import BusinessContextAnalyzer, ConfidenceScorer
 
 # Import Phase 1 & 2 components
 from app.services.collection_flow import TierDetectionService
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Import modular components
 from .enums import AutomationTier, EnvironmentComplexity, RoutingStrategy

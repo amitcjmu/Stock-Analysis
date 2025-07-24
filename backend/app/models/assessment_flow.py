@@ -10,6 +10,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
+from app.core.database import Base
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -26,8 +27,6 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-
-from app.core.database import Base
 
 
 class AssessmentFlowStatus(str, Enum):

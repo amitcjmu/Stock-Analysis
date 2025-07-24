@@ -26,13 +26,15 @@ import { ValidationDisplay } from './ValidationDisplay';
 
 import type {
   AdaptiveFormProps,
-  AdaptiveFormData,
   CollectionFormData,
   FormValidationResult,
   FormSection,
   FieldValidationResult,
   ValidationError,
   FieldValue
+} from './types';
+import {
+  AdaptiveFormData
 } from './types';
 
 export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({

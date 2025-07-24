@@ -1,6 +1,6 @@
 import React from 'react';
 import { Label } from '@/components/ui/label';
-import type { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Industries, CompanySizes, SubscriptionTiers } from '../../types';
 import type { ClientFormData } from '../../types';

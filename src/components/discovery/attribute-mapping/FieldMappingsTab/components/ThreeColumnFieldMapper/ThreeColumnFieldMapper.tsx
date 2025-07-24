@@ -31,7 +31,7 @@ import {
   filterMappingsBySearch, 
   calculateProgress 
 } from './mappingUtils';
-import type {
+import {
   createBulkApproveHandler, 
   createBulkRejectHandler 
 } from './bulkOperations';

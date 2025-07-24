@@ -15,7 +15,7 @@ import {
   Server
 } from 'lucide-react';
 import type { AgentQuestion, AssetDetails } from './types';
-import type { getPriorityColor } from './utils'
+import { getPriorityColor } from './utils'
 import { getConfidenceIcon, formatTimestamp, getPriorityBadgeClass } from './utils'
 import AssetCard from './AssetCard';
 

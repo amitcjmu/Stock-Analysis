@@ -13,11 +13,10 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
-from sqlalchemy.orm import Session
-
 from app.core.database import get_db
 from app.models.agent_discovered_patterns import AgentDiscoveredPatterns
 from app.models.agent_task_history import AgentTaskHistory
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 

@@ -6,11 +6,10 @@ This model represents identified data gaps in Collection Flows.
 
 import uuid
 
+from app.models.base import Base, TimestampMixin
 from sqlalchemy import UUID, Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
-
-from app.models.base import Base, TimestampMixin
 
 
 class CollectionDataGap(Base, TimestampMixin):

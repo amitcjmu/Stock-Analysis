@@ -18,9 +18,9 @@ def run_migrations():
             capture_output=True,
             text=True,
             timeout=300,  # Increase timeout to 5 minutes
-            cwd=os.path.dirname(os.path.abspath(__file__))
+            cwd=os.path.dirname(os.path.abspath(__file__)),
         )
-        
+
         if result.returncode == 0:
             print("✅ Migrations completed successfully!")
             if result.stdout:
@@ -34,25 +34,27 @@ def run_migrations():
     except Exception as e:
         print(f"❌ Exception running migrations: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 def main():
     """Start the FastAPI application with proper environment handling."""
     print("🚀 Starting AI Modernize Migration Platform API...")
-    
+
     # Migrations are handled by entrypoint.sh/railway_setup.py
     print("📋 Database migrations handled by deployment scripts")
-    
+
     # Get environment variables
     environment = os.getenv("ENVIRONMENT", "production")
     port = os.getenv("PORT", "8000")
     debug = os.getenv("DEBUG", "false").lower() == "true"
-    
+
     print(f"Environment: {environment}")
     print(f"Port: {port}")
     print(f"Debug: {debug}")
-    
+
     # Validate port is a number
     try:
         port_int = int(port)
@@ -61,22 +63,17 @@ def main():
     except ValueError as e:
         print(f"❌ Invalid port '{port}': {e}")
         sys.exit(1)
-    
+
     # Build uvicorn command
-    cmd = [
-        "uvicorn",
-        "main:app",
-        "--host", "0.0.0.0",
-        "--port", str(port_int)
-    ]
-    
+    cmd = ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", str(port_int)]
+
     # Add reload flag for development
     if debug and environment == "development":
         cmd.append("--reload")
-    
+
     print(f"Starting uvicorn on port {port}...")
     print(f"Command: {' '.join(cmd)}")
-    
+
     # Execute uvicorn
     try:
         os.execvp(cmd[0], cmd)
@@ -84,5 +81,6 @@ def main():
         print(f"❌ Failed to start server: {e}")
         sys.exit(1)
 
+
 if __name__ == "__main__":
-    main() 
+    main()

@@ -7,7 +7,7 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
 import { Badge } from '@/components/ui/badge';
-import type { Activity, AlertCircle, Clock, Wifi, WifiOff } from 'lucide-react';
+import { Activity, AlertCircle, Clock, Wifi, WifiOff } from 'lucide-react';
 import type { StatusIndicatorProps } from '../../types/api/observability/agent-performance';
 
 const statusConfig = {

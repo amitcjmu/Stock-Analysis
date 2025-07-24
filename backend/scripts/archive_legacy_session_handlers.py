@@ -14,11 +14,13 @@ SESSION_HANDLERS_DIR = BACKEND_ROOT / "app" / "services" / "session_handlers"
 ARCHIVE_DIR = BACKEND_ROOT / "archive" / "legacy_session_handlers"
 TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 
+
 def create_archive_directory():
     """Create archive directory structure."""
     archive_path = ARCHIVE_DIR / TIMESTAMP
     archive_path.mkdir(parents=True, exist_ok=True)
     return archive_path
+
 
 def create_archive_readme(archive_path: Path):
     """Create README file explaining the archive."""
@@ -60,59 +62,64 @@ The following files were also marked as deprecated but not archived:
 
 For questions about this migration, refer to the V2 Discovery Flow implementation documentation.
 """
-    
+
     readme_path = archive_path / "README.md"
-    with open(readme_path, 'w') as f:
+    with open(readme_path, "w") as f:
         f.write(readme_content)
-    
+
     print(f"✅ Created archive README: {readme_path}")
+
 
 def archive_session_handlers():
     """Archive the session handlers directory."""
     if not SESSION_HANDLERS_DIR.exists():
         print(f"⚠️ Session handlers directory not found: {SESSION_HANDLERS_DIR}")
         return False
-    
+
     # Create archive directory
     archive_path = create_archive_directory()
-    
+
     # Copy session handlers to archive
     destination = archive_path / "session_handlers"
     shutil.copytree(SESSION_HANDLERS_DIR, destination)
     print(f"✅ Archived session handlers to: {destination}")
-    
+
     # Create archive README
     create_archive_readme(archive_path)
-    
+
     # Remove original directory
     shutil.rmtree(SESSION_HANDLERS_DIR)
     print(f"✅ Removed original session handlers directory: {SESSION_HANDLERS_DIR}")
-    
+
     return True
+
 
 def update_imports():
     """Update imports that reference the archived session handlers."""
     # This would scan for imports and update them, but since we're keeping
     # the session_management_service.py for backward compatibility, we'll
     # just add conditional imports there
-    
+
     print("⚠️ Manual action required:")
-    print("   - Update session_management_service.py to handle missing session_handlers")
+    print(
+        "   - Update session_management_service.py to handle missing session_handlers"
+    )
     print("   - Add conditional imports for graceful degradation")
     print("   - Test V1 endpoints still work with archived handlers")
+
 
 def main():
     """Main archive process."""
     print("🗂️ Starting legacy session handlers archive process...")
     print(f"Source: {SESSION_HANDLERS_DIR}")
     print(f"Archive: {ARCHIVE_DIR}")
-    
+
     # Confirm with user
     response = input("\nProceed with archiving legacy session handlers? (y/N): ")
-    if response.lower() != 'y':
+    if response.lower() != "y":
         print("❌ Archive process cancelled")
         return
-    
+
     # Perform archive
     if archive_session_handlers():
         print("\n✅ Legacy session handlers archived successfully!")
@@ -124,5 +131,6 @@ def main():
     else:
         print("\n❌ Archive process failed")
 
+
 if __name__ == "__main__":
-    main() 
+    main()

@@ -1,5 +1,5 @@
 import React from 'react';
-import type { StarHalf } from 'lucide-react'
+import { StarHalf } from 'lucide-react'
 import { Star } from 'lucide-react'
 
 interface StarRatingProps {

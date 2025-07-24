@@ -1,6 +1,5 @@
 import React from 'react';
 import Sidebar from '@/components/Sidebar';
-import type MobileSidebar from '@/components/MobileSidebar';
 import Header from '@/components/Header';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClient } from '@/contexts/ClientContext';

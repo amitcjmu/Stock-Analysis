@@ -2,7 +2,7 @@ import type React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCostMetrics, useResourceCosts } from '@/hooks/finops/useFinOpsQueries';
 import { NavigationSidebar } from '@/components/navigation/NavigationSidebar';
-import type { Brain, BarChart, LineChart, Filter, RefreshCw } from 'lucide-react'
+import { Brain, BarChart, LineChart, Filter, RefreshCw } from 'lucide-react'
 import { Download } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';

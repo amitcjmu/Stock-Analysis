@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import type { ArchitectureStandard } from '@/hooks/useAssessmentFlow';
-import type { Network } from 'lucide-react'
+import { Network } from 'lucide-react'
 import { Building2, Cloud, Shield, Cpu, Database } from 'lucide-react'
 
 interface Template {

@@ -9,11 +9,10 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, select, update
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.asset import Asset
 from app.models.discovery_flow import DiscoveryFlow
+from sqlalchemy import and_, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..queries.asset_queries import AssetQueries
 

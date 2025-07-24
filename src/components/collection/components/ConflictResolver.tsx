@@ -14,11 +14,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import type { FormInput } from 'lucide-react'
+import { FormInput } from 'lucide-react'
 import { GitMerge, AlertTriangle, CheckCircle, Clock, User, Database, Upload } from 'lucide-react'
 import { cn } from '@/lib/utils';
 
-import type { ConflictResolverProps, DataConflict, ConflictingValue, ConflictResolution } from '../types';
+import type { ConflictResolverProps, ConflictingValue, ConflictResolution } from '../types';
+import { DataConflict } from '../types';
 
 export const ConflictResolver: React.FC<ConflictResolverProps> = ({
   conflicts,

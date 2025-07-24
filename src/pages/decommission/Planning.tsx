@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react'
 import Sidebar from '../../components/Sidebar';
-import type { Filter, AlertTriangle, Users } from 'lucide-react'
+import { Filter, AlertTriangle, Users } from 'lucide-react'
 import { FileText, Search, Download, CheckCircle, Clock } from 'lucide-react'
 
 const DecommissionPlanning = () => {

@@ -1,6 +1,6 @@
 import React from 'react'
 import { useState } from 'react'
-import type { Brain, AlertCircle } from 'lucide-react'
+import { Brain, AlertCircle } from 'lucide-react'
 import { Lightbulb, Target, TrendingUp, ChevronDown, ChevronUp, Zap, Edit3, Check, X } from 'lucide-react'
 
 interface QualityIssue {

@@ -6,11 +6,10 @@ import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 # Direct UnifiedDiscoveryFlow imports removed - use MasterFlowOrchestrator instead
 from app.core.context import RequestContext
 from app.services.flows.base_flow import BaseDiscoveryFlow
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
