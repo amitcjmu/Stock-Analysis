@@ -146,14 +146,13 @@ async def get_context_clients(
                 )
             )
 
-            # Debug: Print the actual SQL query
-            try:
-                compiled_query = str(
-                    access_query.compile(compile_kwargs={"literal_binds": True})
-                )
-                logger.info(f"🔍 SQL Query: {compiled_query}")
-            except Exception as e:
-                logger.info(f"🔍 SQL Query compilation failed: {e}")
+            # Debug: Print the actual SQL query (only in development)
+            if logger.isEnabledFor(logging.DEBUG):
+                try:
+                    compiled_query = str(access_query.compile())
+                    logger.debug(f"🔍 SQL Query structure: {compiled_query}")
+                except Exception as e:
+                    logger.debug(f"🔍 SQL Query compilation failed: {e}")
 
             result = await db.execute(access_query)
             accessible_clients = result.all()
