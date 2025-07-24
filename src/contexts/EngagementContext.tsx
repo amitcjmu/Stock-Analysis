@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { apiCall } from '@/config/api';
 import { useAuth } from './AuthContext';
 import { useClient } from './ClientContext';
+import { DEMO_USER_ID, DEMO_ENGAGEMENT_DATA } from '@/constants/demo';
 
 interface Engagement {
   id: string;
@@ -43,23 +44,8 @@ export const EngagementProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   useEffect(() => {
     // If demo user, set demo engagement and skip fetch
-    const demoUserId = '33333333-3333-3333-3333-333333333333';
-    const demoEngagement = {
-      id: '22222222-2222-2222-2222-222222222222',
-      name: 'Demo Cloud Migration Project',
-      client_id: '11111111-1111-1111-1111-111111111111',
-      status: 'active' as const,
-      type: 'migration' as const,
-      start_date: '2024-01-01T00:00:00Z',
-      end_date: '2024-12-31T23:59:59Z',
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z',
-      metadata: {
-        project_manager: 'Demo PM',
-        budget: 1000000
-      }
-    };
-    if (user && user.id === demoUserId) {
+    const demoEngagement = DEMO_ENGAGEMENT_DATA;
+    if (user && user.id === DEMO_USER_ID) {
       setCurrentEngagement(demoEngagement);
       setIsLoading(false);
       setError(null);

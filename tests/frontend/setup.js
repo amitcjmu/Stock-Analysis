@@ -166,7 +166,7 @@ expect.extend({
 
   toHaveValidSummaryStructure(received) {
     const requiredFields = ['total', 'applications', 'servers', 'databases', 'devices', 'unknown'];
-    const hasAllFields = requiredFields.every(field => 
+    const hasAllFields = received && typeof received === 'object' && requiredFields.every(field => 
       Object.prototype.hasOwnProperty.call(received, field) && typeof received[field] === 'number'
     );
     

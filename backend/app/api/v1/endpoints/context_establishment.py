@@ -37,6 +37,9 @@ except ImportError:
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+# Demo data constants
+DEMO_CLIENT_ID = "11111111-1111-1111-1111-111111111111"
+
 
 # Response models for context establishment
 class ClientResponse(BaseModel):
@@ -84,7 +87,7 @@ async def get_context_clients(
             # Return demo data if models not available
             demo_clients = [
                 ClientResponse(
-                    id="11111111-1111-1111-1111-111111111111",
+                    id=DEMO_CLIENT_ID,
                     name="Democorp",
                     industry="Technology",
                     company_size="Enterprise",
@@ -177,7 +180,7 @@ async def get_context_clients(
 
                 # Check if ClientAccount records exist
                 debug_client_query = select(ClientAccount).where(
-                    ClientAccount.id == "11111111-1111-1111-1111-111111111111"
+                    ClientAccount.id == DEMO_CLIENT_ID
                 )
                 debug_client_result = await db.execute(debug_client_query)
                 debug_clients = debug_client_result.all()
@@ -209,7 +212,7 @@ async def get_context_clients(
             ):
                 demo_client_query = select(ClientAccount).where(
                     and_(
-                        ClientAccount.id == "11111111-1111-1111-1111-111111111111",
+                        ClientAccount.id == DEMO_CLIENT_ID,
                         ClientAccount.is_active == True,
                     )
                 )
@@ -235,7 +238,7 @@ async def get_context_clients(
         if current_user.email and current_user.email.endswith("@demo-corp.com"):
             demo_clients = [
                 ClientResponse(
-                    id="11111111-1111-1111-1111-111111111111",
+                    id=DEMO_CLIENT_ID,
                     name="Democorp",
                     industry="Technology",
                     company_size="Enterprise",
@@ -270,7 +273,7 @@ async def get_context_engagements(
 
         if not CLIENT_ACCOUNT_AVAILABLE:
             # Return demo data if models not available (only for demo client)
-            if client_id == "11111111-1111-1111-1111-111111111111":
+            if client_id == DEMO_CLIENT_ID:
                 demo_engagements = [
                     EngagementResponse(
                         id="22222222-2222-2222-2222-222222222222",
@@ -341,7 +344,7 @@ async def get_context_engagements(
             is_demo_access = (
                 current_user.email
                 and current_user.email.endswith("@demo-corp.com")
-                and client_id == "11111111-1111-1111-1111-111111111111"
+                and client_id == DEMO_CLIENT_ID
             )
 
             if not client_access and not is_demo_access:
@@ -401,7 +404,7 @@ async def get_context_engagements(
 
         logger.error(f"Traceback: {traceback.format_exc()}")
         # Return demo data as fallback only for demo client
-        if client_id == "11111111-1111-1111-1111-111111111111":
+        if client_id == DEMO_CLIENT_ID:
             demo_engagements = [
                 EngagementResponse(
                     id="22222222-2222-2222-2222-222222222222",

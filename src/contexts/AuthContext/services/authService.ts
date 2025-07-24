@@ -441,18 +441,22 @@ export const useAuthService = (
         // Client is already set but engagement is missing
         console.log('🔍 Client already set but engagement missing, fetching engagements');
         
-        const engagementsResponse = await apiCall(`/api/v1/context-establishment/engagements?client_id=${targetClient.id}`, {
-          method: 'GET',
-          headers: getAuthHeaders()
-        }, false); // Don't include context - we're establishing it
-        
-        console.log('🔍 Got engagements response:', engagementsResponse);
-        
-        if (engagementsResponse?.engagements && engagementsResponse.engagements.length > 0) {
-          const defaultEngagement = engagementsResponse.engagements[0];
-          console.log('🔍 Switching to default engagement:', defaultEngagement.id);
-          await switchEngagement(defaultEngagement.id, defaultEngagement);
-          console.log('🔍 switchEngagement completed');
+        try {
+          const engagementsResponse = await apiCall(`/api/v1/context-establishment/engagements?client_id=${targetClient.id}`, {
+            method: 'GET',
+            headers: getAuthHeaders()
+          }, false); // Don't include context - we're establishing it
+          
+          console.log('🔍 Got engagements response:', engagementsResponse);
+          
+          if (engagementsResponse?.engagements && engagementsResponse.engagements.length > 0) {
+            const defaultEngagement = engagementsResponse.engagements[0];
+            console.log('🔍 Switching to default engagement:', defaultEngagement.id);
+            await switchEngagement(defaultEngagement.id, defaultEngagement);
+            console.log('🔍 switchEngagement completed');
+          }
+        } catch (error) {
+          console.error('🔍 Failed to fetch engagements:', error);
         }
       } else {
         console.log('🔍 No client switch needed');
