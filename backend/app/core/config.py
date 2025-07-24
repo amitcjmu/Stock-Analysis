@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     DEBUG: bool = Field(default=True, env="DEBUG")
 
     # Server settings
-    HOST: str = Field(default="0.0.0.0", env="HOST")
+    HOST: str = Field(default="0.0.0.0", env="HOST")  # nosec B104
     PORT: int = Field(default=8000, env="PORT")
     API_V1_STR: str = "/api/v1"
 
@@ -154,13 +154,14 @@ class Settings(BaseSettings):
     # Note: Removed timeout restrictions for agentic classification activities
     # These operations can take varying amounts of time based on data load
     # and should not be artificially limited by timeouts
-    CREWAI_LLM_MODEL: str = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
-    CREWAI_LLM_TEMPERATURE: float = 0.0
-    CREWAI_LLM_MAX_TOKENS: int = 1500
-    CREWAI_LLM_BASE_URL: str = "https://api.deepinfra.com/v1/openai"
-    CREWAI_RETRY_ATTEMPTS: int = 3
-    CREWAI_RETRY_WAIT_SECONDS: int = 2
-    CREWAI_FLOW_TTL_HOURS: int = 1
+    CREWAI_LLM_TEMPERATURE: float = Field(default=0.0, env="CREWAI_LLM_TEMPERATURE")
+    CREWAI_LLM_MAX_TOKENS: int = Field(default=1500, env="CREWAI_LLM_MAX_TOKENS")
+    CREWAI_LLM_BASE_URL: str = Field(
+        default="https://api.deepinfra.com/v1/openai", env="CREWAI_LLM_BASE_URL"
+    )
+    CREWAI_RETRY_ATTEMPTS: int = Field(default=3, env="CREWAI_RETRY_ATTEMPTS")
+    CREWAI_RETRY_WAIT_SECONDS: int = Field(default=2, env="CREWAI_RETRY_WAIT_SECONDS")
+    CREWAI_FLOW_TTL_HOURS: int = Field(default=1, env="CREWAI_FLOW_TTL_HOURS")
 
     model_config = ConfigDict(
         env_file=".env",
