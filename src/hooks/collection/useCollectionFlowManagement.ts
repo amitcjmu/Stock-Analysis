@@ -77,7 +77,7 @@ export interface FlowContinueResult {
 // Hook for detecting incomplete collection flows
 export const useIncompleteCollectionFlows = (enabled: boolean = true) => {
   console.log('🔍 useIncompleteCollectionFlows hook called with enabled:', enabled);
-  
+
   const queryResult = useQuery({
     queryKey: ['collection-flows', 'incomplete'],
     queryFn: async () => {
@@ -88,7 +88,7 @@ export const useIncompleteCollectionFlows = (enabled: boolean = true) => {
         return result;
       } catch (error: unknown) {
         console.error('❌ Failed to fetch incomplete flows:', error);
-        
+
         // If it's an auth error, don't throw it back to React Query
         // This prevents retries and lets the auth context handle the redirect
         if (error?.status === 401 || error?.isAuthError) {
@@ -96,7 +96,7 @@ export const useIncompleteCollectionFlows = (enabled: boolean = true) => {
           // Return empty array to prevent UI errors
           return [];
         }
-        
+
         throw error;
       }
     },
@@ -106,6 +106,20 @@ export const useIncompleteCollectionFlows = (enabled: boolean = true) => {
       if (query?.state?.error?.status === 401 || query?.state?.error?.isAuthError) {
         return false;
       }
+
+      // Stop polling if all flows are in terminal states
+      if (data && Array.isArray(data)) {
+        const hasActiveFlows = data.some(flow => {
+          const status = flow.status?.toLowerCase();
+          return status !== 'completed' && status !== 'failed' && status !== 'cancelled';
+        });
+
+        if (!hasActiveFlows) {
+          console.log('✅ All flows are in terminal states, stopping polling');
+          return false;
+        }
+      }
+
       return 30000; // Refetch every 30 seconds
     },
     staleTime: 10000, // Consider data stale after 10 seconds
@@ -118,7 +132,7 @@ export const useIncompleteCollectionFlows = (enabled: boolean = true) => {
       return failureCount < 3;
     }
   });
-  
+
   console.log('🔍 Query result:', {
     isLoading: queryResult.isLoading,
     isFetching: queryResult.isFetching,
@@ -126,7 +140,7 @@ export const useIncompleteCollectionFlows = (enabled: boolean = true) => {
     data: queryResult.data,
     error: queryResult.error
   });
-  
+
   return queryResult;
 };
 
@@ -217,16 +231,16 @@ export const useCollectionFlowManagement = () => {
     onMutate: () => setIsOperationPending(true),
     onSuccess: (data: CleanupResult) => {
       const title = data.dry_run ? "Cleanup Preview" : "Cleanup Completed";
-      const description = data.dry_run 
+      const description = data.dry_run
         ? `Would clean ${data.flows_cleaned} flows, recovering ${data.space_recovered}`
         : `Cleaned ${data.flows_cleaned} flows, recovered ${data.space_recovered}`;
-      
+
       toast({
         title,
         description,
         variant: "default"
       });
-      
+
       if (!data.dry_run) {
         queryClient.invalidateQueries({ queryKey: ['collection-flows'] });
       }
@@ -264,14 +278,14 @@ export const useCollectionFlowManagement = () => {
     deleteFlow,
     batchDeleteFlows,
     cleanupFlows,
-    
+
     // Loading states
     isContinuing: continueFlowMutation.isPending,
     isDeleting: deleteFlowMutation.isPending,
     isBatchDeleting: batchDeleteMutation.isPending,
     isCleaning: cleanupFlowsMutation.isPending,
     isOperationPending,
-    
+
     // Mutation objects for advanced usage
     continueFlowMutation,
     deleteFlowMutation,
@@ -285,7 +299,20 @@ export const useCollectionFlowStatus = (flowId?: string, enabled: boolean = true
     queryKey: ['collection-flows', 'status', flowId],
     queryFn: () => collectionFlowApi.getFlowStatus(),
     enabled: enabled && !!flowId,
-    refetchInterval: 5000, // Refetch every 5 seconds for active monitoring
+    refetchInterval: (data) => {
+      // Stop polling if flow is in terminal state
+      if (data) {
+        const status = data.status?.toLowerCase();
+        const progress = data.progress || 0;
+
+        if (status === 'completed' || status === 'failed' || status === 'cancelled' || progress >= 100) {
+          console.log(`✅ Flow ${flowId} reached terminal state (${status}, progress: ${progress}%), stopping polling`);
+          return false;
+        }
+      }
+
+      return 5000; // Continue polling every 5 seconds for active monitoring
+    },
     staleTime: 2000
   });
 };
