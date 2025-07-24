@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ReadinessAssessment } from '../types';
+import type { ReadinessAssessment } from '../types';
 import { getReadinessColor, getReadinessBadgeVariant } from '../utils';
 
 interface ReadinessScoreCardProps {

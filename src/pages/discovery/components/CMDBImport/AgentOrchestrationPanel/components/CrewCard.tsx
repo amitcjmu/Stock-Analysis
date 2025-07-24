@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Users } from 'lucide-react';
-import { CrewProgress } from '../types';
+import type { CrewProgress } from '../types';
 import { getStatusBadgeVariant } from '../utils'
 import { getStatusIconWithStyles, getCrewStatusStyles, getIconContainerStyles, formatStatusText } from '../utils'
 

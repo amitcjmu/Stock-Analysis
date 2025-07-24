@@ -34,7 +34,7 @@ import { LoadingSpinner, ProgressiveLoader } from './LoadingStates'
 import { useComponentVisibility, useGridLayout } from './hooks/useResponsiveLayout'
 import { agentObservabilityService } from '../../services/api/agentObservabilityService';
 
-import { 
+import type { 
   AgentListOverviewProps,
   AgentCardData,
   AgentListState,

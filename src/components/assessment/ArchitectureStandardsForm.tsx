@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArchitectureStandard } from '@/hooks/useAssessmentFlow';
+import type { ArchitectureStandard } from '@/hooks/useAssessmentFlow';
 import { Plus, Trash2, Edit3, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

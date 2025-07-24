@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState } from 'react'
 import { useEffect, useMemo } from 'react'
-import { GetServerSideProps } from 'next/router';
+import type { GetServerSideProps } from 'next/router';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { ComponentIdentificationPanel } from '@/components/assessment/ComponentIdentificationPanel';
 import { TechDebtAnalysisGrid } from '@/components/assessment/TechDebtAnalysisGrid';
@@ -9,7 +9,7 @@ import { SeverityFilter } from '@/components/assessment/SeverityFilter';
 import { ApplicationTabs } from '@/components/assessment/ApplicationTabs';
 import { RealTimeProgressIndicator } from '@/components/assessment/RealTimeProgressIndicator';
 import { UserModificationForm } from '@/components/assessment/UserModificationForm';
-import { TechDebtItem, ApplicationComponent } from '@/hooks/useAssessmentFlow';
+import type { TechDebtItem, ApplicationComponent } from '@/hooks/useAssessmentFlow';
 import { useAssessmentFlow } from '@/hooks/useAssessmentFlow';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

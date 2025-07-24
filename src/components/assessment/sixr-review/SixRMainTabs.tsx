@@ -5,7 +5,7 @@ import { ComponentTreatmentEditor } from '@/components/assessment/ComponentTreat
 import { CompatibilityValidator } from '@/components/assessment/CompatibilityValidator';
 import { MoveGroupHintsPanel } from '@/components/assessment/MoveGroupHintsPanel';
 import { BulkEditingControls } from '@/components/assessment/BulkEditingControls';
-import { SixRDecision, ComponentTreatment } from '@/hooks/useAssessmentFlow';
+import type { SixRDecision, ComponentTreatment } from '@/hooks/useAssessmentFlow';
 
 interface SixRMainTabsProps {
   decision: SixRDecision;

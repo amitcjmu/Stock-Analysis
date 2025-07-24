@@ -21,7 +21,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { performanceMonitor } from '@/utils/lazy/performanceMonitor';
-import { BundleAnalysis } from '@/types/lazy';
+import type { BundleAnalysis } from '@/types/lazy';
 
 interface PerformanceInsight {
   type: 'optimization' | 'warning' | 'error' | 'info';

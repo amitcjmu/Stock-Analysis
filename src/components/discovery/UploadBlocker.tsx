@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { IncompleteFlowV2 } from '@/hooks/discovery/useFlowOperations';
+import type { IncompleteFlowV2 } from '@/hooks/discovery/useFlowOperations';
 import { useFlowCleanup } from '@/hooks/useFlowDeletion';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';

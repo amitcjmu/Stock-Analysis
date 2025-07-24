@@ -18,17 +18,73 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Create credential status enum
-    sa.Enum('active', 'expired', 'revoked', 'pending_rotation', name='credentialstatus').create(op.get_bind())
+    bind = op.get_bind()
     
-    # Create credential type enum
-    sa.Enum('api_key', 'oauth2', 'basic_auth', 'service_account', 'certificate', 'ssh_key', 'custom', name='credentialtype').create(op.get_bind())
+    # Create credential status enum if it doesn't exist
+    result = bind.execute(sa.text("SELECT EXISTS(SELECT 1 FROM pg_type WHERE typname = 'credentialstatus')")).scalar()
+    if not result:
+        sa.Enum('active', 'expired', 'revoked', 'pending_rotation', name='credentialstatus').create(bind)
     
-    # Create vault provider enum
-    sa.Enum('local', 'aws_kms', 'azure_keyvault', 'gcp_kms', 'hashicorp_vault', name='vaultprovider').create(op.get_bind())
+    # Create credential type enum if it doesn't exist
+    result = bind.execute(sa.text("SELECT EXISTS(SELECT 1 FROM pg_type WHERE typname = 'credentialtype')")).scalar()
+    if not result:
+        sa.Enum('api_key', 'oauth2', 'basic_auth', 'service_account', 'certificate', 'ssh_key', 'custom', name='credentialtype').create(bind)
+    
+    # Create vault provider enum if it doesn't exist
+    result = bind.execute(sa.text("SELECT EXISTS(SELECT 1 FROM pg_type WHERE typname = 'vaultprovider')")).scalar()
+    if not result:
+        sa.Enum('local', 'aws_kms', 'azure_keyvault', 'gcp_kms', 'hashicorp_vault', name='vaultprovider').create(bind)
+    
+    # Helper functions
+    def table_exists(table_name):
+        """Check if a table exists in the database"""
+        result = bind.execute(
+            sa.text(
+                """
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_schema = 'migration' 
+                    AND table_name = :table_name
+                )
+                """
+            ),
+            {"table_name": table_name}
+        ).scalar()
+        return result
+
+    def create_table_if_not_exists(table_name, *columns, **kwargs):
+        """Create a table only if it doesn't already exist"""
+        if not table_exists(table_name):
+            op.create_table(table_name, *columns, **kwargs)
+        else:
+            print(f"Table {table_name} already exists, skipping creation")
+
+    def index_exists(index_name, table_name):
+        """Check if an index exists on a table"""
+        result = bind.execute(
+            sa.text(
+                """
+                SELECT EXISTS (
+                    SELECT FROM pg_indexes 
+                    WHERE schemaname = 'migration' 
+                    AND tablename = :table_name 
+                    AND indexname = :index_name
+                )
+                """
+            ),
+            {"table_name": table_name, "index_name": index_name}
+        ).scalar()
+        return result
+
+    def create_index_if_not_exists(index_name, table_name, columns, **kwargs):
+        """Create an index only if it doesn't already exist"""
+        if table_exists(table_name) and not index_exists(index_name, table_name):
+            op.create_index(index_name, table_name, columns, **kwargs)
+        else:
+            print(f"Index {index_name} already exists or table doesn't exist, skipping creation")
     
     # Create platform_credentials table (A4.1)
-    op.create_table('platform_credentials',
+    create_table_if_not_exists('platform_credentials',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('client_account_id', sa.UUID(), nullable=False),
         sa.Column('platform_adapter_id', sa.UUID(), nullable=False),
@@ -55,14 +111,14 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('id', name=op.f('pk_platform_credentials')),
         sa.UniqueConstraint('client_account_id', 'platform_adapter_id', 'credential_name', name='_client_platform_credential_uc')
     )
-    op.create_index(op.f('ix_platform_credentials_client_account_id'), 'platform_credentials', ['client_account_id'], unique=False)
-    op.create_index(op.f('ix_platform_credentials_platform_adapter_id'), 'platform_credentials', ['platform_adapter_id'], unique=False)
-    op.create_index(op.f('ix_platform_credentials_credential_type'), 'platform_credentials', ['credential_type'], unique=False)
-    op.create_index(op.f('ix_platform_credentials_status'), 'platform_credentials', ['status'], unique=False)
-    op.create_index(op.f('ix_platform_credentials_expires_at'), 'platform_credentials', ['expires_at'], unique=False)
+    create_index_if_not_exists(op.f('ix_platform_credentials_client_account_id'), 'platform_credentials', ['client_account_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_platform_credentials_platform_adapter_id'), 'platform_credentials', ['platform_adapter_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_platform_credentials_credential_type'), 'platform_credentials', ['credential_type'], unique=False)
+    create_index_if_not_exists(op.f('ix_platform_credentials_status'), 'platform_credentials', ['status'], unique=False)
+    create_index_if_not_exists(op.f('ix_platform_credentials_expires_at'), 'platform_credentials', ['expires_at'], unique=False)
     
     # Create credential_access_logs table (A4.5)
-    op.create_table('credential_access_logs',
+    create_table_if_not_exists('credential_access_logs',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('credential_id', sa.UUID(), nullable=False),
         sa.Column('accessed_by', sa.UUID(), nullable=False),
@@ -80,14 +136,14 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['credential_id'], ['platform_credentials.id'], name=op.f('fk_credential_access_logs_credential_id_platform_credentials'), ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id', name=op.f('pk_credential_access_logs'))
     )
-    op.create_index(op.f('ix_credential_access_logs_credential_id'), 'credential_access_logs', ['credential_id'], unique=False)
-    op.create_index(op.f('ix_credential_access_logs_accessed_by'), 'credential_access_logs', ['accessed_by'], unique=False)
-    op.create_index(op.f('ix_credential_access_logs_accessed_at'), 'credential_access_logs', ['accessed_at'], unique=False)
-    op.create_index(op.f('ix_credential_access_logs_access_type'), 'credential_access_logs', ['access_type'], unique=False)
-    op.create_index(op.f('ix_credential_access_logs_success'), 'credential_access_logs', ['success'], unique=False)
+    create_index_if_not_exists(op.f('ix_credential_access_logs_credential_id'), 'credential_access_logs', ['credential_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_credential_access_logs_accessed_by'), 'credential_access_logs', ['accessed_by'], unique=False)
+    create_index_if_not_exists(op.f('ix_credential_access_logs_accessed_at'), 'credential_access_logs', ['accessed_at'], unique=False)
+    create_index_if_not_exists(op.f('ix_credential_access_logs_access_type'), 'credential_access_logs', ['access_type'], unique=False)
+    create_index_if_not_exists(op.f('ix_credential_access_logs_success'), 'credential_access_logs', ['success'], unique=False)
     
     # Create credential_rotation_history table (A4.6)
-    op.create_table('credential_rotation_history',
+    create_table_if_not_exists('credential_rotation_history',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('credential_id', sa.UUID(), nullable=False),
         sa.Column('rotation_type', sa.VARCHAR(length=50), nullable=False),
@@ -103,12 +159,12 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['rotated_by'], ['users.id'], name=op.f('fk_credential_rotation_history_rotated_by_users')),
         sa.PrimaryKeyConstraint('id', name=op.f('pk_credential_rotation_history'))
     )
-    op.create_index(op.f('ix_credential_rotation_history_credential_id'), 'credential_rotation_history', ['credential_id'], unique=False)
-    op.create_index(op.f('ix_credential_rotation_history_rotated_at'), 'credential_rotation_history', ['rotated_at'], unique=False)
-    op.create_index(op.f('ix_credential_rotation_history_rotation_type'), 'credential_rotation_history', ['rotation_type'], unique=False)
+    create_index_if_not_exists(op.f('ix_credential_rotation_history_credential_id'), 'credential_rotation_history', ['credential_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_credential_rotation_history_rotated_at'), 'credential_rotation_history', ['rotated_at'], unique=False)
+    create_index_if_not_exists(op.f('ix_credential_rotation_history_rotation_type'), 'credential_rotation_history', ['rotation_type'], unique=False)
     
     # Create credential_permissions table (A4.4)
-    op.create_table('credential_permissions',
+    create_table_if_not_exists('credential_permissions',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('credential_id', sa.UUID(), nullable=False),
         sa.Column('user_id', sa.UUID(), nullable=True),
@@ -127,25 +183,66 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('id', name=op.f('pk_credential_permissions')),
         sa.CheckConstraint('(user_id IS NOT NULL) OR (role IS NOT NULL)', name=op.f('ck_credential_permissions_user_or_role'))
     )
-    op.create_index(op.f('ix_credential_permissions_credential_id'), 'credential_permissions', ['credential_id'], unique=False)
-    op.create_index(op.f('ix_credential_permissions_user_id'), 'credential_permissions', ['user_id'], unique=False)
-    op.create_index(op.f('ix_credential_permissions_role'), 'credential_permissions', ['role'], unique=False)
-    op.create_index(op.f('ix_credential_permissions_permission_type'), 'credential_permissions', ['permission_type'], unique=False)
+    create_index_if_not_exists(op.f('ix_credential_permissions_credential_id'), 'credential_permissions', ['credential_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_credential_permissions_user_id'), 'credential_permissions', ['user_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_credential_permissions_role'), 'credential_permissions', ['role'], unique=False)
+    create_index_if_not_exists(op.f('ix_credential_permissions_permission_type'), 'credential_permissions', ['permission_type'], unique=False)
+    
+    # Helper function to check if column exists
+    def column_exists(table_name, column_name):
+        """Check if a column exists in a table"""
+        result = bind.execute(
+            sa.text(
+                """
+                SELECT EXISTS (
+                    SELECT FROM information_schema.columns 
+                    WHERE table_schema = 'migration' 
+                    AND table_name = :table_name 
+                    AND column_name = :column_name
+                )
+                """
+            ),
+            {"table_name": table_name, "column_name": column_name}
+        ).scalar()
+        return result
+    
+    # Helper function to check if foreign key exists
+    def foreign_key_exists(constraint_name, table_name):
+        """Check if a foreign key constraint exists"""
+        result = bind.execute(
+            sa.text(
+                """
+                SELECT EXISTS (
+                    SELECT FROM information_schema.table_constraints 
+                    WHERE constraint_schema = 'migration' 
+                    AND table_name = :table_name 
+                    AND constraint_name = :constraint_name
+                    AND constraint_type = 'FOREIGN KEY'
+                )
+                """
+            ),
+            {"table_name": table_name, "constraint_name": constraint_name}
+        ).scalar()
+        return result
     
     # Add credential_id reference to collected_data_inventory table
-    op.add_column('collected_data_inventory', 
-        sa.Column('credential_id', sa.UUID(), nullable=True))
-    
-    # Add foreign key constraint for credential_id
-    op.create_foreign_key(
-        op.f('fk_collected_data_inventory_credential_id_platform_credentials'),
-        'collected_data_inventory', 'platform_credentials',
-        ['credential_id'], ['id'],
-        ondelete='SET NULL'
-    )
+    if table_exists('collected_data_inventory'):
+        if not column_exists('collected_data_inventory', 'credential_id'):
+            op.add_column('collected_data_inventory', 
+                sa.Column('credential_id', sa.UUID(), nullable=True))
+        
+        # Add foreign key constraint for credential_id
+        constraint_name = 'fk_collected_data_inventory_credential_id_platform_credentials'
+        if not foreign_key_exists(constraint_name, 'collected_data_inventory'):
+            op.create_foreign_key(
+                op.f(constraint_name),
+                'collected_data_inventory', 'platform_credentials',
+                ['credential_id'], ['id'],
+                ondelete='SET NULL'
+            )
     
     # Add index for credential_id
-    op.create_index(op.f('ix_collected_data_inventory_credential_id'), 
+    create_index_if_not_exists(op.f('ix_collected_data_inventory_credential_id'), 
                     'collected_data_inventory', ['credential_id'], unique=False)
 
 

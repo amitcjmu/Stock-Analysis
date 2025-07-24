@@ -6,7 +6,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { AgentStatusIndicator } from '../AgentStatusIndicator';
-import { AgentComparisonData } from '../hooks/useAgentComparison';
+import type { AgentComparisonData } from '../hooks/useAgentComparison';
 
 interface RankingsOverviewProps {
   comparisonData: AgentComparisonData[];

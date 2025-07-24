@@ -1,7 +1,7 @@
 import React from 'react'
 import { createContext, useContext, useState } from 'react'
 import { useCallback } from 'react'
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import {
   Dialog,
   DialogContent,

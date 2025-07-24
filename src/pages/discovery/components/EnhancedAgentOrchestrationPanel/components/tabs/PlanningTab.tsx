@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Target, TrendingUp, Settings, Timer } from 'lucide-react';
-import { PlanningData } from '../../types';
+import type { PlanningData } from '../../types';
 
 interface PlanningTabProps {
   planningData: PlanningData | null;

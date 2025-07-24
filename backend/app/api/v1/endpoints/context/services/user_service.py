@@ -364,7 +364,9 @@ class UserService:
             id=str(engagement.id),
             name=engagement.name,
             description=engagement.description or f"Engagement: {engagement.name}",
-            client_id=str(engagement.client_account_id),  # Use the actual foreign key field
+            client_id=str(
+                engagement.client_account_id
+            ),  # Use the actual foreign key field
             created_at=engagement.created_at or now,
             updated_at=engagement.updated_at or now,
         )

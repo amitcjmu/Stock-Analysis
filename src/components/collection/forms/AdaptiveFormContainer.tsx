@@ -15,7 +15,7 @@ import { ValidationDisplay } from '@/components/collection/ValidationDisplay';
 import { BulkDataGrid } from '@/components/collection/BulkDataGrid';
 
 // Import types
-import { 
+import type { 
   AdaptiveFormData, 
   CollectionFormData, 
   FormValidationResult,

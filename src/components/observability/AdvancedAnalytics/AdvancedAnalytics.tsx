@@ -14,7 +14,7 @@ import { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
-import { AdvancedAnalyticsProps } from './types';
+import type { AdvancedAnalyticsProps } from './types';
 import { METRIC_CONFIGS } from './constants';
 import { TrendIndicator } from './components';
 import { useAnalyticsData, useChartData } from './hooks';

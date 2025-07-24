@@ -3,10 +3,10 @@ import { useState } from 'react'
 import { useMemo, useEffect } from 'react'
 import { Target, AlertTriangle } from 'lucide-react';
 import ThreeColumnFieldMapper from './FieldMappingsTab/components/ThreeColumnFieldMapper/ThreeColumnFieldMapper';
-import { TargetField } from './FieldMappingsTab/types';
+import type { TargetField } from './FieldMappingsTab/types';
 import { useAuth } from '../../../contexts/AuthContext';
 import { apiCall, API_CONFIG } from '../../../config/api';
-import { FieldMapping } from '../../../types/hooks/discovery/attribute-mapping-hooks';
+import type { FieldMapping } from '../../../types/hooks/discovery/attribute-mapping-hooks';
 
 interface CriticalAttributesTabProps {
   fieldMappings?: FieldMapping[];

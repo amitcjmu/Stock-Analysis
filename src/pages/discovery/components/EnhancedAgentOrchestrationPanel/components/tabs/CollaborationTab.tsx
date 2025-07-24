@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { MessageSquare, Users, Brain, Zap } from 'lucide-react';
-import { CollaborationData } from '../../types';
+import type { CollaborationData } from '../../types';
 
 interface CollaborationTabProps {
   collaborationData: CollaborationData | null;

@@ -4,7 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import type userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import ParameterSliders from '../ParameterSliders'
-import { SixRParameters } from '../ParameterSliders'
+import type { SixRParameters } from '../ParameterSliders'
 
 // Mock the toast function
 vi.mock('sonner', () => ({

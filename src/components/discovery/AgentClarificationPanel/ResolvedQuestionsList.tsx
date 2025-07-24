@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { CheckCircle } from 'lucide-react';
-import { AgentQuestion } from './types';
+import type { AgentQuestion } from './types';
 import { formatTimestamp } from './utils';
 
 interface ResolvedQuestionsListProps {

@@ -3,7 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { CloudProviders, BusinessPriorities } from '../../types';
-import { ClientFormData } from '../../types';
+import type { ClientFormData } from '../../types';
 
 interface BusinessContextTabProps {
   formData: ClientFormData;

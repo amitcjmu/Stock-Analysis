@@ -436,7 +436,7 @@ export const useAssessmentFlow = (
     
     try {
       switch (phase) {
-        case 'architecture_minimums':
+        case 'architecture_minimums': {
           const archData = await assessmentFlowAPI.getArchitectureStandards(state.flowId);
           setState(prev => ({
             ...prev,
@@ -444,8 +444,9 @@ export const useAssessmentFlow = (
             applicationOverrides: archData.application_overrides
           }));
           break;
+        }
           
-        case 'tech_debt_analysis':
+        case 'tech_debt_analysis': {
           const techDebtData = await assessmentFlowAPI.getTechDebtAnalysis(state.flowId);
           const componentsData = await assessmentFlowAPI.getApplicationComponents(state.flowId);
           setState(prev => ({
@@ -454,9 +455,10 @@ export const useAssessmentFlow = (
             applicationComponents: componentsData.applications
           }));
           break;
+        }
           
         case 'component_sixr_strategies':
-        case 'app_on_page_generation':
+        case 'app_on_page_generation': {
           const decisionsData = await assessmentFlowAPI.getSixRDecisions(state.flowId);
           setState(prev => ({
             ...prev,
@@ -466,6 +468,7 @@ export const useAssessmentFlow = (
             }, {})
           }));
           break;
+        }
       }
     } catch (error) {
       console.error(`Failed to load ${phase} data:`, error);

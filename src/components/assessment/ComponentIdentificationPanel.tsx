@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ApplicationComponent } from '@/hooks/useAssessmentFlow';
+import type { ApplicationComponent } from '@/hooks/useAssessmentFlow';
 import { Database, Globe, Cpu } from 'lucide-react'
 import { Plus, Edit3, Trash2, Server } from 'lucide-react'
 import { cn } from '@/lib/utils';

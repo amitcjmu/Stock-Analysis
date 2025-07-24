@@ -297,7 +297,7 @@ export const useUnifiedDiscoveryFlow = (providedFlowId?: string | null): UseUnif
       }
 
       // Extract from path (e.g., /discovery/attribute-mapping/flow-123 or /discovery/attribute-mapping/uuid)
-      const pathMatch = window.location.pathname.match(/\/discovery\/[^\/]+\/([a-f0-9-]+)/);
+      const pathMatch = window.location.pathname.match(/\/discovery\/[^/]+\/([a-f0-9-]+)/);
       if (pathMatch) {
         const pathFlowId = pathMatch[1];
         localStorage.setItem('currentFlowId', pathFlowId);

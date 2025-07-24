@@ -8,7 +8,7 @@ import { useMemo } from 'react'
 import { BarChart, Bar } from 'recharts'
 import { XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, LineChart, Line } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
-import { AgentComparisonData } from '../hooks/useAgentComparison';
+import type { AgentComparisonData } from '../hooks/useAgentComparison';
 import { COMPARISON_METRICS } from '../utils/constants';
 
 interface ComparisonChartsProps {

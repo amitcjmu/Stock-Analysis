@@ -28,7 +28,7 @@ import { AgentPerformanceCard, AgentPerformanceCardCompact } from './AgentPerfor
 import { AgentStatusGroup } from './AgentStatusIndicator';
 import { agentObservabilityService } from '../../services/api/agentObservabilityService';
 
-import { 
+import type { 
   AgentListOverviewProps,
   AgentCardData,
   AgentListState,

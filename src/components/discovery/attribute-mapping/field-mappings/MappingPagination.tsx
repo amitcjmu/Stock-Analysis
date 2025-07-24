@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { MappingPaginationProps } from './types';
+import type { MappingPaginationProps } from './types';
 
 const MappingPagination: React.FC<MappingPaginationProps> = ({
   currentPage,

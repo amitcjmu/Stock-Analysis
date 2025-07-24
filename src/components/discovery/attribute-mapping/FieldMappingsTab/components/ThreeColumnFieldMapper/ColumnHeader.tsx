@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { ColumnHeaderProps } from './types';
+import type { ColumnHeaderProps } from './types';
 
 const ColumnHeader: React.FC<ColumnHeaderProps> = ({ title, count, icon, bgColor }) => (
   <div className={`${bgColor} p-4 rounded-lg mb-4`}>

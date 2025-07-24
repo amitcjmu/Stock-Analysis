@@ -15,7 +15,7 @@ import { useAdaptiveFormFlow } from '@/hooks/collection/useAdaptiveFormFlow';
 import { useIncompleteCollectionFlows, useCollectionFlowManagement } from '@/hooks/collection/useCollectionFlowManagement';
 
 // Import types
-import { ProgressMilestone } from '@/components/collection/types';
+import type { ProgressMilestone } from '@/components/collection/types';
 
 // Import UI components
 import { Button } from '@/components/ui/button';

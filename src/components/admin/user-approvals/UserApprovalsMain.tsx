@@ -18,8 +18,8 @@ import { UserList } from './UserList';
 import { UserDetailsModal } from './UserDetailsModal';
 import { ApprovalActions } from './ApprovalActions';
 import { UserManagementTabs } from './UserManagementTabs';
-import { ApprovalData, RejectionData } from './types'
-import { PendingUser, ActiveUser } from './types'
+import type { ApprovalData, RejectionData } from './types'
+import type { PendingUser, ActiveUser } from './types'
 
 export const UserApprovalsMain: React.FC = () => {
   const { getAuthHeaders } = useAuth();

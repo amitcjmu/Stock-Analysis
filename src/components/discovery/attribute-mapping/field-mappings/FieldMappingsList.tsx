@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tag } from 'lucide-react';
-import { FieldMappingsListProps } from './types';
+import type { FieldMappingsListProps } from './types';
 import FieldMappingItem from './FieldMappingItem';
 
 const FieldMappingsList: React.FC<FieldMappingsListProps> = ({

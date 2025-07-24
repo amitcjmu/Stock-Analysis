@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { validateFlowObject, createDisplaySafeUUID, debugUUID } from '@/utils/uuidValidation';
-import { FlowSummary } from '../types';
+import type { FlowSummary } from '../types';
 
 interface FlowsOverviewProps {
   flows: FlowSummary[];

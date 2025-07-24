@@ -7,9 +7,9 @@ import React from 'react';
 import { Settings } from 'lucide-react'
 import { Users, UserCheck, Clock } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ActionItem } from '@/components/admin/shared/components/ActionCard';
+import type { ActionItem } from '@/components/admin/shared/components/ActionCard';
 import { ActionCard } from '@/components/admin/shared/components/ActionCard';
-import { DashboardStatsData } from './DashboardStats';
+import type { DashboardStatsData } from './DashboardStats';
 
 export interface UserManagementProps {
   usersData: DashboardStatsData['users'];

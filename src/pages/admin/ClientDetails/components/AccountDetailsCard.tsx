@@ -6,7 +6,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Client } from '../types';
+import type { Client } from '../types';
 import { formatDate } from '../utils';
 
 interface AccountDetailsCardProps {

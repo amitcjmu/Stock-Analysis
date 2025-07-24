@@ -1,5 +1,5 @@
 import React from 'react';
-import { GetServerSideProps } from 'next/router';
+import type { GetServerSideProps } from 'next/router';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { ApplicationRollupView } from '@/components/assessment/ApplicationRollupView';
 import { ApplicationTabs } from '@/components/assessment/ApplicationTabs';

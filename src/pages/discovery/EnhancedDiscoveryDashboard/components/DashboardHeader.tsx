@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { DashboardFilters } from '../types';
+import type { DashboardFilters } from '../types';
 
 interface DashboardHeaderProps {
   filters: DashboardFilters;

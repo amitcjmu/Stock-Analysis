@@ -4,7 +4,8 @@ import { useEffect } from 'react'
 import { ExternalLink, AlertCircle, Lightbulb, Bot, Play } from 'lucide-react'
 import { CheckCircle, AlertTriangle, RefreshCw, FileSpreadsheet, ArrowRight, Loader2, Clock, StopCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button';
-import { UploadedFile, useAuthenticatedDiscoveryStatus } from '../../hooks/useCMDBImport';
+import type { UploadedFile} from '../../hooks/useCMDBImport';
+import { useAuthenticatedDiscoveryStatus } from '../../hooks/useCMDBImport';
 import { useQueryClient } from '@tanstack/react-query';
 import AgentFeedbackPanel from './AgentFeedbackPanel';
 

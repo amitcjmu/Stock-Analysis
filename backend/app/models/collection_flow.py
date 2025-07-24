@@ -106,13 +106,19 @@ class CollectionFlow(Base, TimestampMixin):
 
     # Flow configuration
     automation_tier = Column(
-        SQLEnum(AutomationTier, values_callable=lambda obj: [e.value for e in obj]),
+        SQLEnum(
+            AutomationTier,
+            values_callable=lambda obj: [e.value for e in obj],
+            create_type=False,
+        ),
         nullable=False,
         index=True,
     )
     status = Column(
         SQLEnum(
-            CollectionFlowStatus, values_callable=lambda obj: [e.value for e in obj]
+            CollectionFlowStatus,
+            values_callable=lambda obj: [e.value for e in obj],
+            create_type=False,
         ),
         nullable=False,
         default=CollectionFlowStatus.INITIALIZED,

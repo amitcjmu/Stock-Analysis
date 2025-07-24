@@ -15,7 +15,7 @@ import { FilterPanel } from './components/FilterPanel';
 import { ApplicationTable } from './components/ApplicationTable';
 import { QueueManagement } from './components/QueueManagement';
 import { ApplicationSelectionActions } from './components/ApplicationSelectionActions';
-import { ApplicationSelectorProps } from './types/ApplicationSelectorTypes';
+import type { ApplicationSelectorProps } from './types/ApplicationSelectorTypes';
 
 // Types are now imported from the types file
 

@@ -18,8 +18,8 @@ import {
   ThumbsUp,
   ThumbsDown
 } from 'lucide-react';
-import { FlowUpdate } from '../../../../hooks/useFlowUpdates';
-import { FieldMapping } from '../../../../components/discovery/attribute-mapping/FieldMappingsTab/types';
+import type { FlowUpdate } from '../../../../hooks/useFlowUpdates';
+import type { FieldMapping } from '../../../../components/discovery/attribute-mapping/FieldMappingsTab/types';
 
 interface AgentReasoningDisplayProps {
   flowUpdates: FlowUpdate | null;

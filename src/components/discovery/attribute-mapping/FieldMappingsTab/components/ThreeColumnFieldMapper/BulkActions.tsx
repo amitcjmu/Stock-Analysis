@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { CheckCircle, XCircle } from 'lucide-react';
-import { BulkActionsProps } from './types';
+import type { BulkActionsProps } from './types';
 
 const BulkActions: React.FC<BulkActionsProps> = ({
   buckets,

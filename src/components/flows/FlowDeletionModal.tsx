@@ -17,8 +17,8 @@ import {
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { FlowDeletionRequest } from '@/services/flowDeletionService'
-import { FlowDeletionCandidate } from '@/services/flowDeletionService'
+import type { FlowDeletionRequest } from '@/services/flowDeletionService'
+import type { FlowDeletionCandidate } from '@/services/flowDeletionService'
 
 interface FlowDeletionModalProps {
   open: boolean;

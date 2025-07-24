@@ -12,7 +12,7 @@ import { ClientForm } from './components/ClientForm';
 import { ClientTable } from './components/ClientTable';
 import { useClientData } from './hooks/useClientData';
 import { useClientOperations } from './hooks/useClientOperations';
-import { ClientFormData , Client} from './types'
+import type { ClientFormData , Client} from './types'
 import { Industries } from './types'
 
 const initialFormData: ClientFormData = {

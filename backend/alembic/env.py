@@ -82,12 +82,13 @@ def run_migrations_offline() -> None:
 def do_run_migrations(connection: Connection) -> None:
     # Ensure migration schema exists before running migrations
     connection.execute(text("CREATE SCHEMA IF NOT EXISTS migration"))
-    connection.execute(text("SET search_path TO migration, public"))
+    connection.execute(text("SET search_path TO migration"))
     
     context.configure(
         connection=connection, 
         target_metadata=target_metadata,
         include_schemas=True,
+        version_table='alembic_version',
         version_table_schema='migration',
         version_table_pk=False  # This allows for custom version table schema
     )

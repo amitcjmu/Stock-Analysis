@@ -6,7 +6,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../ui/card';
 import { CorrelationHeatmap } from '../components';
-import { AnalyticsData } from '../types';
+import type { AnalyticsData } from '../types';
 
 interface CorrelationsTabProps {
   correlationMatrix: AnalyticsData['correlationMatrix'];

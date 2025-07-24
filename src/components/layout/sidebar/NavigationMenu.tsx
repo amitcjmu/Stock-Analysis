@@ -1,6 +1,6 @@
 import React from 'react';
-import { NavigationMenuProps } from './types'
-import { NavigationItem as NavigationItemType } from './types'
+import type { NavigationMenuProps } from './types'
+import type { NavigationItem as NavigationItemType } from './types'
 import NavigationItem from './NavigationItem';
 import ExpandableMenuSection from './ExpandableMenuSection';
 

@@ -14,7 +14,7 @@ import { Badge } from '../components/ui/badge';
 
 // Import our new agent observability components
 import { AgentListOverview } from '../components/observability';
-import { AgentCardData } from '../types/api/observability/agent-performance';
+import type { AgentCardData } from '../types/api/observability/agent-performance';
 
 const EnhancedObservability = () => {
   const [selectedAgent, setSelectedAgent] = useState<AgentCardData | null>(null);

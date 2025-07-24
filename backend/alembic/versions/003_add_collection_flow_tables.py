@@ -18,17 +18,72 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Create automation tier enum
-    sa.Enum('tier_1', 'tier_2', 'tier_3', 'tier_4', name='automationtier').create(op.get_bind())
+    # Create automation tier enum if it doesn't exist
+    bind = op.get_bind()
+    result = bind.execute(sa.text("SELECT EXISTS(SELECT 1 FROM pg_type WHERE typname = 'automationtier')")).scalar()
+    if not result:
+        sa.Enum('tier_1', 'tier_2', 'tier_3', 'tier_4', name='automationtier').create(bind)
     
-    # Create collection flow status enum
-    sa.Enum('initialized', 'platform_detection', 'automated_collection', 'gap_analysis', 'manual_collection', 'completed', 'failed', 'cancelled', name='collectionflowstatus').create(op.get_bind())
+    # Create collection flow status enum if it doesn't exist
+    result = bind.execute(sa.text("SELECT EXISTS(SELECT 1 FROM pg_type WHERE typname = 'collectionflowstatus')")).scalar()
+    if not result:
+        sa.Enum('initialized', 'platform_detection', 'automated_collection', 'gap_analysis', 'manual_collection', 'completed', 'failed', 'cancelled', name='collectionflowstatus').create(bind)
     
-    # Create adapter status enum
-    sa.Enum('active', 'inactive', 'error', 'deprecated', name='adapterstatus').create(op.get_bind())
+    # Create adapter status enum if it doesn't exist
+    result = bind.execute(sa.text("SELECT EXISTS(SELECT 1 FROM pg_type WHERE typname = 'adapterstatus')")).scalar()
+    if not result:
+        sa.Enum('active', 'inactive', 'error', 'deprecated', name='adapterstatus').create(bind)
+    
+    # Helper functions
+    def table_exists(table_name):
+        """Check if a table exists in the database"""
+        result = bind.execute(
+            sa.text(
+                """
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_schema = 'migration' 
+                    AND table_name = :table_name
+                )
+                """
+            ),
+            {"table_name": table_name}
+        ).scalar()
+        return result
+
+    def create_table_if_not_exists(table_name, *columns, **kwargs):
+        """Create a table only if it doesn't already exist"""
+        if not table_exists(table_name):
+            op.create_table(table_name, *columns, **kwargs)
+        else:
+            print(f"Table {table_name} already exists, skipping creation")
+
+    def index_exists(index_name, table_name):
+        """Check if an index exists on a table"""
+        result = bind.execute(
+            sa.text(
+                """
+                SELECT EXISTS (
+                    SELECT FROM pg_indexes 
+                    WHERE schemaname = 'migration' 
+                    AND tablename = :table_name 
+                    AND indexname = :index_name
+                )
+                """
+            ),
+            {"table_name": table_name, "index_name": index_name}
+        ).scalar()
+        return result
+
+    def create_index_if_not_exists(index_name, table_name, columns, **kwargs):
+        """Create an index only if it doesn't already exist"""
+        if table_exists(table_name) and not index_exists(index_name, table_name):
+            op.create_index(index_name, table_name, columns, **kwargs)
+        else:
+            print(f"Index {index_name} already exists or table doesn't exist, skipping creation")
     
     # Create collection_flows table (A1.1)
-    op.create_table('collection_flows',
+    create_table_if_not_exists('collection_flows',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('flow_id', sa.UUID(), nullable=False),
         sa.Column('master_flow_id', sa.UUID(), nullable=True),
@@ -59,16 +114,16 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('id', name=op.f('pk_collection_flows')),
         sa.UniqueConstraint('flow_id', name=op.f('uq_collection_flows_flow_id'))
     )
-    op.create_index(op.f('ix_collection_flows_id'), 'collection_flows', ['id'], unique=False)
-    op.create_index(op.f('ix_collection_flows_flow_id'), 'collection_flows', ['flow_id'], unique=False)
-    op.create_index(op.f('ix_collection_flows_master_flow_id'), 'collection_flows', ['master_flow_id'], unique=False)
-    op.create_index(op.f('ix_collection_flows_client_account_id'), 'collection_flows', ['client_account_id'], unique=False)
-    op.create_index(op.f('ix_collection_flows_engagement_id'), 'collection_flows', ['engagement_id'], unique=False)
-    op.create_index(op.f('ix_collection_flows_status'), 'collection_flows', ['status'], unique=False)
-    op.create_index(op.f('ix_collection_flows_automation_tier'), 'collection_flows', ['automation_tier'], unique=False)
+    create_index_if_not_exists(op.f('ix_collection_flows_id'), 'collection_flows', ['id'], unique=False)
+    create_index_if_not_exists(op.f('ix_collection_flows_flow_id'), 'collection_flows', ['flow_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_collection_flows_master_flow_id'), 'collection_flows', ['master_flow_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_collection_flows_client_account_id'), 'collection_flows', ['client_account_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_collection_flows_engagement_id'), 'collection_flows', ['engagement_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_collection_flows_status'), 'collection_flows', ['status'], unique=False)
+    create_index_if_not_exists(op.f('ix_collection_flows_automation_tier'), 'collection_flows', ['automation_tier'], unique=False)
     
     # Create platform_adapters table (A1.2)
-    op.create_table('platform_adapters',
+    create_table_if_not_exists('platform_adapters',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('adapter_name', sa.VARCHAR(length=100), nullable=False),
         sa.Column('adapter_type', sa.VARCHAR(length=50), nullable=False),
@@ -84,12 +139,12 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('id', name=op.f('pk_platform_adapters')),
         sa.UniqueConstraint('adapter_name', 'version', name='_adapter_name_version_uc')
     )
-    op.create_index(op.f('ix_platform_adapters_adapter_name'), 'platform_adapters', ['adapter_name'], unique=False)
-    op.create_index(op.f('ix_platform_adapters_adapter_type'), 'platform_adapters', ['adapter_type'], unique=False)
-    op.create_index(op.f('ix_platform_adapters_status'), 'platform_adapters', ['status'], unique=False)
+    create_index_if_not_exists(op.f('ix_platform_adapters_adapter_name'), 'platform_adapters', ['adapter_name'], unique=False)
+    create_index_if_not_exists(op.f('ix_platform_adapters_adapter_type'), 'platform_adapters', ['adapter_type'], unique=False)
+    create_index_if_not_exists(op.f('ix_platform_adapters_status'), 'platform_adapters', ['status'], unique=False)
     
     # Create collected_data_inventory table (A1.2)
-    op.create_table('collected_data_inventory',
+    create_table_if_not_exists('collected_data_inventory',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('collection_flow_id', sa.UUID(), nullable=False),
         sa.Column('adapter_id', sa.UUID(), nullable=True),
@@ -109,13 +164,13 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['collection_flow_id'], ['collection_flows.id'], name=op.f('fk_collected_data_inventory_collection_flow_id_collection_flows'), ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id', name=op.f('pk_collected_data_inventory'))
     )
-    op.create_index(op.f('ix_collected_data_inventory_collection_flow_id'), 'collected_data_inventory', ['collection_flow_id'], unique=False)
-    op.create_index(op.f('ix_collected_data_inventory_platform'), 'collected_data_inventory', ['platform'], unique=False)
-    op.create_index(op.f('ix_collected_data_inventory_data_type'), 'collected_data_inventory', ['data_type'], unique=False)
-    op.create_index(op.f('ix_collected_data_inventory_validation_status'), 'collected_data_inventory', ['validation_status'], unique=False)
+    create_index_if_not_exists(op.f('ix_collected_data_inventory_collection_flow_id'), 'collected_data_inventory', ['collection_flow_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_collected_data_inventory_platform'), 'collected_data_inventory', ['platform'], unique=False)
+    create_index_if_not_exists(op.f('ix_collected_data_inventory_data_type'), 'collected_data_inventory', ['data_type'], unique=False)
+    create_index_if_not_exists(op.f('ix_collected_data_inventory_validation_status'), 'collected_data_inventory', ['validation_status'], unique=False)
     
     # Create collection_data_gaps table (A1.2)
-    op.create_table('collection_data_gaps',
+    create_table_if_not_exists('collection_data_gaps',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('collection_flow_id', sa.UUID(), nullable=False),
         sa.Column('gap_type', sa.VARCHAR(length=100), nullable=False),
@@ -133,14 +188,14 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['collection_flow_id'], ['collection_flows.id'], name=op.f('fk_collection_data_gaps_collection_flow_id_collection_flows'), ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id', name=op.f('pk_collection_data_gaps'))
     )
-    op.create_index(op.f('ix_collection_data_gaps_collection_flow_id'), 'collection_data_gaps', ['collection_flow_id'], unique=False)
-    op.create_index(op.f('ix_collection_data_gaps_gap_type'), 'collection_data_gaps', ['gap_type'], unique=False)
-    op.create_index(op.f('ix_collection_data_gaps_gap_category'), 'collection_data_gaps', ['gap_category'], unique=False)
-    op.create_index(op.f('ix_collection_data_gaps_resolution_status'), 'collection_data_gaps', ['resolution_status'], unique=False)
-    op.create_index(op.f('ix_collection_data_gaps_priority'), 'collection_data_gaps', ['priority'], unique=False)
+    create_index_if_not_exists(op.f('ix_collection_data_gaps_collection_flow_id'), 'collection_data_gaps', ['collection_flow_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_collection_data_gaps_gap_type'), 'collection_data_gaps', ['gap_type'], unique=False)
+    create_index_if_not_exists(op.f('ix_collection_data_gaps_gap_category'), 'collection_data_gaps', ['gap_category'], unique=False)
+    create_index_if_not_exists(op.f('ix_collection_data_gaps_resolution_status'), 'collection_data_gaps', ['resolution_status'], unique=False)
+    create_index_if_not_exists(op.f('ix_collection_data_gaps_priority'), 'collection_data_gaps', ['priority'], unique=False)
     
     # Create collection_questionnaire_responses table (A1.2)
-    op.create_table('collection_questionnaire_responses',
+    create_table_if_not_exists('collection_questionnaire_responses',
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('collection_flow_id', sa.UUID(), nullable=False),
         sa.Column('gap_id', sa.UUID(), nullable=True),
@@ -162,34 +217,79 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['responded_by'], ['users.id'], name=op.f('fk_collection_questionnaire_responses_responded_by_users')),
         sa.PrimaryKeyConstraint('id', name=op.f('pk_collection_questionnaire_responses'))
     )
-    op.create_index(op.f('ix_collection_questionnaire_responses_collection_flow_id'), 'collection_questionnaire_responses', ['collection_flow_id'], unique=False)
-    op.create_index(op.f('ix_collection_questionnaire_responses_gap_id'), 'collection_questionnaire_responses', ['gap_id'], unique=False)
-    op.create_index(op.f('ix_collection_questionnaire_responses_questionnaire_type'), 'collection_questionnaire_responses', ['questionnaire_type'], unique=False)
-    op.create_index(op.f('ix_collection_questionnaire_responses_question_category'), 'collection_questionnaire_responses', ['question_category'], unique=False)
-    op.create_index(op.f('ix_collection_questionnaire_responses_validation_status'), 'collection_questionnaire_responses', ['validation_status'], unique=False)
+    create_index_if_not_exists(op.f('ix_collection_questionnaire_responses_collection_flow_id'), 'collection_questionnaire_responses', ['collection_flow_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_collection_questionnaire_responses_gap_id'), 'collection_questionnaire_responses', ['gap_id'], unique=False)
+    create_index_if_not_exists(op.f('ix_collection_questionnaire_responses_questionnaire_type'), 'collection_questionnaire_responses', ['questionnaire_type'], unique=False)
+    create_index_if_not_exists(op.f('ix_collection_questionnaire_responses_question_category'), 'collection_questionnaire_responses', ['question_category'], unique=False)
+    create_index_if_not_exists(op.f('ix_collection_questionnaire_responses_validation_status'), 'collection_questionnaire_responses', ['validation_status'], unique=False)
+    
+    # Helper function to check if column exists
+    def column_exists(table_name, column_name):
+        """Check if a column exists in a table"""
+        result = bind.execute(
+            sa.text(
+                """
+                SELECT EXISTS (
+                    SELECT FROM information_schema.columns 
+                    WHERE table_schema = 'migration' 
+                    AND table_name = :table_name 
+                    AND column_name = :column_name
+                )
+                """
+            ),
+            {"table_name": table_name, "column_name": column_name}
+        ).scalar()
+        return result
     
     # Add Collection Flow reference to crewai_flow_state_extensions (A1.3)
-    op.add_column('crewai_flow_state_extensions', 
-        sa.Column('collection_flow_id', sa.UUID(), nullable=True))
-    op.add_column('crewai_flow_state_extensions',
-        sa.Column('automation_tier', sa.VARCHAR(length=20), nullable=True))
-    op.add_column('crewai_flow_state_extensions',
-        sa.Column('collection_quality_score', sa.DOUBLE_PRECISION(precision=53), nullable=True))
-    op.add_column('crewai_flow_state_extensions',
-        sa.Column('data_collection_metadata', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=True))
+    if table_exists('crewai_flow_state_extensions'):
+        if not column_exists('crewai_flow_state_extensions', 'collection_flow_id'):
+            op.add_column('crewai_flow_state_extensions', 
+                sa.Column('collection_flow_id', sa.UUID(), nullable=True))
+        if not column_exists('crewai_flow_state_extensions', 'automation_tier'):
+            op.add_column('crewai_flow_state_extensions',
+                sa.Column('automation_tier', sa.VARCHAR(length=20), nullable=True))
+        if not column_exists('crewai_flow_state_extensions', 'collection_quality_score'):
+            op.add_column('crewai_flow_state_extensions',
+                sa.Column('collection_quality_score', sa.DOUBLE_PRECISION(precision=53), nullable=True))
+        if not column_exists('crewai_flow_state_extensions', 'data_collection_metadata'):
+            op.add_column('crewai_flow_state_extensions',
+                sa.Column('data_collection_metadata', postgresql.JSONB(astext_type=sa.Text()), server_default=sa.text("'{}'::jsonb"), nullable=True))
+    
+    # Helper function to check if foreign key exists
+    def foreign_key_exists(constraint_name, table_name):
+        """Check if a foreign key constraint exists"""
+        result = bind.execute(
+            sa.text(
+                """
+                SELECT EXISTS (
+                    SELECT FROM information_schema.table_constraints 
+                    WHERE constraint_schema = 'migration' 
+                    AND table_name = :table_name 
+                    AND constraint_name = :constraint_name
+                    AND constraint_type = 'FOREIGN KEY'
+                )
+                """
+            ),
+            {"table_name": table_name, "constraint_name": constraint_name}
+        ).scalar()
+        return result
     
     # Add foreign key constraint for collection_flow_id
-    op.create_foreign_key(
-        op.f('fk_crewai_flow_state_extensions_collection_flow_id_collection_flows'),
-        'crewai_flow_state_extensions', 'collection_flows',
-        ['collection_flow_id'], ['id'],
-        ondelete='SET NULL'
-    )
+    if table_exists('crewai_flow_state_extensions') and table_exists('collection_flows'):
+        constraint_name = 'fk_crewai_flow_state_extensions_collection_flow_id_collection_flows'
+        if not foreign_key_exists(constraint_name, 'crewai_flow_state_extensions'):
+            op.create_foreign_key(
+                op.f(constraint_name),
+                'crewai_flow_state_extensions', 'collection_flows',
+                ['collection_flow_id'], ['id'],
+                ondelete='SET NULL'
+            )
     
     # Add indexes for new columns (A1.4)
-    op.create_index(op.f('ix_crewai_flow_state_extensions_collection_flow_id'), 
+    create_index_if_not_exists(op.f('ix_crewai_flow_state_extensions_collection_flow_id'), 
                     'crewai_flow_state_extensions', ['collection_flow_id'], unique=False)
-    op.create_index(op.f('ix_crewai_flow_state_extensions_automation_tier'), 
+    create_index_if_not_exists(op.f('ix_crewai_flow_state_extensions_automation_tier'), 
                     'crewai_flow_state_extensions', ['automation_tier'], unique=False)
 
 

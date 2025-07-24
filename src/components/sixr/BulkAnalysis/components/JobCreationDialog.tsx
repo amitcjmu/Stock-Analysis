@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../../../ui/checkbox';
 import { Label } from '../../../ui/label';
 import { Textarea } from '../../../ui/textarea';
-import { JobCreationFormData } from '../types';
+import type { JobCreationFormData } from '../types';
 
 interface JobCreationDialogProps {
   open: boolean;

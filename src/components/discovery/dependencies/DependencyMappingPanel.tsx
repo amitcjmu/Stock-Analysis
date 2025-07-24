@@ -4,7 +4,7 @@ import { Card } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 import { Input } from '../../ui/input';
-import { DependencyData } from '../../../types/dependency';
+import type { DependencyData } from '../../../types/dependency';
 import { Plus } from 'lucide-react';
 
 interface DependencyMappingPanelProps {

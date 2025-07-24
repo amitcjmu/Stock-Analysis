@@ -25,7 +25,7 @@ import NeedsReviewCard from './NeedsReviewCard';
 import ApprovedCard from './ApprovedCard';
 import ColumnHeader from './ColumnHeader';
 import BulkActions from './BulkActions';
-import { ThreeColumnFieldMapperProps } from './types';
+import type { ThreeColumnFieldMapperProps } from './types';
 import { 
   categorizeMappings, 
   filterMappingsBySearch, 

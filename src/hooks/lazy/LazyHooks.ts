@@ -210,7 +210,7 @@ export const useBatchLazyHooks = (
   }>,
   immediate = false
 ): {
-  hooks: (unknown | null)[];
+  hooks: Array<unknown | null>;
   allLoaded: boolean;
   loading: boolean;
   error: Error | null;

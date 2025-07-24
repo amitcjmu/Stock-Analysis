@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card } from '../../ui/card';
-import { DependencyData } from '../../../types/dependency';
+import type { DependencyData } from '../../../types/dependency';
 import { Loader2 } from 'lucide-react';
 
 interface DependencyAnalysisPanelProps {

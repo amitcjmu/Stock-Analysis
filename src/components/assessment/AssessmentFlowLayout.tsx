@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChevronRight } from 'lucide-react'
 import { CheckCircle2, Circle, Clock, AlertCircle, Loader2 } from 'lucide-react'
-import { AssessmentPhase } from '@/hooks/useAssessmentFlow'
+import type { AssessmentPhase } from '@/hooks/useAssessmentFlow'
 import { useAssessmentFlow } from '@/hooks/useAssessmentFlow'
 import { cn } from '@/lib/utils';
 

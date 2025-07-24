@@ -3,7 +3,7 @@ import { Target, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ConfidenceScoreIndicator } from '@/components/assessment/ConfidenceScoreIndicator';
-import { SixRDecision } from '@/hooks/useAssessmentFlow';
+import type { SixRDecision } from '@/hooks/useAssessmentFlow';
 import { getStrategyColor } from '@/utils/assessment/sixrHelpers'
 import { getStrategyLabel } from '@/utils/assessment/sixrHelpers'
 

@@ -6,6 +6,7 @@ Supports both local development and Railway.app deployment.
 """
 
 try:
+    import sqlalchemy as sa
     from sqlalchemy import event, text
     from sqlalchemy.ext.asyncio import (
         AsyncSession,
@@ -106,13 +107,9 @@ if SQLALCHEMY_AVAILABLE:
         pool_config["connect_args"]["server_settings"] = pool_config[
             "connect_args"
         ].get("server_settings", {})
-        pool_config["connect_args"]["server_settings"][
-            "search_path"
-        ] = "migration,public"
+        pool_config["connect_args"]["server_settings"]["search_path"] = "migration"
     else:
-        pool_config["connect_args"] = {
-            "server_settings": {"search_path": "migration,public"}
-        }
+        pool_config["connect_args"] = {"server_settings": {"search_path": "migration"}}
 
     # Unified database engine with pgvector support
     engine = create_async_engine(
@@ -150,9 +147,8 @@ else:
     AsyncSessionLocal = None
     logger.warning("SQLAlchemy not available. Database functionality will be limited.")
 
-# Create declarative base
-# Note: Schema is set at the session/engine level, not in metadata
-Base = declarative_base()
+# Create declarative base with migration schema
+Base = declarative_base(metadata=sa.MetaData(schema="migration"))
 
 
 # ⚡ CONNECTION HEALTH TRACKING

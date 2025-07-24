@@ -13,7 +13,7 @@ import { AdminLoadingState, AdminErrorState } from '@/components/admin/shared/co
 import { AdminHeader } from '@/components/admin/shared/components'
 import { formatDate } from '@/components/admin/shared'
 import { useAdminToasts } from '@/components/admin/shared'
-import { DashboardStatsData } from './components/DashboardStats'
+import type { DashboardStatsData } from './components/DashboardStats'
 import { DashboardStats } from './components/DashboardStats'
 import { ClientAnalytics } from './components/ClientAnalytics';
 import { EngagementAnalytics } from './components/EngagementAnalytics';

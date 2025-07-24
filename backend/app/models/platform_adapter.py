@@ -44,7 +44,11 @@ class PlatformAdapter(Base, TimestampMixin):
 
     # Status
     status = Column(
-        SQLEnum(AdapterStatus, values_callable=lambda obj: [e.value for e in obj]),
+        SQLEnum(
+            AdapterStatus,
+            values_callable=lambda obj: [e.value for e in obj],
+            create_type=False,
+        ),
         nullable=False,
         default=AdapterStatus.ACTIVE,
         server_default="active",

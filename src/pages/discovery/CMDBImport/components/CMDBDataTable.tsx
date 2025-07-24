@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { UploadFile } from '../CMDBImport.types';
+import type { UploadFile } from '../CMDBImport.types';
 import { getStatusColor } from '../utils/statusUtils'
 import { getStatusIcon } from '../utils/statusUtils'
 

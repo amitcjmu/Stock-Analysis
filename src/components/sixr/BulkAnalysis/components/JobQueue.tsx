@@ -7,7 +7,7 @@ import { Badge } from '../../../ui/badge';
 import { Progress } from '../../../ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../ui/table';
 import { Checkbox } from '../../../ui/checkbox';
-import { BulkAnalysisJob } from '../types';
+import type { BulkAnalysisJob } from '../types';
 import { statusColors, priorityColors, formatDuration, getStatusIcon, getPriorityIcon } from '../utils/analysisUtils';
 
 interface JobQueueProps {

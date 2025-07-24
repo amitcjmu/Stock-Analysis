@@ -14,7 +14,7 @@ import {
   AlertCircle,
   Server
 } from 'lucide-react';
-import { AgentQuestion, AssetDetails } from './types';
+import type { AgentQuestion, AssetDetails } from './types';
 import { getPriorityColor } from './utils'
 import { getConfidenceIcon, formatTimestamp, getPriorityBadgeClass } from './utils'
 import AssetCard from './AssetCard';

@@ -9,7 +9,7 @@ import { ContextBreadcrumbs } from '../../components/context/ContextBreadcrumbs'
 import AgentLearningInsights from '../../components/discovery/AgentLearningInsights';
 
 // Hooks
-import { DiscoveryMetrics, ApplicationLandscape, InfrastructureLandscape } from '../../hooks/useDiscoveryDashboard'
+import type { DiscoveryMetrics, ApplicationLandscape, InfrastructureLandscape } from '../../hooks/useDiscoveryDashboard'
 import { useDiscoveryMetrics, useApplicationLandscape, useInfrastructureLandscape } from '../../hooks/useDiscoveryDashboard'
 import { useAuth } from '../../contexts/AuthContext';
 

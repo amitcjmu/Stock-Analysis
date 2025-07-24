@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { ComponentTreatment } from '@/hooks/useAssessmentFlow';
+import type { ComponentTreatment } from '@/hooks/useAssessmentFlow';
 import { Edit3, Check, X, Copy } from 'lucide-react';
 
 interface BulkEditingControlsProps {

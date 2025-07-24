@@ -17,29 +17,6 @@ const AttributeMappingContainer: React.FC = () => {
   // Add error boundary state
   const [hasRenderError, setHasRenderError] = React.useState(false);
   
-  // Early return if there's a render error
-  if (hasRenderError) {
-    return (
-      <div className="flex min-h-screen bg-gray-50">
-        <div className="hidden lg:block w-64 border-r bg-white">
-          <Sidebar />
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Application Error</h2>
-            <p className="text-gray-600 mb-4">Something went wrong while loading the attribute mapping page.</p>
-            <button 
-              onClick={() => setHasRenderError(false)}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  
   // Always call hooks in the same order - no conditional hook calls
   const {
     // Core state
@@ -84,21 +61,7 @@ const AttributeMappingContainer: React.FC = () => {
     flowList
   } = state;
 
-  // Debug field mappings
-  React.useEffect(() => {
-    console.log('🔍 [AttributeMapping] Field mappings debug:', {
-      fieldMappings_length: fieldMappings?.length || 0,
-      fieldMappings_sample: fieldMappings?.slice(0, 3),
-      state_keys: Object.keys(state),
-      agenticData: agenticData,
-      flowState: flowState,
-      effectiveFlowId: effectiveFlowId,
-      isLoading: isLoading,
-      hasData: hasData
-    });
-  }, [fieldMappings, state, agenticData, flowState, effectiveFlowId, isLoading, hasData]);
-
-  // Add real-time flow updates via SSE
+  // Add real-time flow updates via SSE - must be called before any conditional returns
   const {
     data: flowUpdates,
     isConnected: isSSEConnected,
@@ -111,6 +74,43 @@ const AttributeMappingContainer: React.FC = () => {
     enablePolling: true,
     pollingInterval: 10000 // 10 seconds fallback polling
   });
+
+  // Debug field mappings - must be called before any conditional returns
+  React.useEffect(() => {
+    console.log('🔍 [AttributeMapping] Field mappings debug:', {
+      fieldMappings_length: fieldMappings?.length || 0,
+      fieldMappings_sample: fieldMappings?.slice(0, 3),
+      state_keys: Object.keys(state),
+      agenticData: agenticData,
+      flowState: flowState,
+      effectiveFlowId: effectiveFlowId,
+      isLoading: isLoading,
+      hasData: hasData
+    });
+  }, [fieldMappings, state, agenticData, flowState, effectiveFlowId, isLoading, hasData]);
+  
+  // Early return if there's a render error
+  if (hasRenderError) {
+    return (
+      <div className="flex min-h-screen bg-gray-50">
+        <div className="hidden lg:block w-64 border-r bg-white">
+          <Sidebar />
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Application Error</h2>
+            <p className="text-gray-600 mb-4">Something went wrong while loading the attribute mapping page.</p>
+            <button 
+              onClick={() => setHasRenderError(false)}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const {
     handleTriggerFieldMappingCrew,

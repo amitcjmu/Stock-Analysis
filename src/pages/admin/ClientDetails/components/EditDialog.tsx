@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Client, ClientFormData, INDUSTRIES } from '../types'
+import type { Client, ClientFormData} from '../types';
+import { INDUSTRIES } from '../types'
 import { COMPANY_SIZES, SUBSCRIPTION_TIERS } from '../types'
 
 interface EditDialogProps {

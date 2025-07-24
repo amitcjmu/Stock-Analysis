@@ -11,7 +11,7 @@ import { JobQueue } from './components/JobQueue';
 import { JobCreationDialog } from './components/JobCreationDialog';
 import { JobResults } from './components/JobResults';
 import { AnalyticsSummary } from './components/AnalyticsSummary';
-import { BulkAnalysisProps } from './types';
+import type { BulkAnalysisProps } from './types';
 
 const BulkAnalysisContainer: React.FC<BulkAnalysisProps> = ({
   jobs,

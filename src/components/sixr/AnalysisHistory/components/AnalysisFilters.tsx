@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Button } from '../../../ui/button';
 import { Filter } from 'lucide-react'
 import { Search, X, Calendar } from 'lucide-react'
-import { FilterState } from '../types';
+import type { FilterState } from '../types';
 import { dateRangeOptions } from '../constants';
 
 interface AnalysisFiltersProps {

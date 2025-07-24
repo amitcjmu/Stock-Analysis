@@ -11,11 +11,11 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ProgressItemData } from '@/components/admin/shared/components/ProgressCard'
+import type { ProgressItemData } from '@/components/admin/shared/components/ProgressCard'
 import { ProgressCard } from '@/components/admin/shared/components/ProgressCard'
-import { ActionItem } from '@/components/admin/shared/components/ActionCard';
+import type { ActionItem } from '@/components/admin/shared/components/ActionCard';
 import { ActionCard } from '@/components/admin/shared/components/ActionCard';
-import { DashboardStatsData } from './DashboardStats';
+import type { DashboardStatsData } from './DashboardStats';
 import { getPhaseLabel } from '@/components/admin/shared/utils/adminFormatters';
 
 export interface EngagementAnalyticsProps {

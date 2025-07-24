@@ -13,7 +13,7 @@ import { AdminHeader } from '@/components/admin/shared/components'
 import { 
   useAdminToasts
 } from '@/components/admin/shared';
-import {
+import type {
   SoftDeletedItem,
   PurgeAction
 } from './components';

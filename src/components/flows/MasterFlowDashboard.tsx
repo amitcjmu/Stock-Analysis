@@ -18,7 +18,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, Filter } from 'lucide-react'
 import { Activity, XCircle, Clock, PauseCircle, PlayCircle, RefreshCw, Plus, Search } from 'lucide-react'
 import { useFlows } from '../../hooks/useFlow';
-import { FlowStatus, FlowType } from '../../types/flow';
+import type { FlowStatus, FlowType } from '../../types/flow';
 import { flowToast } from '../../utils/toast';
 import { getFlowPhaseRoute } from '@/config/flowRoutes';
 import { useNavigate } from 'react-router-dom';

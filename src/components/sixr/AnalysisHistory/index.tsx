@@ -20,7 +20,7 @@ import { useAnalysisSelection } from './hooks/useAnalysisSelection';
 import { useAnalysisAnalytics } from './hooks/useAnalysisAnalytics';
 
 // Types
-import { AnalysisHistoryProps } from './types';
+import type { AnalysisHistoryProps } from './types';
 
 export const AnalysisHistory: React.FC<AnalysisHistoryProps> = ({
   analyses,

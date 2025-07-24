@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { AnalyticsData } from '../types';
+import type { AnalyticsData } from '../types';
 
 interface CorrelationHeatmapProps {
   correlationMatrix: AnalyticsData['correlationMatrix'];

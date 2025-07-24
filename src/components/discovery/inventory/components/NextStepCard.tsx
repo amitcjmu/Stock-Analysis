@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
-import { InventoryProgress } from '../types/inventory.types';
+import type { InventoryProgress } from '../types/inventory.types';
 
 interface NextStepCardProps {
   inventoryProgress: InventoryProgress;

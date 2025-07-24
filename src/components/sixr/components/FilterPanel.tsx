@@ -9,7 +9,7 @@ import { Search } from 'lucide-react'
 import { Input } from '../../ui/input';
 import { Button } from '../../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
-import { FilterPanelProps } from '../types/ApplicationSelectorTypes';
+import type { FilterPanelProps } from '../types/ApplicationSelectorTypes';
 
 export const FilterPanel: React.FC<FilterPanelProps> = ({
   filters,

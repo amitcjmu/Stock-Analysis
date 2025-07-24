@@ -1,11 +1,12 @@
 import React from 'react'
 import { useCallback, useMemo } from 'react'
 import ReactFlow from 'reactflow'
-import { Node, Edge, MarkerType } from 'reactflow'
+import type { Edge} from 'reactflow';
+import { Node, MarkerType } from 'reactflow'
 import { Controls, Background, useNodesState, useEdgesState } from 'reactflow'
 import 'reactflow/dist/style.css';
 import { Card } from '../../ui/card';
-import { DependencyData } from '../../../types/dependency';
+import type { DependencyData } from '../../../types/dependency';
 
 // Dependency update interface
 interface DependencyUpdate {

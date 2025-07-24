@@ -3,7 +3,7 @@
  */
 
 import React from 'react'
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Button } from '../ui/button';
 import { RefreshCw, AlertTriangle } from 'lucide-react';

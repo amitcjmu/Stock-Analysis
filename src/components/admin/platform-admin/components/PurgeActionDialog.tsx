@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Trash2, RotateCcw } from 'lucide-react';
 import { getItemTypeColor } from '@/components/admin/shared/utils/adminFormatters'
 import { formatDate, getItemTypeLabel } from '@/components/admin/shared/utils/adminFormatters'
-import { SoftDeletedItem } from './PlatformStats';
+import type { SoftDeletedItem } from './PlatformStats';
 
 export interface PurgeAction {
   action: 'approve' | 'reject';

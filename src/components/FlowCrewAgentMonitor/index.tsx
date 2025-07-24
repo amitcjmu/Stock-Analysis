@@ -24,7 +24,7 @@ import { AgentList } from './components/AgentList';
 import { AgentDetail } from './components/AgentDetail';
 import { AgentStatus } from './components/AgentStatus';
 import { AgentMetrics } from './components/AgentMetrics';
-import { Agent } from './types';
+import type { Agent } from './types';
 
 const FlowCrewAgentMonitorContainer: React.FC = () => {
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);

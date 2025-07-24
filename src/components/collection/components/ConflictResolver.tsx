@@ -18,7 +18,8 @@ import { FormInput } from 'lucide-react'
 import { GitMerge, AlertTriangle, CheckCircle, Clock, User, Database, Upload } from 'lucide-react'
 import { cn } from '@/lib/utils';
 
-import { ConflictResolverProps, DataConflict, ConflictingValue, ConflictResolution } from '../types';
+import type { ConflictResolverProps, ConflictingValue, ConflictResolution } from '../types';
+import { DataConflict } from '../types';
 
 export const ConflictResolver: React.FC<ConflictResolverProps> = ({
   conflicts,

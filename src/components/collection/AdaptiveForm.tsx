@@ -24,15 +24,17 @@ import { SectionCard } from './components/SectionCard';
 import { BulkDataGrid } from './BulkDataGrid';
 import { ValidationDisplay } from './ValidationDisplay';
 
-import {
+import type {
   AdaptiveFormProps,
-  AdaptiveFormData,
   CollectionFormData,
   FormValidationResult,
   FormSection,
   FieldValidationResult,
   ValidationError,
   FieldValue
+} from './types';
+import {
+  AdaptiveFormData
 } from './types';
 
 export const AdaptiveForm: React.FC<AdaptiveFormProps> = ({

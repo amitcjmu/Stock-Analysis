@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronDown } from 'lucide-react';
-import { TargetFieldSelectorProps } from './types'
+import type { TargetFieldSelectorProps } from './types'
 import { CATEGORY_COLORS } from './types'
 
 const TargetFieldSelector: React.FC<TargetFieldSelectorProps> = ({

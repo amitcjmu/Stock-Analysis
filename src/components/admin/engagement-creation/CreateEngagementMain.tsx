@@ -9,8 +9,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '@/config/api';
 
-import { CreateEngagementData } from './types'
-import { ClientAccount } from './types'
+import type { CreateEngagementData } from './types'
+import type { ClientAccount } from './types'
 
 // CC: API response interfaces for type safety
 interface ClientApiResponse {

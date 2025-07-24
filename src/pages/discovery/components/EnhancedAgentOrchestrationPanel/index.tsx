@@ -14,7 +14,7 @@ import { MemoryTab } from './components/tabs/MemoryTab';
 import { useEnhancedMonitoring } from './hooks/useEnhancedMonitoring';
 
 // Types and Constants
-import { EnhancedAgentOrchestrationPanelProps } from './types';
+import type { EnhancedAgentOrchestrationPanelProps } from './types';
 import { TAB_ITEMS } from './constants';
 
 const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelProps> = ({

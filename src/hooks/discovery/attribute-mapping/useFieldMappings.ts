@@ -299,7 +299,8 @@ export const useFieldMappings = (
     
     // REMOVED FALLBACK - Always use API data to avoid field name issues
     // The fallback logic was converting field names to numeric indices
-    if (false && fieldMappingData) {
+    // Dead code block - commented out to fix linting errors
+    /* if (false && fieldMappingData) {
       console.log('🔍 [DEBUG] Using fallback to flow state data:', {
         fieldMappingData_structure: {
           hasMappings: fieldMappingData ? !!fieldMappingData.mappings : false,
@@ -393,7 +394,7 @@ export const useFieldMappings = (
         });
         return flowStateMappings;
       }
-    }
+    } */
     // Return empty array if no data available
     console.log('🔄 [DEBUG] No field mappings available - returning empty array');
     return [];

@@ -11,8 +11,8 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { SystemMetrics } from '../types';
-import { FlowMetrics } from '../hooks/useFlowMetrics';
+import type { SystemMetrics } from '../types';
+import type { FlowMetrics } from '../hooks/useFlowMetrics';
 
 interface MetricsPanelProps {
   systemMetrics: SystemMetrics | null;

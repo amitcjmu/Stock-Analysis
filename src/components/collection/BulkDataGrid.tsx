@@ -21,7 +21,8 @@ import { Upload, Download, Trash2, Copy, Save, AlertCircle, CheckCircle, MoreHor
 import { cn } from '@/lib/utils';
 
 import { BulkUpload } from './components/BulkUpload';
-import { BulkDataGridProps, ApplicationSummary, FormField, CollectionFormData, FieldValue } from './types';
+import type { BulkDataGridProps, FormField, CollectionFormData, FieldValue } from './types';
+import { ApplicationSummary } from './types';
 
 interface GridRow {
   applicationId: string;

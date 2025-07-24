@@ -6,7 +6,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { AgentMetricsChart } from '../../../components/observability';
-import { AgentDetailData, PerformanceMetrics } from '../types/AgentDetailTypes';
+import type { AgentDetailData, PerformanceMetrics } from '../types/AgentDetailTypes';
 
 interface PerformanceChartsProps {
   agentData: AgentDetailData;

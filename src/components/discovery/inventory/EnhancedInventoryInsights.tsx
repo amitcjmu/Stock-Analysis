@@ -13,7 +13,7 @@ import { MigrationReadiness } from './components/MigrationReadiness';
 import { SixRRecommendations } from './components/SixRRecommendations';
 import { TechnologyStackAnalysis } from './components/TechnologyStackAnalysis';
 import { ActionableRecommendations } from './components/ActionableRecommendations';
-import { EnhancedInventoryInsightsProps } from './types/InventoryInsightsTypes';
+import type { EnhancedInventoryInsightsProps } from './types/InventoryInsightsTypes';
 
 // Types are now imported from the types file
 

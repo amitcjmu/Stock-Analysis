@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { SixRDecision } from '@/hooks/useAssessmentFlow';
+import type { SixRDecision } from '@/hooks/useAssessmentFlow';
 import { ConfidenceScoreIndicator } from './ConfidenceScoreIndicator';
 import { AlertTriangle, CheckCircle, Eye, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { GetServerSideProps } from 'next/router';
+import type { GetServerSideProps } from 'next/router';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { useAssessmentFlow } from '@/hooks/useAssessmentFlow';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

@@ -14,7 +14,7 @@ import { ValidationDisplay } from '@/components/collection/ValidationDisplay';
 import { ProgressTracker } from '@/components/collection/ProgressTracker';
 
 // Import types
-import { 
+import type { 
   ApplicationSummary, 
   FormField, 
   BulkUploadResult,

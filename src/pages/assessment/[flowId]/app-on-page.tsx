@@ -1,7 +1,7 @@
 import React from 'react'
 import { useState } from 'react'
 import { useEffect } from 'react'
-import { GetServerSideProps } from 'next/router';
+import type { GetServerSideProps } from 'next/router';
 import { AssessmentFlowLayout } from '@/components/assessment/AssessmentFlowLayout';
 import { ApplicationSummaryCard } from '@/components/assessment/ApplicationSummaryCard';
 import { ComponentBreakdownView } from '@/components/assessment/ComponentBreakdownView';

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Target, Users, CheckCircle2 } from 'lucide-react';
-import { AgentOrchestrationPanelProps } from './types';
+import type { AgentOrchestrationPanelProps } from './types';
 import { useAgentOrchestrationState } from './hooks';
 import { OverallProgressHeader } from './components/OverallProgressHeader';
 import { OverviewTab } from './components/OverviewTab';

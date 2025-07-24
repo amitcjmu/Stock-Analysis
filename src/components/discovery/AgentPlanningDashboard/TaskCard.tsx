@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { AgentTask } from './types';
+import type { AgentTask } from './types';
 import { getStatusColor, getPriorityColor } from './utils';
 import StatusIcon from './StatusIcon';
 

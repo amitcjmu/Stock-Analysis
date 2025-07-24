@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { CollectionFlow } from '@/hooks/collection/useCollectionFlowManagement';
+import type { CollectionFlow } from '@/hooks/collection/useCollectionFlowManagement';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { canDeleteCollectionFlow } from '@/utils/rbac';
