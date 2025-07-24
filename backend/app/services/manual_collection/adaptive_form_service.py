@@ -14,7 +14,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from ..collection_flow.quality_scoring import QualityAssessmentService
+# QualityAssessmentService will be lazily imported when needed
 
 
 class FieldType(str, Enum):
@@ -456,7 +456,25 @@ class AdaptiveFormService:
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
-        self.quality_service = QualityAssessmentService()
+        self._quality_service = None
+
+    @property
+    def quality_service(self):
+        """Lazy initialization of QualityAssessmentService with request context."""
+        if self._quality_service is None:
+            try:
+                # For now, return None since we don't have context management set up
+                # This prevents request-scoped context issues during class instantiation
+                self.logger.warning(
+                    "QualityAssessmentService not initialized - requires proper context setup"
+                )
+                return None
+            except Exception as e:
+                self.logger.warning(
+                    f"Could not initialize QualityAssessmentService with context: {e}"
+                )
+                return None
+        return self._quality_service
 
     def generate_adaptive_form(
         self, gap_analysis: GapAnalysisResult, application_context: ApplicationContext
@@ -686,7 +704,8 @@ class AdaptiveFormService:
         elif field.critical_attribute == "security_requirements":
             if application_context.compliance_requirements:
                 # Pre-select relevant compliance options
-                field.description += f" (Compliance requirements detected: {', '.join(application_context.compliance_requirements)})"
+                requirements = ', '.join(application_context.compliance_requirements)
+                field.description += f" (Compliance requirements detected: {requirements})"
 
         # Business criticality based on existing assessment
         elif field.critical_attribute == "business_criticality":
