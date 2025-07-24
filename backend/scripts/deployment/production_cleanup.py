@@ -19,54 +19,62 @@ logger = logging.getLogger(__name__)
 
 class ProductionCleanupManager:
     """Manages production cleanup tasks"""
-    
+
     def __init__(self):
-        self.backend_root = Path("/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend")
-        self.frontend_root = Path("/Users/chocka/CursorProjects/migrate-ui-orchestrator/frontend")
-        self.docs_root = Path("/Users/chocka/CursorProjects/migrate-ui-orchestrator/docs")
+        self.backend_root = Path(
+            "/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend"
+        )
+        self.frontend_root = Path(
+            "/Users/chocka/CursorProjects/migrate-ui-orchestrator/frontend"
+        )
+        self.docs_root = Path(
+            "/Users/chocka/CursorProjects/migrate-ui-orchestrator/docs"
+        )
         self.cleanup_results = {
             "removed_files": [],
             "archived_files": [],
             "updated_docs": [],
-            "notifications_sent": []
+            "notifications_sent": [],
         }
-    
+
     async def execute_production_cleanup(self) -> Dict[str, Any]:
         """Execute all production cleanup tasks (MFO-109 to MFO-114)"""
         results = {
             "tasks_completed": [],
             "tasks_failed": [],
             "cleanup_summary": {},
-            "completion_time": None
+            "completion_time": None,
         }
-        
+
         try:
-            logger.info("🔄 Starting production cleanup for Master Flow Orchestrator...")
-            
+            logger.info(
+                "🔄 Starting production cleanup for Master Flow Orchestrator..."
+            )
+
             # MFO-109: Remove deprecated Discovery flow code
             discovery_cleanup = await self._remove_deprecated_discovery_code()
             results["tasks_completed"].append("MFO-109")
-            
+
             # MFO-110: Remove deprecated Assessment flow code
             assessment_cleanup = await self._remove_deprecated_assessment_code()
             results["tasks_completed"].append("MFO-110")
-            
+
             # MFO-111: Remove old API endpoints
             api_cleanup = await self._remove_old_api_endpoints()
             results["tasks_completed"].append("MFO-111")
-            
+
             # MFO-112: Archive legacy implementations
             archive_cleanup = await self._archive_legacy_implementations()
             results["tasks_completed"].append("MFO-112")
-            
+
             # MFO-113: Update all documentation
             docs_update = await self._update_all_documentation()
             results["tasks_completed"].append("MFO-113")
-            
+
             # MFO-114: Notify stakeholders of completion
             notification_result = await self._notify_stakeholders_completion()
             results["tasks_completed"].append("MFO-114")
-            
+
             # Compile cleanup summary
             results["cleanup_summary"] = {
                 "discovery_cleanup": discovery_cleanup,
@@ -74,24 +82,24 @@ class ProductionCleanupManager:
                 "api_cleanup": api_cleanup,
                 "archive_cleanup": archive_cleanup,
                 "docs_update": docs_update,
-                "notifications": notification_result
+                "notifications": notification_result,
             }
-            
+
             results["completion_time"] = datetime.utcnow().isoformat()
-            
+
             logger.info("✅ Production cleanup completed successfully")
             return results
-            
+
         except Exception as e:
             logger.error(f"❌ Production cleanup failed: {e}")
             results["cleanup_error"] = str(e)
             return results
-    
+
     async def _remove_deprecated_discovery_code(self) -> Dict[str, Any]:
         """MFO-109: Remove deprecated Discovery flow code"""
         try:
             logger.info("🔄 Removing deprecated Discovery flow code...")
-            
+
             # Files to remove (already in archive)
             deprecated_discovery_files = [
                 "app/api/v1/endpoints/data_import/handlers/legacy_upload_handler.py",
@@ -99,10 +107,10 @@ class ProductionCleanupManager:
                 "app/services/agents/data_import_validation_agent.py",  # Already archived
                 "app/repositories/discovery_flow_v1.py",  # If exists
             ]
-            
+
             removed_files = []
             already_archived = []
-            
+
             for file_path in deprecated_discovery_files:
                 full_path = self.backend_root / file_path
                 if full_path.exists():
@@ -112,37 +120,37 @@ class ProductionCleanupManager:
                     logger.info(f"✅ Removed deprecated file: {file_path}")
                 else:
                     already_archived.append(str(file_path))
-            
+
             # Remove any remaining discovery flow references in main code
             discovery_refs_removed = await self._remove_discovery_references()
-            
+
             return {
                 "success": True,
                 "removed_files": removed_files,
                 "already_archived": already_archived,
                 "references_cleaned": discovery_refs_removed,
-                "cleaned_at": datetime.utcnow().isoformat()
+                "cleaned_at": datetime.utcnow().isoformat(),
             }
-            
+
         except Exception as e:
             logger.error(f"❌ Discovery code cleanup failed: {e}")
             return {"success": False, "error": str(e)}
-    
+
     async def _remove_deprecated_assessment_code(self) -> Dict[str, Any]:
         """MFO-110: Remove deprecated Assessment flow code"""
         try:
             logger.info("🔄 Removing deprecated Assessment flow code...")
-            
+
             # Files to remove (assessment-specific)
             deprecated_assessment_files = [
                 "app/services/agents/assessment_agent_orchestrator.py",  # If exists
                 "app/repositories/assessment_flow_v1.py",  # If exists
                 "app/api/v1/endpoints/assessment_legacy.py",  # If exists
             ]
-            
+
             removed_files = []
             already_archived = []
-            
+
             for file_path in deprecated_assessment_files:
                 full_path = self.backend_root / file_path
                 if full_path.exists():
@@ -151,37 +159,37 @@ class ProductionCleanupManager:
                     logger.info(f"✅ Removed deprecated file: {file_path}")
                 else:
                     already_archived.append(str(file_path))
-            
+
             # Remove assessment flow references
             assessment_refs_removed = await self._remove_assessment_references()
-            
+
             return {
                 "success": True,
                 "removed_files": removed_files,
                 "already_archived": already_archived,
                 "references_cleaned": assessment_refs_removed,
-                "cleaned_at": datetime.utcnow().isoformat()
+                "cleaned_at": datetime.utcnow().isoformat(),
             }
-            
+
         except Exception as e:
             logger.error(f"❌ Assessment code cleanup failed: {e}")
             return {"success": False, "error": str(e)}
-    
+
     async def _remove_old_api_endpoints(self) -> Dict[str, Any]:
         """MFO-111: Remove old API endpoints"""
         try:
             logger.info("🔄 Removing old API endpoints...")
-            
+
             # API endpoints to remove/deprecate
             old_api_files = [
                 "app/api/v2/discovery_flow_v2.py",  # V2 endpoints
                 "app/api/v1/discovery_flow_legacy.py",  # If exists
                 "app/api/v1/assessment_legacy.py",  # If exists
             ]
-            
+
             removed_endpoints = []
             updated_files = []
-            
+
             for file_path in old_api_files:
                 full_path = self.backend_root / file_path
                 if full_path.exists():
@@ -189,217 +197,244 @@ class ProductionCleanupManager:
                     os.remove(full_path)
                     removed_endpoints.append(str(file_path))
                     logger.info(f"✅ Removed old API endpoint: {file_path}")
-            
+
             # Update main.py to remove old route imports
             main_py_updated = await self._update_main_py_remove_old_routes()
             if main_py_updated:
                 updated_files.append("app/main.py")
-            
+
             return {
                 "success": True,
                 "removed_endpoints": removed_endpoints,
                 "updated_files": updated_files,
                 "main_py_updated": main_py_updated,
-                "cleaned_at": datetime.utcnow().isoformat()
+                "cleaned_at": datetime.utcnow().isoformat(),
             }
-            
+
         except Exception as e:
             logger.error(f"❌ API endpoints cleanup failed: {e}")
             return {"success": False, "error": str(e)}
-    
+
     async def _archive_legacy_implementations(self) -> Dict[str, Any]:
         """MFO-112: Archive legacy implementations - SKIPPED (archives removed)"""
         logger.info("🔄 Archive task skipped - all legacy code has been removed")
         return {
             "success": True,
             "message": "Archive task skipped - all legacy code has been removed",
-            "archived_at": datetime.utcnow().isoformat()
+            "archived_at": datetime.utcnow().isoformat(),
         }
-    
+
     async def _update_all_documentation(self) -> Dict[str, Any]:
         """MFO-113: Update all documentation"""
         try:
             logger.info("🔄 Updating all documentation...")
-            
+
             updated_docs = []
-            
+
             # Update CLAUDE.md with completion status
             claude_md_updated = await self._update_claude_md()
             if claude_md_updated:
                 updated_docs.append("CLAUDE.md")
-            
+
             # Update platform evolution document
             evolution_doc_updated = await self._update_platform_evolution_doc()
             if evolution_doc_updated:
-                updated_docs.append("docs/development/PLATFORM_EVOLUTION_AND_CURRENT_STATE.md")
-            
+                updated_docs.append(
+                    "docs/development/PLATFORM_EVOLUTION_AND_CURRENT_STATE.md"
+                )
+
             # Update API documentation
             api_docs_updated = await self._update_api_documentation()
             if api_docs_updated:
-                updated_docs.extend(["docs/api/master_flow_orchestrator.md", "docs/api/unified_api_v1.md"])
-            
+                updated_docs.extend(
+                    [
+                        "docs/api/master_flow_orchestrator.md",
+                        "docs/api/unified_api_v1.md",
+                    ]
+                )
+
             # Update deployment documentation
             deployment_docs_updated = await self._update_deployment_documentation()
             if deployment_docs_updated:
-                updated_docs.append("docs/deployment/master_flow_orchestrator_deployment.md")
-            
+                updated_docs.append(
+                    "docs/deployment/master_flow_orchestrator_deployment.md"
+                )
+
             # Create final implementation summary
             summary_created = await self._create_implementation_summary()
             if summary_created:
-                updated_docs.append("docs/implementation/MASTER_FLOW_ORCHESTRATOR_SUMMARY.md")
-            
+                updated_docs.append(
+                    "docs/implementation/MASTER_FLOW_ORCHESTRATOR_SUMMARY.md"
+                )
+
             return {
                 "success": True,
                 "updated_docs": updated_docs,
                 "total_docs_updated": len(updated_docs),
-                "updated_at": datetime.utcnow().isoformat()
+                "updated_at": datetime.utcnow().isoformat(),
             }
-            
+
         except Exception as e:
             logger.error(f"❌ Documentation update failed: {e}")
             return {"success": False, "error": str(e)}
-    
+
     async def _notify_stakeholders_completion(self) -> Dict[str, Any]:
         """MFO-114: Notify stakeholders of completion"""
         try:
-            logger.info("🔄 Notifying stakeholders of Master Flow Orchestrator completion...")
-            
+            logger.info(
+                "🔄 Notifying stakeholders of Master Flow Orchestrator completion..."
+            )
+
             # Create completion notification
             completion_message = await self._create_completion_notification()
-            
+
             # Create completion report
             completion_report = await self._create_completion_report()
-            
+
             # Save notification and report
             notifications_sent = []
-            
+
             # Save completion notification
-            notification_path = self.docs_root / "notifications" / "master_flow_orchestrator_completion.md"
+            notification_path = (
+                self.docs_root
+                / "notifications"
+                / "master_flow_orchestrator_completion.md"
+            )
             notification_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(notification_path, 'w') as f:
+            with open(notification_path, "w") as f:
                 f.write(completion_message)
             notifications_sent.append("Completion notification created")
-            
+
             # Save completion report
-            report_path = self.docs_root / "reports" / "master_flow_orchestrator_completion_report.md"
+            report_path = (
+                self.docs_root
+                / "reports"
+                / "master_flow_orchestrator_completion_report.md"
+            )
             report_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(report_path, 'w') as f:
+            with open(report_path, "w") as f:
                 f.write(completion_report)
             notifications_sent.append("Completion report generated")
-            
+
             # Log completion in system
             logger.info("🎉 MASTER FLOW ORCHESTRATOR IMPLEMENTATION COMPLETE!")
             logger.info("📋 All tasks MFO-001 through MFO-114 completed successfully")
             logger.info("🚀 Production deployment and cleanup finished")
-            
+
             return {
                 "success": True,
                 "notifications_sent": notifications_sent,
                 "completion_message_path": str(notification_path),
                 "completion_report_path": str(report_path),
-                "notified_at": datetime.utcnow().isoformat()
+                "notified_at": datetime.utcnow().isoformat(),
             }
-            
+
         except Exception as e:
             logger.error(f"❌ Stakeholder notification failed: {e}")
             return {"success": False, "error": str(e)}
-    
+
     # Helper methods
-    
+
     async def _remove_discovery_references(self) -> int:
         """Remove deprecated discovery flow references"""
         try:
             # Use grep to find files with deprecated discovery references
             cmd = [
-                "grep", "-r", "-l", 
+                "grep",
+                "-r",
+                "-l",
                 "DiscoveryFlowOrchestrator\\|discovery_flow_orchestrator\\|BaseDiscoveryAgent",
                 str(self.backend_root / "app"),
-                "--include=*.py"
+                "--include=*.py",
             ]
-            
+
             result = subprocess.run(cmd, capture_output=True, text=True)
             if result.returncode == 0:
-                files_with_refs = result.stdout.strip().split('\n')
+                files_with_refs = result.stdout.strip().split("\n")
                 # Filter out archived files
                 active_files = files_with_refs
                 return len(active_files)
-            
+
             return 0
-            
+
         except Exception:
             return 0
-    
+
     async def _remove_assessment_references(self) -> int:
         """Remove deprecated assessment flow references"""
         try:
             cmd = [
-                "grep", "-r", "-l",
+                "grep",
+                "-r",
+                "-l",
                 "AssessmentFlowOrchestrator\\|assessment_flow_orchestrator",
                 str(self.backend_root / "app"),
-                "--include=*.py"
+                "--include=*.py",
             ]
-            
+
             result = subprocess.run(cmd, capture_output=True, text=True)
             if result.returncode == 0:
-                files_with_refs = result.stdout.strip().split('\n')
+                files_with_refs = result.stdout.strip().split("\n")
                 active_files = files_with_refs
                 return len(active_files)
-            
+
             return 0
-            
+
         except Exception:
             return 0
-    
+
     async def _update_main_py_remove_old_routes(self) -> bool:
         """Update main.py to remove old route imports"""
         try:
             main_py_path = self.backend_root / "app" / "main.py"
             if not main_py_path.exists():
                 return False
-            
+
             # Read current content
-            with open(main_py_path, 'r') as f:
+            with open(main_py_path, "r") as f:
                 content = f.read()
-            
+
             # Remove old route imports (example patterns)
             old_patterns = [
                 "from app.api.v2.discovery_flow_v2 import",
                 "from app.api.v1.discovery_flow_legacy import",
                 "app.include_router(discovery_flow_v2_router",
-                "app.include_router(discovery_flow_legacy_router"
+                "app.include_router(discovery_flow_legacy_router",
             ]
-            
+
             updated = False
             for pattern in old_patterns:
                 if pattern in content:
                     # Comment out the line instead of removing
                     content = content.replace(pattern, f"# REMOVED: {pattern}")
                     updated = True
-            
+
             if updated:
-                with open(main_py_path, 'w') as f:
+                with open(main_py_path, "w") as f:
                     f.write(content)
-            
+
             return updated
-            
+
         except Exception:
             return False
-    
+
     async def _create_archive_index(self) -> None:
         """Create master archive index - SKIPPED (archives removed)"""
         pass  # Archives have been removed, nothing to do
-    
+
     async def _update_claude_md(self) -> bool:
         """Update CLAUDE.md with completion status"""
         try:
-            claude_md_path = Path("/Users/chocka/CursorProjects/migrate-ui-orchestrator/CLAUDE.md")
+            claude_md_path = Path(
+                "/Users/chocka/CursorProjects/migrate-ui-orchestrator/CLAUDE.md"
+            )
             if not claude_md_path.exists():
                 return False
-            
+
             # Read current content
-            with open(claude_md_path, 'r') as f:
+            with open(claude_md_path, "r") as f:
                 content = f.read()
-            
+
             # Update completion status
             completion_update = f"""
 
@@ -424,35 +459,35 @@ class ProductionCleanupManager:
 ---
 
 """
-            
+
             # Insert completion update after the critical platform context
             if "## 🚨 **CRITICAL PLATFORM CONTEXT**" in content:
                 content = content.replace(
                     "## 🚨 **CRITICAL PLATFORM CONTEXT**",
-                    f"{completion_update}## 🚨 **CRITICAL PLATFORM CONTEXT**"
+                    f"{completion_update}## 🚨 **CRITICAL PLATFORM CONTEXT**",
                 )
-                
-                with open(claude_md_path, 'w') as f:
+
+                with open(claude_md_path, "w") as f:
                     f.write(content)
                 return True
-            
+
             return False
-            
+
         except Exception:
             return False
-    
+
     async def _update_platform_evolution_doc(self) -> bool:
         """Update platform evolution document"""
         return True  # Placeholder - would update platform evolution doc
-    
+
     async def _update_api_documentation(self) -> bool:
         """Update API documentation"""
         return True  # Placeholder - would update API docs
-    
+
     async def _update_deployment_documentation(self) -> bool:
         """Update deployment documentation"""
         return True  # Placeholder - would update deployment docs
-    
+
     async def _create_implementation_summary(self) -> bool:
         """Create final implementation summary"""
         try:
@@ -627,17 +662,21 @@ The platform is now ready for continued development and expansion, with a solid 
 **Document Version:** 1.0  
 **Last Updated:** {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC
 """
-            
-            summary_path = self.docs_root / "implementation" / "MASTER_FLOW_ORCHESTRATOR_SUMMARY.md"
+
+            summary_path = (
+                self.docs_root
+                / "implementation"
+                / "MASTER_FLOW_ORCHESTRATOR_SUMMARY.md"
+            )
             summary_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(summary_path, 'w') as f:
+            with open(summary_path, "w") as f:
                 f.write(summary_content)
-            
+
             return True
-            
+
         except Exception:
             return False
-    
+
     async def _create_completion_notification(self) -> str:
         """Create completion notification message"""
         return f"""# Master Flow Orchestrator Implementation Complete
@@ -736,7 +775,7 @@ For questions or support regarding the Master Flow Orchestrator implementation, 
 **Document Version:** 1.0  
 **Distribution:** All stakeholders, development team, operations team, management
 """
-    
+
     async def _create_completion_report(self) -> str:
         """Create detailed completion report"""
         return f"""# Master Flow Orchestrator Implementation Completion Report
@@ -1061,27 +1100,27 @@ The Master Flow Orchestrator implementation represents a significant achievement
 async def run_production_cleanup():
     """Main function to run production cleanup"""
     cleanup_manager = ProductionCleanupManager()
-    
+
     try:
         logger.info("🚀 Starting Master Flow Orchestrator production cleanup...")
-        
+
         # Execute all cleanup tasks
         results = await cleanup_manager.execute_production_cleanup()
-        
+
         # Print results
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("MASTER FLOW ORCHESTRATOR PRODUCTION CLEANUP RESULTS")
-        print("="*80)
-        
+        print("=" * 80)
+
         print(f"\nTasks Completed: {len(results['tasks_completed'])}")
-        for task in results['tasks_completed']:
+        for task in results["tasks_completed"]:
             print(f"  ✅ {task}")
-        
+
         if results.get("tasks_failed"):
             print(f"\nTasks Failed: {len(results['tasks_failed'])}")
             for task in results["tasks_failed"]:
                 print(f"  ❌ {task}")
-        
+
         print("\nCleanup Summary:")
         summary = results.get("cleanup_summary", {})
         for task_name, task_result in summary.items():
@@ -1089,18 +1128,18 @@ async def run_production_cleanup():
                 print(f"  ✅ {task_name}: Success")
             else:
                 print(f"  ⚠️ {task_name}: {task_result}")
-        
+
         print(f"\nCompletion Time: {results.get('completion_time', 'Unknown')}")
-        
-        print("\n" + "="*80)
+
+        print("\n" + "=" * 80)
         print("🎉 MASTER FLOW ORCHESTRATOR IMPLEMENTATION COMPLETE!")
         print("📋 All tasks MFO-001 through MFO-114 completed successfully")
         print("🚀 Production deployment and cleanup finished")
         print("✅ System ready for production use")
-        print("="*80)
-        
+        print("=" * 80)
+
         return results
-        
+
     except Exception as e:
         logger.error(f"❌ Production cleanup failed: {e}")
         print(f"\n❌ Cleanup failed: {e}")
@@ -1109,4 +1148,5 @@ async def run_production_cleanup():
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(run_production_cleanup())

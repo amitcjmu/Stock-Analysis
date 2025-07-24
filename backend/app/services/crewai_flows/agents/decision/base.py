@@ -10,9 +10,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, Optional
 
-from crewai import Agent
-
 from app.models.unified_discovery_flow_state import UnifiedDiscoveryFlowState
+from crewai import Agent
 
 logger = logging.getLogger(__name__)
 

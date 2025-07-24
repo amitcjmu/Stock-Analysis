@@ -2,11 +2,10 @@ import asyncio
 import os
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import pool, text
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
-from alembic import context
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -35,6 +34,7 @@ target_metadata = Base.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
+
 def get_url():
     """Get database URL from environment variables or config."""
     # First try to get Railway's DATABASE_URL
@@ -42,16 +42,18 @@ def get_url():
     if database_url:
         # Ensure it uses asyncpg driver for migrations
         if database_url.startswith("postgresql://"):
-            database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            database_url = database_url.replace(
+                "postgresql://", "postgresql+asyncpg://", 1
+            )
         return database_url
-    
+
     # Fallback to individual environment variables for local development
     db_user = os.getenv("POSTGRES_USER", "postgres")
     db_password = os.getenv("POSTGRES_PASSWORD", "postgres")
     db_host = os.getenv("POSTGRES_HOST", "postgres")
     db_port = os.getenv("POSTGRES_PORT", "5432")
     db_name = os.getenv("POSTGRES_DB", "migration_db")
-    
+
     return f"postgresql+asyncpg://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
 
@@ -83,14 +85,14 @@ def do_run_migrations(connection: Connection) -> None:
     # Ensure migration schema exists before running migrations
     connection.execute(text("CREATE SCHEMA IF NOT EXISTS migration"))
     connection.execute(text("SET search_path TO migration"))
-    
+
     context.configure(
-        connection=connection, 
+        connection=connection,
         target_metadata=target_metadata,
         include_schemas=True,
-        version_table='alembic_version',
-        version_table_schema='migration',
-        version_table_pk=False  # This allows for custom version table schema
+        version_table="alembic_version",
+        version_table_schema="migration",
+        version_table_pk=False,  # This allows for custom version table schema
     )
 
     with context.begin_transaction():
@@ -104,7 +106,7 @@ async def run_async_migrations() -> None:
     """
     configuration = config.get_section(config.config_ini_section)
     configuration["sqlalchemy.url"] = get_url()
-    
+
     connectable = async_engine_from_config(
         configuration,
         prefix="sqlalchemy.",
@@ -127,4 +129,4 @@ def run_migrations_online() -> None:
 if context.is_offline_mode():
     run_migrations_offline()
 else:
-    run_migrations_online() 
+    run_migrations_online()

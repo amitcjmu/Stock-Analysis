@@ -23,7 +23,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 try:
     import bcrypt
     import numpy as np
-
     from app.core.database import AsyncSessionLocal, engine, init_db
     from app.models.asset import (
         Asset,

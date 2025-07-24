@@ -26,7 +26,11 @@ def main():
 
     for root, dirs, files in os.walk("."):
         # Skip directories
-        dirs[:] = [d for d in dirs if d not in ["venv", "__pycache__", ".git", ".pytest_cache", "node_modules"]]
+        dirs[:] = [
+            d
+            for d in dirs
+            if d not in ["venv", "__pycache__", ".git", ".pytest_cache", "node_modules"]
+        ]
 
         for file in files:
             if file.endswith(".py"):
@@ -36,7 +40,6 @@ def main():
                 valid, error = check_file_syntax(filepath)
                 if not valid:
                     error_files.append((filepath, error))
-
 
     if error_files:
         for filepath, error in error_files[:10]:  # Show first 10

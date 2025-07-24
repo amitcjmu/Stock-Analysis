@@ -8,9 +8,6 @@ import uuid
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.api.v1.admin.engagement_management_handlers.engagement_crud_handler import (
     EngagementCRUDHandler,
 )
@@ -27,6 +24,8 @@ from app.schemas.admin_schemas import (
     PaginatedResponse,
 )
 from app.schemas.engagement import EngagementSession
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

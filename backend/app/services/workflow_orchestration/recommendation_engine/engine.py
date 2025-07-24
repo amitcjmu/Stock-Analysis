@@ -9,12 +9,11 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.context import RequestContext
 from app.core.exceptions import FlowError
 from app.core.logging import get_logger
 from app.services.ai_analysis import ConfidenceScorer, LearningOptimizer
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .analyzers import RecommendationAnalyzers
 from .evaluators import RecommendationEvaluator

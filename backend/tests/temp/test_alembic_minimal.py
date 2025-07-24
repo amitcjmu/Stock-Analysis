@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """Test minimal alembic functionality"""
 
-from sqlalchemy import create_engine, text
-
 from alembic import command
 from alembic.config import Config
+from sqlalchemy import create_engine, text
 
 # Clean up first
-db_url = 'postgresql://postgres:postgres@postgres:5432/migration_db'
+db_url = "postgresql://postgres:postgres@postgres:5432/migration_db"
 engine = create_engine(db_url)
 
 print("Cleaning up...")
@@ -41,29 +40,38 @@ try:
 except Exception as e:
     print(f"Migration error: {e}")
     import traceback
+
     traceback.print_exc()
 
 # Check what happened
 print("\nChecking results...")
 with engine.connect() as conn:
     # Check schemas
-    result = conn.execute(text("SELECT schema_name FROM information_schema.schemata WHERE schema_name = 'migration'"))
+    result = conn.execute(
+        text(
+            "SELECT schema_name FROM information_schema.schemata WHERE schema_name = 'migration'"
+        )
+    )
     if result.fetchone():
         print("✓ Migration schema exists")
-    
+
     # Check tables
-    result = conn.execute(text("""
+    result = conn.execute(
+        text(
+            """
         SELECT schemaname, tablename 
         FROM pg_tables 
         WHERE schemaname = 'migration'
         ORDER BY tablename
-    """))
-    
+    """
+        )
+    )
+
     tables = list(result)
     print(f"\nTables in migration schema: {len(tables)}")
     for schema, table in tables:
         print(f"  - {schema}.{table}")
-    
+
     # Check alembic_version
     try:
         result = conn.execute(text("SELECT * FROM migration.alembic_version"))

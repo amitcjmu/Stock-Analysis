@@ -1,7 +1,7 @@
 """
 ⚠️ WARNING: DO NOT RUN THIS SCRIPT! ⚠️
 
-This script uses SHA256 password hashing which is incompatible with the 
+This script uses SHA256 password hashing which is incompatible with the
 authentication service that expects bcrypt hashes. Running this script will
 set invalid password hashes that will prevent login.
 
@@ -17,16 +17,16 @@ All demo UUIDs use pattern: XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX
 All emails use pattern: user@demo.company.com
 All engagements have "Demo" prefix
 """
+
 import asyncio
 import hashlib
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import select
-
 from app.core.database import AsyncSessionLocal
 from app.models import ClientAccount, Engagement, User, UserAccountAssociation
 from app.models.rbac import UserProfile, UserStatus
+from sqlalchemy import select
 
 
 def get_password_hash(password: str) -> str:
@@ -38,9 +38,10 @@ def create_demo_uuid() -> uuid.UUID:
     """Create UUID with -def0-def0-def0- pattern in the middle for easy identification"""
     # Generate random hex for start and end
     import random
-    start = ''.join(random.choices('0123456789abcdef', k=8))
-    end = ''.join(random.choices('0123456789abcdef', k=12))
-    
+
+    start = "".join(random.choices("0123456789abcdef", k=8))
+    end = "".join(random.choices("0123456789abcdef", k=12))
+
     # Create pattern: XXXXXXXX-def0-def0-def0-XXXXXXXXXXXX
     uuid_string = f"{start}-def0-def0-def0-{end}"
     return uuid.UUID(uuid_string)
@@ -50,23 +51,21 @@ async def clean_demo_data():
     """Clean existing demo data before recreating"""
     async with AsyncSessionLocal() as session:
         print("🧹 Cleaning existing demo data...")
-        
+
         # Delete demo users (by email pattern)
-        result = await session.execute(
-            select(User).where(User.email.like('%@demo.%'))
-        )
+        result = await session.execute(select(User).where(User.email.like("%@demo.%")))
         demo_users = result.scalars().all()
         for user in demo_users:
             await session.delete(user)
-        
+
         # Delete demo client accounts (by name pattern instead of UUID since they're random)
         result = await session.execute(
-            select(ClientAccount).where(ClientAccount.name.like('Demo %'))
+            select(ClientAccount).where(ClientAccount.name.like("Demo %"))
         )
         demo_clients = result.scalars().all()
         for client in demo_clients:
             await session.delete(client)
-        
+
         await session.commit()
         print("✅ Demo data cleaned")
 
@@ -78,7 +77,7 @@ async def create_demo_multi_tenant_data():
         techcorp_id = create_demo_uuid()
         retailplus_id = create_demo_uuid()
         manufacturing_id = create_demo_uuid()
-        
+
         # Demo client accounts with demo UUIDs
         demo_accounts = [
             {
@@ -91,7 +90,7 @@ async def create_demo_multi_tenant_data():
                 "headquarters_location": "Demo City, CA",
                 "primary_contact_name": "Demo Sarah Chen",
                 "primary_contact_email": "sarah.chen@demo.techcorp.com",
-                "contact_phone": "+1-555-0100"
+                "contact_phone": "+1-555-0100",
             },
             {
                 "id": retailplus_id,
@@ -103,7 +102,7 @@ async def create_demo_multi_tenant_data():
                 "headquarters_location": "Demo City, NY",
                 "primary_contact_name": "Demo Michael Rodriguez",
                 "primary_contact_email": "michael.rodriguez@demo.retailplus.com",
-                "contact_phone": "+1-555-0200"
+                "contact_phone": "+1-555-0200",
             },
             {
                 "id": manufacturing_id,
@@ -115,24 +114,24 @@ async def create_demo_multi_tenant_data():
                 "headquarters_location": "Demo City, MI",
                 "primary_contact_name": "Demo Jennifer Davis",
                 "primary_contact_email": "jennifer.davis@demo.manufacturing.com",
-                "contact_phone": "+1-555-0300"
-            }
+                "contact_phone": "+1-555-0300",
+            },
         ]
-        
+
         # Create demo client accounts
         print("\n📁 Creating demo client accounts...")
         for account_data in demo_accounts:
             account = ClientAccount(**account_data)
             session.add(account)
             print(f"✅ Created: {account_data['name']}")
-        
+
         await session.commit()
-        
+
         # Generate engagement IDs
         techcorp_engagement_id = create_demo_uuid()
         retailplus_engagement_id = create_demo_uuid()
         manufacturing_engagement_id = create_demo_uuid()
-        
+
         # Demo engagements with demo UUIDs linked to correct clients
         demo_engagements = [
             {
@@ -142,7 +141,7 @@ async def create_demo_multi_tenant_data():
                 "slug": "demo-techcorp-cloud",
                 "description": "Demo project: Migrate legacy systems to Azure",
                 "status": "active",
-                "engagement_type": "migration"
+                "engagement_type": "migration",
             },
             {
                 "id": retailplus_engagement_id,
@@ -151,7 +150,7 @@ async def create_demo_multi_tenant_data():
                 "slug": "demo-retailplus-infra",
                 "description": "Demo project: Modernize retail POS systems",
                 "status": "active",
-                "engagement_type": "assessment"
+                "engagement_type": "assessment",
             },
             {
                 "id": manufacturing_engagement_id,
@@ -160,22 +159,22 @@ async def create_demo_multi_tenant_data():
                 "slug": "demo-manufacturing-erp",
                 "description": "Demo project: Migrate ERP to cloud",
                 "status": "active",
-                "engagement_type": "planning"
-            }
+                "engagement_type": "planning",
+            },
         ]
-        
+
         print("\n📋 Creating demo engagements...")
         for eng_data in demo_engagements:
             engagement = Engagement(
                 **eng_data,
                 start_date=datetime.now(timezone.utc),
-                target_completion_date=datetime(2025, 12, 31, tzinfo=timezone.utc)
+                target_completion_date=datetime(2025, 12, 31, tzinfo=timezone.utc),
             )
             session.add(engagement)
             print(f"✅ Created: {eng_data['name']}")
-        
+
         await session.commit()
-        
+
         # Demo users with demo emails and UUIDs
         demo_users = [
             {
@@ -185,7 +184,7 @@ async def create_demo_multi_tenant_data():
                 "last_name": "TechAdmin",
                 "client_id": techcorp_id,
                 "engagement_id": techcorp_engagement_id,
-                "role": "client_admin"
+                "role": "client_admin",
             },
             {
                 "id": create_demo_uuid(),
@@ -194,7 +193,7 @@ async def create_demo_multi_tenant_data():
                 "last_name": "TechAnalyst",
                 "client_id": techcorp_id,
                 "engagement_id": techcorp_engagement_id,
-                "role": "analyst"
+                "role": "analyst",
             },
             {
                 "id": create_demo_uuid(),
@@ -203,7 +202,7 @@ async def create_demo_multi_tenant_data():
                 "last_name": "RetailAdmin",
                 "client_id": retailplus_id,
                 "engagement_id": retailplus_engagement_id,
-                "role": "client_admin"
+                "role": "client_admin",
             },
             {
                 "id": create_demo_uuid(),
@@ -212,7 +211,7 @@ async def create_demo_multi_tenant_data():
                 "last_name": "RetailViewer",
                 "client_id": retailplus_id,
                 "engagement_id": retailplus_engagement_id,
-                "role": "viewer"
+                "role": "viewer",
             },
             {
                 "id": create_demo_uuid(),
@@ -221,10 +220,10 @@ async def create_demo_multi_tenant_data():
                 "last_name": "MfgManager",
                 "client_id": manufacturing_id,
                 "engagement_id": manufacturing_engagement_id,
-                "role": "engagement_manager"
-            }
+                "role": "engagement_manager",
+            },
         ]
-        
+
         print("\n👥 Creating demo users...")
         for user_data in demo_users:
             user = User(
@@ -236,20 +235,20 @@ async def create_demo_multi_tenant_data():
                 is_active=True,
                 is_verified=True,
                 default_client_id=user_data["client_id"],
-                default_engagement_id=user_data["engagement_id"]
+                default_engagement_id=user_data["engagement_id"],
             )
             session.add(user)
             print(f"✅ Created: {user_data['email']}")
-            
+
             # Create user-client association
             association = UserAccountAssociation(
                 id=uuid.uuid4(),  # Regular UUID for associations
                 user_id=user_data["id"],
                 client_account_id=user_data["client_id"],
-                role=user_data["role"]
+                role=user_data["role"],
             )
             session.add(association)
-            
+
             # Create active user profile for login
             profile = UserProfile(
                 user_id=user_data["id"],
@@ -259,10 +258,10 @@ async def create_demo_multi_tenant_data():
                 organization=f"Demo {user_data['client_id']}",
                 role_description=f"Demo {user_data['role']}",
                 requested_access_level="admin",
-                notification_preferences={"email": True, "slack": False}
+                notification_preferences={"email": True, "slack": False},
             )
             session.add(profile)
-        
+
         await session.commit()
         print("\n✅ Demo multi-tenant setup complete!")
 
@@ -270,13 +269,13 @@ async def create_demo_multi_tenant_data():
 async def verify_demo_setup():
     """Verify the demo setup with summary"""
     async with AsyncSessionLocal() as session:
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("📊 DEMO DATA SUMMARY")
-        print("="*60)
-        
+        print("=" * 60)
+
         # Count demo client accounts
         result = await session.execute(
-            select(ClientAccount).where(ClientAccount.name.like('Demo %'))
+            select(ClientAccount).where(ClientAccount.name.like("Demo %"))
         )
         demo_clients = result.scalars().all()
         print(f"\n🏢 Demo Client Accounts: {len(demo_clients)}")
@@ -284,10 +283,10 @@ async def verify_demo_setup():
             print(f"   - {client.name}")
             print(f"     ID: {client.id}")
             print(f"     Slug: {client.slug}")
-        
+
         # Count demo engagements
         result = await session.execute(
-            select(Engagement).where(Engagement.name.like('Demo %'))
+            select(Engagement).where(Engagement.name.like("Demo %"))
         )
         demo_engagements = result.scalars().all()
         print(f"\n📁 Demo Engagements: {len(demo_engagements)}")
@@ -295,32 +294,30 @@ async def verify_demo_setup():
             print(f"   - {eng.name}")
             print(f"     ID: {eng.id}")
             print(f"     Client: {eng.client_account_id}")
-        
+
         # Count demo users
-        result = await session.execute(
-            select(User).where(User.email.like('%@demo.%'))
-        )
+        result = await session.execute(select(User).where(User.email.like("%@demo.%")))
         demo_users = result.scalars().all()
         print(f"\n👤 Demo Users: {len(demo_users)}")
         for user in demo_users:
             # Get user's role
             result = await session.execute(
-                select(UserAccountAssociation).where(
-                    UserAccountAssociation.user_id == user.id
-                ).limit(1)
+                select(UserAccountAssociation)
+                .where(UserAccountAssociation.user_id == user.id)
+                .limit(1)
             )
             assoc = result.scalar()
             role = assoc.role if assoc else "unknown"
             print(f"   - {user.email} ({role})")
             print(f"     ID: {user.id}")
             print(f"     Name: {user.first_name} {user.last_name}")
-        
-        print("\n" + "="*60)
+
+        print("\n" + "=" * 60)
         print("✅ All demo accounts use pattern: XXXXXXXX-demo-demo-demo-XXXXXXXXXXXX")
         print("✅ All demo emails use pattern: user@demo.company.com")
         print("✅ All demo entities have 'Demo' prefix in names")
         print("✅ Password for all demo users: Demo123!")
-        print("="*60)
+        print("=" * 60)
 
 
 if __name__ == "__main__":

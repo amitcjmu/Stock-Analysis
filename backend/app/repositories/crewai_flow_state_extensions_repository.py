@@ -9,11 +9,10 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, delete, desc, func, select, update
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
 from app.repositories.context_aware_repository import ContextAwareRepository
+from sqlalchemy import and_, delete, desc, func, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

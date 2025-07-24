@@ -7,14 +7,13 @@ entry point for the discovery module, centered around the agentic CrewAI workflo
 import logging
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.context import RequestContext, get_current_context
 from app.core.database import AsyncSessionLocal
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.services.discovery_flow_service import DiscoveryFlowService
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -191,11 +190,10 @@ async def get_active_discovery_flows(
 
         # ⚠️ DEPRECATED: WorkflowState removed - using V2 Discovery Flow architecture
 
-        from sqlalchemy import and_, select
-
         from app.core.database import AsyncSessionLocal
         from app.models.client_account import ClientAccount, Engagement
         from app.models.rbac import ClientAccess, UserRole
+        from sqlalchemy import and_, select
 
         async with AsyncSessionLocal() as db:
             # Check if user is platform admin

@@ -15,9 +15,8 @@ from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 try:
-    from crewai import Agent, Process, Task
-
     from app.services.crews.base_crew import BaseDiscoveryCrew
+    from crewai import Agent, Process, Task
 
     CREWAI_AVAILABLE = True
 except ImportError:

@@ -5,11 +5,10 @@ Admin endpoints for rate limit management and monitoring.
 import logging
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-
 from app.api.v1.auth.auth_utils import get_current_user
 from app.middleware.adaptive_rate_limiter import get_adaptive_rate_limiter
 from app.models.client_account import User
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 logger = logging.getLogger(__name__)
 

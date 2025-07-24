@@ -7,4 +7,4 @@ try:
 except Exception:
     print("\n❌ FAILED to import api_router.")
     print("\n📋 Traceback:")
-    traceback.print_exc() 
+    traceback.print_exc()

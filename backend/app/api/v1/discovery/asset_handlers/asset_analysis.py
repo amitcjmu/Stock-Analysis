@@ -450,11 +450,10 @@ class AssetAnalysisHandler:
         """
         Retrieves assets from the database, scoped by client_account_id and engagement_id.
         """
-        from sqlalchemy import and_
-        from sqlalchemy.future import select
-
         from app.core.database import AsyncSessionLocal
         from app.models.asset import Asset
+        from sqlalchemy import and_
+        from sqlalchemy.future import select
 
         async with AsyncSessionLocal() as session:
             try:

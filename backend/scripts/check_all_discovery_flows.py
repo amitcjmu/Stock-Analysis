@@ -21,25 +21,25 @@ from app.models.discovery_flow import DiscoveryFlow
 
 async def check_all_flows():
     """Check all discovery flows in the database."""
-    
+
     print(f"\n{'='*80}")
     print("ALL DISCOVERY FLOWS IN DATABASE")
     print(f"Check Time: {datetime.utcnow().isoformat()}")
     print(f"{'='*80}\n")
-    
+
     async with AsyncSessionLocal() as session:
         # Count total discovery flows
         count_result = await session.execute(
             select(text("COUNT(*)")).select_from(DiscoveryFlow)
         )
         total_count = count_result.scalar()
-        
+
         print(f"Total Discovery Flows in database: {total_count}")
         print("-" * 40)
-        
+
         if total_count == 0:
             print("❌ No discovery flows found in database!")
-            
+
             # Check CrewAI extensions for any discovery flows
             print("\nChecking CrewAI Flow State Extensions for discovery flows...")
             crewai_flows = await session.execute(
@@ -48,9 +48,11 @@ async def check_all_flows():
                 )
             )
             crewai_flows = crewai_flows.scalars().all()
-            
+
             if crewai_flows:
-                print(f"\nFound {len(crewai_flows)} discovery flows in CrewAI extensions:")
+                print(
+                    f"\nFound {len(crewai_flows)} discovery flows in CrewAI extensions:"
+                )
                 for flow in crewai_flows:
                     print(f"\n  Flow ID: {flow.flow_id}")
                     print(f"  Extension ID: {flow.id}")
@@ -59,15 +61,15 @@ async def check_all_flows():
                     print(f"  Master Flow ID: {flow.master_flow_id}")
             else:
                 print("❌ No discovery flows found in CrewAI extensions either!")
-            
+
             return
-        
+
         # Get all discovery flows
         flows = await session.execute(
             select(DiscoveryFlow).order_by(DiscoveryFlow.created_at.desc())
         )
         flows = flows.scalars().all()
-        
+
         for i, flow in enumerate(flows, 1):
             print(f"\n{i}. Discovery Flow")
             print("   " + "-" * 35)
@@ -81,7 +83,7 @@ async def check_all_flows():
             print(f"   Master Flow ID: {flow.master_flow_id}")
             print(f"   Created At: {flow.created_at}")
             print(f"   Updated At: {flow.updated_at}")
-            
+
             # Check CrewAI extension
             crewai_ext = await session.execute(
                 select(CrewAIFlowStateExtensions).where(
@@ -89,23 +91,27 @@ async def check_all_flows():
                 )
             )
             crewai_ext = crewai_ext.scalar_one_or_none()
-            
+
             if crewai_ext:
                 print(f"   ✅ Has CrewAI Extension (Active: {crewai_ext.is_active})")
             else:
                 print("   ❌ Missing CrewAI Extension")
-        
+
         # Also check for the specific flow ID we're looking for
-        print("\n\nSearching specifically for flow ID: 582b87c4-0df1-4c2f-aa3b-e4b5a287d725")
+        print(
+            "\n\nSearching specifically for flow ID: 582b87c4-0df1-4c2f-aa3b-e4b5a287d725"
+        )
         print("-" * 40)
-        
+
         # Direct SQL query to be absolutely sure
         result = await session.execute(
-            text("SELECT id, current_phase, status FROM discovery_flows WHERE id = :flow_id"),
-            {"flow_id": "582b87c4-0df1-4c2f-aa3b-e4b5a287d725"}
+            text(
+                "SELECT id, current_phase, status FROM discovery_flows WHERE id = :flow_id"
+            ),
+            {"flow_id": "582b87c4-0df1-4c2f-aa3b-e4b5a287d725"},
         )
         row = result.fetchone()
-        
+
         if row:
             print(f"✅ Found in direct SQL query: {row}")
         else:
@@ -119,6 +125,7 @@ async def main():
     except Exception as e:
         print(f"\n❌ Check failed with error: {str(e)}")
         import traceback
+
         traceback.print_exc()
 
 

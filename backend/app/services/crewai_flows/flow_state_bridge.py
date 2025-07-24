@@ -168,9 +168,8 @@ class FlowStateBridge:
             # Try to restore from PostgreSQL using postgres store
             async with AsyncSessionLocal() as db:
                 # First check DiscoveryFlow table for current phase and progress
-                from sqlalchemy import select
-
                 from app.models.discovery_flow import DiscoveryFlow
+                from sqlalchemy import select
 
                 flow_result = await db.execute(
                     select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id)

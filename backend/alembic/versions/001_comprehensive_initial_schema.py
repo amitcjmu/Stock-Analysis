@@ -7,9 +7,8 @@ Create Date: 2025-07-18
 """
 
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
-
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "001_comprehensive_initial_schema"
@@ -32,7 +31,7 @@ def table_exists(table_name):
                 )
                 """
             ),
-            {"table_name": table_name}
+            {"table_name": table_name},
         ).scalar()
         return result
     except Exception as e:
@@ -63,7 +62,7 @@ def index_exists(index_name, table_name):
             )
             """
         ),
-        {"table_name": table_name, "index_name": index_name}
+        {"table_name": table_name, "index_name": index_name},
     ).scalar()
     return result
 

@@ -13,18 +13,17 @@ These endpoints are exempt from the global engagement requirement middleware.
 import logging
 from typing import List, Optional
 
+from app.api.v1.auth.auth_utils import get_current_user
+from app.core.database import get_db
+from app.models import User
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.auth.auth_utils import get_current_user
-from app.core.database import get_db
-from app.models import User
-
 # Make client_account import conditional to avoid deployment failures
 try:
-    from app.models import ClientAccount, Engagement, ClientAccess, UserRole
+    from app.models import ClientAccess, ClientAccount, Engagement, UserRole
 
     CLIENT_ACCOUNT_AVAILABLE = True
 except ImportError:

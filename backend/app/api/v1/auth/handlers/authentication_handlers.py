@@ -6,9 +6,6 @@ Handles login, password change, and token-related endpoints.
 import logging
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.database import get_db
 from app.schemas.admin_schemas import UserDashboardStats
 from app.schemas.auth_schemas import (
@@ -18,6 +15,8 @@ from app.schemas.auth_schemas import (
     PasswordChangeResponse,
 )
 from app.services.auth_services.authentication_service import AuthenticationService
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

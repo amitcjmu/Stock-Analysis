@@ -6,10 +6,9 @@ Create Date: 2025-06-15 07:24:07.233960
 
 """
 
-
 # revision identifiers, used by Alembic.
-revision = 'd13b778f701f'
-down_revision = ('a4c212b400af', '305c091bd5bf')
+revision = "d13b778f701f"
+down_revision = ("a4c212b400af", "305c091bd5bf")
 branch_labels = None
 depends_on = None
 
@@ -19,4 +18,4 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    pass 
+    pass

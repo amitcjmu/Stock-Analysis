@@ -8,13 +8,12 @@ This allows the frontend to dynamically load demo IDs instead of using hardcoded
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.api.v1.auth.auth_utils import get_current_user_optional
 from app.core.database import get_db
 from app.core.seed_data_config import DemoDataConfig
 from app.models import User
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

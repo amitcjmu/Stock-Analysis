@@ -9,8 +9,6 @@ import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.database import get_db
 from app.core.exceptions import CrewAIExecutionError, InvalidFlowStateError
 
@@ -18,6 +16,7 @@ from app.core.exceptions import CrewAIExecutionError, InvalidFlowStateError
 # V2 Discovery Flow Models
 # V2 Discovery Flow Services
 from app.services.discovery_flow_service import DiscoveryFlowService
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # CrewAI Flow Integration (Conditional)
 if TYPE_CHECKING:
@@ -497,11 +496,10 @@ class CrewAIFlowService:
                     if not flow:
                         # Check if master flow exists and create missing discovery flow record
                         async with AsyncSessionLocal() as db:
-                            from sqlalchemy import select
-
                             from app.models.crewai_flow_state_extensions import (
                                 CrewAIFlowStateExtensions,
                             )
+                            from sqlalchemy import select
 
                             master_flow_query = select(CrewAIFlowStateExtensions).where(
                                 CrewAIFlowStateExtensions.flow_id == flow_id,
@@ -574,9 +572,8 @@ class CrewAIFlowService:
                         # Get the flow's raw_data from the database
                         raw_data = []
                         if flow.data_import_id:
-                            from sqlalchemy import select
-
                             from app.models.data_import import RawImportRecord
+                            from sqlalchemy import select
 
                             records_query = (
                                 select(RawImportRecord)

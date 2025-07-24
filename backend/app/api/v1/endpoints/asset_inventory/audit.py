@@ -4,13 +4,12 @@ Asset data audit and lineage tracking endpoints.
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
 from app.models.data_import.core import RawImportRecord
 from app.repositories.asset_repository import AssetRepository
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +35,8 @@ async def get_asset_data_audit(
             raise HTTPException(status_code=404, detail="Asset not found")
 
         # Find linked raw import record using asset_id
-        from sqlalchemy import select
-
         from app.core.database import get_async_db_session
+        from sqlalchemy import select
 
         async with get_async_db_session() as session:
             result = await session.execute(

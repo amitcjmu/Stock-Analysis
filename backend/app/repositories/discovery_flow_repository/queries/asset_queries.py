@@ -8,10 +8,9 @@ import logging
 import uuid
 from typing import List, Optional
 
+from app.models.asset import Asset
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.asset import Asset
 
 logger = logging.getLogger(__name__)
 

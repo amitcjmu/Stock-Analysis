@@ -7,11 +7,10 @@ import logging
 import uuid
 from typing import Callable, Dict, List, Optional
 
+from app.services.credential_service import CredentialService
 from fastapi import HTTPException, Request, status
 from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.services.credential_service import CredentialService
 
 logger = logging.getLogger(__name__)
 

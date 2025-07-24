@@ -6,15 +6,14 @@ import logging
 from typing import Annotated, Optional
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
-
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.client_account import User
 from app.services.auth_services.jwt_service import JWTService
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 logger = logging.getLogger(__name__)
 

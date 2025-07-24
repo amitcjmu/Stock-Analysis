@@ -7,10 +7,6 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.api.v1.auth.auth_utils import get_current_user
 from app.api.v1.endpoints.context.services.user_service import UserService
 from app.core.database import get_db
@@ -18,6 +14,9 @@ from app.models import User
 from app.repositories.asset_repository import AssetRepository
 from app.repositories.discovery_flow_repository import DiscoveryFlowRepository
 from app.schemas.asset_schemas import AssetResponse
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -134,9 +133,8 @@ async def get_active_master_flows(
         raise HTTPException(status_code=400, detail="Client account ID required")
 
     try:
-        from sqlalchemy import and_, select
-
         from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
+        from sqlalchemy import and_, select
 
         # Build query conditions
         conditions = [
@@ -465,11 +463,10 @@ async def delete_master_flow(
     import time
     import uuid as uuid_lib
 
-    from sqlalchemy import select, update
-
     from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
     from app.models.discovery_flow import DiscoveryFlow
     from app.models.flow_deletion_audit import FlowDeletionAudit
+    from sqlalchemy import select, update
 
     start_time = time.time()
 

@@ -24,11 +24,14 @@ def fix_python_file(filepath) -> bool | None:
             pass
 
         # Use autopep8 to fix syntax and style issues
-        fixed_content = autopep8.fix_code(content, options={
-            "aggressive": 2,  # More aggressive fixes
-            "max_line_length": 120,
-            "indent_size": 4,
-        })
+        fixed_content = autopep8.fix_code(
+            content,
+            options={
+                "aggressive": 2,  # More aggressive fixes
+                "max_line_length": 120,
+                "indent_size": 4,
+            },
+        )
 
         # Verify the fixed content is valid
         try:
@@ -88,7 +91,11 @@ def main() -> None:
 
     for root, dirs, files in os.walk("."):
         # Skip directories
-        dirs[:] = [d for d in dirs if d not in ["venv", "__pycache__", ".git", ".pytest_cache", "node_modules"]]
+        dirs[:] = [
+            d
+            for d in dirs
+            if d not in ["venv", "__pycache__", ".git", ".pytest_cache", "node_modules"]
+        ]
 
         for file in files:
             if file.endswith(".py"):
@@ -96,7 +103,6 @@ def main() -> None:
 
                 if fix_python_file(filepath):
                     fixed_count += 1
-
 
 
 if __name__ == "__main__":

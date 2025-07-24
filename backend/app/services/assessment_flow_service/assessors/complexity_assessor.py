@@ -5,10 +5,9 @@ Complexity assessment module for migration complexity analysis.
 import logging
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.context import RequestContext
 from app.models.asset import Asset as DiscoveryAsset
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

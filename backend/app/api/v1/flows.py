@@ -8,16 +8,15 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field, validator
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.api.v1.auth.auth_utils import get_current_user
 from app.api.v1.endpoints.context.services.user_service import UserService
 from app.core.context import RequestContext
 from app.core.database import get_db
 from app.models import User
 from app.services.master_flow_orchestrator import MasterFlowOrchestrator
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, Field, validator
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -767,10 +766,9 @@ async def _recover_corrupted_flow(
     """
     try:
         # Check for existing field mappings to determine the current phase
-        from sqlalchemy import select
-
         from app.models.discovery_flow import DiscoveryFlow
         from app.models.field_mapping import FieldMapping
+        from sqlalchemy import select
 
         # Get the discovery flow record
         discovery_query = select(DiscoveryFlow).where(DiscoveryFlow.flow_id == flow_id)

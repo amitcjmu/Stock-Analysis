@@ -70,9 +70,8 @@ class AdminOperationsHandler(BaseRBACHandler):
             if not email:
                 return {"status": "error", "message": "Email is required"}
 
-            from sqlalchemy import select
-
             from app.models.client_account import User
+            from sqlalchemy import select
 
             existing_user = await self.db.execute(
                 select(User).where(User.email == email)

@@ -9,11 +9,10 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Any, Dict
 
-from sqlalchemy import and_, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.asset import Asset
 from app.models.discovery_flow import DiscoveryFlow
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

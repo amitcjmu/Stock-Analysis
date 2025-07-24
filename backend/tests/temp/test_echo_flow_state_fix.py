@@ -25,17 +25,15 @@ print(f"[ECHO] Flow initialization results: {flow_init_results.get('success', Fa
 # Import CrewAI flow components
 try:
     from app.core.context import RequestContext
-    from app.services.crewai_flows.unified_discovery_flow import create_unified_discovery_flow
-    
-    print("[ECHO] Testing direct CrewAI flow execution...")
-    
-    # Create context
-    context = RequestContext(
-        client_account_id=1,
-        engagement_id=1,
-        user_id="test_user"
+    from app.services.crewai_flows.unified_discovery_flow import (
+        create_unified_discovery_flow,
     )
-    
+
+    print("[ECHO] Testing direct CrewAI flow execution...")
+
+    # Create context
+    context = RequestContext(client_account_id=1, engagement_id=1, user_id="test_user")
+
     # Test data
     test_data = [
         {
@@ -48,27 +46,27 @@ try:
             "Application": "Web Frontend",
             "Environment": "Production",
             "Business Unit": "Sales",
-            "Criticality": "High"
+            "Criticality": "High",
         }
     ]
-    
+
     # Create discovery flow
     flow = create_unified_discovery_flow(
         crewai_service=None,  # Will be created inside
         context=context,
         raw_data=test_data,
         flow_id="test-echo-flow-001",
-        metadata={"source": "echo_test"}
+        metadata={"source": "echo_test"},
     )
-    
+
     print(f"[ECHO] Flow created: {flow}")
     print(f"[ECHO] Flow ID: {flow.flow_id}")
     print(f"[ECHO] Flow has kickoff method: {hasattr(flow, 'kickoff')}")
-    
+
     # Test the kickoff method directly
-    if hasattr(flow, 'kickoff'):
+    if hasattr(flow, "kickoff"):
         print("\n[ECHO] Testing kickoff() method...")
-        
+
         # The kickoff method should trigger the @start decorator
         # and begin the flow execution chain
         try:
@@ -79,12 +77,14 @@ try:
         except Exception as e:
             print(f"[ECHO] ❌ Kickoff failed: {e}")
             import traceback
+
             traceback.print_exc()
-    
+
     print("\n[ECHO] Test completed")
-    
+
 except Exception as e:
     print(f"[ECHO] ❌ Test failed: {e}")
     import traceback
+
     traceback.print_exc()
     sys.exit(1)

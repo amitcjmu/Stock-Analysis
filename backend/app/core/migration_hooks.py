@@ -8,9 +8,8 @@ to ensure database consistency and required data existence.
 
 import logging
 
-from sqlalchemy import text
-
 from app.core.database_initialization import PlatformRequirements
+from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 

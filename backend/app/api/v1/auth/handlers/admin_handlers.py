@@ -6,9 +6,6 @@ Handles admin dashboard stats, active users, access logs, admin user creation, a
 import logging
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.api.v1.auth.auth_utils import get_current_user
 from app.core.database import get_db
 from app.models.client_account import User
@@ -16,6 +13,8 @@ from app.schemas.auth_schemas import UserRegistrationResponse
 from app.services.auth_services.admin_operations_service import AdminOperationsService
 from app.services.auth_services.rbac_core_service import RBACCoreService
 from app.services.auth_services.user_management_service import UserManagementService
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -264,9 +263,8 @@ async def get_user_type(
         # Check if user has platform admin role (no more hardcoded demo admin)
         is_platform_admin = False
         try:
-            from sqlalchemy import select
-
             from app.models.rbac import RoleType, UserRole
+            from sqlalchemy import select
 
             # Check if user has platform admin role
             query = (

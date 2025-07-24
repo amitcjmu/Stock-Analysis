@@ -11,11 +11,10 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from crewai import Agent, Process, Task
-
 from app.services.agent_learning_system import LearningContext, agent_learning_system
 from app.services.enhanced_agent_memory import enhanced_agent_memory
 from app.services.performance.response_optimizer import optimize_response
+from crewai import Agent, Process, Task
 
 from .optimized_crew_base import OptimizedCrewBase
 

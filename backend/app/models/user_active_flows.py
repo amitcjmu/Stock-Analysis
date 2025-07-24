@@ -10,12 +10,11 @@ import uuid
 from datetime import datetime
 from typing import List, Optional
 
+from app.core.database import Base
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-
-from app.core.database import Base
 
 
 class UserActiveFlow(Base):

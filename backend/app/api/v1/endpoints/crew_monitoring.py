@@ -6,10 +6,9 @@ import logging
 from datetime import datetime
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, HTTPException
-
 from app.core.context import get_current_context_dependency
 from app.services.crews.factory import CrewFactory
+from fastapi import APIRouter, Depends, HTTPException
 
 logger = logging.getLogger(__name__)
 

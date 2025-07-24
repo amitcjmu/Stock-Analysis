@@ -5,9 +5,6 @@ Creates the expected /api/v1/field-mapping endpoints that delegate to the modula
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.api.v1.endpoints.data_import.field_mapping.models.mapping_schemas import (
     FieldMappingUpdate,
 )
@@ -16,6 +13,8 @@ from app.api.v1.endpoints.data_import.field_mapping.services.mapping_service imp
 )
 from app.core.context import RequestContext, get_current_context
 from app.core.database import get_db
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

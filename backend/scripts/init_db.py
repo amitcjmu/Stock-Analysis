@@ -10,6 +10,7 @@ from app.scripts.seed_sixr_analysis_demo import seed_demo_data
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 async def init_database():
     """Initialize database with demo data."""
     try:
@@ -19,6 +20,7 @@ async def init_database():
     except Exception as e:
         logger.error(f"Failed to initialize database: {e}")
         raise
+
 
 if __name__ == "__main__":
     asyncio.run(init_database())

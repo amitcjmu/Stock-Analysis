@@ -6,14 +6,13 @@ Handles AI chat interactions with context awareness.
 import logging
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, Depends, HTTPException, WebSocket
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.api.v1.discovery.persistence import get_processed_assets
 from app.core.context import get_user_id
 from app.core.database import get_db
 from app.services.crewai_flow_service import CrewAIFlowService
 from app.services.multi_model_service import multi_model_service
+from fastapi import APIRouter, Depends, HTTPException, WebSocket
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

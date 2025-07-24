@@ -7,7 +7,6 @@ import logging
 from typing import Any, Dict, List, Tuple
 
 import numpy as np
-
 from app.services.tools.base_tool import AsyncBaseDiscoveryTool
 from app.services.tools.registry import ToolMetadata
 

@@ -4,7 +4,9 @@ AI Modernize Migration Platform - Version Information
 
 __version__ = "0.2.0"
 __title__ = "AI Modernize Migration Platform"
-__description__ = "AI-powered cloud migration management platform with intelligent automation"
+__description__ = (
+    "AI-powered cloud migration management platform with intelligent automation"
+)
 __author__ = "AI Modernize Migration Team"
 __license__ = "MIT"
 __copyright__ = "Copyright 2025 AI Modernize Migration Platform"
@@ -38,5 +40,5 @@ BUILD_INFO = {
     "python_version": "3.11+",
     "framework": "FastAPI",
     "database": "PostgreSQL",
-    "ai_framework": "CrewAI"
-} 
+    "ai_framework": "CrewAI",
+}

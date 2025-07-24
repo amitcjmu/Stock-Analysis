@@ -47,9 +47,8 @@ class UserApprovalHandler:
         self, actor_user_id: str, target_role: str
     ) -> bool:
         """Validate that the actor can assign the target role."""
-        from sqlalchemy import and_, select
-
         from app.models.rbac import UserRole
+        from sqlalchemy import and_, select
 
         # Get actor's current roles
         actor_roles_query = select(UserRole).where(

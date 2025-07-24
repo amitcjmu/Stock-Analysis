@@ -13,13 +13,12 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from crewai import Agent, Crew, Process, Task
-from crewai.memory import LongTermMemory, ShortTermMemory
-
 from app.services.agent_learning_system import LearningContext
 from app.services.enhanced_agent_memory import enhanced_agent_memory
 from app.services.llm_config import get_crewai_llm
 from app.services.performance.response_optimizer import response_optimizer
+from crewai import Agent, Crew, Process, Task
+from crewai.memory import LongTermMemory, ShortTermMemory
 
 logger = logging.getLogger(__name__)
 

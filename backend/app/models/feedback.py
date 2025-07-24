@@ -5,6 +5,7 @@ Stores user feedback in database instead of files for Vercel compatibility.
 
 import uuid
 
+from app.core.database import Base
 from sqlalchemy import (
     JSON,
     Boolean,
@@ -19,8 +20,6 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-
-from app.core.database import Base
 
 
 class Feedback(Base):

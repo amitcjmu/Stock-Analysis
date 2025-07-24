@@ -28,11 +28,10 @@ class DataUtilities:
             flow_id_to_use = self.flow._flow_id
             self.logger.info(f"🔍 Loading raw data for flow {flow_id_to_use}")
 
-            from sqlalchemy import select
-
             from app.core.database import AsyncSessionLocal
             from app.models.data_import import DataImport, RawImportRecord
             from app.models.discovery_flow import DiscoveryFlow
+            from sqlalchemy import select
 
             async with AsyncSessionLocal() as db:
                 # First, try to get the discovery flow record

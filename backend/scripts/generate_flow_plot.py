@@ -17,11 +17,12 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def generate_flow_plot():
     """Generate the Discovery Flow visualization directly"""
     try:
         logger.info("🎨 Generating Discovery Flow visualization...")
-        
+
         # Create the HTML content directly without needing the full flow class
         html_content = """
         <!DOCTYPE html>
@@ -232,22 +233,23 @@ def generate_flow_plot():
         </body>
         </html>
         """
-        
+
         # Write the HTML file
         output_file = "unified_discovery_flow_visualization.html"
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(html_content)
-        
+
         logger.info("✅ Discovery Flow visualization generated successfully!")
         logger.info(f"📁 File saved as: {output_file}")
         logger.info("🌐 Open the HTML file in your browser to view the flow structure")
-        
+
         return True
-        
+
     except Exception as e:
         logger.error(f"❌ Failed to generate flow plot: {e}")
         return False
 
+
 if __name__ == "__main__":
     success = generate_flow_plot()
-    sys.exit(0 if success else 1) 
+    sys.exit(0 if success else 1)

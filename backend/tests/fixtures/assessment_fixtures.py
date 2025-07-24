@@ -13,10 +13,10 @@ from uuid import uuid4
 import pytest
 
 try:
-    from sqlalchemy.ext.asyncio import AsyncSession
-
     from app.core.database import AsyncSessionLocal
     from app.core.flow_context import FlowContext
+    from sqlalchemy.ext.asyncio import AsyncSession
+
     SQLALCHEMY_AVAILABLE = True
 except ImportError:
     SQLALCHEMY_AVAILABLE = False
@@ -30,7 +30,7 @@ async def async_db_session():
     """Create async database session for testing"""
     if not SQLALCHEMY_AVAILABLE:
         pytest.skip("SQLAlchemy not available")
-    
+
     async with AsyncSessionLocal() as session:
         try:
             yield session
@@ -60,7 +60,7 @@ def sample_assessment_flow_state():
         "tech_debt_analysis": {},
         "sixr_decisions": {},
         "assessment_results": {},
-        "apps_ready_for_planning": []
+        "apps_ready_for_planning": [],
     }
 
 
@@ -92,8 +92,8 @@ def sample_engagement_context():
         "business_drivers": ["cost_optimization", "modernization"],
         "timeline_constraints": {
             "project_start": "2025-01-01",
-            "go_live_target": "2025-12-31"
-        }
+            "go_live_target": "2025-12-31",
+        },
     }
 
 
@@ -107,7 +107,7 @@ def sample_architecture_standards():
             "mandatory": True,
             "supported_versions": {"java": "11+"},
             "rationale": "Java 8 end of life support",
-            "exceptions_allowed": False
+            "exceptions_allowed": False,
         },
         {
             "requirement_type": "database_platforms",
@@ -116,10 +116,10 @@ def sample_architecture_standards():
             "supported_versions": {
                 "postgresql": "12+",
                 "mysql": "8.0+",
-                "oracle": "19c+"
+                "oracle": "19c+",
             },
             "rationale": "Cloud compatibility and support",
-            "exceptions_allowed": True
+            "exceptions_allowed": True,
         },
         {
             "requirement_type": "container_support",
@@ -127,8 +127,8 @@ def sample_architecture_standards():
             "mandatory": False,
             "supported_versions": {"docker": "20.10+"},
             "rationale": "Modernization and scalability",
-            "exceptions_allowed": True
-        }
+            "exceptions_allowed": True,
+        },
     ]
 
 
@@ -141,34 +141,34 @@ def sample_application_metadata():
             "technology_stack": {
                 "frontend": "React 16.14.0",
                 "backend": "Node.js 14.18.0",
-                "database": "PostgreSQL 11"
+                "database": "PostgreSQL 11",
             },
             "criticality": "high",
             "user_base": 5000,
-            "data_sensitivity": "medium"
+            "data_sensitivity": "medium",
         },
         "app-2": {
             "application_name": "Backend API",
             "technology_stack": {
                 "runtime": "Java 8",
                 "framework": "Spring 5.2.0",
-                "database": "Oracle 12c"
+                "database": "Oracle 12c",
             },
             "criticality": "critical",
             "user_base": 10000,
-            "data_sensitivity": "high"
+            "data_sensitivity": "high",
         },
         "app-3": {
             "application_name": "Analytics Service",
             "technology_stack": {
                 "runtime": "Python 3.8",
                 "framework": "Django 3.2",
-                "database": "MySQL 5.7"
+                "database": "MySQL 5.7",
             },
             "criticality": "medium",
             "user_base": 500,
-            "data_sensitivity": "low"
-        }
+            "data_sensitivity": "low",
+        },
     }
 
 
@@ -183,7 +183,7 @@ def sample_component_analysis_result():
                 "technology_stack": {"react": "16.14.0", "typescript": "4.1.0"},
                 "dependencies": ["backend_api"],
                 "component_size": "large",
-                "complexity_score": 6.5
+                "complexity_score": 6.5,
             },
             {
                 "name": "backend_api",
@@ -191,7 +191,7 @@ def sample_component_analysis_result():
                 "technology_stack": {"java": "8", "spring": "5.2.0"},
                 "dependencies": ["database", "auth_service"],
                 "component_size": "large",
-                "complexity_score": 8.5
+                "complexity_score": 8.5,
             },
             {
                 "name": "database",
@@ -199,8 +199,8 @@ def sample_component_analysis_result():
                 "technology_stack": {"oracle": "12c"},
                 "dependencies": [],
                 "component_size": "medium",
-                "complexity_score": 7.0
-            }
+                "complexity_score": 7.0,
+            },
         ],
         "tech_debt_analysis": [
             {
@@ -209,7 +209,7 @@ def sample_component_analysis_result():
                 "description": "Java 8 is end-of-life",
                 "score": 8.5,
                 "component": "backend_api",
-                "recommendations": ["Upgrade to Java 11 or 17"]
+                "recommendations": ["Upgrade to Java 11 or 17"],
             },
             {
                 "category": "framework_outdated",
@@ -217,15 +217,11 @@ def sample_component_analysis_result():
                 "description": "React 16 is several versions behind",
                 "score": 6.0,
                 "component": "frontend",
-                "recommendations": ["Upgrade to React 18"]
-            }
+                "recommendations": ["Upgrade to React 18"],
+            },
         ],
-        "component_scores": {
-            "frontend": 6.0,
-            "backend_api": 8.5,
-            "database": 7.0
-        },
-        "overall_tech_debt_score": 7.2
+        "component_scores": {"frontend": 6.0, "backend_api": 8.5, "database": 7.0},
+        "overall_tech_debt_score": 7.2,
     }
 
 
@@ -240,7 +236,7 @@ def sample_sixr_strategy_result():
                 "rationale": "React upgrade and modernization needed",
                 "compatibility_validated": True,
                 "effort_estimate": "medium",
-                "risk_level": "low"
+                "risk_level": "low",
             },
             {
                 "component_name": "backend_api",
@@ -248,7 +244,7 @@ def sample_sixr_strategy_result():
                 "rationale": "Java upgrade with containerization",
                 "compatibility_validated": True,
                 "effort_estimate": "high",
-                "risk_level": "medium"
+                "risk_level": "medium",
             },
             {
                 "component_name": "database",
@@ -256,30 +252,30 @@ def sample_sixr_strategy_result():
                 "rationale": "Lift and shift to cloud with minor updates",
                 "compatibility_validated": True,
                 "effort_estimate": "low",
-                "risk_level": "low"
-            }
+                "risk_level": "low",
+            },
         ],
         "overall_strategy": "refactor",
         "confidence_score": 0.85,
         "rationale": "Moderate modernization with strategic upgrades",
         "move_group_hints": ["Group with other Java microservices"],
         "estimated_effort_weeks": 16,
-        "estimated_cost_range": "$150k-$200k"
+        "estimated_cost_range": "$150k-$200k",
     }
 
 
-@pytest.fixture 
+@pytest.fixture
 async def flow_context(async_db_session: AsyncSession):
     """Create test flow context with proper multi-tenant setup"""
     if not SQLALCHEMY_AVAILABLE:
         pytest.skip("SQLAlchemy not available")
-    
+
     return FlowContext(
         flow_id="test-flow-123",
         client_account_id=1,
         engagement_id=1,
         user_id="test-user",
-        db_session=async_db_session
+        db_session=async_db_session,
     )
 
 
@@ -308,19 +304,10 @@ def sample_assessment_results():
                 "rehost": 0,
                 "retain": 0,
                 "retire": 0,
-                "repurchase": 0
+                "repurchase": 0,
             },
-            "risk_distribution": {
-                "low": 1,
-                "medium": 1,
-                "high": 0,
-                "critical": 0
-            },
-            "effort_distribution": {
-                "low": 0,
-                "medium": 1,
-                "high": 1
-            }
+            "risk_distribution": {"low": 1, "medium": 1, "high": 0, "critical": 0},
+            "effort_distribution": {"low": 0, "medium": 1, "high": 1},
         },
         "applications": {
             "app-1": {
@@ -332,12 +319,12 @@ def sample_assessment_results():
                     {
                         "component_name": "frontend",
                         "tech_debt_score": 6.0,
-                        "recommended_treatment": "refactor"
+                        "recommended_treatment": "refactor",
                     }
-                ]
+                ],
             },
             "app-2": {
-                "application_name": "Backend API", 
+                "application_name": "Backend API",
                 "recommended_strategy": "replatform",
                 "confidence_score": 0.80,
                 "overall_score": 8.5,
@@ -345,11 +332,11 @@ def sample_assessment_results():
                     {
                         "component_name": "backend_api",
                         "tech_debt_score": 8.5,
-                        "recommended_treatment": "replatform"
+                        "recommended_treatment": "replatform",
                     }
-                ]
-            }
-        }
+                ],
+            },
+        },
     }
 
 
@@ -362,28 +349,28 @@ def large_application_dataset():
             "application_name": f"Application {i}",
             "technology_stack": {
                 "runtime": "Java 8" if i % 2 == 0 else "Python 3.8",
-                "database": "PostgreSQL 11"
+                "database": "PostgreSQL 11",
             },
             "criticality": ["low", "medium", "high"][i % 3],
-            "user_base": (i + 1) * 100
+            "user_base": (i + 1) * 100,
         }
     return apps
 
 
 class MockPostgresStore:
     """Mock PostgreSQL store for testing"""
-    
+
     def __init__(self):
         self.stored_data = {}
-    
+
     async def save_flow_state(self, flow_id: str, state: Dict[str, Any]):
         """Mock save flow state"""
         self.stored_data[flow_id] = state
-    
+
     async def load_flow_state(self, flow_id: str) -> Dict[str, Any]:
         """Mock load flow state"""
         return self.stored_data.get(flow_id)
-    
+
     async def delete_flow_state(self, flow_id: str):
         """Mock delete flow state"""
         if flow_id in self.stored_data:
@@ -398,13 +385,15 @@ def mock_postgres_store():
 
 class MockAssessmentRepository:
     """Mock assessment repository for testing"""
-    
+
     def __init__(self, client_account_id: int):
         self.client_account_id = client_account_id
         self.flows = {}
         self.user_inputs = {}
-    
-    async def create_assessment_flow(self, engagement_id: int, selected_application_ids: List[str], created_by: str) -> str:
+
+    async def create_assessment_flow(
+        self, engagement_id: int, selected_application_ids: List[str], created_by: str
+    ) -> str:
         """Mock create assessment flow"""
         flow_id = f"test-flow-{uuid4()}"
         self.flows[flow_id] = {
@@ -412,19 +401,21 @@ class MockAssessmentRepository:
             "engagement_id": engagement_id,
             "selected_application_ids": selected_application_ids,
             "created_by": created_by,
-            "client_account_id": self.client_account_id
+            "client_account_id": self.client_account_id,
         }
         return flow_id
-    
+
     async def get_assessment_flow_state(self, flow_id: str):
         """Mock get assessment flow state"""
         return self.flows.get(flow_id)
-    
+
     async def save_flow_state(self, flow_state):
         """Mock save flow state"""
         self.flows[flow_state.flow_id] = flow_state
-    
-    async def save_user_input(self, flow_id: str, phase: str, user_input: Dict[str, Any]):
+
+    async def save_user_input(
+        self, flow_id: str, phase: str, user_input: Dict[str, Any]
+    ):
         """Mock save user input"""
         if flow_id not in self.user_inputs:
             self.user_inputs[flow_id] = {}
@@ -457,7 +448,7 @@ def assert_flow_state_valid(flow_state, expected_phase: str = None):
     assert "status" in flow_state
     assert "current_phase" in flow_state
     assert "progress" in flow_state
-    
+
     if expected_phase:
         assert flow_state["current_phase"] == expected_phase
 

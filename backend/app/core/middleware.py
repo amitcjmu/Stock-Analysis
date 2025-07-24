@@ -316,10 +316,9 @@ class ContextMiddleware(BaseHTTPMiddleware):
         try:
             import uuid
 
-            from sqlalchemy import and_, select
-
             from app.core.database import AsyncSessionLocal
             from app.models.rbac import UserRole
+            from sqlalchemy import and_, select
 
             # Convert string to UUID if needed
             try:

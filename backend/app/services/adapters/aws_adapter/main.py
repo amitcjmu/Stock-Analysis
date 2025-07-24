@@ -26,13 +26,12 @@ except ImportError:
     boto3 = DummyBoto3()
     ClientError = NoCredentialsError = PartialCredentialsError = Exception
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.services.collection_flow.adapters import (
     BaseAdapter,
     CollectionRequest,
     CollectionResponse,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .base import AWS_ADAPTER_METADATA, AWSCredentials
 from .compute_services import ComputeServicesCollector

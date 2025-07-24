@@ -8,13 +8,12 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy import and_, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.context import RequestContext, extract_context_from_request
 from app.core.database import get_db
 from app.models.data_import import DataImport, ImportFieldMapping
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy import and_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -165,9 +164,8 @@ async def _get_agentic_critical_attributes(
         CrewAIFlowService()
 
         # Look for existing discovery flow
-        from sqlalchemy import select
-
         from app.models.discovery_flow import DiscoveryFlow
+        from sqlalchemy import select
 
         # Get the discovery flow for this data import
         # First try direct data_import_id lookup
@@ -200,11 +198,10 @@ async def _get_agentic_critical_attributes(
                 )
 
                 # Additional fallback: Look for discovery flows where the master flow configuration contains this data import ID
-                from sqlalchemy import text as sql_text
-
                 from app.models.crewai_flow_state_extensions import (
                     CrewAIFlowStateExtensions,
                 )
+                from sqlalchemy import text as sql_text
 
                 config_query = select(CrewAIFlowStateExtensions).where(
                     sql_text(f"flow_configuration::text LIKE '%{data_import.id}%'")
@@ -497,11 +494,10 @@ async def _trigger_field_mapping_reanalysis(
                 )
 
                 # Additional fallback: Look for discovery flows where the master flow configuration contains this data import ID
-                from sqlalchemy import text as sql_text
-
                 from app.models.crewai_flow_state_extensions import (
                     CrewAIFlowStateExtensions,
                 )
+                from sqlalchemy import text as sql_text
 
                 config_query = select(CrewAIFlowStateExtensions).where(
                     sql_text(f"flow_configuration::text LIKE '%{data_import.id}%'")

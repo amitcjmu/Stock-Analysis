@@ -10,8 +10,6 @@ This modularized version splits the monolithic execution engine into:
 
 from typing import Any, Dict, Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.context import RequestContext
 from app.core.logging import get_logger
 from app.models.crewai_flow_state_extensions import CrewAIFlowStateExtensions
@@ -22,6 +20,7 @@ from app.services.crewai_flows.agents.decision import AgentDecision
 from app.services.flow_type_registry import FlowTypeRegistry
 from app.services.handler_registry import HandlerRegistry
 from app.services.validator_registry import ValidatorRegistry
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Import modular components
 from .execution_engine_core import FlowExecutionCore

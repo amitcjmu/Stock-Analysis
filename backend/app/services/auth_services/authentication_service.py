@@ -9,10 +9,6 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 import bcrypt
-from fastapi import HTTPException
-from sqlalchemy import and_, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.client_account import User
 from app.models.rbac import UserProfile, UserRole
 from app.schemas.auth_schemas import (
@@ -22,6 +18,9 @@ from app.schemas.auth_schemas import (
     PasswordChangeResponse,
     Token,
 )
+from fastapi import HTTPException
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

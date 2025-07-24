@@ -18,7 +18,7 @@ async def create_additional_demo_data():
     """Create additional test clients and engagements"""
     async with AsyncSessionLocal() as db:
         print("Creating additional demo clients and engagements...")
-        
+
         # Define additional clients
         additional_clients = [
             {
@@ -38,13 +38,17 @@ async def create_additional_demo_data():
                     "migration_preferences": {
                         "target_clouds": ["aws", "azure"],
                         "preferred_migration_window": "Q2 2025",
-                        "budget_range": "5M-10M"
+                        "budget_range": "5M-10M",
                     }
                 },
                 "business_objectives": {
-                    "primary_goals": ["Cost optimization", "Modernization", "Global scalability"],
-                    "compliance_requirements": ["SOC2", "ISO27001", "GDPR"]
-                }
+                    "primary_goals": [
+                        "Cost optimization",
+                        "Modernization",
+                        "Global scalability",
+                    ],
+                    "compliance_requirements": ["SOC2", "ISO27001", "GDPR"],
+                },
             },
             {
                 "id": uuid.uuid4(),
@@ -63,13 +67,17 @@ async def create_additional_demo_data():
                     "migration_preferences": {
                         "target_clouds": ["gcp"],
                         "preferred_migration_window": "Q3 2025",
-                        "budget_range": "2M-5M"
+                        "budget_range": "2M-5M",
                     }
                 },
                 "business_objectives": {
-                    "primary_goals": ["Innovation", "Speed to market", "Developer productivity"],
-                    "compliance_requirements": ["PCI-DSS", "HIPAA"]
-                }
+                    "primary_goals": [
+                        "Innovation",
+                        "Speed to market",
+                        "Developer productivity",
+                    ],
+                    "compliance_requirements": ["PCI-DSS", "HIPAA"],
+                },
             },
             {
                 "id": uuid.uuid4(),
@@ -88,16 +96,20 @@ async def create_additional_demo_data():
                     "migration_preferences": {
                         "target_clouds": ["aws", "azure", "gcp"],
                         "preferred_migration_window": "2025-2027",
-                        "budget_range": "50M+"
+                        "budget_range": "50M+",
                     }
                 },
                 "business_objectives": {
-                    "primary_goals": ["Digital transformation", "Business unit autonomy", "Risk mitigation"],
-                    "compliance_requirements": ["SOX", "GDPR", "Regional compliance"]
-                }
-            }
+                    "primary_goals": [
+                        "Digital transformation",
+                        "Business unit autonomy",
+                        "Risk mitigation",
+                    ],
+                    "compliance_requirements": ["SOX", "GDPR", "Regional compliance"],
+                },
+            },
         ]
-        
+
         # Create clients
         created_clients = []
         for client_data in additional_clients:
@@ -111,17 +123,17 @@ async def create_additional_demo_data():
             else:
                 created_clients.append(existing)
                 print(f"  ℹ️  Client already exists: {existing.name}")
-        
+
         await db.commit()
-        
+
         # Create engagements for each client
         engagement_types = ["migration", "assessment", "optimization"]
         statuses = ["planning", "active", "active", "completed"]
-        
+
         for i, client in enumerate(created_clients):
             # Create 2-3 engagements per client
             num_engagements = 2 if i == 0 else 3
-            
+
             for j in range(num_engagements):
                 engagement_data = {
                     "id": uuid.uuid4(),
@@ -132,18 +144,19 @@ async def create_additional_demo_data():
                     "status": statuses[j % len(statuses)],
                     "engagement_type": engagement_types[j % len(engagement_types)],
                     "start_date": datetime.now() - timedelta(days=30 * (3 - j)),
-                    "target_completion_date": datetime.now() + timedelta(days=180 + 90 * j),
+                    "target_completion_date": datetime.now()
+                    + timedelta(days=180 + 90 * j),
                     "settings": {
                         "priority": ["high", "medium", "low"][j % 3],
-                        "team_size": 5 + j * 2
+                        "team_size": 5 + j * 2,
                     },
                     "metadata": {
                         "workloads": 20 + j * 10,
                         "applications": 10 + j * 5,
-                        "estimated_duration_months": 6 + j * 3
-                    }
+                        "estimated_duration_months": 6 + j * 3,
+                    },
                 }
-                
+
                 # Check if engagement already exists
                 existing = await db.get(Engagement, engagement_data["id"])
                 if not existing:
@@ -152,19 +165,21 @@ async def create_additional_demo_data():
                     print(f"    ✅ Created engagement: {engagement.name}")
                 else:
                     print(f"    ℹ️  Engagement already exists: {existing.name}")
-        
+
         await db.commit()
-        
+
         # Verify counts
         from sqlalchemy import func, select
-        
+
         client_count = await db.execute(select(func.count()).select_from(ClientAccount))
-        engagement_count = await db.execute(select(func.count()).select_from(Engagement))
-        
+        engagement_count = await db.execute(
+            select(func.count()).select_from(Engagement)
+        )
+
         print("\n📊 Final counts:")
         print(f"  - Total clients: {client_count.scalar_one()}")
         print(f"  - Total engagements: {engagement_count.scalar_one()}")
-        
+
         print("\n✅ Additional demo data created successfully!")
 
 
