@@ -85,17 +85,17 @@ repos:
   # Lightweight security checks (faster versions)
   - repo: local
     hooks:
-      # Only check staged files for credentials
+      # Only check staged files for credentials (expanded patterns)
       - id: check-credentials-staged
         name: Check for hardcoded credentials in staged files
-        entry: sh -c 'git diff --staged --name-only | grep -E "\.(py|yml|yaml|json|env)$" | xargs -I {} grep -l "password\s*=\s*[\"'\''][^\"'\'']+[\"'\'']" {} 2>/dev/null && echo "Found hardcoded credentials!" && exit 1 || exit 0'
+        entry: sh -c 'git diff --staged --name-only | grep -E "\.(py|yml|yaml|json|env)$" | xargs -I {} grep -lE "(password|secret|token|api_key|private_key)\s*[:=]\s*[\"'\''][^\"'\'']{8,}[\"'\'']" {} 2>/dev/null && echo "Found hardcoded credentials!" && exit 1 || exit 0'
         language: system
         pass_filenames: false
 
-      # Quick API key check on staged files only
-      - id: check-api-keys-staged
-        name: Check for exposed API keys in staged files
-        entry: sh -c 'git diff --staged --name-only | grep "\.py$" | xargs -I {} grep -l "api_key.*=.*[\"'\''][A-Za-z0-9]" {} 2>/dev/null | grep -v "test" && echo "Found potential API keys!" && exit 1 || exit 0'
+      # Check for AWS/cloud service keys in staged files only
+      - id: check-cloud-keys-staged
+        name: Check for exposed cloud service keys in staged files
+        entry: sh -c 'git diff --staged --name-only | grep -E "\.(py|yml|yaml|json|env)$" | xargs -I {} grep -lE "(AKIA[0-9A-Z]{16}|aws_access_key_id|aws_secret_access_key|ASCP[A-Za-z0-9/+=]{8,})" {} 2>/dev/null && echo "Found cloud service keys!" && exit 1 || exit 0'
         language: system
         pass_filenames: false
 

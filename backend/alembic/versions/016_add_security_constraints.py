@@ -28,9 +28,9 @@ def upgrade() -> None:
 
     # 1. Add encryption validation constraints to platform_credentials
     op.create_check_constraint(
-        "ck_encryption_key_length",
+        "ck_encryption_key_format",
         "platform_credentials",
-        "LENGTH(encryption_key_id) >= 32",
+        "LENGTH(encryption_key_id) >= 32 AND encryption_key_id ~ '^[A-Za-z0-9+/=_-]+$'",
         schema="migration",
     )
 
@@ -304,7 +304,7 @@ def downgrade() -> None:
         "ck_encryption_algorithm", "platform_credentials", schema="migration"
     )
     op.drop_constraint(
-        "ck_encryption_key_length", "platform_credentials", schema="migration"
+        "ck_encryption_key_format", "platform_credentials", schema="migration"
     )
     op.drop_column(
         "platform_credentials", "last_rotation_checked_at", schema="migration"
