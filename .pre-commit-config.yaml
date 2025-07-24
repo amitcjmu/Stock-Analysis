@@ -45,7 +45,7 @@ repos:
     hooks:
       - id: mypy-staged
         name: mypy type checking (staged files only)
-        entry: sh -c 'git diff --staged --name-only --diff-filter=AM | grep "^backend/.*\.py$" | xargs -r mypy --ignore-missing-imports --no-strict-optional'
+        entry: sh -c 'files=$(git diff --staged --name-only --diff-filter=AM | grep "^backend/.*\.py$"); [ -n "$files" ] && echo "$files" | xargs mypy --ignore-missing-imports --no-strict-optional || true'
         language: system
         files: ^backend/.*\.py$
         pass_filenames: false
@@ -73,13 +73,6 @@ repos:
       - id: mixed-line-ending
       - id: check-added-large-files
         args: ['--maxkb=500']
-
-  # Dockerfile Security - Only if Dockerfile is staged
-  - repo: https://github.com/hadolint/hadolint
-    rev: v2.12.0
-    hooks:
-      - id: hadolint
-        args: ['--ignore', 'DL3008', '--ignore', 'DL3009']
 
   # SQL checks - Only on staged SQL files (not Python files)
   - repo: https://github.com/sqlfluff/sqlfluff

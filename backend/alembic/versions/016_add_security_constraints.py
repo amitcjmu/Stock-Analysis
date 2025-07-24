@@ -204,13 +204,13 @@ def upgrade() -> None:
         INSERT INTO migration.pii_data_registry
         (table_name, column_name, data_classification, retention_days, purpose, legal_basis)
         VALUES
-        -- client_accounts PII fields
-        ('client_accounts', 'primary_contact_name', 'PII', 2555, 'Business contact', 'contract'),
-        ('client_accounts', 'primary_contact_email', 'PII', 2555, 'Business communication', 'contract'),
-        ('client_accounts', 'primary_contact_phone', 'PII', 2555, 'Business communication', 'contract'),
-        -- users PII fields
-        ('users', 'email', 'PII', 2555, 'Authentication and communication', 'contract'),
-        ('users', 'full_name', 'PII', 2555, 'User identification', 'contract'),
+        -- client_accounts PII fields (3 years retention for GDPR compliance)
+        ('client_accounts', 'primary_contact_name', 'PII', 1095, 'Business contact', 'contract'),
+        ('client_accounts', 'primary_contact_email', 'PII', 1095, 'Business communication', 'contract'),
+        ('client_accounts', 'primary_contact_phone', 'PII', 1095, 'Business communication', 'contract'),
+        -- users PII fields (3 years retention for GDPR compliance)
+        ('users', 'email', 'PII', 1095, 'Authentication and communication', 'contract'),
+        ('users', 'full_name', 'PII', 1095, 'User identification', 'contract'),
         -- security_audit_logs fields
         ('security_audit_logs', 'actor_email', 'PII', 90, 'Security auditing', 'legal_obligation'),
         ('security_audit_logs', 'ip_address', 'PII', 90, 'Security monitoring', 'legitimate_interest'),
