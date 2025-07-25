@@ -74,7 +74,7 @@ else:
 
 # Lifespan event handler (replaces deprecated @app.on_event)
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(fastapi_app: FastAPI):
     # Startup logic
     logger.info("🚀 Application starting up...")
 
@@ -187,7 +187,7 @@ async def lifespan(app: FastAPI):
 
 
 # Initialize basic app first to ensure health check is always available
-app = FastAPI(
+fastapi_app = FastAPI(
     title="AI Modernize Migration Platform API",
     description="AI-powered cloud migration management platform",
     version="0.2.0",
@@ -199,7 +199,7 @@ app = FastAPI(
 # Health check is defined later with more comprehensive component status
 
 
-@app.get("/cors-test")
+@fastapi_app.get("/cors-test")
 async def cors_test():
     """Simple endpoint to test CORS configuration."""
     return {
@@ -210,7 +210,7 @@ async def cors_test():
 
 
 # Basic root endpoint
-@app.get("/")
+@fastapi_app.get("/")
 async def root():
     """Root endpoint with API information."""
     return {
@@ -262,9 +262,9 @@ try:
     from version import API_DESCRIPTION, API_TITLE, __version__
 
     # Update app metadata
-    app.title = API_TITLE
-    app.description = API_DESCRIPTION
-    app.version = __version__
+    fastapi_app.title = API_TITLE
+    fastapi_app.description = API_DESCRIPTION
+    fastapi_app.version = __version__
     logger.info("✅ Version information loaded")
 except Exception as e:
     logger.warning(f"Version info error: {e}")
@@ -286,7 +286,7 @@ except Exception as e:
 try:
     from app.api.v1.api import api_router
 
-    app.include_router(api_router, prefix="/api/v1")
+    fastapi_app.include_router(api_router, prefix="/api/v1")
     API_ROUTES_ENABLED = True
     logger.info("✅ API v1 routes loaded successfully")
 except Exception as e:
@@ -424,7 +424,7 @@ if ENABLE_MIDDLEWARE:
                 return response
 
         # Add trace ID middleware first (executes last)
-        app.add_middleware(TraceIDMiddleware)
+        fastapi_app.add_middleware(TraceIDMiddleware)
         logger.info("✅ Trace ID middleware added")
 
         # CRITICAL: Middleware is executed in REVERSE order of addition.
@@ -435,7 +435,7 @@ if ENABLE_MIDDLEWARE:
         from app.middleware.tenant_context import TenantContextMiddleware
 
         # Add tenant context middleware (for Row-Level Security)
-        app.add_middleware(TenantContextMiddleware)
+        fastapi_app.add_middleware(TenantContextMiddleware)
         logger.info("✅ Tenant context middleware added for RLS")
 
         # Add context middleware with app-specific additional exempt paths
@@ -470,7 +470,7 @@ if ENABLE_MIDDLEWARE:
             # Note: Auth and health endpoints are handled by middleware defaults
         ]
 
-        app.add_middleware(
+        fastapi_app.add_middleware(
             ContextMiddleware,
             require_client=True,
             require_engagement=True,  # SECURITY: Require engagement context for multi-tenancy
@@ -478,16 +478,16 @@ if ENABLE_MIDDLEWARE:
         )
 
         # Add request logging middleware first (will execute last)
-        app.add_middleware(RequestLoggingMiddleware, excluded_paths=["/health"])
+        fastapi_app.add_middleware(RequestLoggingMiddleware, excluded_paths=["/health"])
 
         # Add adaptive rate limiting middleware
-        app.add_middleware(AdaptiveRateLimitMiddleware)
+        fastapi_app.add_middleware(AdaptiveRateLimitMiddleware)
 
         # Add security audit middleware
-        app.add_middleware(SecurityAuditMiddleware)
+        fastapi_app.add_middleware(SecurityAuditMiddleware)
 
         # Add security headers middleware last (will execute first after CORS)
-        app.add_middleware(SecurityHeadersMiddleware)
+        fastapi_app.add_middleware(SecurityHeadersMiddleware)
 
         logger.info("✅ Middleware loaded successfully")
     except Exception as e:
@@ -503,7 +503,7 @@ logger.info("🌐 allow_credentials: True")
 logger.info("🌐 allow_methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH']")
 
 # Production-safe CORS configuration
-app.add_middleware(
+fastapi_app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
@@ -530,17 +530,17 @@ logger.info("✅ CORS middleware added - will process all responses including er
 
 # Register error handlers if available
 if ERROR_HANDLERS_AVAILABLE:
-    register_error_handlers(app)
+    register_error_handlers(fastapi_app)
     logger.info("✅ Error handlers registered")
 else:
     logger.warning("⚠️  Error handlers not available")
 
 
-@app.get("/debug/routes")
+@fastapi_app.get("/debug/routes")
 async def debug_routes():
     """Debug endpoint to see what routes are loaded."""
     routes_info = []
-    for route in app.routes:
+    for route in fastapi_app.routes:
         if hasattr(route, "path") and hasattr(route, "methods"):
             routes_info.append(
                 {
@@ -561,7 +561,7 @@ async def debug_routes():
     }
 
 
-@app.get("/debug/test-dependency")
+@fastapi_app.get("/debug/test-dependency")
 async def debug_test_dependency(
     request: Request, context: RequestContext = Depends(get_current_context_dependency)
 ):
@@ -587,7 +587,7 @@ async def debug_test_dependency(
         }
 
 
-@app.get("/debug/context-middleware")
+@fastapi_app.get("/debug/context-middleware")
 async def debug_context_middleware(request: Request):
     """Debug endpoint to test context middleware behavior for data-import paths."""
     try:
@@ -615,7 +615,7 @@ async def debug_context_middleware(request: Request):
         }
 
 
-@app.get("/debug/context")
+@fastapi_app.get("/debug/context")
 async def debug_context(request: Request):
     """Debug endpoint to test context extraction."""
     try:
@@ -642,13 +642,13 @@ async def debug_context(request: Request):
 
 
 # Update health check with component status
-@app.get("/health")
+@fastapi_app.get("/health")
 async def health_check():
     """Health check endpoint for monitoring."""
     return {
         "status": "healthy",
         "service": "ai-force-migration-api",
-        "version": getattr(app, "version", "0.2.0"),
+        "version": getattr(fastapi_app, "version", "0.2.0"),
         "components": {
             "database": DATABASE_ENABLED,
             "websocket": WEBSOCKET_ENABLED,
@@ -662,13 +662,16 @@ async def health_check():
 
 # WebSocket endpoint removed - using HTTP polling for Vercel+Railway compatibility
 
+# Create an alias for backward compatibility
+app = fastapi_app
+
 if __name__ == "__main__":
     # Port assignment - Use Railway PORT or default to 8000 for local development
     port = int(os.getenv("PORT", 8000))
     logger.info(f"🚀 Starting server on port {port}")
     uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
+        "main:fastapi_app",
+        host="0.0.0.0",  # nosec B104 - bind to all interfaces for container deployment
         port=port,
         reload=True if os.getenv("ENVIRONMENT") == "development" else False,
     )

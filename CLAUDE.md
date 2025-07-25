@@ -6,3 +6,6 @@
 - Validate that your proposed approach remains consistent with past implementation patterns
 - Prioritize modifying existing code over adding new code to prevent unnecessary code sprawl
 - Before introducing new implementations, carefully assess if existing code can be refactored or extended to meet the current requirements
+
+### Development Environment Configuration
+- Use /opt/homebrew/bin/gh for all Git CLI tools and /opt/homebrew/bin/python3.11@ for all Python executions in the app
