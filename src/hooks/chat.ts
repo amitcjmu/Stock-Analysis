@@ -234,4 +234,4 @@ export const useChat = () => {
     refreshChat,
     hasActiveConversation: !!conversationId
   };
-}; 
+};

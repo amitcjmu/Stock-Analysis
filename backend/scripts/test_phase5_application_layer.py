@@ -27,8 +27,8 @@ async def test_asset_repository_master_flow_methods():
         result = await session.execute(
             text(
                 """
-            SELECT DISTINCT client_account_id, engagement_id 
-            FROM assets 
+            SELECT DISTINCT client_account_id, engagement_id
+            FROM assets
             WHERE master_flow_id IS NOT NULL
             LIMIT 1
         """
@@ -50,8 +50,8 @@ async def test_asset_repository_master_flow_methods():
         result = await session.execute(
             text(
                 """
-            SELECT DISTINCT master_flow_id 
-            FROM assets 
+            SELECT DISTINCT master_flow_id
+            FROM assets
             WHERE client_account_id = :client_id AND master_flow_id IS NOT NULL
             LIMIT 1
         """
@@ -111,8 +111,8 @@ async def test_discovery_flow_repository_master_coordination():
         result = await session.execute(
             text(
                 """
-            SELECT DISTINCT client_account_id, engagement_id 
-            FROM discovery_flows 
+            SELECT DISTINCT client_account_id, engagement_id
+            FROM discovery_flows
             WHERE master_flow_id IS NOT NULL
             LIMIT 1
         """
@@ -138,8 +138,8 @@ async def test_discovery_flow_repository_master_coordination():
         result = await session.execute(
             text(
                 """
-            SELECT DISTINCT master_flow_id 
-            FROM discovery_flows 
+            SELECT DISTINCT master_flow_id
+            FROM discovery_flows
             WHERE client_account_id = :client_id AND master_flow_id IS NOT NULL
             LIMIT 1
         """
@@ -172,8 +172,8 @@ async def test_discovery_flow_repository_master_coordination():
         result = await session.execute(
             text(
                 """
-            SELECT flow_id, master_flow_id 
-            FROM discovery_flows 
+            SELECT flow_id, master_flow_id
+            FROM discovery_flows
             WHERE client_account_id = :client_id
             LIMIT 1
         """
@@ -197,14 +197,13 @@ async def test_cross_table_relationships():
     print("=" * 45)
 
     async with AsyncSessionLocal() as session:
-
         # Test 1: Assets linked to discovery flows via master flow
         print("\n   1️⃣ Testing assets linked to discovery flows...")
 
         result = await session.execute(
             text(
                 """
-            SELECT 
+            SELECT
                 cse.flow_id as master_flow_id,
                 df.flow_name,
                 COUNT(a.id) as asset_count
@@ -231,7 +230,7 @@ async def test_cross_table_relationships():
         result = await session.execute(
             text(
                 """
-            SELECT 
+            SELECT
                 a.source_phase,
                 a.current_phase,
                 COUNT(*) as asset_count
@@ -255,7 +254,7 @@ async def test_cross_table_relationships():
         result = await session.execute(
             text(
                 """
-            SELECT 
+            SELECT
                 COUNT(df.id) as total_discovery_flows,
                 COUNT(df.master_flow_id) as flows_with_master,
                 COUNT(cse.flow_id) as coordinated_flows,
@@ -294,8 +293,8 @@ async def test_error_handling_and_edge_cases():
         result = await session.execute(
             text(
                 """
-            SELECT DISTINCT client_account_id 
-            FROM assets 
+            SELECT DISTINCT client_account_id
+            FROM assets
             LIMIT 1
         """
             )
@@ -351,7 +350,6 @@ async def test_performance_and_scalability():
     import time
 
     async with AsyncSessionLocal() as session:
-
         # Test 1: Large dataset queries
         print("\n   1️⃣ Testing large dataset queries...")
 
@@ -386,7 +384,7 @@ async def test_performance_and_scalability():
         result = await session.execute(
             text(
                 """
-            SELECT 
+            SELECT
                 cse.flow_id,
                 df.flow_name,
                 COUNT(a.id) as asset_count

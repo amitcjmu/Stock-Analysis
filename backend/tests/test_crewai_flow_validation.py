@@ -227,7 +227,9 @@ class TestCrewAIFlowValidation:
                     "type": (
                         "server"
                         if i % 3 == 0
-                        else "application" if i % 3 == 1 else "database"
+                        else "application"
+                        if i % 3 == 1
+                        else "database"
                     ),
                     "environment": "production" if i % 2 == 0 else "staging",
                     "department": "IT" if i % 4 == 0 else "Sales",

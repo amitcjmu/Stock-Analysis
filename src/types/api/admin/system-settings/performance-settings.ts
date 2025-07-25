@@ -1,9 +1,9 @@
 /**
  * Performance Settings Configuration Types
- * 
+ *
  * Performance optimization configuration including caching, compression,
  * CDN, database performance, and scaling settings.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

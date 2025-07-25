@@ -7,14 +7,14 @@ import { useState } from 'react'
 import { useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext';
 import { apiCall } from '@/config/api';
-import type { 
-  EnhancedUserProfile, 
+import type {
+  EnhancedUserProfile,
   UserAccessScope,
-  RolePermissions 
+  RolePermissions
 } from '@/types/rbac';
-import { 
-  RoleLevel, 
-  DataScope 
+import {
+  RoleLevel,
+  DataScope
 } from '@/types/rbac';
 
 interface UseEnhancedRBACReturn {
@@ -23,7 +23,7 @@ interface UseEnhancedRBACReturn {
   rolePermissions: RolePermissions | null;
   loading: boolean;
   error: string | null;
-  
+
   // Role checking functions
   isPlatformAdmin: boolean;
   isClientAdmin: boolean;
@@ -31,7 +31,7 @@ interface UseEnhancedRBACReturn {
   isAnalyst: boolean;
   isViewer: boolean;
   isAnonymous: boolean;
-  
+
   // Permission checking functions
   canManagePlatform: boolean;
   canManageAllClients: boolean;
@@ -41,12 +41,12 @@ interface UseEnhancedRBACReturn {
   canModifyData: boolean;
   canViewAnalytics: boolean;
   canConfigureAgents: boolean;
-  
+
   // Access validation functions
   canAccessClient: (clientId: string) => boolean;
   canAccessEngagement: (engagementId: string, clientId?: string) => boolean;
   hasPermission: (permission: keyof RolePermissions) => boolean;
-  
+
   // Data operations
   refreshUserProfile: () => Promise<void>;
   checkUserAccess: (userId: string) => Promise<UserAccessScope | null>;
@@ -102,7 +102,7 @@ export const useEnhancedRBAC = (): UseEnhancedRBACReturn => {
     } catch (err) {
       console.error('Error fetching user profile:', err);
       setError(err instanceof Error ? err.message : 'Failed to load user profile');
-      
+
       // Set fallback values for demo users
       if (user?.id === 'admin_user' || user?.email === 'admin@aiforce.com') {
         setUserProfile({
@@ -163,26 +163,26 @@ export const useEnhancedRBAC = (): UseEnhancedRBACReturn => {
   // Access validation functions
   const canAccessClient = useCallback((clientId: string): boolean => {
     if (!userProfile || !userAccessScope) return false;
-    
+
     // Platform admins can access all clients
     if (userProfile.role_level === RoleLevel.PLATFORM_ADMIN) return true;
-    
+
     // Check if client is in accessible list (empty list means all for platform admin)
-    return userAccessScope.client_account_ids.length === 0 || 
+    return userAccessScope.client_account_ids.length === 0 ||
            userAccessScope.client_account_ids.includes(clientId);
   }, [userProfile, userAccessScope]);
 
   const canAccessEngagement = useCallback((engagementId: string, clientId?: string): boolean => {
     if (!userProfile || !userAccessScope) return false;
-    
+
     // Platform admins can access all engagements
     if (userProfile.role_level === RoleLevel.PLATFORM_ADMIN) return true;
-    
+
     // Check client access first if provided
     if (clientId && !canAccessClient(clientId)) return false;
-    
+
     // Check engagement access
-    return userAccessScope.engagement_ids.length === 0 || 
+    return userAccessScope.engagement_ids.length === 0 ||
            userAccessScope.engagement_ids.includes(engagementId);
   }, [userProfile, userAccessScope, canAccessClient]);
 
@@ -220,7 +220,7 @@ export const useEnhancedRBAC = (): UseEnhancedRBACReturn => {
     rolePermissions,
     loading,
     error,
-    
+
     // Role checks
     isPlatformAdmin,
     isClientAdmin,
@@ -228,7 +228,7 @@ export const useEnhancedRBAC = (): UseEnhancedRBACReturn => {
     isAnalyst,
     isViewer,
     isAnonymous,
-    
+
     // Permission checks
     canManagePlatform,
     canManageAllClients,
@@ -238,14 +238,14 @@ export const useEnhancedRBAC = (): UseEnhancedRBACReturn => {
     canModifyData,
     canViewAnalytics,
     canConfigureAgents,
-    
+
     // Access validation
     canAccessClient,
     canAccessEngagement,
     hasPermission,
-    
+
     // Data operations
     refreshUserProfile,
     checkUserAccess
   };
-}; 
+};

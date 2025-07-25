@@ -35,7 +35,7 @@ export const useApplicationSelection = ({
     const newSelection = selectedApplications.includes(appId)
       ? selectedApplications.filter(id => id !== appId)
       : [...selectedApplications, appId].slice(0, maxSelections);
-    
+
     onSelectionChange(newSelection);
   };
 

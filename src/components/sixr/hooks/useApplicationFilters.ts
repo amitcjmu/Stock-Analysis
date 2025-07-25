@@ -24,7 +24,7 @@ export const useApplicationFilters = (applications: Application[]): UseApplicati
     statusFilter: 'all',
     technologyFilter: 'all'
   });
-  
+
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const setFilters = (newFilters: Partial<ApplicationFilters>) => {
@@ -42,12 +42,12 @@ export const useApplicationFilters = (applications: Application[]): UseApplicati
   };
 
   // Get unique filter values
-  const departments = useMemo(() => 
+  const departments = useMemo(() =>
     [...new Set(applications.map(app => app.department).filter(Boolean))].sort(),
     [applications]
   );
 
-  const technologies = useMemo(() => 
+  const technologies = useMemo(() =>
     [...new Set(applications.flatMap(app => app.technology_stack || []))].sort(),
     [applications]
   );
@@ -55,7 +55,7 @@ export const useApplicationFilters = (applications: Application[]): UseApplicati
   // Filter applications
   const filteredApplications = useMemo(() => {
     return applications.filter(app => {
-      const matchesSearch = !filters.searchTerm || 
+      const matchesSearch = !filters.searchTerm ||
         app.name.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
         app.description?.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
         (app.technology_stack || []).some(tech => tech.toLowerCase().includes(filters.searchTerm.toLowerCase()));
@@ -63,10 +63,10 @@ export const useApplicationFilters = (applications: Application[]): UseApplicati
       const matchesDepartment = filters.departmentFilter === 'all' || app.department === filters.departmentFilter;
       const matchesCriticality = filters.criticalityFilter === 'all' || app.criticality === filters.criticalityFilter;
       const matchesStatus = filters.statusFilter === 'all' || app.analysis_status === filters.statusFilter;
-      const matchesTechnology = filters.technologyFilter === 'all' || 
+      const matchesTechnology = filters.technologyFilter === 'all' ||
         (app.technology_stack || []).includes(filters.technologyFilter);
 
-      return matchesSearch && matchesDepartment && matchesCriticality && 
+      return matchesSearch && matchesDepartment && matchesCriticality &&
              matchesStatus && matchesTechnology;
     });
   }, [applications, filters]);

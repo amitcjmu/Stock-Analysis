@@ -545,7 +545,7 @@ class PerformanceValidator:
         result = await session.execute(
             text(
                 """
-                SELECT 
+                SELECT
                     a.id,
                     a.name,
                     a.current_monthly_cost,

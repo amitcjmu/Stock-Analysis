@@ -1,6 +1,6 @@
 /**
  * Data Import Component Types
- * 
+ *
  * Types for data import selectors, file upload areas, and raw data tables.
  */
 

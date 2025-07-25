@@ -1,6 +1,6 @@
 /**
  * Event Source Service
- * 
+ *
  * Service for handling real-time updates via Server-Sent Events.
  */
 
@@ -14,10 +14,10 @@ export const eventSourceService = {
     onError: (error: Event) => void;
   }): EventSource {
     const eventSource = new EventSource(`${API_BASE}${url}`);
-    
+
     eventSource.onmessage = options.onMessage;
     eventSource.onerror = options.onError;
-    
+
     return eventSource;
   }
 };

@@ -17,10 +17,10 @@ echo "Database URL: ${DATABASE_URL:0:50}..." # Show first 50 chars for debugging
 # Function to wait for database
 wait_for_database() {
     echo "⏳ Waiting for database to be ready..."
-    
+
     max_attempts=30
     attempt=1
-    
+
     while [ $attempt -le $max_attempts ]; do
         if python -c "
 import asyncio
@@ -32,14 +32,14 @@ async def check():
     try:
         # Get DATABASE_URL and convert from SQLAlchemy format to asyncpg format
         db_url = os.getenv('DATABASE_URL', '')
-        
+
         # Handle different URL formats
         if 'postgresql+asyncpg://' in db_url:
             # Convert SQLAlchemy URL to asyncpg format
             asyncpg_url = db_url.replace('postgresql+asyncpg://', 'postgresql://')
         else:
             asyncpg_url = db_url
-            
+
         conn = await asyncpg.connect(asyncpg_url)
         await conn.execute('SELECT 1')
         await conn.close()
@@ -53,12 +53,12 @@ asyncio.run(check())
             echo "✅ Database is ready!"
             return 0
         fi
-        
+
         echo "   Attempt $attempt/$max_attempts: Database not ready yet..."
         sleep 2
         attempt=$((attempt + 1))
     done
-    
+
     echo "❌ Database did not become ready within timeout"
     exit 1
 }
@@ -67,18 +67,18 @@ asyncio.run(check())
 run_database_setup() {
     echo "🔧 Running database setup..."
     echo "📍 Looking for railway_setup.py in: $(pwd)"
-    
+
     if [ -f "railway_setup.py" ]; then
         echo "✅ Found railway_setup.py"
         echo "🏃 Executing railway_setup.py..."
-        
+
         # Run the consolidated railway setup script
         if python railway_setup.py; then
             echo "✅ Database setup completed successfully!"
             return 0
         else
             echo "❌ Railway setup failed! Trying direct migration as fallback..."
-            
+
             # Fallback: Try running migrations directly
             echo "🔄 Attempting direct Alembic migration..."
             if python -m alembic upgrade head; then
@@ -95,7 +95,7 @@ run_database_setup() {
         echo "❌ railway_setup.py not found!"
         echo "📂 Contents of current directory:"
         ls -la
-        
+
         # Try direct migration as last resort
         echo "🔄 Attempting direct Alembic migration..."
         if python -m alembic upgrade head; then
@@ -128,4 +128,4 @@ fi
 PORT=${PORT:-8000}
 
 echo "Starting uvicorn on port $PORT..."
-exec uvicorn main:app --host 0.0.0.0 --port $PORT 
+exec uvicorn main:app --host 0.0.0.0 --port $PORT

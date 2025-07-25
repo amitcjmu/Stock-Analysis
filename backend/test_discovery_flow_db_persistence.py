@@ -234,7 +234,7 @@ class DatabaseTracker:
         result = await self.db.execute(
             text(
                 """
-                SELECT mapping_id, source_field, target_field, mapping_type, 
+                SELECT mapping_id, source_field, target_field, mapping_type,
                        confidence_score, is_approved
                 FROM import_field_mappings
                 WHERE data_import_id = :import_id
@@ -263,8 +263,8 @@ class DatabaseTracker:
         result = await self.db.execute(
             text(
                 """
-                SELECT COUNT(*) 
-                FROM assets 
+                SELECT COUNT(*)
+                FROM assets
                 WHERE metadata->>'discovery_flow_id' = :flow_id
                    OR metadata->>'source_flow_id' = :flow_id
             """
@@ -279,7 +279,7 @@ class DatabaseTracker:
         result = await self.db.execute(
             text(
                 """
-                SELECT asset_id, name, asset_type, environment, ip_address, 
+                SELECT asset_id, name, asset_type, environment, ip_address,
                        operating_system, criticality, owner
                 FROM assets
                 ORDER BY created_at DESC
@@ -542,10 +542,10 @@ async def test_discovery_flow_with_db_tracking():
                             await db.execute(
                                 text(
                                     """
-                                    INSERT INTO import_field_mappings 
-                                    (mapping_id, data_import_id, source_field, target_field, 
+                                    INSERT INTO import_field_mappings
+                                    (mapping_id, data_import_id, source_field, target_field,
                                      mapping_type, confidence_score, is_approved, created_at)
-                                    VALUES (:mapping_id, :import_id, :source, :target, 
+                                    VALUES (:mapping_id, :import_id, :source, :target,
                                             :mapping_type, :confidence, :approved, :created_at)
                                 """
                                 ),
@@ -585,7 +585,7 @@ async def test_discovery_flow_with_db_tracking():
                     await db.execute(
                         text(
                             """
-                            UPDATE import_field_mappings 
+                            UPDATE import_field_mappings
                             SET is_approved = true, updated_at = :now
                             WHERE data_import_id = :import_id
                         """
@@ -655,9 +655,7 @@ async def test_discovery_flow_with_db_tracking():
                 logger.info("\n🎉 E2E Test with DB Tracking completed successfully!")
 
             else:
-                logger.error(
-                    "\n❌ ERROR: Flow did not pause at field mapping approval!"
-                )
+                logger.error("\n❌ ERROR: Flow did not pause at field mapping approval!")
                 logger.error(f"  - Current phase: {result.phase.value}")
                 logger.error(f"  - Requires user input: {result.requires_user_input}")
 

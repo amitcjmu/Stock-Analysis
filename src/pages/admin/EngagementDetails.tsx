@@ -106,17 +106,17 @@ const EngagementDetails: React.FC = () => {
 
   const calculateDurationMonths = (startDate: string, endDate: string) => {
     if (!startDate || !endDate) return 'Not calculated';
-    
+
     const start = new Date(startDate);
     const end = new Date(endDate);
-    
+
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
       return 'Invalid dates';
     }
-    
+
     const diffTime = end.getTime() - start.getTime();
     const diffMonths = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30));
-    
+
     return diffMonths > 0 ? `${diffMonths} months` : 'Invalid duration';
   };
 
@@ -125,7 +125,7 @@ const EngagementDetails: React.FC = () => {
     if (isNaN(amount) || amount === null || amount === undefined) {
       return 'N/A';
     }
-    
+
     if (!currency || currency.trim() === '') {
       return new Intl.NumberFormat('en-US', {
         style: 'decimal',
@@ -133,7 +133,7 @@ const EngagementDetails: React.FC = () => {
         maximumFractionDigits: 2
       }).format(amount);
     }
-    
+
     try {
       return new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -150,7 +150,7 @@ const EngagementDetails: React.FC = () => {
 
   const getPhaseColor = (phase: string) => {
     if (!phase) return 'bg-gray-100 text-gray-800';
-    
+
     switch (phase) {
       case 'planning': return 'bg-yellow-100 text-yellow-800';
       case 'discovery': return 'bg-blue-100 text-blue-800';
@@ -213,8 +213,8 @@ const EngagementDetails: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => navigate('/admin/engagements')}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -263,7 +263,7 @@ const EngagementDetails: React.FC = () => {
               </span>
             </div>
             <Progress value={isNaN(displayEngagement.progress_percentage) ? 0 : displayEngagement.progress_percentage} className="h-3" />
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
               <div className="text-center p-4 bg-gray-50 rounded-lg">
                 <div className="text-2xl font-bold text-blue-600">
@@ -325,7 +325,7 @@ const EngagementDetails: React.FC = () => {
               <div>
                 <h4 className="font-medium mb-3">Current Phase</h4>
                 <Badge className={getPhaseColor(displayEngagement.migration_phase)}>
-                  {displayEngagement.migration_phase ? 
+                  {displayEngagement.migration_phase ?
                     displayEngagement.migration_phase.charAt(0).toUpperCase() + displayEngagement.migration_phase.slice(1) :
                     'Unknown'
                   }
@@ -405,7 +405,7 @@ const EngagementDetails: React.FC = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Total Budget</p>
                   <p className="text-2xl font-bold text-green-600">
-                    {displayEngagement.budget ? 
+                    {displayEngagement.budget ?
                       formatCurrency(displayEngagement.budget, displayEngagement.budget_currency || 'USD') :
                       'No budget set'
                     }
@@ -441,4 +441,4 @@ const EngagementDetails: React.FC = () => {
   );
 };
 
-export default EngagementDetails; 
+export default EngagementDetails;

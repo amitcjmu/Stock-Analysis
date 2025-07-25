@@ -1,6 +1,6 @@
 /**
  * Frontend Integration Testing for Discovery Flow (Task 64)
- * 
+ *
  * Tests frontend integration with new backend structure including:
  * - UI displays new crew data correctly
  * - Real-time progress updates in the interface
@@ -114,7 +114,7 @@ const mockApiResponses = {
       estimated_duration: 300,
       crew_sequence: [
         'field_mapping',
-        'data_cleansing', 
+        'data_cleansing',
         'inventory_building',
         'app_server_dependencies',
         'app_app_dependencies',
@@ -144,25 +144,25 @@ describe('Discovery Flow Frontend Integration Tests', () => {
     // Setup WebSocket mock server
     server = new WS('ws://localhost:8000/ws/discovery-flow');
     queryClient = createTestQueryClient();
-    
+
     // Reset mocks
     mockFetch.mockReset();
-    
+
     // Setup default API responses
     mockFetch.mockImplementation((url: string, options?: RequestInit) => {
       const urlPath = new URL(url).pathname;
-      const mock = Object.entries(mockApiResponses).find(([path, config]) => 
-        urlPath.includes(path.split('/').pop() || '') && 
+      const mock = Object.entries(mockApiResponses).find(([path, config]) =>
+        urlPath.includes(path.split('/').pop() || '') &&
         (config.method === options?.method || (!options?.method && config.method === 'GET'))
       );
-      
+
       if (mock) {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve(mock[1].response)
         } as Response);
       }
-      
+
       return Promise.resolve({
         ok: false,
         status: 404,
@@ -215,7 +215,7 @@ describe('Discovery Flow Frontend Integration Tests', () => {
   it('should display crew execution results correctly (Task 64)', async () => {
     // Arrange
     renderWithProviders(<DiscoveryFlowPage />);
-    
+
     // Simulate flow already in progress
     act(() => {
       queryClient.setQueryData(['discovery-flow', 'flow_123'], mockFlowData);
@@ -226,15 +226,15 @@ describe('Discovery Flow Frontend Integration Tests', () => {
       // Field Mapping crew results
       expect(screen.getByText(/Field Mapping.*completed/i)).toBeInTheDocument();
       expect(screen.getByText(/2.5.*seconds/i)).toBeInTheDocument();
-      
+
       // Field mappings display
       expect(screen.getByText(/hostname.*asset_name/i)).toBeInTheDocument();
       expect(screen.getByText(/95%.*confidence/i)).toBeInTheDocument();
-      
+
       // Data Cleansing in progress
       expect(screen.getByText(/Data Cleansing.*progress/i)).toBeInTheDocument();
       expect(screen.getByText(/45%/i)).toBeInTheDocument();
-      
+
       // Inventory Building pending
       expect(screen.getByText(/Inventory Building.*pending/i)).toBeInTheDocument();
     });
@@ -280,11 +280,11 @@ describe('Discovery Flow Frontend Integration Tests', () => {
       // Agent status display
       expect(screen.getByText(/Field Mapping Manager/i)).toBeInTheDocument();
       expect(screen.getByText(/Schema Analysis Expert/i)).toBeInTheDocument();
-      
+
       // Agent performance metrics
       expect(screen.getByText(/95%.*success/i)).toBeInTheDocument();
       expect(screen.getByText(/2.1.*avg time/i)).toBeInTheDocument();
-      
+
       // Overall health
       expect(screen.getByText(/healthy/i)).toBeInTheDocument();
       expect(screen.getByText(/17.*total agents/i)).toBeInTheDocument();
@@ -295,7 +295,7 @@ describe('Discovery Flow Frontend Integration Tests', () => {
     // Arrange
     const user = userEvent.setup();
     renderWithProviders(<DiscoveryFlowPage />);
-    
+
     act(() => {
       queryClient.setQueryData(['discovery-flow', 'flow_123'], mockFlowData);
     });
@@ -322,7 +322,7 @@ describe('Discovery Flow Frontend Integration Tests', () => {
   it('should display progress indicators correctly (Task 64)', async () => {
     // Arrange
     renderWithProviders(<DiscoveryFlowPage />);
-    
+
     act(() => {
       queryClient.setQueryData(['discovery-flow', 'flow_123'], mockFlowData);
     });
@@ -331,12 +331,12 @@ describe('Discovery Flow Frontend Integration Tests', () => {
     await waitFor(() => {
       // Overall progress
       expect(screen.getByText(/35%.*complete/i)).toBeInTheDocument();
-      
+
       // Progress bar or indicator
       const progressBar = screen.getByRole('progressbar');
       expect(progressBar).toBeInTheDocument();
       expect(progressBar).toHaveAttribute('aria-valuenow', '35');
-      
+
       // Estimated completion time
       expect(screen.getByText(/estimated.*completion/i)).toBeInTheDocument();
     });
@@ -344,11 +344,11 @@ describe('Discovery Flow Frontend Integration Tests', () => {
 
   it('should handle error states and display error messages (Task 64)', async () => {
     // Arrange
-    mockFetch.mockImplementation(() => 
+    mockFetch.mockImplementation(() =>
       Promise.resolve({
         ok: false,
         status: 500,
-        json: () => Promise.resolve({ 
+        json: () => Promise.resolve({
           error: 'Internal server error',
           details: 'Crew execution failed'
         })
@@ -373,7 +373,7 @@ describe('Discovery Flow Frontend Integration Tests', () => {
     // Arrange
     const user = userEvent.setup();
     renderWithProviders(<DiscoveryFlowPage />);
-    
+
     act(() => {
       queryClient.setQueryData(['discovery-flow', 'flow_123'], mockFlowData);
     });
@@ -403,11 +403,11 @@ describe('Discovery Flow Frontend Integration Tests', () => {
       // Health status indicators
       const healthyIndicators = screen.getAllByText(/healthy/i);
       expect(healthyIndicators.length).toBeGreaterThan(0);
-      
+
       // Visual status indicators (green dots, check marks, etc.)
       const statusIndicators = screen.getAllByRole('img', { name: /status.*healthy/i });
       expect(statusIndicators.length).toBeGreaterThan(0);
-      
+
       // Agent activity indicators
       expect(screen.getByText(/active.*crews.*2/i)).toBeInTheDocument();
     });
@@ -417,7 +417,7 @@ describe('Discovery Flow Frontend Integration Tests', () => {
     // Arrange
     const user = userEvent.setup();
     renderWithProviders(<DiscoveryFlowPage />);
-    
+
     act(() => {
       queryClient.setQueryData(['discovery-flow', 'flow_123'], mockFlowData);
     });
@@ -467,7 +467,7 @@ describe('Discovery Flow Frontend Integration Tests', () => {
       if (mobileMenu) {
         expect(mobileMenu).toBeInTheDocument();
       }
-      
+
       // Content should be stacked vertically on mobile
       const mainContent = screen.getByRole('main');
       expect(mainContent).toHaveClass(/mobile/i);
@@ -493,7 +493,7 @@ describe('Discovery Flow Frontend Integration Tests', () => {
   it('should maintain state during navigation and page refresh (Task 64)', async () => {
     // Arrange
     renderWithProviders(<DiscoveryFlowPage />);
-    
+
     act(() => {
       queryClient.setQueryData(['discovery-flow', 'flow_123'], mockFlowData);
     });
@@ -525,7 +525,7 @@ export const DiscoveryFlowTestUtils = {
   // Utility to simulate complete flow execution
   simulateCompleteFlow: async (server: WS) => {
     const crews = ['field_mapping', 'data_cleansing', 'inventory_building'];
-    
+
     for (const crew of crews) {
       const update = {
         type: 'progress_update',
@@ -535,7 +535,7 @@ export const DiscoveryFlowTestUtils = {
           progress_percentage: 100
         }
       };
-      
+
       server.send(JSON.stringify(update));
       await new Promise(resolve => setTimeout(resolve, 100));
     }
@@ -568,4 +568,4 @@ export const DiscoveryFlowTestUtils = {
       expect(bar).toHaveAttribute('aria-valuemax');
     });
   }
-}; 
+};

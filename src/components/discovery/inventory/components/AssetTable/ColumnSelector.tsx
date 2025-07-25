@@ -40,8 +40,8 @@ export const ColumnSelector: React.FC<ColumnSelectorProps> = ({
           <h4 className="font-medium text-sm mb-3">Visible Columns</h4>
           {allColumns.map(column => (
             <div key={column} className="flex items-center justify-between">
-              <Label 
-                htmlFor={`column-${column}`} 
+              <Label
+                htmlFor={`column-${column}`}
                 className="text-sm font-normal cursor-pointer"
               >
                 {formatColumnName(column)}

@@ -15,7 +15,7 @@ export const useErrorHandler = () => {
     } : error;
 
     console.error('Async error:', errorInfo);
-    
+
     // Show user-friendly error message
     toast.error(
       `An error occurred${context ? ` in ${context}` : ''}`,

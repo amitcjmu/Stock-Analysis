@@ -152,7 +152,7 @@ export const masterFlowService = {
         configuration: request.config || {},
         initial_state: {}
       };
-      
+
       const response = await apiClient.post<{
         flow_id: string;
         status: string;
@@ -173,7 +173,7 @@ export const masterFlowService = {
           ),
         }
       );
-      
+
       // Transform backend response to match frontend expectations
       return {
         flowId: response.flow_id,
@@ -224,10 +224,10 @@ export const masterFlowService = {
     try {
       const params = new URLSearchParams();
       if (flowType) params.append('flowType', flowType);
-      
+
       const endpoint = `/discovery/flows/active${params.toString() ? `?${params}` : ''}`;
       const headers = getMultiTenantHeaders(clientAccountId, engagementId);
-      
+
       console.log('🔍 MasterFlowService.getActiveFlows - Making API call:', {
         endpoint,
         headers,
@@ -235,16 +235,16 @@ export const masterFlowService = {
         engagementId,
         flowType
       });
-      
+
       const response = await apiClient.get<MasterFlowResponse[]>(
         endpoint,
         {
           headers,
         }
       );
-      
+
       console.log('✅ MasterFlowService.getActiveFlows - Response received:', response);
-      
+
       // Transform MasterFlowResponse[] to ActiveFlowSummary[]
       return response.map(flow => ({
         flowId: flow.flowId,
@@ -382,7 +382,7 @@ export const masterFlowService = {
     try {
       const params = new URLSearchParams();
       if (flowType) params.append('flowType', flowType);
-      
+
       const response = await apiClient.get<FlowMetrics>(
         `/flows/metrics${params.toString() ? `?${params}` : ''}`,
         {
@@ -397,7 +397,7 @@ export const masterFlowService = {
   },
 
   // Legacy compatibility methods for discovery flows
-  
+
   /**
    * Initialize discovery flow (legacy compatibility)
    */

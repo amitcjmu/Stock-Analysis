@@ -178,7 +178,7 @@ def upgrade():
     # Update existing client accounts to have slugs
     op.execute(
         """
-        UPDATE client_accounts 
+        UPDATE client_accounts
         SET slug = LOWER(REPLACE(REPLACE(name, ' ', '-'), '&', 'and'))
         WHERE slug IS NULL
     """
@@ -310,7 +310,7 @@ def upgrade():
     # Update existing engagements to have slugs
     op.execute(
         """
-        UPDATE engagements 
+        UPDATE engagements
         SET slug = LOWER(REPLACE(REPLACE(name, ' ', '-'), '&', 'and'))
         WHERE slug IS NULL
     """

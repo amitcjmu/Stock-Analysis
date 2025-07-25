@@ -17,10 +17,10 @@ const GlobalChatFeedback: React.FC = () => {
       >
         <MessageCircle className="h-6 w-6" />
       </button>
-      
+
       {/* Chat Interface */}
-      <ChatInterface 
-        isOpen={isChatOpen} 
+      <ChatInterface
+        isOpen={isChatOpen}
         onClose={() => setIsChatOpen(false)}
         currentPage={currentPageName}
         breadcrumbPath={breadcrumbPath}
@@ -29,4 +29,4 @@ const GlobalChatFeedback: React.FC = () => {
   );
 };
 
-export default GlobalChatFeedback; 
+export default GlobalChatFeedback;

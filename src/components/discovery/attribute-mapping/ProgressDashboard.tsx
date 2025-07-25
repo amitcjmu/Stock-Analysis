@@ -20,9 +20,9 @@ interface ProgressDashboardProps {
   isLoading?: boolean;
 }
 
-const ProgressDashboard: React.FC<ProgressDashboardProps> = ({ 
-  progress: mappingProgress, 
-  isLoading = false 
+const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
+  progress: mappingProgress,
+  isLoading = false
 }) => {
   if (isLoading) {
     return (
@@ -47,7 +47,7 @@ const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
           <Database className="h-6 w-6 text-blue-500" />
         </div>
       </div>
-      
+
       <div className="bg-white rounded-lg shadow-md p-4">
         <div className="flex items-center justify-between">
           <div>
@@ -57,7 +57,7 @@ const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
           <CheckCircle className="h-6 w-6 text-green-500" />
         </div>
       </div>
-      
+
       <div className="bg-white rounded-lg shadow-md p-4">
         <div className="flex items-center justify-between">
           <div>
@@ -67,7 +67,7 @@ const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
           <Target className="h-6 w-6 text-purple-500" />
         </div>
       </div>
-      
+
       <div className="bg-white rounded-lg shadow-md p-4">
         <div className="flex items-center justify-between">
           <div>
@@ -83,4 +83,4 @@ const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
   );
 };
 
-export default ProgressDashboard; 
+export default ProgressDashboard;

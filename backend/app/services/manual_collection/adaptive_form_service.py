@@ -704,8 +704,10 @@ class AdaptiveFormService:
         elif field.critical_attribute == "security_requirements":
             if application_context.compliance_requirements:
                 # Pre-select relevant compliance options
-                requirements = ', '.join(application_context.compliance_requirements)
-                field.description += f" (Compliance requirements detected: {requirements})"
+                requirements = ", ".join(application_context.compliance_requirements)
+                field.description += (
+                    f" (Compliance requirements detected: {requirements})"
+                )
 
         # Business criticality based on existing assessment
         elif field.critical_attribute == "business_criticality":

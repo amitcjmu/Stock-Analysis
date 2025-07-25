@@ -510,9 +510,7 @@ class AgentIntegrationLayer:
     def enable_compatibility_mode(self, enabled: bool = True):
         """Enable/disable compatibility mode"""
         self.compatibility_mode = enabled
-        self.logger.info(
-            f"🔧 Compatibility mode {'enabled' if enabled else 'disabled'}"
-        )
+        self.logger.info(f"🔧 Compatibility mode {'enabled' if enabled else 'disabled'}")
 
     def enable_legacy_fallback(self, enabled: bool = True):
         """Enable/disable legacy fallback"""

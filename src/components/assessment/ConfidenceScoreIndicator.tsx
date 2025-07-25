@@ -80,13 +80,13 @@ export const ConfidenceScoreIndicator: React.FC<ConfidenceScoreIndicatorProps> =
           {percentage}%
         </Badge>
       </div>
-      
+
       <div className="space-y-1">
-        <Progress 
-          value={percentage} 
+        <Progress
+          value={percentage}
           className={cn(classes.progress, 'bg-gray-100')}
         />
-        
+
         {size === 'large' && (
           <div className="flex justify-between text-xs text-gray-500">
             <span>Low (60%)</span>

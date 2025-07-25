@@ -27,7 +27,7 @@ export function useSelection<T = number | string>(
   options: UseSelectionOptions = {}
 ): UseSelectionResult<T> {
   const { maxSelections, initialSelection = [] } = options;
-  
+
   const [selectedItems, setSelectedItems] = useState<T[]>(initialSelection as T[]);
 
   const isSelected = useCallback((item: T): boolean => {

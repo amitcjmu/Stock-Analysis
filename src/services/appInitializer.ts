@@ -1,7 +1,7 @@
 /**
  * App Initializer Service
  * Handles initialization tasks that should run once when the app loads
- * 
+ *
  * This ensures critical data like demo context is loaded before any components
  * need it, preventing hardcoded ID issues.
  */
@@ -30,7 +30,7 @@ export class AppInitializer {
 
     // Start initialization
     this.initializationPromise = this.runInitialization();
-    
+
     try {
       await this.initializationPromise;
       this.initialized = true;
@@ -59,7 +59,7 @@ export class AppInitializer {
           // Demo context not accessible - expected for non-demo users
         }
       }
-      
+
       // Task 2: Check API health
       try {
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/v1/health`);
@@ -67,7 +67,7 @@ export class AppInitializer {
       } catch (error) {
         // API health check failed (silent - don't spam console)
       }
-      
+
     } catch (error) {
       // App initialization failed (silent - don't spam console)
     }

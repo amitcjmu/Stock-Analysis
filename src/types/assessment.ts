@@ -50,4 +50,4 @@ export interface Application {
   status: string;
   createdAt: string;
   updatedAt: string;
-} 
+}

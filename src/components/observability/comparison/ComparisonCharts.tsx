@@ -31,17 +31,17 @@ export const SuccessRateTrendChart: React.FC<ComparisonChartsProps> = ({ compari
     if (comparisonData.length === 0) return [];
 
     const maxLength = Math.max(...comparisonData.map(agent => agent.trends.timestamps.length));
-    
+
     return Array.from({ length: maxLength }, (_, index) => {
       const dataPoint: TrendChartDataPoint = { index };
-      
+
       comparisonData.forEach(agent => {
         if (agent.trends.timestamps[index]) {
           dataPoint[`${agent.agentName}_success`] = agent.trends.successRateHistory[index] * 100;
           dataPoint.timestamp = agent.trends.timestamps[index];
         }
       });
-      
+
       return dataPoint;
     });
   }, [comparisonData]);
@@ -80,7 +80,7 @@ export const PerformanceRadarChart: React.FC<ComparisonChartsProps> = ({ compari
   const radarData = useMemo(() => {
     return COMPARISON_METRICS.slice(0, 6).map(metric => {
       const dataPoint: RadarChartDataPoint = { metric: metric.label };
-      
+
       comparisonData.forEach(agent => {
         const value = agent.metrics[metric.key];
         // Normalize values to 0-100 scale for radar chart
@@ -94,10 +94,10 @@ export const PerformanceRadarChart: React.FC<ComparisonChartsProps> = ({ compari
         } else {
           normalizedValue = Math.min(100, (value / 100) * 100); // Scale other metrics
         }
-        
+
         dataPoint[agent.agentName] = normalizedValue;
       });
-      
+
       return dataPoint;
     });
   }, [comparisonData]);

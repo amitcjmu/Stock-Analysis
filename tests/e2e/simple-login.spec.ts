@@ -6,10 +6,10 @@ async function loginAsAdmin(page: Page) {
   await page.goto(`${TEST_BASE_URL}/login`);
   await page.evaluate(() => localStorage.clear());
   await page.goto(`${TEST_BASE_URL}/login`, { waitUntil: 'networkidle' });
-  
+
   await page.fill('input[type="email"]', 'admin@democorp.com');
   await page.fill('input[type="password"]', 'admin123');
-  
+
   await page.click('button[type="submit"]');
   try {
     await page.waitForURL(`${TEST_BASE_URL}/admin`, { timeout: 15000 });
@@ -26,4 +26,4 @@ test.describe('Simple Login Test', () => {
     await loginAsAdmin(page);
     await expect(page.locator('h1:has-text("Admin Console")')).toBeVisible();
   });
-}); 
+});

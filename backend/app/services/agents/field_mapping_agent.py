@@ -30,13 +30,13 @@ class FieldMappingAgent(BaseCrewAIAgent):
         super().__init__(
             role="Field Mapping Specialist",
             goal="Map source data fields to target schema with high accuracy and confidence",
-            backstory="""You are an expert data architect with deep experience in 
+            backstory="""You are an expert data architect with deep experience in
             enterprise data migration and schema mapping. You excel at:
             - Understanding semantic relationships between field names
             - Identifying field patterns across different systems
             - Creating accurate mappings that preserve data integrity
             - Validating mapping quality before implementation
-            
+
             Your mappings enable seamless data transformation and migration success.""",
             tools=tools,
             llm=llm,

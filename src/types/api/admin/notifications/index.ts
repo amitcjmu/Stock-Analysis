@@ -1,10 +1,10 @@
 /**
  * Notification Types Index
- * 
+ *
  * Central export point for all notification-related type definitions.
  * This module provides all types needed for notification management,
  * delivery, templates, and tracking.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

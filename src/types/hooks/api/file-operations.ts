@@ -1,6 +1,6 @@
 /**
  * File Operations Hook Types
- * 
+ *
  * Hook types for file upload and download operations,
  * including chunked uploads and progress tracking.
  */

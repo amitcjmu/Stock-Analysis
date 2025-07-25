@@ -1,9 +1,9 @@
 /**
  * User Profile and Preferences Types
- * 
+ *
  * User-specific configuration, preferences, and settings types.
  * Handles personal customization and user experience configuration.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

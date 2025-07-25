@@ -1,6 +1,6 @@
 /**
  * Collection Page Layout Component
- * 
+ *
  * Shared layout component for collection pages to reduce code duplication
  * and provide consistent layout structure across collection workflow pages.
  */
@@ -73,9 +73,9 @@ const CollectionPageHeader: React.FC<CollectionPageHeaderProps> = ({
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center space-x-4">
-        <Button 
-          variant="ghost" 
-          size="sm" 
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => navigate(backUrl)}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -122,9 +122,9 @@ export const CollectionPageLayout: React.FC<CollectionPageLayoutProps> = ({
           <div className="mb-6">
             <ContextBreadcrumbs />
           </div>
-          
+
           {isLoading ? (
-            <LoadingState 
+            <LoadingState
               message={loadingMessage}
               subMessage={loadingSubMessage}
             />

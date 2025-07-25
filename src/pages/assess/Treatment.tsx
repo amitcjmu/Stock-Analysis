@@ -31,18 +31,18 @@ export const Treatment: React.FC = () => {
   const [selectedApplicationIds, setSelectedApplicationIds] = useState<string[]>([]);
   const [manualNavigation, setManualNavigation] = useState<boolean>(false);
   const [showApplicationType, setShowApplicationType] = useState<'all' | 'selected'>('all');
-  
+
   // Hooks
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  
+
   // Query Hooks
-  const { 
-    applications = [], 
+  const {
+    applications = [],
     isLoading: isLoadingApps,
     error: appsError,
-    refetch: refetchApplications 
+    refetch: refetchApplications
   } = useApplications();
 
   const [state, actions] = useSixRAnalysis(selectedApplicationIds);
@@ -62,7 +62,7 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
   } = useAnalysisQueue();
 
   // Selected applications derived from IDs
-  const selectedApplications = applications.filter(app => 
+  const selectedApplications = applications.filter(app =>
     selectedApplicationIds.includes(app.id)
   );
 
@@ -73,25 +73,25 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
   if (analysisError) {
     toast.error('Analysis error: ' + (analysisError.message || 'Unknown error'));
   }
-  
+
   // Handlers
   const handleSelectApplications = useCallback((selected: Application[]) => {
     setSelectedApplicationIds(selected.map(app => app.id));
   }, []);
-  
+
   const handleTabChange = useCallback((tab: string) => {
     setCurrentTab(tab);
     setManualNavigation(true);
   }, []);
-  
+
   // Removed: handleStartAnalysis (initializeAnalysis not available in AnalysisActions)
-  
+
   const handleUpdateParameters = useCallback((params: SixRParameters) => {
     updateParameters(params);
   }, [updateParameters]);
-  
+
   // Removed: handleAnswerQuestions (answerQuestions not available in AnalysisActions)
-  
+
   const handleAcceptRecommendation = useCallback(async () => {
     try {
       await acceptRecommendation();
@@ -101,12 +101,12 @@ const { updateParameters, submitQuestionResponse, acceptRecommendation, iterateA
       toast.error('Failed to accept recommendation');
     }
   }, [acceptRecommendation]);
-  
+
   const handleIterateAnalysis = useCallback(() => {
     iterateAnalysis();
     setCurrentTab('parameters');
   }, [iterateAnalysis]);
-  
+
   const handleCreateQueueItem = useCallback(async (request: unknown) => {
     try {
       const newQueue = await createQueue({

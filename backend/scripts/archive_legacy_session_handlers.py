@@ -31,8 +31,8 @@ def create_archive_readme(archive_path: Path):
 
 ## What was archived
 
-This directory contains the legacy session management handlers that were used in the V1 
-session-based discovery flow architecture. These have been replaced by the V2 flow-based 
+This directory contains the legacy session management handlers that were used in the V1
+session-based discovery flow architecture. These have been replaced by the V2 flow-based
 architecture using `flow_id` as the primary identifier.
 
 ### Archived Components:

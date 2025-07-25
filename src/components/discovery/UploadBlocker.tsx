@@ -34,8 +34,8 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
 }) => {
   const { toast } = useToast();
   const { client, engagement } = useAuth();
-  const { 
-    performCleanup, 
+  const {
+    performCleanup,
     isExecutingCleanup,
     getCleanupRecommendations,
     recommendations,
@@ -44,7 +44,7 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
 
   const getPhaseDisplayName = (phase: string) => {
     if (!phase) return 'Unknown';
-    
+
     const names = {
       'field_mapping': 'Field Mapping',
       'data_cleansing': 'Data Cleansing',
@@ -58,10 +58,10 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
 
   const getStatusColor = (status: string) => {
     if (!status) return 'bg-gray-100 text-gray-800 border-gray-200';
-    
+
     switch (status) {
-      case 'running': 
-      case 'active': 
+      case 'running':
+      case 'active':
         return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'paused': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'failed': return 'bg-red-100 text-red-800 border-red-200';
@@ -71,12 +71,12 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
 
   const formatTimeAgo = (timestamp: string) => {
     if (!timestamp) return 'Unknown';
-    
+
     try {
       const now = new Date();
       const time = new Date(timestamp);
       const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
-      
+
       if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
       if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
       return `${Math.floor(diffInMinutes / 1440)}d ago`;
@@ -87,7 +87,7 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
 
   const safeSubstring = (str: string | undefined | null, start: number, length?: number): string => {
     if (!str || typeof str !== 'string' || str.length === 0) return 'Unknown';
-    
+
     try {
       if (length) {
         return str.substring(start, start + length) + '...';
@@ -100,17 +100,17 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
 
   const getHighestPriorityFlow = () => {
     if (!incompleteFlows || incompleteFlows.length === 0) return null;
-    
+
     // Filter out invalid flows first
-    const validFlows = incompleteFlows.filter(flow => 
-      flow && 
-      flow.flowId && 
-      typeof flow.flowId === 'string' && 
+    const validFlows = incompleteFlows.filter(flow =>
+      flow &&
+      flow.flowId &&
+      typeof flow.flowId === 'string' &&
       flow.flowId.length > 0
     );
-    
+
     if (validFlows.length === 0) return null;
-    
+
     // Prioritize failed flows, then running/active, then paused
     const priorityOrder = { 'failed': 3, 'running': 2, 'active': 2, 'paused': 1 };
     return validFlows.sort((a, b) => {
@@ -129,7 +129,7 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
   const handleIntelligentCleanup = async () => {
     try {
       console.log('🧹 Starting intelligent cleanup with user approval...');
-      
+
       if (!client?.id) {
         toast({
           title: "❌ Error",
@@ -141,7 +141,7 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
 
       // Use centralized flow deletion service for cleanup
       const result = await performCleanup('discovery');
-      
+
       if (result.success) {
         // Refresh the flow list after successful cleanup
         if (onRefresh) {
@@ -196,11 +196,11 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
         <AlertDescription className="text-red-800">
           <div className="flex items-center justify-between">
             <div>
-              <strong>Upload Blocked:</strong> {incompleteFlows.length} incomplete discovery flow{incompleteFlows.length > 1 ? 's' : ''} found. 
+              <strong>Upload Blocked:</strong> {incompleteFlows.length} incomplete discovery flow{incompleteFlows.length > 1 ? 's' : ''} found.
               Complete or delete existing flows before uploading new data.
             </div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={onManageFlows}
               className="ml-4"
@@ -225,7 +225,7 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
               </Badge>
             </div>
           </CardHeader>
-          
+
           <CardContent>
             <div className="space-y-4">
               <div>
@@ -274,7 +274,7 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
                       Continue Flow
                     </Button>
                   )}
-                  
+
                   {primaryFlow.flowId && (
                     <Button
                       variant="outline"
@@ -286,7 +286,7 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
                     </Button>
                   )}
                 </div>
-                
+
                 {primaryFlow.flowId && (
                   <Button
                     variant="destructive"
@@ -307,7 +307,7 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
         <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-gray-600 mb-2">Data Upload Disabled</h3>
         <p className="text-gray-500 mb-4">
-          Complete or delete existing discovery flows to enable new data uploads. 
+          Complete or delete existing discovery flows to enable new data uploads.
           This ensures proper data integrity and prevents conflicts.
         </p>
         <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
@@ -331,7 +331,7 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
             ))}
           </div>
           <div className="mt-2 text-xs text-blue-600">
-            <strong>Issue:</strong> Flows with status="active" but phase="completed" and progress=100% 
+            <strong>Issue:</strong> Flows with status="active" but phase="completed" and progress=100%
             should be marked as completed and not block uploads.
           </div>
         </CardContent>
@@ -347,7 +347,7 @@ export const UploadBlocker: React.FC<UploadBlockerProps> = ({
           <Sparkles className="h-4 w-4 mr-2" />
           {isExecutingCleanup ? 'Requesting cleanup...' : 'Smart cleanup (user approval required)'}
         </Button>
-        
+
         <div className="text-xs text-gray-500">
           💡 System will recommend flows for cleanup but requires your approval
         </div>

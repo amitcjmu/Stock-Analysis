@@ -1,6 +1,6 @@
 /**
  * Metrics Management Types
- * 
+ *
  * Type definitions for creating, managing, and querying metrics.
  * Handles metric definitions, data retrieval, and metric analytics.
  */

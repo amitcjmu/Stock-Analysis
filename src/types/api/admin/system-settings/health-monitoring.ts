@@ -1,8 +1,8 @@
 /**
  * System Health and Monitoring Types
- * 
+ *
  * System health checks, monitoring metrics, and component status types.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 
@@ -268,27 +268,27 @@ export interface ErrorMetric {
 // Enums
 export type HealthStatus = 'healthy' | 'degraded' | 'unhealthy' | 'critical' | 'unknown';
 
-export type SystemComponent = 
-  | 'api' 
-  | 'database' 
-  | 'cache' 
-  | 'queue' 
-  | 'storage' 
-  | 'auth' 
-  | 'notifications' 
-  | 'analytics' 
-  | 'monitoring' 
-  | 'search' 
+export type SystemComponent =
+  | 'api'
+  | 'database'
+  | 'cache'
+  | 'queue'
+  | 'storage'
+  | 'auth'
+  | 'notifications'
+  | 'analytics'
+  | 'monitoring'
+  | 'search'
   | 'scheduler';
 
 export type MaintenanceStatus = 'none' | 'scheduled' | 'in_progress' | 'completed';
 
-export type AlertType = 
-  | 'performance' 
-  | 'availability' 
-  | 'security' 
-  | 'capacity' 
-  | 'error' 
+export type AlertType =
+  | 'performance'
+  | 'availability'
+  | 'security'
+  | 'capacity'
+  | 'error'
   | 'custom';
 
 export type AlertSeverity = 'info' | 'warning' | 'critical' | 'emergency';

@@ -70,9 +70,7 @@ async def check_clients_and_engagements():
             print(f"  ✅ Use Client: {client['name']} (ID: {client['id']})")
 
         if not real_clients:
-            print(
-                "  ❌ No real clients found - need to create real clients for testing"
-            )
+            print("  ❌ No real clients found - need to create real clients for testing")
 
         return real_clients, demo_clients
 

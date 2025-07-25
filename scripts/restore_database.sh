@@ -166,4 +166,4 @@ echo -e "${GREEN}🛡️  Pre-restore backup: $PRE_RESTORE_BACKUP${NC}"
 
 echo -e "\n${GREEN}🎉 Database restore completed successfully!${NC}"
 echo -e "${BLUE}💡 You may need to restart your application containers${NC}"
-echo -e "${BLUE}💡 Run: docker-compose restart backend frontend${NC}" 
+echo -e "${BLUE}💡 Run: docker-compose restart backend frontend${NC}"

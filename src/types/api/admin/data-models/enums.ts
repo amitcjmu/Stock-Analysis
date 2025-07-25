@@ -1,9 +1,9 @@
 /**
  * Shared Enums and Type Literals
- * 
+ *
  * Centralized enumeration definitions and type literals used across
  * admin data models to ensure consistency and type safety.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

@@ -308,7 +308,7 @@ Retry a failed import operation.
 
 **Problem:** Attempting to import data when an incomplete discovery flow already exists.
 
-**Solution:** 
+**Solution:**
 - Complete the existing flow
 - Cancel the existing flow using the master flow deletion endpoint
 - Wait for the flow to timeout

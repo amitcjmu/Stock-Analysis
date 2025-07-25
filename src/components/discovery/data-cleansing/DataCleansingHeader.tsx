@@ -38,14 +38,14 @@ const DataCleansingHeader: React.FC<DataCleansingHeaderProps> = ({
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Data Cleansing & Quality Analysis</h1>
           <p className="text-gray-600">
-            {totalRecords > 0 
-              ? `${totalRecords} records analyzed with ${issuesCount} quality issues found and ${recommendationsCount} improvement recommendations` 
+            {totalRecords > 0
+              ? `${totalRecords} records analyzed with ${issuesCount} quality issues found and ${recommendationsCount} improvement recommendations`
               : 'AI-powered data quality analysis and standardization recommendations'
             }
           </p>
         </div>
       </div>
-      
+
       <div className="flex items-center space-x-3">
         {/* Quality Score */}
         {qualityScore > 0 && (
@@ -54,14 +54,14 @@ const DataCleansingHeader: React.FC<DataCleansingHeaderProps> = ({
             <span>{qualityScore}% Quality Score</span>
           </div>
         )}
-        
+
         {/* Completion Status */}
         {completionPercentage > 0 && (
           <div className="flex items-center space-x-2 px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
             <span className="font-medium">{completionPercentage}% Complete</span>
           </div>
         )}
-        
+
         {/* Manual Refresh Button */}
         <Button
           onClick={onRefresh}
@@ -76,7 +76,7 @@ const DataCleansingHeader: React.FC<DataCleansingHeaderProps> = ({
           )}
           <span>Refresh Analysis</span>
         </Button>
-        
+
         {/* Crew Analysis Button */}
         <Button
           onClick={onTriggerAnalysis}
@@ -95,4 +95,4 @@ const DataCleansingHeader: React.FC<DataCleansingHeaderProps> = ({
   );
 };
 
-export default DataCleansingHeader; 
+export default DataCleansingHeader;

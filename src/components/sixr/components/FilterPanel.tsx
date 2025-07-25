@@ -94,7 +94,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
           </div>
         </div>
       )}
-      
+
       <div className="flex justify-end">
         <Button
           variant="outline"

@@ -1,6 +1,6 @@
 /**
  * Sidebar Interaction Components
- * 
+ *
  * Components for sidebar triggers and interactive elements.
  */
 

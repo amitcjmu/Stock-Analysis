@@ -1,8 +1,8 @@
 /**
  * Three Column Field Mapper Component
- * 
+ *
  * Main component that orchestrates field mapping display and interactions.
- * 
+ *
  * This file has been modularized for better maintainability.
  * Individual modules are located in this directory.
  */
@@ -26,14 +26,14 @@ import ApprovedCard from './ApprovedCard';
 import ColumnHeader from './ColumnHeader';
 import BulkActions from './BulkActions';
 import type { ThreeColumnFieldMapperProps } from './types';
-import { 
-  categorizeMappings, 
-  filterMappingsBySearch, 
-  calculateProgress 
+import {
+  categorizeMappings,
+  filterMappingsBySearch,
+  calculateProgress
 } from './mappingUtils';
 import {
-  createBulkApproveHandler, 
-  createBulkRejectHandler 
+  createBulkApproveHandler,
+  createBulkRejectHandler
 } from './bulkOperations';
 
 const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
@@ -56,8 +56,8 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
   const buckets = useMemo(() => categorizeMappings(fieldMappings), [fieldMappings]);
 
   // Filter mappings based on search
-  const filteredBuckets = useMemo(() => 
-    filterMappingsBySearch(buckets, searchTerm), 
+  const filteredBuckets = useMemo(() =>
+    filterMappingsBySearch(buckets, searchTerm),
     [buckets, searchTerm]
   );
 
@@ -91,7 +91,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
     if (processingMappings.has(mappingId)) {
       return; // Already processing this mapping
     }
-    
+
     // Check if this is a placeholder or fallback mapping that shouldn't be approved via API
     const mapping = fieldMappings.find(m => m.id === mappingId);
     if (mapping && (mapping.is_placeholder || mapping.is_fallback)) {
@@ -101,11 +101,11 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
       }
       return;
     }
-    
+
     try {
       setProcessingMappings(prev => new Set(prev).add(mappingId));
       onMappingAction(mappingId, 'approve');
-      
+
       // Remove from processing set after a short delay
       setTimeout(() => {
         setProcessingMappings(prev => {
@@ -130,7 +130,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
         onMappingAction(mappingId, 'reject', rejectionReason);
         setShowRejectionInput(null);
         setRejectionReason('');
-        
+
         // Note: Removed automatic refresh - let user manually refresh if needed
         // This prevents page refresh and data loss issues
       } catch (error) {
@@ -147,7 +147,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
       // Less than 10 seconds since last refresh
       return;
     }
-    
+
     setLastRefreshTime(now);
     if (onRefresh) {
       onRefresh();
@@ -184,7 +184,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
           </div>
         </div>
       )}
-      
+
       {/* Progress Bar */}
       <div className="bg-white p-4 rounded-lg border">
         <div className="flex items-center justify-between mb-2">
@@ -194,7 +194,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
           </span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
+          <div
             className="bg-green-600 h-2 rounded-full transition-all duration-300"
             style={{ width: `${(progress.approved / progress.total) * 100}%` }}
           />
@@ -227,7 +227,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Column 1: Auto-Mapped (High Confidence) */}
         <div>
-          <ColumnHeader 
+          <ColumnHeader
             title="Auto-Mapped"
             count={filteredBuckets.autoMapped.length}
             icon={<CheckCircle className="h-5 w-5 text-blue-600" />}
@@ -235,8 +235,8 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
           />
           <div className="space-y-3 max-h-96 overflow-y-auto">
             {filteredBuckets.autoMapped.map(mapping => (
-              <AutoMappedCard 
-                key={mapping.id} 
+              <AutoMappedCard
+                key={mapping.id}
                 mapping={mapping}
                 onApprove={handleApprove}
                 onReject={handleReject}
@@ -256,7 +256,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
 
         {/* Column 2: Unmapped/Rejected (Needs Attention) */}
         <div>
-          <ColumnHeader 
+          <ColumnHeader
             title="Needs Review"
             count={filteredBuckets.unmapped.length}
             icon={<AlertCircle className="h-5 w-5 text-yellow-600" />}
@@ -264,8 +264,8 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
           />
           <div className="space-y-3 max-h-96 overflow-y-auto">
             {filteredBuckets.unmapped.map(mapping => (
-              <NeedsReviewCard 
-                key={mapping.id} 
+              <NeedsReviewCard
+                key={mapping.id}
                 mapping={mapping}
                 availableFields={availableFields}
                 onMappingChange={onMappingChange}
@@ -283,7 +283,7 @@ const ThreeColumnFieldMapper: React.FC<ThreeColumnFieldMapperProps> = ({
 
         {/* Column 3: Approved (Final List) */}
         <div>
-          <ColumnHeader 
+          <ColumnHeader
             title="Approved"
             count={filteredBuckets.approved.length}
             icon={<CheckCircle className="h-5 w-5 text-green-600" />}

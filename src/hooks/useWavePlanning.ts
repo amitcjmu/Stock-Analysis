@@ -30,7 +30,7 @@ export interface WavePlanningData {
 
 export const useWavePlanning = () => {
   const { isAuthenticated, client, engagement } = useAuth();
-  
+
   return useQuery<WavePlanningData>({
     queryKey: ['wave-planning'],
     queryFn: async () => {
@@ -72,4 +72,4 @@ export const useUpdateWavePlanning = () => {
       queryClient.invalidateQueries({ queryKey: ['wave-planning'] });
     },
   });
-}; 
+};

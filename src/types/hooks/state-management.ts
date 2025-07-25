@@ -1,6 +1,6 @@
 /**
  * State Management Hook Types
- * 
+ *
  * Type definitions for state management hooks including global state,
  * local state, context management, and state persistence patterns.
  */

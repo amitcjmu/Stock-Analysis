@@ -29,11 +29,11 @@ const PatternsTab: React.FC<PatternsTabProps> = ({ patternAnalysis }) => {
                 <XAxis dataKey="hour" />
                 <YAxis />
                 <Tooltip />
-                <Area 
-                  type="monotone" 
-                  dataKey="activity" 
-                  stroke="#3b82f6" 
-                  fill="#3b82f6" 
+                <Area
+                  type="monotone"
+                  dataKey="activity"
+                  stroke="#3b82f6"
+                  fill="#3b82f6"
                   fillOpacity={0.3}
                 />
               </AreaChart>

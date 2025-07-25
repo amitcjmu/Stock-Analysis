@@ -1,6 +1,6 @@
 /**
  * Agent Clarification Panel Types
- * 
+ *
  * Type definitions for agent questions, responses, and asset details.
  */
 

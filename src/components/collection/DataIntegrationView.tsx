@@ -1,6 +1,6 @@
 /**
  * Data Integration View Component
- * 
+ *
  * Displays integrated data from multiple sources with conflict resolution
  * Agent Team B3 - Task B3.6 Frontend Implementation
  */
@@ -12,11 +12,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Database, 
-  GitMerge, 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  Database,
+  GitMerge,
+  AlertTriangle,
+  CheckCircle,
   TrendingUp,
   Download,
   RefreshCw
@@ -86,37 +86,37 @@ export const DataIntegrationView: React.FC<DataIntegrationViewProps> = ({
                 Data from {sourceCount} sources integrated for application {applicationId}
               </CardDescription>
             </div>
-            
+
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={onRefreshIntegration}>
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh
               </Button>
-              
+
               <Button variant="outline" size="sm" onClick={() => onExport('json')}>
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
             </div>
           </div>
-          
+
           {/* Summary Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
             <div className="text-center p-3 bg-muted rounded-lg">
               <div className="text-2xl font-bold text-primary">{attributeCount}</div>
               <div className="text-sm text-muted-foreground">Attributes</div>
             </div>
-            
+
             <div className="text-center p-3 bg-muted rounded-lg">
               <div className="text-2xl font-bold">{Math.round(completenessScore)}%</div>
               <div className="text-sm text-muted-foreground">Complete</div>
             </div>
-            
+
             <div className="text-center p-3 bg-muted rounded-lg">
               <div className="text-2xl font-bold">{Math.round(confidenceScore * 100)}%</div>
               <div className="text-sm text-muted-foreground">Confidence</div>
             </div>
-            
+
             <div className="text-center p-3 bg-muted rounded-lg">
               <div className="flex items-center justify-center">
                 {getQualityBadge(qualityScore)}
@@ -165,7 +165,7 @@ export const DataIntegrationView: React.FC<DataIntegrationViewProps> = ({
                   <span className="text-sm">Data Quality</span>
                   <div className="flex items-center gap-2">
                     <div className="w-20 h-2 bg-gray-200 rounded-full">
-                      <div 
+                      <div
                         className="h-full bg-blue-500 rounded-full"
                         style={{ width: `${qualityScore * 100}%` }}
                       />
@@ -173,12 +173,12 @@ export const DataIntegrationView: React.FC<DataIntegrationViewProps> = ({
                     <span className="text-sm font-medium">{Math.round(qualityScore * 100)}%</span>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Completeness</span>
                   <div className="flex items-center gap-2">
                     <div className="w-20 h-2 bg-gray-200 rounded-full">
-                      <div 
+                      <div
                         className="h-full bg-green-500 rounded-full"
                         style={{ width: `${completenessScore}%` }}
                       />
@@ -186,7 +186,7 @@ export const DataIntegrationView: React.FC<DataIntegrationViewProps> = ({
                     <span className="text-sm font-medium">{Math.round(completenessScore)}%</span>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <span className="text-sm">6R Readiness</span>
                   {confidenceScore >= 0.7 ? (
@@ -238,7 +238,7 @@ export const DataIntegrationView: React.FC<DataIntegrationViewProps> = ({
                     </div>
                   </div>
                 )}
-                
+
                 {unresolvedConflicts.length > 0 && (
                   <div className="flex items-start gap-2 p-2 bg-red-50 rounded">
                     <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5" />
@@ -248,7 +248,7 @@ export const DataIntegrationView: React.FC<DataIntegrationViewProps> = ({
                     </div>
                   </div>
                 )}
-                
+
                 {confidenceScore >= 0.7 && unresolvedConflicts.length === 0 && (
                   <div className="flex items-start gap-2 p-2 bg-green-50 rounded">
                     <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />

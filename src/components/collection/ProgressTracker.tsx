@@ -1,6 +1,6 @@
 /**
  * Progress Tracker Component
- * 
+ *
  * Displays form completion progress, milestones, and time tracking
  * Agent Team B3 - Task B3.5 Frontend Implementation
  */
@@ -10,12 +10,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  Target, 
-  Clock, 
-  TrendingUp, 
-  CheckCircle, 
-  Circle, 
+import {
+  Target,
+  Clock,
+  TrendingUp,
+  CheckCircle,
+  Circle,
   Timer,
   Trophy,
   AlertCircle
@@ -85,7 +85,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="font-medium">Data Confidence</span>
-            <Badge 
+            <Badge
               variant="outline"
               className={cn(
                 confidenceScore >= 0.8 && 'border-green-500 text-green-700',
@@ -98,7 +98,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
           </div>
           <Progress value={confidenceScore * 100} className="h-2" />
           <p className="text-xs text-muted-foreground">
-            {confidenceScore >= 0.8 
+            {confidenceScore >= 0.8
               ? 'Excellent data quality for 6R analysis'
               : confidenceScore >= 0.6
               ? 'Good quality, some improvements possible'
@@ -118,7 +118,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
               {formatTime(timeSpent)}
             </div>
           </div>
-          
+
           <div className="text-center p-2 bg-muted rounded-lg">
             <div className="flex items-center justify-center gap-1 text-sm font-medium">
               <Timer className="h-4 w-4" />
@@ -164,15 +164,15 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
             <Trophy className="h-4 w-4" />
             Milestones ({completedMilestones.length}/{milestones.length})
           </h4>
-          
+
           <div className="space-y-1 max-h-32 overflow-y-auto">
             {milestones.map((milestone) => (
               <div
                 key={milestone.id}
                 className={cn(
                   'flex items-center gap-2 p-2 rounded text-sm',
-                  milestone.achieved 
-                    ? 'bg-green-50 text-green-800' 
+                  milestone.achieved
+                    ? 'bg-green-50 text-green-800'
                     : 'bg-gray-50 text-gray-600'
                 )}
               >
@@ -181,7 +181,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                 ) : (
                   <Circle className="h-4 w-4 text-gray-400 flex-shrink-0" />
                 )}
-                
+
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">
                     {milestone.title}
@@ -192,7 +192,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                     </p>
                   )}
                 </div>
-                
+
                 {milestone.required && (
                   <Badge variant="outline" className="text-xs">
                     Required
@@ -209,7 +209,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
             <TrendingUp className="h-4 w-4 mr-2" />
             View Detailed Progress
           </Button>
-          
+
           {overallCompletion < 100 && (
             <Button variant="ghost" size="sm" className="w-full text-muted-foreground">
               Save Progress & Continue Later

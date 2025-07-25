@@ -1,9 +1,9 @@
 /**
  * Engagement Management API Types
- * 
+ *
  * Type definitions for engagement lifecycle management including engagement
  * creation, team management, progress tracking, and engagement analytics.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

@@ -1,9 +1,9 @@
 /**
  * System Settings Types - Main Export
- * 
+ *
  * Consolidated exports for all system settings types including APIs,
  * configuration settings, health monitoring, and supporting types.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

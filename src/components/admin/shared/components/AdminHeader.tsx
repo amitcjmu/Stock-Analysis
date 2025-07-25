@@ -49,11 +49,11 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
           </p>
         )}
       </div>
-      
+
       <div className="flex items-center gap-2">
         {onRefresh && (
-          <Button 
-            onClick={onRefresh} 
+          <Button
+            onClick={onRefresh}
             variant="outline"
             disabled={refreshLoading}
           >
@@ -61,7 +61,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
             Refresh
           </Button>
         )}
-        
+
         {actions.map((action) => (
           <Button
             key={action.label}
@@ -75,8 +75,8 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
                 {action.icon && <action.icon className="w-4 h-4 mr-2" />}
                 {action.label}
                 {action.badge && (
-                  <Badge 
-                    variant={action.badge.variant || 'secondary'} 
+                  <Badge
+                    variant={action.badge.variant || 'secondary'}
                     className="ml-2"
                   >
                     {action.badge.text}
@@ -88,8 +88,8 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
                 {action.icon && <action.icon className="w-4 h-4 mr-2" />}
                 {action.label}
                 {action.badge && (
-                  <Badge 
-                    variant={action.badge.variant || 'secondary'} 
+                  <Badge
+                    variant={action.badge.variant || 'secondary'}
                     className="ml-2"
                   >
                     {action.badge.text}

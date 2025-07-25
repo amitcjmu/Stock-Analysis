@@ -48,7 +48,7 @@ The following endpoints now support ETag-based caching:
    ETag: "a3f5b8c12d..."
    Cache-Control: no-cache, must-revalidate
    X-Flow-Updated-At: 2025-01-13T10:30:00Z
-   
+
    {
      "flow_id": "...",
      "status": "processing",
@@ -134,26 +134,26 @@ import httpx
 class FlowStatusPoller:
     def __init__(self):
         self.etags = {}
-    
+
     async def poll_flow_status(self, flow_id: str) -> dict | None:
         headers = {
             'X-Client-Account-ID': self.client_account_id,
             'X-Engagement-ID': self.engagement_id,
         }
-        
+
         if flow_id in self.etags:
             headers['If-None-Match'] = self.etags[flow_id]
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f'/api/v1/discovery/flows/{flow_id}/status',
                 headers=headers
             )
-            
+
             if response.status_code == 304:
                 # No changes
                 return None
-            
+
             if response.status_code == 200:
                 # Store ETag for next request
                 self.etags[flow_id] = response.headers.get('ETag')

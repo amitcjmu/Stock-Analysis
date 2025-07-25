@@ -134,9 +134,9 @@ class GCPMetricsCollector:
                                         avg_value * 100
                                     )  # Convert to percentage
                                 elif "network/received_bytes_count" in metric_type:
-                                    instance_metrics["network_received_bytes"] = (
-                                        avg_value
-                                    )
+                                    instance_metrics[
+                                        "network_received_bytes"
+                                    ] = avg_value
                                 elif "network/sent_bytes_count" in metric_type:
                                     instance_metrics["network_sent_bytes"] = avg_value
                                 elif "disk/read_bytes_count" in metric_type:

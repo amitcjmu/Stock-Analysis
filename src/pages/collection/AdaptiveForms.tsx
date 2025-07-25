@@ -36,20 +36,20 @@ const AdaptiveForms: React.FC = () => {
   // State to track flows being deleted
   const [deletingFlows, setDeletingFlows] = useState<Set<string>>(new Set());
   const [hasJustDeleted, setHasJustDeleted] = useState(false);
-  
+
   // Check for incomplete flows that would block new collection processes
-  const { 
-    data: incompleteFlows = [], 
-    isLoading: checkingFlows, 
-    refetch: refetchFlows 
+  const {
+    data: incompleteFlows = [],
+    isLoading: checkingFlows,
+    refetch: refetchFlows
   } = useIncompleteCollectionFlows();
-  
+
   // Filter out the current flow and flows being deleted from the blocking check
   const blockingFlows = incompleteFlows.filter(flow => {
     const id = flow.flow_id || flow.id;
     return id !== flowId && !deletingFlows.has(id);
   });
-  
+
   const hasBlockingFlows = blockingFlows.length > 0;
 
   // Use collection flow management hook for flow operations
@@ -87,36 +87,36 @@ const AdaptiveForms: React.FC = () => {
   const handleDeleteFlow = async (flowId: string) => {
     // Mark this flow as being deleted to hide it from UI immediately
     setDeletingFlows(prev => new Set(prev).add(flowId));
-    
+
     try {
       // Force delete the flow since it's stuck
       await deleteFlow(flowId, true);
-      
+
       // Wait a bit for backend to process
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       // Manually invalidate and refetch the specific query
-      await queryClient.invalidateQueries({ 
+      await queryClient.invalidateQueries({
         queryKey: ['collection-flows', 'incomplete'],
-        exact: true 
+        exact: true
       });
-      
+
       // Also refetch to ensure UI updates
       await refetchFlows();
-      
+
       // Mark that we just deleted a flow to trigger re-initialization
       setHasJustDeleted(true);
-      
+
     } catch (error: unknown) {
       console.error('Failed to delete collection flow:', error);
-      
+
       // If deletion failed, remove from deleting set to show it again
       setDeletingFlows(prev => {
         const newSet = new Set(prev);
         newSet.delete(flowId);
         return newSet;
       });
-      
+
       // Show error toast if it's not a 404 (which means it was already deleted)
       if (error?.status !== 404) {
         toast({
@@ -233,14 +233,14 @@ const AdaptiveForms: React.FC = () => {
             <div className="bg-red-50 border border-red-200 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-red-800 mb-2">Collection Flow Error</h3>
               <p className="text-red-700 mb-4">{error.message}</p>
-              
+
               {error.message?.includes('Multiple active collection flows') && (
                 <div className="mt-4">
                   <p className="text-sm text-red-600 mb-3">
                     Multiple active flows detected. Please delete existing flows before proceeding.
                   </p>
-                  <Button 
-                    onClick={() => navigate('/collection/flow-management')} 
+                  <Button
+                    onClick={() => navigate('/collection/flow-management')}
                     variant="outline"
                     className="mr-2"
                   >
@@ -251,7 +251,7 @@ const AdaptiveForms: React.FC = () => {
                   </Button>
                 </div>
               )}
-              
+
               {!error.message?.includes('Multiple active collection flows') && (
                 <Button onClick={() => initializeFlow()} className="mt-4">
                   Retry
@@ -262,7 +262,7 @@ const AdaptiveForms: React.FC = () => {
         </CollectionPageLayout>
       );
     }
-    
+
     return (
       <CollectionPageLayout
         title="Adaptive Data Collection"

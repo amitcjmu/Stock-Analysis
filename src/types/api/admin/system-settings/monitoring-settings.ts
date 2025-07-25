@@ -1,9 +1,9 @@
 /**
  * Monitoring Settings Configuration Types
- * 
+ *
  * System monitoring configuration including metrics collection,
  * logging, tracing, alerting, and dashboard settings.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

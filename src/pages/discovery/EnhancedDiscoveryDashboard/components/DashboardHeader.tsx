@@ -3,7 +3,7 @@ import { Filter, RefreshCw, Plus, Brain } from 'lucide-react'
 import { Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -45,7 +45,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-3">
           {/* Status badges */}
           <div className="flex items-center space-x-2">
@@ -56,7 +56,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               {activeFlows} Active
             </Badge>
           </div>
-          
+
           {/* Time range selector */}
           <Select value={filters.timeRange} onValueChange={onTimeRangeChange}>
             <SelectTrigger className="w-40">
@@ -71,7 +71,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               <SelectItem value="all">All Time</SelectItem>
             </SelectContent>
           </Select>
-          
+
           {/* Action buttons */}
           <Button
             variant="outline"
@@ -83,7 +83,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </Button>
-          
+
           <Button
             onClick={onNewFlow}
             className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
@@ -93,7 +93,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           </Button>
         </div>
       </div>
-      
+
       {/* Last updated indicator */}
       <div className="flex items-center justify-between text-sm text-gray-500">
         <div className="flex items-center space-x-2">

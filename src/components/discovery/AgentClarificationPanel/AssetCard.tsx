@@ -1,6 +1,6 @@
 /**
  * Asset Card Component
- * 
+ *
  * Expandable card displaying asset details with technical and business information.
  */
 
@@ -18,11 +18,11 @@ interface AssetCardProps {
   onToggleExpanded: (componentName: string) => void;
 }
 
-const AssetCard: React.FC<AssetCardProps> = ({ 
-  componentName, 
-  asset, 
-  isExpanded, 
-  onToggleExpanded 
+const AssetCard: React.FC<AssetCardProps> = ({
+  componentName,
+  asset,
+  isExpanded,
+  onToggleExpanded
 }) => {
   const getAssetIcon = () => {
     switch (asset.asset_type?.toLowerCase()) {
@@ -35,7 +35,7 @@ const AssetCard: React.FC<AssetCardProps> = ({
 
   return (
     <div className="border rounded-lg bg-gray-50 overflow-hidden">
-      <div 
+      <div
         className="p-3 cursor-pointer hover:bg-gray-100 transition-colors"
         onClick={() => onToggleExpanded(componentName)}
       >
@@ -60,7 +60,7 @@ const AssetCard: React.FC<AssetCardProps> = ({
             <ChevronDown className="w-4 h-4 text-gray-500" />
           )}
         </div>
-        
+
         {/* Brief summary when collapsed */}
         {!isExpanded && (
           <div className="mt-2 text-sm text-gray-600 space-y-1">

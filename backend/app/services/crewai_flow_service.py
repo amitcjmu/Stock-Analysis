@@ -359,7 +359,6 @@ class CrewAIFlowService:
             # Try to get the actual CrewAI Flow instance
             if CREWAI_FLOWS_AVAILABLE:
                 try:
-
                     # Get flow instance (this would need to be managed in a flow registry)
                     # For now, we'll use the PostgreSQL state to track pause status
                     result = {
@@ -433,9 +432,7 @@ class CrewAIFlowService:
             logger.info(
                 f"🔍 TESTING: CrewAIFlowService.resume_flow called for {flow_id}"
             )
-            logger.info(
-                f"🔍 TESTING: CREWAI_FLOWS_AVAILABLE = {CREWAI_FLOWS_AVAILABLE}"
-            )
+            logger.info(f"🔍 TESTING: CREWAI_FLOWS_AVAILABLE = {CREWAI_FLOWS_AVAILABLE}")
             logger.info(f"🔍 TESTING: resume_context = {resume_context}")
 
             # Ensure resume_context is not None - provide defaults
@@ -666,15 +663,15 @@ class CrewAIFlowService:
 
                             # Add user approval context
                             if "user_approval" in resume_context:
-                                crewai_flow.state.user_approval_data["approved"] = (
-                                    resume_context["user_approval"]
-                                )
-                                crewai_flow.state.user_approval_data["approved_at"] = (
-                                    resume_context.get("approval_timestamp")
-                                )
-                                crewai_flow.state.user_approval_data["notes"] = (
-                                    resume_context.get("notes", "")
-                                )
+                                crewai_flow.state.user_approval_data[
+                                    "approved"
+                                ] = resume_context["user_approval"]
+                                crewai_flow.state.user_approval_data[
+                                    "approved_at"
+                                ] = resume_context.get("approval_timestamp")
+                                crewai_flow.state.user_approval_data[
+                                    "notes"
+                                ] = resume_context.get("notes", "")
 
                             # First generate field mapping suggestions if they don't exist
                             logger.info(
@@ -792,7 +789,6 @@ class CrewAIFlowService:
             # Try to resume the actual CrewAI Flow at specific phase
             if CREWAI_FLOWS_AVAILABLE:
                 try:
-
                     # Resume flow execution at specific phase
                     # This would call the appropriate CrewAI Flow node method
 
@@ -830,9 +826,7 @@ class CrewAIFlowService:
                         "resume_context": resume_context,
                     }
 
-                    logger.info(
-                        f"✅ CrewAI flow resumed at phase: {flow_id} -> {phase}"
-                    )
+                    logger.info(f"✅ CrewAI flow resumed at phase: {flow_id} -> {phase}")
                     return result
 
                 except Exception as e:

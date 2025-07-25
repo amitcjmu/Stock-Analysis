@@ -10,75 +10,75 @@ jobs:
     name: PR Validation
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Needed for change detection
-          
+
       - name: Validate PR title and description
         run: |
           PR_TITLE="${{ github.event.pull_request.title }}"
           PR_BODY="${{ github.event.pull_request.body }}"
-          
+
           echo "Validating PR title: $PR_TITLE"
-          
+
           # Check if title follows conventional commit format
           if echo "$PR_TITLE" | grep -E "^(feat|fix|docs|style|refactor|test|chore|perf|ci|build)(\(.+\))?: .+"; then
             echo "✅ PR title follows conventional commit format"
           else
             echo "⚠️ PR title doesn't follow conventional commit format (feat/fix/docs/etc.)"
           fi
-          
+
           # Check if description is provided
           if [ -n "$PR_BODY" ] && [ "$PR_BODY" != "null" ]; then
             echo "✅ PR description provided"
           else
             echo "⚠️ Please provide a PR description"
           fi
-          
+
       - name: Check for breaking changes
         run: |
           echo "Checking for potential breaking changes..."
-          
+
           # Check for API endpoint changes
           if git diff --name-only HEAD~1 | grep -E "api.*endpoints|routes"; then
             echo "⚠️ API endpoint changes detected - please review for breaking changes"
           fi
-          
+
           # Check for database model changes
           if git diff --name-only HEAD~1 | grep -E "models.*\.py|alembic"; then
             echo "⚠️ Database model changes detected - ensure migrations are included"
           fi
-          
+
           # Check for Docker configuration changes
           if git diff --name-only HEAD~1 | grep -E "Dockerfile|docker-compose"; then
             echo "⚠️ Docker configuration changes detected - verify deployment compatibility"
           fi
-          
+
       - name: Analyze changed files
         run: |
           echo "Analyzing changed files in this PR..."
-          
+
           FRONTEND_CHANGES=$(git diff --name-only HEAD~1 | grep -E "\.(ts|tsx|js|jsx|vue|html|css|scss)$" | wc -l)
           BACKEND_CHANGES=$(git diff --name-only HEAD~1 | grep -E "backend/.*\.py$" | wc -l)
           CONFIG_CHANGES=$(git diff --name-only HEAD~1 | grep -E "\.(yml|yaml|json|toml|ini)$" | wc -l)
-          
+
           echo "📊 Change Summary:"
           echo "  - Frontend files: $FRONTEND_CHANGES"
-          echo "  - Backend files: $BACKEND_CHANGES"  
+          echo "  - Backend files: $BACKEND_CHANGES"
           echo "  - Config files: $CONFIG_CHANGES"
-          
+
           # Set appropriate labels based on changes
           if [ "$FRONTEND_CHANGES" -gt 0 ]; then
             echo "frontend-changes=true" >> $GITHUB_ENV
           fi
-          
+
           if [ "$BACKEND_CHANGES" -gt 0 ]; then
             echo "backend-changes=true" >> $GITHUB_ENV
           fi
-          
+
           if [ "$CONFIG_CHANGES" -gt 0 ]; then
             echo "config-changes=true" >> $GITHUB_ENV
           fi
@@ -86,106 +86,106 @@ jobs:
   code-quality-gate:
     name: Code Quality Gate
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-          
+
       - name: Install dependencies
         run: |
           npm ci
           cd backend && pip install -r requirements.txt
-          
+
       - name: Frontend quality checks
         run: |
           echo "Running frontend quality checks..."
-          
+
           # Allow more warnings for existing codebase
           npm run lint -- --max-warnings 200 || {
             echo "❌ ESLint check failed with too many warnings/errors"
             echo "Consider fixing critical errors before merging"
             exit 1
           }
-          
+
           npm run typecheck || {
             echo "❌ TypeScript check failed"
             exit 1
           }
-          
+
           echo "✅ Frontend quality checks passed"
-          
+
       - name: Backend quality checks
         working-directory: ./backend
         run: |
           echo "Running backend quality checks..."
-          
+
           # Install quality tools
           pip install black isort flake8
-          
+
           # Check formatting (but don't fail - just report)
           black --check app/ || echo "⚠️ Code formatting issues detected"
           isort --check-only app/ || echo "⚠️ Import sorting issues detected"
-          
+
           # Run linting with relaxed rules for existing codebase
           flake8 app/ --max-line-length=120 --extend-ignore=E203,W503,E501 --statistics || {
             echo "⚠️ Python linting issues detected"
           }
-          
+
           echo "✅ Backend quality checks completed"
 
   security-check:
     name: Security Check
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-          
+
       - name: Basic security scan
         run: |
           echo "Running basic security checks..."
-          
+
           # Install security tools
           pip install bandit safety
-          
+
           # Check for hardcoded secrets (non-blocking)
           echo "Checking for potential secrets..."
           if grep -r "password\s*=\s*['\"][^'\"]*['\"]" --include="*.py" --include="*.js" --include="*.ts" . | grep -v "test\|example"; then
             echo "⚠️ Warning: Potential hardcoded passwords found"
           fi
-          
+
           if grep -r "api_key\s*=\s*['\"][^'\"]*['\"]" --include="*.py" --include="*.js" --include="*.ts" . | grep -v "test\|example"; then
             echo "⚠️ Warning: Potential hardcoded API keys found"
           fi
-          
+
           # Run bandit on backend (warnings only)
           if [ -d "backend/app" ]; then
             cd backend
             bandit -r app/ -ll || echo "⚠️ Security warnings detected in backend code"
           fi
-          
+
           echo "✅ Security check completed"
 
   test-execution:
     name: Test Execution
     runs-on: ubuntu-latest
-    
+
     services:
       postgres:
         image: postgres:16-alpine
@@ -200,7 +200,7 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-          
+
       redis:
         image: redis:7-alpine
         options: >-
@@ -210,21 +210,21 @@ jobs:
           --health-retries 5
         ports:
           - 6379:6379
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-          
+
       - name: Install backend dependencies
         working-directory: ./backend
         run: |
           pip install -r requirements.txt
-          
+
       - name: Run smoke tests
         working-directory: ./backend
         env:
@@ -238,7 +238,7 @@ jobs:
           python -m pytest tests/test_smoke.py -v --tb=short -x || {
             echo "⚠️ Some smoke tests failed - review before merging"
           }
-          
+
           echo "✅ Test execution completed"
 
   pr-summary:
@@ -246,48 +246,48 @@ jobs:
     runs-on: ubuntu-latest
     needs: [pr-validation, code-quality-gate, security-check, test-execution]
     if: always()
-    
+
     steps:
       - name: Generate PR summary
         run: |
           echo "# Pull Request Check Summary" > pr-summary.md
           echo "" >> pr-summary.md
-          
+
           # Check job statuses
           if [ "${{ needs.pr-validation.result }}" = "success" ]; then
             echo "✅ PR Validation: Passed" >> pr-summary.md
           else
             echo "❌ PR Validation: Failed" >> pr-summary.md
           fi
-          
+
           if [ "${{ needs.code-quality-gate.result }}" = "success" ]; then
             echo "✅ Code Quality: Passed" >> pr-summary.md
           else
             echo "⚠️ Code Quality: Issues detected" >> pr-summary.md
           fi
-          
+
           if [ "${{ needs.security-check.result }}" = "success" ]; then
             echo "✅ Security Check: Passed" >> pr-summary.md
           else
             echo "⚠️ Security Check: Issues detected" >> pr-summary.md
           fi
-          
+
           if [ "${{ needs.test-execution.result }}" = "success" ]; then
             echo "✅ Tests: Passed" >> pr-summary.md
           else
             echo "⚠️ Tests: Some failures detected" >> pr-summary.md
           fi
-          
+
           echo "" >> pr-summary.md
           echo "## 🚀 Merge Recommendation" >> pr-summary.md
-          
+
           # Count failures
           FAILURES=0
           [ "${{ needs.pr-validation.result }}" != "success" ] && FAILURES=$((FAILURES + 1))
           [ "${{ needs.code-quality-gate.result }}" != "success" ] && FAILURES=$((FAILURES + 1))
           [ "${{ needs.security-check.result }}" != "success" ] && FAILURES=$((FAILURES + 1))
           [ "${{ needs.test-execution.result }}" != "success" ] && FAILURES=$((FAILURES + 1))
-          
+
           if [ $FAILURES -eq 0 ]; then
             echo "✅ **APPROVED**: All checks passed - ready to merge" >> pr-summary.md
           elif [ $FAILURES -le 2 ]; then
@@ -295,9 +295,9 @@ jobs:
           else
             echo "❌ **BLOCKED**: Multiple critical issues - address before merging" >> pr-summary.md
           fi
-          
+
           cat pr-summary.md
-          
+
       - name: Upload PR summary
         uses: actions/upload-artifact@v4
         with:

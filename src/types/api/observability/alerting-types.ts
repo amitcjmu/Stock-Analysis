@@ -1,6 +1,6 @@
 /**
  * Alerting Management Types
- * 
+ *
  * Type definitions for creating and managing alert rules, handling alerts,
  * and configuring notification systems for observability monitoring.
  */

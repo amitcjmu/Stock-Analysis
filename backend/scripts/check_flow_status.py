@@ -26,10 +26,10 @@ async def check_flow_status():
             # Check discovery flow
             discovery_query = text(
                 """
-                SELECT flow_id, flow_name, current_phase, status, 
+                SELECT flow_id, flow_name, current_phase, status,
                        progress_percentage, field_mapping_completed,
                        data_cleansing_completed, asset_inventory_completed
-                FROM discovery_flows 
+                FROM discovery_flows
                 WHERE flow_id = :flow_id
             """
             )
@@ -61,7 +61,7 @@ async def check_flow_status():
                        flow_persistence_data->>'completion' as completion,
                        flow_persistence_data->>'progress_percentage' as progress,
                        flow_persistence_data->>'data_import_id' as data_import_id
-                FROM crewai_flow_state_extensions 
+                FROM crewai_flow_state_extensions
                 WHERE flow_id = :flow_id
             """
             )

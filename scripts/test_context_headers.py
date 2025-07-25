@@ -29,18 +29,18 @@ BASE_URL = "http://localhost:8000"
 
 async def test_context_headers():
     """Test that the standardized headers work correctly."""
-    
+
     print("🧪 Testing Context Header Standardization")
     print("=" * 60)
-    
+
     async with aiohttp.ClientSession() as session:
-        
+
         for context_name, context in TEST_CONTEXTS.items():
             print(f"\n📋 Testing {context_name.title()} Context:")
             print(f"   Client: {context['client_id']}")
             print(f"   Engagement: {context['engagement_id']}")
             print(f"   User: {context['user_id']}")
-            
+
             # Standard headers (what frontend now sends)
             headers = {
                 "Content-Type": "application/json",
@@ -49,7 +49,7 @@ async def test_context_headers():
                 "X-User-ID": context["user_id"],
                 "X-Session-ID": f"test-session-{datetime.now().isoformat()}"
             }
-            
+
             # Test endpoints that were failing
             test_endpoints = [
                 "/api/v1/clients",
@@ -58,11 +58,11 @@ async def test_context_headers():
                 "/api/v1/discovery/latest-import",
                 "/api/v1/data-import/latest-import"
             ]
-            
+
             for endpoint in test_endpoints:
                 try:
                     print(f"   🔍 Testing: {endpoint}")
-                    
+
                     async with session.get(f"{BASE_URL}{endpoint}", headers=headers) as response:
                         if response.status == 200:
                             print(f"      ✅ Status: {response.status} - Headers accepted")
@@ -74,25 +74,25 @@ async def test_context_headers():
                                 print(f"      ⚠️  Status: {response.status} - Different validation error")
                         else:
                             print(f"      ⚠️  Status: {response.status} - Unexpected response")
-                            
+
                 except Exception as e:
                     print(f"      ❌ Error: {e}")
-            
+
             print()
 
 async def test_debug_context_endpoint():
     """Test the debug context endpoint to verify header extraction."""
-    
+
     print("🔧 Testing Debug Context Endpoint")
     print("=" * 40)
-    
+
     test_headers = {
         "X-Client-Account-ID": "test-client-123",
-        "X-Engagement-ID": "test-engagement-456", 
+        "X-Engagement-ID": "test-engagement-456",
         "X-User-ID": "test-user-789",
         "X-Session-ID": "test-session-000"
     }
-    
+
     async with aiohttp.ClientSession() as session:
         try:
             async with session.get(f"{BASE_URL}/debug/context", headers=test_headers) as response:
@@ -101,7 +101,7 @@ async def test_debug_context_endpoint():
                     print("✅ Debug endpoint response:")
                     print(f"   Extracted Context: {data.get('extracted_context', {})}")
                     print(f"   Validation Status: {data.get('validation_status', 'unknown')}")
-                    
+
                     # Verify headers were extracted correctly
                     extracted = data.get('extracted_context', {})
                     if (extracted.get('client_account_id') == 'test-client-123' and
@@ -112,21 +112,21 @@ async def test_debug_context_endpoint():
                         print("   ❌ Header extraction failed")
                 else:
                     print(f"❌ Debug endpoint failed: {response.status}")
-                    
+
         except Exception as e:
             print(f"❌ Debug test failed: {e}")
 
 async def main():
     """Run all context header tests."""
-    
+
     print("🚀 Context Header Standardization Test Suite")
     print(f"⏰ Started at: {datetime.now().isoformat()}")
     print()
-    
+
     await test_debug_context_endpoint()
     print()
     await test_context_headers()
-    
+
     print("📊 Test Summary:")
     print("   - Frontend now sends: X-Client-Account-ID, X-Engagement-ID, X-User-ID, X-Session-ID")
     print("   - Backend accepts: All standard header variations")
@@ -136,4 +136,4 @@ async def main():
     print("✅ Context header standardization test completed!")
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    asyncio.run(main())

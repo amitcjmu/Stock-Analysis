@@ -215,7 +215,7 @@ class LLMUsageTracker:
                     """
                     SELECT input_cost_per_1k_tokens, output_cost_per_1k_tokens
                     FROM llm_model_pricing
-                    WHERE provider = :provider 
+                    WHERE provider = :provider
                     AND model_name = :model
                     AND is_active = true
                     AND effective_from <= NOW()
@@ -353,7 +353,7 @@ class LLMUsageTracker:
                 # Summary query
                 summary_query = text(
                     f"""
-                    SELECT 
+                    SELECT
                         COUNT(*) as total_requests,
                         COUNT(*) FILTER (WHERE success = true) as successful_requests,
                         COUNT(*) FILTER (WHERE success = false) as failed_requests,
@@ -375,7 +375,7 @@ class LLMUsageTracker:
                 # Breakdown by provider/model
                 breakdown_query = text(
                     f"""
-                    SELECT 
+                    SELECT
                         llm_provider,
                         model_name,
                         COUNT(*) as requests,
@@ -394,7 +394,7 @@ class LLMUsageTracker:
                 # Daily usage trend
                 daily_query = text(
                     f"""
-                    SELECT 
+                    SELECT
                         DATE(created_at) as date,
                         COUNT(*) as requests,
                         COALESCE(SUM(total_tokens), 0) as tokens,
@@ -459,7 +459,7 @@ class LLMUsageTracker:
                         existing = await session.execute(
                             text(
                                 """
-                                SELECT id FROM llm_model_pricing 
+                                SELECT id FROM llm_model_pricing
                                 WHERE provider = :provider AND model_name = :model_name AND is_active = true
                             """
                             ),

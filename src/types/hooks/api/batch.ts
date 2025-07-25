@@ -1,6 +1,6 @@
 /**
  * Batch Operations Hook Types
- * 
+ *
  * Hook types for handling multiple API requests in batch,
  * with support for concurrent and sequential execution.
  */

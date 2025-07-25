@@ -9,14 +9,14 @@
 export { default as AgentStatusIndicator, AgentOnlineIndicator, AgentStatusGroup } from './AgentStatusIndicator';
 
 // Performance Cards
-export { 
-  default as AgentPerformanceCard, 
-  AgentPerformanceCardCompact, 
-  AgentPerformanceCardDetailed 
+export {
+  default as AgentPerformanceCard,
+  AgentPerformanceCardCompact,
+  AgentPerformanceCardDetailed
 } from './AgentPerformanceCard';
 
 // Metrics and Charts
-export { 
+export {
   default as AgentMetricsChart,
   default as AgentMetricsDashboard,
   SparklineChart,
@@ -29,14 +29,14 @@ export { default as AgentListOverview } from './AgentListOverview';
 export { default as ResponsiveAgentListOverview } from './ResponsiveAgentListOverview';
 
 // Error Handling Components
-export { 
-  ObservabilityErrorBoundary, 
-  LoadingError, 
-  NetworkError 
+export {
+  ObservabilityErrorBoundary,
+  LoadingError,
+  NetworkError
 } from './ErrorBoundary';
 
 // Loading State Components
-export { 
+export {
   default as LoadingSpinner,
   AgentCardSkeleton,
   AgentListSkeleton,
@@ -49,10 +49,10 @@ export {
 
 // Phase 4B Advanced Components
 // Activity Feed
-export { 
-  default as ActivityFeed, 
-  ActivityEventRow, 
-  ActivityEventIcon 
+export {
+  default as ActivityFeed,
+  ActivityEventRow,
+  ActivityEventIcon
 } from './ActivityFeed';
 
 // Agent Comparison
@@ -65,14 +65,14 @@ export { default as RecommendationEngine } from './RecommendationEngine';
 export { default as AdvancedAnalytics } from './AdvancedAnalytics';
 
 // Hooks - Original
-export { 
-  useResponsiveLayout, 
-  useGridLayout, 
-  useComponentVisibility 
+export {
+  useResponsiveLayout,
+  useGridLayout,
+  useComponentVisibility
 } from './hooks/useResponsiveLayout';
 
 // Hooks - New Modular
-export { 
+export {
   useAgentData,
   useAgentPerformance,
   useAgentAnalytics
@@ -82,7 +82,7 @@ export { useRecommendations } from './hooks/useRecommendations';
 export { useAgentFilters } from './hooks/useAgentFilters';
 
 // Context
-export { 
+export {
   ObservabilityProvider,
   useObservability,
   useAgentSelection,

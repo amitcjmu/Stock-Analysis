@@ -1,6 +1,6 @@
 /**
  * Flow Metrics Grid Component
- * 
+ *
  * Displays collection flow metrics in a grid layout.
  * Extracted from Progress.tsx to create reusable metrics display.
  */
@@ -40,7 +40,7 @@ export const FlowMetricsGrid: React.FC<FlowMetricsGridProps> = ({
           </div>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardContent className="p-4">
           <div className="text-center">
@@ -49,7 +49,7 @@ export const FlowMetricsGrid: React.FC<FlowMetricsGridProps> = ({
           </div>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardContent className="p-4">
           <div className="text-center">
@@ -58,7 +58,7 @@ export const FlowMetricsGrid: React.FC<FlowMetricsGridProps> = ({
           </div>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardContent className="p-4">
           <div className="text-center">

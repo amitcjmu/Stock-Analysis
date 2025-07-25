@@ -69,17 +69,17 @@ export const FlowDeletionModal: React.FC<FlowDeletionModalProps> = ({
 
   const getReasonDescription = (reason: FlowDeletionCandidate['reason_for_deletion']): string => {
     switch (reason) {
-      case 'failed': 
+      case 'failed':
         return 'Failed/Error flows';
-      case 'completed': 
+      case 'completed':
         return 'Completed flows';
-      case 'stale': 
+      case 'stale':
         return 'Inactive flows (>30 days)';
-      case 'user_requested': 
+      case 'user_requested':
         return 'User requested deletion';
-      case 'cleanup_recommended': 
+      case 'cleanup_recommended':
         return 'Recommended for cleanup';
-      default: 
+      default:
         return 'Unknown reason';
     }
   };
@@ -89,7 +89,7 @@ export const FlowDeletionModal: React.FC<FlowDeletionModalProps> = ({
       const now = new Date();
       const time = new Date(timestamp);
       const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
-      
+
       if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
       if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
       return `${Math.floor(diffInMinutes / 1440)}d ago`;

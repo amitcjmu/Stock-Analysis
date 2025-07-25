@@ -85,8 +85,8 @@ class MigrationStateFixer:
                 result = await conn.execute(
                     text(
                         """
-                    SELECT table_name 
-                    FROM information_schema.tables 
+                    SELECT table_name
+                    FROM information_schema.tables
                     WHERE table_schema = 'migration' OR table_schema = 'public'
                     ORDER BY table_name
                 """
@@ -122,7 +122,7 @@ class MigrationStateFixer:
                     text(
                         """
                     SELECT EXISTS (
-                        SELECT FROM information_schema.tables 
+                        SELECT FROM information_schema.tables
                         WHERE table_name = 'alembic_version'
                         AND (table_schema = 'migration' OR table_schema = 'public')
                     )

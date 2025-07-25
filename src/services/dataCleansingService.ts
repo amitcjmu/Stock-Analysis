@@ -32,11 +32,11 @@ export const fetchLatestImport = async () => {
     const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.LATEST_IMPORT, {
       headers: getAuthHeaders()
     });
-    
+
     if (!response?.success) {
       throw new Error(response?.message || 'Failed to fetch latest import');
     }
-    
+
     return response.data || [];
   } catch (error) {
     console.error('Error fetching latest import:', error);
@@ -53,11 +53,11 @@ export const fetchAssets = async (page = 1, pageSize = 1000) => {
       `${API_CONFIG.ENDPOINTS.DISCOVERY.ASSETS}?page=${page}&page_size=${pageSize}`,
       { headers: getAuthHeaders() }
     );
-    
+
     if (!response?.assets) {
       throw new Error('Invalid assets response');
     }
-    
+
     return response.assets;
   } catch (error) {
     console.error('Error fetching assets:', error);
@@ -78,11 +78,11 @@ export const performAgentAnalysis = async (data: AssetData[]) => {
       },
       body: JSON.stringify({ assets: data })
     });
-    
+
     if (!response?.success) {
       throw new Error(response?.message || 'Analysis failed');
     }
-    
+
     return response.data;
   } catch (error) {
     console.error('Error performing agent analysis:', error);
@@ -103,11 +103,11 @@ export const applyFix = async (issueId: string, fixData: QualityFixData) => {
       },
       body: JSON.stringify(fixData)
     });
-    
+
     if (!response?.success) {
       throw new Error(response?.message || 'Failed to apply fix');
     }
-    
+
     return response.data;
   } catch (error) {
     console.error('Error applying fix:', error);

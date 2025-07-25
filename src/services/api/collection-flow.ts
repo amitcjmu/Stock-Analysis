@@ -136,8 +136,8 @@ class CollectionFlowApi {
   }
 
   async createFlow(data: CollectionFlowCreateRequest): Promise<CollectionFlowResponse> {
-    return await apiCall(`${this.baseUrl}/flows`, { 
-      method: 'POST', 
+    return await apiCall(`${this.baseUrl}/flows`, {
+      method: 'POST',
       body: JSON.stringify(data)
     });
   }
@@ -147,8 +147,8 @@ class CollectionFlowApi {
   }
 
   async updateFlow(flowId: string, data: FlowUpdateData): Promise<CollectionFlowResponse> {
-    return await apiCall(`${this.baseUrl}/flows/${flowId}`, { 
-      method: 'PUT', 
+    return await apiCall(`${this.baseUrl}/flows/${flowId}`, {
+      method: 'PUT',
       body: JSON.stringify(data)
     });
   }
@@ -162,14 +162,14 @@ class CollectionFlowApi {
   }
 
   async submitQuestionnaireResponse(
-    flowId: string, 
-    questionnaireId: string, 
+    flowId: string,
+    questionnaireId: string,
     responses: QuestionnaireResponse[]
   ): Promise<{ status: string; message: string; questionnaire_id: string }> {
     return await apiCall(
       `${this.baseUrl}/flows/${flowId}/questionnaires/${questionnaireId}/submit`,
-      { 
-        method: 'POST', 
+      {
+        method: 'POST',
         body: JSON.stringify(responses)
       }
     );
@@ -229,7 +229,7 @@ class CollectionFlowApi {
     try {
       const incompleteFlows = await this.getIncompleteFlows();
       const totalFlows = incompleteFlows.length;
-      
+
       if (totalFlows === 0) {
         return {
           healthy_flows: 0,
@@ -239,8 +239,8 @@ class CollectionFlowApi {
         };
       }
 
-      const problematicFlows = incompleteFlows.filter(flow => 
-        flow.status === 'failed' || 
+      const problematicFlows = incompleteFlows.filter(flow =>
+        flow.status === 'failed' ||
         (flow.progress < 10 && this.isFlowStale(flow.updated_at))
       ).length;
 
@@ -280,7 +280,7 @@ class CollectionFlowApi {
     try {
       // Get cleanup preview
       const previewResult = await this.cleanupFlows(72, true, true, true);
-      
+
       const recommendations = [];
       if (previewResult.flows_cleaned > 0) {
         recommendations.push(`${previewResult.flows_cleaned} flows can be cleaned up`);

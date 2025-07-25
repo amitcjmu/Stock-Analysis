@@ -6,4 +6,4 @@ export { default as AnalysisProgress, type AnalysisProgress as AnalysisProgressT
 export { default as ApplicationSelector, type Application, type AnalysisQueue } from './ApplicationSelector';
 export { default as AnalysisHistory, type AnalysisHistoryItem } from './AnalysisHistory';
 export { default as BulkAnalysis, type BulkAnalysisJob, type BulkAnalysisResult, type BulkAnalysisSummary } from './BulkAnalysis';
-export { default as ErrorBoundary, LoadingState, RetryWrapper, useErrorHandler, type ErrorInfo } from './ErrorBoundary'; 
+export { default as ErrorBoundary, LoadingState, RetryWrapper, useErrorHandler, type ErrorInfo } from './ErrorBoundary';

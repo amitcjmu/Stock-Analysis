@@ -6,7 +6,7 @@ import { Trash2, AlertTriangle, CheckCircle, Clock, Pause, Play, Settings, Shiel
 
 const DecommissionExecution = () => {
   const [selectedExecution, setSelectedExecution] = useState('all');
-  
+
   const executionMetrics = [
     { label: 'Systems Decommissioned', value: '23', total: '45', percentage: 51, color: 'text-red-600' },
     { label: 'In Progress', value: '8', color: 'text-blue-600' },
@@ -163,8 +163,8 @@ const DecommissionExecution = () => {
                       {metric.total && (
                         <div className="mt-2">
                           <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-red-500 h-2 rounded-full" 
+                            <div
+                              className="bg-red-500 h-2 rounded-full"
                               style={{ width: `${metric.percentage}%` }}
                             ></div>
                           </div>
@@ -330,7 +330,7 @@ const DecommissionExecution = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center space-x-2">
                             <div className="w-16 bg-gray-200 rounded-full h-2">
-                              <div 
+                              <div
                                 className={`h-2 rounded-full ${
                                   execution.status === 'Completed' ? 'bg-green-500' :
                                   execution.status === 'Failed' ? 'bg-red-500' :

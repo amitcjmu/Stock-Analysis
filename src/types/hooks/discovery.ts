@@ -1,8 +1,8 @@
 /**
  * Discovery Hooks Types
- * 
+ *
  * Re-exports all discovery hook types from modular files for backward compatibility.
- * 
+ *
  * This file has been modularized into focused type definition files:
  * - base-hooks.ts: Common base types and interfaces
  * - attribute-mapping-hooks.ts: Attribute mapping and field configuration types

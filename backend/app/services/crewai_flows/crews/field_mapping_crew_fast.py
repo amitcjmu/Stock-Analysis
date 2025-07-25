@@ -75,7 +75,7 @@ def create_fast_field_mapping_crew(
         field_mapping_specialist = Agent(
             role="Field Mapping Specialist",
             goal="Rapidly map data fields to standard migration attributes",
-            backstory="""You are an expert field mapping specialist who quickly identifies 
+            backstory="""You are an expert field mapping specialist who quickly identifies
             data field patterns and maps them to standard migration attributes.
             You work efficiently using proven mapping patterns and provide direct results.""",
             verbose=False,  # Reduce logging overhead
@@ -89,21 +89,21 @@ def create_fast_field_mapping_crew(
         mapping_task = Task(
             description=f"""
             Rapidly map {len(sample_fields)} data fields to standard migration attributes.
-            
+
             Source fields: {sample_fields}
-            
+
             Map to these standard attributes:
             - asset_name, asset_id, asset_type
             - hostname, ip_address, operating_system
             - cpu_cores, memory_gb, storage_gb
             - location, environment, criticality
             - application, owner, cost_center
-            
+
             Provide ONLY:
             1. Field mappings in format: source_field -> target_attribute
             2. Confidence score (0-100)
             3. Status: COMPLETE
-            
+
             Work quickly and avoid extensive analysis.
             """,
             agent=field_mapping_specialist,

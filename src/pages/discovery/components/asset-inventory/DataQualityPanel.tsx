@@ -27,7 +27,7 @@ const DataQualityPanel: React.FC<DataQualityPanelProps> = ({
   const overallScore = Math.round(dataQuality.overall_score * 100);
   const issuesCount = dataQuality.missing_critical_data.length;
   const fieldsCount = Object.keys(dataQuality.completeness_by_field).length;
-  
+
   const getScoreColor = (score: number) => {
     if (score >= 90) return 'text-green-600';
     if (score >= 70) return 'text-yellow-600';
@@ -72,21 +72,21 @@ const DataQualityPanel: React.FC<DataQualityPanelProps> = ({
           <div>
             <CardTitle className="text-lg">Data Quality</CardTitle>
             <CardDescription>
-              {overallScore >= 90 
-                ? 'Excellent data quality' 
-                : overallScore >= 70 
-                  ? 'Good data quality' 
+              {overallScore >= 90
+                ? 'Excellent data quality'
+                : overallScore >= 70
+                  ? 'Good data quality'
                   : 'Needs improvement'}
             </CardDescription>
           </div>
-          <Badge 
+          <Badge
             className={`${getScoreBgColor(overallScore)} ${getScoreColor(overallScore)} text-sm font-medium`}
           >
             {overallScore}% Complete
           </Badge>
         </div>
       </CardHeader>
-      
+
       <CardContent>
         <div className="space-y-6">
           {/* Overall Score */}
@@ -108,9 +108,9 @@ const DataQualityPanel: React.FC<DataQualityPanelProps> = ({
                     <span className="text-gray-600">{field}</span>
                     <span className="font-medium">{Math.round(completeness * 100)}%</span>
                   </div>
-                  <Progress 
-                    value={completeness * 100} 
-                    className="h-1.5" 
+                  <Progress
+                    value={completeness * 100}
+                    className="h-1.5"
                     indicatorClassName={completeness > 0.9 ? 'bg-green-500' : completeness > 0.7 ? 'bg-yellow-500' : 'bg-red-500'}
                   />
                 </div>
@@ -126,7 +126,7 @@ const DataQualityPanel: React.FC<DataQualityPanelProps> = ({
                 {issuesCount} {issuesCount === 1 ? 'Issue' : 'Issues'}
               </Badge>
             </div>
-            
+
             {issuesCount === 0 ? (
               <div className="flex items-center text-sm text-green-600 bg-green-50 p-3 rounded-md">
                 <CheckCircle className="h-4 w-4 mr-2" />
@@ -143,8 +143,8 @@ const DataQualityPanel: React.FC<DataQualityPanelProps> = ({
                           Missing {asset.missing_fields.length} field{asset.missing_fields.length !== 1 ? 's' : ''}
                         </p>
                       </div>
-                      <Badge 
-                        variant="outline" 
+                      <Badge
+                        variant="outline"
                         className={`text-xs ${getSeverityColor(getSeverity(asset.completeness * 100))}`}
                       >
                         {getSeverity(asset.completeness * 100)} Severity
@@ -155,21 +155,21 @@ const DataQualityPanel: React.FC<DataQualityPanelProps> = ({
                         <span>Completeness</span>
                         <span>{Math.round(asset.completeness * 100)}%</span>
                       </div>
-                      <Progress 
-                        value={asset.completeness * 100} 
+                      <Progress
+                        value={asset.completeness * 100}
                         className="h-1.5"
                         indicatorClassName={
-                          asset.completeness > 0.9 
-                            ? 'bg-green-500' 
-                            : asset.completeness > 0.7 
-                              ? 'bg-yellow-500' 
+                          asset.completeness > 0.9
+                            ? 'bg-green-500'
+                            : asset.completeness > 0.7
+                              ? 'bg-yellow-500'
                               : 'bg-red-500'
                         }
                       />
                     </div>
                   </div>
                 ))}
-                
+
                 {issuesCount > 5 && (
                   <Button variant="ghost" size="sm" className="w-full text-sm">
                     View all {issuesCount} issues
@@ -186,9 +186,9 @@ const DataQualityPanel: React.FC<DataQualityPanelProps> = ({
               <div>
                 <h4 className="text-sm font-medium text-blue-800">Improve Data Quality</h4>
                 <p className="text-xs text-blue-700 mt-0.5">
-                  {overallScore < 70 
+                  {overallScore < 70
                     ? 'Address critical issues to improve data quality and migration readiness.'
-                    : overallScore < 90 
+                    : overallScore < 90
                       ? 'Your data quality is good, but there is still room for improvement.'
                       : 'Great job! Your data quality is excellent.'}
                 </p>

@@ -1,9 +1,9 @@
 /**
  * Discovery Flow - Hook Types Module
- * 
+ *
  * React hook interfaces, parameters, and return types for Discovery Flow.
  * Contains attribute mapping, flow detection, field mappings, and data import hooks.
- * 
+ *
  * Generated with CC - Code Companion
  */
 
@@ -21,38 +21,38 @@ export interface UseAttributeMappingReturn {
   criticalAttributes: CriticalAttribute[];
   crewAnalysis: CrewAnalysis[];
   agenticData: { attributes: unknown[] };
-  
+
   // Flow context
   flowId: string | null;
   flowState: FlowState | null;
   flow: DiscoveryFlowData | null;
-  
+
   // Data imports
   dataImportId: string | null;
   availableDataImports: DataImport[];
   selectedDataImportId: string | null;
-  
+
   // Progress tracking
   mappingProgress: MappingProgress;
   flowProgress: number;
   currentPhase: string;
-  
+
   // Loading states
   isAgenticLoading: boolean;
   isFlowStateLoading: boolean;
   isAnalyzing: boolean;
-  
+
   // Error states
   agenticError: string | null;
   flowStateError: string | null;
-  
+
   // Actions
   actions: AttributeMappingActions;
-  
+
   // Status checks
   hasActiveFlow: boolean;
   canContinueToDataCleansing: () => boolean;
-  
+
   // Agent interactions
   agentClarifications: AgentClarification[];
   isClarificationsLoading: boolean;

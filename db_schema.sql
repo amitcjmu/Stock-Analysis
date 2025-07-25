@@ -33,7 +33,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
 
 
 --
--- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner: 
+-- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner:
 --
 
 COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UUIDs)';
@@ -47,7 +47,7 @@ CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA public;
 
 
 --
--- Name: EXTENSION vector; Type: COMMENT; Schema: -; Owner: 
+-- Name: EXTENSION vector; Type: COMMENT; Schema: -; Owner:
 --
 
 COMMENT ON EXTENSION vector IS 'vector data type and ivfflat and hnsw access methods';
@@ -4762,4 +4762,3 @@ ALTER TABLE ONLY migration.workflow_progress
 --
 -- PostgreSQL database dump complete
 --
-

@@ -1,6 +1,6 @@
 /**
  * Validation Types
- * 
+ *
  * Common validation interfaces used across CRUD operations and import/export.
  */
 

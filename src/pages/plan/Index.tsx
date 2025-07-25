@@ -36,7 +36,7 @@ const PlanIndex = () => {
           <div className="max-w-7xl mx-auto">
             {/* Context Breadcrumbs */}
             <ContextBreadcrumbs showContextSelector={true} />
-            
+
             <div className="mb-8">
               <div className="flex items-center justify-between">
                 <div>

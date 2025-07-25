@@ -74,9 +74,9 @@ async def test_database_connection(db_url: str, label: str):
                 result = conn.execute(
                     text(
                         """
-                    SELECT column_name 
-                    FROM information_schema.columns 
-                    WHERE table_schema = 'migration' 
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_schema = 'migration'
                     AND table_name = 'workflow_states'
                     ORDER BY ordinal_position;
                 """
@@ -97,9 +97,7 @@ async def test_database_connection(db_url: str, label: str):
                 if missing:
                     logger.error(f"❌ {label} missing key columns: {missing}")
                 else:
-                    logger.info(
-                        f"✅ {label} has all key unified discovery flow columns"
-                    )
+                    logger.info(f"✅ {label} has all key unified discovery flow columns")
 
             except Exception as e:
                 logger.error(f"❌ {label} table check error: {e}")
@@ -110,8 +108,8 @@ async def test_database_connection(db_url: str, label: str):
                 result = conn.execute(
                     text(
                         """
-                    SELECT conname 
-                    FROM pg_constraint 
+                    SELECT conname
+                    FROM pg_constraint
                     WHERE conname = 'sixr_analysis_parameters_analysis_id_fkey';
                 """
                     )

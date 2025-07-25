@@ -25,7 +25,7 @@ This directory contains custom CC commands for the migration orchestrator platfo
 
 **What it checks**:
 - ✅ Missing tables in database vs models
-- ✅ Extra tables in database not in models  
+- ✅ Extra tables in database not in models
 - ✅ Column type mismatches
 - ✅ Column nullable/primary key differences
 - ✅ Missing/extra columns

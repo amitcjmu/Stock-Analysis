@@ -44,9 +44,9 @@ async def test_deepinfra_llm():
         print("\n🔄 Testing CMDB analysis prompt...")
         cmdb_prompt = """
         Analyze this CMDB data and determine the asset type:
-        
+
         Data: Name=WebServer01, CI_Type=Server, Environment=Production, CPU=4, Memory=8GB
-        
+
         Return JSON format: {"asset_type": "server", "confidence": 0.9}
         """
 

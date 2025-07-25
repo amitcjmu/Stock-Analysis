@@ -6,12 +6,12 @@ import { Button } from '../ui/button';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
-import { 
-  AlertTriangle, 
-  RefreshCw, 
-  Bug, 
-  Wifi, 
-  Server, 
+import {
+  AlertTriangle,
+  RefreshCw,
+  Bug,
+  Wifi,
+  Server,
   Clock,
   ChevronDown,
   ChevronUp,
@@ -87,7 +87,7 @@ const getErrorColor = (type: string) => {
 
 const getErrorMessage = (error: ErrorInfo): { title: string; description: string; suggestion: string } => {
   const type = getErrorType(error);
-  
+
   switch (type) {
     case 'network':
       return {
@@ -184,7 +184,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     try {
       // In a real application, this would send to an error reporting service
       console.log('Reporting error:', error);
-      
+
       // Example: Send to error reporting service
       // await fetch('/api/errors', {
       //   method: 'POST',
@@ -204,7 +204,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   private handleRetry = () => {
     const { maxRetries = 3 } = this.props;
-    
+
     if (this.state.retryCount >= maxRetries) {
       toast.error('Maximum retry attempts reached');
       return;
@@ -408,4 +408,4 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 }
 
 
-export default ErrorBoundary; 
+export default ErrorBoundary;

@@ -15,15 +15,15 @@ export const useGlobalErrorHandler = () => {
     const unsubscribeQuery = queryClient.getQueryCache().subscribe((event) => {
       if (event.type === 'error' && event.query.state.error) {
         const error = event.query.state.error as Error & { status?: number; isAuthError?: boolean };
-        
+
         // Check if it's an authentication error
         if (error?.status === 401 || error?.isAuthError) {
           console.warn('🔐 Authentication error detected in query, logging out');
-          
+
           // Clear all queries to stop retries
           queryClient.cancelQueries();
           queryClient.clear();
-          
+
           // Use the logout function which handles navigation
           logout();
         }
@@ -34,15 +34,15 @@ export const useGlobalErrorHandler = () => {
     const unsubscribeMutation = queryClient.getMutationCache().subscribe((event) => {
       if (event.type === 'error' && event.mutation?.state.error) {
         const error = event.mutation.state.error as Error & { status?: number; isAuthError?: boolean };
-        
+
         // Check if it's an authentication error
         if (error?.status === 401 || error?.isAuthError) {
           console.warn('🔐 Authentication error detected in mutation, logging out');
-          
+
           // Clear all queries to stop retries
           queryClient.cancelQueries();
           queryClient.clear();
-          
+
           // Use the logout function which handles navigation
           logout();
         }

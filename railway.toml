@@ -21,4 +21,4 @@ DEEPINFRA_API_KEY = "${{DEEPINFRA_API_KEY}}"
 [environments.staging]
 [environments.staging.variables]
 ENVIRONMENT = "staging"
-DEBUG = "true" 
+DEBUG = "true"

@@ -39,7 +39,7 @@ const RejectionDialog: React.FC<RejectionDialogProps> = ({
         <p className="text-gray-600 mb-4">
           Why are you rejecting the mapping of <strong>{sourceField}</strong> to <strong>{targetField}</strong>?
         </p>
-        
+
         <div className="space-y-3 mb-4">
           <label className="block text-sm font-medium text-gray-700">Common reasons:</label>
           {commonReasons.map((commonReason) => (

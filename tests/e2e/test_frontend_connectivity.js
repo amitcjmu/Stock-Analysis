@@ -6,21 +6,21 @@ import https from 'https';
 async function testEndpoint(url, description) {
   return new Promise((resolve, reject) => {
     const client = url.startsWith('https:') ? https : http;
-    
+
     console.log(`🔍 Testing: ${description}`);
     console.log(`📍 URL: ${url}`);
-    
+
     client.get(url, (res) => {
       let data = '';
-      
+
       res.on('data', (chunk) => {
         data += chunk;
       });
-      
+
       res.on('end', () => {
         console.log(`✅ Status: ${res.statusCode}`);
         console.log(`📊 Content Length: ${data.length} chars`);
-        
+
         if (res.statusCode === 200) {
           resolve({ status: res.statusCode, data, headers: res.headers });
         } else {
@@ -42,9 +42,9 @@ async function testFieldMappingAPI() {
     'X-User-Id': '77b30e13-c331-40eb-a0ec-ed0717f72b22',           // chocka@gmail.com
     'Content-Type': 'application/json'
   };
-  
+
   console.log('🚀 Testing Field Mapping APIs...\n');
-  
+
   try {
     // Test available target fields
     console.log('1️⃣ Testing Available Target Fields API');
@@ -52,24 +52,24 @@ async function testFieldMappingAPI() {
     const fieldsData = JSON.parse(fieldsResponse.data);
     console.log(`   📋 Found ${fieldsData.fields?.length || 0} available fields`);
     console.log(`   🏷️ Categories: ${Object.keys(fieldsData.categories || {}).length}`);
-    
+
     // Test context field mappings
     console.log('\n2️⃣ Testing Context Field Mappings API');
     const mappingsResponse = await makeAPICall(`${baseURL}/data-import/context-field-mappings`, headers);
     const mappingsData = JSON.parse(mappingsResponse.data);
     console.log(`   📊 Success: ${mappingsData.success}`);
     console.log(`   🔗 Mappings: ${mappingsData.mappings?.length || 0}`);
-    
+
     if (mappingsData.mappings && mappingsData.mappings.length > 0) {
       const sampleMapping = mappingsData.mappings[0];
       console.log(`   📝 Sample mapping: ${sampleMapping.sourceField} → ${sampleMapping.targetAttribute}`);
       console.log(`   📈 Status: ${sampleMapping.status}`);
       console.log(`   🎯 Confidence: ${sampleMapping.confidence}`);
     }
-    
+
     console.log('\n✅ All API tests passed!');
     return true;
-    
+
   } catch (error) {
     console.log(`\n❌ API test failed: ${error.message}`);
     return false;
@@ -86,7 +86,7 @@ function makeAPICall(url, headers) {
       method: 'GET',
       headers: headers
     };
-    
+
     const req = http.request(options, (res) => {
       let data = '';
       res.on('data', (chunk) => data += chunk);
@@ -98,7 +98,7 @@ function makeAPICall(url, headers) {
         }
       });
     });
-    
+
     req.on('error', reject);
     req.end();
   });
@@ -106,29 +106,29 @@ function makeAPICall(url, headers) {
 
 async function testFrontendPages() {
   console.log('🌐 Testing Frontend Pages...\n');
-  
+
   try {
     // Test main page
     console.log('1️⃣ Testing Main Page');
     const mainPage = await testEndpoint('http://localhost:8081/', 'Main frontend page');
     const hasReactRoot = mainPage.data.includes('<div id="root">');
     console.log(`   ⚛️ React root found: ${hasReactRoot}`);
-    
+
     // Test attribute mapping page
     console.log('\n2️⃣ Testing Attribute Mapping Page');
     const attributePage = await testEndpoint('http://localhost:8081/discovery/attribute-mapping', 'Attribute mapping page');
     const hasReactApp = attributePage.data.includes('src="/src/main.tsx');
     console.log(`   📱 React app script: ${hasReactApp}`);
-    
+
     // Test if main.tsx is accessible
     console.log('\n3️⃣ Testing React Main Script');
     const mainScript = await testEndpoint('http://localhost:8081/src/main.tsx', 'React main script');
     const hasReactDOM = mainScript.data.includes('ReactDOM');
     console.log(`   🔧 ReactDOM found: ${hasReactDOM}`);
-    
+
     console.log('\n✅ All frontend tests passed!');
     return true;
-    
+
   } catch (error) {
     console.log(`\n❌ Frontend test failed: ${error.message}`);
     return false;
@@ -138,17 +138,17 @@ async function testFrontendPages() {
 async function runAllTests() {
   console.log('🧪 Starting Comprehensive Frontend & API Tests\n');
   console.log('=' .repeat(60));
-  
+
   const frontendPassed = await testFrontendPages();
   console.log('\n' + '=' .repeat(60));
-  
+
   const apiPassed = await testFieldMappingAPI();
   console.log('\n' + '=' .repeat(60));
-  
+
   console.log('\n📊 Test Summary:');
   console.log(`   🌐 Frontend Tests: ${frontendPassed ? '✅ PASSED' : '❌ FAILED'}`);
   console.log(`   🔗 API Tests: ${apiPassed ? '✅ PASSED' : '❌ FAILED'}`);
-  
+
   if (frontendPassed && apiPassed) {
     console.log('\n🎉 ALL TESTS PASSED! Field mapping functionality should be working.');
     console.log('\n💡 Next Steps:');
@@ -159,7 +159,7 @@ async function runAllTests() {
   } else {
     console.log('\n⚠️  Some tests failed. Check the output above for details.');
   }
-  
+
   process.exit(frontendPassed && apiPassed ? 0 : 1);
 }
 

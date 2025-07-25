@@ -1,11 +1,11 @@
 /**
  * Consolidated Discovery Flow Status Hook
- * 
+ *
  * This hook replaces multiple duplicate implementations:
  * - SimplifiedFlowStatus component's internal fetching
  * - useUnifiedDiscoveryFlow's status polling
  * - useCMDBImport's flow status polling
- * 
+ *
  * Features:
  * - Configurable polling intervals
  * - Automatic polling stop for terminal states
@@ -48,14 +48,14 @@ const ACTIVE_STATES = ['running', 'processing', 'active', 'in_progress'];
  */
 export const shouldPollFlow = (status?: FlowStatusResponse): boolean => {
   if (!status) return false;
-  
+
   // Stop polling for terminal states
   if (TERMINAL_STATES.includes(status.status)) return false;
-  
+
   // Stop polling when waiting for user action
   if (WAITING_STATES.includes(status.status)) return false;
   if (status.awaitingUserApproval) return false;
-  
+
   // Continue polling only for active states
   return ACTIVE_STATES.includes(status.status);
 };
@@ -77,16 +77,16 @@ export const useDiscoveryFlowStatus = ({
     queryKey: ['flow-status', flowId],
     queryFn: async () => {
       if (!flowId) throw new Error('Flow ID is required');
-      
+
       const clientAccountId = client?.id || "11111111-1111-1111-1111-111111111111";
       const engagementId = engagement?.id || "22222222-2222-2222-2222-222222222222";
-      
+
       return await masterFlowService.getFlowStatus(flowId, clientAccountId, engagementId);
     },
     enabled: enabled && !!flowId,
     refetchInterval: (data) => {
       const status = data as FlowStatusResponse | undefined;
-      
+
       // Check if we should continue polling
       if (!shouldPollFlow(status)) {
         // Trigger callbacks for state changes
@@ -97,7 +97,7 @@ export const useDiscoveryFlowStatus = ({
         }
         return false; // Stop polling
       }
-      
+
       return pollingInterval;
     },
     refetchIntervalInBackground: false,

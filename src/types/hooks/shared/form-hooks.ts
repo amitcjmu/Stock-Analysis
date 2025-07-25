@@ -1,15 +1,15 @@
 /**
  * Form Hook Types
- * 
+ *
  * Hook interfaces for form management including form control, field management, and validation.
  * Integrates with React Hook Form for proper TypeScript support.
  */
 
 import type { ReactNode } from 'react';
-import type { 
-  FieldValues, 
-  Control, 
-  FieldPath, 
+import type {
+  FieldValues,
+  Control,
+  FieldPath,
   FieldErrors,
   UseFormHandleSubmit,
   UseFormReset,

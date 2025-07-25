@@ -9,10 +9,10 @@ test_endpoint() {
     local method=$2
     local data=$3
     local description=$4
-    
+
     echo "🧪 Testing: $description"
     echo "   Endpoint: $method $endpoint"
-    
+
     if [ "$method" = "GET" ]; then
         response=$(curl -s -w "HTTPSTATUS:%{http_code}" "http://localhost:8000$endpoint")
     else
@@ -21,10 +21,10 @@ test_endpoint() {
             -d "$data" \
             "http://localhost:8000$endpoint")
     fi
-    
+
     http_code=$(echo "$response" | grep -o "HTTPSTATUS:[0-9]*" | cut -d: -f2)
     body=$(echo "$response" | sed -E 's/HTTPSTATUS:[0-9]*$//')
-    
+
     if [ "$http_code" -eq 200 ] || [ "$http_code" -eq 201 ]; then
         echo "   ✅ SUCCESS ($http_code)"
         echo "$body" | python -m json.tool 2>/dev/null | head -10
@@ -123,4 +123,4 @@ echo ""
 echo "🔮 Next Time You Upload Similar Data:"
 echo "   • AI will automatically suggest these mappings"
 echo "   • Custom fields will be available in dropdown"
-echo "   • System gets smarter with each correction" 
+echo "   • System gets smarter with each correction"

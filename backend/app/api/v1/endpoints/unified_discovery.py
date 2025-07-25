@@ -406,7 +406,5 @@ async def get_flow_data_cleansing(
 
         return result
     except Exception as e:
-        logger.error(
-            f"❌ Failed to get data cleansing analysis for flow {flow_id}: {e}"
-        )
+        logger.error(f"❌ Failed to get data cleansing analysis for flow {flow_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))

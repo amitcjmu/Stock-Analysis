@@ -1,8 +1,8 @@
 /**
  * Report Generation Types
- * 
+ *
  * Types for report creation, customization, and delivery.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

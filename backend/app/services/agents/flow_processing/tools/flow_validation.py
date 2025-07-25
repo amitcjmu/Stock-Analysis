@@ -18,9 +18,7 @@ class FlowValidationTool(BaseTool):
     """Tool for fast fail-first flow validation to find the current incomplete phase"""
 
     name: str = "flow_validator"
-    description: str = (
-        "Performs fast fail-first validation to identify the first incomplete phase that needs attention"
-    )
+    description: str = "Performs fast fail-first validation to identify the first incomplete phase that needs attention"
 
     # Define fields for Pydantic compatibility
     base_url: str = "http://127.0.0.1:8000"

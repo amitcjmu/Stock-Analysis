@@ -18,9 +18,7 @@ class PhaseValidationTool(BaseTool):
     """Tool for validating phase completion using actual data validation APIs"""
 
     name: str = "phase_validator"
-    description: str = (
-        "Validates whether phases are complete by calling validation APIs that check actual data presence and quality"
-    )
+    description: str = "Validates whether phases are complete by calling validation APIs that check actual data presence and quality"
 
     # Define fields for Pydantic compatibility
     base_url: str = "http://127.0.0.1:8000"

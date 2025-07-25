@@ -1,9 +1,9 @@
 /**
  * Feature Settings Configuration Types
- * 
+ *
  * Feature management configuration including feature flags, experiments,
  * rollouts, toggles, and beta features.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

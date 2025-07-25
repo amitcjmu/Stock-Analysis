@@ -1,6 +1,6 @@
 /**
  * Progress Monitor Container Component
- * 
+ *
  * Container component that orchestrates all progress monitoring components.
  * Extracted from Progress.tsx to create a more organized, modular structure.
  */
@@ -53,16 +53,16 @@ export const ProgressMonitorContainer: React.FC<ProgressMonitorContainerProps> =
     <div className={`space-y-6 ${className}`}>
       {/* Header Actions */}
       <div className="flex justify-end items-center space-x-2">
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="sm"
           onClick={onToggleAutoRefresh}
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${autoRefresh ? 'animate-spin' : ''}`} />
           {autoRefresh ? 'Auto-Refresh On' : 'Auto-Refresh Off'}
         </Button>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           onClick={onExportReport}
         >
           <Download className="h-4 w-4 mr-2" />
@@ -104,7 +104,7 @@ export const ProgressMonitorContainer: React.FC<ProgressMonitorContainerProps> =
                 milestones={getFlowMilestones(selectedFlowData)}
                 timeSpent={Date.now() - new Date(selectedFlowData.startedAt).getTime()}
                 estimatedTimeRemaining={
-                  selectedFlowData.estimatedCompletion 
+                  selectedFlowData.estimatedCompletion
                     ? new Date(selectedFlowData.estimatedCompletion).getTime() - Date.now()
                     : 0
                 }

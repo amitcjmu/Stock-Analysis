@@ -19,14 +19,14 @@ def get_auth_token():
         "email": TEST_EMAIL,
         "password": TEST_PASSWORD
     }
-    
+
     with httpx.Client() as client:
         response = client.post(f"{BASE_URL}/api/v1/auth/login", json=auth_data)
-        
+
         if response.status_code != 200:
             print(f"❌ Authentication failed: {response.status_code}")
             return None
-        
+
         token_data = response.json()
         if "token" in token_data and "access_token" in token_data["token"]:
             return token_data["token"]["access_token"]
@@ -34,23 +34,23 @@ def get_auth_token():
 
 def check_collection_flow():
     """Check detailed collection flow status"""
-    
+
     token = get_auth_token()
     if not token:
         return
-    
+
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
         "X-Client-Account-ID": CLIENT_ACCOUNT_ID,
         "X-Engagement-ID": ENGAGEMENT_ID
     }
-    
+
     with httpx.Client() as client:
         # Get status
         print("📊 Getting collection status...")
         response = client.get(f"{BASE_URL}/api/v1/collection/status", headers=headers)
-        
+
         if response.status_code == 200:
             status = response.json()
             print("✅ Collection Flow Status:")
@@ -61,13 +61,13 @@ def check_collection_flow():
             print(f"   Automation Tier: {status.get('automation_tier')}")
             print(f"   Created: {status.get('created_at')}")
             print(f"   Updated: {status.get('updated_at')}")
-            
+
             # Get detailed flow info
             flow_id = status.get('flow_id')
             if flow_id:
                 print(f"\n🔍 Getting detailed flow info for {flow_id}...")
                 response = client.get(f"{BASE_URL}/api/v1/collection/flows/{flow_id}", headers=headers)
-                
+
                 if response.status_code == 200:
                     details = response.json()
                     print("✅ Collection Flow Details:")

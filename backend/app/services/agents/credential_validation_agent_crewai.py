@@ -30,7 +30,7 @@ class CredentialValidationAgent(BaseCrewAIAgent):
         super().__init__(
             role="Credential Validation Specialist",
             goal="Ensure all credentials have appropriate permissions and access levels for migration operations",
-            backstory="""You are a security-focused credential validation expert with 
+            backstory="""You are a security-focused credential validation expert with
             deep knowledge of cloud IAM systems and access control. You excel at:
             - Validating credential formats and authenticity
             - Verifying permission scopes match migration requirements
@@ -38,8 +38,8 @@ class CredentialValidationAgent(BaseCrewAIAgent):
             - Assessing service account configurations
             - Understanding role hierarchies and policy attachments
             - Detecting credential rotation requirements
-            
-            Your validation ensures migrations proceed securely with appropriate 
+
+            Your validation ensures migrations proceed securely with appropriate
             access levels while maintaining least-privilege principles.""",
             tools=tools,
             llm=llm,

@@ -23,7 +23,7 @@ const EnhancedInventoryInsights: React.FC<EnhancedInventoryInsightsProps> = ({
   className = ""
 }) => {
   const { client, engagement } = useAuth();
-  
+
   // Use modularized hook for insights processing
   const { processedInsights, isLoading, error } = useCrewAIInsights();
 
@@ -133,4 +133,4 @@ const EnhancedInventoryInsights: React.FC<EnhancedInventoryInsightsProps> = ({
   );
 };
 
-export default EnhancedInventoryInsights; 
+export default EnhancedInventoryInsights;

@@ -1,6 +1,6 @@
 /**
  * Input Component Types
- * 
+ *
  * Types for text inputs, number inputs, textareas, and related input components.
  */
 

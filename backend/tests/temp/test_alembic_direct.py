@@ -52,7 +52,7 @@ with engine.begin() as conn:
         conn.execute(
             text(
                 """
-            INSERT INTO alembic_version (version_num) 
+            INSERT INTO alembic_version (version_num)
             VALUES ('test_version')
             ON CONFLICT DO NOTHING
         """
@@ -71,8 +71,8 @@ with engine.connect() as conn:
     result = conn.execute(
         text(
             """
-        SELECT schemaname, tablename 
-        FROM pg_tables 
+        SELECT schemaname, tablename
+        FROM pg_tables
         WHERE schemaname = 'migration'
         ORDER BY tablename
     """

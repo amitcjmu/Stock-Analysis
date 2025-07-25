@@ -15,7 +15,7 @@ const createLazyRoute = <P extends Record<string, unknown> = Record<string, unkn
   priority: LoadingPriority = LoadingPriority.NORMAL
 ) => {
   const LazyComponent = lazy(importFn);
-  
+
   return React.forwardRef<HTMLElement, P>((props, ref) => (
     <ErrorBoundary
       FallbackComponent={({ error, resetErrorBoundary }) => (

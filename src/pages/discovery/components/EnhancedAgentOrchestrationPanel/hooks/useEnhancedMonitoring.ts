@@ -15,12 +15,12 @@ export const useEnhancedMonitoring = (flowId: string, flowState: unknown) => {
   const updateCrewsWithMonitoringData = useCallback((monitoringData: unknown) => {
     if (!monitoringData?.crews) return;
 
-    setCrews(prevCrews => 
+    setCrews(prevCrews =>
       prevCrews.map(crew => {
         const monitoringCrew = monitoringData.crews.find(
           (mc: unknown) => mc.name === crew.name
         );
-        
+
         if (monitoringCrew) {
           return {
             ...crew,
@@ -31,7 +31,7 @@ export const useEnhancedMonitoring = (flowId: string, flowState: unknown) => {
               const monitoringAgent = monitoringCrew.agents?.find(
                 (ma: unknown) => ma.name === agent.name
               );
-              
+
               if (monitoringAgent) {
                 return {
                   ...agent,
@@ -40,14 +40,14 @@ export const useEnhancedMonitoring = (flowId: string, flowState: unknown) => {
                   performance: monitoringAgent.performance || agent.performance
                 };
               }
-              
+
               return agent;
             }),
             collaboration_status: monitoringCrew.collaboration_status || crew.collaboration_status,
             planning_status: monitoringCrew.planning_status || crew.planning_status
           };
         }
-        
+
         return crew;
       })
     );
@@ -63,7 +63,7 @@ export const useEnhancedMonitoring = (flowId: string, flowState: unknown) => {
         method: 'POST',
         body: JSON.stringify({ flow_id: flowId })
       });
-      
+
       if (collabResponse?.data) {
         setCollaborationData(collabResponse.data);
       }
@@ -73,7 +73,7 @@ export const useEnhancedMonitoring = (flowId: string, flowState: unknown) => {
         method: 'POST',
         body: JSON.stringify({ flow_id: flowId })
       });
-      
+
       if (planningResponse?.data) {
         setPlanningData(planningResponse.data);
       }
@@ -83,7 +83,7 @@ export const useEnhancedMonitoring = (flowId: string, flowState: unknown) => {
         method: 'POST',
         body: JSON.stringify({ flow_id: flowId })
       });
-      
+
       if (memoryResponse?.data) {
         setMemoryAnalytics(memoryResponse.data);
       }
@@ -93,7 +93,7 @@ export const useEnhancedMonitoring = (flowId: string, flowState: unknown) => {
         method: 'POST',
         body: JSON.stringify({ flow_id: flowId })
       });
-      
+
       if (monitoringResponse?.data) {
         updateCrewsWithMonitoringData(monitoringResponse.data);
       }

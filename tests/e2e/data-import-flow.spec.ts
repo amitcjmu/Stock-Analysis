@@ -8,7 +8,7 @@ test.describe('Data Import to Attribute Mapping Flow', () => {
     await page.fill('input[type="password"]', 'Password123!');
     await page.click('button[type="submit"]');
     await page.waitForURL('**/dashboard', { timeout: 10000 });
-    
+
     // 2. Navigate to the Data Import page
     await page.goto('http://localhost:8081/discovery/data-import');
 
@@ -19,7 +19,7 @@ test.describe('Data Import to Attribute Mapping Flow', () => {
     const fileUploadPromise = page.waitForEvent('filechooser');
     await page.locator('div.p-6:has-text("CMDB Data")').first().click();
     const fileChooser = await fileUploadPromise;
-    
+
     // Create a dummy CSV file
     const csvContent = 'asset_name,ip_address,os\nserver1,192.168.1.1,Linux\nserver2,192.168.1.2,Windows';
     await fileChooser.setFiles({
@@ -35,7 +35,7 @@ test.describe('Data Import to Attribute Mapping Flow', () => {
     // 5. Verify that the application successfully navigates to the attribute mapping page
     await expect(page).toHaveURL(/.*attribute-mapping/);
     await expect(page.locator('h1:has-text("Attribute Mapping")')).toBeVisible();
-    
+
     console.log('Successfully navigated to Attribute Mapping page.');
   });
-}); 
+});

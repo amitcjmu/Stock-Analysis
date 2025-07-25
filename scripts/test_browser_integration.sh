@@ -61,13 +61,13 @@ echo "==============="
 if [ -f "test-results/results.json" ]; then
     CONSOLE_ERRORS=$(grep -o "console error" test-results/results.json | wc -l)
     API_ERRORS=$(grep -o "500\|400\|401\|403" test-results/results.json | wc -l)
-    
+
     if [ $CONSOLE_ERRORS -gt 0 ]; then
         echo -e "${RED}❌ Found $CONSOLE_ERRORS console errors${NC}"
     else
         echo -e "${GREEN}✅ No console errors${NC}"
     fi
-    
+
     if [ $API_ERRORS -gt 0 ]; then
         echo -e "${RED}❌ Found $API_ERRORS API errors${NC}"
     else

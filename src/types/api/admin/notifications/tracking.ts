@@ -1,8 +1,8 @@
 /**
  * Notification Tracking Types
- * 
+ *
  * Types for tracking notification engagement and analytics.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

@@ -95,24 +95,24 @@ class BusinessValueAgent:
         agent = Agent(
             role="Business Value Intelligence Analyst",
             goal="Analyze assets to determine their business value using evidence-based reasoning and learned patterns",
-            backstory="""You are an intelligent business analyst who specializes in evaluating 
-            the business value of IT assets. Instead of following rigid rules, you analyze evidence, 
+            backstory="""You are an intelligent business analyst who specializes in evaluating
+            the business value of IT assets. Instead of following rigid rules, you analyze evidence,
             discover patterns, and learn from experience.
-            
+
             Your approach:
             1. Search your memory for relevant business value patterns from previous analyses
             2. Examine asset characteristics for business value indicators
             3. Apply discovered patterns and reasoning to determine business value scores
             4. Record new patterns you discover for future use
             5. Enrich assets with your analysis and reasoning
-            
+
             You have access to tools that let you:
             - Search for patterns you've learned before
-            - Query asset data to gather evidence  
+            - Query asset data to gather evidence
             - Record new patterns you discover
             - Enrich assets with your business value analysis
-            
-            Always provide detailed reasoning for your conclusions and be transparent about 
+
+            Always provide detailed reasoning for your conclusions and be transparent about
             your confidence levels. Your goal is to learn and improve with each analysis.""",
             verbose=True,
             allow_delegation=False,
@@ -140,44 +140,44 @@ class BusinessValueAgent:
         task = Task(
             description=f"""
             Analyze the business value of this asset using your agentic intelligence and memory tools:
-            
+
             Asset Details:
             {json.dumps(asset_summary, indent=2)}
-            
+
             Complete Analysis Process:
-            
+
             1. SEARCH FOR PATTERNS:
                Use your pattern search tool to find relevant business value patterns from previous analyses.
                Search for patterns related to: database business value, production systems, technology stack analysis.
-               
+
             2. GATHER EVIDENCE:
                Use your asset query tool to examine similar assets and gather comparative evidence.
                Look for assets with similar characteristics to understand value patterns.
-               
+
             3. ANALYZE BUSINESS VALUE:
                Based on the evidence and patterns, analyze:
                - Business criticality indicators (production environment, high usage, etc.)
                - Technology value indicators (enterprise systems, databases, etc.)
                - Usage patterns that suggest business importance
                - Integration complexity that adds business value
-               
+
             4. CALCULATE SCORE:
                Provide a business value score from 1-10 where:
                - 1-3: Low business value (test systems, non-critical applications)
                - 4-6: Medium business value (important but replaceable systems)
                - 7-8: High business value (critical business operations)
                - 9-10: Very high business value (core business systems, revenue-generating)
-               
+
             5. DISCOVER NEW PATTERNS:
-               If you identify a new business value pattern during your analysis, use your 
+               If you identify a new business value pattern during your analysis, use your
                pattern recording tool to save it for future analyses.
-               
+
             6. ENRICH THE ASSET:
                Use your asset enrichment tool to update the asset with:
                - Your business value score
                - Your detailed reasoning
                - Confidence level in your analysis
-               
+
             Provide your final analysis in this format:
             Business Value Score: [1-10]
             Confidence Level: [High/Medium/Low]
@@ -312,9 +312,9 @@ class BusinessValueAgent:
             if reasoning_match:
                 result["reasoning"] = reasoning_match.group(1).strip()
             else:
-                result["reasoning"] = (
-                    "Business value determined through agentic analysis"
-                )
+                result[
+                    "reasoning"
+                ] = "Business value determined through agentic analysis"
 
             # Extract recommendations
             recommendations_match = re.search(
@@ -347,7 +347,9 @@ class BusinessValueAgent:
             "confidence_level": (
                 "high"
                 if reasoning.confidence >= 0.7
-                else "medium" if reasoning.confidence >= 0.4 else "low"
+                else "medium"
+                if reasoning.confidence >= 0.4
+                else "low"
             ),
             "reasoning": reasoning.reasoning_summary,
             "evidence_count": len(reasoning.evidence_pieces),

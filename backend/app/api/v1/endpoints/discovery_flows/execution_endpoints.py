@@ -101,7 +101,6 @@ async def resume_discovery_flow(
                 or "field_mapping" in str(master_flow.flow_persistence_data)
                 or "attribute_mapping" in str(master_flow.flow_persistence_data)
             ):
-
                 # Resume the CrewAI flow with field mapping approval using new phase controller
                 logger.info(
                     "📝 Resuming CrewAI flow with field mapping approval via phase controller"

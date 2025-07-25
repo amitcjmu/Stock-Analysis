@@ -73,7 +73,7 @@ const SecurityScreeningPanel: React.FC<SecurityScreeningPanelProps> = ({
 
       const authHeaders = getAuthHeaders();
       let endpoint = '';
-      
+
       if (flowId) {
         endpoint = `${API_CONFIG.BASE_URL}/discovery/flow/${flowId}/security-screening`;
       } else if (dataImportId) {
@@ -326,4 +326,4 @@ const SecurityScreeningPanel: React.FC<SecurityScreeningPanelProps> = ({
   );
 };
 
-export default SecurityScreeningPanel; 
+export default SecurityScreeningPanel;

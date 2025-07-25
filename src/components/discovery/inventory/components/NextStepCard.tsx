@@ -9,9 +9,9 @@ interface NextStepCardProps {
   onContinue?: () => void;
 }
 
-export const NextStepCard: React.FC<NextStepCardProps> = ({ 
-  inventoryProgress, 
-  onContinue 
+export const NextStepCard: React.FC<NextStepCardProps> = ({
+  inventoryProgress,
+  onContinue
 }) => {
   const isComplete = inventoryProgress.classified_assets === inventoryProgress.total_assets;
 
@@ -24,19 +24,19 @@ export const NextStepCard: React.FC<NextStepCardProps> = ({
         <p className="text-gray-700 mb-4">
           {isComplete ? (
             <>
-              Great! All {inventoryProgress.total_assets} assets have been classified. 
-              You're ready to proceed to the Application Discovery phase where AI agents 
+              Great! All {inventoryProgress.total_assets} assets have been classified.
+              You're ready to proceed to the Application Discovery phase where AI agents
               will identify your applications and their dependencies.
             </>
           ) : (
             <>
-              {inventoryProgress.classified_assets} of {inventoryProgress.total_assets} assets 
+              {inventoryProgress.classified_assets} of {inventoryProgress.total_assets} assets
               have been classified. Complete the classification to proceed to Application Discovery.
             </>
           )}
         </p>
         {onContinue && isComplete && (
-          <Button 
+          <Button
             onClick={onContinue}
             className="w-full md:w-auto"
           >

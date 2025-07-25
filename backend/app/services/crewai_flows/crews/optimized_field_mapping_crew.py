@@ -74,7 +74,7 @@ class OptimizedFieldMappingCrew(OptimizedCrewBase):
 
             if experiences:
                 mapping_experience = f"""
-                
+
 LEARNED MAPPING PATTERNS (from {len(experiences)} past experiences):
 {chr(10).join(experiences[:5])}  # Show top 5
                 """
@@ -84,7 +84,7 @@ LEARNED MAPPING PATTERNS (from {len(experiences)} past experiences):
             role="Enhanced CMDB Field Mapping Specialist",
             goal="Map source data fields to standard CMDB attributes using learned patterns and memory",
             backstory=f"""You are an expert field mapping specialist with access to organizational memory and learned patterns.
-            
+
 YOUR ENHANCED CAPABILITIES:
 - Access to previous successful mapping patterns
 - Learning from user feedback and corrections
@@ -147,7 +147,7 @@ WORK EFFICIENTLY:
         context_info = ""
         if similar_structures:
             context_info = f"""
-            
+
 SIMILAR DATA STRUCTURES FOUND IN MEMORY:
 {json.dumps([s.content for s in similar_structures], indent=2)}
             """

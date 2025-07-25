@@ -80,7 +80,7 @@ const Phase2CrewMonitor: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCrew, setSelectedCrew] = useState<string | null>(null);
   const [crewAgents, setCrewAgents] = useState<{[key: string]: AgentInfo[]}>({});
-  
+
   const { getAuthHeaders } = useAuth();
 
   const fetchCrewAgents = useCallback(async (crewType: string) => {
@@ -88,7 +88,7 @@ const Phase2CrewMonitor: React.FC = () => {
       const response = await fetch(`/api/v1/monitoring/crews/${crewType}/status`, {
         headers: getAuthHeaders()
       });
-      
+
       if (response.ok) {
         const crewData = await response.json();
         setCrewAgents(prev => ({
@@ -107,28 +107,28 @@ const Phase2CrewMonitor: React.FC = () => {
     try {
       setRefreshing(true);
       setError(null);
-      
+
       // Fetch crew list
       const crewListResponse = await fetch('/api/v1/monitoring/crews/list', {
         headers: getAuthHeaders()
       });
-      
+
       // Fetch system status
       const systemStatusResponse = await fetch('/api/v1/monitoring/crews/system/status', {
         headers: getAuthHeaders()
       });
-      
+
       // Fetch active flows
       const activeFlowsResponse = await fetch('/api/v1/monitoring/crews/flows/active', {
         headers: getAuthHeaders()
       });
-      
+
       const [crewListData, systemStatusData, activeFlowsData] = await Promise.all([
         crewListResponse.json(),
         systemStatusResponse.json(),
         activeFlowsResponse.json()
       ]);
-      
+
       // Combine data
       const monitoringData: Phase2MonitoringData = {
         available_crews: crewListData.available_crews || [],
@@ -148,9 +148,9 @@ const Phase2CrewMonitor: React.FC = () => {
           collaboration_effectiveness: 0
         }
       };
-      
+
       setData(monitoringData);
-      
+
       // Pre-load agent data for all crews
       for (const crewType of monitoringData.available_crews) {
         try {
@@ -161,7 +161,7 @@ const Phase2CrewMonitor: React.FC = () => {
           }
         }
       }
-      
+
     } catch (err) {
       if (process.env.NODE_ENV === 'development') {
         console.error('Error fetching crew data:', err);
@@ -260,8 +260,8 @@ const Phase2CrewMonitor: React.FC = () => {
           <p className="text-gray-600">Real-time monitoring of CrewAI crews, agents, and orchestration</p>
         </div>
         <div className="flex space-x-2">
-          <Button 
-            onClick={fetchCrewData} 
+          <Button
+            onClick={fetchCrewData}
             disabled={refreshing}
             variant="outline"
           >
@@ -382,7 +382,7 @@ const Phase2CrewMonitor: React.FC = () => {
             {data.available_crews.map((crewType) => {
               const crewInfo = data.crew_details.find(c => c.crew_type === crewType);
               const agents = crewAgents[crewType] || [];
-              
+
               return (
                 <Card key={crewType} className="p-4">
                   <div className="flex items-center justify-between mb-3">
@@ -392,9 +392,9 @@ const Phase2CrewMonitor: React.FC = () => {
                       Ready
                     </Badge>
                   </div>
-                  
+
                   <p className="text-sm text-gray-600 mb-3">{crewInfo?.description}</p>
-                  
+
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-500">
                       Agents: {agents.length > 0 ? agents.length : '2 (estimated)'}
@@ -417,7 +417,7 @@ const Phase2CrewMonitor: React.FC = () => {
                       {selectedCrew === crewType ? 'Hide' : 'Details'}
                     </Button>
                   </div>
-                  
+
                   {selectedCrew === crewType && (
                     <div className="mt-3 pt-3 border-t space-y-2">
                       <p className="text-sm font-medium text-gray-700">Agents:</p>

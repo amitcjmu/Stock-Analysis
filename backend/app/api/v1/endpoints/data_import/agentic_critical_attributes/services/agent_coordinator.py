@@ -221,13 +221,13 @@ class AgentCoordinator:
         quick_task = Task(
             description=f"""
             Perform quick field mapping analysis for migration-critical attributes.
-            
+
             Field Names: {field_names}
             Sample Values: {sample_values}
-            
+
             Quickly identify the top 5 most critical fields for migration and map them to:
             - asset_id, name, hostname, ip_address, asset_type, operating_system, environment
-            
+
             Focus on asset identification and core migration attributes only.
             Provide brief reasoning for each mapping.
             """,
@@ -254,9 +254,9 @@ class AgentCoordinator:
         return Agent(
             role="Data Schema Analyst",
             goal="Analyze imported CMDB data structure and understand field semantics",
-            backstory="""Expert data analyst with 15+ years experience in CMDB schemas, asset management, 
-            and enterprise data structures. Specializes in understanding field meanings from names, patterns, 
-            and sample values. Can identify asset identification fields, technical specifications, 
+            backstory="""Expert data analyst with 15+ years experience in CMDB schemas, asset management,
+            and enterprise data structures. Specializes in understanding field meanings from names, patterns,
+            and sample values. Can identify asset identification fields, technical specifications,
             business attributes, and operational metadata.""",
             verbose=True,
             llm=llm,
@@ -267,9 +267,9 @@ class AgentCoordinator:
         return Agent(
             role="Migration Field Mapper",
             goal="Map imported fields to migration-critical asset attributes",
-            backstory="""Migration specialist with expertise in identifying which asset attributes are 
-            critical for successful cloud migrations. Understands the 6R migration strategies and knows 
-            which fields are essential for asset identification, dependency mapping, risk assessment, 
+            backstory="""Migration specialist with expertise in identifying which asset attributes are
+            critical for successful cloud migrations. Understands the 6R migration strategies and knows
+            which fields are essential for asset identification, dependency mapping, risk assessment,
             and migration planning. Expert in mapping diverse CMDB schemas to standardized asset models.""",
             verbose=True,
             llm=llm,
@@ -280,8 +280,8 @@ class AgentCoordinator:
         return Agent(
             role="Field Mapping Coordinator",
             goal="Coordinate field mapping analysis and ensure comprehensive coverage",
-            backstory="""Senior migration architect who coordinates field mapping efforts and ensures 
-            all critical migration attributes are properly identified and mapped. Validates mapping 
+            backstory="""Senior migration architect who coordinates field mapping efforts and ensures
+            all critical migration attributes are properly identified and mapped. Validates mapping
             quality, resolves conflicts, and provides final recommendations for field mappings.""",
             verbose=True,
             allow_delegation=True,
@@ -295,17 +295,17 @@ class AgentCoordinator:
         return Task(
             description=f"""
             Analyze the imported CMDB data schema to understand field semantics and structure.
-            
+
             Field Names to Analyze: {field_names}
             Sample Values: {sample_values}
-            
+
             For each field, determine:
             1. Likely purpose and meaning
             2. Data type and format
             3. Completeness and quality
             4. Relationship to asset management
             5. Importance for migration planning
-            
+
             Identify which fields are:
             - Asset identifiers (names, IDs, hostnames)
             - Technical specifications (OS, hardware)
@@ -324,10 +324,10 @@ class AgentCoordinator:
         return Task(
             description=f"""
             Map imported fields to standardized migration-critical asset attributes.
-            
+
             Source Fields: {field_names}
             Sample Data: {sample_values}
-            
+
             Map each field to the most appropriate target attribute:
             - asset_id: Unique asset identifier
             - name: Asset name/label
@@ -340,7 +340,7 @@ class AgentCoordinator:
             - memory_gb: Memory specifications
             - business_owner: Business contact
             - technical_owner: Technical contact
-            
+
             For each mapping, provide:
             1. Confidence score (0-1)
             2. Reasoning for the mapping
@@ -358,21 +358,21 @@ class AgentCoordinator:
         return Task(
             description="""
             Coordinate and validate the field mapping analysis to ensure comprehensive coverage.
-            
+
             Review the schema analysis and field mapping results to:
             1. Validate mapping quality and consistency
             2. Identify any gaps or conflicts
             3. Prioritize mappings by migration importance
             4. Provide final recommendations
             5. Suggest validation rules for mapped fields
-            
+
             Ensure all critical migration attributes are covered:
             - Asset identification (mandatory)
             - Technical specifications (high priority)
             - Network information (high priority)
             - Business ownership (medium priority)
             - Operational metadata (medium priority)
-            
+
             Output should be a structured summary of validated field mappings.
             """,
             expected_output="Validated field mapping summary with prioritized recommendations",

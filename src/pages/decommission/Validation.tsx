@@ -6,7 +6,7 @@ import { CheckCircle, AlertTriangle, X, Search, Download } from 'lucide-react'
 
 const DecommissionValidation = () => {
   const [selectedTab, setSelectedTab] = useState('validation');
-  
+
   const validationMetrics = [
     { label: 'Validations Complete', value: '18', total: '23', percentage: 78, color: 'text-green-600' },
     { label: 'Pending Validation', value: '5', color: 'text-orange-600' },
@@ -182,8 +182,8 @@ const DecommissionValidation = () => {
                       {metric.total && (
                         <div className="mt-2">
                           <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-green-500 h-2 rounded-full" 
+                            <div
+                              className="bg-green-500 h-2 rounded-full"
                               style={{ width: `${metric.percentage}%` }}
                             ></div>
                           </div>

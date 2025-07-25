@@ -181,8 +181,8 @@ class DataIntegrityValidator:
                 # Get table list
                 tables_query = sa.text(
                     """
-                    SELECT table_name 
-                    FROM information_schema.tables 
+                    SELECT table_name
+                    FROM information_schema.tables
                     WHERE table_schema = 'public'
                     ORDER BY table_name
                 """
@@ -408,7 +408,7 @@ class DataIntegrityValidator:
                         "name": "JSON field consistency",
                         "query": """
                             SELECT COUNT(*) FROM crewai_flow_state_extensions
-                            WHERE flow_configuration IS NULL 
+                            WHERE flow_configuration IS NULL
                             OR flow_persistence_data IS NULL
                         """,
                         "expected_result": 0,
@@ -630,7 +630,7 @@ class DataIntegrityValidator:
                 discovery_relationship_check = await session.execute(
                     sa.text(
                         """
-                    SELECT 
+                    SELECT
                         COUNT(df.*) as discovery_count,
                         COUNT(cse.*) as master_count
                     FROM discovery_flows df
@@ -661,7 +661,7 @@ class DataIntegrityValidator:
                 assessment_relationship_check = await session.execute(
                     sa.text(
                         """
-                    SELECT 
+                    SELECT
                         COUNT(af.*) as assessment_count,
                         COUNT(cse.*) as master_count
                     FROM assessment_flows af
@@ -742,7 +742,7 @@ class DataIntegrityValidator:
                 collaboration_check = await session.execute(
                     sa.text(
                         """
-                    SELECT 
+                    SELECT
                         flow_id,
                         flow_status,
                         jsonb_array_length(agent_collaboration_log) as log_entries
@@ -842,7 +842,7 @@ class DataIntegrityValidator:
                 execution_time_check = await session.execute(
                     sa.text(
                         """
-                    SELECT 
+                    SELECT
                         flow_id,
                         phase_execution_times
                     FROM crewai_flow_state_extensions
@@ -1449,7 +1449,9 @@ class DataIntegrityValidator:
             status_icon = (
                 "✅"
                 if status == "completed" and issue_count == 0
-                else "⚠️" if issue_count > 0 else "❌"
+                else "⚠️"
+                if issue_count > 0
+                else "❌"
             )
             logger.info(
                 f"  {check_name}: {status_icon} {status} ({issue_count} issues)"
@@ -1497,7 +1499,9 @@ class DataIntegrityValidator:
                 priority = (
                     "critical"
                     if issue_count > 5
-                    else "high" if issue_count > 2 else "medium"
+                    else "high"
+                    if issue_count > 2
+                    else "medium"
                 )
                 recommendations.append(
                     {

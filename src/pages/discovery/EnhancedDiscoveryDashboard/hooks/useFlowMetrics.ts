@@ -15,10 +15,10 @@ export interface FlowMetrics {
 }
 
 export const useFlowMetrics = (
-  flows: FlowSummary[], 
+  flows: FlowSummary[],
   systemMetrics: SystemMetrics | null
 ): FlowMetrics => {
-  
+
   return useMemo(() => {
     if (!flows.length) {
       return {
@@ -52,7 +52,7 @@ export const useFlowMetrics = (
       acc[flow.current_phase] = (acc[flow.current_phase] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    
+
     const mostActivePhase = Object.entries(phaseCount)
       .sort(([,a], [,b]) => b - a)[0]?.[0] || 'N/A';
 
@@ -62,7 +62,7 @@ export const useFlowMetrics = (
     // Estimate completion time based on running flows
     const runningFlowsWithEstimates = runningFlows.filter(f => f.estimated_completion);
     let estimatedCompletionTime = 'N/A';
-    
+
     if (runningFlowsWithEstimates.length > 0) {
       const avgCompletion = systemMetrics?.avg_completion_time_hours || 3.2;
       estimatedCompletionTime = `~${avgCompletion.toFixed(1)}h`;

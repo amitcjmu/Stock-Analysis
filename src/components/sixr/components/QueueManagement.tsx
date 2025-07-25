@@ -16,7 +16,7 @@ export const QueueManagement: React.FC<QueueManagementProps> = ({
 }) => {
   const renderQueueItem = (queue: AnalysisQueue) => {
     const queueApplications = applications.filter(app => queue.applications.includes(app.id));
-    
+
     return (
       <div key={queue.id} className="p-4 border border-gray-200 rounded-lg">
         <div className="flex items-center justify-between mb-3">
@@ -33,8 +33,8 @@ export const QueueManagement: React.FC<QueueManagementProps> = ({
             {onQueueAction && (
               <div className="flex space-x-1">
                 {queue.status === 'pending' && (
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => onQueueAction(queue.id, 'start')}
                   >
@@ -42,16 +42,16 @@ export const QueueManagement: React.FC<QueueManagementProps> = ({
                   </Button>
                 )}
                 {queue.status === 'in_progress' && (
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => onQueueAction(queue.id, 'pause')}
                   >
                     <Pause className="h-3 w-3" />
                   </Button>
                 )}
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   variant="outline"
                   onClick={() => onQueueAction(queue.id, 'cancel')}
                 >
@@ -61,7 +61,7 @@ export const QueueManagement: React.FC<QueueManagementProps> = ({
             )}
           </div>
         </div>
-        
+
         <div className="space-y-2">
           <div className="flex flex-wrap gap-1">
             {queueApplications.slice(0, 3).map(app => (
@@ -75,7 +75,7 @@ export const QueueManagement: React.FC<QueueManagementProps> = ({
               </Badge>
             )}
           </div>
-          
+
           {queue.estimated_duration && (
             <div className="text-xs text-gray-500">
               Estimated duration: {Math.round(queue.estimated_duration / 60)} minutes
@@ -89,7 +89,7 @@ export const QueueManagement: React.FC<QueueManagementProps> = ({
   return (
     <div className="space-y-4">
       {analysisQueues.map(renderQueueItem)}
-      
+
       {analysisQueues.length === 0 && (
         <div className="text-center py-8 text-gray-500">
           <Clock className="h-12 w-12 mx-auto mb-4 text-gray-300" />

@@ -60,8 +60,8 @@ interface AgentMonitorResponse {
 }
 
 const AgentMonitor = () => {
-  const { data, isLoading, isError, error } = useAgentMonitor({ 
-    enabled: true, 
+  const { data, isLoading, isError, error } = useAgentMonitor({
+    enabled: true,
     polling: false // Disable aggressive polling
   });
 
@@ -294,4 +294,4 @@ const AgentMonitor = () => {
   );
 };
 
-export default AgentMonitor; 
+export default AgentMonitor;

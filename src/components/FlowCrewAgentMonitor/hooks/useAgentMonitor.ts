@@ -2,12 +2,12 @@ import { useState } from 'react'
 import { useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext';
 import { masterFlowService } from '../../../services/api/masterFlowService';
-import type { 
-  FlowCrewAgentData, 
-  DiscoveryFlow, 
-  Crew, 
+import type {
+  FlowCrewAgentData,
+  DiscoveryFlow,
+  Crew,
   AgentMonitorState,
-  FlowStatus 
+  FlowStatus
 } from '../types';
 import type { transformCrewData } from '../utils/agentDataProcessor'
 import { createAllAvailableCrews, createCompleteFlowView } from '../utils/agentDataProcessor'
@@ -30,19 +30,19 @@ export const useAgentMonitor = () => {
   const fetchMonitoringData = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, refreshing: true, error: null }));
-      
+
       // Try to fetch from the original monitoring endpoints first
       try {
         // Fetch complete agent registry to show all available agents
         const agentRegistryResponse = await fetch('/api/v1/monitoring/status', {
           headers: getAuthHeaders()
         });
-      
+
         // Fetch active flows with crew and agent details
         const flowsResponse = await fetch('/api/v1/monitoring/crewai-flows', {
           headers: getAuthHeaders()
         });
-        
+
         // Get discovery flows using master flow service
         let discoveryFlows: DiscoveryFlow[] = [];
         try {
@@ -67,14 +67,14 @@ export const useAgentMonitor = () => {
         } catch (error) {
           console.error('Failed to fetch discovery flows:', error);
         }
-        
+
         if (!flowsResponse.ok) {
           throw new Error('Failed to fetch flows data');
         }
-        
+
         const flowsData = await flowsResponse.json();
         const agentRegistryData = agentRegistryResponse.ok ? await agentRegistryResponse.json() : null;
-        
+
         // Debug logging (reduced)
         if (process.env.NODE_ENV === 'development') {
           console.log('🔍 Monitoring Data Sources:', {
@@ -82,19 +82,19 @@ export const useAgentMonitor = () => {
             discoveryFlows: discoveryFlows?.length || 0
           });
         }
-        
+
         // Transform the data to match our interface
         const activeFlows: DiscoveryFlow[] = [];
-        
+
         // Priority 1: Use Discovery Flow data if available (more accurate)
         if (discoveryFlows && discoveryFlows.length > 0) {
           for (const flow of discoveryFlows) {
             try {
-              // Get detailed crew monitoring for this flow  
+              // Get detailed crew monitoring for this flow
               const crewResponse = await fetch(`/api/v1/discovery/flow/crews/monitoring/${flow.flow_id}`, {
                 headers: getAuthHeaders()
               });
-              
+
               let crews: Crew[] = [];
               if (crewResponse.ok) {
                 const crewData = await crewResponse.json();
@@ -103,7 +103,7 @@ export const useAgentMonitor = () => {
                 // If no specific crew data, create default crews
                 crews = createAllAvailableCrews(agentRegistryData);
               }
-              
+
               activeFlows.push({
                 flow_id: flow.flow_id || `discovery_flow_${Date.now()}`,
                 status: flow.status,
@@ -125,7 +125,7 @@ export const useAgentMonitor = () => {
             }
           }
         }
-        // Fallback: Use CrewAI flows data  
+        // Fallback: Use CrewAI flows data
         else if (flowsData.crewai_flows && flowsData.crewai_flows.active_flows) {
           for (const flow of flowsData.crewai_flows.active_flows) {
             try {
@@ -133,13 +133,13 @@ export const useAgentMonitor = () => {
               const crewResponse = await fetch(`/api/v1/discovery/flow/crews/monitoring/${flow.flow_id}`, {
                 headers: getAuthHeaders()
               });
-              
+
               let crews: Crew[] = [];
               if (crewResponse.ok) {
                 const crewData = await crewResponse.json();
                 crews = transformCrewData(crewData);
               }
-              
+
               activeFlows.push({
                 flow_id: flow.flow_id,
                 status: flow.status,
@@ -161,16 +161,16 @@ export const useAgentMonitor = () => {
             }
           }
         }
-        
+
         // Create a complete flow view with all available crews (even if not running)
         const allAvailableFlows = createCompleteFlowView(activeFlows, agentRegistryData);
-        
+
         // Calculate totals including all available agents and crews
         const totalAgents = agentRegistryData?.agents?.total_registered || 17;
         const activeAgents = agentRegistryData?.agents?.active_agents || 13;
         const totalCrews = 6; // Field Mapping, Data Cleansing, Inventory, App-Server Deps, App-App Deps, Technical Debt
         const activeCrews = activeFlows.reduce((sum, flow) => sum + flow.crews.length, 0);
-        
+
         const monitoringData: FlowCrewAgentData = {
           active_flows: allAvailableFlows,
           system_health: {
@@ -187,17 +187,17 @@ export const useAgentMonitor = () => {
             collaboration_effectiveness: 0.88
           }
         };
-        
+
         setState(prev => ({
           ...prev,
           data: monitoringData,
           isLoading: false,
           refreshing: false
         }));
-        
+
       } catch (monitoringError) {
         console.warn('Primary monitoring endpoints failed, using fallback data:', monitoringError);
-        
+
         // Fallback: Create basic monitoring data structure
         const fallbackData: FlowCrewAgentData = {
           active_flows: [],
@@ -215,7 +215,7 @@ export const useAgentMonitor = () => {
             collaboration_effectiveness: 0
           }
         };
-        
+
         setState(prev => ({
           ...prev,
           data: fallbackData,
@@ -272,7 +272,7 @@ export const useAgentMonitor = () => {
   return {
     // State
     ...state,
-    
+
     // Actions
     fetchMonitoringData,
     updateState,

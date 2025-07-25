@@ -137,8 +137,8 @@ const DecommissionIndex = () => {
                       {metric.total && (
                         <div className="mt-2">
                           <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-red-500 h-2 rounded-full" 
+                            <div
+                              className="bg-red-500 h-2 rounded-full"
                               style={{ width: `${metric.percentage}%` }}
                             ></div>
                           </div>
@@ -161,7 +161,7 @@ const DecommissionIndex = () => {
                   {decommissionPhases.map((phase) => {
                     const Icon = phase.icon;
                     return (
-                      <div 
+                      <div
                         key={phase.id}
                         className="p-4 rounded-lg border-2 border-gray-200 hover:border-red-300 transition-all cursor-pointer"
                       >
@@ -176,8 +176,8 @@ const DecommissionIndex = () => {
                             <span className="font-medium">{phase.progress}%</span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-red-500 h-2 rounded-full" 
+                            <div
+                              className="bg-red-500 h-2 rounded-full"
                               style={{ width: `${phase.progress}%` }}
                             ></div>
                           </div>

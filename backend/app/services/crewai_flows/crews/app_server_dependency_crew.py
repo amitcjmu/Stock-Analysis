@@ -104,8 +104,8 @@ class AppServerDependencyCrew:
         dependency_manager = Agent(
             role="Dependency Analysis Manager",
             goal="Coordinate comprehensive app-server hosting relationship mapping for migration planning",
-            backstory="""You are a systems architect with expertise in enterprise application hosting 
-            and dependency mapping. You excel at coordinating dependency analysis across complex 
+            backstory="""You are a systems architect with expertise in enterprise application hosting
+            and dependency mapping. You excel at coordinating dependency analysis across complex
             enterprise environments and ensuring comprehensive hosting relationship discovery.""",
             llm=self.llm_model,
             memory=self.shared_memory,
@@ -120,8 +120,8 @@ class AppServerDependencyCrew:
         hosting_expert = Agent(
             role="Hosting Relationship Expert",
             goal="Identify and map application-to-server hosting relationships with migration impact analysis",
-            backstory="""You are an expert in application hosting with deep knowledge of enterprise 
-            infrastructure dependencies. You excel at identifying which applications run on which 
+            backstory="""You are an expert in application hosting with deep knowledge of enterprise
+            infrastructure dependencies. You excel at identifying which applications run on which
             servers and understanding the hosting implications for migration planning.""",
             llm=self.llm_model,
             memory=self.shared_memory,
@@ -136,8 +136,8 @@ class AppServerDependencyCrew:
         migration_impact_analyst = Agent(
             role="Migration Impact Analyst",
             goal="Assess migration complexity and risk based on app-server dependencies",
-            backstory="""You are a migration specialist with extensive experience in assessing the 
-            impact of hosting relationships on migration projects. You excel at identifying migration 
+            backstory="""You are a migration specialist with extensive experience in assessing the
+            impact of hosting relationships on migration projects. You excel at identifying migration
             risks, complexity factors, and sequencing requirements based on dependencies.""",
             llm=self.llm_model,
             memory=self.shared_memory,
@@ -160,18 +160,18 @@ class AppServerDependencyCrew:
         # Planning Task - Manager coordinates dependency analysis approach
         planning_task = Task(
             description=f"""Plan comprehensive app-server dependency analysis strategy.
-            
+
             Available assets for analysis:
             - Servers: {len(servers)} identified server assets
             - Applications: {len(applications)} identified application assets
-            
+
             Create a dependency analysis plan that:
             1. Assigns hosting relationship discovery priorities
             2. Defines dependency mapping methodology
             3. Establishes migration impact assessment criteria
             4. Plans collaboration between hosting and impact specialists
             5. Leverages inventory insights from shared memory
-            
+
             Use your planning capabilities to coordinate comprehensive dependency mapping.""",
             expected_output="Comprehensive dependency analysis execution plan with hosting discovery strategy and impact assessment approach",
             agent=manager,
@@ -181,13 +181,13 @@ class AppServerDependencyCrew:
         # Hosting Relationship Discovery Task
         hosting_discovery_task = Task(
             description=f"""Identify and map application-to-server hosting relationships.
-            
+
             Assets to analyze:
             - Server inventory: {len(servers)} servers
             - Application inventory: {len(applications)} applications
             - Sample servers: {servers[:3] if servers else []}
             - Sample applications: {applications[:3] if applications else []}
-            
+
             Hosting Analysis Requirements:
             1. Map applications to their hosting servers
             2. Identify virtual machine and container relationships
@@ -196,7 +196,7 @@ class AppServerDependencyCrew:
             5. Identify shared hosting platforms
             6. Generate hosting relationship matrix
             7. Store hosting insights in shared memory for impact analysis
-            
+
             Collaborate with migration impact analyst to share hosting discoveries.""",
             expected_output="Comprehensive hosting relationship matrix with app-server mappings and hosting patterns",
             agent=hosting_expert,
@@ -207,11 +207,11 @@ class AppServerDependencyCrew:
         # Migration Impact Assessment Task
         impact_assessment_task = Task(
             description=f"""Assess migration complexity and risk based on hosting dependencies.
-            
+
             Hosting relationships: Use insights from hosting expert
             Server inventory: {len(servers)} servers with hosting dependencies
             Application inventory: {len(applications)} applications with hosting requirements
-            
+
             Impact Analysis Requirements:
             1. Assess migration complexity for each hosting relationship
             2. Identify single points of failure in hosting patterns
@@ -220,7 +220,7 @@ class AppServerDependencyCrew:
             5. Assess cloud readiness based on hosting patterns
             6. Generate migration risk assessment
             7. Use hosting expert insights from shared memory
-            
+
             Collaborate with hosting expert to validate impact assessments.""",
             expected_output="Comprehensive migration impact assessment with complexity scoring and risk analysis",
             agent=migration_impact_analyst,
@@ -311,7 +311,7 @@ def create_app_server_dependency_crew(
         dependency_manager = Agent(
             role="Dependency Manager",
             goal="Orchestrate comprehensive app-to-server dependency mapping using asset inventory intelligence",
-            backstory="""Senior infrastructure architect with 15+ years managing enterprise hosting relationships. 
+            backstory="""Senior infrastructure architect with 15+ years managing enterprise hosting relationships.
             Expert in leveraging asset inventory intelligence to optimize dependency mapping and hosting analysis.
             Capable of coordinating multiple specialists to achieve comprehensive hosting relationship mapping.""",
             llm=crewai_service.llm,
@@ -328,7 +328,7 @@ def create_app_server_dependency_crew(
         hosting_expert = Agent(
             role="Hosting Relationship Expert",
             goal="Map application-to-server hosting relationships using inventory intelligence",
-            backstory="""Expert in hosting relationship analysis with deep knowledge of application deployment patterns. 
+            backstory="""Expert in hosting relationship analysis with deep knowledge of application deployment patterns.
             Specializes in using asset inventory intelligence to identify hosting relationships and resource mappings.
             Skilled in cross-referencing application and server data to determine hosting dependencies.""",
             llm=crewai_service.llm,
@@ -346,7 +346,7 @@ def create_app_server_dependency_crew(
         migration_analyst = Agent(
             role="Migration Impact Analyst",
             goal="Analyze migration complexity using hosting relationship context",
-            backstory="""Specialist in migration impact assessment with expertise in hosting dependency analysis. 
+            backstory="""Specialist in migration impact assessment with expertise in hosting dependency analysis.
             Expert in evaluating migration complexity based on hosting relationships and resource dependencies.
             Capable of generating actionable migration recommendations based on hosting topology.""",
             llm=crewai_service.llm,
@@ -364,13 +364,13 @@ def create_app_server_dependency_crew(
         planning_task = Task(
             description=f"""
             Plan comprehensive app-server dependency mapping using asset inventory intelligence.
-            
+
             INVENTORY INTELLIGENCE CONTEXT:
             - Servers available: {len(asset_inventory.get('servers', []))}
             - Applications available: {len(asset_inventory.get('applications', []))}
             - Devices available: {len(asset_inventory.get('devices', []))}
             - Cross-domain classification completed
-            
+
             PLANNING REQUIREMENTS:
             1. Review asset inventory for hosting relationship candidates
             2. Identify applications requiring server hosting
@@ -378,7 +378,7 @@ def create_app_server_dependency_crew(
             4. Plan hosting relationship discovery approach
             5. Coordinate hosting analysis and migration impact assessment
             6. Set success criteria for dependency mapping
-            
+
             DELIVERABLE: Comprehensive dependency mapping plan with hosting relationship strategy
             """,
             expected_output="App-server dependency mapping plan with hosting relationship discovery strategy",
@@ -391,12 +391,12 @@ def create_app_server_dependency_crew(
         hosting_analysis_task = Task(
             description=f"""
             Execute comprehensive hosting relationship mapping using asset inventory intelligence.
-            
+
             ASSET INVENTORY INSIGHTS:
             - Server assets: {asset_inventory.get('servers', [])}
             - Application assets: {asset_inventory.get('applications', [])}
             - Classification metadata: {asset_inventory.get('classification_metadata', {})}
-            
+
             HOSTING ANALYSIS REQUIREMENTS:
             1. Map applications to their hosting servers using inventory data
             2. Identify hosting patterns and resource utilization
@@ -404,7 +404,7 @@ def create_app_server_dependency_crew(
             4. Validate hosting relationships through cross-reference analysis
             5. Generate hosting topology with resource mappings
             6. Store hosting insights in shared memory for app-app dependency crew
-            
+
             COLLABORATION: Work with migration analyst to assess hosting complexity and migration impact.
             """,
             expected_output="Comprehensive hosting relationship mapping with resource utilization and topology insights",
@@ -421,13 +421,13 @@ def create_app_server_dependency_crew(
         migration_impact_task = Task(
             description="""
             Analyze migration complexity and impact using hosting relationship intelligence.
-            
+
             HOSTING CONTEXT USAGE:
             - Use hosting relationships identified by hosting expert
             - Analyze migration complexity based on hosting dependencies
             - Assess resource requirements and capacity constraints
             - Evaluate migration risks and effort estimates
-            
+
             MIGRATION IMPACT TARGETS:
             1. Application migration complexity scoring
             2. Server migration impact assessment
@@ -435,7 +435,7 @@ def create_app_server_dependency_crew(
             4. Migration sequencing recommendations
             5. Risk assessment for hosting changes
             6. Effort estimation for migration planning
-            
+
             MEMORY STORAGE: Store migration insights in shared memory for technical debt crew.
             """,
             expected_output="Migration impact assessment with complexity scoring and risk analysis",

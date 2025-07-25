@@ -25,7 +25,7 @@ export interface UseAgentDataReturn {
 
 export const useAgentData = (options: UseAgentDataOptions = {}): UseAgentDataReturn => {
   const { agentName, period = 7, autoRefresh = false, refreshInterval = 30000 } = options;
-  
+
   const [agents, setAgents] = useState<AgentCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -111,7 +111,7 @@ export const useAgentPerformance = (agentName: string, period: number = 7) => {
       setError(null);
 
       const response = await agentObservabilityService.getAgentPerformance(agentName, period);
-      
+
       if (response.success) {
         setData(response.data);
       } else {
@@ -145,7 +145,7 @@ export const useAgentAnalytics = (agentName: string, period: number = 7) => {
       setError(null);
 
       const response = await agentObservabilityService.getAgentAnalytics(agentName, period);
-      
+
       if (response.success) {
         setData(response.data);
       } else {

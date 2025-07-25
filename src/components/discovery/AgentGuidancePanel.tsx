@@ -1,6 +1,6 @@
 /**
  * Agent Guidance Panel - Displays Flow Processing Agent guidance and checklist status
- * 
+ *
  * This component shows users exactly what the Flow Processing Agent determined
  * and provides clear next steps for flow continuation.
  */
@@ -12,12 +12,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { 
-  Brain, 
-  CheckCircle2, 
-  Clock, 
-  AlertCircle, 
-  ChevronDown, 
+import {
+  Brain,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  ChevronDown,
   ChevronRight,
   Target,
   ListChecks,
@@ -221,7 +221,7 @@ const AgentGuidancePanel: React.FC<AgentGuidancePanelProps> = ({
               )}
             </Button>
           </CollapsibleTrigger>
-          
+
           <CollapsibleContent className="space-y-3 mt-3">
             {/* Completed Tasks */}
             {guidance.detailed_status.completed_tasks.length > 0 && (
@@ -285,4 +285,4 @@ const AgentGuidancePanel: React.FC<AgentGuidancePanelProps> = ({
   );
 };
 
-export default AgentGuidancePanel; 
+export default AgentGuidancePanel;

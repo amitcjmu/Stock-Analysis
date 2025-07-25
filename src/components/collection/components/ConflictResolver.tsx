@@ -1,6 +1,6 @@
 /**
  * Conflict Resolver Component
- * 
+ *
  * Interface for resolving data conflicts between sources
  * Agent Team B3 - Data conflict resolution component
  */
@@ -51,9 +51,9 @@ export const ConflictResolver: React.FC<ConflictResolverProps> = ({
       bulk: { label: 'Bulk Upload', className: 'bg-purple-100 text-purple-800' },
       template: { label: 'Template', className: 'bg-amber-100 text-amber-800' }
     };
-    
+
     const sourceConfig = config[source] || { label: source, className: 'bg-gray-100 text-gray-800' };
-    
+
     return (
       <Badge variant="secondary" className={sourceConfig.className}>
         {sourceConfig.label}
@@ -77,7 +77,7 @@ export const ConflictResolver: React.FC<ConflictResolverProps> = ({
       ...prev,
       [conflictId]: justification
     }));
-    
+
     // Update resolution if already selected
     if (selectedResolutions[conflictId]) {
       setSelectedResolutions(prev => ({
@@ -120,11 +120,11 @@ export const ConflictResolver: React.FC<ConflictResolverProps> = ({
         <h3 className="text-lg font-semibold">Data Conflicts</h3>
         <Badge variant="destructive">{conflicts.length} conflicts</Badge>
       </div>
-      
+
       <Alert>
         <AlertTriangle className="h-4 w-4" />
         <AlertDescription>
-          Review the conflicting data points below and select the most accurate value for each attribute. 
+          Review the conflicting data points below and select the most accurate value for each attribute.
           Your selections will be used in the final integrated dataset.
         </AlertDescription>
       </Alert>
@@ -139,18 +139,18 @@ export const ConflictResolver: React.FC<ConflictResolverProps> = ({
                   {conflict.conflictingValues.length} different values found from multiple sources
                 </CardDescription>
               </div>
-              
+
               {conflict.requiresUserReview && (
                 <Badge variant="destructive">Manual Review Required</Badge>
               )}
             </div>
           </CardHeader>
-          
+
           <CardContent className="space-y-4">
             {/* Conflicting Values */}
             <div className="space-y-3">
               <h4 className="text-sm font-medium">Select the correct value:</h4>
-              
+
               <RadioGroup
                 value={selectedResolutions[conflict.id]?.selectedSource || ''}
                 onValueChange={(sourceId) => {
@@ -162,17 +162,17 @@ export const ConflictResolver: React.FC<ConflictResolverProps> = ({
                 className="space-y-3"
               >
                 {conflict.conflictingValues.map((value, index) => (
-                  <div 
+                  <div
                     key={`${conflict.id}-${index}`}
                     className={cn(
                       'flex items-start space-x-3 p-3 rounded-lg border transition-colors',
-                      selectedResolutions[conflict.id]?.selectedSource === value.sourceId 
-                        ? 'border-primary bg-primary/5' 
+                      selectedResolutions[conflict.id]?.selectedSource === value.sourceId
+                        ? 'border-primary bg-primary/5'
                         : 'border-gray-200 hover:border-gray-300'
                     )}
                   >
                     <RadioGroupItem value={value.sourceId} id={`${conflict.id}-${index}`} className="mt-1" />
-                    
+
                     <div className="flex-1 min-w-0">
                       <Label htmlFor={`${conflict.id}-${index}`} className="cursor-pointer">
                         <div className="flex items-center gap-2 mb-2">
@@ -182,14 +182,14 @@ export const ConflictResolver: React.FC<ConflictResolverProps> = ({
                             {Math.round(value.confidenceScore * 100)}% confidence
                           </Badge>
                         </div>
-                        
+
                         <div className="p-2 bg-muted rounded text-sm font-mono">
-                          {typeof value.value === 'object' 
+                          {typeof value.value === 'object'
                             ? JSON.stringify(value.value, null, 2)
                             : String(value.value)
                           }
                         </div>
-                        
+
                         <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                           <Clock className="h-3 w-3" />
                           Collected: {formatTimestamp(value.collectedAt)}
@@ -234,7 +234,7 @@ export const ConflictResolver: React.FC<ConflictResolverProps> = ({
               <div className="text-xs text-muted-foreground">
                 Attribute: {conflict.attributeName}
               </div>
-              
+
               <Button
                 onClick={() => handleResolveConflict(conflict.id)}
                 disabled={!selectedResolutions[conflict.id]}
@@ -246,7 +246,7 @@ export const ConflictResolver: React.FC<ConflictResolverProps> = ({
           </CardContent>
         </Card>
       ))}
-      
+
       {/* Bulk Actions */}
       {conflicts.length > 1 && (
         <Card className="border-dashed">
@@ -258,7 +258,7 @@ export const ConflictResolver: React.FC<ConflictResolverProps> = ({
                   Apply resolution strategy to all conflicts
                 </p>
               </div>
-              
+
               <div className="flex gap-2">
                 <Button variant="outline" size="sm">
                   Prefer Automated

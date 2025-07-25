@@ -18,7 +18,7 @@ The fix consists of three components working together:
 - Removes/sets `logprobs=False` in all DeepInfra requests
 - Handles various parameter locations (kwargs, extra_body, optional_params)
 
-### 2. Response Fixer (`deepinfra_response_fixer.py`) 
+### 2. Response Fixer (`deepinfra_response_fixer.py`)
 - Patches litellm's `ChoiceLogprobs` class to handle null `top_logprobs`
 - Converts `None` to empty list `[]` before Pydantic validation
 - Most effective component of the fix
@@ -30,7 +30,7 @@ The fix consists of three components working together:
 ## How It Works
 
 1. When the backend starts, `deepinfra_response_fixer.py` patches litellm's response parsing classes
-2. The patched `ChoiceLogprobs` class intercepts responses and fixes null `top_logprobs` 
+2. The patched `ChoiceLogprobs` class intercepts responses and fixes null `top_logprobs`
 3. Input callbacks ensure we're not requesting logprobs in the first place
 4. The combination prevents both request and response issues
 

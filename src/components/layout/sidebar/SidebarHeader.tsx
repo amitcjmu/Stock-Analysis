@@ -17,7 +17,7 @@ const SidebarHeader: React.FC<SidebarHeaderProps> = ({
       userRole: user?.role,
       userEmail: user?.email
     });
-    
+
     if (!isAuthenticated) {
       return 'text-gray-400'; // White/gray for anonymous
     } else if (isAdmin) {
@@ -37,12 +37,12 @@ const SidebarHeader: React.FC<SidebarHeaderProps> = ({
 
   return (
     <div className="p-6 border-b border-gray-700">
-      <div 
+      <div
         className="flex items-center space-x-3 cursor-pointer hover:bg-gray-700 rounded-lg p-2 -m-2 transition-colors duration-200 group"
         onClick={onAuthClick}
         title={
           isLoading ? 'Loading...' :
-          isAuthenticated ? `Signed in as ${user?.full_name || user?.email || 'User'} - Click to logout` : 
+          isAuthenticated ? `Signed in as ${user?.full_name || user?.email || 'User'} - Click to logout` :
           'Click to login'
         }
       >

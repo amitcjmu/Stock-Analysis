@@ -104,9 +104,7 @@ class CircuitBreaker:
             )
         elif self.state == CircuitState.HALF_OPEN:
             self.state = CircuitState.OPEN
-            logger.warning(
-                f"⚡ Circuit breaker {self.name} reopened after test failure"
-            )
+            logger.warning(f"⚡ Circuit breaker {self.name} reopened after test failure")
 
     def get_state(self) -> Dict[str, Any]:
         """Get current circuit breaker state"""

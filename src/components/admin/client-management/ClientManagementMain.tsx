@@ -95,10 +95,10 @@ const ClientManagementMain: React.FC = () => {
 
   const handleUpdateClient = async () => {
     if (!editingClient) return;
-    
+
     const updatedClient = await updateClient(editingClient, formData);
     if (updatedClient) {
-      setClients(prev => prev.map(client => 
+      setClients(prev => prev.map(client =>
         client.id === editingClient.id ? updatedClient : client
       ));
       setEditingClient(null);
@@ -143,7 +143,7 @@ const ClientManagementMain: React.FC = () => {
     const dataStr = JSON.stringify(clients, null, 2);
     const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`;
     const exportFileDefaultName = `clients_export_${new Date().toISOString().split('T')[0]}.json`;
-    
+
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
@@ -228,7 +228,7 @@ const ClientManagementMain: React.FC = () => {
             }}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleCreateClient}
               disabled={actionLoading === 'create'}
             >
@@ -260,7 +260,7 @@ const ClientManagementMain: React.FC = () => {
             }}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleUpdateClient}
               disabled={actionLoading === editingClient?.id}
             >

@@ -113,13 +113,13 @@ const RecommendationsList: React.FC<RecommendationsListProps> = ({
           </Button>
         </div>
       </CardHeader>
-      
+
       <CardContent className="p-0">
         <div className="divide-y divide-gray-100">
           {recommendations.map((rec) => {
             const PriorityIcon = priorityIcons[rec.priority];
             const CategoryIcon = categoryIcons[rec.category] || Info;
-            
+
             return (
               <div key={rec.id} className="p-4 hover:bg-gray-50 transition-colors">
                 <div className="flex items-start">
@@ -128,7 +128,7 @@ const RecommendationsList: React.FC<RecommendationsListProps> = ({
                       <PriorityIcon className="h-4 w-4" />
                     </div>
                   </div>
-                  
+
                   <div className="ml-3 flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-medium text-gray-900">{rec.title}</h3>
@@ -142,9 +142,9 @@ const RecommendationsList: React.FC<RecommendationsListProps> = ({
                         </Badge>
                       </div>
                     </div>
-                    
+
                     <p className="mt-1 text-sm text-gray-600">{rec.description}</p>
-                    
+
                     <div className="mt-2 flex items-center text-xs text-gray-500 space-x-4">
                       <span className="flex items-center">
                         <Users className="h-3 w-3 mr-1 text-gray-400" />
@@ -159,7 +159,7 @@ const RecommendationsList: React.FC<RecommendationsListProps> = ({
                         {rec.impact} impact
                       </span>
                     </div>
-                    
+
                     <div className="mt-3 flex items-center justify-between">
                       <div className="flex space-x-2">
                         <Button variant="outline" size="sm" className="h-7 text-xs">
@@ -179,7 +179,7 @@ const RecommendationsList: React.FC<RecommendationsListProps> = ({
             );
           })}
         </div>
-        
+
         {initialRecommendations.length > maxItems && (
           <div className="border-t border-gray-100 px-4 py-3 text-center">
             <Button variant="ghost" size="sm" className="text-blue-600">

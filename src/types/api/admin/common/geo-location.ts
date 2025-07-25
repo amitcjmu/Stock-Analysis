@@ -1,9 +1,9 @@
 /**
  * Geographic Location Types
- * 
+ *
  * Common geographic and location-related type definitions used across
  * admin modules for audit logging, notifications, and analytics.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

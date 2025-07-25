@@ -1,6 +1,6 @@
 /**
  * Dashboard Types
- * 
+ *
  * Core dashboard component type definitions including props and layout.
  */
 

@@ -106,11 +106,11 @@ const ModernizeIndex = () => {
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-3">
                         <div className="flex h-3 rounded-full overflow-hidden">
-                          <div 
+                          <div
                             className={`${treatment.color} h-full`}
                             style={{ width: `${(treatment.completed / treatment.total) * 100}%` }}
                           ></div>
-                          <div 
+                          <div
                             className={`${treatment.color} opacity-60 h-full`}
                             style={{ width: `${(treatment.inProgress / treatment.total) * 100}%` }}
                           ></div>

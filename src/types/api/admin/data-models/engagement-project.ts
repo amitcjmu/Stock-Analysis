@@ -1,9 +1,9 @@
 /**
  * Engagement and Project Management Types
- * 
+ *
  * Project scope, timeline, budget, stakeholder management,
  * and engagement-specific data structures.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

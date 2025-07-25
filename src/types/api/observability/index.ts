@@ -1,6 +1,6 @@
 /**
  * Observability Types - Modular Export Index
- * 
+ *
  * Centralized export file for all observability-related types.
  * Provides a single import point for all observability functionality.
  */

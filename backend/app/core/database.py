@@ -343,9 +343,7 @@ class DatabaseManager:
         except Exception as e:
             response_time = (datetime.utcnow() - start_time).total_seconds()
             self.health_tracker.record_connection_attempt(False, response_time)
-            logger.error(
-                f"❌ Database health check failed in {response_time:.2f}s: {e}"
-            )
+            logger.error(f"❌ Database health check failed in {response_time:.2f}s: {e}")
             return False
 
     async def get_session(self) -> AsyncSession:

@@ -62,7 +62,7 @@ export function useFlowDeletion(
       );
 
       // Filter to only requested flows
-      const requestedCandidates = candidates.filter(c => 
+      const requestedCandidates = candidates.filter(c =>
         flowIds.includes(c.flowId)
       );
 

@@ -64,7 +64,7 @@ const AssessmentFlowOverview = () => {
         // This would be the actual API call
         // const response = await apiCall('assessment-flow/list', { headers });
         // return response.flows;
-        
+
         // Mock data for demonstration
         return [
           {
@@ -301,7 +301,7 @@ const AssessmentFlowOverview = () => {
                         {flows.map((flow) => (
                           <TableRow key={flow.id}>
                             <TableCell className="font-medium">
-                              <Link 
+                              <Link
                                 to={`/assessment/${flow.id}/architecture`}
                                 className="text-blue-600 hover:text-blue-800"
                               >
@@ -318,8 +318,8 @@ const AssessmentFlowOverview = () => {
                             <TableCell>
                               <div className="flex items-center space-x-2">
                                 <div className="w-16 bg-gray-200 rounded-full h-2">
-                                  <div 
-                                    className="bg-blue-600 h-2 rounded-full" 
+                                  <div
+                                    className="bg-blue-600 h-2 rounded-full"
                                     style={{ width: `${flow.progress}%` }}
                                   />
                                 </div>
@@ -349,7 +349,7 @@ const AssessmentFlowOverview = () => {
 
             <div className="xl:col-span-1 space-y-6">
               {/* Agent Communication Panel */}
-              <AgentClarificationPanel 
+              <AgentClarificationPanel
                 pageContext="assessment-overview"
                 refreshTrigger={0}
                 onQuestionAnswered={(questionId, response) => {
@@ -358,7 +358,7 @@ const AssessmentFlowOverview = () => {
               />
 
               {/* Agent Insights */}
-              <AgentInsightsSection 
+              <AgentInsightsSection
                 pageContext="assessment-overview"
                 refreshTrigger={0}
                 onInsightAction={(insightId, action) => {

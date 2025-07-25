@@ -46,8 +46,8 @@ const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({
   });
 
   const handleMetricToggle = (metric: string) => {
-    setSelectedMetrics(prev => 
-      prev.includes(metric) 
+    setSelectedMetrics(prev =>
+      prev.includes(metric)
         ? prev.filter(m => m !== metric)
         : [...prev, metric]
     );
@@ -99,7 +99,7 @@ const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <Select value={timeRange.toString()} onValueChange={(value) => setTimeRange(parseInt(value))}>
             <SelectTrigger className="w-32">
@@ -112,12 +112,12 @@ const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({
               <SelectItem value="365">Last year</SelectItem>
             </SelectContent>
           </Select>
-          
+
           <Button onClick={refresh} variant="outline" disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          
+
           {enableExport && (
             <Button onClick={handleExport} variant="outline">
               <Download className="w-4 h-4 mr-2" />
@@ -176,7 +176,7 @@ const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({
             </TabsContent>
 
             <TabsContent value="predictions">
-              <PredictionsTab 
+              <PredictionsTab
                 forecasts={analyticsData.predictiveInsights.forecasts}
                 showPredictions={showPredictions}
               />

@@ -33,11 +33,11 @@ export const sortJobs = (jobs: BulkAnalysisJob[]) => {
     // Running jobs first, then by priority, then by creation date
     if (a.status === 'running' && b.status !== 'running') return -1;
     if (b.status === 'running' && a.status !== 'running') return 1;
-    
+
     const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
     const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
     if (priorityDiff !== 0) return priorityDiff;
-    
+
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 };
@@ -48,7 +48,7 @@ export const calculateQueueStats = (jobs: BulkAnalysisJob[], maxConcurrentJobs: 
   const totalApplicationsInQueue = jobs
     .filter(j => j.status === 'pending' || j.status === 'running')
     .reduce((sum, j) => sum + j.total_applications, 0);
-  
+
   const estimatedTimeRemaining = jobs
     .filter(j => j.status === 'pending')
     .reduce((sum, j) => sum + j.estimated_duration, 0);
@@ -122,7 +122,7 @@ export const getJobDuration = (job: BulkAnalysisJob): number | null => {
 };
 
 export const filterJobs = (
-  jobs: BulkAnalysisJob[], 
+  jobs: BulkAnalysisJob[],
   filters: {
     status?: string;
     priority?: string;
@@ -136,7 +136,7 @@ export const filterJobs = (
     if (filters.priority && filters.priority !== 'all' && job.priority !== filters.priority) {
       return false;
     }
-    if (filters.search && !job.name.toLowerCase().includes(filters.search.toLowerCase()) && 
+    if (filters.search && !job.name.toLowerCase().includes(filters.search.toLowerCase()) &&
         !job.description?.toLowerCase().includes(filters.search.toLowerCase())) {
       return false;
     }
@@ -146,7 +146,7 @@ export const filterJobs = (
 
 export const exportJobResults = (jobId: string, results: BulkAnalysisResult[], format: 'csv' | 'json' | 'excel') => {
   const jobResults = results.filter(r => r.job_id === jobId);
-  
+
   switch (format) {
     case 'csv': {
       const headers = ['Application ID', 'Application Name', 'Status', 'Recommended Strategy', 'Confidence Score', 'Processing Time', 'Error Message'];
@@ -162,7 +162,7 @@ export const exportJobResults = (jobId: string, results: BulkAnalysisResult[], f
           result.error_message ? `"${result.error_message.replace(/"/g, '""')}"` : ''
         ].join(','))
       ].join('\n');
-      
+
       const blob = new Blob([csvData], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -172,7 +172,7 @@ export const exportJobResults = (jobId: string, results: BulkAnalysisResult[], f
       URL.revokeObjectURL(url);
       break;
     }
-    
+
     case 'json': {
       const jsonData = JSON.stringify(jobResults, null, 2);
       const blob = new Blob([jsonData], { type: 'application/json' });
@@ -184,7 +184,7 @@ export const exportJobResults = (jobId: string, results: BulkAnalysisResult[], f
       URL.revokeObjectURL(url);
       break;
     }
-    
+
     default:
       console.warn(`Export format ${format} not yet implemented`);
   }

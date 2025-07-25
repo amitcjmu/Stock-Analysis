@@ -39,7 +39,7 @@ const NavigationSidebar: React.FC = () => {
           {isOpen ? '«' : '»'}
         </button>
       </div>
-      
+
       <nav className="flex-1 px-2 space-y-1">
         {filteredNavigation.map((item) => (
           <NavLink
@@ -56,7 +56,7 @@ const NavigationSidebar: React.FC = () => {
           </NavLink>
         ))}
       </nav>
-      
+
       {isOpen && (
         <div className="p-4 border-t border-gray-700">
           <div className="flex items-center">

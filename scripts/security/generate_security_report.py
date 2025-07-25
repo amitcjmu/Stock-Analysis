@@ -34,9 +34,9 @@ class SecurityReportGenerator:
         try:
             with open(report_path) as f:
                 data = json.load(f)
-            
+
             self.summary['scans_performed'].append('Bandit SAST')
-            
+
             for result in data.get('results', []):
                 severity = result['issue_severity'].lower()
                 self.findings[severity].append({
@@ -56,9 +56,9 @@ class SecurityReportGenerator:
         try:
             with open(report_path) as f:
                 data = json.load(f)
-            
+
             self.summary['scans_performed'].append('Safety Dependency Scan')
-            
+
             for vuln in data.get('vulnerabilities', []):
                 self.findings['high'].append({
                     'tool': 'Safety',
@@ -77,9 +77,9 @@ class SecurityReportGenerator:
         try:
             with open(report_path) as f:
                 data = json.load(f)
-            
+
             self.summary['scans_performed'].append('Trivy Container Scan')
-            
+
             for result in data.get('Results', []):
                 for vuln in result.get('Vulnerabilities', []):
                     severity = vuln['Severity'].lower()
@@ -101,9 +101,9 @@ class SecurityReportGenerator:
         try:
             with open(report_path) as f:
                 data = json.load(f)
-            
+
             self.summary['scans_performed'].append('Semgrep SAST')
-            
+
             for result in data.get('results', []):
                 severity = 'high' if 'security' in result.get('check_id', '') else 'medium'
                 self.findings[severity].append({
@@ -124,17 +124,17 @@ class SecurityReportGenerator:
         bandit_reports = self.artifacts_dir.glob('**/bandit-report.json')
         for report in bandit_reports:
             self.parse_bandit_report(report)
-        
+
         # Dependency Reports
         safety_reports = self.artifacts_dir.glob('**/safety-report.json')
         for report in safety_reports:
             self.parse_safety_report(report)
-        
+
         # Container Reports
         trivy_reports = self.artifacts_dir.glob('**/trivy-results.json')
         for report in trivy_reports:
             self.parse_trivy_report(report)
-        
+
         # Semgrep Reports
         semgrep_reports = self.artifacts_dir.glob('**/semgrep-report.json')
         for report in semgrep_reports:
@@ -154,10 +154,10 @@ class SecurityReportGenerator:
         """Generate comprehensive markdown report"""
         report = f"""# Security Assessment Report
 
-**Generated**: {self.summary['scan_date']}  
-**Total Issues Found**: {self.summary['total_issues']}  
-**Critical Issues**: {self.summary['critical_count']}  
-**High Severity Issues**: {self.summary['high_count']}  
+**Generated**: {self.summary['scan_date']}
+**Total Issues Found**: {self.summary['total_issues']}
+**Critical Issues**: {self.summary['critical_count']}
+**High Severity Issues**: {self.summary['high_count']}
 
 ## Executive Summary
 
@@ -185,12 +185,12 @@ This security assessment was performed using automated security scanning tools a
 
         # Add detailed findings
         report += "## Detailed Findings\n\n"
-        
+
         for severity in ['critical', 'high', 'medium', 'low']:
             issues = self.findings[severity]
             if issues:
                 report += f"### {severity.upper()} Severity Issues ({len(issues)})\n\n"
-                
+
                 # Group by tool
                 by_tool = {}
                 for issue in issues:
@@ -198,7 +198,7 @@ This security assessment was performed using automated security scanning tools a
                     if tool not in by_tool:
                         by_tool[tool] = []
                     by_tool[tool].append(issue)
-                
+
                 for tool, tool_issues in by_tool.items():
                     report += f"#### {tool} Findings\n\n"
                     for i, issue in enumerate(tool_issues[:10], 1):  # Limit to 10 per tool
@@ -215,7 +215,7 @@ This security assessment was performed using automated security scanning tools a
                             report += f"   - CVE: {issue.get('cve', 'N/A')}\n"
                             report += f"   - Fix: Upgrade to {issue.get('fixed_version', 'N/A')}\n"
                         report += "\n"
-                    
+
                     if len(tool_issues) > 10:
                         report += f"   *... and {len(tool_issues) - 10} more {tool} findings*\n\n"
 
@@ -226,10 +226,10 @@ This security assessment was performed using automated security scanning tools a
 """
         if self.summary['critical_count'] > 0:
             report += "1. **Address Critical Vulnerabilities**: Fix all critical security issues before deployment\n"
-        
+
         if any('SECRET_KEY' in str(issue) for issues in self.findings.values() for issue in issues):
             report += "2. **Remove Hardcoded Secrets**: Move all secrets to environment variables\n"
-        
+
         if any('jwt' in str(issue).lower() for issues in self.findings.values() for issue in issues):
             report += "3. **Strengthen Authentication**: Implement proper JWT with expiration\n"
 
@@ -334,18 +334,18 @@ def main():
     if len(sys.argv) < 2:
         print("Usage: python generate_security_report.py <artifacts_directory>")
         sys.exit(1)
-    
+
     artifacts_dir = sys.argv[1]
     generator = SecurityReportGenerator(artifacts_dir)
-    
+
     # Collect and parse all reports
     generator.collect_reports()
     generator.calculate_summary()
-    
+
     # Generate markdown report
     report = generator.generate_markdown_report()
     print(report)
-    
+
     # Also save JSON report
     json_report = generator.generate_json_report()
     with open('security-report.json', 'w') as f:

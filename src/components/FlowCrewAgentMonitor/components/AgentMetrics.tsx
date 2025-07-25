@@ -16,14 +16,14 @@ export const AgentMetrics: React.FC<AgentMetricsProps> = ({
 }) => {
   const metrics = calculateAverageMetrics(crews);
   const allAgents = crews.flatMap(crew => crew.agents);
-  
+
   // Calculate additional metrics
   const totalTasks = allAgents.reduce((sum, agent) => sum + agent.performance.tasks_completed, 0);
-  const avgSuccessRate = allAgents.length > 0 ? 
+  const avgSuccessRate = allAgents.length > 0 ?
     allAgents.reduce((sum, agent) => sum + agent.performance.success_rate, 0) / allAgents.length : 0;
   const avgResponseTime = allAgents.length > 0 ?
     allAgents.reduce((sum, agent) => sum + agent.performance.avg_response_time, 0) / allAgents.length : 0;
-  
+
   // Collaboration metrics
   const collaboratingAgents = allAgents.filter(agent => agent.collaboration.is_collaborating).length;
   const collaborationRate = allAgents.length > 0 ? (collaboratingAgents / allAgents.length) * 100 : 0;
@@ -127,8 +127,8 @@ export const AgentMetrics: React.FC<AgentMetricsProps> = ({
               </div>
               <Progress value={avgSuccessRate * 100} className="h-2" />
               <p className="text-xs text-gray-600 mt-1">
-                {avgSuccessRate >= 0.95 ? 'Excellent performance' : 
-                 avgSuccessRate >= 0.85 ? 'Good performance' : 
+                {avgSuccessRate >= 0.95 ? 'Excellent performance' :
+                 avgSuccessRate >= 0.85 ? 'Good performance' :
                  avgSuccessRate >= 0.70 ? 'Fair performance' : 'Needs improvement'}
               </p>
             </div>
@@ -155,9 +155,9 @@ export const AgentMetrics: React.FC<AgentMetricsProps> = ({
                   {metrics.totalAgents > 0 ? ((metrics.activeAgents / metrics.totalAgents) * 100).toFixed(1) : 0}%
                 </span>
               </div>
-              <Progress 
-                value={metrics.totalAgents > 0 ? (metrics.activeAgents / metrics.totalAgents) * 100 : 0} 
-                className="h-2" 
+              <Progress
+                value={metrics.totalAgents > 0 ? (metrics.activeAgents / metrics.totalAgents) * 100 : 0}
+                className="h-2"
               />
               <p className="text-xs text-gray-600 mt-1">
                 {metrics.activeAgents} active out of {metrics.totalAgents} available agents
@@ -181,7 +181,7 @@ export const AgentMetrics: React.FC<AgentMetricsProps> = ({
               const crewSuccessRate = crew.agents.length > 0 ?
                 crew.agents.reduce((sum, agent) => sum + agent.performance.success_rate, 0) / crew.agents.length : 0;
               const activeAgentsInCrew = crew.agents.filter(agent => agent.status === 'active').length;
-              
+
               return (
                 <div key={crew.id} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
@@ -198,7 +198,7 @@ export const AgentMetrics: React.FC<AgentMetricsProps> = ({
                       <div className="text-xs text-gray-600">Success Rate</div>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div className="text-center">
                       <div className="font-semibold text-green-600">

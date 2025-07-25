@@ -1,9 +1,9 @@
 /**
  * Discovery Flow - Data Models Module
- * 
+ *
  * Core business data models and entity definitions for the Discovery Flow.
  * Contains field mappings, critical attributes, crew analysis, and flow data structures.
- * 
+ *
  * Generated with CC - Code Companion
  */
 

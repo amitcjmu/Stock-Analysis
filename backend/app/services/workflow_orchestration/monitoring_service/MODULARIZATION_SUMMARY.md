@@ -165,7 +165,7 @@ from app.services.workflow_orchestration.monitoring_service import MonitoringLev
 
 ### Class Distribution
 - **Original:** 12 classes in 1 file
-- **Modular:** 
+- **Modular:**
   - 8 dataclasses in `models.py`
   - 4 enums in `types.py`
   - 5 manager classes across domain modules

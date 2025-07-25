@@ -51,7 +51,7 @@ const strategyConfig = {
     modernization: 'Minimal'
   },
   replatform: {
-    label: 'Replatform', 
+    label: 'Replatform',
     description: 'Lift, tinker, and shift with basic optimizations',
     icon: '⚡',
     color: 'bg-green-500',
@@ -95,24 +95,24 @@ const strategyConfig = {
 };
 
 const getConfidenceLevel = (score: number): { level: string; color: string; icon: React.ReactNode } => {
-  if (score >= 0.8) return { 
-    level: 'High', 
-    color: 'text-green-600 bg-green-50 border-green-200', 
+  if (score >= 0.8) return {
+    level: 'High',
+    color: 'text-green-600 bg-green-50 border-green-200',
     icon: <CheckCircle className="h-4 w-4" />
   };
-  if (score >= 0.6) return { 
-    level: 'Medium', 
-    color: 'text-yellow-600 bg-yellow-50 border-yellow-200', 
+  if (score >= 0.6) return {
+    level: 'Medium',
+    color: 'text-yellow-600 bg-yellow-50 border-yellow-200',
     icon: <Star className="h-4 w-4" />
   };
-  if (score >= 0.4) return { 
-    level: 'Low', 
-    color: 'text-orange-600 bg-orange-50 border-orange-200', 
+  if (score >= 0.4) return {
+    level: 'Low',
+    color: 'text-orange-600 bg-orange-50 border-orange-200',
     icon: <AlertTriangle className="h-4 w-4" />
   };
-  return { 
-    level: 'Very Low', 
-    color: 'text-red-600 bg-red-50 border-red-200', 
+  return {
+    level: 'Very Low',
+    color: 'text-red-600 bg-red-50 border-red-200',
     icon: <AlertTriangle className="h-4 w-4" />
   };
 };
@@ -161,7 +161,7 @@ export const RecommendationDisplay: React.FC<RecommendationDisplayProps> = ({
     if (!config) return null;
 
     return (
-      <div 
+      <div
         key={strategyScore.strategy}
         className={`
           p-4 border rounded-lg transition-all
@@ -191,7 +191,7 @@ export const RecommendationDisplay: React.FC<RecommendationDisplayProps> = ({
             <span className="font-medium">{Math.round(strategyScore.confidence * 100)}%</span>
           </div>
           <Progress value={strategyScore.score} className="h-2" />
-          
+
           <div className="grid grid-cols-2 gap-4 mt-3 text-xs">
             <div>
               <span className="font-medium text-green-700">Benefits:</span>
@@ -384,7 +384,7 @@ export const RecommendationDisplay: React.FC<RecommendationDisplayProps> = ({
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {sortedStrategies.map((strategy, index) => 
+              {sortedStrategies.map((strategy, index) =>
                 renderStrategyCard(strategy, strategy.strategy === recommendation.recommended_strategy)
               )}
             </CardContent>
@@ -481,4 +481,4 @@ export const RecommendationDisplay: React.FC<RecommendationDisplayProps> = ({
   );
 };
 
-export default RecommendationDisplay; 
+export default RecommendationDisplay;

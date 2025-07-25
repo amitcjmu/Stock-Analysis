@@ -168,7 +168,7 @@ const defaultAssetInventoryData: Partial<AssetInventoryData> = {
 
 export const useAssetInventoryAnalysis = () => {
   const { getContextHeaders } = useAuth();
-  
+
   return useQuery<AssetInventoryData>({
     queryKey: ['asset-inventory-analysis'],
     queryFn: async () => {
@@ -187,11 +187,11 @@ export const useAssetInventoryAnalysis = () => {
 export const useRefreshAssetInventory = () => {
   const queryClient = useQueryClient();
   const { getContextHeaders } = useAuth();
-  
+
   return async () => {
     // Invalidate the query to trigger a refetch
     await queryClient.invalidateQueries({ queryKey: ['asset-inventory-analysis'] });
-    
+
     // Optionally force a refetch
     const data = await queryClient.fetchQuery({
       queryKey: ['asset-inventory-analysis'],
@@ -203,10 +203,10 @@ export const useRefreshAssetInventory = () => {
         return response as AssetInventoryData;
       }
     });
-    
+
     return data;
   };
 };
 
 // Export the main hook as useAssetInventory for backward compatibility
-export const useAssetInventory = useAssetInventoryAnalysis; 
+export const useAssetInventory = useAssetInventoryAnalysis;

@@ -21,7 +21,7 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({ agentData,
           <CardTitle>Performance Trends</CardTitle>
         </CardHeader>
         <CardContent>
-          <AgentMetricsChart 
+          <AgentMetricsChart
             data={{
               data: agentData.trends.successRateHistory.map((rate, index) => ({
                 timestamp: agentData.trends.timestamps[index],
@@ -45,7 +45,7 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({ agentData,
           <CardTitle>Duration Trends</CardTitle>
         </CardHeader>
         <CardContent>
-          <AgentMetricsChart 
+          <AgentMetricsChart
             data={{
               data: agentData.trends.durationHistory.map((duration, index) => ({
                 timestamp: agentData.trends.timestamps[index],
@@ -69,7 +69,7 @@ export const PerformanceCharts: React.FC<PerformanceChartsProps> = ({ agentData,
           <CardTitle>Confidence Score Evolution</CardTitle>
         </CardHeader>
         <CardContent>
-          <AgentMetricsChart 
+          <AgentMetricsChart
             data={{
               data: agentData.trends.confidenceHistory.map((confidence, index) => ({
                 timestamp: agentData.trends.timestamps[index],

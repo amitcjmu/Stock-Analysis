@@ -1,6 +1,6 @@
 /**
  * Flow List Sidebar Component
- * 
+ *
  * Displays a list of collection flows in a sidebar layout with selection capability.
  * Extracted from Progress.tsx to create a focused, reusable component.
  */
@@ -65,8 +65,8 @@ export const FlowListSidebar: React.FC<FlowListSidebarProps> = ({
             <div
               key={flow.id}
               className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                selectedFlow === flow.id 
-                  ? 'border-primary bg-primary/5' 
+                selectedFlow === flow.id
+                  ? 'border-primary bg-primary/5'
                   : 'hover:bg-muted/50'
               }`}
               onClick={() => onFlowSelect(flow.id)}
@@ -75,19 +75,19 @@ export const FlowListSidebar: React.FC<FlowListSidebarProps> = ({
                 <span className="font-medium text-sm line-clamp-2">{flow.name}</span>
                 {getStatusBadge(flow.status)}
               </div>
-              
+
               <Progress value={flow.progress} className="h-2 mb-2" />
-              
+
               <div className="text-xs text-muted-foreground">
                 {flow.completedApplications}/{flow.applicationCount} apps ({Math.round(flow.progress)}%)
               </div>
-              
+
               <div className="text-xs text-muted-foreground mt-1 capitalize">
                 Type: {flow.type}
               </div>
             </div>
           ))}
-          
+
           {flows.length === 0 && (
             <div className="text-center text-muted-foreground py-8">
               <p className="text-sm">No active collection flows</p>

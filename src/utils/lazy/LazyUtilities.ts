@@ -80,7 +80,7 @@ class LazyUtilityManager {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         const startTime = performance.now();
-        
+
         const utilityModule = await Promise.race([
           importFn(),
           new Promise<never>((_, reject) =>
@@ -101,7 +101,7 @@ class LazyUtilityManager {
         return utility;
       } catch (error) {
         lastError = error as Error;
-        
+
         // Exponential backoff for retries
         if (attempt < maxRetries) {
           await this.delay(Math.pow(2, attempt) * 500);
@@ -132,7 +132,7 @@ const lazyUtilityManager = LazyUtilityManager.getInstance();
  */
 
 // API Utilities
-export const loadAPIUtils = (): Promise<unknown> => 
+export const loadAPIUtils = (): Promise<unknown> =>
   lazyUtilityManager.loadUtility(
     'api-utils',
     () => import('@/utils/api'),

@@ -1,6 +1,6 @@
 /**
  * Global Polling Management System
- * 
+ *
  * This module provides centralized control over all polling operations
  * to prevent runaway polling and implement pull-based request patterns.
  */
@@ -67,7 +67,7 @@ class PollingManager {
 
     this.pollers.set(config.id, pollerConfig);
     console.log(`✅ Registered poller: ${config.id} (${config.component}) - ${interval}ms interval`);
-    
+
     return true;
   }
 
@@ -76,11 +76,11 @@ class PollingManager {
    */
   emergencyStop(): void {
     console.warn('🚨 EMERGENCY STOP: Stopping all polling operations');
-    
+
     for (const pollerId of this.intervals.keys()) {
       this.stop(pollerId);
     }
-    
+
     this.pollers.clear();
     this.intervals.clear();
     this.globalEnabled = false;

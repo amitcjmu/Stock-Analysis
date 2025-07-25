@@ -1,8 +1,8 @@
 /**
  * Notification API Types
- * 
+ *
  * Request and response type definitions for notification management APIs.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

@@ -32,7 +32,7 @@ export const useDashboardFilters = (flows: FlowSummary[]) => {
           flow.current_phase,
           flow.flow_id
         ].join(' ').toLowerCase();
-        
+
         if (!searchableText.includes(query)) {
           return false;
         }
@@ -43,7 +43,7 @@ export const useDashboardFilters = (flows: FlowSummary[]) => {
         const now = new Date();
         const flowDate = new Date(flow.started_at);
         const diffHours = (now.getTime() - flowDate.getTime()) / (1000 * 60 * 60);
-        
+
         switch (filters.timeRange) {
           case '1h':
             if (diffHours > 1) return false;
@@ -116,7 +116,7 @@ export const useDashboardFilters = (flows: FlowSummary[]) => {
   const availableOptions = useMemo(() => {
     const statuses = [...new Set(flows.map(f => f.status))];
     const flowTypes = [...new Set(flows.map(f => f.flow_type))];
-    
+
     return {
       statuses,
       flowTypes,

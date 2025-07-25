@@ -1,6 +1,6 @@
 /**
  * Base Form Types
- * 
+ *
  * Common base interfaces and utilities used across all form components.
  */
 

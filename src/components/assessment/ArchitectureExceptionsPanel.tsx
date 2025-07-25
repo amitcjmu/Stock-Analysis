@@ -42,7 +42,7 @@ export const ArchitectureExceptionsPanel: React.FC<ArchitectureExceptionsPanelPr
                 {decision.architecture_exceptions.length} Exception(s) Required
               </span>
             </div>
-            
+
             <div className="space-y-2">
               {decision.architecture_exceptions.map((exception, index) => (
                 <div key={index} className="p-3 bg-orange-50 border border-orange-200 rounded-lg">

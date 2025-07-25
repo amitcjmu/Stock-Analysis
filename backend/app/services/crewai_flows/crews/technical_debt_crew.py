@@ -101,9 +101,9 @@ class TechnicalDebtCrew:
         tech_debt_manager = Agent(
             role="Enterprise Technical Debt Assessment Manager",
             goal="Coordinate comprehensive technical debt analysis and 6R migration strategy preparation across IT portfolio",
-            backstory="""You are a senior enterprise architect with specialized expertise in technical debt analysis 
+            backstory="""You are a senior enterprise architect with specialized expertise in technical debt analysis
             and cloud migration strategy for large-scale enterprise transformations. Your role and boundaries:
-            
+
             CORE COORDINATION RESPONSIBILITIES:
             - Orchestrate comprehensive technical debt assessment across IT portfolio
             - Coordinate legacy technology analysis, modernization strategy, and risk assessment
@@ -112,27 +112,27 @@ class TechnicalDebtCrew:
             - Validate technical debt scoring accuracy and consistency
             - Manage migration strategy recommendations and prioritization
             - Escalate complex modernization decisions via Agent-UI-Bridge
-            
+
             TECHNICAL DEBT COORDINATION DUTIES:
             - Manage Legacy Technology Analyst for technology stack assessment
             - Coordinate Modernization Strategy Expert for 6R recommendations
             - Oversee Risk Assessment Specialist for migration risk analysis
             - Ensure consistent evaluation criteria across all assessments
             - Validate technical debt scoring methodology and results
-            
+
             CLEAR BOUNDARIES - WHAT YOU DO NOT DO:
             - You DO NOT perform detailed technology stack analysis (Legacy Analyst role)
             - You DO NOT create specific modernization recommendations (Strategy Expert role)
             - You DO NOT conduct detailed risk assessments (Risk Specialist role)
             - You DO NOT make business case decisions (coordinate with business stakeholders)
-            
+
             DELEGATION AUTHORITY & DECISION MAKING:
             - Maximum 3 delegations total across all technical debt tasks
             - After 2nd delegation on any assessment area, YOU make the final decision
             - Authority to override specialist recommendations for portfolio consistency
             - Use Agent-UI-Bridge for user clarification on complex modernization decisions
             - Determine when technical debt assessment meets 6R preparation criteria
-            
+
             ESCALATION TRIGGERS:
             - Conflicting modernization strategies between experts
             - Unknown technologies requiring specialized assessment
@@ -154,8 +154,8 @@ class TechnicalDebtCrew:
         legacy_analyst = Agent(
             role="Legacy Systems Analyst",
             goal="Identify legacy systems and assess technical debt for migration planning",
-            backstory="""You are an expert in legacy system analysis with deep knowledge of enterprise 
-            technology portfolios. You excel at identifying technical debt, legacy dependencies, and 
+            backstory="""You are an expert in legacy system analysis with deep knowledge of enterprise
+            technology portfolios. You excel at identifying technical debt, legacy dependencies, and
             modernization opportunities that impact migration strategy decisions.""",
             llm=self.llm_model,
             memory=self.shared_memory,
@@ -169,8 +169,8 @@ class TechnicalDebtCrew:
         modernization_expert = Agent(
             role="Modernization Expert",
             goal="Assess modernization opportunities and recommend 6R strategies for each asset",
-            backstory="""You are a cloud modernization expert with extensive experience in 6R migration 
-            strategies. You excel at evaluating technical assets and recommending optimal migration 
+            backstory="""You are a cloud modernization expert with extensive experience in 6R migration
+            strategies. You excel at evaluating technical assets and recommending optimal migration
             approaches (Rehost, Replatform, Refactor, Rearchitect, Retire, Retain).""",
             llm=self.llm_model,
             memory=self.shared_memory,
@@ -184,8 +184,8 @@ class TechnicalDebtCrew:
         risk_specialist = Agent(
             role="Risk Assessment Specialist",
             goal="Assess migration risks and complexity factors for 6R strategy validation",
-            backstory="""You are a migration risk specialist with expertise in assessing technical and 
-            business risks associated with cloud migration. You excel at identifying risk factors and 
+            backstory="""You are a migration risk specialist with expertise in assessing technical and
+            business risks associated with cloud migration. You excel at identifying risk factors and
             validating migration strategies to ensure successful outcomes.""",
             llm=self.llm_model,
             memory=self.shared_memory,
@@ -218,19 +218,19 @@ class TechnicalDebtCrew:
         # Planning Task - Manager coordinates technical debt analysis approach
         planning_task = Task(
             description=f"""Plan comprehensive technical debt analysis and 6R strategy preparation.
-            
+
             Available assets for analysis:
             - Total assets: {len(all_assets)} assets across servers, applications, and devices
             - App-server dependencies: {len(app_server_deps)} hosting relationships
             - App-app dependencies: {len(app_app_deps)} integration relationships
-            
+
             Create a technical debt analysis plan that:
             1. Assigns legacy analysis priorities based on dependencies
             2. Defines 6R strategy assessment methodology
             3. Establishes risk assessment criteria
             4. Plans collaboration between legacy, modernization, and risk specialists
             5. Leverages dependency and inventory insights from shared memory
-            
+
             Use your planning capabilities to coordinate comprehensive migration strategy preparation.""",
             expected_output="Comprehensive technical debt analysis plan with 6R strategy approach and risk assessment methodology",
             agent=manager,
@@ -240,12 +240,12 @@ class TechnicalDebtCrew:
         # Legacy Systems Analysis Task
         legacy_analysis_task = Task(
             description=f"""Identify legacy systems and assess technical debt for migration planning.
-            
+
             Assets to analyze:
             - Total assets: {len(all_assets)} assets
             - Dependency context: App-server and app-app relationships available
             - Sample assets: {all_assets[:3] if all_assets else []}
-            
+
             Legacy Analysis Requirements:
             1. Identify legacy technologies and end-of-life systems
             2. Assess technical debt across infrastructure and applications
@@ -254,7 +254,7 @@ class TechnicalDebtCrew:
             5. Assess skill availability for current technologies
             6. Generate legacy assessment report with modernization priorities
             7. Store legacy insights in shared memory for modernization expert
-            
+
             Collaborate with modernization expert to share legacy discoveries.""",
             expected_output="Comprehensive legacy systems assessment with technical debt analysis and modernization priorities",
             agent=legacy_analyst,
@@ -265,11 +265,11 @@ class TechnicalDebtCrew:
         # 6R Strategy Assessment Task
         modernization_task = Task(
             description=f"""Assess modernization opportunities and recommend 6R strategies.
-            
+
             Legacy context: Use insights from legacy analyst
             Asset inventory: {len(all_assets)} assets requiring strategy decisions
             Dependency relationships: App-server and app-app dependencies available
-            
+
             6R Strategy Assessment Requirements:
             1. Evaluate each asset for optimal 6R strategy:
                - Rehost: Lift-and-shift to cloud
@@ -282,7 +282,7 @@ class TechnicalDebtCrew:
             3. Assess business value vs. effort for each strategy
             4. Generate 6R recommendations with justification
             5. Use legacy analyst insights from shared memory
-            
+
             Collaborate with risk specialist to validate strategy recommendations.""",
             expected_output="Comprehensive 6R strategy recommendations with business justification and dependency considerations",
             agent=modernization_expert,
@@ -293,11 +293,11 @@ class TechnicalDebtCrew:
         # Risk Assessment Task
         risk_assessment_task = Task(
             description="""Assess migration risks and complexity factors for 6R strategy validation.
-            
+
             6R strategies: Use recommendations from modernization expert
             Legacy context: Technical debt and modernization insights available
             Dependencies: App-server and app-app relationship constraints
-            
+
             Risk Assessment Requirements:
             1. Assess technical risks for each 6R strategy
             2. Evaluate business continuity risks during migration
@@ -306,7 +306,7 @@ class TechnicalDebtCrew:
             5. Validate 6R strategy feasibility and timeline
             6. Generate risk mitigation recommendations
             7. Use modernization expert insights from shared memory
-            
+
             Collaborate with all specialists to validate comprehensive risk assessment.""",
             expected_output="Comprehensive risk assessment with 6R strategy validation and mitigation recommendations",
             agent=risk_specialist,

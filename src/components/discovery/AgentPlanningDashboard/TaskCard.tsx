@@ -1,6 +1,6 @@
 /**
  * Task Card Component
- * 
+ *
  * Renders individual task cards with status and progress.
  */
 
@@ -33,7 +33,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, showProgress = true }) => {
           <p className="text-sm text-gray-600 mb-2">{task.task_description}</p>
           {showProgress && task.progress > 0 && (
             <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-              <div 
+              <div
                 className="bg-blue-500 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${task.progress}%` }}
               />

@@ -14,7 +14,7 @@ const DependencyProgress: React.FC<DependencyProgressProps> = ({ data, isLoading
   const hostingRelationships = data?.app_server_mapping?.hosting_relationships || [];
   const crossAppDependencies = data?.cross_application_mapping?.cross_app_dependencies || [];
 
-  const appServerProgress = hostingRelationships.length > 0 ? 
+  const appServerProgress = hostingRelationships.length > 0 ?
     (hostingRelationships.filter(r => r?.status === 'confirmed').length / hostingRelationships.length) * 100 : 0;
 
   const appAppProgress = crossAppDependencies.length > 0 ?
@@ -57,4 +57,4 @@ const DependencyProgress: React.FC<DependencyProgressProps> = ({ data, isLoading
   );
 };
 
-export default DependencyProgress; 
+export default DependencyProgress;

@@ -76,8 +76,8 @@ export const ClientTable: React.FC<ClientTableProps> = ({
           {clients.map((client) => (
             <TableRow key={client.id}>
               <TableCell className="font-medium">
-                <Link 
-                  to={`/admin/clients/${client.id}`} 
+                <Link
+                  to={`/admin/clients/${client.id}`}
                   className="hover:underline"
                 >
                   {client.account_name}
@@ -104,8 +104,8 @@ export const ClientTable: React.FC<ClientTableProps> = ({
               <TableCell className="text-right">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="icon"
                       disabled={actionLoading === client.id}
                     >
@@ -123,7 +123,7 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                       <Edit className="mr-2 h-4 w-4" />
                       Edit
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => onDeleteClient(client.id, client.account_name)}
                       className="text-red-600"
                     >

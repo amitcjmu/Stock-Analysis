@@ -96,7 +96,7 @@ const FeedbackView: React.FC = () => {
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">Feedback Overview</h1>
-      
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
@@ -107,7 +107,7 @@ const FeedbackView: React.FC = () => {
             <p className="text-2xl font-bold">{stats.total_count}</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Average Rating</CardTitle>
@@ -116,7 +116,7 @@ const FeedbackView: React.FC = () => {
             <p className="text-2xl font-bold">{stats.average_rating.toFixed(1)}/5</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Needs Attention</CardTitle>
@@ -125,7 +125,7 @@ const FeedbackView: React.FC = () => {
             <p className="text-2xl font-bold text-yellow-600">{stats.needs_attention_count}</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Resolved</CardTitle>
@@ -152,16 +152,16 @@ const FeedbackView: React.FC = () => {
 
         <TabsContent value="needs_attention">
           <ScrollArea className="h-[600px]">
-            <FeedbackList 
-              items={feedback.filter(item => item.status === 'needs_attention')} 
+            <FeedbackList
+              items={feedback.filter(item => item.status === 'needs_attention')}
             />
           </ScrollArea>
         </TabsContent>
 
         <TabsContent value="resolved">
           <ScrollArea className="h-[600px]">
-            <FeedbackList 
-              items={feedback.filter(item => item.status === 'resolved')} 
+            <FeedbackList
+              items={feedback.filter(item => item.status === 'resolved')}
             />
           </ScrollArea>
         </TabsContent>
@@ -203,4 +203,3 @@ const FeedbackList: React.FC<{ items: Feedback[] }> = ({ items }) => {
 };
 
 export default FeedbackView;
- 

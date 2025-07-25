@@ -171,7 +171,7 @@ Use this tool when you need to examine assets to support your reasoning.
 Input should be a JSON object with:
 - asset_type: filter by asset type (optional)
 - technology_stack: filter by technology (optional)
-- environment: filter by environment (optional)  
+- environment: filter by environment (optional)
 - business_criticality: filter by criticality (optional)
 - limit: maximum number of results (default 10)
 - include_fields: list of specific fields to include in results
@@ -320,7 +320,7 @@ Use this tool when you identify a repeatable pattern that could help future anal
 Input should be a JSON object with:
 - pattern_type: type of pattern (e.g., 'business_value_indicator', 'risk_factor')
 - pattern_name: descriptive name for the pattern
-- pattern_description: detailed description of when this pattern applies  
+- pattern_description: detailed description of when this pattern applies
 - pattern_logic: the actual pattern rules/criteria as a JSON object
 - confidence_score: your confidence in this pattern (0.0 to 1.0)
 - evidence_assets: list of asset IDs that support this pattern (optional)
@@ -427,7 +427,7 @@ Use this tool to update asset fields with your reasoned conclusions.
 Input should be a JSON object with:
 - asset_id: UUID of the asset to enrich
 - business_value_score: business value score 1-10 (optional)
-- risk_assessment: risk level 'low', 'medium', 'high', 'critical' (optional)  
+- risk_assessment: risk level 'low', 'medium', 'high', 'critical' (optional)
 - modernization_potential: potential 'low', 'medium', 'high' (optional)
 - cloud_readiness_score: cloud readiness 0-100 (optional)
 - reasoning: detailed explanation of your analysis and conclusions

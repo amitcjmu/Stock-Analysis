@@ -213,4 +213,4 @@ export const useChat = () => {
     refreshChat,
     hasActiveConversation: true // Always true for development
   };
-}; 
+};

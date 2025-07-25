@@ -1,6 +1,6 @@
 /**
  * Data Fetching Hook Types
- * 
+ *
  * Hook interfaces for data operations including pagination, sorting, filtering, and search functionality.
  */
 

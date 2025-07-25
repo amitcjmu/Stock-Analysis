@@ -29,7 +29,7 @@ const NavigationMenu: React.FC<NavigationMenuProps> = ({
         {navigationItems.map((item) => {
           const isActive = currentPath === item.path;
           const isParentActive = checkIfParentActive(item);
-          
+
           return item.hasSubmenu ? (
             <ExpandableMenuSection
               key={item.name}

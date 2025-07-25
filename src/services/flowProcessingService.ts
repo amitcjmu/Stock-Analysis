@@ -1,6 +1,6 @@
 /**
  * Flow Processing Service - Frontend integration with the Flow Processing Agent
- * 
+ *
  * This service provides the frontend interface to the Flow Processing Agent,
  * which serves as the central routing agent for all CrewAI flows.
  */
@@ -122,7 +122,7 @@ class FlowProcessingService {
   ): Promise<FlowContinuationResponse> {
     try {
       console.log(`🤖 FLOW PROCESSING SERVICE: Requesting continuation for flow ${flowId}`);
-      
+
       const response = await apiCall(`${this.baseUrl}/continue/${flowId}`, {
         method: 'POST',
         body: JSON.stringify({
@@ -153,12 +153,12 @@ class FlowProcessingService {
   async getChecklistStatus(flowId: string): Promise<FlowChecklistResponse> {
     try {
       console.log(`📋 CHECKLIST SERVICE: Getting status for flow ${flowId}`);
-      
+
       const response = await apiCall(`${this.baseUrl}/checklist/${flowId}`);
-      
+
       console.log(`📊 CHECKLIST RESULT: ${response.overall_completion.toFixed(1)}% complete`);
       console.log(`🔄 NEXT TASKS:`, response.next_required_tasks);
-      
+
       return response;
     } catch (error) {
       console.error('Checklist Service error:', error);
@@ -173,13 +173,13 @@ class FlowProcessingService {
   async analyzeFlowState(flowId: string): Promise<FlowAnalysisResponse> {
     try {
       console.log(`🔍 ANALYSIS SERVICE: Analyzing flow state for ${flowId}`);
-      
+
       const response = await apiCall(`${this.baseUrl}/analyze/${flowId}`, {
         method: 'POST'
       });
-      
+
       console.log(`🧠 ANALYSIS RESULT:`, response.analysis.routing_decision);
-      
+
       return response;
     } catch (error) {
       console.error('Analysis Service error:', error);
@@ -192,20 +192,20 @@ class FlowProcessingService {
    */
   formatUserGuidance(guidance: FlowContinuationResponse['user_guidance']): string {
     const { primary_message, action_items, estimated_completion_time } = guidance;
-    
+
     let formatted = `🤖 ${primary_message}\n\n`;
-    
+
     if (action_items.length > 0) {
       formatted += `🎯 Next Steps:\n`;
       action_items.forEach((step, index) => {
         formatted += `  ${index + 1}. ${step}\n`;
       });
     }
-    
+
     if (estimated_completion_time) {
       formatted += `⏳ Estimated Completion Time: ${estimated_completion_time} minutes\n`;
     }
-    
+
     return formatted;
   }
 
@@ -221,7 +221,7 @@ class FlowProcessingService {
       'dependencies': 'Dependency Analysis',
       'tech_debt': 'Technical Debt Analysis'
     };
-    
+
     return phaseNames[phase] || phase.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   }
 
@@ -236,7 +236,7 @@ class FlowProcessingService {
       'not_started': '⭕',
       'in_progress': '🔄'
     };
-    
+
     return icons[status] || '❓';
   }
 
@@ -251,7 +251,7 @@ class FlowProcessingService {
       'blocked': 'text-red-600',
       'not_started': 'text-gray-600'
     };
-    
+
     return colors[status] || 'text-gray-600';
   }
 }
@@ -260,4 +260,4 @@ class FlowProcessingService {
 export const flowProcessingService = new FlowProcessingService();
 
 // Export for use in React hooks
-export default flowProcessingService; 
+export default flowProcessingService;

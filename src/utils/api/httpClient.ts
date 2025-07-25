@@ -65,7 +65,7 @@ class HttpClient implements ApiClient {
       keyPrefix: this.config.cachePrefix,
       defaultTtl: this.config.defaultCacheTtl
     });
-    
+
     // Add default interceptors
     this.addDefaultInterceptors();
   }
@@ -121,7 +121,7 @@ class HttpClient implements ApiClient {
   ): Promise<ApiResponse<T>> {
     const startTime = Date.now();
     const fullUrl = this.buildUrl(url);
-    
+
     // Apply request interceptors
     let requestConfig: RequestConfig = {
       method: method as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
@@ -155,7 +155,7 @@ class HttpClient implements ApiClient {
     try {
       // Make the actual request
       const response = await this.makeRequest<T>(requestConfig);
-      
+
       // Apply response interceptors
       let processedResponse = response;
       for (const interceptor of this.getSortedInterceptors(this.responseInterceptors)) {
@@ -180,7 +180,7 @@ class HttpClient implements ApiClient {
 
     } catch (error) {
       this.updateMetrics(Date.now() - startTime, false, false);
-      
+
       // Apply error interceptors
       let processedError = error;
       for (const interceptor of this.getSortedInterceptors(this.responseInterceptors)) {
@@ -200,11 +200,11 @@ class HttpClient implements ApiClient {
 
   private async makeRequest<T>(config: RequestConfig): Promise<ApiResponse<T>> {
     const { method = 'GET', url, data, headers, timeout, params } = config;
-    
+
     if (!url) {
       throw new Error('URL is required for request');
     }
-    
+
     // Build query string for GET requests
     const queryString = params ? this.buildQueryString(params) : '';
     const fullUrl = queryString ? `${url}?${queryString}` : url;
@@ -226,11 +226,11 @@ class HttpClient implements ApiClient {
     }
 
     const response = await fetch(fullUrl, requestInit);
-    
+
     // Handle different response types
     let responseData: unknown;
     const contentType = response.headers.get('Content-Type');
-    
+
     if (contentType?.includes('application/json')) {
       responseData = await response.json();
     } else if (contentType?.includes('text/')) {
@@ -270,7 +270,7 @@ class HttpClient implements ApiClient {
 
   private buildQueryString(params: Record<string, unknown>): string {
     const searchParams = new URLSearchParams();
-    
+
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         if (Array.isArray(value)) {
@@ -280,7 +280,7 @@ class HttpClient implements ApiClient {
         }
       }
     });
-    
+
     return searchParams.toString();
   }
 
@@ -296,7 +296,7 @@ class HttpClient implements ApiClient {
 
   private updateMetrics(latency: number, success: boolean, cacheHit: boolean): void {
     this.metrics.requestCount++;
-    
+
     if (success) {
       // Update average latency
       const totalLatency = this.metrics.averageLatency * (this.metrics.requestCount - 1) + latency;
@@ -356,7 +356,7 @@ class HttpClient implements ApiClient {
   async upload<T = unknown>(url: string, config: UploadConfig): Promise<ApiResponse<T>> {
     const formData = new FormData();
     formData.append(config.fieldName || 'file', config.file);
-    
+
     // Add additional data if provided
     if (config.data) {
       Object.entries(config.data).forEach(([key, value]) => {
@@ -402,21 +402,21 @@ class HttpClient implements ApiClient {
 
   async poll<T = unknown>(url: string, config: PollingConfig): Promise<ApiResponse<T>> {
     let attempt = 0;
-    
+
     while (attempt < config.maxAttempts) {
       try {
         const response = await this.get<T>(url);
-        
+
         if (config.onProgress) {
           config.onProgress(attempt + 1, response);
         }
-        
+
         if (config.stopCondition(response)) {
           return response;
         }
-        
+
         attempt++;
-        
+
         if (attempt < config.maxAttempts) {
           await new Promise(resolve => setTimeout(resolve, config.interval));
         }
@@ -428,18 +428,18 @@ class HttpClient implements ApiClient {
         await new Promise(resolve => setTimeout(resolve, config.interval));
       }
     }
-    
+
     throw new Error(`Polling failed after ${config.maxAttempts} attempts`);
   }
 
   async healthCheck(): Promise<HealthCheckResult[]> {
     const healthUrl = '/api/v1/health';
     const startTime = Date.now();
-    
+
     try {
       const response = await this.get(healthUrl);
       const latency = Date.now() - startTime;
-      
+
       return [{
         service: 'api',
         status: 'healthy',

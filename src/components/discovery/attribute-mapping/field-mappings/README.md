@@ -20,8 +20,8 @@ FieldMappingsTab (Main Composition)
 ## Component Breakdown
 
 ### 1. MappingFilters
-**File:** `MappingFilters.tsx`  
-**Purpose:** Filter controls for mapping status  
+**File:** `MappingFilters.tsx`
+**Purpose:** Filter controls for mapping status
 **Features:**
 - Checkbox filters for pending, approved, rejected
 - Live count display for each status
@@ -29,8 +29,8 @@ FieldMappingsTab (Main Composition)
 - Clean filter UI layout
 
 ### 2. FieldMappingsList
-**File:** `FieldMappingsList.tsx`  
-**Purpose:** Container for mapping items with virtualization  
+**File:** `FieldMappingsList.tsx`
+**Purpose:** Container for mapping items with virtualization
 **Features:**
 - Scrollable list container
 - Pagination support
@@ -38,8 +38,8 @@ FieldMappingsTab (Main Composition)
 - Efficient rendering of large lists
 
 ### 3. FieldMappingItem
-**File:** `FieldMappingItem.tsx`  
-**Purpose:** Individual mapping row component  
+**File:** `FieldMappingItem.tsx`
+**Purpose:** Individual mapping row component
 **Features:**
 - Mapping information display
 - Status indicators and styling
@@ -48,8 +48,8 @@ FieldMappingsTab (Main Composition)
 - AI reasoning display
 
 ### 4. TargetFieldSelector
-**File:** `TargetFieldSelector.tsx`  
-**Purpose:** Dropdown with search and filter for field selection  
+**File:** `TargetFieldSelector.tsx`
+**Purpose:** Dropdown with search and filter for field selection
 **Features:**
 - Advanced dropdown with search
 - Category-based filtering
@@ -58,8 +58,8 @@ FieldMappingsTab (Main Composition)
 - Real-time search functionality
 
 ### 5. ApprovalWorkflow
-**File:** `ApprovalWorkflow.tsx`  
-**Purpose:** Approve/reject buttons and workflow logic  
+**File:** `ApprovalWorkflow.tsx`
+**Purpose:** Approve/reject buttons and workflow logic
 **Features:**
 - Approve and reject buttons
 - Loading states during operations
@@ -67,8 +67,8 @@ FieldMappingsTab (Main Composition)
 - Bulk action support potential
 
 ### 6. MappingPagination
-**File:** `MappingPagination.tsx`  
-**Purpose:** Pagination controls and navigation  
+**File:** `MappingPagination.tsx`
+**Purpose:** Pagination controls and navigation
 **Features:**
 - Previous/next navigation
 - Item count display
@@ -76,8 +76,8 @@ FieldMappingsTab (Main Composition)
 - Accessible pagination controls
 
 ### 7. RejectionDialog
-**File:** `RejectionDialog.tsx`  
-**Purpose:** Modal for rejection reasons and confirmation  
+**File:** `RejectionDialog.tsx`
+**Purpose:** Modal for rejection reasons and confirmation
 **Features:**
 - Pre-defined rejection reasons
 - Custom reason input
@@ -131,11 +131,11 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   // State management
   const [availableFields, setAvailableFields] = useState<TargetField[]>([]);
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({...});
-  
+
   // Event handlers
   const handleApproveMapping = async (mappingId: string) => {...};
   const handleRejectMapping = async (mappingId: string, reason?: string) => {...};
-  
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-8">
       <MappingFilters {...filterProps} />
@@ -167,14 +167,14 @@ function AttributeMappingPage() {
 
 ### Individual Component Usage
 ```typescript
-import { 
-  FieldMappingItem, 
-  TargetFieldSelector, 
-  ApprovalWorkflow 
+import {
+  FieldMappingItem,
+  TargetFieldSelector,
+  ApprovalWorkflow
 } from './components/discovery/attribute-mapping/field-mappings';
 
 // Use components individually if needed
-<FieldMappingItem 
+<FieldMappingItem
   mapping={mapping}
   availableFields={fields}
   onApproveMapping={handleApprove}
@@ -301,14 +301,14 @@ import { FieldMappingItem } from './FieldMappingItem';
 
 test('renders mapping with correct confidence level', () => {
   render(
-    <FieldMappingItem 
+    <FieldMappingItem
       mapping={mockMapping}
       availableFields={mockFields}
       onApproveMapping={jest.fn()}
       onRejectMapping={jest.fn()}
     />
   );
-  
+
   expect(screen.getByText('85% confidence')).toBeInTheDocument();
 });
 ```
@@ -354,7 +354,7 @@ const handleAction = async () => {
 ### Conditional Rendering
 ```typescript
 {mapping.status === 'pending' && (
-  <ApprovalWorkflow 
+  <ApprovalWorkflow
     onApprove={handleApprove}
     onReject={handleReject}
   />

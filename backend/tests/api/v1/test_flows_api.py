@@ -148,7 +148,6 @@ def mock_dependencies(
     ), patch("app.api.v1.flows.UserService") as mock_user_service, patch(
         "app.api.v1.flows.MasterFlowOrchestrator", return_value=mock_orchestrator
     ):
-
         # Mock user service
         mock_user_service.return_value.get_user_context.return_value = mock_user_context
 

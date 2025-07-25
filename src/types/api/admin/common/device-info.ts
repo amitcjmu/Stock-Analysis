@@ -1,9 +1,9 @@
 /**
  * Device Information Types
- * 
+ *
  * Common device-related type definitions used across admin modules
  * for tracking user devices, security, and analytics.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 
@@ -27,16 +27,16 @@ export interface DeviceInfo {
 /**
  * Device types
  */
-export type DeviceType = 
-  | 'desktop' 
-  | 'mobile' 
-  | 'tablet' 
-  | 'tv' 
-  | 'watch' 
-  | 'speaker' 
-  | 'server' 
-  | 'iot' 
-  | 'other' 
+export type DeviceType =
+  | 'desktop'
+  | 'mobile'
+  | 'tablet'
+  | 'tv'
+  | 'watch'
+  | 'speaker'
+  | 'server'
+  | 'iot'
+  | 'other'
   | 'unknown';
 
 /**

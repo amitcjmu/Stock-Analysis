@@ -1,6 +1,6 @@
 /**
  * Auto-Mapped Card Component
- * 
+ *
  * Card component for displaying auto-mapped field mappings with agent reasoning and confidence.
  */
 
@@ -18,10 +18,10 @@ interface AutoMappedCardProps extends CardProps {
   onToggleReasoning: (mappingId: string) => void;
 }
 
-const AutoMappedCard: React.FC<AutoMappedCardProps> = ({ 
-  mapping, 
-  onApprove, 
-  onReject, 
+const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
+  mapping,
+  onApprove,
+  onReject,
   isProcessing,
   expandedReasonings,
   onToggleReasoning
@@ -31,7 +31,7 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
   const confidence = getConfidenceDisplay(mapping.confidence || 0);
   const reasoning = getAgentReasoningForMapping(mapping);
   const isExpanded = expandedReasonings.has(mapping.id);
-  
+
   return (
     <div className={`p-4 border rounded-lg transition-all duration-200 hover:shadow-md ${isPlaceholder ? 'bg-yellow-50 border-yellow-200' : 'bg-white border-gray-200'}`}>
       <div className="flex items-center gap-2 mb-3">
@@ -73,7 +73,7 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
             <Zap className="w-3 h-3" />
             {isExpanded ? 'Hide' : 'Show'} agent reasoning
           </button>
-          
+
           {isExpanded && (
             <div className="mt-2 p-3 bg-gray-50 rounded-md border">
               <div className="text-xs text-gray-600">
@@ -89,20 +89,20 @@ const AutoMappedCard: React.FC<AutoMappedCardProps> = ({
           {/* Status indicator for agent suggestions */}
           {!isPlaceholder && (
             <span className="text-xs text-gray-500">
-              {mapping.confidence && mapping.confidence > 0.8 ? '✨ High confidence' : 
-               mapping.confidence && mapping.confidence > 0.6 ? '⚡ Moderate confidence' : 
+              {mapping.confidence && mapping.confidence > 0.8 ? '✨ High confidence' :
+               mapping.confidence && mapping.confidence > 0.6 ? '⚡ Moderate confidence' :
                '🔍 Needs review'}
             </span>
           )}
         </div>
-        
+
         <div className="flex gap-2">
           <button
             onClick={() => onApprove(mapping.id)}
             disabled={isProcessing || isPlaceholder}
             className={`flex items-center gap-1 px-3 py-1 rounded transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed ${
-              isPlaceholder 
-                ? 'bg-gray-400 text-white cursor-not-allowed' 
+              isPlaceholder
+                ? 'bg-gray-400 text-white cursor-not-allowed'
                 : 'bg-green-600 text-white hover:bg-green-700'
             }`}
             title={isPlaceholder ? 'Configure target field before approval' : 'Approve agent suggestion'}

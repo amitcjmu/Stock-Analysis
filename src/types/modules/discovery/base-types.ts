@@ -1,9 +1,9 @@
 /**
  * Discovery Flow - Base Types Module
- * 
+ *
  * Foundational types and interfaces shared across the Discovery Flow module.
  * Contains base component props, multi-tenant context, and response metadata.
- * 
+ *
  * Generated with CC - Code Companion
  */
 

@@ -60,9 +60,9 @@ export const AgentCardSkeleton: React.FC<{ className?: string }> = ({ className 
   );
 };
 
-export const AgentListSkeleton: React.FC<{ count?: number; className?: string }> = ({ 
-  count = 6, 
-  className 
+export const AgentListSkeleton: React.FC<{ count?: number; className?: string }> = ({
+  count = 6,
+  className
 }) => {
   return (
     <div className={cn('grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6', className)}>
@@ -88,10 +88,10 @@ export const MetricsChartSkeleton: React.FC<{ className?: string }> = ({ classNa
           <div className="relative h-16">
             <div className="flex items-end justify-between h-full space-x-1">
               {Array.from({ length: 12 }, (_, i) => (
-                <Skeleton 
-                  key={i} 
-                  className="flex-1" 
-                  style={{ height: `${Math.random() * 80 + 20}%` }} 
+                <Skeleton
+                  key={i}
+                  className="flex-1"
+                  style={{ height: `${Math.random() * 80 + 20}%` }}
                 />
               ))}
             </div>
@@ -107,7 +107,7 @@ export const MetricsChartSkeleton: React.FC<{ className?: string }> = ({ classNa
 };
 
 // Animated Loading Components
-export const PulsingLoader: React.FC<{ 
+export const PulsingLoader: React.FC<{
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }> = ({ size = 'md', className }) => {
@@ -215,19 +215,19 @@ export const ProgressiveLoader: React.FC<{
     <Card className={cn('w-full', className)}>
       <CardContent className="flex flex-col items-center justify-center py-12">
         <PulsingLoader size="lg" className="mb-6" />
-        
+
         <div className="text-center space-y-4 w-full max-w-md">
           <h3 className="text-lg font-medium text-gray-900">
             Loading Agent Data
           </h3>
-          
+
           <div className="space-y-2">
             {stages.map((stage, index) => (
               <div key={index} className="flex items-center space-x-3">
                 <div className={cn(
                   'w-4 h-4 rounded-full border-2',
-                  index < currentStage 
-                    ? 'bg-green-500 border-green-500' 
+                  index < currentStage
+                    ? 'bg-green-500 border-green-500'
                     : index === currentStage
                     ? 'bg-blue-500 border-blue-500 animate-pulse'
                     : 'border-gray-300'
@@ -247,9 +247,9 @@ export const ProgressiveLoader: React.FC<{
               </div>
             ))}
           </div>
-          
+
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
+            <div
               className="bg-blue-600 h-2 rounded-full transition-all duration-500 ease-out"
               style={{ width: `${((currentStage + 1) / stages.length) * 100}%` }}
             />
@@ -267,12 +267,12 @@ export const EmptyState: React.FC<{
   description: string;
   action?: React.ReactNode;
   className?: string;
-}> = ({ 
-  icon = <Users className="h-12 w-12 text-gray-300" />, 
-  title, 
-  description, 
+}> = ({
+  icon = <Users className="h-12 w-12 text-gray-300" />,
+  title,
+  description,
   action,
-  className 
+  className
 }) => {
   return (
     <Card className={cn('w-full', className)}>

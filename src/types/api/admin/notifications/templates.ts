@@ -1,18 +1,18 @@
 /**
  * Notification Template Types
- * 
+ *
  * Types for notification template management and customization.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 
 import type { TemplateMetadata } from '../common';
 import type {
-  TemplateType, 
-  TemplateCategory, 
-  TemplateStatus, 
+  TemplateType,
+  TemplateCategory,
+  TemplateStatus,
   VariableType,
-  ChannelType 
+  ChannelType
 } from './enums';
 
 // Full notification template

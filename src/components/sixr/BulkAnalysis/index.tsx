@@ -33,11 +33,11 @@ const BulkAnalysisContainer: React.FC<BulkAnalysisProps> = ({
     state,
     newJobConfig,
     setNewJobConfig,
-    
+
     // Computed values
     filteredAndSortedJobs,
     queueStats,
-    
+
     // Actions
     setSelectedJobs,
     setActiveTab,
@@ -82,7 +82,7 @@ const BulkAnalysisContainer: React.FC<BulkAnalysisProps> = ({
             Manage and monitor bulk 6R migration strategy analysis jobs
           </p>
         </div>
-        
+
         <div className="flex items-center space-x-3">
           <Button
             onClick={() => setShowCreateDialog(true)}
@@ -91,7 +91,7 @@ const BulkAnalysisContainer: React.FC<BulkAnalysisProps> = ({
             <Plus className="h-4 w-4" />
             <span>New Job</span>
           </Button>
-          
+
           <Button variant="outline" size="sm">
             <Settings className="h-4 w-4" />
           </Button>
@@ -145,7 +145,7 @@ const BulkAnalysisContainer: React.FC<BulkAnalysisProps> = ({
             <span className="text-sm text-gray-600">
               {state.selectedJobs.length} selected
             </span>
-            
+
             <Button
               size="sm"
               variant="outline"
@@ -154,7 +154,7 @@ const BulkAnalysisContainer: React.FC<BulkAnalysisProps> = ({
             >
               <Play className="h-3 w-3" />
             </Button>
-            
+
             <Button
               size="sm"
               variant="outline"
@@ -162,7 +162,7 @@ const BulkAnalysisContainer: React.FC<BulkAnalysisProps> = ({
             >
               <Pause className="h-3 w-3" />
             </Button>
-            
+
             <Button
               size="sm"
               variant="outline"
@@ -170,7 +170,7 @@ const BulkAnalysisContainer: React.FC<BulkAnalysisProps> = ({
             >
               <Square className="h-3 w-3" />
             </Button>
-            
+
             <Button
               size="sm"
               variant="outline"

@@ -27,7 +27,7 @@ async def analyze_model_differences():
         # Get table schemas
         inspector_query = """
         SELECT column_name, data_type, is_nullable, column_default
-        FROM information_schema.columns 
+        FROM information_schema.columns
         WHERE table_schema = 'migration' AND table_name IN ('assets', 'cmdb_assets')
         ORDER BY table_name, ordinal_position;
         """
@@ -51,9 +51,9 @@ async def analyze_model_differences():
             table_check = await session.execute(
                 text(
                     f"""
-                SELECT table_name FROM information_schema.columns 
-                WHERE table_schema = 'migration' 
-                AND column_name = '{col_name}' 
+                SELECT table_name FROM information_schema.columns
+                WHERE table_schema = 'migration'
+                AND column_name = '{col_name}'
                 AND table_name IN ('assets', 'cmdb_assets')
             """
                 )
@@ -156,9 +156,9 @@ async def analyze_model_differences():
         if cmdb_total > 0:
             # Sample data analysis
             sample_query = """
-            SELECT name, asset_type, application_name, technology_stack, 
+            SELECT name, asset_type, application_name, technology_stack,
                    business_owner, migration_priority, six_r_strategy
-            FROM migration.cmdb_assets 
+            FROM migration.cmdb_assets
             LIMIT 5
             """
             samples = await session.execute(text(sample_query))
@@ -216,7 +216,7 @@ async def plan_foreign_key_updates():
 
         # Find all foreign keys pointing to cmdb_assets
         fk_query = """
-        SELECT 
+        SELECT
             tc.table_name,
             tc.constraint_name,
             kcu.column_name,

@@ -58,9 +58,9 @@ export const ComponentTreatmentEditor: React.FC<ComponentTreatmentEditorProps> =
                     {treatment.recommended_strategy}
                   </Badge>
                 </div>
-                
+
                 <p className="text-sm text-gray-600">{treatment.rationale}</p>
-                
+
                 {treatment.compatibility_issues && treatment.compatibility_issues.length > 0 && (
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-red-700">Compatibility Issues:</p>

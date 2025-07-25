@@ -38,7 +38,7 @@ interface DashboardState {
 const EnhancedObservabilityDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
   const [state, setState] = useState<DashboardState>({
     selectedAgents: [],
     refreshInterval: 30000, // 30 seconds
@@ -70,7 +70,7 @@ const EnhancedObservabilityDashboard: React.FC = () => {
   // Load dashboard statistics
   useEffect(() => {
     loadDashboardStats();
-    
+
     if (state.realTimeEnabled && state.refreshInterval > 0) {
       const interval = setInterval(loadDashboardStats, state.refreshInterval);
       return () => clearInterval(interval);
@@ -81,16 +81,16 @@ const EnhancedObservabilityDashboard: React.FC = () => {
     setLoading(true);
     try {
       const summary = await agentObservabilityService.getAllAgentsSummary(1);
-      
+
       if (summary.success) {
         // Transform the API response to agent card data
         const agentCards = agentObservabilityService.transformToAgentCardData(summary);
-        
+
         if (agentCards && agentCards.length > 0) {
           const activeCount = agentCards.filter(agent => agent.status === 'active').length;
           const avgSuccess = agentCards.reduce((sum, agent) => sum + agent.successRate, 0) / agentCards.length;
           const totalTasks = agentCards.reduce((sum, agent) => sum + agent.totalTasks, 0);
-          
+
           setDashboardStats({
             totalAgents: agentCards.length,
             activeAgents: activeCount,
@@ -164,7 +164,7 @@ const EnhancedObservabilityDashboard: React.FC = () => {
               <span>Observability</span>
               <ChevronRight className="w-4 h-4 mx-2" />
               <span className="text-gray-900">
-                {activeTab === 'analytics' ? 'Enhanced Analytics' : 
+                {activeTab === 'analytics' ? 'Enhanced Analytics' :
                  activeTab === 'comparison' ? 'Agent Comparison' :
                  activeTab === 'recommendations' ? 'Recommendations' :
                  activeTab === 'settings' ? 'Settings' :
@@ -172,7 +172,7 @@ const EnhancedObservabilityDashboard: React.FC = () => {
                  'Agent Dashboard'}
               </span>
             </div>
-            
+
             {/* Header */}
             <div className="mb-6">
               <div className="flex items-center justify-between">
@@ -185,9 +185,9 @@ const EnhancedObservabilityDashboard: React.FC = () => {
                     Comprehensive monitoring and analytics for AI agents
                   </p>
                 </div>
-          
+
           <div className="flex items-center gap-3">
-            <Button 
+            <Button
               onClick={handleToggleRealTime}
               variant={state.realTimeEnabled ? "default" : "outline"}
               size="sm"
@@ -195,17 +195,17 @@ const EnhancedObservabilityDashboard: React.FC = () => {
               <Activity className={`w-4 h-4 mr-2 ${state.realTimeEnabled ? 'animate-pulse' : ''}`} />
               Real-time {state.realTimeEnabled ? 'On' : 'Off'}
             </Button>
-            
+
             <Button onClick={handleRefresh} variant="outline" size="sm" disabled={loading}>
               <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
-            
+
             <Button onClick={handleExportDashboard} variant="outline" size="sm">
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>
-            
+
             <Button variant="outline" size="sm">
               <Settings className="w-4 h-4 mr-2" />
               Settings

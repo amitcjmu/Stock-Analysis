@@ -14,14 +14,14 @@ export const useClientOperations = () => {
   const createClient = useCallback(async (formData: ClientFormData): Promise<Client | null> => {
     try {
       setActionLoading('create');
-      
+
       const cleanedFormData = {
         ...formData,
         primary_contact_phone: formData.primary_contact_phone?.trim() || null,
         billing_contact_email: formData.billing_contact_email?.trim() || null,
         description: formData.description?.trim() || null,
       };
-      
+
       const response = await apiCall('/admin/clients/', {
         method: 'POST',
         body: JSON.stringify(cleanedFormData)
@@ -38,18 +38,18 @@ export const useClientOperations = () => {
           active_engagements: 0
         };
 
-        toast({ 
-          title: "Success", 
-          description: `Client "${formData.account_name}" created successfully` 
+        toast({
+          title: "Success",
+          description: `Client "${formData.account_name}" created successfully`
         });
-        
+
         return newClient;
       } else {
         throw new Error(response.message || 'Failed to create client');
       }
     } catch (error) {
       console.error('Error creating client:', error);
-      
+
       const errorObj = error as { message?: string; response?: { detail?: string | Array<{ loc?: string[]; msg?: string; message?: string }> } };
       let errorMessage = errorObj.message || "Failed to create client. Please try again.";
       if (errorObj.response && errorObj.response.detail) {
@@ -66,13 +66,13 @@ export const useClientOperations = () => {
           errorMessage = String(errorObj.response.detail);
         }
       }
-      
+
       toast({
         title: "Error",
         description: errorMessage,
         variant: "destructive"
       });
-      
+
       return null;
     } finally {
       setActionLoading(null);
@@ -82,14 +82,14 @@ export const useClientOperations = () => {
   const updateClient = useCallback(async (client: Client, formData: ClientFormData): Promise<Client | null> => {
     try {
       setActionLoading(client.id);
-      
+
       const cleanedFormData = {
         ...formData,
         primary_contact_phone: formData.primary_contact_phone?.trim() || null,
         billing_contact_email: formData.billing_contact_email?.trim() || null,
         description: formData.description?.trim() || null,
       };
-      
+
       const response = await apiCall(`/admin/clients/${client.id}`, {
         method: 'PUT',
         body: JSON.stringify(cleanedFormData)
@@ -102,18 +102,18 @@ export const useClientOperations = () => {
           updated_at: response.data.updated_at || new Date().toISOString()
         };
 
-        toast({ 
-          title: "Success", 
-          description: `Client "${formData.account_name}" updated successfully` 
+        toast({
+          title: "Success",
+          description: `Client "${formData.account_name}" updated successfully`
         });
-        
+
         return updatedClient;
       } else {
         throw new Error(response.message || 'Failed to update client');
       }
     } catch (error) {
       console.error('Error updating client:', error);
-      
+
       const errorObj = error as { message?: string; response?: { detail?: string | Array<{ msg?: string; message?: string }> } };
       let errorMessage = errorObj.message || "Failed to update client. Please try again.";
       if (errorObj.response && errorObj.response.detail) {
@@ -123,13 +123,13 @@ export const useClientOperations = () => {
           errorMessage = String(errorObj.response.detail);
         }
       }
-      
+
       toast({
         title: "Error",
         description: errorMessage,
         variant: "destructive"
       });
-      
+
       return null;
     } finally {
       setActionLoading(null);
@@ -150,15 +150,15 @@ export const useClientOperations = () => {
 
     try {
       setActionLoading(clientId);
-      
+
       const response = await apiCall(`/admin/clients/${clientId}`, {
         method: 'DELETE'
       });
 
       if (response.status === 'success') {
-        toast({ 
-          title: "Success", 
-          description: `Client "${clientName}" deleted successfully` 
+        toast({
+          title: "Success",
+          description: `Client "${clientName}" deleted successfully`
         });
         return true;
       } else {
@@ -166,19 +166,19 @@ export const useClientOperations = () => {
       }
     } catch (error) {
       console.error('Error deleting client:', error);
-      
+
       const errorObj = error as { message?: string; response?: { detail?: string | Array<{ msg?: string; message?: string }> } };
       let errorMessage = errorObj.message || "Failed to delete client. Please try again.";
       if (errorObj.response && errorObj.response.detail) {
         errorMessage = String(errorObj.response.detail);
       }
-      
+
       toast({
         title: "Error",
         description: errorMessage,
         variant: "destructive"
       });
-      
+
       return false;
     } finally {
       setActionLoading(null);

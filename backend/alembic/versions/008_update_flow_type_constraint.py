@@ -22,8 +22,8 @@ def upgrade():
     result = conn.execute(
         text(
             """
-        SELECT COUNT(*) 
-        FROM pg_constraint 
+        SELECT COUNT(*)
+        FROM pg_constraint
         WHERE conname = 'chk_valid_flow_type'
     """
         )

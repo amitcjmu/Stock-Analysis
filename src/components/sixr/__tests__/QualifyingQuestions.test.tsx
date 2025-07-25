@@ -388,10 +388,10 @@ describe('QualifyingQuestions', () => {
     );
 
     const numericInput = screen.getByLabelText(/active users/i);
-    
+
     // Try negative number
     await user.type(numericInput, '-100');
-    
+
     // Should show validation error or prevent input
     expect(numericInput).toHaveValue('100'); // Negative sign should be stripped
   });
@@ -425,10 +425,10 @@ describe('QualifyingQuestions', () => {
 
     // Find dropzone
     const dropzone = screen.getByTestId('dropzone');
-    
+
     // Simulate drag and drop
     const file = new File(['test'], 'test.java', { type: 'text/plain' });
-    
+
     fireEvent.dragEnter(dropzone);
     fireEvent.dragOver(dropzone);
     fireEvent.drop(dropzone, {
@@ -456,7 +456,7 @@ describe('QualifyingQuestions', () => {
     // Large file should show progress
     const largeFile = new File(['x'.repeat(1000000)], 'large.java', { type: 'text/plain' });
     const fileInput = screen.getByTestId('file-input');
-    
+
     await user.upload(fileInput, largeFile);
 
     // Should show upload progress or validation
@@ -478,7 +478,7 @@ describe('QualifyingQuestions', () => {
     // Tab through questions
     await user.tab();
     await user.tab();
-    
+
     // Should be able to navigate with keyboard
     const focusedElement = document.activeElement;
     expect(focusedElement).toBeInTheDocument();
@@ -539,4 +539,4 @@ describe('QualifyingQuestions', () => {
     // This would depend on the specific business logic
     expect(mockOnResponseChange).toHaveBeenCalledWith('app_type', 'custom');
   });
-}); 
+});

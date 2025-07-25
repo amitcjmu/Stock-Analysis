@@ -210,7 +210,7 @@ docker exec -it migration_backend_dev pytest tests/ --cov=app --cov-report=html
 ### 1. LLM API Timeout
 
 **Issue**: Tests fail with DeepInfra timeout
-**Solution**: 
+**Solution**:
 - Check your API key is valid
 - Increase timeout in test configuration
 - Use `MOCK_LLM_RESPONSES=true` for faster testing
@@ -237,21 +237,21 @@ docker exec -it migration_backend_dev pytest tests/ --cov=app --cov-report=html
 ```python
 @pytest.mark.asyncio
 class TestNewDiscoveryFeature(BaseDiscoveryFlowTest):
-    
+
     @integration_test
     @requires_llm
     async def test_new_feature(self, mock_deepinfra_llm):
         """Test description."""
         # 1. Create flow
         flow = await self.create_discovery_flow()
-        
+
         # 2. Upload test data
         content = get_mock_file_content("csv")
         await self.upload_file(flow["flow_id"], content)
-        
+
         # 3. Wait for phase
         await self.wait_for_phase(flow["flow_id"], "target_phase")
-        
+
         # 4. Verify results
         status = await self.get_flow_status(flow["flow_id"])
         assert "expected_field" in status

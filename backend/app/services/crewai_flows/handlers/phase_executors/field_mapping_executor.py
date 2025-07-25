@@ -477,17 +477,17 @@ class FieldMappingExecutor(BasePhaseExecutor):
     """
         # Try to get data from multiple sources
         raw_data = None
-        
+
         # First try raw_data attribute
         if hasattr(self.state, 'raw_data') and self.state.raw_data:
             raw_data = self.state.raw_data
             logger.info(f"✅ Found raw_data in state: {len(raw_data)} records")
-        
+
         # If not found, check phase_data for imported data
         elif hasattr(self.state, 'phase_data') and 'data_import' in self.state.phase_data:
             data_import_results = self.state.phase_data['data_import']
             logger.info(f"🔍 DEBUG: Data import phase_data available: {list(data_import_results.keys()) if isinstance(data_import_results, dict) else 'Not a dict'}")
-            
+
             if isinstance(data_import_results, dict):
                 # Try validated_data first
                 if 'validated_data' in data_import_results and data_import_results['validated_data']:
@@ -501,7 +501,7 @@ class FieldMappingExecutor(BasePhaseExecutor):
                 elif 'records' in data_import_results and data_import_results['records']:
                     raw_data = data_import_results['records']
                     logger.info(f"✅ Found records in phase_data: {len(raw_data)} records")
-        
+
         # Last resort: try to fetch data directly from database using data_import_id
         if not raw_data and hasattr(self.state, 'data_import_id') and self.state.data_import_id:
             logger.warning("⚠️ No raw_data in state, trying to fetch from database using data_import_id")
@@ -511,27 +511,27 @@ class FieldMappingExecutor(BasePhaseExecutor):
                     logger.info(f"✅ Fetched raw_data from database: {len(raw_data)} records")
             except Exception as db_error:
                 logger.error(f"❌ Failed to fetch raw_data from database: {db_error}")
-        
+
         if not raw_data:
             logger.error("⚠️ No raw_data available in state for field mapping")
             logger.error(f"⚠️ State contents: {dir(self.state)}")
             if hasattr(self.state, '__dict__'):
                 logger.error(f"⚠️ State attributes: {self.state.__dict__}")
-            
+
             # Instead of returning a fallback, raise an error so the issue is visible
             raise ValueError("No raw CSV data available for field mapping. The flow state is missing the imported data. This indicates a data linkage issue between the flow and data import.")
-        
+
         # Get first record to analyze fields
         sample_record = raw_data[0]
         columns = list(sample_record.keys())
-        
+
         logger.info(f"🔍 Analyzing {len(columns)} columns from imported data: {columns}")
-        
+
         # Enhanced mapping logic with confidence scoring
         mappings = {}
         confidence_scores = {}
         clarifications = []
-        
+
         # Critical fields we need to map - expanded list
         critical_fields = {
             'name': ['name', 'hostname', 'server_name', 'app_name', 'application_name', 'asset_name'],
@@ -554,13 +554,13 @@ class FieldMappingExecutor(BasePhaseExecutor):
             'database': ['database', 'db', 'db_name', 'database_name'],
             'tech_stack': ['tech_stack', 'technology', 'stack', 'framework', 'platform']
         }
-        
+
         # First, try to map columns to critical fields
         unmapped_columns = []
         for column in columns:
             column_lower = column.lower().replace('_', ' ').replace('-', ' ')
             mapped = False
-            
+
             for target_field, patterns in critical_fields.items():
                 for pattern in patterns:
                     pattern_normalized = pattern.lower().replace('_', ' ').replace('-', ' ')
@@ -575,21 +575,21 @@ class FieldMappingExecutor(BasePhaseExecutor):
                         break
                 if mapped:
                     break
-            
+
             if not mapped:
                 # For unmapped fields, use the original column name as the target
                 # This ensures ALL fields are included in the mapping
                 unmapped_columns.append(column)
                 mappings[column] = column  # Keep original name
                 confidence_scores[column] = 0.5  # Medium confidence for unmapped fields
-        
+
         # Generate clarifications
         if unmapped_columns:
             clarifications.append(
                 f"Unable to automatically map {len(unmapped_columns)} fields: {', '.join(unmapped_columns[:5])}{'...' if len(unmapped_columns) > 5 else ''}. "
                 "Please review these mappings carefully."
             )
-        
+
         # Check for missing critical fields
         mapped_targets = set(mappings.values())
         missing_critical = [field for field in ['name', 'asset_type', 'environment'] if field not in mapped_targets]
@@ -598,14 +598,14 @@ class FieldMappingExecutor(BasePhaseExecutor):
                 f"Critical fields not mapped: {', '.join(missing_critical)}. "
                 "Please ensure these fields are properly mapped for accurate asset discovery."
             )
-        
+
         # Add data quality clarification
         sample_values = {col: str(sample_record.get(col, ''))[:50] for col in columns[:3]}
         clarifications.append(
             f"Sample data detected: {sample_values}. "
             "Please verify the mappings match your data structure."
         )
-        
+
         return {
             "mappings": mappings,
             "clarifications": clarifications,

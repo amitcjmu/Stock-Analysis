@@ -1,6 +1,6 @@
 /**
  * Table Component Types
- * 
+ *
  * Type definitions for table components including columns, filters,
  * sorting, pagination, and table configuration options.
  */

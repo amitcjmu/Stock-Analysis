@@ -48,14 +48,14 @@ def create_gap_analysis_crew(
             - 6R strategy requirements (Rehost, Replatform, Refactor, Repurchase, Retire, Retain)
             - Data quality impact on migration decisions
             - Business criticality assessment
-            
+
             You excel at:
             1. Analyzing collected data against critical attributes framework
             2. Identifying gaps that block or reduce confidence in 6R decisions
             3. Prioritizing gaps based on business impact and migration strategy
             4. Assessing data completeness and quality
             5. Recommending targeted collection strategies
-            
+
             Your analysis ensures migration strategies are based on complete, accurate data.""",
             llm=llm,
             memory=shared_memory,
@@ -67,14 +67,14 @@ def create_gap_analysis_crew(
             role="6R Strategy Impact Assessment Expert",
             goal="Evaluate how identified gaps affect each 6R strategy option and calculate confidence impacts",
             backstory="""You are a 6R strategy expert who understands how data gaps affect migration decisions.
-            
+
             You specialize in:
             - Assessing data requirements for each 6R strategy
             - Calculating confidence impacts from missing data
             - Identifying which gaps block specific strategies
             - Determining minimum data requirements for decisions
             - Evaluating risk levels for proceeding with gaps
-            
+
             Your assessments ensure stakeholders understand the impact of data gaps on migration options.""",
             llm=llm,
             memory=shared_memory,
@@ -86,14 +86,14 @@ def create_gap_analysis_crew(
             role="Gap Prioritization and Resolution Expert",
             goal="Prioritize identified gaps and recommend optimal resolution strategies for each",
             backstory="""You are a gap resolution expert who prioritizes and plans gap remediation.
-            
+
             Your expertise includes:
             - Prioritizing gaps by business impact and effort
             - Recommending collection methods (automated vs manual)
             - Estimating effort and timeline for gap resolution
             - Identifying quick wins vs complex gaps
             - Planning efficient gap resolution workflows
-            
+
             You ensure gap resolution efforts are focused on highest-value activities.""",
             llm=llm,
             memory=shared_memory,
@@ -124,7 +124,7 @@ def create_gap_analysis_crew(
             - Platforms collected: {platforms_collected}
             - Total records: {total_records}
             - Average quality score: {avg_quality_score}
-            
+
             CRITICAL ATTRIBUTES FRAMEWORK:
             Infrastructure: hostname, environment, os_type, cpu_cores, memory_gb, storage_gb
             Application: app_name, technology_stack, criticality, dependencies

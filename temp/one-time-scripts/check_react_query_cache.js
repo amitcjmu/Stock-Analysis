@@ -3,13 +3,13 @@ if (window.queryClient) {
   const cache = window.queryClient.getQueryCache();
   const queries = cache.getAll();
   console.log('Total queries in cache:', queries.length);
-  
+
   queries.forEach(query => {
     if (query.queryKey.includes('discoveryFlowV2') || query.queryKey.includes('flow')) {
       console.log('Flow-related query:', query.queryKey, query.state);
     }
   });
-  
+
   // Check for the specific problematic flow ID
   const problemFlowId = '11055bdf-5e39-4e0d-913e-0c7080f82e2c';
   queries.forEach(query => {

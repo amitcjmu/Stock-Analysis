@@ -50,7 +50,7 @@ class RoutePreloader {
    */
   preloadFromCurrentLocation(currentPath: string): void {
     const suggestedRoutes = this.getSuggestedRoutes(currentPath);
-    
+
     suggestedRoutes.forEach(route => {
       this.preloadRoute(route.path, route.priority);
     });
@@ -70,7 +70,7 @@ class RoutePreloader {
         '/discovery/attribute-mapping',
         '/discovery/data-cleansing'
       ];
-      
+
       discoveryRoutes.forEach(path => {
         const route = this.routes.get(path);
         if (route && !this.preloadedRoutes.has(path)) {
@@ -85,7 +85,7 @@ class RoutePreloader {
         '/assessment/overview',
         '/assessment/initialize'
       ];
-      
+
       assessmentRoutes.forEach(path => {
         const route = this.routes.get(path);
         if (route && !this.preloadedRoutes.has(path)) {
@@ -97,7 +97,7 @@ class RoutePreloader {
     // Sequential workflow suggestions
     const workflowOrder = ['/discovery', '/assess', '/plan', '/execute', '/modernize'];
     const currentIndex = workflowOrder.findIndex(p => currentPath.startsWith(p));
-    
+
     if (currentIndex !== -1 && currentIndex < workflowOrder.length - 1) {
       const nextPath = workflowOrder[currentIndex + 1];
       const route = this.routes.get(nextPath);
@@ -134,7 +134,7 @@ class RoutePreloader {
     document.addEventListener('mouseover', (event) => {
       const target = event.target as HTMLElement;
       const link = target.closest('a[href]');
-      
+
       if (!link || link.hostname !== window.location.hostname) {
         return;
       }
@@ -163,7 +163,7 @@ class RoutePreloader {
     document.addEventListener('mouseout', (event) => {
       const target = event.target as HTMLElement;
       const link = target.closest('a[href]');
-      
+
       if (link) {
         const href = link.getAttribute('href');
         if (href) {
@@ -185,7 +185,7 @@ class RoutePreloader {
     const trackNavigation = () => {
       const currentPath = window.location.pathname;
       this.navigationHistory.push(currentPath);
-      
+
       // Keep only last 10 navigations
       if (this.navigationHistory.length > 10) {
         this.navigationHistory = this.navigationHistory.slice(-10);
@@ -200,16 +200,16 @@ class RoutePreloader {
 
     // Track navigation changes
     window.addEventListener('popstate', trackNavigation);
-    
+
     // Track programmatic navigation (for SPA routing)
     const originalPushState = history.pushState;
     const originalReplaceState = history.replaceState;
-    
+
     history.pushState = function(...args) {
       originalPushState.apply(history, args);
       setTimeout(trackNavigation, 0);
     };
-    
+
     history.replaceState = function(...args) {
       originalReplaceState.apply(history, args);
       setTimeout(trackNavigation, 0);
@@ -262,7 +262,7 @@ class RoutePreloader {
         if (entry.isIntersecting) {
           const element = entry.target as HTMLElement;
           const href = element.getAttribute('data-preload-route');
-          
+
           if (href && !this.preloadedRoutes.has(href)) {
             this.preloadRoute(href, LoadingPriority.NORMAL);
           }
@@ -287,7 +287,7 @@ class RoutePreloader {
   } {
     const totalRoutes = this.routes.size;
     const preloadedCount = this.preloadedRoutes.size;
-    
+
     return {
       totalRoutes,
       preloadedRoutes: preloadedCount,

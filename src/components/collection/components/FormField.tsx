@@ -1,6 +1,6 @@
 /**
  * Form Field Component
- * 
+ *
  * Renders individual form fields with validation, help text, and conditional logic
  * Agent Team B3 - Form field rendering implementation
  */
@@ -282,13 +282,13 @@ export const FormField: React.FC<FormFieldProps> = ({
           >
             {field.label}
           </Label>
-          
+
           {hasBusinessImpact && (
             <Badge variant="secondary" className="text-xs">
               High Impact
             </Badge>
           )}
-          
+
           {field.helpText && (
             <TooltipProvider>
               <Tooltip>
@@ -337,7 +337,7 @@ export const FormField: React.FC<FormFieldProps> = ({
       {/* Field Input */}
       <div className="relative">
         {renderFieldInput()}
-        
+
         {/* Focus indicator for business impact fields */}
         {isFocused && hasBusinessImpact && (
           <div className="absolute -inset-0.5 bg-blue-500/20 rounded-lg pointer-events-none" />

@@ -21,10 +21,10 @@
     },
     "staging": {
       "variables": {
-        "ENVIRONMENT": "staging", 
+        "ENVIRONMENT": "staging",
         "DEBUG": "true",
         "HOST": "0.0.0.0"
       }
     }
   }
-} 
+}

@@ -15,7 +15,7 @@ const BudgetAlerts = () => {
   const { isAuthenticated } = useAuth();
 
   // Queries
-  const { 
+  const {
     data: alertsData,
     isLoading: isLoadingAlerts,
     error: alertsError

@@ -1,9 +1,9 @@
 /**
  * User Management API Types
- * 
+ *
  * Type definitions for user management operations including user CRUD,
  * user lifecycle management, and user authentication workflows.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

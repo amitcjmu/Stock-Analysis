@@ -183,7 +183,7 @@ export const QualifyingQuestions: React.FC<QualifyingQuestionsProps> = ({
   const totalQuestions = questions.length;
   const answeredQuestions = responses.length;
   const requiredQuestions = questions.filter(q => q.required).length;
-  const answeredRequiredQuestions = responses.filter(r => 
+  const answeredRequiredQuestions = responses.filter(r =>
     questions.find(q => q.id === r.question_id)?.required
   ).length;
   const progressPercentage = totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
@@ -337,7 +337,7 @@ export const QualifyingQuestions: React.FC<QualifyingQuestionsProps> = ({
   const renderCategorySection = (category: string) => {
     const categoryQuestions = questionsByCategory[category];
     const isExpanded = expandedCategories.has(category);
-    const answeredInCategory = categoryQuestions.filter(q => 
+    const answeredInCategory = categoryQuestions.filter(q =>
       getResponseValue(q.id) !== undefined
     ).length;
 
@@ -359,8 +359,8 @@ export const QualifyingQuestions: React.FC<QualifyingQuestionsProps> = ({
             </Badge>
           </div>
           <div className="flex items-center space-x-2">
-            <Progress 
-              value={(answeredInCategory / categoryQuestions.length) * 100} 
+            <Progress
+              value={(answeredInCategory / categoryQuestions.length) * 100}
               className="w-20 h-2"
             />
           </div>
@@ -398,7 +398,7 @@ export const QualifyingQuestions: React.FC<QualifyingQuestionsProps> = ({
             </div>
           )}
         </div>
-        
+
         {showProgress && (
           <div className="space-y-2">
             <Progress value={progressPercentage} className="w-full" />
@@ -436,7 +436,7 @@ export const QualifyingQuestions: React.FC<QualifyingQuestionsProps> = ({
 
           <TabsContent value="required" className="space-y-4">
             {sortedCategories
-              .filter(category => 
+              .filter(category =>
                 questionsByCategory[category].some(q => q.required)
               )
               .map(category => {
@@ -452,13 +452,13 @@ export const QualifyingQuestions: React.FC<QualifyingQuestionsProps> = ({
 
           <TabsContent value="unanswered" className="space-y-4">
             {sortedCategories
-              .filter(category => 
-                questionsByCategory[category].some(q => 
+              .filter(category =>
+                questionsByCategory[category].some(q =>
                   getResponseValue(q.id) === undefined
                 )
               )
               .map(category => {
-                const unansweredQuestions = questionsByCategory[category].filter(q => 
+                const unansweredQuestions = questionsByCategory[category].filter(q =>
                   getResponseValue(q.id) === undefined
                 );
                 return (
@@ -502,4 +502,4 @@ export const QualifyingQuestions: React.FC<QualifyingQuestionsProps> = ({
   );
 };
 
-export default QualifyingQuestions; 
+export default QualifyingQuestions;

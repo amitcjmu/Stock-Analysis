@@ -40,34 +40,34 @@ services:
       - ENVIRONMENT=development
       - DEBUG=true
       - PYTHONPATH=/app
-      
+
       # Assessment Flow Configuration
       - ASSESSMENT_FLOW_ENABLED=true
       - ASSESSMENT_CREW_PARALLELISM=3
       - ASSESSMENT_TIMEOUT_MINUTES=30
-      
+
       # CrewAI Configuration for Assessment
       - CREWAI_ASSESSMENT_AGENTS_ENABLED=true
       - DEEPINFRA_ASSESSMENT_MODEL=meta-llama/Meta-Llama-3.1-70B-Instruct
-      
+
       # Real-time Updates
       - SSE_ENABLED=true
       - SSE_HEARTBEAT_INTERVAL=30
-      
+
       # Performance Configuration
       - ASSESSMENT_MAX_CONCURRENT_FLOWS=5
       - ASSESSMENT_COMPONENT_BATCH_SIZE=10
-      
+
       # Discovery Flow Configuration
       - USE_FAST_DISCOVERY_MODE=false
-      
+
       # Disable OpenTelemetry to prevent connection errors
       - OTEL_SDK_DISABLED=true
       - OTEL_TRACES_EXPORTER=none
       - OTEL_METRICS_EXPORTER=none
       - OTEL_LOGS_EXPORTER=none
       - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=
-      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=  
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=
       - OTEL_EXPORTER_OTLP_LOGS_ENDPOINT=
       - OTEL_PYTHON_DISABLED_INSTRUMENTATIONS=all
     ports:
@@ -154,7 +154,7 @@ services:
       - WORKER_TYPE=assessment_flow
       - REDIS_URL=redis://redis:6379
       - PYTHONPATH=/app
-      
+
       # Assessment worker configuration
       - ASSESSMENT_FLOW_ENABLED=true
       - CREWAI_ASSESSMENT_AGENTS_ENABLED=true
@@ -174,4 +174,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  frontend_node_modules: 
+  frontend_node_modules:

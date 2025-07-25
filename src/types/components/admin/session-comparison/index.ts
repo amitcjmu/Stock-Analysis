@@ -1,6 +1,6 @@
 /**
  * Session Comparison Types - Module Exports
- * 
+ *
  * Centralized exports for all session comparison related types.
  */
 

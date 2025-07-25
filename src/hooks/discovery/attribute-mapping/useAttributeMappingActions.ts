@@ -61,44 +61,44 @@ export const useAttributeMappingActions = (
 ): AttributeMappingActionsResult => {
   const navigate = useNavigate();
   const { user, getAuthHeaders } = useAuth();
-  
+
   // Subscribe to real-time agent decisions via SSE
   const { data: flowUpdate } = useFlowUpdates(flow?.id, {
     enableSSE: true,
     enablePolling: false, // Prefer SSE for real-time updates
   });
-  
+
   // Extract agent decision from flow updates
   const agentDecision = useMemo<AgentDecision | null>(() => {
     if (!flowUpdate?.data?.agent_decision) return null;
-    
+
     // Look for field mapping agent decision in the flow update
     const decision = flowUpdate.data.agent_decision;
     if (decision && decision.phase === 'field_mapping') {
       return decision;
     }
-    
+
     // Also check for nested decision data
     if (flowUpdate.data.field_mapping_decision) {
       return flowUpdate.data.field_mapping_decision;
     }
-    
+
     return null;
   }, [flowUpdate]);
-  
+
   // Extract agent reasoning for display
   const agentReasoning = useMemo<string | null>(() => {
     if (!agentDecision) return null;
-    
+
     // Build user-friendly reasoning message
     const parts: string[] = [];
-    
+
     // Add main reasoning
     parts.push(agentDecision.reasoning);
-    
+
     // Add confidence level
     parts.push(`(Confidence: ${(agentDecision.confidence * 100).toFixed(0)}%)`);
-    
+
     // Add specific requirements if any
     if (agentDecision.metadata?.approval_requirements) {
       const reqs = agentDecision.metadata.approval_requirements;
@@ -109,7 +109,7 @@ export const useAttributeMappingActions = (
         parts.push('All critical fields must be mapped');
       }
     }
-    
+
     return parts.join(' ');
   }, [agentDecision]);
 
@@ -131,7 +131,7 @@ export const useAttributeMappingActions = (
           })
         });
         console.log('✅ CrewAI Flow resumed successfully:', result);
-        
+
         // Refresh the flow data to get updated state
         await refresh();
       }
@@ -143,18 +143,18 @@ export const useAttributeMappingActions = (
   const handleApproveMapping = useCallback(async (mappingId: string) => {
     try {
       console.log(`✅ Approving mapping: ${mappingId}`);
-      
+
       // Find the mapping
       const mapping = fieldMappings.find((m) => m.id === mappingId);
       if (!mapping) {
         console.error('❌ Mapping not found:', mappingId);
         return;
       }
-      
+
       // Create URL with proper query parameters - using simplified endpoint
       const approvalNote = encodeURIComponent('User approved mapping from UI');
       const approvalUrl = `/api/v1/field-mapping/approve/${mappingId}?approved=true&approval_note=${approvalNote}`;
-      
+
       // Make API call to approve the specific mapping
       const approvalResult = await apiCall(approvalUrl, {
         method: 'POST',
@@ -163,14 +163,14 @@ export const useAttributeMappingActions = (
           ...getAuthHeaders()
         }
       });
-      
+
       console.log('✅ Mapping approved successfully:', approvalResult);
-      
+
       // Show success feedback
       if (typeof window !== 'undefined' && (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast) {
         (window as Window & { showSuccessToast?: (message: string) => void }).showSuccessToast(`Mapping approved: ${mapping.sourceField} → ${mapping.targetAttribute}`);
       }
-      
+
       // Add delay before refetching to prevent rate limiting
       setTimeout(async () => {
         try {
@@ -181,10 +181,10 @@ export const useAttributeMappingActions = (
           console.error('⚠️ Failed to refetch mappings:', refetchError);
         }
       }, 1000); // 1 second delay
-      
+
     } catch (error) {
       console.error('❌ Failed to approve mapping:', error);
-      
+
       // Show error toast if available
       if (typeof window !== 'undefined' && (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to approve mapping';
@@ -196,16 +196,16 @@ export const useAttributeMappingActions = (
   const handleRejectMapping = useCallback(async (mappingId: string, rejectionReason?: string) => {
     try {
       console.log(`❌ Rejecting mapping: ${mappingId}`);
-      
+
       // For discovery flow field mappings, we don't reject individual mappings
       // The user should edit the mapping instead
       console.log('ℹ️ To change a field mapping, please edit it directly');
-      
+
       // Show info message
       if (typeof window !== 'undefined' && (window as Window & { showInfoToast?: (message: string) => void }).showInfoToast) {
         (window as Window & { showInfoToast?: (message: string) => void }).showInfoToast('To change a field mapping, please edit it directly in the dropdown.');
       }
-      
+
     } catch (error) {
       console.error('❌ Error in reject handler:', error);
     }
@@ -214,34 +214,34 @@ export const useAttributeMappingActions = (
   const handleMappingChange = useCallback(async (mappingId: string, newTarget: string) => {
     try {
       console.log(`🔄 Changing mapping: ${mappingId} -> ${newTarget}`);
-      
+
       // Find the mapping in the current data
       const mapping = fieldMappings.find((m) => m.id === mappingId);
       if (!mapping) {
         console.error('❌ Mapping not found:', mappingId);
         return;
       }
-      
+
       // For discovery flow, field mapping changes are stored locally
       // and applied when the user clicks "Continue to Data Cleansing"
       console.log('ℹ️ Field mapping change will be applied when continuing to data cleansing phase');
-      
+
       // Update local state to reflect the change
       // The parent component should handle this state update
       // For now, just show feedback
       if (typeof window !== 'undefined' && (window as Window & { showInfoToast?: (message: string) => void }).showInfoToast) {
         (window as Window & { showInfoToast?: (message: string) => void }).showInfoToast(`Field mapping updated: ${mapping.sourceField} → ${newTarget}`);
       }
-      
+
     } catch (error) {
       console.error('❌ Failed to update mapping:', error);
-      
+
       // Show error toast if available
       if (typeof window !== 'undefined' && (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to update mapping';
         (window as Window & { showErrorToast?: (message: string) => void }).showErrorToast(errorMessage);
       }
-      
+
       // Re-throw for component error handling
       throw error;
     }
@@ -275,9 +275,9 @@ export const useAttributeMappingActions = (
           ...getAuthHeaders()
         }
       });
-      
+
       return result;
-      
+
     } catch (error) {
       console.error('❌ Failed to check mapping approval status:', error);
       return null;
@@ -290,65 +290,65 @@ export const useAttributeMappingActions = (
     if (flow?.phases?.attribute_mapping === true) {
       return true;
     }
-    
+
     // NO MORE HARDCODED RULES - Check agent decision
     if (!agentDecision) {
       console.log('⏳ Waiting for agent decision on field mappings...');
       return false;
     }
-    
+
     // Agent says we can proceed
     if (agentDecision.action === 'proceed') {
       console.log(`✅ Agent recommends proceeding: ${agentDecision.reasoning}`);
       return true;
     }
-    
+
     // Agent says we need user review
     if (agentDecision.action === 'pause') {
       console.log(`⏸️ Agent requires user review: ${agentDecision.reasoning}`);
-      
+
       // Check if user has met agent's requirements
       if (agentDecision.metadata?.approval_requirements && fieldMappings.length > 0) {
         const approvedMappings = fieldMappings.filter(m => m.status === 'approved').length;
         const totalMappings = fieldMappings.length;
         const approvalPercentage = (approvedMappings / totalMappings) * 100;
-        
+
         // Check against agent-specified threshold (not hardcoded 90%)
         const requiredPercentage = agentDecision.metadata.approval_requirements.minimum_approval_percentage || 0;
-        
+
         // Check critical fields if required
         if (agentDecision.metadata.approval_requirements.critical_fields_required) {
           const criticalFields = agentDecision.metadata.critical_fields || [];
-          const allCriticalFieldsMapped = criticalFields.every(field => 
+          const allCriticalFieldsMapped = criticalFields.every(field =>
             fieldMappings.some(m => m.sourceField === field && m.status === 'approved')
           );
-          
+
           if (!allCriticalFieldsMapped) {
             console.log('❌ Not all critical fields are mapped and approved');
             return false;
           }
         }
-        
+
         const meetsRequirements = approvalPercentage >= requiredPercentage;
         console.log(`📊 Approval status: ${approvalPercentage.toFixed(1)}% (agent requires ${requiredPercentage}%)`);
-        
+
         return meetsRequirements;
       }
-      
+
       return false;
     }
-    
+
     // Agent says to skip or fail
     if (agentDecision.action === 'skip') {
       console.log(`⏭️ Agent recommends skipping field mapping: ${agentDecision.reasoning}`);
       return true; // Allow proceeding if agent says to skip
     }
-    
+
     if (agentDecision.action === 'fail') {
       console.log(`❌ Agent detected critical issue: ${agentDecision.reasoning}`);
       return false;
     }
-    
+
     // Default to false if no clear decision
     return false;
   }, [flow, fieldMappings, agentDecision]);

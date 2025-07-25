@@ -441,7 +441,7 @@
 2025-07-04 07:45:05.249 | │                                                                              │
 2025-07-04 07:45:05.249 | │                                                                              │
 2025-07-04 07:45:05.249 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:45:05.249 | 
+2025-07-04 07:45:05.249 |
 2025-07-04 07:45:05.250 | INFO:app.services.crewai_flows.unified_discovery_flow.base_flow:✅ CrewAI Flow base class initialized - real agents active
 2025-07-04 07:45:05.250 | INFO:app.services.crewai_flows.unified_discovery_flow.base_flow:🚀 Initializing Unified Discovery Flow with Agent-First Architecture
 2025-07-04 07:45:05.250 | INFO:app.services.crewai_flows.unified_discovery_flow.base_flow:🔄 Flow state will be managed by CrewAI Flow base class
@@ -508,39 +508,39 @@
 2025-07-04 07:45:05.564 | INFO:app.services.crewai_flows.handlers.phase_executors.base_phase_executor:🔍 Starting data_import execution
 2025-07-04 07:45:05.599 | INFO:app.services.crewai_flows.persistence.postgres_store:✅ State saved for flow 87f62ae8-4baf-44bc-9142-d03eafd6a3fa, version 3
 2025-07-04 07:45:05.601 | INFO:app.services.crewai_flow_service:✅ LLM initialized for CrewAI flows
-2025-07-04 07:45:05.604 | 
-2025-07-04 07:45:05.604 | 
-2025-07-04 07:45:05.604 | 
-2025-07-04 07:45:05.614 | 
-2025-07-04 07:45:05.614 | 
-2025-07-04 07:45:05.614 | 
+2025-07-04 07:45:05.604 |
+2025-07-04 07:45:05.604 |
+2025-07-04 07:45:05.604 |
+2025-07-04 07:45:05.614 |
+2025-07-04 07:45:05.614 |
+2025-07-04 07:45:05.614 |
 2025-07-04 07:45:05.615 | INFO:app.services.crewai_flows.crews.data_import_validation_crew:✅ Data Import Validation Crew created successfully
 2025-07-04 07:45:05.615 | INFO:app.services.crewai_flows.handlers.unified_flow_crew_manager:✅ data_import crew created successfully
 2025-07-04 07:45:05.615 | INFO:app.services.crewai_flows.handlers.phase_executors.base_phase_executor:🤖 Using CrewAI crew for data_import (real agents active)
 2025-07-04 07:45:05.615 | INFO:app.services.crewai_flows.handlers.phase_executors.data_import_validation_executor:🤖 Using CrewAI agents for data import validation (agentic-first approach)
-2025-07-04 07:45:05.616 | 
-2025-07-04 07:45:05.616 | 
-2025-07-04 07:45:05.616 | 
-2025-07-04 07:45:05.617 | 
-2025-07-04 07:45:05.617 | 
-2025-07-04 07:45:05.617 | 
+2025-07-04 07:45:05.616 |
+2025-07-04 07:45:05.616 |
+2025-07-04 07:45:05.616 |
+2025-07-04 07:45:05.617 |
+2025-07-04 07:45:05.617 |
+2025-07-04 07:45:05.617 |
 2025-07-04 07:45:05.617 | INFO:app.services.crewai_flows.crews.data_import_validation_crew:✅ Data Import Validation Crew created successfully
 2025-07-04 07:45:05.617 | INFO:app.services.crewai_flows.handlers.unified_flow_crew_manager:✅ data_import_validation crew created successfully
 2025-07-04 07:45:05.617 | INFO:app.services.crewai_flows.handlers.phase_executors.data_import_validation_executor:✅ Data import validation crew created - executing agentic analysis
-2025-07-04 07:45:05.665 | 
-2025-07-04 07:45:05.665 | 
-2025-07-04 07:45:05.665 | 
-2025-07-04 07:45:05.667 | 
-2025-07-04 07:45:05.667 | 
-2025-07-04 07:45:05.667 | 
+2025-07-04 07:45:05.665 |
+2025-07-04 07:45:05.665 |
+2025-07-04 07:45:05.665 |
+2025-07-04 07:45:05.667 |
+2025-07-04 07:45:05.667 |
+2025-07-04 07:45:05.667 |
 2025-07-04 07:45:10.543 | INFO:app.core.middleware:🔄 GET http://localhost:8000/api/v1/discovery/flow/status/87f62ae8-4baf-44bc-9142-d03eafd6a3fa | IP: 192.168.65.1 | Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Ap...
 2025-07-04 07:45:10.577 | INFO:app.api.v1.endpoints.discovery_flows:Getting status for flow 87f62ae8-4baf-44bc-9142-d03eafd6a3fa (v2 endpoint) - routing to unified discovery
 2025-07-04 07:45:10.577 | INFO:app.api.v1.unified_discovery.services.discovery_orchestrator:🔍 Getting discovery flow status: 87f62ae8-4baf-44bc-9142-d03eafd6a3fa
 2025-07-04 07:45:10.577 | WARNING:app.api.v1.endpoints.discovery_flows:Failed to get flow from orchestrator: 'NoneType' object has no attribute 'client_account_id', returning placeholder
 2025-07-04 07:45:10.581 | INFO:app.core.middleware:✅ GET http://localhost:8000/api/v1/discovery/flow/status/87f62ae8-4baf-44bc-9142-d03eafd6a3fa | Status: 200 | Time: 0.039s
-2025-07-04 07:45:14.329 | 
-2025-07-04 07:45:14.329 | 
-2025-07-04 07:45:14.329 | 
+2025-07-04 07:45:14.329 |
+2025-07-04 07:45:14.329 |
+2025-07-04 07:45:14.329 |
 2025-07-04 07:45:14.393 | INFO:app.services.crewai_flows.persistence.postgres_store:✅ State saved for flow 87f62ae8-4baf-44bc-9142-d03eafd6a3fa, version 4
 2025-07-04 07:45:14.393 | INFO:app.services.crewai_flows.handlers.phase_executors.base_phase_executor:✅ data_import completed successfully
 2025-07-04 07:45:14.417 | INFO:app.services.crewai_flows.persistence.postgres_store:✅ State saved for flow 87f62ae8-4baf-44bc-9142-d03eafd6a3fa, version 5
@@ -549,39 +549,39 @@
 2025-07-04 07:45:14.440 | INFO:app.services.crewai_flows.persistence.postgres_store:✅ State saved for flow 87f62ae8-4baf-44bc-9142-d03eafd6a3fa, version 6
 2025-07-04 07:45:14.440 | INFO:app.services.crewai_flows.crews.field_mapping_crew_fast:🚀 Creating FAST Field Mapping Crew for performance
 2025-07-04 07:45:14.440 | INFO:app.services.crewai_flows.crews.field_mapping_crew_fast:Using LLM: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
-2025-07-04 07:45:14.441 | 
-2025-07-04 07:45:14.441 | 
-2025-07-04 07:45:14.441 | 
-2025-07-04 07:45:14.442 | 
-2025-07-04 07:45:14.442 | 
-2025-07-04 07:45:14.442 | 
+2025-07-04 07:45:14.441 |
+2025-07-04 07:45:14.441 |
+2025-07-04 07:45:14.441 |
+2025-07-04 07:45:14.442 |
+2025-07-04 07:45:14.442 |
+2025-07-04 07:45:14.442 |
 2025-07-04 07:45:14.442 | INFO:app.services.crewai_flows.crews.field_mapping_crew_fast:✅ FAST Field Mapping Crew created - single agent, 20s timeout
 2025-07-04 07:45:14.442 | INFO:app.services.crewai_flows.handlers.unified_flow_crew_manager:✅ attribute_mapping crew created successfully
 2025-07-04 07:45:14.442 | INFO:app.services.crewai_flows.handlers.phase_executors.base_phase_executor:🤖 Using CrewAI crew for attribute_mapping (real agents active)
 2025-07-04 07:45:14.442 | INFO:app.services.crewai_flows.crews.field_mapping_crew_fast:🚀 Creating FAST Field Mapping Crew for performance
 2025-07-04 07:45:14.442 | INFO:app.services.crewai_flows.crews.field_mapping_crew_fast:Using LLM: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
-2025-07-04 07:45:14.443 | 
-2025-07-04 07:45:14.443 | 
-2025-07-04 07:45:14.443 | 
-2025-07-04 07:45:14.444 | 
-2025-07-04 07:45:14.444 | 
-2025-07-04 07:45:14.444 | 
+2025-07-04 07:45:14.443 |
+2025-07-04 07:45:14.443 |
+2025-07-04 07:45:14.443 |
+2025-07-04 07:45:14.444 |
+2025-07-04 07:45:14.444 |
+2025-07-04 07:45:14.444 |
 2025-07-04 07:45:14.444 | INFO:app.services.crewai_flows.crews.field_mapping_crew_fast:✅ FAST Field Mapping Crew created - single agent, 20s timeout
 2025-07-04 07:45:14.444 | INFO:app.services.crewai_flows.handlers.unified_flow_crew_manager:✅ attribute_mapping crew created successfully
-2025-07-04 07:45:14.445 | 
-2025-07-04 07:45:14.445 | 
-2025-07-04 07:45:14.445 | 
-2025-07-04 07:45:14.446 | 
-2025-07-04 07:45:14.446 | 
-2025-07-04 07:45:14.446 | 
+2025-07-04 07:45:14.445 |
+2025-07-04 07:45:14.445 |
+2025-07-04 07:45:14.445 |
+2025-07-04 07:45:14.446 |
+2025-07-04 07:45:14.446 |
+2025-07-04 07:45:14.446 |
 2025-07-04 07:45:15.595 | INFO:app.core.middleware:🔄 GET http://localhost:8000/api/v1/discovery/flow/status/87f62ae8-4baf-44bc-9142-d03eafd6a3fa | IP: 192.168.65.1 | Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Ap...
 2025-07-04 07:45:15.640 | INFO:app.api.v1.endpoints.discovery_flows:Getting status for flow 87f62ae8-4baf-44bc-9142-d03eafd6a3fa (v2 endpoint) - routing to unified discovery
 2025-07-04 07:45:15.640 | INFO:app.api.v1.unified_discovery.services.discovery_orchestrator:🔍 Getting discovery flow status: 87f62ae8-4baf-44bc-9142-d03eafd6a3fa
 2025-07-04 07:45:15.640 | WARNING:app.api.v1.endpoints.discovery_flows:Failed to get flow from orchestrator: 'NoneType' object has no attribute 'client_account_id', returning placeholder
 2025-07-04 07:45:15.644 | INFO:app.core.middleware:✅ GET http://localhost:8000/api/v1/discovery/flow/status/87f62ae8-4baf-44bc-9142-d03eafd6a3fa | Status: 200 | Time: 0.049s
-2025-07-04 07:45:19.755 | 
-2025-07-04 07:45:19.755 | 
-2025-07-04 07:45:19.755 | 
+2025-07-04 07:45:19.755 |
+2025-07-04 07:45:19.755 |
+2025-07-04 07:45:19.755 |
 2025-07-04 07:45:19.764 | INFO:app.services.crewai_flows.handlers.phase_executors.field_mapping_executor:Field mapping crew completed: <class 'crewai.crews.crew_output.CrewOutput'>
 2025-07-04 07:45:19.829 | INFO:app.services.crewai_flows.persistence.postgres_store:✅ State saved for flow 87f62ae8-4baf-44bc-9142-d03eafd6a3fa, version 7
 2025-07-04 07:45:19.829 | INFO:app.services.crewai_flows.handlers.phase_executors.base_phase_executor:✅ attribute_mapping completed successfully
@@ -591,31 +591,31 @@
 2025-07-04 07:45:19.877 | INFO:app.services.crewai_flows.persistence.postgres_store:✅ State saved for flow 87f62ae8-4baf-44bc-9142-d03eafd6a3fa, version 9
 2025-07-04 07:45:19.877 | INFO:app.services.crewai_flows.crews.data_cleansing_crew:🚀 Creating OPTIMIZED Data Cleansing Crew for performance
 2025-07-04 07:45:19.877 | INFO:app.services.crewai_flows.crews.data_cleansing_crew:Using LLM: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
-2025-07-04 07:45:19.878 | 
-2025-07-04 07:45:19.878 | 
-2025-07-04 07:45:19.878 | 
-2025-07-04 07:45:19.878 | 
-2025-07-04 07:45:19.878 | 
-2025-07-04 07:45:19.878 | 
+2025-07-04 07:45:19.878 |
+2025-07-04 07:45:19.878 |
+2025-07-04 07:45:19.878 |
+2025-07-04 07:45:19.878 |
+2025-07-04 07:45:19.878 |
+2025-07-04 07:45:19.878 |
 2025-07-04 07:45:19.879 | INFO:app.services.crewai_flows.crews.data_cleansing_crew:✅ OPTIMIZED Data Cleansing Crew created - single agent, direct execution
 2025-07-04 07:45:19.879 | INFO:app.services.crewai_flows.handlers.unified_flow_crew_manager:✅ data_cleansing crew created successfully
 2025-07-04 07:45:19.879 | INFO:app.services.crewai_flows.handlers.phase_executors.base_phase_executor:🤖 Using CrewAI crew for data_cleansing (real agents active)
 2025-07-04 07:45:19.879 | INFO:app.services.crewai_flows.crews.data_cleansing_crew:🚀 Creating OPTIMIZED Data Cleansing Crew for performance
 2025-07-04 07:45:19.879 | INFO:app.services.crewai_flows.crews.data_cleansing_crew:Using LLM: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
-2025-07-04 07:45:19.879 | 
-2025-07-04 07:45:19.879 | 
-2025-07-04 07:45:19.879 | 
-2025-07-04 07:45:19.880 | 
-2025-07-04 07:45:19.880 | 
-2025-07-04 07:45:19.880 | 
+2025-07-04 07:45:19.879 |
+2025-07-04 07:45:19.879 |
+2025-07-04 07:45:19.879 |
+2025-07-04 07:45:19.880 |
+2025-07-04 07:45:19.880 |
+2025-07-04 07:45:19.880 |
 2025-07-04 07:45:19.880 | INFO:app.services.crewai_flows.crews.data_cleansing_crew:✅ OPTIMIZED Data Cleansing Crew created - single agent, direct execution
 2025-07-04 07:45:19.880 | INFO:app.services.crewai_flows.handlers.unified_flow_crew_manager:✅ data_cleansing crew created successfully
-2025-07-04 07:45:19.882 | 
-2025-07-04 07:45:19.882 | 
-2025-07-04 07:45:19.882 | 
-2025-07-04 07:45:19.882 | 
-2025-07-04 07:45:19.882 | 
-2025-07-04 07:45:19.882 | 
+2025-07-04 07:45:19.882 |
+2025-07-04 07:45:19.882 |
+2025-07-04 07:45:19.882 |
+2025-07-04 07:45:19.882 |
+2025-07-04 07:45:19.882 |
+2025-07-04 07:45:19.882 |
 2025-07-04 07:45:20.533 | INFO:app.core.middleware:🔄 GET http://localhost:8000/api/v1/discovery/flow/87f62ae8-4baf-44bc-9142-d03eafd6a3fa/agent-insights?page_context=data_import | IP: 192.168.65.1 | Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Ap...
 2025-07-04 07:45:20.533 | INFO:app.core.context:🔍 Headers received: {'host': 'localhost:8000', 'connection': 'keep-alive', 'pragma': 'no-cache', 'cache-control': 'no-cache', 'x-client-account-id': '073cb4f5-4d51-4ab7-ba26-6baf872619a5', 'x-request-id': 'ig4f7d', 'authorization': 'Bearer db-token-49595d98-c290-4647-9547-bf5ee45a325b-a95193fe', 'x-user-id': '49595d98-c290-4647-9547-bf5ee45a325b', 'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Brave";v="138"', 'x-engagement-id': 'c478aed2-2f58-422b-9327-0b4bbccc7059', 'sec-ch-ua-mobile': '?0', 'sec-ch-ua-platform': '"macOS"', 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', 'content-type': 'application/json', 'accept': '*/*', 'sec-gpc': '1', 'origin': 'http://localhost:8081', 'sec-fetch-site': 'same-site', 'sec-fetch-mode': 'cors', 'sec-fetch-dest': 'empty', 'referer': 'http://localhost:8081/', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'en-US,en;q=0.9', 'cookie': 'next-auth.csrf-token=f04957aff6f36a0925809ec8c052207935762f77745326ecaf9e86b15a27f888%7C67caa7da62cc6b48d404def40f312ebe3b60748285681459af2414f4b3ebeede; __next_hmr_refresh_hash__=48; next-auth.callback-url=http%3A%2F%2Flocalhost%3A3001%2Fsignin'}
 2025-07-04 07:45:20.533 | INFO:app.core.context:🔍 Extracted values - Client: 073cb4f5-4d51-4ab7-ba26-6baf872619a5, Engagement: c478aed2-2f58-422b-9327-0b4bbccc7059, User: 49595d98-c290-4647-9547-bf5ee45a325b, Flow: None
@@ -628,12 +628,12 @@
 2025-07-04 07:45:20.692 | INFO:app.api.v1.unified_discovery.services.discovery_orchestrator:🔍 Getting discovery flow status: 87f62ae8-4baf-44bc-9142-d03eafd6a3fa
 2025-07-04 07:45:20.692 | WARNING:app.api.v1.endpoints.discovery_flows:Failed to get flow from orchestrator: 'NoneType' object has no attribute 'client_account_id', returning placeholder
 2025-07-04 07:45:20.695 | INFO:app.core.middleware:✅ GET http://localhost:8000/api/v1/discovery/flow/status/87f62ae8-4baf-44bc-9142-d03eafd6a3fa | Status: 200 | Time: 0.029s
-2025-07-04 07:45:24.858 | 
-2025-07-04 07:45:24.860 | 
-2025-07-04 07:45:24.860 | 
+2025-07-04 07:45:24.858 |
+2025-07-04 07:45:24.860 |
+2025-07-04 07:45:24.860 |
 2025-07-04 07:45:24.868 | INFO:app.services.crewai_flows.handlers.phase_executors.data_cleansing_executor:🔍 Processing data cleansing crew result: <class 'crewai.crews.crew_output.CrewOutput'>
 2025-07-04 07:45:24.868 | INFO:app.services.crewai_flows.handlers.phase_executors.data_cleansing_executor:📄 Crew raw output: Records processed: 23
-2025-07-04 07:45:24.868 | Issues identified and resolved: 
+2025-07-04 07:45:24.868 | Issues identified and resolved:
 2025-07-04 07:45:24.868 |   - Inconsistent date formats (resolved by standardizing to YYYY-MM-DD).
 2025-07-04 07:45:24.868 |   - Duplicate names (resolved by deduplication).
 2025-07-04 07:45:24.868 |   - Identifiers in mixe...
@@ -650,32 +650,32 @@
 2025-07-04 07:45:24.969 | WARNING:app.services.crewai_flows.crews.inventory_building_crew:Failed to setup shared memory: LongTermMemory.__init__() got an unexpected keyword argument 'storage_type'
 2025-07-04 07:45:24.969 | WARNING:app.services.crewai_flows.crews.inventory_building_crew:Failed to setup knowledge base: Knowledge.__init__() missing 1 required positional argument: 'collection_name'
 2025-07-04 07:45:24.969 | INFO:app.services.crewai_flows.crews.inventory_building_crew:✅ Inventory Building Crew initialized with multi-domain classification
-2025-07-04 07:45:24.970 | 
-2025-07-04 07:45:24.970 | 
-2025-07-04 07:45:24.970 | 
-2025-07-04 07:45:24.970 | 
-2025-07-04 07:45:24.970 | 
-2025-07-04 07:45:24.970 | 
-2025-07-04 07:45:24.971 | 
-2025-07-04 07:45:24.971 | 
-2025-07-04 07:45:24.971 | 
-2025-07-04 07:45:24.971 | 
-2025-07-04 07:45:24.971 | 
-2025-07-04 07:45:24.971 | 
+2025-07-04 07:45:24.970 |
+2025-07-04 07:45:24.970 |
+2025-07-04 07:45:24.970 |
+2025-07-04 07:45:24.970 |
+2025-07-04 07:45:24.970 |
+2025-07-04 07:45:24.970 |
+2025-07-04 07:45:24.971 |
+2025-07-04 07:45:24.971 |
+2025-07-04 07:45:24.971 |
+2025-07-04 07:45:24.971 |
+2025-07-04 07:45:24.971 |
+2025-07-04 07:45:24.971 |
 2025-07-04 07:45:24.972 | INFO:app.services.crewai_flows.crews.inventory_building_crew:Creating Inventory Building Crew with hierarchical process
 2025-07-04 07:45:24.972 | INFO:app.services.crewai_flows.crews.inventory_building_crew:Using LLM: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
-2025-07-04 07:45:24.972 | 
-2025-07-04 07:45:24.972 | 
-2025-07-04 07:45:24.972 | 
-2025-07-04 07:45:24.973 | 
-2025-07-04 07:45:24.973 | 
-2025-07-04 07:45:24.973 | 
-2025-07-04 07:45:24.973 | 
-2025-07-04 07:45:24.973 | 
-2025-07-04 07:45:24.973 | 
-2025-07-04 07:45:24.973 | 
-2025-07-04 07:45:24.973 | 
-2025-07-04 07:45:24.973 | 
+2025-07-04 07:45:24.972 |
+2025-07-04 07:45:24.972 |
+2025-07-04 07:45:24.972 |
+2025-07-04 07:45:24.973 |
+2025-07-04 07:45:24.973 |
+2025-07-04 07:45:24.973 |
+2025-07-04 07:45:24.973 |
+2025-07-04 07:45:24.973 |
+2025-07-04 07:45:24.973 |
+2025-07-04 07:45:24.973 |
+2025-07-04 07:45:24.973 |
+2025-07-04 07:45:24.973 |
 2025-07-04 07:45:24.973 | INFO:app.services.crewai_flows.handlers.unified_flow_crew_manager:✅ inventory crew created successfully
 2025-07-04 07:45:24.973 | INFO:app.services.crewai_flows.handlers.phase_executors.base_phase_executor:🤖 Using CrewAI crew for inventory (real agents active)
 2025-07-04 07:45:24.973 | INFO:app.services.crewai_flows.handlers.phase_executors.asset_inventory_executor:🔍 Asset inventory crew input: 23 cleaned_data, 23 raw_data
@@ -683,32 +683,32 @@
 2025-07-04 07:45:24.974 | WARNING:app.services.crewai_flows.crews.inventory_building_crew:Failed to setup shared memory: LongTermMemory.__init__() got an unexpected keyword argument 'storage_type'
 2025-07-04 07:45:24.974 | WARNING:app.services.crewai_flows.crews.inventory_building_crew:Failed to setup knowledge base: Knowledge.__init__() missing 1 required positional argument: 'collection_name'
 2025-07-04 07:45:24.974 | INFO:app.services.crewai_flows.crews.inventory_building_crew:✅ Inventory Building Crew initialized with multi-domain classification
-2025-07-04 07:45:24.974 | 
-2025-07-04 07:45:24.974 | 
-2025-07-04 07:45:24.974 | 
-2025-07-04 07:45:24.974 | 
-2025-07-04 07:45:24.974 | 
-2025-07-04 07:45:24.974 | 
-2025-07-04 07:45:24.975 | 
-2025-07-04 07:45:24.975 | 
-2025-07-04 07:45:24.975 | 
-2025-07-04 07:45:24.975 | 
-2025-07-04 07:45:24.975 | 
-2025-07-04 07:45:24.975 | 
+2025-07-04 07:45:24.974 |
+2025-07-04 07:45:24.974 |
+2025-07-04 07:45:24.974 |
+2025-07-04 07:45:24.974 |
+2025-07-04 07:45:24.974 |
+2025-07-04 07:45:24.974 |
+2025-07-04 07:45:24.975 |
+2025-07-04 07:45:24.975 |
+2025-07-04 07:45:24.975 |
+2025-07-04 07:45:24.975 |
+2025-07-04 07:45:24.975 |
+2025-07-04 07:45:24.975 |
 2025-07-04 07:45:24.976 | INFO:app.services.crewai_flows.crews.inventory_building_crew:Creating Inventory Building Crew with hierarchical process
 2025-07-04 07:45:24.976 | INFO:app.services.crewai_flows.crews.inventory_building_crew:Using LLM: meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8
-2025-07-04 07:45:24.976 | 
-2025-07-04 07:45:24.976 | 
-2025-07-04 07:45:24.976 | 
-2025-07-04 07:45:24.977 | 
-2025-07-04 07:45:24.977 | 
-2025-07-04 07:45:24.977 | 
-2025-07-04 07:45:24.977 | 
-2025-07-04 07:45:24.977 | 
-2025-07-04 07:45:24.977 | 
-2025-07-04 07:45:24.977 | 
-2025-07-04 07:45:24.977 | 
-2025-07-04 07:45:24.977 | 
+2025-07-04 07:45:24.976 |
+2025-07-04 07:45:24.976 |
+2025-07-04 07:45:24.976 |
+2025-07-04 07:45:24.977 |
+2025-07-04 07:45:24.977 |
+2025-07-04 07:45:24.977 |
+2025-07-04 07:45:24.977 |
+2025-07-04 07:45:24.977 |
+2025-07-04 07:45:24.977 |
+2025-07-04 07:45:24.977 |
+2025-07-04 07:45:24.977 |
+2025-07-04 07:45:24.977 |
 2025-07-04 07:45:24.978 | INFO:app.services.crewai_flows.handlers.unified_flow_crew_manager:✅ inventory crew created successfully
 2025-07-04 07:45:24.979 | 🌊 Flow: UnifiedDiscoveryFlow
 2025-07-04 07:45:24.979 | ID: 87f62ae8-4baf-44bc-9142-d03eafd6a3fa
@@ -726,25 +726,25 @@
 2025-07-04 07:45:24.979 | │                                                                              │
 2025-07-04 07:45:24.979 | │                                                                              │
 2025-07-04 07:45:24.979 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:45:24.979 | 
-2025-07-04 07:45:24.982 | 
-2025-07-04 07:45:24.982 | 
-2025-07-04 07:45:24.982 | 
-2025-07-04 07:45:24.982 | 
-2025-07-04 07:45:24.982 | 
-2025-07-04 07:45:24.982 | 
-2025-07-04 07:45:24.983 | 
-2025-07-04 07:45:24.983 | 
-2025-07-04 07:45:24.983 | 
-2025-07-04 07:45:24.983 | 
-2025-07-04 07:45:24.983 | 
-2025-07-04 07:45:24.983 | 
-2025-07-04 07:45:24.984 | 
-2025-07-04 07:45:24.984 | 
-2025-07-04 07:45:24.984 | 
-2025-07-04 07:45:24.985 | 
-2025-07-04 07:45:24.985 | 
-2025-07-04 07:45:24.985 | 
+2025-07-04 07:45:24.979 |
+2025-07-04 07:45:24.982 |
+2025-07-04 07:45:24.982 |
+2025-07-04 07:45:24.982 |
+2025-07-04 07:45:24.982 |
+2025-07-04 07:45:24.982 |
+2025-07-04 07:45:24.982 |
+2025-07-04 07:45:24.983 |
+2025-07-04 07:45:24.983 |
+2025-07-04 07:45:24.983 |
+2025-07-04 07:45:24.983 |
+2025-07-04 07:45:24.983 |
+2025-07-04 07:45:24.983 |
+2025-07-04 07:45:24.984 |
+2025-07-04 07:45:24.984 |
+2025-07-04 07:45:24.984 |
+2025-07-04 07:45:24.985 |
+2025-07-04 07:45:24.985 |
+2025-07-04 07:45:24.985 |
 2025-07-04 07:45:24.986 | 🚀 Crew: crew
 2025-07-04 07:45:24.986 | └── 📋 Task: cadef5da-56d0-44ad-a7fa-70e19df4732a
 2025-07-04 07:45:24.987 |     Status: Executing Task...╭────────────────────────────── 🤖 Agent Started ──────────────────────────────╮
@@ -777,7 +777,7 @@
 2025-07-04 07:45:24.987 | │  to enhance.                                                                 │
 2025-07-04 07:45:24.987 | │                                                                              │
 2025-07-04 07:45:24.987 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:45:24.987 | 
+2025-07-04 07:45:24.987 |
 2025-07-04 07:45:25.546 | INFO:app.core.middleware:🔄 GET http://localhost:8000/api/v1/discovery/flow/87f62ae8-4baf-44bc-9142-d03eafd6a3fa/validation-status | IP: 192.168.65.1 | Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Ap...
 2025-07-04 07:45:25.547 | INFO:app.core.context:🔍 Headers received: {'host': 'localhost:8000', 'connection': 'keep-alive', 'pragma': 'no-cache', 'cache-control': 'no-cache', 'x-client-account-id': '073cb4f5-4d51-4ab7-ba26-6baf872619a5', 'x-request-id': 'q2o56j', 'authorization': 'Bearer db-token-49595d98-c290-4647-9547-bf5ee45a325b-a95193fe', 'x-user-id': '49595d98-c290-4647-9547-bf5ee45a325b', 'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Brave";v="138"', 'x-engagement-id': 'c478aed2-2f58-422b-9327-0b4bbccc7059', 'sec-ch-ua-mobile': '?0', 'sec-ch-ua-platform': '"macOS"', 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', 'content-type': 'application/json', 'accept': '*/*', 'sec-gpc': '1', 'origin': 'http://localhost:8081', 'sec-fetch-site': 'same-site', 'sec-fetch-mode': 'cors', 'sec-fetch-dest': 'empty', 'referer': 'http://localhost:8081/', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'en-US,en;q=0.9', 'cookie': 'next-auth.csrf-token=f04957aff6f36a0925809ec8c052207935762f77745326ecaf9e86b15a27f888%7C67caa7da62cc6b48d404def40f312ebe3b60748285681459af2414f4b3ebeede; __next_hmr_refresh_hash__=48; next-auth.callback-url=http%3A%2F%2Flocalhost%3A3001%2Fsignin'}
 2025-07-04 07:45:25.547 | INFO:app.core.context:🔍 Extracted values - Client: 073cb4f5-4d51-4ab7-ba26-6baf872619a5, Engagement: c478aed2-2f58-422b-9327-0b4bbccc7059, User: 49595d98-c290-4647-9547-bf5ee45a325b, Flow: None
@@ -790,12 +790,12 @@
 2025-07-04 07:45:25.723 | INFO:app.api.v1.unified_discovery.services.discovery_orchestrator:🔍 Getting discovery flow status: 87f62ae8-4baf-44bc-9142-d03eafd6a3fa
 2025-07-04 07:45:25.723 | WARNING:app.api.v1.endpoints.discovery_flows:Failed to get flow from orchestrator: 'NoneType' object has no attribute 'client_account_id', returning placeholder
 2025-07-04 07:45:25.725 | INFO:app.core.middleware:✅ GET http://localhost:8000/api/v1/discovery/flow/status/87f62ae8-4baf-44bc-9142-d03eafd6a3fa | Status: 200 | Time: 0.024s
-2025-07-04 07:45:27.111 | 
-2025-07-04 07:45:27.111 | 
-2025-07-04 07:45:27.111 | 
-2025-07-04 07:45:27.122 | 
-2025-07-04 07:45:27.122 | 
-2025-07-04 07:45:27.122 | 
+2025-07-04 07:45:27.111 |
+2025-07-04 07:45:27.111 |
+2025-07-04 07:45:27.111 |
+2025-07-04 07:45:27.122 |
+2025-07-04 07:45:27.122 |
+2025-07-04 07:45:27.122 |
 2025-07-04 07:45:27.124 | 🚀 Crew: crew
 2025-07-04 07:45:27.125 | └── 📋 Task: cadef5da-56d0-44ad-a7fa-70e19df4732a
 2025-07-04 07:45:27.125 |     Status: Executing Task...
@@ -807,7 +807,7 @@
 2025-07-04 07:45:27.126 | │  functionality.                                                              │
 2025-07-04 07:45:27.126 | │                                                                              │
 2025-07-04 07:45:27.126 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:45:27.126 | 
+2025-07-04 07:45:27.126 |
 2025-07-04 07:45:30.738 | INFO:app.core.middleware:🔄 GET http://localhost:8000/api/v1/discovery/flow/status/87f62ae8-4baf-44bc-9142-d03eafd6a3fa | IP: 192.168.65.1 | Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Ap...
 2025-07-04 07:45:30.780 | INFO:app.api.v1.endpoints.discovery_flows:Getting status for flow 87f62ae8-4baf-44bc-9142-d03eafd6a3fa (v2 endpoint) - routing to unified discovery
 2025-07-04 07:45:30.780 | INFO:app.api.v1.unified_discovery.services.discovery_orchestrator:🔍 Getting discovery flow status: 87f62ae8-4baf-44bc-9142-d03eafd6a3fa
@@ -825,9 +825,9 @@
 2025-07-04 07:45:35.851 | INFO:app.api.v1.unified_discovery.services.discovery_orchestrator:🔍 Getting discovery flow status: 87f62ae8-4baf-44bc-9142-d03eafd6a3fa
 2025-07-04 07:45:35.851 | WARNING:app.api.v1.endpoints.discovery_flows:Failed to get flow from orchestrator: 'NoneType' object has no attribute 'client_account_id', returning placeholder
 2025-07-04 07:45:35.903 | INFO:app.core.middleware:✅ GET http://localhost:8000/api/v1/discovery/flow/status/87f62ae8-4baf-44bc-9142-d03eafd6a3fa | Status: 200 | Time: 0.112s
-2025-07-04 07:45:39.420 | 
-2025-07-04 07:45:39.420 | 
-2025-07-04 07:45:39.420 | 
+2025-07-04 07:45:39.420 |
+2025-07-04 07:45:39.420 |
+2025-07-04 07:45:39.420 |
 2025-07-04 07:45:39.424 | 🚀 Crew: crew
 2025-07-04 07:45:39.424 | └── 📋 Task: cadef5da-56d0-44ad-a7fa-70e19df4732a
 2025-07-04 07:45:39.424 |     Status: Executing Task...
@@ -842,7 +842,7 @@
 2025-07-04 07:45:39.426 | │  within the organization's IT environment.                                   │
 2025-07-04 07:45:39.426 | │                                                                              │
 2025-07-04 07:45:39.426 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:45:39.426 | 
+2025-07-04 07:45:39.426 |
 2025-07-04 07:45:39.432 | ╭────────────────────────── 🔧 Agent Tool Execution ───────────────────────────╮
 2025-07-04 07:45:39.432 | │                                                                              │
 2025-07-04 07:45:39.432 | │  Agent: Crew Manager                                                         │
@@ -871,16 +871,16 @@
 2025-07-04 07:45:39.437 | │  within the organization's IT environment.                                   │
 2025-07-04 07:45:39.437 | │                                                                              │
 2025-07-04 07:45:39.437 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:45:39.437 | 
+2025-07-04 07:45:39.437 |
 2025-07-04 07:45:39.437 |  Maximum iterations reached. Requesting final answer.
 2025-07-04 07:45:40.918 | INFO:app.core.middleware:🔄 GET http://localhost:8000/api/v1/discovery/flow/status/87f62ae8-4baf-44bc-9142-d03eafd6a3fa | IP: 192.168.65.1 | Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Ap...
 2025-07-04 07:45:40.962 | INFO:app.api.v1.endpoints.discovery_flows:Getting status for flow 87f62ae8-4baf-44bc-9142-d03eafd6a3fa (v2 endpoint) - routing to unified discovery
 2025-07-04 07:45:40.962 | INFO:app.api.v1.unified_discovery.services.discovery_orchestrator:🔍 Getting discovery flow status: 87f62ae8-4baf-44bc-9142-d03eafd6a3fa
 2025-07-04 07:45:40.962 | WARNING:app.api.v1.endpoints.discovery_flows:Failed to get flow from orchestrator: 'NoneType' object has no attribute 'client_account_id', returning placeholder
 2025-07-04 07:45:40.965 | INFO:app.core.middleware:✅ GET http://localhost:8000/api/v1/discovery/flow/status/87f62ae8-4baf-44bc-9142-d03eafd6a3fa | Status: 200 | Time: 0.047s
-2025-07-04 07:45:45.001 | 
-2025-07-04 07:45:45.001 | 
-2025-07-04 07:45:45.001 | 
+2025-07-04 07:45:45.001 |
+2025-07-04 07:45:45.001 |
+2025-07-04 07:45:45.001 |
 2025-07-04 07:45:45.008 | ERROR:app.services.crewai_flows.handlers.phase_executors.base_phase_executor:⏱️ Crew execution timed out after 20s, using fallback
 2025-07-04 07:45:45.062 | INFO:app.services.crewai_flows.persistence.postgres_store:✅ State saved for flow 87f62ae8-4baf-44bc-9142-d03eafd6a3fa, version 13
 2025-07-04 07:45:45.063 | INFO:app.services.crewai_flows.handlers.phase_executors.base_phase_executor:✅ inventory completed successfully
@@ -909,9 +909,9 @@
 2025-07-04 07:45:46.037 | INFO:app.api.v1.unified_discovery.services.discovery_orchestrator:🔍 Getting discovery flow status: 87f62ae8-4baf-44bc-9142-d03eafd6a3fa
 2025-07-04 07:45:46.037 | WARNING:app.api.v1.endpoints.discovery_flows:Failed to get flow from orchestrator: 'NoneType' object has no attribute 'client_account_id', returning placeholder
 2025-07-04 07:45:46.039 | INFO:app.core.middleware:✅ GET http://localhost:8000/api/v1/discovery/flow/status/87f62ae8-4baf-44bc-9142-d03eafd6a3fa | Status: 200 | Time: 0.027s
-2025-07-04 07:45:50.252 | 
-2025-07-04 07:45:50.252 | 
-2025-07-04 07:45:50.252 | 
+2025-07-04 07:45:50.252 |
+2025-07-04 07:45:50.252 |
+2025-07-04 07:45:50.252 |
 2025-07-04 07:45:50.255 | 🚀 Crew: crew
 2025-07-04 07:45:50.256 | └── 📋 Task: cadef5da-56d0-44ad-a7fa-70e19df4732a
 2025-07-04 07:45:50.256 |     Status: Executing Task...
@@ -981,7 +981,7 @@
 2025-07-04 07:45:50.263 | │  and planning for future growth and modernization.                           │
 2025-07-04 07:45:50.263 | │                                                                              │
 2025-07-04 07:45:50.263 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:45:50.263 | 
+2025-07-04 07:45:50.263 |
 2025-07-04 07:45:50.266 | 🚀 Crew: crew
 2025-07-04 07:45:50.266 | └── 📋 Task: cadef5da-56d0-44ad-a7fa-70e19df4732a
 2025-07-04 07:45:50.266 |     Assigned to: Crew Manager
@@ -995,10 +995,10 @@
 2025-07-04 07:45:50.267 | │                                                                              │
 2025-07-04 07:45:50.267 | │                                                                              │
 2025-07-04 07:45:50.267 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:45:50.267 | 
-2025-07-04 07:45:50.274 | 
-2025-07-04 07:45:50.274 | 
-2025-07-04 07:45:50.274 | 
+2025-07-04 07:45:50.267 |
+2025-07-04 07:45:50.274 |
+2025-07-04 07:45:50.274 |
+2025-07-04 07:45:50.274 |
 2025-07-04 07:45:50.276 | 🚀 Crew: crew
 2025-07-04 07:45:50.276 | ├── 📋 Task: cadef5da-56d0-44ad-a7fa-70e19df4732a
 2025-07-04 07:45:50.276 | │   Assigned to: Crew Manager
@@ -1067,7 +1067,7 @@
 2025-07-04 07:45:50.280 | │  cross-domain analysis.                                                      │
 2025-07-04 07:45:50.280 | │                                                                              │
 2025-07-04 07:45:50.280 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:45:50.280 | 
+2025-07-04 07:45:50.280 |
 2025-07-04 07:45:50.647 | INFO:app.core.middleware:🔄 GET http://localhost:8000/api/v1/discovery/flow/87f62ae8-4baf-44bc-9142-d03eafd6a3fa/agent-insights?page_context=data_import | IP: 192.168.65.1 | Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Ap...
 2025-07-04 07:45:50.647 | INFO:app.core.context:🔍 Headers received: {'host': 'localhost:8000', 'connection': 'keep-alive', 'pragma': 'no-cache', 'cache-control': 'no-cache', 'x-client-account-id': '073cb4f5-4d51-4ab7-ba26-6baf872619a5', 'x-request-id': '2w1mjn', 'authorization': 'Bearer db-token-49595d98-c290-4647-9547-bf5ee45a325b-a95193fe', 'x-user-id': '49595d98-c290-4647-9547-bf5ee45a325b', 'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Brave";v="138"', 'x-engagement-id': 'c478aed2-2f58-422b-9327-0b4bbccc7059', 'sec-ch-ua-mobile': '?0', 'sec-ch-ua-platform': '"macOS"', 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36', 'content-type': 'application/json', 'accept': '*/*', 'sec-gpc': '1', 'origin': 'http://localhost:8081', 'sec-fetch-site': 'same-site', 'sec-fetch-mode': 'cors', 'sec-fetch-dest': 'empty', 'referer': 'http://localhost:8081/', 'accept-encoding': 'gzip, deflate, br, zstd', 'accept-language': 'en-US,en;q=0.9', 'cookie': 'next-auth.csrf-token=f04957aff6f36a0925809ec8c052207935762f77745326ecaf9e86b15a27f888%7C67caa7da62cc6b48d404def40f312ebe3b60748285681459af2414f4b3ebeede; __next_hmr_refresh_hash__=48; next-auth.callback-url=http%3A%2F%2Flocalhost%3A3001%2Fsignin'}
 2025-07-04 07:45:50.647 | INFO:app.core.context:🔍 Extracted values - Client: 073cb4f5-4d51-4ab7-ba26-6baf872619a5, Engagement: c478aed2-2f58-422b-9327-0b4bbccc7059, User: 49595d98-c290-4647-9547-bf5ee45a325b, Flow: None
@@ -1080,12 +1080,12 @@
 2025-07-04 07:45:51.074 | INFO:app.api.v1.unified_discovery.services.discovery_orchestrator:🔍 Getting discovery flow status: 87f62ae8-4baf-44bc-9142-d03eafd6a3fa
 2025-07-04 07:45:51.074 | WARNING:app.api.v1.endpoints.discovery_flows:Failed to get flow from orchestrator: 'NoneType' object has no attribute 'client_account_id', returning placeholder
 2025-07-04 07:45:51.076 | INFO:app.core.middleware:✅ GET http://localhost:8000/api/v1/discovery/flow/status/87f62ae8-4baf-44bc-9142-d03eafd6a3fa | Status: 200 | Time: 0.029s
-2025-07-04 07:45:53.125 | 
-2025-07-04 07:45:53.125 | 
-2025-07-04 07:45:53.128 | 
-2025-07-04 07:45:53.136 | 
-2025-07-04 07:45:53.136 | 
-2025-07-04 07:45:53.136 | 
+2025-07-04 07:45:53.125 |
+2025-07-04 07:45:53.125 |
+2025-07-04 07:45:53.128 |
+2025-07-04 07:45:53.136 |
+2025-07-04 07:45:53.136 |
+2025-07-04 07:45:53.136 |
 2025-07-04 07:45:53.141 | 🚀 Crew: crew
 2025-07-04 07:45:53.141 | ├── 📋 Task: cadef5da-56d0-44ad-a7fa-70e19df4732a
 2025-07-04 07:45:53.141 | │   Assigned to: Crew Manager
@@ -1100,7 +1100,7 @@
 2025-07-04 07:45:53.143 | │  Task: Can you handle classifying 23 server and infrastructure records?      │
 2025-07-04 07:45:53.143 | │                                                                              │
 2025-07-04 07:45:53.143 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:45:53.143 | 
+2025-07-04 07:45:53.143 |
 2025-07-04 07:45:56.091 | INFO:app.core.middleware:🔄 GET http://localhost:8000/api/v1/discovery/flow/status/87f62ae8-4baf-44bc-9142-d03eafd6a3fa | IP: 192.168.65.1 | Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Ap...
 2025-07-04 07:45:56.133 | INFO:app.api.v1.endpoints.discovery_flows:Getting status for flow 87f62ae8-4baf-44bc-9142-d03eafd6a3fa (v2 endpoint) - routing to unified discovery
 2025-07-04 07:45:56.133 | INFO:app.api.v1.unified_discovery.services.discovery_orchestrator:🔍 Getting discovery flow status: 87f62ae8-4baf-44bc-9142-d03eafd6a3fa
@@ -1135,9 +1135,9 @@
 2025-07-04 07:46:11.328 | INFO:app.api.v1.unified_discovery.services.discovery_orchestrator:🔍 Getting discovery flow status: 87f62ae8-4baf-44bc-9142-d03eafd6a3fa
 2025-07-04 07:46:11.328 | WARNING:app.api.v1.endpoints.discovery_flows:Failed to get flow from orchestrator: 'NoneType' object has no attribute 'client_account_id', returning placeholder
 2025-07-04 07:46:11.331 | INFO:app.core.middleware:✅ GET http://localhost:8000/api/v1/discovery/flow/status/87f62ae8-4baf-44bc-9142-d03eafd6a3fa | Status: 200 | Time: 0.033s
-2025-07-04 07:46:16.298 | 
-2025-07-04 07:46:16.298 | 
-2025-07-04 07:46:16.298 | 
+2025-07-04 07:46:16.298 |
+2025-07-04 07:46:16.298 |
+2025-07-04 07:46:16.298 |
 2025-07-04 07:46:16.301 | 🚀 Crew: crew
 2025-07-04 07:46:16.301 | ├── 📋 Task: cadef5da-56d0-44ad-a7fa-70e19df4732a
 2025-07-04 07:46:16.301 | │   Assigned to: Crew Manager
@@ -1217,7 +1217,7 @@
 2025-07-04 07:46:16.304 | │     - CPU: 2 Cores                                                           │
 2025-07-04 07:46:16.304 | │                                                                              │
 2025-07-04 07:46:16.304 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:46:16.304 | 
+2025-07-04 07:46:16.304 |
 2025-07-04 07:46:16.307 | ╭────────────────────────── 🔧 Agent Tool Execution ───────────────────────────╮
 2025-07-04 07:46:16.307 | │                                                                              │
 2025-07-04 07:46:16.307 | │  Agent: Crew Manager                                                         │
@@ -1314,7 +1314,7 @@
 2025-07-04 07:46:16.310 | │     - CPU: 2 Cores                                                           │
 2025-07-04 07:46:16.310 | │                                                                              │
 2025-07-04 07:46:16.310 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:46:16.310 | 
+2025-07-04 07:46:16.310 |
 2025-07-04 07:46:16.310 |  Maximum iterations reached. Requesting final answer.
 2025-07-04 07:46:16.338 | INFO:app.core.middleware:🔄 GET http://localhost:8000/api/v1/discovery/flow/status/87f62ae8-4baf-44bc-9142-d03eafd6a3fa | IP: 192.168.65.1 | Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Ap...
 2025-07-04 07:46:16.363 | INFO:app.api.v1.endpoints.discovery_flows:Getting status for flow 87f62ae8-4baf-44bc-9142-d03eafd6a3fa (v2 endpoint) - routing to unified discovery
@@ -1345,12 +1345,12 @@
 2025-07-04 07:46:26.442 | INFO:app.api.v1.unified_discovery.services.discovery_orchestrator:🔍 Getting discovery flow status: 87f62ae8-4baf-44bc-9142-d03eafd6a3fa
 2025-07-04 07:46:26.442 | WARNING:app.api.v1.endpoints.discovery_flows:Failed to get flow from orchestrator: 'NoneType' object has no attribute 'client_account_id', returning placeholder
 2025-07-04 07:46:26.446 | INFO:app.core.middleware:✅ GET http://localhost:8000/api/v1/discovery/flow/status/87f62ae8-4baf-44bc-9142-d03eafd6a3fa | Status: 200 | Time: 0.029s
-2025-07-04 07:46:32.254 | 
-2025-07-04 07:46:32.254 | 
-2025-07-04 07:46:32.254 | 
-2025-07-04 07:46:42.169 | 
-2025-07-04 07:46:42.169 | 
-2025-07-04 07:46:42.169 | 
+2025-07-04 07:46:32.254 |
+2025-07-04 07:46:32.254 |
+2025-07-04 07:46:32.254 |
+2025-07-04 07:46:42.169 |
+2025-07-04 07:46:42.169 |
+2025-07-04 07:46:42.169 |
 2025-07-04 07:46:42.173 | 🚀 Crew: crew
 2025-07-04 07:46:42.173 | ├── 📋 Task: cadef5da-56d0-44ad-a7fa-70e19df4732a
 2025-07-04 07:46:42.173 | │   Assigned to: Crew Manager
@@ -1486,7 +1486,7 @@
 2025-07-04 07:46:42.186 | │  modernization.                                                              │
 2025-07-04 07:46:42.186 | │                                                                              │
 2025-07-04 07:46:42.186 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:46:42.186 | 
+2025-07-04 07:46:42.186 |
 2025-07-04 07:46:42.209 | 🚀 Crew: crew
 2025-07-04 07:46:42.209 | ├── 📋 Task: cadef5da-56d0-44ad-a7fa-70e19df4732a
 2025-07-04 07:46:42.209 | │   Assigned to: Crew Manager
@@ -1504,10 +1504,10 @@
 2025-07-04 07:46:42.210 | │                                                                              │
 2025-07-04 07:46:42.210 | │                                                                              │
 2025-07-04 07:46:42.210 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:46:42.210 | 
-2025-07-04 07:46:42.223 | 
-2025-07-04 07:46:42.224 | 
-2025-07-04 07:46:42.224 | 
+2025-07-04 07:46:42.210 |
+2025-07-04 07:46:42.223 |
+2025-07-04 07:46:42.224 |
+2025-07-04 07:46:42.224 |
 2025-07-04 07:46:42.226 | 🚀 Crew: crew
 2025-07-04 07:46:42.226 | ├── 📋 Task: cadef5da-56d0-44ad-a7fa-70e19df4732a
 2025-07-04 07:46:42.226 | │   Assigned to: Crew Manager
@@ -1556,13 +1556,13 @@
 2025-07-04 07:46:42.228 | │  portfolio analysis.                                                         │
 2025-07-04 07:46:42.228 | │                                                                              │
 2025-07-04 07:46:42.228 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:46:42.228 | 
-2025-07-04 07:46:44.221 | 
-2025-07-04 07:46:44.221 | 
-2025-07-04 07:46:44.221 | 
-2025-07-04 07:46:44.226 | 
-2025-07-04 07:46:44.226 | 
-2025-07-04 07:46:44.226 | 
+2025-07-04 07:46:42.228 |
+2025-07-04 07:46:44.221 |
+2025-07-04 07:46:44.221 |
+2025-07-04 07:46:44.221 |
+2025-07-04 07:46:44.226 |
+2025-07-04 07:46:44.226 |
+2025-07-04 07:46:44.226 |
 2025-07-04 07:46:44.228 | 🚀 Crew: crew
 2025-07-04 07:46:44.228 | ├── 📋 Task: cadef5da-56d0-44ad-a7fa-70e19df4732a
 2025-07-04 07:46:44.228 | │   Assigned to: Crew Manager
@@ -1582,10 +1582,10 @@
 2025-07-04 07:46:44.229 | │  analyze?                                                                    │
 2025-07-04 07:46:44.229 | │                                                                              │
 2025-07-04 07:46:44.229 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:46:44.229 | 
-2025-07-04 07:47:00.853 | 
-2025-07-04 07:47:00.854 | 
-2025-07-04 07:47:00.854 | 
+2025-07-04 07:46:44.229 |
+2025-07-04 07:47:00.853 |
+2025-07-04 07:47:00.854 |
+2025-07-04 07:47:00.854 |
 2025-07-04 07:47:00.866 | 🚀 Crew: crew
 2025-07-04 07:47:00.866 | ├── 📋 Task: cadef5da-56d0-44ad-a7fa-70e19df4732a
 2025-07-04 07:47:00.866 | │   Assigned to: Crew Manager
@@ -1746,7 +1746,7 @@
 2025-07-04 07:47:00.878 | │  types, versions, and relevant business context.                             │
 2025-07-04 07:47:00.878 | │                                                                              │
 2025-07-04 07:47:00.878 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:47:00.878 | 
+2025-07-04 07:47:00.878 |
 2025-07-04 07:47:00.883 | ╭────────────────────────── 🔧 Agent Tool Execution ───────────────────────────╮
 2025-07-04 07:47:00.883 | │                                                                              │
 2025-07-04 07:47:00.883 | │  Agent: Crew Manager                                                         │
@@ -1824,14 +1824,14 @@
 2025-07-04 07:47:00.887 | │  Business Criticalit...                                                      │
 2025-07-04 07:47:00.887 | │                                                                              │
 2025-07-04 07:47:00.887 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:47:00.887 | 
+2025-07-04 07:47:00.887 |
 2025-07-04 07:47:00.887 |  Maximum iterations reached. Requesting final answer.
-2025-07-04 07:47:26.078 | 
-2025-07-04 07:47:26.078 | 
-2025-07-04 07:47:26.078 | 
-2025-07-04 07:47:48.707 | 
-2025-07-04 07:47:48.707 | 
-2025-07-04 07:47:48.707 | 
+2025-07-04 07:47:26.078 |
+2025-07-04 07:47:26.078 |
+2025-07-04 07:47:26.078 |
+2025-07-04 07:47:48.707 |
+2025-07-04 07:47:48.707 |
+2025-07-04 07:47:48.707 |
 2025-07-04 07:47:48.709 | 🚀 Crew: crew
 2025-07-04 07:47:48.709 | ├── 📋 Task: cadef5da-56d0-44ad-a7fa-70e19df4732a
 2025-07-04 07:47:48.709 | │   Assigned to: Crew Manager
@@ -2052,7 +2052,7 @@
 2025-07-04 07:47:48.717 | │  and strategic planning.                                                     │
 2025-07-04 07:47:48.717 | │                                                                              │
 2025-07-04 07:47:48.717 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:47:48.717 | 
+2025-07-04 07:47:48.717 |
 2025-07-04 07:47:48.720 | 🚀 Crew: crew
 2025-07-04 07:47:48.720 | ├── 📋 Task: cadef5da-56d0-44ad-a7fa-70e19df4732a
 2025-07-04 07:47:48.720 | │   Assigned to: Crew Manager
@@ -2074,10 +2074,10 @@
 2025-07-04 07:47:48.721 | │                                                                              │
 2025-07-04 07:47:48.721 | │                                                                              │
 2025-07-04 07:47:48.721 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:47:48.721 | 
-2025-07-04 07:47:48.729 | 
-2025-07-04 07:47:48.729 | 
-2025-07-04 07:47:48.729 | 
+2025-07-04 07:47:48.721 |
+2025-07-04 07:47:48.729 |
+2025-07-04 07:47:48.729 |
+2025-07-04 07:47:48.729 |
 2025-07-04 07:47:48.731 | 🚀 Crew: crew
 2025-07-04 07:47:48.731 | ├── 📋 Task: cadef5da-56d0-44ad-a7fa-70e19df4732a
 2025-07-04 07:47:48.731 | │   Assigned to: Crew Manager
@@ -2137,13 +2137,13 @@
 2025-07-04 07:47:48.732 | │  retrieval.                                                                  │
 2025-07-04 07:47:48.732 | │                                                                              │
 2025-07-04 07:47:48.732 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:47:48.733 | 
-2025-07-04 07:47:50.999 | 
-2025-07-04 07:47:50.999 | 
-2025-07-04 07:47:50.999 | 
-2025-07-04 07:47:51.005 | 
-2025-07-04 07:47:51.005 | 
-2025-07-04 07:47:51.005 | 
+2025-07-04 07:47:48.733 |
+2025-07-04 07:47:50.999 |
+2025-07-04 07:47:50.999 |
+2025-07-04 07:47:50.999 |
+2025-07-04 07:47:51.005 |
+2025-07-04 07:47:51.005 |
+2025-07-04 07:47:51.005 |
 2025-07-04 07:47:51.009 | 🚀 Crew: crew
 2025-07-04 07:47:51.009 | ├── 📋 Task: cadef5da-56d0-44ad-a7fa-70e19df4732a
 2025-07-04 07:47:51.009 | │   Assigned to: Crew Manager
@@ -2167,10 +2167,10 @@
 2025-07-04 07:47:51.009 | │  provided application inventory and hosting relationships                    │
 2025-07-04 07:47:51.009 | │                                                                              │
 2025-07-04 07:47:51.009 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:47:51.010 | 
-2025-07-04 07:48:00.504 | 
-2025-07-04 07:48:00.504 | 
-2025-07-04 07:48:00.504 | 
+2025-07-04 07:47:51.010 |
+2025-07-04 07:48:00.504 |
+2025-07-04 07:48:00.504 |
+2025-07-04 07:48:00.504 |
 2025-07-04 07:48:00.506 | 🚀 Crew: crew
 2025-07-04 07:48:00.506 | ├── 📋 Task: cadef5da-56d0-44ad-a7fa-70e19df4732a
 2025-07-04 07:48:00.506 | │   Assigned to: Crew Manager
@@ -2222,7 +2222,7 @@
 2025-07-04 07:48:00.507 | │  components that need to be migrated, upgraded, or reconfigured.             │
 2025-07-04 07:48:00.507 | │                                                                              │
 2025-07-04 07:48:00.507 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:48:00.507 | 
+2025-07-04 07:48:00.507 |
 2025-07-04 07:48:00.510 | ╭────────────────────────── 🔧 Agent Tool Execution ───────────────────────────╮
 2025-07-04 07:48:00.510 | │                                                                              │
 2025-07-04 07:48:00.510 | │  Agent: Crew Manager                                                         │
@@ -2279,14 +2279,14 @@
 2025-07-04 07:48:00.512 | │  components that need to be migrated, upgraded, or reconfigured.             │
 2025-07-04 07:48:00.512 | │                                                                              │
 2025-07-04 07:48:00.512 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:48:00.512 | 
+2025-07-04 07:48:00.512 |
 2025-07-04 07:48:00.512 |  Maximum iterations reached. Requesting final answer.
-2025-07-04 07:48:13.932 | 
-2025-07-04 07:48:13.935 | 
-2025-07-04 07:48:13.935 | 
-2025-07-04 07:48:23.003 | 
-2025-07-04 07:48:23.003 | 
-2025-07-04 07:48:23.006 | 
+2025-07-04 07:48:13.932 |
+2025-07-04 07:48:13.935 |
+2025-07-04 07:48:13.935 |
+2025-07-04 07:48:23.003 |
+2025-07-04 07:48:23.003 |
+2025-07-04 07:48:23.006 |
 2025-07-04 07:48:23.011 | 🚀 Crew: crew
 2025-07-04 07:48:23.011 | ├── 📋 Task: cadef5da-56d0-44ad-a7fa-70e19df4732a
 2025-07-04 07:48:23.011 | │   Assigned to: Crew Manager
@@ -2410,7 +2410,7 @@
 2025-07-04 07:48:23.018 | │  }                                                                           │
 2025-07-04 07:48:23.018 | │                                                                              │
 2025-07-04 07:48:23.018 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:48:23.019 | 
+2025-07-04 07:48:23.019 |
 2025-07-04 07:48:23.022 | 🚀 Crew: crew
 2025-07-04 07:48:23.022 | ├── 📋 Task: cadef5da-56d0-44ad-a7fa-70e19df4732a
 2025-07-04 07:48:23.022 | │   Assigned to: Crew Manager
@@ -2436,7 +2436,7 @@
 2025-07-04 07:48:23.023 | │                                                                              │
 2025-07-04 07:48:23.023 | │                                                                              │
 2025-07-04 07:48:23.023 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:48:23.023 | 
+2025-07-04 07:48:23.023 |
 2025-07-04 07:48:23.035 | ╭────────────────────────────── Crew Completion ───────────────────────────────╮
 2025-07-04 07:48:23.035 | │                                                                              │
 2025-07-04 07:48:23.035 | │  Crew Execution Completed                                                    │
@@ -2547,7 +2547,7 @@
 2025-07-04 07:48:23.035 | │                                                                              │
 2025-07-04 07:48:23.035 | │                                                                              │
 2025-07-04 07:48:23.035 | ╰──────────────────────────────────────────────────────────────────────────────╯
-2025-07-04 07:48:23.035 | 
+2025-07-04 07:48:23.035 |
 2025-07-04 07:48:23.040 | ERROR:asyncio:_GatheringFuture exception was never retrieved
 2025-07-04 07:48:23.040 | future: <_GatheringFuture finished exception=CancelledError()>
 2025-07-04 07:48:23.040 | asyncio.exceptions.CancelledError

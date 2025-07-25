@@ -20,4 +20,4 @@ export const getImportPath = (path: string) => {
     return path.replace('@/', '../');
   }
   return path;
-}; 
+};

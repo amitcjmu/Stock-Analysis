@@ -51,10 +51,10 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
 
     try {
       setLoadingFields(true);
-      
+
       // Get auth headers including context from AuthContext
       const authHeaders = getAuthHeaders();
-      
+
       // Also check for persisted user context selection
       const userContextData = localStorage.getItem('user_context_selection');
       if (userContextData) {
@@ -70,21 +70,21 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
           console.warn('Failed to parse stored context:', err);
         }
       }
-      
+
       console.log('🔧 Fetching available fields with headers:', authHeaders);
-      
+
       const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.AVAILABLE_TARGET_FIELDS, {
         method: 'GET',
         headers: authHeaders
       });
-      
+
       if (response && response.fields) {
         // Ensure all fields have category property and deduplicate by name
         const fieldsWithCategories = response.fields.map((field: TargetField) => ({
           ...field,
           category: field.category || 'uncategorized'
         }));
-        
+
         // Deduplicate fields by name to prevent dropdown errors
         const uniqueFields = fieldsWithCategories.reduce((acc: TargetField[], field: TargetField) => {
           const existingField = acc.find(f => f.name === field.name);
@@ -99,7 +99,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
           }
           return acc;
         }, []);
-        
+
         setAvailableFields(uniqueFields);
         console.log(`📋 Loaded ${uniqueFields.length} unique available target fields across ${Object.keys(response.categories || {}).length} categories`);
       } else {
@@ -108,13 +108,13 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
       }
     } catch (error) {
       console.error('Failed to load available target fields:', error);
-      
+
       // If it's a rate limit error, just log it and don't throw
       if (error && typeof error === 'object' && 'status' in error && (error as {status: number}).status === 429) {
         console.warn('Rate limited on available fields - will use cached data if available');
         return;
       }
-      
+
       // For other errors, still don't break the component
       console.warn('Using fallback behavior due to API error');
     } finally {
@@ -173,7 +173,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
     ...mapping,
     status: mapping.status === 'suggested' ? 'pending' : mapping.status || 'pending'
   }));
-  
+
   // Apply filters
   const filteredMappings = editableFieldMappings.filter((mapping: FieldMapping) => {
     if (mapping.status === 'approved' && !filterOptions.showApproved) return false;
@@ -202,9 +202,9 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
   };
 
   const toggleDropdown = (mappingId: string) => {
-    setOpenDropdowns(prev => ({ 
-      ...prev, 
-      [mappingId]: !prev[mappingId] 
+    setOpenDropdowns(prev => ({
+      ...prev,
+      [mappingId]: !prev[mappingId]
     }));
     // Reset filters when opening dropdown
     if (!openDropdowns[mappingId]) {
@@ -227,7 +227,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
       });
     }
   };
-  
+
   const handleRejectMapping = async (mappingId: string, reason?: string) => {
     setRejectingMappings(prev => new Set(prev).add(mappingId));
     try {
@@ -257,7 +257,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
       targetField
     });
   };
-  
+
   const handleRejectionConfirm = (reason: string) => {
     handleRejectMapping(rejectionDialog.mappingId, reason);
   };
@@ -295,7 +295,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
           </div>
         )}
       </div>
-      
+
       <MappingFilters
         filterOptions={filterOptions}
         onFilterChange={setFilterOptions}
@@ -320,7 +320,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
         onCategoryChange={setSelectedCategory}
         onSearchTermChange={setSearchTerm}
       />
-      
+
       <MappingPagination
         currentPage={currentPage}
         totalPages={totalPages}
@@ -330,7 +330,7 @@ const FieldMappingsTab: React.FC<FieldMappingsTabProps> = ({
         endIndex={endIndex}
         onPageChange={setCurrentPage}
       />
-      
+
       <RejectionDialog
         isOpen={rejectionDialog.isOpen}
         mappingId={rejectionDialog.mappingId}

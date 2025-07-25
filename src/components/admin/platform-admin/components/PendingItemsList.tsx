@@ -7,15 +7,15 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Building2, 
-  Briefcase, 
-  MessageSquare, 
-  User, 
-  Trash2, 
-  RotateCcw, 
-  Eye, 
-  CheckCircle 
+import {
+  Building2,
+  Briefcase,
+  MessageSquare,
+  User,
+  Trash2,
+  RotateCcw,
+  Eye,
+  CheckCircle
 } from 'lucide-react';
 import { getItemTypeColor } from '@/components/admin/shared/utils/adminFormatters'
 import { formatDate, getItemTypeLabel } from '@/components/admin/shared/utils/adminFormatters'
@@ -93,7 +93,7 @@ export const PendingItemsList: React.FC<PendingItemsListProps> = ({
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Context Information */}
                     <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                       {item.client_account_name && (
@@ -113,7 +113,7 @@ export const PendingItemsList: React.FC<PendingItemsListProps> = ({
                         {item.deleted_by_name} ({item.deleted_by_email})
                       </div>
                     </div>
-                    
+
                     {/* Deletion Reason */}
                     {item.delete_reason && (
                       <div className="bg-gray-50 rounded p-3">
@@ -123,7 +123,7 @@ export const PendingItemsList: React.FC<PendingItemsListProps> = ({
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Action Buttons */}
                   <div className="flex items-center gap-2">
                     <Button
@@ -134,7 +134,7 @@ export const PendingItemsList: React.FC<PendingItemsListProps> = ({
                       <Eye className="w-4 h-4 mr-1" />
                       Details
                     </Button>
-                    
+
                     <Button
                       variant="outline"
                       size="sm"
@@ -144,7 +144,7 @@ export const PendingItemsList: React.FC<PendingItemsListProps> = ({
                       <RotateCcw className="w-4 h-4 mr-1" />
                       Restore
                     </Button>
-                    
+
                     <Button
                       variant="destructive"
                       size="sm"

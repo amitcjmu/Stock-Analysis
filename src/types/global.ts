@@ -1,6 +1,6 @@
 /**
  * Global Type Declarations
- * 
+ *
  * Global TypeScript declarations and ambient module definitions
  * that extend the application's type system.
  */
@@ -14,7 +14,7 @@ declare global {
       ModuleBoundaries: typeof import('./index').MODULE_BOUNDARIES;
     };
   }
-  
+
   // Global type utilities interface
   interface TypeUtils {
     // Re-export from type-utils module
@@ -41,7 +41,7 @@ declare global {
     Mutable: typeof import('./type-utils').Mutable;
     DeepMutable: typeof import('./type-utils').DeepMutable;
   }
-  
+
   // Environment-specific types
   interface Environment {
     ProcessEnv: {
@@ -54,7 +54,7 @@ declare global {
       ALLOWED_ORIGINS: string;
     };
   }
-  
+
   // Window object extensions
   interface Window {
     __MIGRATION_PLATFORM_DEV__?: {

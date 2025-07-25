@@ -52,7 +52,7 @@ export const SixRDecisionRationale: React.FC<SixRDecisionRationaleProps> = ({
 
         {/* Confidence Score */}
         <div className="space-y-2">
-          <ConfidenceScoreIndicator 
+          <ConfidenceScoreIndicator
             score={decision.confidence_score}
             size="large"
             showIcon={true}
@@ -101,7 +101,7 @@ export const SixRDecisionRationale: React.FC<SixRDecisionRationaleProps> = ({
               <Badge variant="outline" className={
                 decision.tech_debt_score >= 80 ? "border-red-300 text-red-700" :
                 decision.tech_debt_score >= 60 ? "border-orange-300 text-orange-700" :
-                decision.tech_debt_score >= 40 ? "border-yellow-300 text-yellow-700" : 
+                decision.tech_debt_score >= 40 ? "border-yellow-300 text-yellow-700" :
                 "border-green-300 text-green-700"
               }>
                 {decision.tech_debt_score}/100

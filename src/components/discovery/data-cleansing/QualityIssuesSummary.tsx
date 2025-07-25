@@ -112,7 +112,7 @@ const QualityIssuesSummary: React.FC<QualityIssuesSummaryProps> = ({
                       )}
                     </div>
                   </div>
-                  
+
                   {selectedIssue === issue.id && (
                     <div className="mt-3 pt-3 border-t border-red-200 bg-white rounded p-3">
                       <div className="space-y-2">
@@ -120,24 +120,24 @@ const QualityIssuesSummary: React.FC<QualityIssuesSummaryProps> = ({
                           <p className="text-xs font-medium text-gray-700">Issue Description:</p>
                           <p className="text-xs text-gray-600">{issue.description || 'No description available'}</p>
                         </div>
-                        
+
                         <div>
                           <p className="text-xs font-medium text-gray-700">Suggested Fix:</p>
                           <p className="text-xs text-green-600 bg-green-50 p-2 rounded">"{issue.suggested_fix || 'Manual review required'}"</p>
                         </div>
-                        
+
                         {issue.impact && (
                           <div>
                             <p className="text-xs font-medium text-gray-700">Impact:</p>
                             <p className="text-xs text-gray-600">{issue.impact}</p>
                           </div>
                         )}
-                        
+
                         <div>
                           <p className="text-xs font-medium text-gray-700">Confidence:</p>
                           <p className="text-xs text-gray-600">{Math.round((issue.confidence || 0.5) * 100)}%</p>
                         </div>
-                        
+
                         <div className="flex space-x-2 pt-2">
                           <button
                             onClick={(e) => handleFixIssue(issue.id, e)}
@@ -171,4 +171,4 @@ const QualityIssuesSummary: React.FC<QualityIssuesSummaryProps> = ({
   );
 };
 
-export default QualityIssuesSummary; 
+export default QualityIssuesSummary;

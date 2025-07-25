@@ -24,7 +24,7 @@ async def cleanup_orphaned_discovery_flows():
         # Find discovery flows with master_flow_id that don't exist in crewai_flow_state_extensions
         orphaned_flows_query = text(
             """
-            SELECT 
+            SELECT
                 df.id,
                 df.flow_id,
                 df.master_flow_id,
@@ -34,7 +34,7 @@ async def cleanup_orphaned_discovery_flows():
                 df.engagement_id
             FROM discovery_flows df
             LEFT JOIN crewai_flow_state_extensions cfe ON df.master_flow_id = cfe.flow_id
-            WHERE df.master_flow_id IS NOT NULL 
+            WHERE df.master_flow_id IS NOT NULL
             AND cfe.flow_id IS NULL
             ORDER BY df.created_at DESC;
         """
@@ -134,7 +134,7 @@ async def cleanup_orphaned_discovery_flows():
         print("\n📊 Final Discovery Flows Status:")
         flows_count_query = text(
             """
-            SELECT 
+            SELECT
                 COUNT(*) as total_flows,
                 COUNT(CASE WHEN master_flow_id IS NOT NULL THEN 1 END) as flows_with_master_id,
                 COUNT(CASE WHEN master_flow_id IS NULL THEN 1 END) as flows_without_master_id

@@ -1,6 +1,6 @@
 /**
  * Type definitions for Collection Components
- * 
+ *
  * Agent Team B3 - Frontend component types
  */
 
@@ -60,17 +60,17 @@ export interface ConditionalRule {
   requiredWhenVisible?: boolean;
 }
 
-export type FieldType = 
-  | 'text' 
-  | 'textarea' 
-  | 'select' 
-  | 'multiselect' 
-  | 'radio' 
-  | 'checkbox' 
-  | 'number' 
-  | 'date' 
-  | 'email' 
-  | 'url' 
+export type FieldType =
+  | 'text'
+  | 'textarea'
+  | 'select'
+  | 'multiselect'
+  | 'radio'
+  | 'checkbox'
+  | 'number'
+  | 'date'
+  | 'email'
+  | 'url'
   | 'file';
 
 // CC: Form value type based on field types

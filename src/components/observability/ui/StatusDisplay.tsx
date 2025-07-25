@@ -38,7 +38,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   showText = true
 }) => {
   const colors = AGENT_STATUS_COLORS[status];
-  
+
   if (variant === 'dot') {
     const dotSize = size === 'sm' ? 'w-2 h-2' : size === 'md' ? 'w-3 h-3' : 'w-4 h-4';
     return (
@@ -61,7 +61,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   return (
     <Badge
       className={`${colors.bg} ${colors.text} ${
-        size === 'sm' ? 'text-xs px-2 py-1' : 
+        size === 'sm' ? 'text-xs px-2 py-1' :
         size === 'md' ? 'text-sm px-3 py-1' : 'text-base px-4 py-2'
       }`}
     >

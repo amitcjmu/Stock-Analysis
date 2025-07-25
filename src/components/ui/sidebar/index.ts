@@ -3,7 +3,7 @@ export * from "../sidebar";
 
 // This modular structure provides:
 // 1. constants.ts - Configuration values
-// 2. types.ts - TypeScript interfaces and types  
+// 2. types.ts - TypeScript interfaces and types
 // 3. context.ts - React context and hook
 // 4. variants.ts - CVA styling variants
 // 5. Individual component files can be added as needed

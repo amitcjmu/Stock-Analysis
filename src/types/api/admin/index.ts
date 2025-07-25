@@ -1,9 +1,9 @@
 /**
  * Admin API Types - Module Index
- * 
+ *
  * Centralized export point for all admin-related type definitions.
  * This file exports all types from the modularized admin type modules.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

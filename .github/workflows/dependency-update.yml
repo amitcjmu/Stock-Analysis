@@ -10,59 +10,59 @@ jobs:
   dependency-check:
     name: Check for Dependency Updates
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-          
+
       - name: Check npm outdated packages
         run: |
           echo "Checking for outdated npm packages..."
           npm outdated || echo "Outdated packages found"
           npm outdated --json > npm-outdated.json || true
-          
+
       - name: Check Python outdated packages
         working-directory: ./backend
         run: |
           echo "Checking for outdated Python packages..."
           pip install pip-outdated
           pip-outdated --format=json > ../python-outdated.json || echo "Outdated packages found"
-          
+
       - name: Security audit
         run: |
           echo "Running security audits..."
-          
+
           # NPM audit
           npm audit --json > npm-audit.json || echo "Security issues found"
-          
+
           # Python safety check
           cd backend
           pip install safety
           safety check --json --output ../python-safety.json || echo "Security issues found"
-          
+
       - name: Generate dependency report
         run: |
           echo "# Dependency Update Report" > dependency-report.md
           echo "Generated on: $(date)" >> dependency-report.md
           echo "" >> dependency-report.md
-          
+
           echo "## NPM Packages" >> dependency-report.md
           if [ -f npm-outdated.json ] && [ -s npm-outdated.json ]; then
             echo "Outdated npm packages detected. Run \`npm outdated\` for details." >> dependency-report.md
           else
             echo "✅ All npm packages are up to date" >> dependency-report.md
           fi
-          
+
           echo "" >> dependency-report.md
           echo "## Python Packages" >> dependency-report.md
           if [ -f python-outdated.json ] && [ -s python-outdated.json ]; then
@@ -70,22 +70,22 @@ jobs:
           else
             echo "✅ All Python packages are up to date" >> dependency-report.md
           fi
-          
+
           echo "" >> dependency-report.md
           echo "## Security Issues" >> dependency-report.md
-          
+
           # Check npm audit
           if [ -f npm-audit.json ]; then
             HIGH_VULNS=$(cat npm-audit.json | grep -o '"severity":"high"' | wc -l)
             CRITICAL_VULNS=$(cat npm-audit.json | grep -o '"severity":"critical"' | wc -l)
-            
+
             if [ "$HIGH_VULNS" -gt 0 ] || [ "$CRITICAL_VULNS" -gt 0 ]; then
               echo "⚠️ **NPM Security Issues**: $CRITICAL_VULNS critical, $HIGH_VULNS high severity vulnerabilities" >> dependency-report.md
             else
               echo "✅ No critical NPM security issues" >> dependency-report.md
             fi
           fi
-          
+
           # Check Python safety
           if [ -f python-safety.json ]; then
             PYTHON_VULNS=$(cat python-safety.json | grep -c '"vulnerability_id"' || echo "0")
@@ -95,9 +95,9 @@ jobs:
               echo "✅ No Python security issues" >> dependency-report.md
             fi
           fi
-          
+
           cat dependency-report.md
-          
+
       - name: Upload dependency report
         uses: actions/upload-artifact@v4
         with:
@@ -108,27 +108,27 @@ jobs:
             python-outdated.json
             npm-audit.json
             python-safety.json
-            
+
       - name: Create issue for critical vulnerabilities
         if: success()
         run: |
           # Check if we need to create an issue for critical vulnerabilities
           CRITICAL_ISSUES=false
-          
+
           if [ -f npm-audit.json ]; then
             CRITICAL_VULNS=$(cat npm-audit.json | grep -o '"severity":"critical"' | wc -l)
             if [ "$CRITICAL_VULNS" -gt 0 ]; then
               CRITICAL_ISSUES=true
             fi
           fi
-          
+
           if [ -f python-safety.json ]; then
             PYTHON_VULNS=$(cat python-safety.json | grep -c '"vulnerability_id"' || echo "0")
             if [ "$PYTHON_VULNS" -gt 0 ]; then
               CRITICAL_ISSUES=true
             fi
           fi
-          
+
           if [ "$CRITICAL_ISSUES" = true ]; then
             echo "⚠️ Critical security vulnerabilities detected!"
             echo "An issue should be created to track these vulnerabilities."

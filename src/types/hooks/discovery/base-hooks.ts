@@ -1,6 +1,6 @@
 /**
  * Discovery Base Hook Types
- * 
+ *
  * Common base types and interfaces used across all discovery hooks.
  */
 

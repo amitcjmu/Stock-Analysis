@@ -117,10 +117,10 @@ class TestSessionFlowMigration:
         db_session.execute(
             text(
                 """
-            UPDATE assets 
+            UPDATE assets
             SET flow_id = (
-                SELECT df.flow_id 
-                FROM discovery_flows df 
+                SELECT df.flow_id
+                FROM discovery_flows df
                 WHERE df.import_session_id = assets.session_id
             )
             WHERE assets.flow_id IS NULL AND assets.session_id IS NOT NULL
@@ -447,8 +447,8 @@ class TestSessionFlowMigration:
         db_session.execute(
             text(
                 """
-            DELETE FROM discovery_flows 
-            WHERE status = 'migrated' 
+            DELETE FROM discovery_flows
+            WHERE status = 'migrated'
               AND flow_description LIKE '%Auto-created during session-to-flow migration%'
         """
             )

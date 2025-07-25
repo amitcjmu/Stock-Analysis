@@ -106,4 +106,4 @@ export interface UserFiltersProps {
   activeUsersCount?: number;
   onTabChange?: (tab: 'pending' | 'active' | 'access') => void;
   onFilterChange?: (filters: UserFilter) => void;
-} 
+}

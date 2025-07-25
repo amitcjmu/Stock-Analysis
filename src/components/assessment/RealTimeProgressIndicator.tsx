@@ -23,7 +23,7 @@ export const RealTimeProgressIndicator: React.FC<RealTimeProgressIndicatorProps>
 }) => {
   const recentUpdates = agentUpdates.slice(-5);
   const latestUpdate = agentUpdates[agentUpdates.length - 1];
-  
+
   const getPhaseDisplayName = (phase: string) => {
     const phaseNames: Record<string, string> = {
       'tech_debt_analysis': 'Technical Debt Analysis',
@@ -97,8 +97,8 @@ export const RealTimeProgressIndicator: React.FC<RealTimeProgressIndicatorProps>
                   key={index}
                   className={cn(
                     "flex items-start space-x-3 p-2 rounded-lg transition-colors",
-                    index === recentUpdates.length - 1 
-                      ? "bg-blue-50 border border-blue-200" 
+                    index === recentUpdates.length - 1
+                      ? "bg-blue-50 border border-blue-200"
                       : "bg-gray-50"
                   )}
                 >

@@ -7,7 +7,7 @@ export const useAnalysisAnalytics = (analyses: AnalysisHistoryItem[]): Analytics
     const total = analyses.length;
     const completed = analyses.filter(a => a.status === 'completed').length;
     const completedRate = total > 0 ? Math.round((completed / total) * 100) : 0;
-    
+
     const avgConfidence = total > 0
       ? Math.round(analyses.reduce((sum, a) => sum + a.confidence_score, 0) / total)
       : 0;

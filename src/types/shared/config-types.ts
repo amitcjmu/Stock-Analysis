@@ -1,6 +1,6 @@
 /**
  * Shared Configuration Type Definitions
- * 
+ *
  * Standardized configuration value types to replace any types in constraint
  * and criteria systems
  */
@@ -8,11 +8,11 @@
 /**
  * Union type for common configuration values across the platform
  */
-export type ConfigurationValue = 
-  | string 
-  | number 
-  | boolean 
-  | string[] 
+export type ConfigurationValue =
+  | string
+  | number
+  | boolean
+  | string[]
   | number[]
   | ConfigurationObject;
 

@@ -2,7 +2,7 @@ import type { AssetInventory } from '../types/inventory.types';
 
 export const exportAssets = (assets: AssetInventory[], selectedColumns: string[]) => {
   const csvHeaders = selectedColumns.join(',');
-  const csvRows = assets.map(asset => 
+  const csvRows = assets.map(asset =>
     selectedColumns.map(col => {
       const value = asset[col];
       // Escape commas and quotes in CSV
@@ -12,7 +12,7 @@ export const exportAssets = (assets: AssetInventory[], selectedColumns: string[]
       return value || '';
     }).join(',')
   );
-  
+
   const csvContent = [csvHeaders, ...csvRows].join('\n');
   const blob = new Blob([csvContent], { type: 'text/csv' });
   const url = window.URL.createObjectURL(blob);

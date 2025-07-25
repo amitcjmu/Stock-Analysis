@@ -1,6 +1,6 @@
 /**
  * Mapping Utilities
- * 
+ *
  * Functions for categorizing mappings, filtering, and state management.
  */
 
@@ -24,7 +24,7 @@ export const categorizeMappings = (fieldMappings: FieldMapping[]): MappingBucket
       full_object: m
     }))
   });
-  
+
   const autoMapped = fieldMappings.filter(m => m.status === 'pending' && m.confidence > 0.7);
   const unmapped = fieldMappings.filter(m => {
     return m.status === 'rejected' || (m.status === 'pending' && m.confidence <= 0.7) || m.mapping_type === 'unmapped';
@@ -47,9 +47,9 @@ export const categorizeMappings = (fieldMappings: FieldMapping[]): MappingBucket
 
 export const filterMappingsBySearch = (buckets: MappingBuckets, searchTerm: string): MappingBuckets => {
   if (!searchTerm) return buckets;
-  
-  const filterBySearch = (mappings: FieldMapping[]) => 
-    mappings.filter(m => 
+
+  const filterBySearch = (mappings: FieldMapping[]) =>
+    mappings.filter(m =>
       m.sourceField.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (m.targetAttribute && m.targetAttribute.toLowerCase().includes(searchTerm.toLowerCase()))
     );

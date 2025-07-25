@@ -10,12 +10,12 @@ import { cn } from '../../lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  Activity, 
-  CheckCircle, 
-  Clock, 
-  TrendingUp, 
-  TrendingDown, 
+import {
+  Activity,
+  CheckCircle,
+  Clock,
+  TrendingUp,
+  TrendingDown,
   MoreHorizontal,
   Zap,
   Target,
@@ -77,7 +77,7 @@ export const AgentPerformanceCard: React.FC<PerformanceCardProps> = ({
   );
 
   return (
-    <Card 
+    <Card
       className={cardClasses}
       onClick={handleCardClick}
       onMouseEnter={() => setIsHovered(true)}
@@ -87,9 +87,9 @@ export const AgentPerformanceCard: React.FC<PerformanceCardProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="flex items-center space-x-2">
-              <AgentStatusIndicator 
-                status={agent.status} 
-                variant="dot" 
+              <AgentStatusIndicator
+                status={agent.status}
+                variant="dot"
                 size="md"
                 pulse={agent.status === 'active'}
               />
@@ -97,12 +97,12 @@ export const AgentPerformanceCard: React.FC<PerformanceCardProps> = ({
                 {agent.name}
               </CardTitle>
             </div>
-            <AgentOnlineIndicator 
+            <AgentOnlineIndicator
               isOnline={agent.isOnline}
               size="sm"
             />
           </div>
-          
+
           <div className="flex items-center space-x-2">
             {detailed && (
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -111,7 +111,7 @@ export const AgentPerformanceCard: React.FC<PerformanceCardProps> = ({
             )}
           </div>
         </div>
-        
+
         {detailed && (
           <div className="text-sm text-gray-500">
             Last active: {agent.lastActive}
@@ -174,7 +174,7 @@ export const AgentPerformanceCard: React.FC<PerformanceCardProps> = ({
                     <Activity className="h-4 w-4 text-orange-500" />
                     <span className="text-sm font-medium text-gray-600">Status</span>
                   </div>
-                  <AgentStatusIndicator 
+                  <AgentStatusIndicator
                     status={agent.status}
                     variant="badge"
                     size="sm"
@@ -186,7 +186,7 @@ export const AgentPerformanceCard: React.FC<PerformanceCardProps> = ({
                     <Zap className="h-4 w-4 text-blue-500" />
                     <span className="text-sm font-medium text-gray-600">Health</span>
                   </div>
-                  <Badge 
+                  <Badge
                     variant={agent.successRate > 0.8 ? "default" : "destructive"}
                     className="text-xs"
                   >
@@ -209,7 +209,7 @@ export const AgentPerformanceCard: React.FC<PerformanceCardProps> = ({
                 {Array.from({ length: 12 }, (_, i) => {
                   const height = Math.random() * 80 + 20;
                   return (
-                    <div 
+                    <div
                       key={i}
                       className="flex-1 bg-blue-300 rounded-t opacity-70 hover:opacity-100 transition-opacity"
                       style={{ height: `${height}%` }}
@@ -240,8 +240,8 @@ export const AgentPerformanceCard: React.FC<PerformanceCardProps> = ({
 // Compact version for grid layouts
 export const AgentPerformanceCardCompact: React.FC<PerformanceCardProps> = (props) => {
   return (
-    <AgentPerformanceCard 
-      {...props} 
+    <AgentPerformanceCard
+      {...props}
       detailed={false}
       showChart={false}
       className={cn('min-h-[200px]', props.className)}
@@ -252,8 +252,8 @@ export const AgentPerformanceCardCompact: React.FC<PerformanceCardProps> = (prop
 // Detailed version for detailed views
 export const AgentPerformanceCardDetailed: React.FC<PerformanceCardProps> = (props) => {
   return (
-    <AgentPerformanceCard 
-      {...props} 
+    <AgentPerformanceCard
+      {...props}
       detailed={true}
       showChart={true}
       className={cn('min-h-[400px]', props.className)}

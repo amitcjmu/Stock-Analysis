@@ -22,7 +22,6 @@ async def validate_master_flow_integrity():
     print("=" * 50)
 
     async with AsyncSessionLocal() as session:
-
         # 1. Verify CrewAI Flow State Extensions as Master Coordinators
         print("\n1️⃣ Validating CrewAI Flow State Extensions...")
 
@@ -52,7 +51,7 @@ async def validate_master_flow_integrity():
         result = await session.execute(
             text(
                 """
-            SELECT 
+            SELECT
                 COUNT(*) as total_discovery_flows,
                 COUNT(master_flow_id) as flows_with_master_id,
                 COUNT(CASE WHEN cse.flow_id IS NOT NULL THEN 1 END) as valid_master_refs
@@ -77,7 +76,7 @@ async def validate_master_flow_integrity():
         result = await session.execute(
             text(
                 """
-            SELECT 
+            SELECT
                 COUNT(*) as total_assets,
                 COUNT(master_flow_id) as assets_with_master_flow,
                 COUNT(discovery_flow_id) as assets_with_discovery_flow,
@@ -95,9 +94,7 @@ async def validate_master_flow_integrity():
             f"   ✅ Assets with Discovery Flow: {assets_stats.assets_with_discovery_flow}"
         )
         print(f"   ✅ Discovery Phase Assets: {assets_stats.discovery_phase_assets}")
-        print(
-            f"   ✅ Current Discovery Assets: {assets_stats.current_discovery_assets}"
-        )
+        print(f"   ✅ Current Discovery Assets: {assets_stats.current_discovery_assets}")
 
         # 4. Verify Cross-Phase Relationship Integrity
         print("\n4️⃣ Validating Cross-Phase Relationship Integrity...")
@@ -105,7 +102,7 @@ async def validate_master_flow_integrity():
         result = await session.execute(
             text(
                 """
-            SELECT 
+            SELECT
                 df.id as discovery_flow_id,
                 df.master_flow_id,
                 cse.flow_id as crewai_flow_id,
@@ -148,7 +145,7 @@ async def validate_master_flow_integrity():
         result = await session.execute(
             text(
                 """
-            SELECT 
+            SELECT
                 current_phase,
                 COUNT(*) as extension_count,
                 COUNT(CASE WHEN phase_progression IS NOT NULL THEN 1 END) as with_progression
@@ -172,7 +169,7 @@ async def validate_master_flow_integrity():
             text(
                 """
             SELECT EXISTS (
-                SELECT FROM information_schema.tables 
+                SELECT FROM information_schema.tables
                 WHERE table_name = 'discovery_assets'
             )
         """
@@ -190,11 +187,11 @@ async def validate_master_flow_integrity():
         result = await session.execute(
             text(
                 """
-            SELECT 
+            SELECT
                 COUNT(*) as migrated_assets,
                 COUNT(CASE WHEN custom_attributes IS NOT NULL THEN 1 END) as with_custom_attrs,
                 COUNT(CASE WHEN raw_data IS NOT NULL THEN 1 END) as with_raw_data
-            FROM assets 
+            FROM assets
             WHERE source_phase = 'discovery'
         """
             )

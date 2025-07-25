@@ -59,8 +59,8 @@ const Scan = () => {
                   <span className="text-lg font-bold text-blue-600">{scanProgress}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-4">
-                  <div 
-                    className="bg-blue-500 h-4 rounded-full transition-all duration-300" 
+                  <div
+                    className="bg-blue-500 h-4 rounded-full transition-all duration-300"
                     style={{ width: `${scanProgress}%` }}
                   ></div>
                 </div>
@@ -83,8 +83,8 @@ const Scan = () => {
                     <span className="font-medium">{scannedApps}/{totalApps}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-500 h-2 rounded-full" 
+                    <div
+                      className="bg-blue-500 h-2 rounded-full"
                       style={{ width: `${(scannedApps / totalApps) * 100}%` }}
                     ></div>
                   </div>
@@ -103,8 +103,8 @@ const Scan = () => {
                     <span className="font-medium">{scannedServers}/{totalServers}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-green-500 h-2 rounded-full" 
+                    <div
+                      className="bg-green-500 h-2 rounded-full"
                       style={{ width: `${(scannedServers / totalServers) * 100}%` }}
                     ></div>
                   </div>
@@ -123,8 +123,8 @@ const Scan = () => {
                     <span className="font-medium">{scannedDatabases}/{totalDatabases}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-purple-500 h-2 rounded-full" 
+                    <div
+                      className="bg-purple-500 h-2 rounded-full"
                       style={{ width: `${(scannedDatabases / totalDatabases) * 100}%` }}
                     ></div>
                   </div>

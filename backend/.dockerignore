@@ -94,4 +94,4 @@ htmlcov/
 
 # Large binary files
 *.dylib
-*.so.1.* 
+*.so.1.*

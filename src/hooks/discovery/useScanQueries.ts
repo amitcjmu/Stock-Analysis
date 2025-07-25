@@ -13,7 +13,7 @@ const SCAN_QUERY_KEYS = {
 
 export const useScanProgress = () => {
   const { isAuthenticated } = useAuth();
-  
+
   return useQuery<ScanProgress, Error>({
     queryKey: SCAN_QUERY_KEYS.SCAN_PROGRESS,
     queryFn: fetchScanProgress,
@@ -30,12 +30,12 @@ export const useScanProgress = () => {
 export const useScanLogs = (options = {}) => {
   const { isAuthenticated } = useAuth();
   const { enabled = true, ...queryOptions } = options;
-  
+
   return useQuery<ScanLog[], Error>({
     queryKey: SCAN_QUERY_KEYS.SCAN_LOGS,
     queryFn: fetchScanLogs,
     enabled: isAuthenticated && enabled,
-    refetchInterval: false, // Disable aggressive polling - use manual refresh  
+    refetchInterval: false, // Disable aggressive polling - use manual refresh
     staleTime: 30000, // Data is considered fresh for 30 seconds
     refetchOnWindowFocus: false, // Disable focus refetching
     ...queryOptions,
@@ -49,12 +49,12 @@ export const useScanMutations = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
-  
+
   const invalidateScanQueries = () => {
     queryClient.invalidateQueries({ queryKey: SCAN_QUERY_KEYS.SCAN_PROGRESS });
     queryClient.invalidateQueries({ queryKey: SCAN_QUERY_KEYS.SCAN_LOGS });
   };
-  
+
   const startScanMutation = useMutation({
     mutationFn: startScan,
     onSuccess: (data) => {
@@ -74,7 +74,7 @@ export const useScanMutations = () => {
       });
     },
   });
-  
+
   const pauseScanMutation = useMutation({
     mutationFn: pauseScan,
     onSuccess: (data) => {
@@ -94,7 +94,7 @@ export const useScanMutations = () => {
       });
     },
   });
-  
+
   const resumeScanMutation = useMutation({
     mutationFn: resumeScan,
     onSuccess: (data) => {
@@ -114,7 +114,7 @@ export const useScanMutations = () => {
       });
     },
   });
-  
+
   const stopScanMutation = useMutation({
     mutationFn: stopScan,
     onSuccess: (data) => {
@@ -134,16 +134,16 @@ export const useScanMutations = () => {
       });
     },
   });
-  
+
   return {
     startScan: startScanMutation.mutateAsync,
     pauseScan: pauseScanMutation.mutateAsync,
     resumeScan: resumeScanMutation.mutateAsync,
     stopScan: stopScanMutation.mutateAsync,
-    isLoading: 
-      startScanMutation.isPending || 
-      pauseScanMutation.isPending || 
-      resumeScanMutation.isPending || 
+    isLoading:
+      startScanMutation.isPending ||
+      pauseScanMutation.isPending ||
+      resumeScanMutation.isPending ||
       stopScanMutation.isPending,
   };
 };
@@ -158,32 +158,32 @@ export const useScanControls = () => {
     stopScan,
     isLoading: isMutating
   } = useScanMutations();
-  
+
   const isLoading = isLoadingProgress || isLoadingLogs || isMutating;
-  
+
   // Determine the current scan state
   const scanState = scanProgress?.status || 'idle';
   const isScanning = scanState === 'scanning';
   const isPaused = scanState === 'paused';
   const isIdle = scanState === 'idle' || !scanState;
-  
+
   // Handle scan actions
   const handleStartScan = (scanType: 'full' | 'incremental' | 'targeted' = 'full') => {
     return startScan({ scanType });
   };
-  
+
   const handlePauseScan = (scanId: string) => {
     return pauseScan(scanId);
   };
-  
+
   const handleResumeScan = (scanId: string) => {
     return resumeScan(scanId);
   };
-  
+
   const handleStopScan = (scanId: string) => {
     return stopScan(scanId);
   };
-  
+
   return {
     // State
     scanProgress,
@@ -193,7 +193,7 @@ export const useScanControls = () => {
     isPaused,
     isIdle,
     isLoading,
-    
+
     // Actions
     startScan: handleStartScan,
     pauseScan: handlePauseScan,

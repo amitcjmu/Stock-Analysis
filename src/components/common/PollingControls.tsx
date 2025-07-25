@@ -1,6 +1,6 @@
 /**
  * Enhanced Polling Controls Component
- * 
+ *
  * Provides centralized control over all polling operations in the application
  * to replace automatic polling with pull-based requests and manage errors.
  */
@@ -60,12 +60,12 @@ export function PollingControls({
       // Get query cache and analyze error patterns
       const queryCache = queryClient.getQueryCache();
       const queries = queryCache.getAll();
-      
+
       let totalQueries = 0;
       let errorQueries = 0;
       const consecutiveErrors = 0;
       const problematicEndpoints: string[] = [];
-      
+
       queries.forEach(query => {
         if (query.state.status === 'error') {
           errorQueries++;
@@ -77,8 +77,8 @@ export function PollingControls({
       });
 
       // Check for consecutive errors across all queries
-      const recentErrors = queries.filter(q => 
-        q.state.error && 
+      const recentErrors = queries.filter(q =>
+        q.state.error &&
         q.state.errorUpdateCount > 2
       ).length;
 
@@ -107,7 +107,7 @@ export function PollingControls({
   const handleEmergencyStop = async () => {
     try {
       setIsEmergencyActive(true);
-      
+
       // Stop all frontend polling
       if (typeof window !== 'undefined' && window.stopAllPolling) {
         window.stopAllPolling();
@@ -119,9 +119,9 @@ export function PollingControls({
       // Stop backend polling
       await apiCall('/api/v1/observability/polling/emergency-stop', {
         method: 'POST',
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           reason: 'User triggered emergency stop',
-          flow_id: flowId 
+          flow_id: flowId
         })
       });
 
@@ -138,7 +138,7 @@ export function PollingControls({
     try {
       // Invalidate all queries to trigger fresh fetches
       await queryClient.invalidateQueries();
-      
+
       // Reset error states
       setPollingStatus(prev => ({
         ...prev,
@@ -146,7 +146,7 @@ export function PollingControls({
         errorRate: 0,
         problematicEndpoints: []
       }));
-      
+
       onRefresh?.();
       toast.success('All data refreshed');
     } catch (error) {
@@ -159,7 +159,7 @@ export function PollingControls({
     try {
       // Clear error states in React Query
       queryClient.resetQueries({ type: 'all' });
-      
+
       // Reset local error tracking
       setPollingStatus(prev => ({
         ...prev,
@@ -167,9 +167,9 @@ export function PollingControls({
         errorRate: 0,
         problematicEndpoints: []
       }));
-      
+
       setIsEmergencyActive(false);
-      
+
       toast.success('Error state reset - polling can resume');
     } catch (error) {
       console.error('Failed to reset error state:', error);
@@ -179,19 +179,19 @@ export function PollingControls({
 
   const handleStopFlowPolling = async () => {
     if (!flowId) return;
-    
+
     try {
       // Stop polling for specific flow
-      await queryClient.cancelQueries({ 
-        queryKey: ['discoveryFlowV2', flowId] 
+      await queryClient.cancelQueries({
+        queryKey: ['discoveryFlowV2', flowId]
       });
-      await queryClient.cancelQueries({ 
-        queryKey: ['real-time-processing', flowId] 
+      await queryClient.cancelQueries({
+        queryKey: ['real-time-processing', flowId]
       });
-      await queryClient.cancelQueries({ 
-        queryKey: ['flow-escalation-status', flowId] 
+      await queryClient.cancelQueries({
+        queryKey: ['flow-escalation-status', flowId]
       });
-      
+
       // Stop all frontend polling for this flow
       if (typeof window !== 'undefined' && window.stopAllPolling) {
         window.stopAllPolling();
@@ -200,9 +200,9 @@ export function PollingControls({
       // Stop backend polling for this flow
       await apiCall('/api/v1/observability/polling/emergency-stop', {
         method: 'POST',
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           reason: 'Flow-specific polling stop',
-          flow_id: flowId 
+          flow_id: flowId
         })
       });
 
@@ -234,7 +234,7 @@ export function PollingControls({
           {getStatusIcon()}
           Polling Control Center
           <Badge variant={getStatusColor()}>
-            {isEmergencyActive ? 'STOPPED' : 
+            {isEmergencyActive ? 'STOPPED' :
              pollingStatus.consecutiveErrors > 3 ? 'ERROR' :
              pollingStatus.errorRate > 25 ? 'WARNING' : 'ACTIVE'}
           </Badge>
@@ -288,7 +288,7 @@ export function PollingControls({
 
         {/* Control Buttons */}
         <div className="flex flex-wrap gap-2">
-          <Button 
+          <Button
             onClick={handleEmergencyStop}
             variant="destructive"
             size="sm"
@@ -299,7 +299,7 @@ export function PollingControls({
           </Button>
 
           {flowId && (
-            <Button 
+            <Button
               onClick={handleStopFlowPolling}
               variant="outline"
               size="sm"
@@ -309,7 +309,7 @@ export function PollingControls({
             </Button>
           )}
 
-          <Button 
+          <Button
             onClick={handleRefreshAll}
             variant="outline"
             size="sm"
@@ -318,7 +318,7 @@ export function PollingControls({
             Refresh All Data
           </Button>
 
-          <Button 
+          <Button
             onClick={handleResetErrorState}
             variant="outline"
             size="sm"
@@ -373,9 +373,9 @@ export function PollingStatusIndicator({ flowId }: { flowId?: string }) {
       // Stop backend polling
       await apiCall('/api/v1/observability/polling/emergency-stop', {
         method: 'POST',
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           reason: 'Quick stop from indicator',
-          flow_id: flowId 
+          flow_id: flowId
         })
       });
 
@@ -388,9 +388,9 @@ export function PollingStatusIndicator({ flowId }: { flowId?: string }) {
 
   if (errorCount === 0) {
     return (
-      <Badge 
-        variant="default" 
-        className="cursor-pointer hover:bg-gray-200" 
+      <Badge
+        variant="default"
+        className="cursor-pointer hover:bg-gray-200"
         onClick={checkErrors}
         title={`Last checked: ${lastChecked.toLocaleTimeString()}`}
       >
@@ -401,8 +401,8 @@ export function PollingStatusIndicator({ flowId }: { flowId?: string }) {
   }
 
   return (
-    <Badge 
-      variant="destructive" 
+    <Badge
+      variant="destructive"
       className="cursor-pointer"
       onClick={handleQuickStop}
       title={`${errorCount} errors detected - Click to stop all polling`}

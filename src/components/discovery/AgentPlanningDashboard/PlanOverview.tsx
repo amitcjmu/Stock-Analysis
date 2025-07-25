@@ -1,6 +1,6 @@
 /**
  * Plan Overview Component
- * 
+ *
  * Displays high-level plan metrics and progress.
  */
 
@@ -16,7 +16,7 @@ const PlanOverview: React.FC<PlanOverviewProps> = ({ agentPlan }) => {
   return (
     <div className="bg-gray-50 rounded-lg p-6">
       <p className="text-gray-600 mb-4">{agentPlan.description}</p>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="text-center">
           <div className="text-3xl font-bold text-blue-600">{agentPlan.overall_progress}%</div>

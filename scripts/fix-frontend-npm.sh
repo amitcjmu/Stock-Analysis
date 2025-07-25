@@ -69,17 +69,17 @@ sleep 10
 # Step 9: Check if container is running
 if docker ps | grep -q "migration_frontend"; then
     print_status "✅ Frontend container is running successfully!"
-    
+
     # Show recent logs
     print_status "Recent frontend container logs:"
     docker-compose logs --tail=20 frontend
-    
+
     print_status "🎉 Frontend NPM fix completed successfully!"
     print_status "You can now access the application at: http://localhost:8081"
 else
     print_error "❌ Frontend container failed to start. Checking logs..."
     docker-compose logs frontend
-    
+
     print_error "Frontend container failed to start. Please check the logs above."
     exit 1
 fi

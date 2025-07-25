@@ -30,8 +30,8 @@ def check_column_exists(connection, table_name: str, column_name: str) -> bool:
     result = connection.execute(
         text(
             """
-        SELECT COUNT(*) 
-        FROM information_schema.columns 
+        SELECT COUNT(*)
+        FROM information_schema.columns
         WHERE table_name = :table_name AND column_name = :column_name
     """
         ),
@@ -45,8 +45,8 @@ def check_constraint_exists(connection, table_name: str, constraint_name: str) -
     result = connection.execute(
         text(
             """
-        SELECT COUNT(*) 
-        FROM information_schema.table_constraints 
+        SELECT COUNT(*)
+        FROM information_schema.table_constraints
         WHERE table_name = :table_name AND constraint_name = :constraint_name
     """
         ),
@@ -60,8 +60,8 @@ def check_index_exists(connection, index_name: str) -> bool:
     result = connection.execute(
         text(
             """
-        SELECT COUNT(*) 
-        FROM pg_indexes 
+        SELECT COUNT(*)
+        FROM pg_indexes
         WHERE indexname = :index_name
     """
         ),
@@ -203,7 +203,7 @@ def upgrade() -> None:
             connection.execute(
                 text(
                     """
-                ALTER TABLE crewai_flow_state_extensions 
+                ALTER TABLE crewai_flow_state_extensions
                 DROP CONSTRAINT IF EXISTS crewai_flow_state_extensions_discovery_flow_id_fkey
             """
                 )
@@ -224,8 +224,8 @@ def upgrade() -> None:
         connection.execute(
             text(
                 """
-            UPDATE crewai_flow_state_extensions 
-            SET 
+            UPDATE crewai_flow_state_extensions
+            SET
                 flow_name = COALESCE(flow_name, 'Legacy Flow ' || SUBSTRING(flow_id::text, 1, 8)),
                 flow_type = COALESCE(flow_type, 'discovery'),
                 flow_status = COALESCE(flow_status, 'initialized')

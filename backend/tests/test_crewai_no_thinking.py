@@ -156,11 +156,11 @@ async def test_fresh_cmdb_analysis():
         cmdb_task = Task(
             description="""
             Analyze this CMDB data and determine the primary asset type:
-            
+
             Sample data:
             - Name: WebApp1, Type: Application, Environment: Prod
             - Name: Server1, Type: Server, Environment: Prod
-            
+
             Answer with just: "mixed" (since there are both applications and servers)
             """,
             agent=cmdb_agent,

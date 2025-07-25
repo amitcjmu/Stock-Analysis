@@ -96,7 +96,7 @@ const Roadmap = () => {
               {roadmapData?.waves.map((wave) => (
                 <div key={wave.wave} className="bg-white rounded-lg shadow p-6">
                   <h2 className="text-xl font-semibold text-gray-900 mb-6">{wave.wave} Migration Timeline</h2>
-                  
+
                   <div className="space-y-6">
                     {wave.phases.map((phase, index) => (
                       <div key={phase.name} className="relative">
@@ -114,7 +114,7 @@ const Roadmap = () => {
                             </div>
                           </div>
                         </div>
-                        
+
                         {index < wave.phases.length - 1 && (
                           <div className="absolute left-2 top-8 w-0.5 h-8 bg-gray-200"></div>
                         )}
@@ -139,7 +139,7 @@ const Roadmap = () => {
                     <p className="text-sm text-gray-600">Scheduled</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                   <div>
                     <h3 className="font-medium text-gray-900">Q1 2026</h3>

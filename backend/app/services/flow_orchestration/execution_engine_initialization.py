@@ -435,7 +435,9 @@ class FlowInitializer:
         except Exception as e:
             logger.error(f"❌ Failed to create collection flow record: {e}")
             # Don't raise here - initialization can continue without this record
-            logger.warning("⚠️ Continuing initialization without collection flow record")
+            logger.warning(
+                "⚠️ Continuing initialization without collection flow record"
+            )
 
     async def _start_collection_flow_background(
         self, collection_flow, flow_id: str, crewai_service

@@ -13,4 +13,4 @@ LEGACY-DB,Database,Production,Finance Team,Critical,IBM DB2,24,96,8000,DC-Centra
 DEV-WEB-01,Server,Development,Development Team,Low,Linux Ubuntu 22.04,2,8,100,DC-East,
 MONITORING-SRV,Server,Production,IT Operations,High,Linux RHEL 8,8,32,500,DC-East,
 EMAIL-SERVER,Server,Production,IT Operations,Critical,Exchange Server 2019,8,32,1000,DC-West,
-FILE-SERVER-01,Server,Production,IT Operations,Medium,Windows Server 2019,4,16,2000,DC-East, 
+FILE-SERVER-01,Server,Production,IT Operations,Medium,Windows Server 2019,4,16,2000,DC-East,

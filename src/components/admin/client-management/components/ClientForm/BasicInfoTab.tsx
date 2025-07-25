@@ -24,7 +24,7 @@ export const BasicInfoTab: React.FC<BasicInfoTabProps> = ({ formData, onFormChan
             required
           />
         </div>
-        
+
         <div className="space-y-2">
           <Label htmlFor="industry">Industry *</Label>
           <Select value={formData.industry} onValueChange={(value) => onFormChange('industry', value)}>
@@ -81,7 +81,7 @@ export const BasicInfoTab: React.FC<BasicInfoTabProps> = ({ formData, onFormChan
               required
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="primary_contact_email">Primary Contact Email *</Label>
             <Input
@@ -130,7 +130,7 @@ export const BasicInfoTab: React.FC<BasicInfoTabProps> = ({ formData, onFormChan
               placeholder="New York, NY"
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="time_zone">Time Zone</Label>
             <Input

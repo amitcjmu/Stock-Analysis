@@ -2,7 +2,7 @@
 line-length = 120
 target-version = "py311"
 exclude = [
-    "*.backup.py", 
+    "*.backup.py",
     "*_backup.py",
     "temp_*.py",
 ]

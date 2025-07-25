@@ -21,14 +21,14 @@ export const AssetTablePagination: React.FC<AssetTablePaginationProps> = ({
 }) => {
   const pageNumbers = [];
   const maxPagesToShow = 5;
-  
+
   let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
   const endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
-  
+
   if (endPage - startPage + 1 < maxPagesToShow) {
     startPage = Math.max(1, endPage - maxPagesToShow + 1);
   }
-  
+
   for (let i = startPage; i <= endPage; i++) {
     pageNumbers.push(i);
   }
@@ -47,7 +47,7 @@ export const AssetTablePagination: React.FC<AssetTablePaginationProps> = ({
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        
+
         {startPage > 1 && (
           <>
             <Button
@@ -60,7 +60,7 @@ export const AssetTablePagination: React.FC<AssetTablePaginationProps> = ({
             {startPage > 2 && <span className="px-2">...</span>}
           </>
         )}
-        
+
         {pageNumbers.map(num => (
           <Button
             key={num}
@@ -71,7 +71,7 @@ export const AssetTablePagination: React.FC<AssetTablePaginationProps> = ({
             {num}
           </Button>
         ))}
-        
+
         {endPage < totalPages && (
           <>
             {endPage < totalPages - 1 && <span className="px-2">...</span>}
@@ -84,7 +84,7 @@ export const AssetTablePagination: React.FC<AssetTablePaginationProps> = ({
             </Button>
           </>
         )}
-        
+
         <Button
           variant="outline"
           size="sm"

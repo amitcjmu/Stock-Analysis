@@ -57,8 +57,8 @@ export type {
   ApiError as SharedApiError,
   ResponseMetadata
 } from '../../types/shared/api-types';
-export type { 
-  BaseMetadata, 
-  AuditableMetadata, 
-  DomainMetadata 
+export type {
+  BaseMetadata,
+  AuditableMetadata,
+  DomainMetadata
 } from '../../types/shared/metadata-types';

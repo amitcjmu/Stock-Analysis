@@ -30,7 +30,7 @@ export const getStatusBadge = (status: string) => {
   };
 
   const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
-  
+
   return (
     <Badge variant={config.variant} className={config.className}>
       {status.charAt(0).toUpperCase() + status.slice(1)}

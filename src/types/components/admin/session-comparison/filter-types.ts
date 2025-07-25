@@ -1,6 +1,6 @@
 /**
  * Filter and Export Types
- * 
+ *
  * Filter, column, and export types for session comparison functionality.
  */
 

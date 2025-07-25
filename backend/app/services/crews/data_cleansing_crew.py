@@ -69,7 +69,7 @@ class DataCleansingCrew(BaseDiscoveryCrew):
                 - Value cleaning and deduplication
                 - Quality scoring and metrics
                 - Efficient processing without extensive planning
-                
+
                 You work directly and provide comprehensive results.""",
                 llm=self.llm,
                 verbose=True,
@@ -105,36 +105,36 @@ class DataCleansingCrew(BaseDiscoveryCrew):
         cleansing_task = Task(
             description=f"""
             COMPREHENSIVE DATA CLEANSING TASK:
-            
+
             Data to Process: {len(raw_data)} records
             Field Mappings: {field_mappings}
             Quality Rules: {quality_rules}
-            
+
             Your cleansing objectives:
-            
+
             1. DATA STANDARDIZATION:
                - Normalize field formats (dates, names, identifiers)
                - Standardize value representations
                - Apply consistent casing and formatting
                - Clean whitespace and special characters
-            
+
             2. DATA VALIDATION:
                - Validate data types against expected formats
                - Check value ranges and constraints
                - Identify and flag invalid entries
                - Verify referential integrity where applicable
-            
+
             3. DEDUPLICATION:
                - Identify duplicate records using key fields
                - Merge or mark duplicates appropriately
                - Preserve data completeness during deduplication
-            
+
             4. QUALITY SCORING:
                - Calculate completeness scores per field
                - Assess data consistency across records
                - Generate overall quality metrics
                - Identify records requiring manual review
-            
+
             5. OUTPUT FORMAT:
             Return JSON with:
             {{
@@ -169,15 +169,15 @@ class DataCleansingCrew(BaseDiscoveryCrew):
             validation_task = Task(
                 description="""
                 FINAL VALIDATION TASK:
-                
+
                 Perform final validation of the cleansed data:
-                
+
                 1. Verify all cleansing operations were successful
                 2. Validate data integrity and consistency
                 3. Check that quality improvements were achieved
                 4. Ensure no critical data was lost during cleansing
                 5. Confirm readiness for next processing phase
-                
+
                 Provide validation summary with pass/fail status and any remaining issues.
                 """,
                 agent=self.agents[1],  # Validation agent

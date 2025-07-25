@@ -20,6 +20,7 @@ from typing import List
 
 # Add the parent directory to sys.path so we can import app modules
 from pathlib import Path
+
 sys.path.append(str(Path(__file__).parent.parent))
 
 from app.core.database import get_db_session  # noqa: E402

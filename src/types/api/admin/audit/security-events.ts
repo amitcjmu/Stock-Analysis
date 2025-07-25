@@ -1,8 +1,8 @@
 /**
  * Security Event Types
- * 
+ *
  * Security event logging and incident management types.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 
@@ -17,7 +17,7 @@ import type {
   TrendDirection
 } from '../common';
 import type {
-  SecurityEventType, 
+  SecurityEventType,
   SecuritySeverity,
   SecurityEventSource,
   ThreatLevel,

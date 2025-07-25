@@ -69,7 +69,7 @@ class AssetInventoryCrew(BaseDiscoveryCrew):
                 - Environment categorization (production, staging, development)
                 - Asset relationship mapping and dependencies
                 - Inventory organization and management best practices
-                
+
                 Your expertise enables accurate asset classification and risk assessment for migration planning.""",
                 llm=self.llm,
                 verbose=True,
@@ -124,37 +124,37 @@ class AssetInventoryCrew(BaseDiscoveryCrew):
         criticality_task = Task(
             description=f"""
             ASSET CRITICALITY ASSESSMENT:
-            
+
             Assets to Assess: {len(raw_data)} total assets
             Classification Results: Use results from previous classification task
             Criticality Criteria: {criticality_criteria}
-            
+
             Your assessment objectives:
-            
+
             1. BUSINESS CRITICALITY ANALYSIS:
                - Assess business impact if asset becomes unavailable
                - Consider production vs non-production environments
                - Evaluate dependencies and downstream impacts
                - Review asset type importance (databases vs dev servers)
-            
+
             2. CRITICALITY SCORING:
                - CRITICAL (90-100): Mission-critical production systems
                - HIGH (70-89): Important business systems, production databases
                - MEDIUM (50-69): Standard business applications, staging systems
                - LOW (0-49): Development, test, backup systems
-            
+
             3. RISK FACTOR IDENTIFICATION:
                - Single points of failure
                - Assets without redundancy
                - Legacy systems requiring special handling
                - High-availability requirements
-            
+
             4. MIGRATION PRIORITIZATION:
                - Priority 1: Low-risk, non-critical assets (good for testing)
                - Priority 2: Medium criticality with good documentation
                - Priority 3: High criticality with proven migration patterns
                - Priority 4: Critical assets requiring extensive planning
-            
+
             5. OUTPUT FORMAT:
             Return JSON with:
             {{
@@ -200,16 +200,16 @@ class AssetInventoryCrew(BaseDiscoveryCrew):
             validation_task = Task(
                 description="""
                 INVENTORY VALIDATION TASK:
-                
+
                 Validate the asset inventory and criticality assessments:
-                
+
                 1. Verify all assets have been properly classified
                 2. Review criticality assessments for consistency
                 3. Check migration priority assignments
                 4. Validate business impact assessments
                 5. Ensure no critical assets are overlooked
                 6. Confirm environment classifications are accurate
-                
+
                 Provide validation summary with any issues or recommendations.
                 """,
                 agent=self.agents[1],

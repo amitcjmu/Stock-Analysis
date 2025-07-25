@@ -5,4 +5,4 @@ const ClientManagement: React.FC = () => {
   return <ClientManagementMain />;
 };
 
-export default ClientManagement; 
+export default ClientManagement;

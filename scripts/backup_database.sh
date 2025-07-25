@@ -107,7 +107,7 @@ tar -czf "$BACKUP_DIR/migration_db_backup_$TIMESTAMP.tar.gz" -C "$BACKUP_DIR" \
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ Compressed backup created: migration_db_backup_$TIMESTAMP.tar.gz${NC}"
-    
+
     # Remove individual files to save space
     rm "$BACKUP_FILE" "$SCHEMA_FILE" "$DATA_FILE" "$METADATA_FILE"
     echo -e "${GREEN}✅ Cleaned up individual backup files${NC}"
@@ -133,4 +133,4 @@ REMAINING_BACKUPS=$(ls migration_db_backup_*.tar.gz 2>/dev/null | wc -l)
 echo -e "${GREEN}✅ Cleanup complete. $REMAINING_BACKUPS backup(s) remaining${NC}"
 
 echo -e "\n${GREEN}🎉 Database backup completed successfully!${NC}"
-echo -e "${BLUE}💡 To restore: ./scripts/restore_database.sh migration_db_backup_$TIMESTAMP.tar.gz${NC}" 
+echo -e "${BLUE}💡 To restore: ./scripts/restore_database.sh migration_db_backup_$TIMESTAMP.tar.gz${NC}"

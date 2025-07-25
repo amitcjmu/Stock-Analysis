@@ -1,6 +1,6 @@
 /**
  * Validation Utilities Types
- * 
+ *
  * Types for data validation, sanitization, and form validation.
  */
 

@@ -80,7 +80,7 @@ export const ReadinessTabs = ({
             <p className="text-gray-600 mb-4">
               {assessment.overall_readiness.recommended_action}
             </p>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               <div>
                 <h4 className="font-medium mb-2">Key Strengths</h4>
@@ -97,7 +97,7 @@ export const ReadinessTabs = ({
                     )}
                 </ul>
               </div>
-              
+
               <div>
                 <h4 className="font-medium mb-2">Critical Gaps</h4>
                 <ul className="space-y-2 text-sm text-gray-600">
@@ -118,7 +118,7 @@ export const ReadinessTabs = ({
             </div>
           </CardContent>
         </Card>
-        
+
         {children}
       </TabsContent>
 
@@ -136,12 +136,12 @@ export const ReadinessTabs = ({
                     </span>
                   </h4>
                   <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className={`h-full ${getReadinessColor(value.score)}`}
                       style={{ width: `${value.score * 100}%` }}
                     />
                   </div>
-                  
+
                   {value.gaps && value.gaps.length > 0 && (
                     <div className="mt-2 text-sm text-gray-600">
                       <p className="font-medium">Areas for Improvement:</p>
@@ -173,8 +173,8 @@ export const ReadinessTabs = ({
                     </Badge>
                   </div>
                   <p className="text-sm text-gray-600">
-                    {assessment.risk_assessment.overall_risk.toLowerCase() === 'low' 
-                      ? 'Your migration path has a low overall risk profile.' 
+                    {assessment.risk_assessment.overall_risk.toLowerCase() === 'low'
+                      ? 'Your migration path has a low overall risk profile.'
                       : assessment.risk_assessment.overall_risk.toLowerCase() === 'medium'
                       ? 'Your migration path has a moderate overall risk profile.'
                       : 'Your migration path has a high overall risk profile.'}
@@ -192,14 +192,14 @@ export const ReadinessTabs = ({
                               <h5 className="font-medium">{risk.title}</h5>
                               <p className="text-sm text-gray-600">{risk.description}</p>
                             </div>
-                            <Badge 
+                            <Badge
                               variant={getRiskBadgeVariant(risk.risk_level)}
                               className="ml-2"
                             >
                               {risk.risk_level}
                             </Badge>
                           </div>
-                          
+
                           <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
                             <div>
                               <span className="text-gray-500">Impact:</span>{' '}
@@ -210,7 +210,7 @@ export const ReadinessTabs = ({
                               <span className="font-medium">{risk.likelihood}</span>
                             </div>
                           </div>
-                          
+
                           <div className="mt-3 text-sm">
                             <span className="text-gray-500">Recommended Action:</span>{' '}
                             <span className="font-medium">{risk.recommended_action}</span>
@@ -242,8 +242,8 @@ export const ReadinessTabs = ({
                       <h4 className="font-medium">{action.title}</h4>
                       <p className="text-sm text-gray-600 mt-1">{action.description}</p>
                     </div>
-                    <Badge 
-                      variant={action.priority === 'high' ? 'destructive' : 
+                    <Badge
+                      variant={action.priority === 'high' ? 'destructive' :
                               action.priority === 'medium' ? 'secondary' : 'outline'}
                       className="ml-2"
                     >
@@ -271,8 +271,8 @@ export const ReadinessTabs = ({
                 <Button size="sm" onClick={onGenerateSignoff} disabled={!isReadyForSignoff}>
                   Generate Signoff Package
                 </Button>
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   variant="outline"
                   onClick={onDownloadSignoff}
                   disabled={!signoffPackage}
@@ -316,14 +316,14 @@ export const ReadinessTabs = ({
                           {signoffPackage.signoff_metadata.stakeholder_input_level * 100}%
                         </span>
                       </div>
-                      <Progress 
-                        value={signoffPackage.signoff_metadata.stakeholder_input_level * 100} 
-                        className="h-2" 
+                      <Progress
+                        value={signoffPackage.signoff_metadata.stakeholder_input_level * 100}
+                        className="h-2"
                       />
-                      
+
                       <div className="mt-4">
-                        <Button 
-                          className="w-full" 
+                        <Button
+                          className="w-full"
                           onClick={onSubmitForApproval}
                           disabled={isSubmittingApproval}
                         >
@@ -348,14 +348,14 @@ export const ReadinessTabs = ({
                 <p className="text-sm text-gray-500 mt-1">
                   Generate a signoff package to proceed with the approval process.
                 </p>
-                <Button 
-                  className="mt-4" 
+                <Button
+                  className="mt-4"
                   onClick={onGenerateSignoff}
                   disabled={!isReadyForSignoff}
                 >
                   Generate Signoff Package
                 </Button>
-                
+
                 {!isReadyForSignoff && (
                   <p className="text-xs text-orange-600 mt-2">
                     Complete all required readiness checks before generating the signoff package.

@@ -51,8 +51,8 @@ def check_table_exists(table_name: str) -> bool:
     """Check if a table exists"""
     command = f"""
     SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'migration' 
+        SELECT FROM information_schema.tables
+        WHERE table_schema = 'migration'
         AND table_name = '{table_name}'
     );
     """
@@ -74,9 +74,9 @@ def check_workflow_states_columns():
     """Check workflow_states table columns"""
     print("🔍 Checking workflow_states columns...")
     command = """
-    SELECT column_name 
-    FROM information_schema.columns 
-    WHERE table_schema = 'migration' 
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_schema = 'migration'
     AND table_name = 'workflow_states'
     ORDER BY ordinal_position;
     """
@@ -120,8 +120,8 @@ def check_sixr_constraint():
     """Check sixr_analysis_parameters constraint"""
     print("🔍 Checking sixr_analysis_parameters constraint...")
     command = """
-    SELECT conname, pg_get_constraintdef(oid) 
-    FROM pg_constraint 
+    SELECT conname, pg_get_constraintdef(oid)
+    FROM pg_constraint
     WHERE conname = 'sixr_analysis_parameters_analysis_id_fkey';
     """
     success, output = run_psql_command(command)

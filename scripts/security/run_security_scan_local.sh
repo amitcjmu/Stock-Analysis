@@ -86,18 +86,18 @@ echo "🔍 Quick scan for common secret patterns..."
 {
     echo "=== Potential Secrets Found ==="
     echo ""
-    
+
     # API Keys
     grep -r "api_key\|apikey\|api-key" backend/ --include="*.py" | grep -v "Field(\|Column(\|# EXAMPLE" | grep "=" || echo "No hardcoded API keys found"
-    
+
     echo ""
     # Passwords
     grep -r "password\s*=" backend/ --include="*.py" | grep -v "Field(\|Column(\|# EXAMPLE\|bcrypt" | grep '"' || echo "No hardcoded passwords found"
-    
+
     echo ""
     # Secret Keys
     grep -r "SECRET_KEY\|secret_key" backend/ --include="*.py" | grep -v "Field(default=None\|getenv\|environ" | grep "=" || echo "No hardcoded secret keys found"
-    
+
     echo ""
     # JWT Secrets
     grep -r "JWT_SECRET\|jwt_secret" backend/ --include="*.py" | grep -v "Field(\|getenv\|environ" | grep "=" || echo "No hardcoded JWT secrets found"

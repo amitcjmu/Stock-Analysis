@@ -22,7 +22,7 @@ export const useEngagements = () => {
     queryFn: async (): Promise<Engagement[]> => {
       // This function should not run in demo mode
       if (!clientId) return [];
-      
+
       try {
         const response = await apiCallWithFallback(`/admin/engagements/?client_account_id=${clientId}`);
         const engagements = response?.items || response || [];

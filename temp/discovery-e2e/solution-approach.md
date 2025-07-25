@@ -97,7 +97,7 @@ Ensure all discovery flows are created with proper master_flow_id linkage.
 async def initialize_flow():
     # First create master flow
     master_flow = await create_master_flow_entry(flow_type="discovery")
-    
+
     # Then create discovery flow with linkage
     discovery_flow = await create_discovery_flow(
         master_flow_id=master_flow.id,
@@ -223,7 +223,7 @@ import { Modal, Button } from '@/components/ui';
 
 const DeleteFlowModal = ({ flowId, onConfirm, onCancel }) => {
   const [isDeleting, setIsDeleting] = useState(false);
-  
+
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
@@ -232,7 +232,7 @@ const DeleteFlowModal = ({ flowId, onConfirm, onCancel }) => {
       setIsDeleting(false);
     }
   };
-  
+
   return (
     <Modal>
       <p>Are you sure you want to delete this flow?</p>
@@ -288,41 +288,41 @@ class AdaptiveRateLimiter:
             'last_refill': datetime.now(),
             'request_history': []
         })
-        
+
     async def check_rate_limit(self, user_id: str, cost: int = 1) -> bool:
         bucket = self.user_buckets[user_id]
         now = datetime.now()
-        
+
         # Refill tokens (1 token per second, max 10)
         time_passed = (now - bucket['last_refill']).total_seconds()
         bucket['tokens'] = min(10, bucket['tokens'] + time_passed)
         bucket['last_refill'] = now
-        
+
         # Clean old history (keep last minute)
         bucket['request_history'] = [
-            ts for ts in bucket['request_history'] 
+            ts for ts in bucket['request_history']
             if now - ts < timedelta(minutes=1)
         ]
-        
+
         # Check if we have tokens
         if bucket['tokens'] >= cost:
             bucket['tokens'] -= cost
             bucket['request_history'].append(now)
             return True
-            
+
         # Check if user is in testing mode (rapid requests pattern)
         if len(bucket['request_history']) >= 5:
             # Allow testing workflows with slight delay
             await asyncio.sleep(0.5)  # 500ms delay instead of blocking
             return True
-            
+
         return False
 
 # Middleware implementation
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
     user_id = request.headers.get("X-User-ID", "anonymous")
-    
+
     if not await rate_limiter.check_rate_limit(user_id):
         return JSONResponse(
             status_code=429,
@@ -332,7 +332,7 @@ async def rate_limit_middleware(request: Request, call_next):
                 "message": "Please wait 1 second between requests"
             }
         )
-    
+
     return await call_next(request)
 ```
 
@@ -387,10 +387,10 @@ class UserContextService:
             .where(User.id == user_id)
         )
         user = user.scalar_one_or_none()
-        
+
         if not user or not user.profile:
             raise ValueError(f"User {user_id} has no profile")
-            
+
         # Get engagement_id from profile or active engagement
         engagement_id = None
         if hasattr(user.profile, 'engagement_id'):
@@ -406,7 +406,7 @@ class UserContextService:
             engagement = engagement.scalar_one_or_none()
             if engagement:
                 engagement_id = engagement.id
-                
+
         return {
             'user_id': user.id,
             'client_account_id': user.client_account_id,
@@ -423,7 +423,7 @@ async def get_active_flows(
     try:
         # Get proper user context
         context = await UserContextService.get_user_context(db, current_user.id)
-        
+
         # Query flows with proper context
         flows = await db.execute(
             select(DiscoveryFlow)
@@ -431,9 +431,9 @@ async def get_active_flows(
             .where(DiscoveryFlow.created_by == context['user_id'])
             .where(DiscoveryFlow.status.in_(['initialized', 'active', 'running']))
         )
-        
+
         return flows.scalars().all()
-        
+
     except Exception as e:
         logger.error(f"Failed to get active flows: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to retrieve flows")
@@ -441,7 +441,7 @@ async def get_active_flows(
 
 ### Root Cause Analysis
 - Code expects 'engagement_id' as a direct attribute
-- User model structure doesn't match code expectations  
+- User model structure doesn't match code expectations
 - Missing proper relationship loading
 
 ### Historical Review Required
@@ -485,13 +485,13 @@ class UploadContext(BaseModel):
     """Context information for the upload"""
     source_system: str = Field(..., description="Source system name (e.g., 'servicenow', 'aws')")
     import_type: str = Field(..., description="Type of import (e.g., 'cmdb', 'inventory')")
-    
+
 class FileData(BaseModel):
     """File upload information"""
     filename: str = Field(..., description="Original filename")
     content_type: str = Field(..., description="MIME type (e.g., 'text/csv', 'application/json')")
     size: int = Field(..., description="File size in bytes")
-    
+
 class DataImportRequest(BaseModel):
     """Request model for data import with full documentation"""
     file_data: FileData = Field(..., description="File metadata")
@@ -501,7 +501,7 @@ class DataImportRequest(BaseModel):
     )
     upload_context: UploadContext = Field(..., description="Context for the upload")
     flow_id: Optional[str] = Field(None, description="Associated discovery flow ID")
-    
+
     class Config:
         schema_extra = {
             "example": {
@@ -554,15 +554,15 @@ async def store_import(
 ):
     """
     Store imported data file for processing.
-    
+
     This endpoint accepts file uploads along with metadata for the discovery flow.
     The file will be validated, stored, and queued for processing.
-    
+
     **Required fields:**
     - file: The actual file content (multipart/form-data)
     - file_data: Metadata about the file
     - upload_context: Context about the source and type
-    
+
     **Optional fields:**
     - metadata: Additional processing hints
     - flow_id: Link to existing discovery flow
@@ -577,7 +577,7 @@ async def store_import(
                 "expected": request.file_data.filename
             }
         )
-    
+
     # Process the import...
 ```
 
@@ -650,7 +650,7 @@ For each proposed solution, the Historical Analysis Agent must check:
 
 Solutions can only be APPROVED if:
 1. ✅ No similar solution was previously reverted
-2. ✅ Not duplicating existing functionality  
+2. ✅ Not duplicating existing functionality
 3. ✅ Aligns with current architecture phase
 4. ✅ Doesn't violate CLAUDE.md guidelines
 5. ✅ Has clear rollback strategy
@@ -672,7 +672,7 @@ Solutions must be REJECTED if:
 - **Risk**: Medium - could mask underlying issues
 - **Key Fix**: Add flow health monitoring and automatic recovery
 
-### DISC-007: Dialog System Failure  
+### DISC-007: Dialog System Failure
 - **Solution**: Replace native browser dialog with React modal component
 - **Effort**: 3-4 hours
 - **Risk**: Low - isolated UI change
@@ -686,7 +686,7 @@ Solutions must be REJECTED if:
 
 ### DISC-009: User Context Issues
 - **Solution**: Fix user context service to properly load engagement_id
-- **Effort**: 4 hours total  
+- **Effort**: 4 hours total
 - **Risk**: Low - read-only changes
 - **Key Fix**: Proper relationship loading and fallback logic
 

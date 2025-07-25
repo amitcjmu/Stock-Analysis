@@ -11,10 +11,10 @@ async def test_endpoints():
         browser = await p.chromium.launch(headless=False, slow_mo=300)
         context = await browser.new_context()
         page = await context.new_page()
-        
+
         # Enable console logging
         page.on("console", lambda msg: print(f"Browser Console: {msg.text}"))
-        
+
         # Track all requests
         async def handle_request(request):
             if "data-import" in request.url:
@@ -24,7 +24,7 @@ async def test_endpoints():
                     print(f"   Client ID: {headers['x-client-account-id']}")
                 if "x-engagement-id" in headers:
                     print(f"   Engagement ID: {headers['x-engagement-id']}")
-        
+
         async def handle_response(response):
             if "data-import" in response.url:
                 print(f"📥 Response: {response.status} {response.url}")
@@ -35,10 +35,10 @@ async def test_endpoints():
                     except:
                         text = await response.text()
                         print(f"   Text: {text}")
-        
+
         page.on("request", handle_request)
         page.on("response", handle_response)
-        
+
         try:
             # Login
             print("🔐 Logging in...")
@@ -47,16 +47,16 @@ async def test_endpoints():
             await page.fill('input[type="password"]', 'Password123!')
             await page.click('button:has-text("Sign In")')
             await page.wait_for_url("**/dashboard", timeout=5000)
-            
+
             # Navigate to Attribute Mapping
             print("\n📍 Navigating to Attribute Mapping...")
             await page.goto("http://localhost:8081/discovery/attribute-mapping")
             await page.wait_for_load_state("networkidle")
             await page.wait_for_timeout(3000)
-            
+
             # Try to find the actual URLs being requested
             print("\n🔍 Page loaded. Checking network activity...")
-            
+
         finally:
             await browser.close()
 

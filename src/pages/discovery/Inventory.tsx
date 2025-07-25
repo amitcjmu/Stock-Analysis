@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const Inventory = () => {
   const { client, engagement } = useAuth();
-  
+
   // Use the new auto-detection hook for consistent flow detection
   const {
     urlFlowId,
@@ -63,7 +63,7 @@ const Inventory = () => {
 
             <div className="xl:col-span-1 space-y-6">
               {/* Agent Communication Panel */}
-              <AgentClarificationPanel 
+              <AgentClarificationPanel
                 pageContext="asset-inventory"
                 refreshTrigger={0}
                 onQuestionAnswered={(questionId, response) => {
@@ -72,7 +72,7 @@ const Inventory = () => {
               />
 
               {/* Agent Insights */}
-              <AgentInsightsSection 
+              <AgentInsightsSection
                 pageContext="asset-inventory"
                 refreshTrigger={0}
                 onInsightAction={(insightId, action) => {

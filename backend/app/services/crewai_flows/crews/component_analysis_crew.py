@@ -119,10 +119,10 @@ class ComponentAnalysisCrew:
         component_discovery_agent = Agent(
             role="Component Architecture Analyst",
             goal="Identify and catalog all application components beyond traditional 3-tier architecture",
-            backstory="""You are a modern application architecture expert specializing in component 
-            identification across diverse architectural patterns. You have deep expertise in monolithic, 
+            backstory="""You are a modern application architecture expert specializing in component
+            identification across diverse architectural patterns. You have deep expertise in monolithic,
             microservices, serverless, and hybrid architectures developed over 12+ years of hands-on experience.
-            
+
             Your expertise spans:
             - Modern web architectures (SPA, PWA, JAMstack, micro-frontends)
             - Service-oriented and microservices architectures
@@ -131,12 +131,12 @@ class ComponentAnalysisCrew:
             - Container-based and cloud-native architectures
             - Legacy mainframe and client-server systems
             - Data pipelines and analytics platforms
-            
-            You can identify UI components, API layers, business services, data access layers, 
-            background workers, integration components, and infrastructure services from application 
-            metadata and discovery data. You understand how different deployment patterns affect 
+
+            You can identify UI components, API layers, business services, data access layers,
+            background workers, integration components, and infrastructure services from application
+            metadata and discovery data. You understand how different deployment patterns affect
             component identification and can distinguish between logical and physical components.
-            
+
             You excel at recognizing architectural evolution patterns where monolithic applications
             have been partially decomposed or where microservices have been aggregated for efficiency.""",
             tools=(
@@ -151,11 +151,11 @@ class ComponentAnalysisCrew:
         metadata_analyst_agent = Agent(
             role="Technical Debt Assessment Specialist",
             goal="Analyze technical debt from discovered application metadata and identify modernization opportunities",
-            backstory="""You are a technical debt analysis expert with extensive experience in code 
+            backstory="""You are a technical debt analysis expert with extensive experience in code
             quality assessment, architecture evaluation, and modernization planning. Over 10+ years,
             you have developed expertise in identifying technical debt patterns from various sources
             including static analysis, runtime metrics, deployment artifacts, and architectural metadata.
-            
+
             Your specializations include:
             - Code quality analysis and technical debt quantification
             - Security vulnerability assessment and remediation planning
@@ -164,7 +164,7 @@ class ComponentAnalysisCrew:
             - Technology obsolescence tracking and upgrade planning
             - Dependency analysis and library management
             - Infrastructure debt and cloud readiness assessment
-            
+
             You excel at quantifying technical debt and prioritizing remediation efforts based on
             business impact, migration complexity, and risk factors. You can identify technical debt
             from metadata such as technology versions, dependency structures, code metrics, deployment
@@ -178,11 +178,11 @@ class ComponentAnalysisCrew:
         dependency_mapper_agent = Agent(
             role="Dependency Analysis Expert",
             goal="Map component dependencies and identify coupling patterns for migration grouping",
-            backstory="""You are a systems integration specialist with expertise in dependency analysis 
+            backstory="""You are a systems integration specialist with expertise in dependency analysis
             and coupling assessment developed over 15+ years working with complex enterprise systems.
             You understand how components interact across different architectural patterns and technology
             stacks, from monolithic applications to distributed microservices ecosystems.
-            
+
             Your expertise includes:
             - Dependency graph analysis and visualization
             - Coupling pattern identification (tight, loose, temporal, data)
@@ -191,7 +191,7 @@ class ComponentAnalysisCrew:
             - Network topology and communication protocol analysis
             - Service mesh and API gateway integration patterns
             - Legacy system integration and wrapper pattern identification
-            
+
             You excel at creating dependency maps that inform migration wave planning and component
             treatment decisions. You can identify which components must move together, which dependencies
             can be refactored for independent migration, and which integration points require special
@@ -216,10 +216,10 @@ class ComponentAnalysisCrew:
         """Create crew with component analysis tasks"""
 
         identify_components_task = Task(
-            description="""Analyze the application metadata to identify all components within the application 
+            description="""Analyze the application metadata to identify all components within the application
             architecture. Go beyond traditional frontend/middleware/backend categories to identify modern
             architectural patterns and component types:
-            
+
             1. User Interface Components:
                - Single Page Applications (React, Angular, Vue.js)
                - Multi-page web applications with server-side rendering
@@ -228,7 +228,7 @@ class ComponentAnalysisCrew:
                - Progressive Web Apps (PWA) and mobile-web hybrids
                - Administrative interfaces and dashboards
                - API documentation and developer portals
-            
+
             2. API and Service Components:
                - REST APIs with OpenAPI/Swagger specifications
                - GraphQL endpoints and schema definitions
@@ -239,7 +239,7 @@ class ComponentAnalysisCrew:
                - Background job processors and task queues
                - Scheduled tasks, cron jobs, and batch processors
                - Webhook handlers and event processors
-            
+
             3. Business Logic Components:
                - Core business services and domain logic
                - Integration services and data transformation layers
@@ -248,7 +248,7 @@ class ComponentAnalysisCrew:
                - Data processing pipelines and ETL components
                - Analytics and reporting services
                - Search and indexing services
-            
+
             4. Data Components:
                - Primary databases (PostgreSQL, MySQL, SQL Server, Oracle)
                - NoSQL databases (MongoDB, Cassandra, DynamoDB)
@@ -258,7 +258,7 @@ class ComponentAnalysisCrew:
                - File storage and content management systems
                - Time-series databases and metrics stores
                - Graph databases and knowledge graphs
-            
+
             5. Infrastructure and Platform Components:
                - Load balancers and reverse proxies (nginx, HAProxy, ALB)
                - API gateways and service mesh components
@@ -267,7 +267,7 @@ class ComponentAnalysisCrew:
                - Security services (authentication, authorization, secrets management)
                - Container orchestration components (Kubernetes workloads)
                - Serverless functions and FaaS components
-            
+
             6. Integration and External Components:
                - Third-party service integrations and connectors
                - Legacy system adapters and wrapper services
@@ -275,18 +275,18 @@ class ComponentAnalysisCrew:
                - Payment processing and financial service integrations
                - Social media and marketing platform connectors
                - Analytics and tracking service integrations
-            
+
             For each identified component, analyze:
             - Component name and logical function
             - Technology stack and implementation details
             - Deployment characteristics and runtime requirements
             - Resource consumption and scaling patterns
             - Security and access control requirements
-            
+
             Application metadata to analyze: {application_metadata}
             Discovery data available: {discovery_data}
             Architecture context: {architecture_context}
-            
+
             Use metadata indicators such as:
             - Package.json, pom.xml, requirements.txt for technology identification
             - Docker compose files and Kubernetes manifests for deployment patterns
@@ -294,7 +294,7 @@ class ComponentAnalysisCrew:
             - Network topology and port configurations
             - Database schemas and data model definitions""",
             expected_output="""A comprehensive component inventory containing:
-            
+
             1. Component Catalog:
                - Complete list of identified components with unique names
                - Component type classification using modern architecture patterns
@@ -302,7 +302,7 @@ class ComponentAnalysisCrew:
                - Component responsibilities and business functions
                - Deployment patterns and runtime characteristics
                - Resource requirements and scaling behavior
-            
+
             2. Component Details:
                For each component:
                - Primary technologies and versions
@@ -311,14 +311,14 @@ class ComponentAnalysisCrew:
                - Security and compliance considerations
                - Performance characteristics and SLA requirements
                - Development team ownership and maintenance responsibility
-            
+
             3. Architecture Insights:
                - Overall architectural pattern (monolithic, microservices, hybrid)
                - Component communication patterns and protocols
                - Data flow and transaction boundaries
                - Shared infrastructure and platform dependencies
                - Evolution indicators (legacy vs. modern patterns)
-            
+
             4. Discovery Confidence:
                - Confidence score (0-1) for each component identification
                - Data sources used for component discovery
@@ -328,9 +328,9 @@ class ComponentAnalysisCrew:
         )
 
         analyze_technical_debt_task = Task(
-            description="""Analyze technical debt for each identified component based on available 
+            description="""Analyze technical debt for each identified component based on available
             metadata and discovery data. Focus on comprehensive debt assessment across multiple dimensions:
-            
+
             1. Technology Obsolescence Analysis:
                - Programming language versions vs. current LTS and security support
                - Framework and library versions vs. actively maintained releases
@@ -338,7 +338,7 @@ class ComponentAnalysisCrew:
                - Operating system and runtime environment currency
                - Security vulnerability exposure based on known CVEs
                - License compliance and commercial support availability
-            
+
             2. Architecture Debt Assessment:
                - Anti-pattern identification from architectural metadata
                - Monolithic vs. modular design indicators and decomposition opportunities
@@ -346,7 +346,7 @@ class ComponentAnalysisCrew:
                - Code organization and separation of concerns evaluation
                - Configuration management and environment-specific customizations
                - API design maturity and RESTful/GraphQL best practices adherence
-            
+
             3. Operational Debt Evaluation:
                - Deployment automation maturity and CI/CD integration
                - Infrastructure as Code adoption and configuration drift indicators
@@ -354,7 +354,7 @@ class ComponentAnalysisCrew:
                - Logging standardization and centralized log management
                - Documentation quality and knowledge management practices
                - Backup and disaster recovery preparedness
-            
+
             4. Security and Compliance Debt:
                - Authentication and authorization implementation maturity
                - Data protection and encryption implementation gaps
@@ -362,7 +362,7 @@ class ComponentAnalysisCrew:
                - Network security and access control configuration
                - Secrets management and credential storage practices
                - Regulatory compliance gaps based on industry requirements
-            
+
             5. Performance and Scalability Debt:
                - Performance bottleneck indicators from configuration analysis
                - Scalability limitation identification (stateful components, shared resources)
@@ -370,22 +370,22 @@ class ComponentAnalysisCrew:
                - Caching strategy implementation and effectiveness
                - Database query optimization and indexing opportunities
                - Network communication efficiency and protocol optimization
-            
+
             6. Maintainability Debt:
                - Code complexity indicators from build and dependency analysis
                - Test coverage and quality assurance process maturity
                - Development workflow and tooling standardization
                - Technical documentation completeness and currency
                - Knowledge concentration and bus factor assessment
-            
+
             Component inventory: {component_inventory}
             Architecture standards: {architecture_standards}
             Technology lifecycle data: {technology_lifecycle}
             Security requirements: {security_requirements}
-            
+
             Calculate quantitative debt scores and prioritize remediation efforts.""",
             expected_output="""Technical debt analysis containing:
-            
+
             1. Component-Level Debt Assessment:
                For each component:
                - Overall technical debt score (0-10 scale, 10 = highest debt)
@@ -394,28 +394,28 @@ class ComponentAnalysisCrew:
                - Remediation effort estimates (hours) and complexity ratings
                - Impact assessment on migration and modernization efforts
                - Priority ranking for debt remediation
-            
+
             2. Detailed Debt Inventory:
                - Technology debt items (version upgrades, EOL components, security patches)
                - Architecture debt items (anti-patterns, coupling issues, design flaws)
                - Security debt items (vulnerabilities, compliance gaps, access control issues)
                - Operational debt items (automation gaps, monitoring deficiencies)
                - Performance debt items (bottlenecks, scalability limitations)
-            
+
             3. Remediation Roadmap:
                - Quick wins (low effort, high impact improvements)
                - Critical path items (blocking migration or creating security risks)
                - Long-term investments (architectural refactoring, technology upgrades)
                - Effort estimates and resource requirements
                - Dependencies between remediation activities
-            
+
             4. Risk Assessment:
                - Business impact of current technical debt levels
                - Security and compliance risk exposure
                - Operational stability and reliability concerns
                - Development velocity and maintenance cost implications
                - Cloud migration complexity and risk factors
-            
+
             5. Metrics and Benchmarks:
                - Industry benchmark comparisons where applicable
                - Debt trend analysis and accumulation patterns
@@ -426,9 +426,9 @@ class ComponentAnalysisCrew:
         )
 
         map_dependencies_task = Task(
-            description="""Map dependencies between identified components and analyze coupling patterns 
+            description="""Map dependencies between identified components and analyze coupling patterns
             that will influence migration strategies. Perform comprehensive dependency analysis:
-            
+
             1. Internal Component Dependencies:
                - Direct component-to-component communication patterns
                - Shared database and data store dependencies
@@ -436,7 +436,7 @@ class ComponentAnalysisCrew:
                - Runtime service discovery and registration dependencies
                - Build-time and deployment-time dependencies
                - Shared library and framework dependencies
-            
+
             2. Data Flow and Integration Analysis:
                - Synchronous communication patterns (REST calls, gRPC, direct DB access)
                - Asynchronous communication patterns (message queues, events, webhooks)
@@ -444,7 +444,7 @@ class ComponentAnalysisCrew:
                - Real-time data streaming and event processing flows
                - File-based data exchange and shared file system dependencies
                - Database transaction boundaries and consistency requirements
-            
+
             3. External System Dependencies:
                - Third-party service integrations and API dependencies
                - Legacy system connections and mainframe integrations
@@ -452,7 +452,7 @@ class ComponentAnalysisCrew:
                - Vendor software and commercial platform dependencies
                - Infrastructure service dependencies (DNS, load balancers, certificates)
                - Monitoring and logging service dependencies
-            
+
             4. Coupling Pattern Analysis:
                - Tight coupling indicators (shared databases, synchronous calls, shared state)
                - Loose coupling patterns (message queues, event-driven architecture)
@@ -460,7 +460,7 @@ class ComponentAnalysisCrew:
                - Data coupling (shared data structures, schemas, formats)
                - Platform coupling (OS-specific, cloud-provider specific dependencies)
                - Implementation coupling (shared libraries, frameworks, languages)
-            
+
             5. Migration Grouping Analysis:
                - Components that must migrate together due to tight coupling
                - Components that can be migrated independently
@@ -468,50 +468,50 @@ class ComponentAnalysisCrew:
                - Integration points requiring special handling (adapters, proxies, gateways)
                - Sequence dependencies for migration wave planning
                - Rollback dependencies and failure isolation boundaries
-            
+
             Component inventory: {component_inventory}
             Technical debt analysis: {tech_debt_analysis}
             Architecture patterns: {architecture_patterns}
             Network topology data: {network_topology}
-            
+
             Create comprehensive dependency maps and migration grouping recommendations.""",
             expected_output="""Dependency analysis containing:
-            
+
             1. Component Dependency Map:
                - Visual representation of component relationships
                - Dependency types and communication protocols
                - Data flow directions and volume characteristics
                - Criticality assessment for each dependency
                - Performance and latency requirements
-            
+
             2. Coupling Assessment:
                - Tight coupling identification with impact analysis
                - Loose coupling patterns and decoupling opportunities
                - Temporal coupling risks and mitigation strategies
                - Data coupling implications for migration
                - Platform coupling constraints and portability concerns
-            
+
             3. Migration Grouping Recommendations:
                - Component clusters that should migrate together
                - Independent components suitable for parallel migration
                - Dependencies requiring refactoring before migration
                - Integration points needing special handling
                - Migration sequence recommendations with rationale
-            
+
             4. Critical Path Analysis:
                - Critical dependencies that could block migration
                - Single points of failure in the dependency graph
                - High-risk integration points requiring careful planning
                - Dependencies with long lead times or complex refactoring needs
                - Bottleneck components affecting multiple migration waves
-            
+
             5. Refactoring Opportunities:
                - Dependencies that can be eliminated or simplified
                - Integration patterns that can be modernized
                - Shared components that can be extracted as services
                - Data dependencies that can be decoupled
                - Communication patterns that can be made more resilient
-            
+
             6. Migration Strategy Insights:
                - Strangler pattern opportunities for gradual migration
                - Big bang migration requirements and constraints

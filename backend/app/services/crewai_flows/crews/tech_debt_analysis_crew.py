@@ -476,10 +476,10 @@ class TechDebtAnalysisCrew:
         return Agent(
             role="Legacy Systems Modernization Expert",
             goal="Analyze legacy systems and provide comprehensive modernization recommendations based on technical debt assessment",
-            backstory="""You are a legacy systems modernization expert with deep experience in 
-            transforming outdated technology stacks into modern, maintainable systems. You 
-            understand the challenges of legacy code, outdated architectures, and technical 
-            debt accumulation. Your expertise helps organizations make informed decisions 
+            backstory="""You are a legacy systems modernization expert with deep experience in
+            transforming outdated technology stacks into modern, maintainable systems. You
+            understand the challenges of legacy code, outdated architectures, and technical
+            debt accumulation. Your expertise helps organizations make informed decisions
             about modernization investments.""",
             tools=[self.legacy_analysis_tool],
             verbose=True,
@@ -492,10 +492,10 @@ class TechDebtAnalysisCrew:
         return Agent(
             role="Cloud Migration Strategist",
             goal="Develop optimal cloud migration strategies using 6R framework and provide strategic migration recommendations",
-            backstory="""You are a cloud migration strategist with expertise in the 6R migration 
-            framework (Rehost, Replatform, Refactor, Rearchitect, Retire, Retain). You understand 
-            the trade-offs between different migration approaches and can recommend the optimal 
-            strategy based on business requirements, technical constraints, and organizational 
+            backstory="""You are a cloud migration strategist with expertise in the 6R migration
+            framework (Rehost, Replatform, Refactor, Rearchitect, Retire, Retain). You understand
+            the trade-offs between different migration approaches and can recommend the optimal
+            strategy based on business requirements, technical constraints, and organizational
             capabilities.""",
             tools=[self.sixr_strategy_tool],
             verbose=True,
@@ -508,9 +508,9 @@ class TechDebtAnalysisCrew:
         return Agent(
             role="Risk Assessment Specialist",
             goal="Assess migration risks and provide comprehensive risk mitigation strategies for tech debt remediation",
-            backstory="""You are a risk assessment specialist focused on technology migration 
-            and modernization risks. You understand the potential pitfalls of legacy system 
-            migrations and can identify, quantify, and provide mitigation strategies for 
+            backstory="""You are a risk assessment specialist focused on technology migration
+            and modernization risks. You understand the potential pitfalls of legacy system
+            migrations and can identify, quantify, and provide mitigation strategies for
             technical, business, and operational risks associated with modernization efforts.""",
             tools=[],  # Uses analysis from other agents
             verbose=True,
@@ -724,7 +724,9 @@ class TechDebtAnalysisCrew:
             "analysis_quality": (
                 "high"
                 if avg_confidence > 0.8
-                else "medium" if avg_confidence > 0.6 else "low"
+                else "medium"
+                if avg_confidence > 0.6
+                else "low"
             ),
             "recommendations": [
                 f"Portfolio requires ${total_investment:,} investment with ${total_benefits:,} expected benefits",

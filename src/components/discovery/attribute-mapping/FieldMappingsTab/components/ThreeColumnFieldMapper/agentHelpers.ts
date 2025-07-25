@@ -1,6 +1,6 @@
 /**
  * Agent Display Helpers
- * 
+ *
  * Functions for displaying agent reasoning, confidence levels, and AI analysis.
  */
 

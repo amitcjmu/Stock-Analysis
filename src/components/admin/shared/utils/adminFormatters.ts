@@ -116,7 +116,7 @@ export const getTimeSince = (dateString: string): string => {
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  
+
   if (diffDays > 0) {
     return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
   } else if (diffHours > 0) {

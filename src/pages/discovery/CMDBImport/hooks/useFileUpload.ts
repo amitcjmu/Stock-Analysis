@@ -25,7 +25,7 @@ export const useFileUpload = () => {
       console.warn('🚨 DEBUG: CSV file has no data rows or only header');
       return [];
     }
-    
+
     const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
     const records = lines.slice(1).map((line, index) => {
       const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
@@ -35,20 +35,20 @@ export const useFileUpload = () => {
       });
       return record;
     });
-    
+
     console.log(`🔍 DEBUG: Parsed ${records.length} data records from CSV`);
     console.log(`🔍 DEBUG: Headers: ${headers.join(', ')}`);
     if (records.length > 0) {
       console.log(`🔍 DEBUG: First record sample:`, records[0]);
     }
-    
+
     return records;
   }, []);
 
   const storeImportData = useCallback(async (
-    csvData: CsvRecord[], 
-    file: File, 
-    uploadId: string, 
+    csvData: CsvRecord[],
+    file: File,
+    uploadId: string,
     categoryId: string
   ): Promise<{import_flow_id: string | null, flow_id: string | null}> => {
     if (!uploadId) {
@@ -63,11 +63,11 @@ export const useFileUpload = () => {
 
     try {
       console.log(`Storing data for upload: ${uploadId}`);
-      console.log('Using effective context:', { 
-        client: effectiveClient?.id, 
-        engagement: effectiveEngagement?.id 
+      console.log('Using effective context:', {
+        client: effectiveClient?.id,
+        engagement: effectiveEngagement?.id
       });
-      
+
       const response = await apiCall(`/data-import/store-import`, {
         method: 'POST',
         headers: {
@@ -95,12 +95,12 @@ export const useFileUpload = () => {
       });
 
       console.log('📡 Store import response:', JSON.stringify(response, null, 2));
-      
+
       if (response.success) {
         console.log('✅ Data stored successfully, import flow ID:', response.import_flow_id);
         console.log('✅ CrewAI Flow ID:', response.flow_id);
         console.log('✅ Full response data:', response);
-        
+
         // Make sure we're returning the correct flow_id
         const flowId = response.flow_id || response.crewai_flow_id || response.discovery_flow_id;
         console.log('🎯 Using flow ID:', flowId);
@@ -113,8 +113,8 @@ export const useFileUpload = () => {
             discovery_flow_id: response.discovery_flow_id
           }
         });
-        
-        return { 
+
+        return {
           import_flow_id: response.import_flow_id,
           flow_id: flowId
         };
@@ -143,7 +143,7 @@ export const useFileUpload = () => {
     // For admin users, allow upload even without client/engagement context (demo mode)
     const isAdmin = user?.role === 'admin' || user?.role === 'platform_admin';
     const hasContext = client && engagement;
-    
+
     if (!user) {
       toast({
         title: "Authentication Required",
@@ -192,24 +192,24 @@ export const useFileUpload = () => {
 
     try {
       // Update to processing status
-      setUploadedFiles(prev => prev.map(f => f.id === newFile.id ? { 
-        ...f, 
-        status: 'validating', 
-        upload_progress: 100 
+      setUploadedFiles(prev => prev.map(f => f.id === newFile.id ? {
+        ...f,
+        status: 'validating',
+        upload_progress: 100
       } : f));
-      
+
       // Parse CSV data
       const csvData = await parseCsvData(file);
-      
+
       if (csvData.length === 0) {
         throw new Error("No valid data found in the CSV file");
       }
 
       console.log(`Parsed ${csvData.length} records from CSV file`);
-      
+
       // Generate a proper UUID for the upload
       const uploadId = crypto.randomUUID();
-      
+
       // Store data and trigger UnifiedDiscoveryFlow directly
       console.log('Storing data and triggering UnifiedDiscoveryFlow with validation_upload_id:', uploadId);
 
@@ -245,20 +245,20 @@ export const useFileUpload = () => {
 
 
       const { import_flow_id, flow_id } = await storeImportData(csvData, file, uploadId, categoryId);
-      
+
       if (flow_id) {
         const recordCount = csvData.length;
-        
+
         console.log('🔧 Setting flow_id on uploaded file:', {
           fileId: newFile.id,
           fileName: newFile.name,
           flow_id: flow_id,
           import_flow_id: import_flow_id
         });
-        
+
         // Success - UnifiedDiscoveryFlow was triggered - START PROCESSING TRACKING
-        setUploadedFiles(prev => prev.map(f => f.id === newFile.id ? { 
-          ...f, 
+        setUploadedFiles(prev => prev.map(f => f.id === newFile.id ? {
+          ...f,
           status: 'processing',  // Changed from 'approved' to 'processing'
           importFlowId: import_flow_id || undefined,
           flow_id: flow_id,
@@ -290,23 +290,23 @@ export const useFileUpload = () => {
             ]
           }]
         } : f));
-        
+
         toast({
           title: "Discovery Flow Started",
           description: `File uploaded successfully. CrewAI agents are now processing ${csvData.length} records.`,
         });
-        
+
       } else {
         throw new Error("Failed to trigger UnifiedDiscoveryFlow - no flow ID returned. Check backend logs for validation errors on /data-import/store-import.");
       }
-      
+
     } catch (error) {
       console.error("File upload and flow trigger error:", error);
       const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
-      setUploadedFiles(prev => prev.map(f => f.id === newFile.id ? { 
-        ...f, 
-        status: 'error', 
-        error_message: errorMessage 
+      setUploadedFiles(prev => prev.map(f => f.id === newFile.id ? {
+        ...f,
+        status: 'error',
+        error_message: errorMessage
       } : f));
       toast({
         title: "Upload Failed",

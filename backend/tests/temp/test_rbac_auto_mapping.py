@@ -66,9 +66,7 @@ async def test_rbac_auto_mapping():
             print("❌ No demo engagement found! Run database initialization first.")
             return
 
-        print(
-            f"✅ Found demo engagement: {demo_engagement.name} ({demo_engagement.id})"
-        )
+        print(f"✅ Found demo engagement: {demo_engagement.name} ({demo_engagement.id})")
 
         # Step 2: Create a test user through RBAC service
         print("\n2️⃣ Creating test user with default IDs...")

@@ -1,6 +1,6 @@
 /**
  * Feedback Component Types - Module Exports
- * 
+ *
  * Centralized exports for all feedback-related component types.
  */
 

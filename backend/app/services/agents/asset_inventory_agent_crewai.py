@@ -30,14 +30,14 @@ class AssetInventoryAgent(BaseCrewAIAgent):
         super().__init__(
             role="Asset Inventory Specialist",
             goal="Accurately classify and categorize all discovered assets with proper criticality assessment",
-            backstory="""You are an expert asset inventory specialist with deep knowledge 
+            backstory="""You are an expert asset inventory specialist with deep knowledge
             of enterprise IT infrastructure. You excel at:
             - Identifying asset types from limited information
             - Assessing business criticality of IT assets
             - Understanding environment classifications (prod, dev, test)
             - Organizing assets into logical groupings
             - Identifying relationships between assets
-            
+
             Your classification enables effective migration planning and risk assessment.""",
             tools=tools,
             llm=llm,

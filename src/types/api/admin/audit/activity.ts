@@ -1,8 +1,8 @@
 /**
  * User Activity Types
- * 
+ *
  * Types for tracking and analyzing user activity patterns.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

@@ -53,7 +53,7 @@ export const ComponentBreakdownView: React.FC<ComponentBreakdownViewProps> = ({
           <div className="space-y-4">
             {components.map((component) => {
               const treatment = getComponentTreatment(component.component_name);
-              
+
               return (
                 <div key={component.component_name} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex items-start justify-between mb-3">
@@ -61,7 +61,7 @@ export const ComponentBreakdownView: React.FC<ComponentBreakdownViewProps> = ({
                       <h4 className="font-semibold text-gray-900">{component.component_name}</h4>
                       <p className="text-sm text-gray-600">{component.component_type}</p>
                     </div>
-                    
+
                     {treatment && (
                       <div className="flex items-center space-x-2">
                         <Badge className={getStrategyColor(treatment.recommended_strategy)}>
@@ -79,7 +79,7 @@ export const ComponentBreakdownView: React.FC<ComponentBreakdownViewProps> = ({
                   {treatment && (
                     <div className="space-y-2">
                       <p className="text-sm text-gray-700">{treatment.rationale}</p>
-                      
+
                       {treatment.compatibility_issues && treatment.compatibility_issues.length > 0 && (
                         <div className="space-y-1">
                           <p className="text-xs font-medium text-red-700">Compatibility Issues:</p>

@@ -1,6 +1,6 @@
 /**
  * Discovery Attribute Mapping API Types
- * 
+ *
  * Type definitions for attribute and field mapping operations including
  * creation, validation, approval workflows, and bulk operations.
  */

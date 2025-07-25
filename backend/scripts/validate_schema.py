@@ -180,8 +180,8 @@ class SchemaValidator:
         # Get all enum types from database
         result = self.engine.execute(
             """
-            SELECT typname 
-            FROM pg_type 
+            SELECT typname
+            FROM pg_type
             WHERE typtype = 'e'
         """
         )

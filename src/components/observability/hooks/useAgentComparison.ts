@@ -41,7 +41,7 @@ export interface UseAgentComparisonOptions {
 
 export const useAgentComparison = (options: UseAgentComparisonOptions) => {
   const { selectedAgents, period = 7, autoRefresh = false } = options;
-  
+
   const [comparisonData, setComparisonData] = useState<AgentComparisonData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,9 +66,9 @@ export const useAgentComparison = (options: UseAgentComparisonOptions) => {
         const perfData = performance.data;
         const analyticsData = analytics.data;
 
-        const errorRate = perfData.summary.total_tasks > 0 ? 
+        const errorRate = perfData.summary.total_tasks > 0 ?
           perfData.summary.failed_tasks / perfData.summary.total_tasks : 0;
-        
+
         const throughput = perfData.summary.total_tasks / (period * 24);
 
         return {
@@ -100,7 +100,7 @@ export const useAgentComparison = (options: UseAgentComparisonOptions) => {
 
       const agentData = await Promise.all(agentDataPromises);
       const dataWithRankings = calculateRankings(agentData);
-      
+
       setComparisonData(dataWithRankings);
     } catch (err) {
       console.error('Failed to load comparison data:', err);
@@ -112,7 +112,7 @@ export const useAgentComparison = (options: UseAgentComparisonOptions) => {
 
   const calculateRankings = (data: AgentComparisonData[]): AgentComparisonData[] => {
     const scoredData = data.map(agent => {
-      const performanceScore = 
+      const performanceScore =
         (agent.metrics.successRate * 0.3) +
         ((1 - agent.metrics.errorRate) * 0.2) +
         (agent.metrics.avgConfidence * 0.2) +
@@ -123,7 +123,7 @@ export const useAgentComparison = (options: UseAgentComparisonOptions) => {
     });
 
     scoredData.sort((a, b) => b.performanceScore - a.performanceScore);
-    
+
     return scoredData.map((agent, index) => ({
       ...agent,
       ranking: {
@@ -136,12 +136,12 @@ export const useAgentComparison = (options: UseAgentComparisonOptions) => {
   };
 
   const getRankByMetric = (
-    data: AgentComparisonData[], 
-    metric: keyof AgentComparisonData['metrics'], 
-    agentName: string, 
+    data: AgentComparisonData[],
+    metric: keyof AgentComparisonData['metrics'],
+    agentName: string,
     higherIsBetter: boolean
   ): number => {
-    const sorted = [...data].sort((a, b) => 
+    const sorted = [...data].sort((a, b) =>
       higherIsBetter ? b.metrics[metric] - a.metrics[metric] : a.metrics[metric] - b.metrics[metric]
     );
     return sorted.findIndex(agent => agent.agentName === agentName) + 1;

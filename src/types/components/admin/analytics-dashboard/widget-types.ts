@@ -1,6 +1,6 @@
 /**
  * Widget Types
- * 
+ *
  * Widget-related type definitions including configuration and layout.
  */
 

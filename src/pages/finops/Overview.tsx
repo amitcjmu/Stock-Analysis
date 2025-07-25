@@ -14,7 +14,7 @@ const Overview = () => {
   const { isAuthenticated } = useAuth();
 
   // Queries
-  const { 
+  const {
     data: metricsData,
     isLoading: isLoadingMetrics,
     error: metricsError
@@ -86,7 +86,7 @@ const Overview = () => {
                   </p>
                 </div>
                 <div className="flex space-x-3">
-                  <Button 
+                  <Button
                     variant="outline"
                     className="bg-gradient-to-r from-blue-600 to-green-600 text-white hover:from-blue-700 hover:to-green-700"
                   >
@@ -141,7 +141,7 @@ const Overview = () => {
                           <span className="text-sm text-gray-600">
                             ${resource.currentCost.toLocaleString()}
                           </span>
-                          <Badge 
+                          <Badge
                             variant={resource.trend === 'Increasing' ? 'destructive' : 'default'}
                             className="flex items-center"
                           >
@@ -236,7 +236,7 @@ const Overview = () => {
                             <span>Current Spend: ${alert.currentSpend.toLocaleString()}</span>
                             <span>Threshold: ${alert.threshold.toLocaleString()}</span>
                           </div>
-                          <Progress 
+                          <Progress
                             value={(alert.currentSpend / alert.threshold) * 100}
                             className={`h-2 ${
                               alert.status === 'Critical' ? 'bg-red-500' :
@@ -261,4 +261,4 @@ const Overview = () => {
   );
 };
 
-export default Overview; 
+export default Overview;

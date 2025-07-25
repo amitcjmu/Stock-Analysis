@@ -1,6 +1,6 @@
 /**
  * Discovery Data Import API Types
- * 
+ *
  * Type definitions for data import operations including file uploads,
  * data validation, processing, and import management.
  */

@@ -22,9 +22,9 @@ export interface RecentActivityProps {
   className?: string;
 }
 
-export const RecentActivity: React.FC<RecentActivityProps> = ({ 
-  activities, 
-  className = '' 
+export const RecentActivity: React.FC<RecentActivityProps> = ({
+  activities,
+  className = ''
 }) => {
   // Default demo activities if none provided
   const defaultActivities: ActivityItem[] = [
@@ -36,7 +36,7 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({
       type: 'info'
     },
     {
-      id: '2', 
+      id: '2',
       icon: Activity,
       message: 'Engagement "Cloud Migration 2025" moved to execution phase',
       timestamp: '5 hours ago',

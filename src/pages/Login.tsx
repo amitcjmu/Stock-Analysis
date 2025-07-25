@@ -20,7 +20,7 @@ const Login: React.FC = () => {
   const location = useLocation();
   const { login, register } = useAuth();
   const { toast } = useToast();
-  
+
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -72,7 +72,7 @@ const Login: React.FC = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (registerData.password !== registerData.confirmPassword) {
       toast({
         title: "Registration Failed",
@@ -135,9 +135,9 @@ const Login: React.FC = () => {
               </ul>
             </div>
             <div className="space-y-2">
-              <Button 
-                onClick={() => setIsLogin(true)} 
-                variant="outline" 
+              <Button
+                onClick={() => setIsLogin(true)}
+                variant="outline"
                 className="w-full"
               >
                 Back to Login
@@ -163,13 +163,13 @@ const Login: React.FC = () => {
             {isLogin ? 'Sign In' : 'Request Access'}
           </CardTitle>
           <CardDescription>
-            {isLogin 
-              ? 'Access AI Modernize Migration Platform' 
+            {isLogin
+              ? 'Access AI Modernize Migration Platform'
               : 'Request access to the migration platform'
             }
           </CardDescription>
         </CardHeader>
-        
+
         <CardContent>
           {isLogin ? (
             <form onSubmit={handleLogin} className="space-y-4">
@@ -188,7 +188,7 @@ const Login: React.FC = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
@@ -221,7 +221,7 @@ const Login: React.FC = () => {
                   <div><strong>Viewer:</strong> viewer@demo-corp.com / Demo123!</div>
                 </div>
               </div>
-              
+
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Signing In...' : 'Sign In'}
               </Button>
@@ -338,11 +338,11 @@ const Login: React.FC = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="access-level">Requested Access Level</Label>
-                  <Select 
-                    value={registerData.requested_access.access_level} 
-                    onValueChange={(value) => 
-                      setRegisterData(prev => ({ 
-                        ...prev, 
+                  <Select
+                    value={registerData.requested_access.access_level}
+                    onValueChange={(value) =>
+                      setRegisterData(prev => ({
+                        ...prev,
                         requested_access: { ...prev.requested_access, access_level: value }
                       }))
                     }
@@ -383,7 +383,7 @@ const Login: React.FC = () => {
                   </div>
                 </div>
               </div>
-              
+
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Submitting Request...' : 'Submit Access Request'}
               </Button>
@@ -396,8 +396,8 @@ const Login: React.FC = () => {
               onClick={() => setIsLogin(!isLogin)}
               className="text-sm text-blue-600 hover:text-blue-800"
             >
-              {isLogin 
-                ? "Need access? Request an account" 
+              {isLogin
+                ? "Need access? Request an account"
                 : "Already have an account? Sign in"
               }
             </button>
@@ -405,8 +405,8 @@ const Login: React.FC = () => {
 
           {isLogin && (
             <div className="mt-4 text-center">
-              <Link 
-                to="/" 
+              <Link
+                to="/"
                 className="text-xs text-gray-500 hover:text-gray-700"
               >
                 Back to Platform
@@ -419,4 +419,4 @@ const Login: React.FC = () => {
   );
 };
 
-export default Login; 
+export default Login;

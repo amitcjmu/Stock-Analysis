@@ -1,8 +1,8 @@
 /**
  * System Settings Core Types
- * 
+ *
  * Core system settings interfaces and fundamental data structures.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 
@@ -139,44 +139,44 @@ export interface SettingChange {
 }
 
 // Enums and Supporting Types
-export type SettingCategory = 
-  | 'security' 
-  | 'integration' 
-  | 'notification' 
-  | 'performance' 
-  | 'compliance' 
-  | 'features' 
-  | 'maintenance' 
+export type SettingCategory =
+  | 'security'
+  | 'integration'
+  | 'notification'
+  | 'performance'
+  | 'compliance'
+  | 'features'
+  | 'maintenance'
   | 'monitoring';
 
-export type SettingType = 
-  | 'string' 
-  | 'number' 
-  | 'boolean' 
-  | 'array' 
-  | 'object' 
-  | 'enum' 
-  | 'json' 
+export type SettingType =
+  | 'string'
+  | 'number'
+  | 'boolean'
+  | 'array'
+  | 'object'
+  | 'enum'
+  | 'json'
   | 'secret';
 
-export type ValidationType = 
-  | 'required' 
-  | 'min' 
-  | 'max' 
-  | 'pattern' 
-  | 'enum' 
-  | 'custom' 
+export type ValidationType =
+  | 'required'
+  | 'min'
+  | 'max'
+  | 'pattern'
+  | 'enum'
+  | 'custom'
   | 'dependency';
 
 export type ValidationSeverity = 'info' | 'warning' | 'error' | 'critical';
 
-export type DependencyCondition = 
-  | 'equals' 
-  | 'not_equals' 
-  | 'greater_than' 
-  | 'less_than' 
-  | 'contains' 
-  | 'enabled' 
+export type DependencyCondition =
+  | 'equals'
+  | 'not_equals'
+  | 'greater_than'
+  | 'less_than'
+  | 'contains'
+  | 'enabled'
   | 'disabled';
 
 export type ChangeImpact = 'none' | 'low' | 'medium' | 'high' | 'critical';

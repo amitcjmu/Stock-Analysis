@@ -20,7 +20,7 @@ interface AssetDistributionProps {
 }
 
 const COLORS = [
-  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', 
+  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
   '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#d946ef'
 ];
 
@@ -82,22 +82,22 @@ const AssetDistribution: React.FC<AssetDistributionProps> = ({
   className = '',
 }) => {
   const totalAssets = metrics.total_count;
-  
+
   const typeData = React.useMemo(
     () => prepareChartData(metrics.by_type, totalAssets),
     [metrics.by_type, totalAssets]
   );
-  
+
   const envData = React.useMemo(
     () => prepareChartData(metrics.by_environment, totalAssets),
     [metrics.by_environment, totalAssets]
   );
-  
+
   const criticalityData = React.useMemo(
     () => prepareChartData(metrics.by_criticality, totalAssets),
     [metrics.by_criticality, totalAssets]
   );
-  
+
   const statusData = React.useMemo(
     () => prepareChartData(metrics.by_status, totalAssets),
     [metrics.by_status, totalAssets]
@@ -131,7 +131,7 @@ const AssetDistribution: React.FC<AssetDistributionProps> = ({
         <div className="grid grid-cols-2 gap-2">
           {data.map((item, index) => (
             <div key={item.name} className="flex items-center text-xs">
-              <div 
+              <div
                 className="w-2 h-2 rounded-full mr-1.5 flex-shrink-0"
                 style={{ backgroundColor: COLORS[index % COLORS.length] }}
               />
@@ -159,13 +159,13 @@ const AssetDistribution: React.FC<AssetDistributionProps> = ({
           layout="vertical"
         >
           <XAxis type="number" />
-          <YAxis 
-            type="category" 
-            dataKey="name" 
+          <YAxis
+            type="category"
+            dataKey="name"
             width={80}
             tick={{ fontSize: 12 }}
           />
-          <Tooltip 
+          <Tooltip
             content={({ active, payload }) => {
               if (active && payload && payload.length) {
                 return (
@@ -182,9 +182,9 @@ const AssetDistribution: React.FC<AssetDistributionProps> = ({
           />
           <Bar dataKey="value" radius={[0, 4, 4, 0]}>
             {data.map((entry, index) => (
-              <Cell 
-                key={`cell-${index}`} 
-                fill={COLORS[index % COLORS.length]} 
+              <Cell
+                key={`cell-${index}`}
+                fill={COLORS[index % COLORS.length]}
                 fillOpacity={0.8}
               />
             ))}
@@ -213,24 +213,24 @@ const AssetDistribution: React.FC<AssetDistributionProps> = ({
             <TabsTrigger value="criticality" className="text-xs">By Criticality</TabsTrigger>
             <TabsTrigger value="status" className="text-xs">By Status</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="type" className="mt-4">
             {renderPieChart(typeData, 'Assets by Type')}
           </TabsContent>
-          
+
           <TabsContent value="environment" className="mt-4">
             {renderBarChart(envData, 'Assets by Environment')}
           </TabsContent>
-          
+
           <TabsContent value="criticality" className="mt-4">
             {renderPieChart(criticalityData, 'Assets by Criticality')}
           </TabsContent>
-          
+
           <TabsContent value="status" className="mt-4">
             {renderBarChart(statusData, 'Assets by Status')}
           </TabsContent>
         </Tabs>
-        
+
         <div className="mt-4 pt-4 border-t border-gray-100 text-right">
           <Button variant="ghost" size="sm" className="text-blue-600">
             View detailed asset inventory

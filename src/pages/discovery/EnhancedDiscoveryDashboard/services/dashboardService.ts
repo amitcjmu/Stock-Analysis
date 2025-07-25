@@ -105,22 +105,22 @@ const makeApiCallWithRetry = async <T = unknown>(url: string, options: ApiCallOp
 };
 
 export class DashboardService {
-  
+
   async fetchDashboardData(user: { id: string } | null, client: { id: string; name?: string } | null, engagement: { id: string } | null): Promise<DashboardData> {
     const now = Date.now();
-    
+
     // Return cached response if still valid
     if (cachedResponse && (now - lastFetchTime) < CACHE_DURATION) {
       console.log('📊 Returning cached dashboard data');
       return cachedResponse;
     }
-    
+
     // Return pending fetch if one is already in progress (deduplication)
     if (pendingFetch) {
       console.log('📊 Dashboard fetch already in progress, waiting for result');
       return pendingFetch;
     }
-    
+
     // Debouncing - wait if too soon after last fetch
     const timeSinceLastFetch = now - lastFetchTime;
     if (timeSinceLastFetch < DEBOUNCE_DELAY) {
@@ -128,7 +128,7 @@ export class DashboardService {
       console.log(`📊 Debouncing dashboard fetch for ${waitTime}ms`);
       await sleep(waitTime);
     }
-    
+
     console.log('🔍 Fetching dashboard data for context:', {
       user: user?.id,
       client: client?.id,
@@ -137,7 +137,7 @@ export class DashboardService {
 
     // Create the fetch promise and store it to prevent duplicate calls
     pendingFetch = this._performDashboardFetch(user, client, engagement);
-    
+
     try {
       const result = await pendingFetch;
       lastFetchTime = Date.now();
@@ -147,7 +147,7 @@ export class DashboardService {
       pendingFetch = null;
     }
   }
-  
+
   private async _performDashboardFetch(user: { id: string } | null, client: { id: string; name?: string } | null, engagement: { id: string } | null): Promise<DashboardData> {
     // Fetch real-time active flows from multiple sources with retry logic
     const [discoveryFlowsResponse, dataImportsResponse] = await Promise.allSettled([
@@ -174,7 +174,7 @@ export class DashboardService {
 
       // Handle both array response and object with flows array
       let flowsToProcess = [];
-      
+
       if (Array.isArray(discoveryData)) {
         // Direct array response from /api/v1/discovery/flows/active
         flowsToProcess = discoveryData;
@@ -199,10 +199,10 @@ export class DashboardService {
             flow_id_length: flow.flow_id?.length,
             flow_id_chars: flow.flow_id?.split('').slice(0, 10)
           });
-          
+
           // Extract metadata if it exists
           const metadata = flow.metadata || {};
-          
+
           const flowSummary = {
             flow_id: flow.flow_id,
             engagement_name: metadata.engagement_name || flow.engagement_name || `${client?.name || 'Unknown'} - Discovery`,
@@ -222,14 +222,14 @@ export class DashboardService {
             total_success_criteria: 6, // 6 phases in discovery
             flow_type: flow.type || 'discovery'
           };
-          
+
           console.log('📊 Final flow summary before adding to allFlows:', {
             original_flow_id: flow.flow_id,
             summary_flow_id: flowSummary.flow_id,
             ids_match: flow.flow_id === flowSummary.flow_id,
             flow_summary: flowSummary
           });
-          
+
           allFlows.push(flowSummary);
         } catch (flowError) {
           console.warn('Failed to process flow:', flow, flowError);
@@ -254,7 +254,7 @@ export class DashboardService {
 
       if (importData.success && importData.data_import) {
         const dataImport = importData.data_import;
-        
+
         // Check if this import has an active discovery flow
         if (dataImport.id && !allFlows.find(f => f.flow_id === dataImport.id)) {
           try {
@@ -266,7 +266,7 @@ export class DashboardService {
 
             if (flowStatusResponse && flowStatusResponse.flow_state) {
               const flowState = flowStatusResponse.flow_state;
-              
+
               allFlows.push({
                 flow_id: dataImport.id,
                 engagement_name: `${client?.name || 'Current'} - Discovery`,
@@ -300,7 +300,7 @@ export class DashboardService {
     const completedFlows = allFlows.filter(f => f.status === 'completed');
     const totalActiveAgents = runningFlows.reduce((sum, flow) => sum + flow.active_agents, 0);
     const successRate = allFlows.length > 0 ? completedFlows.length / allFlows.length : 0;
-    
+
     const systemMetrics: SystemMetrics = {
       total_active_flows: runningFlows.length,
       total_agents: totalActiveAgents,

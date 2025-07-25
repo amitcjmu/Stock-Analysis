@@ -1,6 +1,6 @@
 /**
  * Shared Supporting Types
- * 
+ *
  * Common type definitions used across multiple analytics and reporting modules.
  * These types are shared to avoid duplication and maintain consistency.
  */

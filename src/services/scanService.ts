@@ -33,11 +33,11 @@ export const fetchScanProgress = async (): Promise<ScanProgress> => {
     const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.SCAN_PROGRESS, {
       headers: getAuthHeaders()
     });
-    
+
     if (!response?.success) {
       throw new Error(response?.message || 'Failed to fetch scan progress');
     }
-    
+
     return response.data;
   } catch (error) {
     console.error('Error fetching scan progress:', error);
@@ -53,11 +53,11 @@ export const fetchScanLogs = async (): Promise<ScanLog[]> => {
     const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.SCAN_LOGS, {
       headers: getAuthHeaders()
     });
-    
+
     if (!Array.isArray(response?.data)) {
       throw new Error('Invalid scan logs response');
     }
-    
+
     return response.data;
   } catch (error) {
     console.error('Error fetching scan logs:', error);
@@ -82,11 +82,11 @@ export const startScan = async (scanConfig: {
       },
       body: JSON.stringify(scanConfig)
     });
-    
+
     if (!response?.success) {
       throw new Error(response?.message || 'Failed to start scan');
     }
-    
+
     return {
       success: true,
       message: response.message || 'Scan started successfully',
@@ -110,11 +110,11 @@ export const pauseScan = async (scanId: string): Promise<{ success: boolean; mes
       method: 'POST',
       headers: getAuthHeaders()
     });
-    
+
     if (!response?.success) {
       throw new Error(response?.message || 'Failed to pause scan');
     }
-    
+
     return {
       success: true,
       message: response.message || 'Scan paused successfully'
@@ -137,11 +137,11 @@ export const resumeScan = async (scanId: string): Promise<{ success: boolean; me
       method: 'POST',
       headers: getAuthHeaders()
     });
-    
+
     if (!response?.success) {
       throw new Error(response?.message || 'Failed to resume scan');
     }
-    
+
     return {
       success: true,
       message: response.message || 'Scan resumed successfully'
@@ -164,11 +164,11 @@ export const stopScan = async (scanId: string): Promise<{ success: boolean; mess
       method: 'POST',
       headers: getAuthHeaders()
     });
-    
+
     if (!response?.success) {
       throw new Error(response?.message || 'Failed to stop scan');
     }
-    
+
     return {
       success: true,
       message: response.message || 'Scan stopped successfully'

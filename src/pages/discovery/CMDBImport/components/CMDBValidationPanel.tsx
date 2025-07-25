@@ -1,12 +1,12 @@
 import React from 'react';
-import { 
-  FileCheck, 
-  Shield, 
-  UserCheck, 
-  CheckCircle, 
-  XCircle, 
-  AlertTriangle, 
-  Clock 
+import {
+  FileCheck,
+  Shield,
+  UserCheck,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  Clock
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import type { UploadFile } from '../CMDBImport.types';
@@ -17,24 +17,24 @@ interface CMDBValidationPanelProps {
   onValidationUpdate: (validationData: unknown) => void;
 }
 
-export const CMDBValidationPanel: React.FC<CMDBValidationPanelProps> = ({ 
-  file, 
-  onValidationUpdate 
+export const CMDBValidationPanel: React.FC<CMDBValidationPanelProps> = ({
+  file,
+  onValidationUpdate
 }) => {
   // Progress calculation from file state only
   const agentsCompleted = file.agents_completed || 0;
   const totalAgents = file.total_agents || 4;
   const validationProgress = Math.round((agentsCompleted / totalAgents) * 100);
-  
+
   // Status determination from file state only
   const formatStatus = file.format_validation ? 'passed' : 'pending';
   const securityStatus = file.security_clearance ? 'passed' : 'pending';
   const privacyStatus = file.privacy_clearance ? 'passed' : 'pending';
-  
+
   const formatStyling = getStatusStyling(formatStatus);
   const securityStyling = getStatusStyling(securityStatus);
   const privacyStyling = getStatusStyling(privacyStatus);
-  
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -64,7 +64,7 @@ export const CMDBValidationPanel: React.FC<CMDBValidationPanelProps> = ({
             )}
           </div>
         </div>
-        
+
         <div className={`p-3 rounded-lg border ${securityStyling.bg}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -82,7 +82,7 @@ export const CMDBValidationPanel: React.FC<CMDBValidationPanelProps> = ({
             )}
           </div>
         </div>
-        
+
         <div className={`p-3 rounded-lg border ${privacyStyling.bg}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">

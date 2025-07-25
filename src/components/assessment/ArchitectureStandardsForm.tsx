@@ -51,15 +51,15 @@ export const ArchitectureStandardsForm: React.FC<ArchitectureStandardsFormProps>
     requirement_details: {},
     verification_status: 'pending'
   });
-  
+
   const getRequirementTypeColor = (type: string) => {
     const reqType = REQUIREMENT_TYPES.find(rt => rt.value === type);
     return reqType?.color || 'bg-gray-100 text-gray-700';
   };
-  
+
   const addNewStandard = () => {
     if (!newStandard.requirement_type || !newStandard.description) return;
-    
+
     const standard: ArchitectureStandard = {
       id: `standard_${Date.now()}`,
       requirement_type: newStandard.requirement_type,
@@ -69,7 +69,7 @@ export const ArchitectureStandardsForm: React.FC<ArchitectureStandardsFormProps>
       requirement_details: newStandard.requirement_details || {},
       verification_status: newStandard.verification_status || 'pending'
     };
-    
+
     onChange([...standards, standard]);
     setNewStandard({
       requirement_type: '',
@@ -80,25 +80,25 @@ export const ArchitectureStandardsForm: React.FC<ArchitectureStandardsFormProps>
       verification_status: 'pending'
     });
   };
-  
+
   const updateStandard = (id: string, updates: Partial<ArchitectureStandard>) => {
     const updatedStandards = standards.map(standard =>
       standard.id === id ? { ...standard, ...updates } : standard
     );
     onChange(updatedStandards);
   };
-  
+
   const removeStandard = (id: string) => {
     onChange(standards.filter(standard => standard.id !== id));
   };
-  
+
   const groupedStandards = standards.reduce((groups, standard) => {
     const type = standard.requirement_type;
     if (!groups[type]) groups[type] = [];
     groups[type].push(standard);
     return groups;
   }, {} as Record<string, ArchitectureStandard[]>);
-  
+
   return (
     <div className="space-y-6">
       <Tabs defaultValue="by-category" className="space-y-4">
@@ -107,7 +107,7 @@ export const ArchitectureStandardsForm: React.FC<ArchitectureStandardsFormProps>
           <TabsTrigger value="all-standards">All Standards</TabsTrigger>
           <TabsTrigger value="add-new">Add New</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="by-category" className="space-y-4">
           {Object.entries(groupedStandards).map(([type, typeStandards]) => {
             const reqType = REQUIREMENT_TYPES.find(rt => rt.value === type);
@@ -145,7 +145,7 @@ export const ArchitectureStandardsForm: React.FC<ArchitectureStandardsFormProps>
             );
           })}
         </TabsContent>
-        
+
         <TabsContent value="all-standards" className="space-y-3">
           {standards.map((standard) => (
             <StandardCard
@@ -162,7 +162,7 @@ export const ArchitectureStandardsForm: React.FC<ArchitectureStandardsFormProps>
             />
           ))}
         </TabsContent>
-        
+
         <TabsContent value="add-new">
           <Card>
             <CardHeader>
@@ -191,7 +191,7 @@ export const ArchitectureStandardsForm: React.FC<ArchitectureStandardsFormProps>
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="verification-status">Verification Status</Label>
                   <Select
@@ -211,7 +211,7 @@ export const ArchitectureStandardsForm: React.FC<ArchitectureStandardsFormProps>
                   </Select>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
@@ -222,7 +222,7 @@ export const ArchitectureStandardsForm: React.FC<ArchitectureStandardsFormProps>
                   rows={3}
                 />
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <Switch
                   id="mandatory"
@@ -231,8 +231,8 @@ export const ArchitectureStandardsForm: React.FC<ArchitectureStandardsFormProps>
                 />
                 <Label htmlFor="mandatory">Mandatory requirement</Label>
               </div>
-              
-              <Button 
+
+              <Button
                 onClick={addNewStandard}
                 disabled={!newStandard.requirement_type || !newStandard.description}
                 className="w-full"
@@ -244,7 +244,7 @@ export const ArchitectureStandardsForm: React.FC<ArchitectureStandardsFormProps>
           </Card>
         </TabsContent>
       </Tabs>
-      
+
       {standards.length === 0 && (
         <div className="text-center py-8 text-gray-500">
           <p>No architecture standards defined yet.</p>
@@ -273,12 +273,12 @@ const StandardCard: React.FC<StandardCardProps> = ({
   onRemove
 }) => {
   const [editData, setEditData] = useState<Partial<ArchitectureStandard>>(standard);
-  
+
   const getRequirementTypeColor = (type: string) => {
     const reqType = REQUIREMENT_TYPES.find(rt => rt.value === type);
     return reqType?.color || 'bg-gray-100 text-gray-700';
   };
-  
+
   if (isEditing) {
     return (
       <Card className="border-blue-200">
@@ -302,7 +302,7 @@ const StandardCard: React.FC<StandardCardProps> = ({
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
               <Label>Verification Status</Label>
               <Select
@@ -322,7 +322,7 @@ const StandardCard: React.FC<StandardCardProps> = ({
               </Select>
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <Label>Description</Label>
             <Textarea
@@ -331,7 +331,7 @@ const StandardCard: React.FC<StandardCardProps> = ({
               rows={2}
             />
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <Switch
               checked={editData.mandatory}
@@ -339,7 +339,7 @@ const StandardCard: React.FC<StandardCardProps> = ({
             />
             <Label>Mandatory requirement</Label>
           </div>
-          
+
           <div className="flex justify-end space-x-2">
             <Button variant="outline" size="sm" onClick={onCancel}>
               <X className="h-4 w-4 mr-1" />
@@ -354,7 +354,7 @@ const StandardCard: React.FC<StandardCardProps> = ({
       </Card>
     );
   }
-  
+
   return (
     <Card className="hover:shadow-sm transition-shadow">
       <CardContent className="pt-4">
@@ -380,7 +380,7 @@ const StandardCard: React.FC<StandardCardProps> = ({
               </p>
             )}
           </div>
-          
+
           <div className="flex items-center space-x-1 ml-4">
             <Button variant="ghost" size="sm" onClick={onEdit}>
               <Edit3 className="h-4 w-4" />

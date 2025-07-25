@@ -18,7 +18,7 @@ Minimal demo data seeding - creates just the essential demo accounts and data.
 python scripts/seed_minimal_demo.py
 ```
 
-### 2. `seed_demo_data.py` 
+### 2. `seed_demo_data.py`
 Complete demo data seeding - creates full demo dataset including assets, dependencies, etc.
 
 **Features:**
@@ -64,7 +64,7 @@ All demo accounts are clearly identifiable:
    ```bash
    # For minimal demo data (recommended)
    railway run python scripts/seed_minimal_demo.py
-   
+
    # OR for complete demo data
    railway run python scripts/seed_demo_data.py
    ```

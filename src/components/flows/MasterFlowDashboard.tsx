@@ -1,7 +1,7 @@
 /**
  * Master Flow Dashboard Component
  * MFO-087: Update dashboards to show all flow types
- * 
+ *
  * Unified dashboard for viewing and managing all flow types
  * through the Master Flow Orchestrator system
  */
@@ -73,7 +73,7 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
   );
 
   // Filter flows based on search query
-  const filteredFlows = state.flows.filter(flow => 
+  const filteredFlows = state.flows.filter(flow =>
     flow.flow_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     flow.flow_id.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -138,7 +138,7 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
       flowToast.error(new Error('Client context is required for flow deletion'));
       return;
     }
-    
+
     // Request deletion with modal confirmation
     await deletionActions.requestDeletion(
       [flow.flow_id],
@@ -170,9 +170,9 @@ export const MasterFlowDashboard: React.FC<MasterFlowDashboardProps> = ({
   // Flow card component
   const FlowCard: React.FC<{ flow: FlowStatus }> = ({ flow }) => {
     const config = FLOW_TYPE_CONFIG[flow.flow_type];
-    
+
     return (
-      <Card 
+      <Card
         className="cursor-pointer hover:shadow-lg transition-shadow"
         onClick={() => handleFlowClick(flow)}
       >

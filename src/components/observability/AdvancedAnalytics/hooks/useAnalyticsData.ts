@@ -15,10 +15,10 @@ interface UseAnalyticsDataProps {
   refreshInterval: number;
 }
 
-export const useAnalyticsData = ({ 
-  agentNames, 
-  timeRange, 
-  refreshInterval 
+export const useAnalyticsData = ({
+  agentNames,
+  timeRange,
+  refreshInterval
 }: UseAnalyticsDataProps) => {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -33,16 +33,16 @@ export const useAnalyticsData = ({
   const loadAnalyticsData = useCallback(async () => {
     // Prevent multiple simultaneous data generations
     if (dataGenerationInProgress) return;
-    
+
     // Check cache first
     const cacheKey = `${agentNames.join(',')}-${timeRange}-${dateRange.from.getTime()}-${dateRange.to.getTime()}`;
     const cachedData = dataCache.get(cacheKey);
-    
+
     if (cachedData) {
       setAnalyticsData(cachedData);
       return;
     }
-    
+
     setDataGenerationInProgress(true);
     setLoading(true);
     setError(null);
@@ -51,7 +51,7 @@ export const useAnalyticsData = ({
       // Generate comprehensive analytics data
       const data = await generateAnalyticsData(agentNames, dateRange);
       setAnalyticsData(data);
-      
+
       // Cache the result
       setDataCache(prev => new Map(prev.set(cacheKey, data)));
     } catch (err) {

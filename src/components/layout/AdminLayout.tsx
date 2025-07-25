@@ -15,19 +15,19 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const { currentClient, availableClients, switchClient } = useClient();
 
   if (!user) {
-    return null; 
+    return null;
   }
 
   const handleClientSwitch = (clientId: string) => {
     if(switchClient) switchClient(clientId);
   };
-  
+
   return (
     <div className="flex h-screen bg-gray-50/50">
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Header 
-          user={user} 
+        <Header
+          user={user}
           currentClient={currentClient}
           availableClients={availableClients || []}
           onClientSwitch={handleClientSwitch}
@@ -42,4 +42,4 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   );
 };
 
-export default AdminLayout; 
+export default AdminLayout;

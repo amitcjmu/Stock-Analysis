@@ -100,7 +100,7 @@ export const createAllAvailableCrews = (agentRegistryData: AgentRegistryData): C
     },
     {
       name: 'Data Cleansing Crew',
-      manager: 'Data Cleansing Manager', 
+      manager: 'Data Cleansing Manager',
       phase: 'data_cleansing',
       agents: [
         'Data Cleansing Agent',
@@ -253,10 +253,10 @@ export const formatDuration = (timestamp: string) => {
   const now = new Date();
   const start = new Date(timestamp);
   const diffMs = now.getTime() - start.getTime();
-  
+
   const hours = Math.floor(diffMs / (1000 * 60 * 60));
   const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-  
+
   if (hours > 0) {
     return `${hours}h ${minutes}m`;
   }
@@ -275,19 +275,19 @@ export const calculateAverageMetrics = (crews: Crew[]) => {
   }
 
   const totalAgents = crews.reduce((sum, crew) => sum + crew.agents.length, 0);
-  const activeAgents = crews.reduce((sum, crew) => 
+  const activeAgents = crews.reduce((sum, crew) =>
     sum + crew.agents.filter(agent => agent.status === 'active').length, 0
   );
 
-  const avgEfficiency = crews.reduce((sum, crew) => 
+  const avgEfficiency = crews.reduce((sum, crew) =>
     sum + crew.collaboration_metrics.internal_effectiveness, 0
   ) / crews.length;
 
-  const avgCollaboration = crews.reduce((sum, crew) => 
+  const avgCollaboration = crews.reduce((sum, crew) =>
     sum + crew.collaboration_metrics.cross_crew_sharing, 0
   ) / crews.length;
 
-  const avgMemoryUtilization = crews.reduce((sum, crew) => 
+  const avgMemoryUtilization = crews.reduce((sum, crew) =>
     sum + crew.collaboration_metrics.memory_utilization, 0
   ) / crews.length;
 

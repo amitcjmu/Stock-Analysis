@@ -1,6 +1,6 @@
 /**
  * Flow Details Card Component
- * 
+ *
  * Displays detailed information and controls for a selected collection flow.
  * Extracted from Progress.tsx to create a focused, reusable component.
  */
@@ -37,7 +37,7 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
   className = ''
 }) => {
   const navigate = useNavigate();
-  
+
   const handleAction = async (action: 'pause' | 'resume' | 'stop') => {
     await onFlowAction(flow.id, action);
   };
@@ -63,8 +63,8 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
           <div className="flex items-center space-x-2">
             {/* Continue button for stuck flows */}
             {isFlowStuck && (
-              <Button 
-                variant="default" 
+              <Button
+                variant="default"
                 size="sm"
                 onClick={handleContinue}
                 title="Continue Flow"
@@ -73,10 +73,10 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
                 Continue
               </Button>
             )}
-            
+
             {flow.status === 'running' && !isFlowStuck && (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => handleAction('pause')}
                 title="Pause Flow"
@@ -84,10 +84,10 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
                 <Pause className="h-4 w-4" />
               </Button>
             )}
-            
+
             {flow.status === 'paused' && (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => handleAction('resume')}
                 title="Resume Flow"
@@ -95,10 +95,10 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
                 <Play className="h-4 w-4" />
               </Button>
             )}
-            
+
             {(flow.status === 'running' || flow.status === 'paused') && (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => handleAction('stop')}
                 title="Stop Flow"
@@ -109,7 +109,7 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent>
         <div className="space-y-4">
           {/* Progress Bar */}
@@ -120,7 +120,7 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
             </div>
             <Progress value={flow.progress} className="h-3" />
           </div>
-          
+
           {/* Flow Details Grid */}
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div className="space-y-2">
@@ -133,13 +133,13 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
                   </span>
                 </div>
               </div>
-              
+
               <div>
                 <span className="text-muted-foreground">Type:</span>
                 <div className="font-medium capitalize">{flow.type}</div>
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <div>
                 <span className="text-muted-foreground">Status:</span>
@@ -152,7 +152,7 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
                   {flow.status}
                 </div>
               </div>
-              
+
               {flow.estimatedCompletion && flow.status === 'running' && (
                 <div>
                   <span className="text-muted-foreground">ETA:</span>
@@ -161,7 +161,7 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
                   </div>
                 </div>
               )}
-              
+
               {flow.completedAt && (
                 <div>
                   <span className="text-muted-foreground">Completed:</span>
@@ -172,7 +172,7 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
               )}
             </div>
           </div>
-          
+
           {/* Additional Status Information */}
           {isFlowStuck && (
             <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
@@ -189,7 +189,7 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
               </div>
             </div>
           )}
-          
+
           {flow.status === 'failed' && (
             <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-800">
@@ -197,7 +197,7 @@ export const FlowDetailsCard: React.FC<FlowDetailsCardProps> = ({
               </p>
             </div>
           )}
-          
+
           {flow.status === 'paused' && (
             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-yellow-800">

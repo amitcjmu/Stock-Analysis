@@ -318,9 +318,7 @@ class TestLearningSystem:
         assert "improvement_areas" in trends, "Should suggest improvements"
 
         print(f"   ✅ Total feedback analyzed: {trends['total_feedback']}")
-        print(
-            f"   ✅ Feedback categories: {list(trends['feedback_categories'].keys())}"
-        )
+        print(f"   ✅ Feedback categories: {list(trends['feedback_categories'].keys())}")
         print(f"   ✅ Common issues identified: {len(trends['common_issues'])}")
         print(f"   ✅ Improvement areas: {len(trends['improvement_areas'])}")
 

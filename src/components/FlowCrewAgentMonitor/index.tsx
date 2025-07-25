@@ -1,9 +1,9 @@
 import React from 'react'
 import { useState } from 'react'
-import { 
-  Bot, 
-  RefreshCw, 
-  Settings, 
+import {
+  Bot,
+  RefreshCw,
+  Settings,
   Eye,
   Activity,
   BarChart3,
@@ -28,7 +28,7 @@ import type { Agent } from './types';
 
 const FlowCrewAgentMonitorContainer: React.FC = () => {
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
-  
+
   const {
     data,
     isLoading,
@@ -101,7 +101,7 @@ const FlowCrewAgentMonitorContainer: React.FC = () => {
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-3">
           {/* Status indicators */}
           <div className="flex items-center space-x-2">
@@ -115,7 +115,7 @@ const FlowCrewAgentMonitorContainer: React.FC = () => {
               {allCrews.length} Crews
             </Badge>
           </div>
-          
+
           {/* Action buttons */}
           <Button
             variant="outline"
@@ -127,7 +127,7 @@ const FlowCrewAgentMonitorContainer: React.FC = () => {
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </Button>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -155,8 +155,8 @@ const FlowCrewAgentMonitorContainer: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Activity className={`h-5 w-5 ${
-                data.system_health.status === 'healthy' ? 'text-green-600' : 
-                data.system_health.status === 'degraded' ? 'text-yellow-600' : 
+                data.system_health.status === 'healthy' ? 'text-green-600' :
+                data.system_health.status === 'degraded' ? 'text-yellow-600' :
                 'text-red-600'
               }`} />
               <span>System Health</span>
@@ -232,7 +232,7 @@ const FlowCrewAgentMonitorContainer: React.FC = () => {
         <TabsContent value="detail" className="space-y-6">
           <AgentDetail
             agent={selectedAgent}
-            crewName={selectedAgent ? allCrews.find(crew => 
+            crewName={selectedAgent ? allCrews.find(crew =>
               crew.agents.some(agent => agent.id === selectedAgent.id)
             )?.name : undefined}
           />

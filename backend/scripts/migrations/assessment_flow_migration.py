@@ -213,12 +213,12 @@ class AssessmentFlowMigration:
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 created_by VARCHAR(255),
-                
-                CONSTRAINT fk_assessment_flows_client 
-                    FOREIGN KEY (client_account_id) 
+
+                CONSTRAINT fk_assessment_flows_client
+                    FOREIGN KEY (client_account_id)
                     REFERENCES client_accounts(id) ON DELETE CASCADE,
-                CONSTRAINT fk_assessment_flows_engagement 
-                    FOREIGN KEY (engagement_id) 
+                CONSTRAINT fk_assessment_flows_engagement
+                    FOREIGN KEY (engagement_id)
                     REFERENCES engagements(id) ON DELETE CASCADE
             );
             """,
@@ -234,11 +234,11 @@ class AssessmentFlowMigration:
                 exceptions_allowed BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                
-                CONSTRAINT fk_eng_arch_standards_engagement 
-                    FOREIGN KEY (engagement_id) 
+
+                CONSTRAINT fk_eng_arch_standards_engagement
+                    FOREIGN KEY (engagement_id)
                     REFERENCES engagements(id) ON DELETE CASCADE,
-                CONSTRAINT unique_engagement_requirement 
+                CONSTRAINT unique_engagement_requirement
                     UNIQUE (engagement_id, requirement_type)
             );
             """,
@@ -251,14 +251,14 @@ class AssessmentFlowMigration:
                 override_reason TEXT,
                 approved_by VARCHAR(255),
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                
-                CONSTRAINT fk_app_arch_overrides_flow 
-                    FOREIGN KEY (flow_id) 
+
+                CONSTRAINT fk_app_arch_overrides_flow
+                    FOREIGN KEY (flow_id)
                     REFERENCES assessment_flows(flow_id) ON DELETE CASCADE,
-                CONSTRAINT fk_app_arch_overrides_standard 
-                    FOREIGN KEY (standard_id) 
+                CONSTRAINT fk_app_arch_overrides_standard
+                    FOREIGN KEY (standard_id)
                     REFERENCES engagement_architecture_standards(id) ON DELETE CASCADE,
-                CONSTRAINT unique_app_standard_override 
+                CONSTRAINT unique_app_standard_override
                     UNIQUE (flow_id, application_id, standard_id)
             );
             """,
@@ -270,11 +270,11 @@ class AssessmentFlowMigration:
                 component_data JSONB NOT NULL,
                 analysis_timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                
-                CONSTRAINT fk_app_components_flow 
-                    FOREIGN KEY (flow_id) 
+
+                CONSTRAINT fk_app_components_flow
+                    FOREIGN KEY (flow_id)
                     REFERENCES assessment_flows(flow_id) ON DELETE CASCADE,
-                CONSTRAINT unique_app_components 
+                CONSTRAINT unique_app_components
                     UNIQUE (flow_id, application_id)
             );
             """,
@@ -286,11 +286,11 @@ class AssessmentFlowMigration:
                 tech_debt_data JSONB NOT NULL,
                 analysis_timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                
-                CONSTRAINT fk_tech_debt_flow 
-                    FOREIGN KEY (flow_id) 
+
+                CONSTRAINT fk_tech_debt_flow
+                    FOREIGN KEY (flow_id)
                     REFERENCES assessment_flows(flow_id) ON DELETE CASCADE,
-                CONSTRAINT unique_tech_debt 
+                CONSTRAINT unique_tech_debt
                     UNIQUE (flow_id, application_id)
             );
             """,
@@ -306,11 +306,11 @@ class AssessmentFlowMigration:
                 effort_estimate VARCHAR(50),
                 risk_level VARCHAR(20),
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                
-                CONSTRAINT fk_component_treatments_flow 
-                    FOREIGN KEY (flow_id) 
+
+                CONSTRAINT fk_component_treatments_flow
+                    FOREIGN KEY (flow_id)
                     REFERENCES assessment_flows(flow_id) ON DELETE CASCADE,
-                CONSTRAINT unique_component_treatment 
+                CONSTRAINT unique_component_treatment
                     UNIQUE (flow_id, application_id, component_name)
             );
             """,
@@ -322,11 +322,11 @@ class AssessmentFlowMigration:
                 sixr_data JSONB NOT NULL,
                 decision_timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                
-                CONSTRAINT fk_sixr_decisions_flow 
-                    FOREIGN KEY (flow_id) 
+
+                CONSTRAINT fk_sixr_decisions_flow
+                    FOREIGN KEY (flow_id)
                     REFERENCES assessment_flows(flow_id) ON DELETE CASCADE,
-                CONSTRAINT unique_sixr_decision 
+                CONSTRAINT unique_sixr_decision
                     UNIQUE (flow_id, application_id)
             );
             """,
@@ -339,9 +339,9 @@ class AssessmentFlowMigration:
                 feedback_data JSONB NOT NULL,
                 user_id VARCHAR(255),
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                
-                CONSTRAINT fk_learning_feedback_flow 
-                    FOREIGN KEY (flow_id) 
+
+                CONSTRAINT fk_learning_feedback_flow
+                    FOREIGN KEY (flow_id)
                     REFERENCES assessment_flows(flow_id) ON DELETE CASCADE
             );
             """,
@@ -423,8 +423,8 @@ class AssessmentFlowMigration:
                         existing = await db.execute(
                             text(
                                 """
-                            SELECT id FROM engagement_architecture_standards 
-                            WHERE engagement_id = :engagement_id 
+                            SELECT id FROM engagement_architecture_standards
+                            WHERE engagement_id = :engagement_id
                             AND requirement_type = :requirement_type
                         """
                             ),
@@ -439,10 +439,10 @@ class AssessmentFlowMigration:
                             await db.execute(
                                 text(
                                     """
-                                INSERT INTO engagement_architecture_standards 
-                                (engagement_id, requirement_type, description, mandatory, 
+                                INSERT INTO engagement_architecture_standards
+                                (engagement_id, requirement_type, description, mandatory,
                                  supported_versions, rationale, exceptions_allowed)
-                                VALUES (:engagement_id, :requirement_type, :description, 
+                                VALUES (:engagement_id, :requirement_type, :description,
                                         :mandatory, :supported_versions, :rationale, :exceptions_allowed)
                             """
                                 ),
@@ -525,8 +525,8 @@ class AssessmentFlowMigration:
                 constraint_check = await db.execute(
                     text(
                         """
-                    SELECT COUNT(*) FROM information_schema.table_constraints 
-                    WHERE constraint_type = 'FOREIGN KEY' 
+                    SELECT COUNT(*) FROM information_schema.table_constraints
+                    WHERE constraint_type = 'FOREIGN KEY'
                     AND table_name IN ('assessment_flows', 'engagement_architecture_standards',
                                      'application_architecture_overrides', 'application_components',
                                      'tech_debt_analysis', 'component_treatments', 'sixr_decisions')

@@ -111,11 +111,11 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
         // Show user-friendly error notification
         let errorMessage = 'Failed to load engagements';
         let status: number | undefined;
-        
+
         if (error instanceof Error) {
           errorMessage = error.message;
           // Check if it's an axios-like error with response data
-          const axiosError = error as Error & { 
+          const axiosError = error as Error & {
             response?: { data?: { detail?: string }; status?: number };
             status?: number;
           };
@@ -124,7 +124,7 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
           }
           status = axiosError.status || axiosError.response?.status;
         }
-        
+
         toast({
           title: 'Error Loading Engagements',
           description: errorMessage,
@@ -139,7 +139,7 @@ export const ContextBreadcrumbs: React.FC<ContextBreadcrumbsProps> = ({
           localStorage.removeItem('auth_engagement');
           localStorage.removeItem('auth_client_id');
           localStorage.removeItem('user_context_selection');
-          
+
           toast({
             title: 'Client Not Found',
             description:

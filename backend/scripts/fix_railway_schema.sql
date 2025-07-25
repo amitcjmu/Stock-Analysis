@@ -81,4 +81,4 @@ UPDATE engagements SET team_preferences = '{
     "preferred_meeting_times": [],
     "escalation_contacts": [],
     "project_methodology": "agile"
-}'::json WHERE team_preferences IS NULL; 
+}'::json WHERE team_preferences IS NULL;

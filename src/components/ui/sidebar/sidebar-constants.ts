@@ -1,6 +1,6 @@
 /**
  * Sidebar Constants
- * 
+ *
  * Configuration constants for sidebar behavior and styling.
  */
 

@@ -66,7 +66,7 @@ class FieldMappingCrew(BaseDiscoveryCrew):
                 role="CMDB Field Mapping Specialist",
                 goal="Map source data fields to standard CMDB attributes with confidence scores",
                 backstory="""You are an expert field mapping specialist with deep knowledge of CMDB schemas.
-                
+
                 STANDARD TARGET ATTRIBUTES:
                 - asset_name (hostname, server_name, name, asset_name)
                 - asset_type (type, category, class, asset_type)
@@ -78,7 +78,7 @@ class FieldMappingCrew(BaseDiscoveryCrew):
                 - owner (owner, responsible_person, contact)
                 - location (location, site, datacenter)
                 - status (status, state, operational_status)
-                
+
                 You provide accurate mappings with confidence scores based on semantic similarity and field patterns.""",
                 llm=self.llm,
                 verbose=True,
@@ -107,30 +107,30 @@ class FieldMappingCrew(BaseDiscoveryCrew):
         mapping_task = Task(
             description=f"""
             FIELD MAPPING TASK:
-            
+
             Source Schema: {json.dumps(source_schema, indent=2)}
             Sample Data: {json.dumps(sample_data[:5], indent=2) if sample_data else json.dumps(raw_data[:3], indent=2) if raw_data else "No sample data"}
             Target Fields Available: {json.dumps(target_fields, indent=2)}
-            
+
             Your task is to create accurate field mappings:
-            
+
             1. ANALYZE each source field:
                - Data type and format
                - Value patterns from sample data
                - Potential field purpose
-            
+
             2. CREATE MAPPINGS:
                - Map each source field to the best matching target field
                - Consider field names, data types, and content patterns
                - Assign confidence score (0.0-1.0) based on match quality
-            
+
             3. CONFIDENCE SCORING:
                - 0.9+: Exact name match (hostname → asset_name)
                - 0.7+: Semantic match (server_name → asset_name)
                - 0.5+: Possible match based on content (name → asset_name)
                - 0.3+: Weak match requiring review
                - 0.0: No suitable match found
-            
+
             4. OUTPUT FORMAT:
             Return a JSON object with this structure:
             {{
@@ -163,14 +163,14 @@ class FieldMappingCrew(BaseDiscoveryCrew):
             validation_task = Task(
                 description="""
                 VALIDATION TASK:
-                
+
                 Review the field mappings for:
                 1. Data type compatibility between source and target
                 2. Potential data loss during mapping
                 3. Missing critical fields that should be mapped
                 4. Overly confident mappings that need review
                 5. Duplicate target field assignments
-                
+
                 Provide validation results and recommendations for improvement.
                 """,
                 agent=self.agents[1],  # Validation agent

@@ -1,6 +1,6 @@
 /**
  * Button Component Types
- * 
+ *
  * Button and button group component interfaces.
  */
 

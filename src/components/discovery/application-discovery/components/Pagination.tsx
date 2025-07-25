@@ -23,7 +23,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   const getPageNumbers = () => {
     const pages = [];
     const maxPagesToShow = 5;
-    
+
     if (totalPages <= maxPagesToShow) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
@@ -51,7 +51,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         pages.push(totalPages);
       }
     }
-    
+
     return pages;
   };
 

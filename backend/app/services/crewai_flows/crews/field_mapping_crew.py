@@ -23,9 +23,7 @@ class AssetSchemaAnalysisTool(BaseTool):
     """Tool to analyze the Asset model schema"""
 
     name: str = "asset_schema_analyzer"
-    description: str = (
-        "Analyzes the complete Asset model schema to understand all available fields and their types"
-    )
+    description: str = "Analyzes the complete Asset model schema to understand all available fields and their types"
 
     def _run(self) -> str:
         """Return complete Asset model schema"""
@@ -231,14 +229,14 @@ class FieldMappingCrew:
         data_analyst_config = {
             "role": "Senior Data Pattern Analyst",
             "goal": "Analyze source data patterns and understand the semantic meaning of each field",
-            "backstory": """You are an expert data analyst with 15+ years of experience in data migration 
+            "backstory": """You are an expert data analyst with 15+ years of experience in data migration
             and schema mapping. You have deep expertise in:
-            
+
             - Recognizing data patterns (IPs, hostnames, dates, versions, etc.)
             - Understanding business context from data values
             - Identifying relationships between fields
             - Detecting composite information that needs synthesis
-            
+
             Your strength is looking beyond field names to understand what the data actually represents.""",
             "llm": self.llm_model,
             "verbose": False,
@@ -253,13 +251,13 @@ class FieldMappingCrew:
             "goal": "Map source fields to the most appropriate Asset model fields using intelligent analysis",
             "backstory": """You are a CMDB expert who deeply understands asset management schemas.
             You excel at:
-            
+
             - Understanding the complete Asset model schema and its nuances
             - Mapping fields based on semantic meaning, not just names
             - Identifying when multiple source fields should map to one target
             - Recognizing when source data needs transformation or synthesis
             - Determining appropriate confidence scores based on mapping quality
-            
+
             You NEVER make assumptions. You analyze the actual data patterns and the complete
             Asset schema to make intelligent mapping decisions.""",
             "llm": self.llm_model,
@@ -273,15 +271,15 @@ class FieldMappingCrew:
         synthesis_specialist_config = {
             "role": "Data Synthesis and Transformation Specialist",
             "goal": "Identify and design complex field mappings that require data synthesis or transformation",
-            "backstory": """You specialize in complex data transformations where simple 1:1 mappings 
+            "backstory": """You specialize in complex data transformations where simple 1:1 mappings
             don't suffice. Your expertise includes:
-            
+
             - Combining multiple fields into single target fields
             - Extracting partial information from complex fields
             - Designing transformation rules for data synthesis
             - Ensuring no data loss during multi-field mappings
             - Creating clear transformation specifications
-            
+
             You ensure that when multiple source fields contain related information, they are
             properly synthesized without overwriting each other.""",
             "llm": self.llm_model,
@@ -316,23 +314,23 @@ class FieldMappingCrew:
                 logger.info(
                     f"⚠️ Limiting field mapping to first 10 fields out of {len(headers)} to prevent rate limits"
                 )
-                sample_values["...more_fields"] = (
-                    f"({len(headers) - 10} additional fields not shown)"
-                )
+                sample_values[
+                    "...more_fields"
+                ] = f"({len(headers) - 10} additional fields not shown)"
 
         # Task 1: Analyze Data Patterns (OPTIMIZED for rate limits)
         data_analysis_task = Task(
             description=f"""
             Analyze the source data headers to understand patterns and semantic meaning.
-            
+
             Source Headers (Limited): {list(sample_values.keys())}
             Sample Values: {json.dumps(sample_values, indent=2, default=str)}
-            
+
             IMPORTANT: Be concise to avoid rate limits. For each field:
             1. Identify the semantic meaning based on the field name and sample value
             2. Note if it's metadata (row numbers, IDs) vs actual asset data
             3. Keep analysis brief but accurate
-            
+
             Return a concise analysis focusing on field purpose and meaning.
             """,
             agent=data_analyst,
@@ -350,9 +348,9 @@ class FieldMappingCrew:
         mapping_task = Task(
             description=f"""
             Create field mappings from source headers to Asset model fields.
-            
+
             Source Headers (Limited): {list(sample_values.keys())}
-            
+
             CONCISE INSTRUCTIONS (to avoid rate limits):
             1. Map each header to the most appropriate Asset model field
             2. Skip obvious metadata fields (row_index, etc.)
@@ -363,7 +361,7 @@ class FieldMappingCrew:
                - 0.7-0.89: Good match with some uncertainty
                - 0.5-0.69: Possible match but needs review
                - Below 0.5: Weak match, likely needs human input
-            
+
             OUTPUT FORMAT:
             {{
                 "mappings": {{
@@ -390,21 +388,21 @@ class FieldMappingCrew:
         synthesis_task = Task(
             description="""
             Design transformation rules for any complex mappings identified.
-            
+
             Based on the mapping analysis, create specific transformation rules for:
             1. Multi-field synthesis (combining multiple source fields)
             2. Field extraction (extracting part of a field)
             3. Data transformation (format changes, calculations, etc.)
-            
+
             Ensure that when multiple fields map to the same target, they enhance rather than overwrite.
-            
+
             For each transformation, specify:
             - Source fields involved
             - Target field
             - Transformation logic
             - Order of operations (if multiple sources)
             - Conflict resolution strategy
-            
+
             OUTPUT FORMAT:
             {
                 "transformations": [

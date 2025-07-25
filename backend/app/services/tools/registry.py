@@ -83,7 +83,6 @@ class ToolRegistry:
                             and hasattr(obj, "tool_metadata")
                             and not inspect.isabstract(obj)
                         ):
-
                             try:
                                 metadata = obj.tool_metadata()
                                 self.register_tool(metadata)

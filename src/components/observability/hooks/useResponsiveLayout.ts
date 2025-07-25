@@ -35,7 +35,7 @@ const defaultBreakpoints: ResponsiveBreakpoints = {
 
 export const useResponsiveLayout = (customBreakpoints?: Partial<ResponsiveBreakpoints>) => {
   const breakpoints = { ...defaultBreakpoints, ...customBreakpoints };
-  
+
   const [responsiveState, setResponsiveState] = useState<ResponsiveState>(() => {
     if (typeof window === 'undefined') {
       return {
@@ -51,7 +51,7 @@ export const useResponsiveLayout = (customBreakpoints?: Partial<ResponsiveBreakp
 
     const width = window.innerWidth;
     const height = window.innerHeight;
-    
+
     return {
       width,
       height,
@@ -69,7 +69,7 @@ export const useResponsiveLayout = (customBreakpoints?: Partial<ResponsiveBreakp
     const handleResize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
-      
+
       setResponsiveState({
         width,
         height,

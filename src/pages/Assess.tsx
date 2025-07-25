@@ -20,7 +20,7 @@ const Assess = () => {
       complexity: 'Medium'
     },
     {
-      appId: 'APP002', 
+      appId: 'APP002',
       name: 'Legacy Billing',
       techStack: 'COBOL',
       criticality: 'Medium',
@@ -62,7 +62,7 @@ const Assess = () => {
     },
     {
       wave: 'W2',
-      date: '2025-11-01', 
+      date: '2025-11-01',
       groups: ['G2', 'G3'],
       targetDate: '2025-11-20',
       status: 'Scheduled',
@@ -88,7 +88,7 @@ const Assess = () => {
       ]
     },
     {
-      wave: 'W2', 
+      wave: 'W2',
       phases: [
         { name: 'Assess', start: '2025-10-15', end: '2025-10-30', status: 'in-progress' },
         { name: 'Migrate', start: '2025-11-01', end: '2025-11-20', status: 'planned' },
@@ -105,7 +105,7 @@ const Assess = () => {
   const getTreatmentColor = (treatment) => {
     const colors = {
       'Rehost': 'bg-blue-100 text-blue-800',
-      'Replatform': 'bg-green-100 text-green-800', 
+      'Replatform': 'bg-green-100 text-green-800',
       'Refactor': 'bg-yellow-100 text-yellow-800',
       'Rearchitect': 'bg-purple-100 text-purple-800',
       'Repurchase': 'bg-indigo-100 text-indigo-800',

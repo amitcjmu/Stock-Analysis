@@ -54,7 +54,7 @@ const AttributeMappingStateProvider: React.FC<AttributeMappingStateProviderProps
             title="Discovery Flow Error"
             description={`Failed to initialize Discovery Flow: ${errorMessage}`}
             actions={
-              <button 
+              <button
                 onClick={onTriggerAnalysis}
                 disabled={isAnalyzing}
                 className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
@@ -79,7 +79,7 @@ const AttributeMappingStateProvider: React.FC<AttributeMappingStateProviderProps
             title="No Field Mapping Available"
             description="No field mapping data available. Please import data or trigger field mapping analysis."
             actions={
-              <button 
+              <button
                 onClick={onTriggerAnalysis}
                 disabled={isAnalyzing}
                 className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
@@ -96,4 +96,4 @@ const AttributeMappingStateProvider: React.FC<AttributeMappingStateProviderProps
   return <>{children}</>;
 };
 
-export default AttributeMappingStateProvider; 
+export default AttributeMappingStateProvider;

@@ -57,7 +57,7 @@ export const DependencyModal: React.FC<DependencyModalProps> = ({
             </button>
           </div>
         </div>
-        
+
         <div className="p-6 space-y-6">
           {/* Source Application */}
           <div>
@@ -78,7 +78,7 @@ export const DependencyModal: React.FC<DependencyModalProps> = ({
               placeholder="Enter source application name"
             />
           </div>
-          
+
           {/* Target Application */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -98,7 +98,7 @@ export const DependencyModal: React.FC<DependencyModalProps> = ({
               placeholder="Enter target application name"
             />
           </div>
-          
+
           {/* Dependency Type */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -122,7 +122,7 @@ export const DependencyModal: React.FC<DependencyModalProps> = ({
               <option value="infrastructure_dependency">Infrastructure Dependency</option>
             </select>
           </div>
-          
+
           {/* Impact Level */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -142,7 +142,7 @@ export const DependencyModal: React.FC<DependencyModalProps> = ({
               <option value="critical">Critical</option>
             </select>
           </div>
-          
+
           {/* Confidence */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -164,7 +164,7 @@ export const DependencyModal: React.FC<DependencyModalProps> = ({
               className="w-full"
             />
           </div>
-          
+
           {/* Business Impact */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -208,4 +208,4 @@ export const DependencyModal: React.FC<DependencyModalProps> = ({
       </div>
     </div>
   );
-}; 
+};

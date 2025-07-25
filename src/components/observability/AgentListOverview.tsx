@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Filter } from 'lucide-react'
 import { RefreshCw, Search, Grid, List, Settings, Activity, AlertCircle, Users, TrendingUp } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -28,7 +28,7 @@ import { AgentPerformanceCard, AgentPerformanceCardCompact } from './AgentPerfor
 import { AgentStatusGroup } from './AgentStatusIndicator';
 import { agentObservabilityService } from '../../services/api/agentObservabilityService';
 
-import type { 
+import type {
   AgentListOverviewProps,
   AgentCardData,
   AgentListState,
@@ -49,7 +49,7 @@ const filterAgents = (agents: AgentCardData[], filters: AgentListFilters): Agent
   // Filter by search query
   if (filters.searchQuery && filters.searchQuery.trim()) {
     const query = filters.searchQuery.toLowerCase().trim();
-    filtered = filtered.filter(agent => 
+    filtered = filtered.filter(agent =>
       agent.name.toLowerCase().includes(query)
     );
   }
@@ -127,7 +127,7 @@ const useAgentData = (refreshInterval?: number) => {
 
     } catch (error) {
       console.error('Failed to fetch agents:', error);
-      
+
       setErrorState(prev => ({
         hasError: true,
         error: error as Error,
@@ -274,12 +274,12 @@ export const AgentListOverview: React.FC<AgentListOverviewProps> = ({
         </div>
 
         <div className="flex items-center space-x-3">
-          <AgentStatusGroup 
+          <AgentStatusGroup
             statuses={statusGroups}
             size="sm"
             variant="badge"
           />
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -344,8 +344,8 @@ export const AgentListOverview: React.FC<AgentListOverviewProps> = ({
               {/* Status Filter */}
               <Select
                 value={filters.status?.[0] || 'all'}
-                onValueChange={(value) => 
-                  updateFilters({ 
+                onValueChange={(value) =>
+                  updateFilters({
                     status: value === 'all' ? undefined : [value as ('active' | 'idle' | 'error' | 'offline')]
                   })
                 }
@@ -409,8 +409,8 @@ export const AgentListOverview: React.FC<AgentListOverviewProps> = ({
             <Activity className="h-12 w-12 text-gray-300 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No Agents Found</h3>
             <p className="text-gray-600 text-center">
-              {filters.searchQuery || filters.status ? 
-                'No agents match your current filters.' : 
+              {filters.searchQuery || filters.status ?
+                'No agents match your current filters.' :
                 'No agents are currently registered.'
               }
             </p>
@@ -418,7 +418,7 @@ export const AgentListOverview: React.FC<AgentListOverviewProps> = ({
         </Card>
       ) : (
         <div className={cn(
-          viewMode === 'grid' 
+          viewMode === 'grid'
             ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
             : 'space-y-4'
         )}>
@@ -453,7 +453,7 @@ export const AgentListOverview: React.FC<AgentListOverviewProps> = ({
                 Showing {displayedAgents.length} of {filteredAgents.length} agents
                 {maxAgents && filteredAgents.length > maxAgents && ` (${maxAgents} max)`}
               </span>
-              
+
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-1">
                   <TrendingUp className="h-4 w-4 text-green-500" />
@@ -461,7 +461,7 @@ export const AgentListOverview: React.FC<AgentListOverviewProps> = ({
                     {Math.round((statusDistribution.active || 0) / agents.length * 100)}% uptime
                   </span>
                 </div>
-                
+
                 {refreshing && (
                   <div className="flex items-center space-x-1">
                     <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />

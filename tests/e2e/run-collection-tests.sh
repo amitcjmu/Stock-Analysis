@@ -19,7 +19,7 @@ NC='\033[0m' # No Color
 # Function to check if services are running
 check_services() {
     echo -e "${YELLOW}Checking if required services are running...${NC}"
-    
+
     # Check if frontend is running
     if curl -s http://localhost:5173 > /dev/null; then
         echo -e "${GREEN}✓ Frontend is running${NC}"
@@ -27,7 +27,7 @@ check_services() {
         echo -e "${RED}✗ Frontend is not running. Please start it with 'npm run dev'${NC}"
         exit 1
     fi
-    
+
     # Check if backend is running
     if curl -s http://localhost:8000/health > /dev/null; then
         echo -e "${GREEN}✓ Backend is running${NC}"
@@ -62,7 +62,7 @@ if [ $TEST_EXIT_CODE -eq 0 ]; then
     echo -e "\n${GREEN}✅ All Collection Flow tests passed!${NC}"
 else
     echo -e "\n${RED}❌ Some Collection Flow tests failed. Check the report for details.${NC}"
-    
+
     # Option to open the HTML report
     echo -e "\n${YELLOW}Would you like to open the test report? (y/n)${NC}"
     read -r response

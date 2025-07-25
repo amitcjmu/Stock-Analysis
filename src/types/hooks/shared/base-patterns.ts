@@ -1,8 +1,8 @@
 /**
  * Base Hook Patterns
- * 
+ *
  * Base interfaces and patterns used across async and mutation hooks.
- * 
+ *
  * These types provide proper React hook patterns with generic constraints,
  * replacing 'any' types with specific interfaces for better type safety.
  */

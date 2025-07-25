@@ -91,8 +91,8 @@ export const useApplicationDiscovery = () => {
   }, []);
 
   const handleApplicationValidation = useCallback(async (
-    applicationId: string, 
-    validationType: string, 
+    applicationId: string,
+    validationType: string,
     feedback: unknown = {}
   ) => {
     try {
@@ -111,21 +111,21 @@ export const useApplicationDiscovery = () => {
       if (response && response.status === 'success') {
         // Update local state if needed
         if (portfolio) {
-          const updatedApplications = portfolio.applications.map(app => 
-            app.id === applicationId 
+          const updatedApplications = portfolio.applications.map(app =>
+            app.id === applicationId
               ? { ...app, validation_status: 'high_confidence' as const }
               : app
           );
-          
+
           setPortfolio({
             ...portfolio,
             applications: updatedApplications
           });
         }
-        
+
         return true;
       }
-      
+
       return false;
     } catch (err: unknown) {
       console.error('Error validating application:', err);

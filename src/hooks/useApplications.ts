@@ -40,18 +40,18 @@ const loadApplicationsFromBackend = async (contextHeaders: Record<string, string
     const data = await apiCall<BackendApplicationsResponse>(API_CONFIG.ENDPOINTS.DISCOVERY.APPLICATIONS, {
       headers: contextHeaders
     });
-    
+
     // Also fetch current 6R analyses to determine status for each application
-    const analysisStatusMap: Record<number, { 
+    const analysisStatusMap: Record<number, {
       status: 'not_analyzed' | 'in_progress' | 'completed' | 'failed',
       recommended_strategy?: string,
-      confidence_score?: number 
+      confidence_score?: number
     }> = {};
-    
+
     try {
       const sixrClient = new SixRApiClient();
       const analyses = await sixrClient.listAnalyses();
-      
+
       // Create a map of application ID to analysis status
       analyses.forEach(analysis => {
         analysis.applications.forEach(app => {
@@ -66,12 +66,12 @@ const loadApplicationsFromBackend = async (contextHeaders: Record<string, string
       console.warn('Could not fetch 6R analysis status, using default status:', error);
       // Gracefully continue with default 'not_analyzed' status
     }
-    
+
     // Transform the response to match our Application interface
     return data.applications.map((app: BackendApplicationData, index: number) => {
       const appId = index + 1;
       const analysisInfo = analysisStatusMap[appId] || { status: 'not_analyzed' };
-      
+
       return {
         // Convert string IDs to integers for 6R backend compatibility
         id: appId, // Use sequential integers starting from 1
@@ -107,7 +107,7 @@ const loadApplicationsFromBackend = async (contextHeaders: Record<string, string
 
 export const useApplications = (enabled = true) => {
   const queryClient = useQueryClient();
-  
+
   const query = useQuery<Application[]>({
     queryKey: ['applications'],
     queryFn: () => loadApplicationsFromBackend({}),
@@ -115,11 +115,11 @@ export const useApplications = (enabled = true) => {
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 15 * 60 * 1000, // 15 minutes (cacheTime was renamed to gcTime in v5)
   });
-  
+
   const refetchApplications = () => {
     return queryClient.invalidateQueries({ queryKey: ['applications'] });
   };
-  
+
   return {
     ...query,
     applications: query.data || [],
@@ -136,7 +136,7 @@ export const useApplicationsWithContext = (contextHeaders: Record<string, string
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 15 * 60 * 1000, // 15 minutes (cacheTime was renamed to gcTime in v5)
   });
-  
+
   return {
     ...query,
     applications: query.data || [],

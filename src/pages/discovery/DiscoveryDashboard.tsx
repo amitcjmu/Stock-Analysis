@@ -188,9 +188,9 @@ const DiscoveryDashboard: React.FC = () => {
         </div>
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
           <p>Failed to load dashboard data. Please try again later.</p>
-          <Button 
-            variant="outline" 
-            className="mt-2" 
+          <Button
+            variant="outline"
+            className="mt-2"
             onClick={handleRefresh}
             aria-label="Retry loading data"
           >
@@ -218,9 +218,9 @@ const DiscoveryDashboard: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button 
-            variant="outline" 
-            onClick={handleRefresh} 
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
             disabled={isLoading}
             aria-label="Refresh dashboard data"
           >
@@ -231,7 +231,7 @@ const DiscoveryDashboard: React.FC = () => {
       </div>
 
       {/* Breadcrumbs - This can be removed if the main layout handles it */}
-      {/* 
+      {/*
       <div className="mb-6">
         <ContextBreadcrumbs />
       </div>
@@ -311,8 +311,8 @@ const DiscoveryDashboard: React.FC = () => {
                       <p className="text-xs text-muted-foreground">Dynamic forms for detailed data</p>
                     </div>
                   </div>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="sm"
                     onClick={() => navigate('/collection/adaptive-forms')}
                   >
@@ -330,8 +330,8 @@ const DiscoveryDashboard: React.FC = () => {
                       <p className="text-xs text-muted-foreground">Process multiple applications</p>
                     </div>
                   </div>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="sm"
                     onClick={() => navigate('/collection/bulk-upload')}
                   >
@@ -349,8 +349,8 @@ const DiscoveryDashboard: React.FC = () => {
                       <p className="text-xs text-muted-foreground">Resolve data conflicts</p>
                     </div>
                   </div>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="sm"
                     onClick={() => navigate('/collection/data-integration')}
                   >
@@ -358,15 +358,15 @@ const DiscoveryDashboard: React.FC = () => {
                   </Button>
                 </div>
               </div>
-              
+
               <div className="mt-4 pt-4 border-t">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium">Collection Progress</p>
                     <p className="text-xs text-muted-foreground">Monitor active collection workflows</p>
                   </div>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => navigate('/collection/progress')}
                   >
@@ -379,7 +379,7 @@ const DiscoveryDashboard: React.FC = () => {
 
           {/* Agent Learning Insights */}
           <div className="mb-6">
-            <AgentLearningInsights 
+            <AgentLearningInsights
               metrics={metrics}
               applicationLandscape={applicationLandscape}
               infrastructureLandscape={infrastructureLandscape}

@@ -55,11 +55,11 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
   // Set up polling only when processing is active
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
-    
+
     if (isProcessing) {
       interval = setInterval(fetchInsights, 30000); // Poll every 30 seconds only when processing
     }
-    
+
     return () => {
       if (interval) clearInterval(interval);
     };
@@ -182,17 +182,17 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
   const handleInsightFeedback = async (insightId: string, helpful: boolean, explanation?: string) => {
     try {
       const insight = insights.find(i => i.id === insightId);
-      
+
       // Enhanced feedback with explanation and accuracy validation
       const feedbackData = {
         learning_type: 'insight_feedback',
-        original_prediction: { 
+        original_prediction: {
           insight_id: insightId,
           title: insight?.title,
           description: insight?.description,
           supporting_data: insight?.supporting_data
         },
-        user_correction: { 
+        user_correction: {
           helpful,
           explanation: explanation || feedbackExplanations.get(insightId) || '',
           accuracy_issues: helpful ? [] : await analyzeAccuracyIssues(insight)
@@ -205,9 +205,9 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
         method: 'POST',
         body: JSON.stringify(feedbackData)
       });
-      
+
       onInsightAction?.(insightId, helpful ? 'helpful' : 'not_helpful');
-      
+
       // Clear feedback input after submission
       setShowFeedbackInput(prev => {
         const next = new Set(prev);
@@ -219,7 +219,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
         next.delete(insightId);
         return next;
       });
-      
+
     } catch (err) {
       console.error('Error submitting insight feedback:', err);
     }
@@ -227,12 +227,12 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
 
   const analyzeAccuracyIssues = async (insight: AgentInsight | undefined): Promise<string[]> => {
     const issues: string[] = [];
-    
+
     if (!insight) return issues;
-    
+
     const description = insight?.description || '';
     const supportingData = insight?.supporting_data || {};
-    
+
     // Check for number mismatches
     const applicationMatch = description.match(/(\d+)\s+applications/i);
     if (applicationMatch && typeof supportingData === 'object') {
@@ -242,18 +242,18 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
         issues.push(`Claims ${statedCount} applications but data shows ${actualCount}`);
       }
     }
-    
+
     // Check for terminology issues
     if (description.toLowerCase().includes('technologies') && Array.isArray(supportingData)) {
-      const hasAssetTypes = supportingData.some(item => 
-        typeof item === 'string' && 
+      const hasAssetTypes = supportingData.some(item =>
+        typeof item === 'string' &&
         ['server', 'database', 'application', 'storage', 'network'].includes(item.toLowerCase())
       );
       if (hasAssetTypes) {
         issues.push('Incorrectly refers to asset types as "technologies"');
       }
     }
-    
+
     return issues;
   };
 
@@ -353,7 +353,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
           <div className="p-6 text-center text-gray-500">
             <Brain className="w-8 h-8 mx-auto mb-2 text-gray-400" />
             <p>
-              {selectedFilter === 'all' 
+              {selectedFilter === 'all'
                 ? 'No agent insights yet'
                 : `No ${selectedFilter.replace('_', ' ')} insights`
               }
@@ -368,7 +368,7 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
         {filteredInsights.map((insight) => {
           const typeConfig = getInsightTypeConfig(insight.insight_type);
           const TypeIcon = typeConfig.icon;
-          
+
           return (
             <div
               key={insight.id}
@@ -468,8 +468,8 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
                         <div className="flex items-center space-x-2 mt-2">
                           <button
                             onClick={() => handleInsightFeedback(
-                              insight.id, 
-                              false, 
+                              insight.id,
+                              false,
                               feedbackExplanations.get(insight.id)
                             )}
                             className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
@@ -516,4 +516,4 @@ const AgentInsightsSection: React.FC<AgentInsightsSectionProps> = ({
   );
 };
 
-export default AgentInsightsSection; 
+export default AgentInsightsSection;

@@ -12,8 +12,8 @@ interface ApplicationClustersProps {
   applicationClusters: ApplicationCluster[];
 }
 
-export const ApplicationClusters: React.FC<ApplicationClustersProps> = ({ 
-  applicationClusters 
+export const ApplicationClusters: React.FC<ApplicationClustersProps> = ({
+  applicationClusters
 }) => {
   if (applicationClusters.length === 0) {
     return null;
@@ -54,4 +54,4 @@ export const ApplicationClusters: React.FC<ApplicationClustersProps> = ({
       </div>
     </div>
   );
-}; 
+};

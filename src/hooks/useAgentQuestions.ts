@@ -49,27 +49,27 @@ export const useAgentQuestions = (page: string = "dependencies") => {
       } catch (err: Error | ApiError | NetworkError | unknown) {
         consecutiveErrors.current += 1;
         console.error(`❌ Agent questions fetch error (attempt ${consecutiveErrors.current}):`, err);
-        
+
         // Type guard for error with status property
         const error = err as { status?: number; response?: { status?: number } };
-        
+
         // Handle 404 errors gracefully - these endpoints may not exist yet
         if (error.status === 404 || error.response?.status === 404) {
           console.log('Agent questions endpoint not available yet');
           return { questions: [], total: 0 };
         }
-        
+
         // Handle 403 auth errors gracefully - auth context may not be ready
         if (error.status === 403 || error.response?.status === 403) {
           console.log('Agent questions endpoint requires authentication - context may not be ready yet');
           return { questions: [], total: 0 };
         }
-        
+
         // Stop polling after max consecutive errors
         if (consecutiveErrors.current >= maxConsecutiveErrors) {
           console.warn(`🚫 Stopping agent questions polling after ${maxConsecutiveErrors} consecutive failures`);
         }
-        
+
         throw err;
       }
     },
@@ -90,7 +90,7 @@ export const useAgentQuestions = (page: string = "dependencies") => {
 
 export const useAnswerAgentQuestion = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: AgentQuestionResponse) => {
       return await apiCall('/api/v1/agents/discovery/agent-questions/answer', {
@@ -101,7 +101,7 @@ export const useAnswerAgentQuestion = () => {
     onSuccess: (_, variables) => {
       // Invalidate and refetch agent questions
       queryClient.invalidateQueries({ queryKey: ['agent-questions'] });
-      
+
       // Also invalidate agent insights as answering questions might generate new insights
       queryClient.invalidateQueries({ queryKey: ['agent-insights'] });
     },
@@ -124,27 +124,27 @@ export const useAgentInsights = (page: string = "dependencies") => {
       } catch (err: Error | ApiError | NetworkError | unknown) {
         consecutiveErrors.current += 1;
         console.error(`❌ Agent insights fetch error (attempt ${consecutiveErrors.current}):`, err);
-        
+
         // Type guard for error with status property
         const error = err as { status?: number; response?: { status?: number } };
-        
+
         // Handle 404 errors gracefully - these endpoints may not exist yet
         if (error.status === 404 || error.response?.status === 404) {
           console.log('Agent insights endpoint not available yet');
           return { insights: [], total: 0 };
         }
-        
+
         // Handle 403 auth errors gracefully - auth context may not be ready
         if (error.status === 403 || error.response?.status === 403) {
           console.log('Agent insights endpoint requires authentication - context may not be ready yet');
           return { insights: [], total: 0 };
         }
-        
+
         // Stop polling after max consecutive errors
         if (consecutiveErrors.current >= maxConsecutiveErrors) {
           console.warn(`🚫 Stopping agent insights polling after ${maxConsecutiveErrors} consecutive failures`);
         }
-        
+
         throw err;
       }
     },
@@ -179,27 +179,27 @@ export const useAgentStatus = () => {
       } catch (err: Error | ApiError | NetworkError | unknown) {
         consecutiveErrors.current += 1;
         console.error(`❌ Agent status fetch error (attempt ${consecutiveErrors.current}):`, err);
-        
+
         // Type guard for error with status property
         const error = err as { status?: number; response?: { status?: number } };
-        
+
         // Handle 404 errors gracefully - these endpoints may not exist yet
         if (error.status === 404 || error.response?.status === 404) {
           console.log('Agent status endpoint not available yet');
           return { agents: [], status: 'unknown' };
         }
-        
+
         // Handle 403 auth errors gracefully - auth context may not be ready
         if (error.status === 403 || error.response?.status === 403) {
           console.log('Agent status endpoint requires authentication - context may not be ready yet');
           return { agents: [], status: 'unknown' };
         }
-        
+
         // Stop polling after max consecutive errors
         if (consecutiveErrors.current >= maxConsecutiveErrors) {
           console.warn(`🚫 Stopping agent status polling after ${maxConsecutiveErrors} consecutive failures`);
         }
-        
+
         throw err;
       }
     },
@@ -234,21 +234,21 @@ export const useConfidenceScores = (page: string = "dependencies") => {
       } catch (err: Error | ApiError | NetworkError | unknown) {
         consecutiveErrors.current += 1;
         console.error(`❌ Confidence scores fetch error (attempt ${consecutiveErrors.current}):`, err);
-        
+
         // Type guard for error with status property
         const error = err as { status?: number; response?: { status?: number } };
-        
+
         // Handle 403 auth errors gracefully - auth context may not be ready
         if (error.status === 403 || error.response?.status === 403) {
           console.log('Confidence scores endpoint requires authentication - context may not be ready yet');
           return { confidence_scores: [], total: 0 };
         }
-        
+
         // Stop polling after max consecutive errors
         if (consecutiveErrors.current >= maxConsecutiveErrors) {
           console.warn(`🚫 Stopping confidence scores polling after ${maxConsecutiveErrors} consecutive failures`);
         }
-        
+
         throw err;
       }
     },
@@ -270,7 +270,7 @@ export const useConfidenceScores = (page: string = "dependencies") => {
 // Hook for triggering agent thinking
 export const useAgentThink = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: { agent_id: string; context: Record<string, unknown>; complexity_level?: string }) => {
       return await apiCall('/api/v1/agents/discovery/think', {
@@ -290,7 +290,7 @@ export const useAgentThink = () => {
 // Hook for triggering crew collaboration
 export const useAgentPonderMore = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: { agent_id: string; context: Record<string, unknown>; collaboration_type?: string }) => {
       return await apiCall('/api/v1/agents/discovery/ponder-more', {
@@ -305,4 +305,4 @@ export const useAgentPonderMore = () => {
       queryClient.invalidateQueries({ queryKey: ['confidence-scores'] });
     },
   });
-}; 
+};

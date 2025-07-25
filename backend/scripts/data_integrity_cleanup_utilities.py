@@ -93,8 +93,8 @@ class DataIntegrityCleanupUtilities:
         session_refs = await session.execute(
             text(
                 """
-                SELECT table_name, column_name 
-                FROM information_schema.columns 
+                SELECT table_name, column_name
+                FROM information_schema.columns
                 WHERE table_schema = 'migration'
                 AND column_name LIKE '%session%'
                 AND table_name NOT IN ('data_import_sessions')

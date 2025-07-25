@@ -33,7 +33,7 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
     includeFailedFlows: true,
     includeCancelledFlows: true
   });
-  
+
   const [healthStatus, setHealthStatus] = useState<{
     healthy_flows: number;
     problematic_flows: number;
@@ -136,7 +136,7 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
     try {
       const result = await cleanupFlows(cleanupOptions);
       setCleanupResult(result);
-      
+
       if (!cleanupOptions.dryRun) {
         // Refresh all data after actual cleanup
         await Promise.all([
@@ -341,7 +341,7 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
                 </div>
               </div>
 
-              <Button 
+              <Button
                 onClick={handleCleanupFlows}
                 disabled={isCleaning}
                 variant={cleanupOptions.dryRun ? "outline" : "destructive"}
@@ -406,7 +406,7 @@ const CollectionFlowManagementPage: React.FC<CollectionFlowManagementPageProps> 
                     </Badge>
                   </div>
                   <Progress value={healthStatus.health_score} className="w-full" />
-                  
+
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div>
                       <p className="text-2xl font-bold text-green-600">{healthStatus.healthy_flows}</p>

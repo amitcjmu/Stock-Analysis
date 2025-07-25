@@ -1,6 +1,6 @@
 /**
  * Authentication Types
- * 
+ *
  * Core authentication API types including login, logout, and password management.
  */
 

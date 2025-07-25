@@ -92,13 +92,13 @@ const AppOnPagePage: React.FC<AppOnPageProps> = ({ flowId }) => {
                 Comprehensive review of all application assessments and migration strategies
               </p>
             </div>
-            
+
             <div className="flex items-center space-x-2 print:hidden">
               <Button variant="outline" onClick={handlePrint}>
                 <Eye className="h-4 w-4 mr-2" />
                 Print Preview
               </Button>
-              <ExportAndSharingControls 
+              <ExportAndSharingControls
                 assessmentData={{
                   applications: state.selectedApplicationIds,
                   decisions: state.sixrDecisions,
@@ -109,7 +109,7 @@ const AppOnPagePage: React.FC<AppOnPageProps> = ({ flowId }) => {
               />
             </div>
           </div>
-          
+
           {/* Assessment Status */}
           <div className="flex items-center space-x-4">
             <Badge variant={assessmentComplete ? "default" : "secondary"} className="flex items-center space-x-1">
@@ -122,11 +122,11 @@ const AppOnPagePage: React.FC<AppOnPageProps> = ({ flowId }) => {
                 {assessmentComplete ? 'Assessment Complete' : 'Assessment In Progress'}
               </span>
             </Badge>
-            
+
             <Badge variant="outline">
               {Object.keys(state.sixrDecisions).length} of {state.selectedApplicationIds.length} applications assessed
             </Badge>
-            
+
             <Badge variant="outline">
               {state.appsReadyForPlanning.length} ready for planning
             </Badge>
@@ -187,19 +187,19 @@ const AppOnPagePage: React.FC<AppOnPageProps> = ({ flowId }) => {
 
               <TabsContent value="overview" className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <SixRDecisionRationale 
+                  <SixRDecisionRationale
                     decision={currentAppDecision}
                     printMode={printMode}
                   />
-                  
+
                   <ArchitectureExceptionsPanel
                     decision={currentAppDecision}
                     standards={state.engagementStandards}
                     printMode={printMode}
                   />
                 </div>
-                
-                <TechDebtSummaryChart 
+
+                <TechDebtSummaryChart
                   techDebt={currentAppTechDebt}
                   printMode={printMode}
                 />
@@ -214,7 +214,7 @@ const AppOnPagePage: React.FC<AppOnPageProps> = ({ flowId }) => {
               </TabsContent>
 
               <TabsContent value="tech-debt" className="space-y-4">
-                <TechDebtSummaryChart 
+                <TechDebtSummaryChart
                   techDebt={currentAppTechDebt}
                   detailed={true}
                   printMode={printMode}
@@ -241,12 +241,12 @@ const AppOnPagePage: React.FC<AppOnPageProps> = ({ flowId }) => {
               {printMode && (
                 <div className="print:block hidden space-y-8">
                   <div className="page-break">
-                    <SixRDecisionRationale 
+                    <SixRDecisionRationale
                       decision={currentAppDecision}
                       printMode={printMode}
                     />
                   </div>
-                  
+
                   <div className="page-break">
                     <ComponentBreakdownView
                       components={currentAppComponents}
@@ -254,15 +254,15 @@ const AppOnPagePage: React.FC<AppOnPageProps> = ({ flowId }) => {
                       printMode={printMode}
                     />
                   </div>
-                  
+
                   <div className="page-break">
-                    <TechDebtSummaryChart 
+                    <TechDebtSummaryChart
                       techDebt={currentAppTechDebt}
                       detailed={true}
                       printMode={printMode}
                     />
                   </div>
-                  
+
                   <div className="page-break">
                     <BusinessImpactAssessment
                       decision={currentAppDecision}
@@ -284,9 +284,9 @@ const AppOnPagePage: React.FC<AppOnPageProps> = ({ flowId }) => {
               const decision = state.sixrDecisions[appId];
               const components = state.applicationComponents[appId] || [];
               const techDebt = state.techDebtAnalysis[appId] || [];
-              
+
               if (!decision) return null;
-              
+
               return (
                 <div key={appId} className="mb-8">
                   <ApplicationSummaryCard
@@ -312,8 +312,8 @@ const AppOnPagePage: React.FC<AppOnPageProps> = ({ flowId }) => {
                 Download Report
               </Button>
             </div>
-            
-            <Button 
+
+            <Button
               onClick={handleFinalize}
               disabled={isSubmitting || !assessmentComplete || state.isLoading}
               size="lg"
@@ -333,7 +333,7 @@ const AppOnPagePage: React.FC<AppOnPageProps> = ({ flowId }) => {
           </div>
         )}
       </div>
-      
+
       {/* Print Styles */}
       <style jsx global>{`
         @media print {

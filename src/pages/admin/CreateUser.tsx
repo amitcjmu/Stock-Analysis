@@ -50,7 +50,7 @@ const CreateUser: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { getAuthHeaders } = useAuth();
-  
+
   // Fetch clients
   const clientsQuery = useQuery<Client[]>({
     queryKey: ['admin-clients'],
@@ -83,14 +83,14 @@ const CreateUser: React.FC = () => {
 
   // Filter engagements by selected client
   const [filteredEngagements, setFilteredEngagements] = useState<Engagement[]>([]);
-  
+
   useEffect(() => {
     if (formData.default_client_id) {
       const clientEngagements = engagementsQuery.data?.filter(
         eng => eng.client_account_id === formData.default_client_id
       ) || [];
       setFilteredEngagements(clientEngagements);
-      
+
       // Clear engagement selection if not valid for selected client
       if (formData.default_engagement_id && !clientEngagements.find(e => e.id === formData.default_engagement_id)) {
         setFormData(prev => ({ ...prev, default_engagement_id: '' }));
@@ -99,7 +99,7 @@ const CreateUser: React.FC = () => {
       setFilteredEngagements(engagementsQuery.data || []);
     }
   }, [formData.default_client_id, engagementsQuery.data]);
-  
+
   // Server state: useMutation for API interaction
   const createUserMutation = useMutation({
     mutationFn: async (payload: CreateUserData) => {
@@ -240,7 +240,7 @@ const CreateUser: React.FC = () => {
                       </p>
                     )}
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="username">Username *</Label>
                     <Input
@@ -423,8 +423,8 @@ const CreateUser: React.FC = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="default_engagement_id">Default Engagement</Label>
-                  <Select 
-                    value={formData.default_engagement_id} 
+                  <Select
+                    value={formData.default_engagement_id}
                     onValueChange={(value) => handleFormChange('default_engagement_id', value)}
                     disabled={!formData.default_client_id}
                   >
@@ -500,9 +500,9 @@ const CreateUser: React.FC = () => {
                     <Save className="w-4 h-4 mr-2" />
                     {createUserMutation.isLoading ? 'Creating User...' : 'Create User'}
                   </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                  <Button
+                    type="button"
+                    variant="outline"
                     className="w-full"
                     onClick={() => navigate('/admin/users/approvals')}
                   >

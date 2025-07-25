@@ -29,7 +29,7 @@ async def verify_flow_schema():
                     """
                 SELECT column_name, data_type, is_nullable
                 FROM information_schema.columns
-                WHERE table_schema = 'migration' 
+                WHERE table_schema = 'migration'
                 AND table_name = 'user_active_flows'
                 ORDER BY ordinal_position
             """
@@ -67,9 +67,9 @@ async def verify_flow_schema():
             result = await session.execute(
                 text(
                     """
-                SELECT conname, contype 
-                FROM pg_constraint 
-                WHERE conrelid = 'migration.user_active_flows'::regclass 
+                SELECT conname, contype
+                FROM pg_constraint
+                WHERE conrelid = 'migration.user_active_flows'::regclass
                 AND contype = 'f'
             """
                 )
@@ -95,8 +95,8 @@ async def verify_flow_schema():
             result = await session.execute(
                 text(
                     """
-                SELECT indexname 
-                FROM pg_indexes 
+                SELECT indexname
+                FROM pg_indexes
                 WHERE schemaname = 'migration' AND tablename = 'user_active_flows'
             """
                 )
@@ -142,9 +142,9 @@ async def verify_flow_schema():
             result = await session.execute(
                 text(
                     """
-                SELECT column_name 
+                SELECT column_name
                 FROM information_schema.columns
-                WHERE table_schema = 'migration' 
+                WHERE table_schema = 'migration'
                 AND table_name = 'crewai_flow_state_extensions'
                 AND column_name = 'flow_metadata'
             """
@@ -167,9 +167,9 @@ async def verify_flow_schema():
             result = await session.execute(
                 text(
                     """
-                SELECT column_name 
+                SELECT column_name
                 FROM information_schema.columns
-                WHERE table_schema = 'migration' 
+                WHERE table_schema = 'migration'
                 AND table_name = 'assets'
                 AND column_name = 'flow_id'
             """
@@ -181,9 +181,9 @@ async def verify_flow_schema():
             result = await session.execute(
                 text(
                     """
-                SELECT column_name 
+                SELECT column_name
                 FROM information_schema.columns
-                WHERE table_schema = 'migration' 
+                WHERE table_schema = 'migration'
                 AND table_name = 'discovery_flows'
                 AND column_name = 'flow_id'
             """

@@ -57,7 +57,7 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
     <>
       {/* Progress Dashboard */}
       <div className="mb-6">
-        <ProgressDashboard 
+        <ProgressDashboard
           progress={mappingProgress}
           agentAnalysis={crewAnalysis}
           flowId={flowId}
@@ -71,7 +71,7 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
       {/* Crew Analysis Panel */}
       {crewAnalysis && (
         <div className="mb-6">
-          <CrewAnalysisPanel 
+          <CrewAnalysisPanel
             analysis={crewAnalysis}
             flowState={flowState}
             isLoading={isAgenticLoading}
@@ -81,7 +81,7 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
 
       {/* Navigation Tabs */}
       <div className="mb-6">
-        <NavigationTabs 
+        <NavigationTabs
           activeTab={activeTab}
           onTabChange={setActiveTab}
           progress={mappingProgress}
@@ -114,11 +114,11 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
       {/* Agent Panels */}
       {agenticData && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <AgentClarificationPanel 
+          <AgentClarificationPanel
             pageContext="attribute_mapping"
             flowId={effectiveFlowId || flowId}
           />
-          <DataClassificationDisplay 
+          <DataClassificationDisplay
             pageContext="attribute_mapping"
           />
         </div>
@@ -127,13 +127,13 @@ export const AttributeMappingContent: React.FC<AttributeMappingContentProps> = (
       {/* Agent Insights and Orchestration - ENHANCED WITH SSE */}
       {flowState && (
         <div className="space-y-6">
-          <AgentInsightsSection 
+          <AgentInsightsSection
             pageContext="attribute_mapping"
             refreshTrigger={sseLastUpdate ? sseLastUpdate.getTime() : undefined}
             isProcessing={flowUpdates?.status === 'running' || flowUpdates?.phase === 'attribute_mapping'}
           />
-          
-          <EnhancedAgentOrchestrationPanel 
+
+          <EnhancedAgentOrchestrationPanel
             flowId={effectiveFlowId || flowId}
             currentPhase="attribute_mapping"
             flowState={flowState}

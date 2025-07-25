@@ -1,6 +1,6 @@
 /**
  * Loading Component Types
- * 
+ *
  * Type definitions for loading, skeleton, and spinner components.
  */
 

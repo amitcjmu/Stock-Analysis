@@ -17,7 +17,7 @@ const Rehost = () => {
   const { isAuthenticated } = useAuth();
 
   // Queries
-  const { 
+  const {
     data: rehostData,
     isLoading: isLoadingRehost,
     error: rehostError
@@ -78,7 +78,7 @@ const Rehost = () => {
                   </p>
                 </div>
                 <div className="flex space-x-3">
-                  <Button 
+                  <Button
                     variant="outline"
                     className="bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700"
                   >

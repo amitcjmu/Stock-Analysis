@@ -23,7 +23,7 @@ def table_exists(connection, table_name):
         text(
             """
         SELECT EXISTS (
-            SELECT 1 FROM information_schema.tables 
+            SELECT 1 FROM information_schema.tables
             WHERE table_name = :table_name
         )
     """
@@ -38,8 +38,8 @@ def column_exists(connection, table_name, column_name):
         text(
             """
         SELECT EXISTS (
-            SELECT 1 FROM information_schema.columns 
-            WHERE table_name = :table_name 
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = :table_name
             AND column_name = :column_name
         )
     """

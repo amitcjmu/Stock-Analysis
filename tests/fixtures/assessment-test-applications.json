@@ -18,7 +18,7 @@
       "rationale": "Legacy technology stack with high maintenance costs and limited modernization options"
     },
     {
-      "id": "modern_java_microservice", 
+      "id": "modern_java_microservice",
       "name": "Customer Portal API",
       "description": "Modern Java Spring Boot microservice",
       "technology_stack": ["Java 11", "Spring Boot", "PostgreSQL", "Docker"],
@@ -36,7 +36,7 @@
     },
     {
       "id": "simple_static_website",
-      "name": "Company Marketing Site", 
+      "name": "Company Marketing Site",
       "description": "Static HTML/CSS marketing website",
       "technology_stack": ["HTML", "CSS", "JavaScript", "Apache"],
       "department": "Marketing",

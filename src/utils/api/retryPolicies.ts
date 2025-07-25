@@ -30,22 +30,22 @@ export async function applyRetryPolicy<T>(
 ): Promise<T> {
   const config = { ...DEFAULT_RETRY_OPTIONS, ...options };
   let lastError: unknown;
-  
+
   for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
     try {
       return await fn();
     } catch (error) {
       lastError = error;
-      
+
       if (attempt === config.maxRetries || !config.retryCondition(error as ApiErrorType, attempt)) {
         throw error;
       }
-      
+
       const delay = calculateDelay(attempt, config.baseDelay, config.maxDelay, config.backoffFactor);
       await sleep(delay);
     }
   }
-  
+
   throw lastError;
 }
 

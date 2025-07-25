@@ -148,8 +148,8 @@ class DatabaseSetup:
                 # Terminate connections to the database
                 await conn.execute(
                     f"""
-                    SELECT pg_terminate_backend(pid) 
-                    FROM pg_stat_activity 
+                    SELECT pg_terminate_backend(pid)
+                    FROM pg_stat_activity
                     WHERE datname = '{self.db_config['database']}' AND pid <> pg_backend_pid()
                 """
                 )
@@ -268,7 +268,7 @@ class DatabaseSetup:
                     result = await db.execute(
                         text(
                             """
-                        SELECT COUNT(*) FROM information_schema.tables 
+                        SELECT COUNT(*) FROM information_schema.tables
                         WHERE table_schema IN ('migration', 'public')
                     """
                         )
@@ -285,7 +285,7 @@ class DatabaseSetup:
                     result = await db.execute(
                         text(
                             """
-                        SELECT COUNT(*) FROM pg_extension 
+                        SELECT COUNT(*) FROM pg_extension
                         WHERE extname IN ('vector', 'uuid-ossp')
                     """
                         )

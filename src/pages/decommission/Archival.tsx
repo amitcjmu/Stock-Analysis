@@ -15,7 +15,7 @@ import Sidebar from '../../components/Sidebar';
 const Archival = () => {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
-  
+
   const {
     data: archivalData,
     isLoading,
@@ -190,7 +190,7 @@ const Archival = () => {
                             </p>
                           </div>
                         </div>
-                        
+
                         {/* Active Tasks */}
                         {tasks
                           .filter(task => task.systemId === system.id && task.status === 'running')
@@ -240,4 +240,4 @@ const Archival = () => {
   );
 };
 
-export default Archival; 
+export default Archival;

@@ -1,6 +1,6 @@
 /**
  * ThreeColumnFieldMapper Types
- * 
+ *
  * Type definitions for the field mapping component and its sub-components.
  */
 

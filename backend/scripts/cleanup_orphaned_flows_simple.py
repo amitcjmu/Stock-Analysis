@@ -17,8 +17,8 @@ async def cleanup_orphaned_discovery_flows():
         # Delete discovery flows with master_flow_id that don't exist in crewai_flow_state_extensions
         cleanup_query = text(
             """
-            DELETE FROM discovery_flows 
-            WHERE master_flow_id IS NOT NULL 
+            DELETE FROM discovery_flows
+            WHERE master_flow_id IS NOT NULL
             AND master_flow_id NOT IN (
                 SELECT flow_id FROM crewai_flow_state_extensions
             );
@@ -35,7 +35,7 @@ async def cleanup_orphaned_discovery_flows():
         # Show final status
         status_query = text(
             """
-            SELECT 
+            SELECT
                 COUNT(*) as total_flows,
                 COUNT(CASE WHEN master_flow_id IS NOT NULL THEN 1 END) as flows_with_master_id,
                 COUNT(CASE WHEN master_flow_id IS NULL THEN 1 END) as flows_without_master_id

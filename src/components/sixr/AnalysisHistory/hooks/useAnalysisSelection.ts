@@ -5,7 +5,7 @@ export const useAnalysisSelection = () => {
   const [selectedAnalyses, setSelectedAnalyses] = useState<number[]>([]);
 
   const handleSelectAnalysis = useCallback((analysisId: number) => {
-    setSelectedAnalyses(prev => 
+    setSelectedAnalyses(prev =>
       prev.includes(analysisId)
         ? prev.filter(id => id !== analysisId)
         : [...prev, analysisId]

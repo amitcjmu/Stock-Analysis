@@ -5,10 +5,10 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { 
+  {
     ignores: [
       "dist",
-      "build", 
+      "build",
       ".next",
       "out",
       "**/*.d.ts",
@@ -19,7 +19,7 @@ export default tseslint.config(
       "**/auto-generated/",
       "**/vendor/",
       "**/lib/",
-      "**/libs/", 
+      "**/libs/",
       "**/third-party/",
       "coverage/",
       ".nyc_output/",
@@ -38,7 +38,7 @@ export default tseslint.config(
       "**/*.cjs"
     ]
   },
-  
+
   // Configuration for src files (main app - uses tsconfig.app.json)
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
@@ -62,12 +62,12 @@ export default tseslint.config(
         { allowConstantExport: true },
       ],
       "@typescript-eslint/no-unused-vars": "off",
-      
+
       // Phase 4: Strict type enforcement rules (after AI agent swarm completion)
-      
+
       // ZERO TOLERANCE: No explicit any types (100% completion achieved)
       "@typescript-eslint/no-explicit-any": "error",
-      
+
       // Enforce type-only imports (prevents circular dependencies)
       "@typescript-eslint/consistent-type-imports": [
         "error",
@@ -77,7 +77,7 @@ export default tseslint.config(
           "fixStyle": "separate-type-imports"
         }
       ],
-      
+
       // Enforce type-only exports where applicable
       "@typescript-eslint/consistent-type-exports": [
         "error",
@@ -85,26 +85,26 @@ export default tseslint.config(
           "fixMixedExportsWithInlineTypeSpecifier": true
         }
       ],
-      
+
       // Prevent unnecessary type assertions
       "@typescript-eslint/no-unnecessary-type-assertion": "error",
-      
+
       // Enforce consistent type definitions (interfaces over types)
       "@typescript-eslint/consistent-type-definitions": ["error", "interface"],
-      
+
       // Array type consistency
       "@typescript-eslint/array-type": ["error", {
         "default": "array-simple"
       }],
-      
+
       // Require explicit return types on exported functions
       "@typescript-eslint/explicit-module-boundary-types": "warn", // Start as warn, can upgrade to error later
-      
+
       // Prevent empty interfaces
       "@typescript-eslint/no-empty-interface": "error",
     },
   },
-  
+
   // Configuration for Node/build files (uses tsconfig.node.json)
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
@@ -122,14 +122,14 @@ export default tseslint.config(
       "@typescript-eslint/no-explicit-any": "error",
     },
   },
-  
+
   // Configuration for other TypeScript files (no type checking)
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: [
       "**/*.{ts,tsx}",
       "!src/**/*",
-      "!vite.config.ts", 
+      "!vite.config.ts",
       "!vitest.config.ts"
     ],
     languageOptions: {
@@ -139,7 +139,7 @@ export default tseslint.config(
     rules: {
       "@typescript-eslint/no-unused-vars": "off",
       "@typescript-eslint/no-explicit-any": "error",
-      
+
       // Basic rules without type information
       "@typescript-eslint/consistent-type-definitions": ["error", "interface"],
       "@typescript-eslint/array-type": ["error", {

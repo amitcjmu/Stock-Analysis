@@ -91,7 +91,7 @@ EC2 Instance (10.0.1.10)
             │   • Resource Limits: 1GB RAM, 1 CPU
             │
             ├── migration-backend (172.18.0.20)
-            │   • Container: FastAPI Application  
+            │   • Container: FastAPI Application
             │   • Port Mapping: 8000:8000
             │   • Health Check: /health
             │   • Environment: Production
@@ -258,7 +258,7 @@ Docker Security Configuration:
 Container Health Monitoring:
     Health Checks:
     • Frontend: HTTP GET /health every 30s
-    • Backend: HTTP GET /health every 30s  
+    • Backend: HTTP GET /health every 30s
     • Database: pg_isready command every 30s
     • Automatic container restart on failure
 

@@ -1,6 +1,6 @@
 /**
  * Bulk Data Grid Component
- * 
+ *
  * Grid interface for bulk data entry across multiple applications
  * Agent Team B3 - Task B3.2 Frontend Implementation
  */
@@ -64,7 +64,7 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
   const [filterText, setFilterText] = useState('');
 
   // Get visible fields based on selection
-  const visibleFields = useMemo(() => 
+  const visibleFields = useMemo(() =>
     fields.filter(field => selectedFields.has(field.id)),
     [fields, selectedFields]
   );
@@ -73,10 +73,10 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
   const filteredRows = useMemo(() => {
     const rows = Array.from(gridData.values());
     if (!filterText) return rows;
-    
-    return rows.filter(row => 
+
+    return rows.filter(row =>
       row.applicationName.toLowerCase().includes(filterText.toLowerCase()) ||
-      Object.values(row.data).some(value => 
+      Object.values(row.data).some(value =>
         String(value).toLowerCase().includes(filterText.toLowerCase())
       )
     );
@@ -90,7 +90,7 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
       if (row) {
         const updatedData = { ...row.data, [fieldId]: value };
         const completionPercentage = (Object.keys(updatedData).length / visibleFields.length) * 100;
-        
+
         newData.set(applicationId, {
           ...row,
           data: updatedData,
@@ -100,7 +100,7 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
       }
       return newData;
     });
-    
+
     onDataChange(applicationId, fieldId, value);
   }, [onDataChange, visibleFields.length]);
 
@@ -131,10 +131,10 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
   const handleBulkCopy = useCallback(() => {
     const selectedRows = Array.from(gridData.values()).filter(row => row.isSelected);
     if (selectedRows.length === 0) return;
-    
+
     const sourceRow = selectedRows[0];
     const targetRows = selectedRows.slice(1);
-    
+
     setGridData(prev => {
       const newData = new Map(prev);
       targetRows.forEach(targetRow => {
@@ -151,7 +151,7 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
 
   const handleBulkClear = useCallback(() => {
     const selectedRows = Array.from(gridData.values()).filter(row => row.isSelected);
-    
+
     setGridData(prev => {
       const newData = new Map(prev);
       selectedRows.forEach(row => {
@@ -190,7 +190,7 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
             </SelectContent>
           </Select>
         );
-        
+
       case 'checkbox':
         return (
           <Checkbox
@@ -198,7 +198,7 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
             onCheckedChange={(checked) => handleCellChange(row.applicationId, field.id, checked)}
           />
         );
-        
+
       case 'textarea':
         return (
           <Input
@@ -208,7 +208,7 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
             className="h-8 min-w-[200px]"
           />
         );
-        
+
       default:
         return (
           <Input
@@ -236,7 +236,7 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
                 Enter data for multiple applications. Use bulk operations to speed up data entry.
               </CardDescription>
             </div>
-            
+
             <div className="flex items-center gap-2">
               {/* Template Selection */}
               {templateOptions.length > 0 && (
@@ -253,7 +253,7 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
                   </SelectContent>
                 </Select>
               )}
-              
+
               {/* Upload Dialog */}
               <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
                 <DialogTrigger asChild>
@@ -281,7 +281,7 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
                   />
                 </DialogContent>
               </Dialog>
-              
+
               {/* Export Data */}
               <Button variant="outline" size="sm">
                 <Download className="h-4 w-4 mr-2" />
@@ -289,7 +289,7 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
               </Button>
             </div>
           </div>
-          
+
           {/* Field Selection and Filters */}
           <div className="flex items-center gap-4 pt-3 border-t">
             <div className="flex items-center gap-2">
@@ -301,7 +301,7 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
                 className="h-8 w-[200px]"
               />
             </div>
-            
+
             <Select
               value={Array.from(selectedFields).join(',')}
               onValueChange={(value) => {
@@ -320,18 +320,18 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
                 ))}
               </SelectContent>
             </Select>
-            
+
             {selectedRowCount > 0 && (
               <div className="flex items-center gap-2 ml-auto">
                 <Badge variant="outline">
                   {selectedRowCount} selected
                 </Badge>
-                
+
                 <Button variant="outline" size="sm" onClick={handleBulkCopy}>
                   <Copy className="h-4 w-4 mr-1" />
                   Copy Data
                 </Button>
-                
+
                 <Button variant="outline" size="sm" onClick={handleBulkClear}>
                   <Trash2 className="h-4 w-4 mr-1" />
                   Clear
@@ -380,22 +380,22 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
                   </TableHead>
                 </TableRow>
               </TableHeader>
-              
+
               <TableBody>
                 {filteredRows.map(row => (
-                  <TableRow 
+                  <TableRow
                     key={row.applicationId}
                     className={cn(row.isSelected && 'bg-muted/50')}
                   >
                     <TableCell className="sticky left-0 bg-background border-r">
                       <Checkbox
                         checked={row.isSelected}
-                        onCheckedChange={(checked) => 
+                        onCheckedChange={(checked) =>
                           handleRowSelection(row.applicationId, Boolean(checked))
                         }
                       />
                     </TableCell>
-                    
+
                     <TableCell className="font-medium sticky left-[50px] bg-background border-r">
                       <div className="flex items-center gap-2">
                         {row.validationStatus === 'valid' && (
@@ -407,11 +407,11 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
                         {row.applicationName}
                       </div>
                     </TableCell>
-                    
+
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
+                          <div
                             className="h-full bg-blue-500 transition-all"
                             style={{ width: `${row.completionPercentage}%` }}
                           />
@@ -421,13 +421,13 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
                         </span>
                       </div>
                     </TableCell>
-                    
+
                     {visibleFields.map(field => (
                       <TableCell key={field.id}>
                         {renderCell(row, field)}
                       </TableCell>
                     ))}
-                    
+
                     <TableCell>
                       <Button variant="ghost" size="sm">
                         <MoreHorizontal className="h-4 w-4" />
@@ -446,12 +446,12 @@ export const BulkDataGrid: React.FC<BulkDataGridProps> = ({
         <div>
           Showing {filteredRows.length} of {totalRows} applications
         </div>
-        
+
         <div className="flex items-center gap-4">
           <div>
             {selectedRowCount > 0 && `${selectedRowCount} selected`}
           </div>
-          
+
           <Button variant="outline" size="sm">
             <Save className="h-4 w-4 mr-2" />
             Save Progress

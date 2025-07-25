@@ -1,6 +1,6 @@
 /**
  * Component Type Libraries
- * 
+ *
  * Centralized component prop interfaces and type definitions.
  * Provides type safety and IntelliSense support for all components.
  */

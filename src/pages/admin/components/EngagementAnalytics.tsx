@@ -5,9 +5,9 @@
 
 import React from 'react';
 import {
-  Plus, 
-  BarChart3, 
-  Activity 
+  Plus,
+  BarChart3,
+  Activity
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -23,9 +23,9 @@ export interface EngagementAnalyticsProps {
   className?: string;
 }
 
-export const EngagementAnalytics: React.FC<EngagementAnalyticsProps> = ({ 
-  engagementsData, 
-  className = '' 
+export const EngagementAnalytics: React.FC<EngagementAnalyticsProps> = ({
+  engagementsData,
+  className = ''
 }) => {
   // Transform phase data for ProgressCard
   const phaseItems: ProgressItemData[] = engagementsData.byPhase && Object.keys(engagementsData.byPhase).length > 0
@@ -39,7 +39,7 @@ export const EngagementAnalytics: React.FC<EngagementAnalyticsProps> = ({
   // Transform scope data for ProgressCard
   const scopeItems: ProgressItemData[] = engagementsData.byScope && Object.keys(engagementsData.byScope).length > 0
     ? Object.entries(engagementsData.byScope).map(([scope, count]) => ({
-        label: scope.replace('_', ' ').split(' ').map(word => 
+        label: scope.replace('_', ' ').split(' ').map(word =>
           word.charAt(0).toUpperCase() + word.slice(1)
         ).join(' '),
         value: count,
@@ -56,7 +56,7 @@ export const EngagementAnalytics: React.FC<EngagementAnalyticsProps> = ({
       variant: "default"
     },
     {
-      label: "View All Engagements", 
+      label: "View All Engagements",
       href: "/admin/engagements",
       icon: BarChart3,
       variant: "outline"

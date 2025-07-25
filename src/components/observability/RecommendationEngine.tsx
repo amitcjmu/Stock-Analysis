@@ -56,7 +56,7 @@ const RecommendationEngine: React.FC<RecommendationEngineProps> = ({
 
   const handleRecommendationApply = async (recommendation: Recommendation) => {
     console.log('Applying recommendation:', recommendation.id);
-    
+
     if (onRecommendationApply) {
       onRecommendationApply(recommendation);
     }
@@ -121,7 +121,7 @@ const RecommendationEngine: React.FC<RecommendationEngineProps> = ({
             </p>
           </div>
         </div>
-        
+
         <Button onClick={refresh} variant="outline" disabled={loading}>
           <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
           Refresh
@@ -139,7 +139,7 @@ const RecommendationEngine: React.FC<RecommendationEngineProps> = ({
             <TabsTrigger value="resource">Resource ({categoryStats.resource || 0})</TabsTrigger>
           </TabsList>
         </Tabs>
-        
+
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-600">Priority:</span>
           <select

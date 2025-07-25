@@ -1,6 +1,6 @@
 /**
  * Base API Types
- * 
+ *
  * Core API interfaces for requests, responses, errors, and metadata.
  */
 

@@ -87,9 +87,9 @@ class FormatValidatorTool(AsyncBaseDiscoveryTool):
             validation_results["summary"] = self._create_validation_summary(
                 validation_results
             )
-            validation_results["recommendations"] = (
-                self._generate_format_recommendations(validation_results)
-            )
+            validation_results[
+                "recommendations"
+            ] = self._generate_format_recommendations(validation_results)
 
             return json.dumps(validation_results, indent=2)
 

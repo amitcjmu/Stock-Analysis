@@ -1,6 +1,6 @@
 /**
  * Agent Planning Dashboard
- * 
+ *
  * Main dashboard component for agent planning and task management.
  */
 
@@ -36,7 +36,7 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [modalOpen, setModalOpen] = useState(isOpen);
-  
+
   // Human input state
   const [planSuggestion, setPlanSuggestion] = useState('');
   const [feedbackType, setFeedbackType] = useState<FeedbackType>('suggestion');
@@ -58,7 +58,7 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
     try {
       setLoading(true);
       setError(null);
-      
+
       const plan = await api.fetchAgentPlan(pageContext);
       setAgentPlan(plan);
     } catch (err) {
@@ -71,11 +71,11 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
   const handleTaskApproval = async (taskId: string, approved: boolean) => {
     try {
       await api.submitTaskApproval(taskId, approved, pageContext);
-      
+
       if (onTaskFeedback) {
         onTaskFeedback(taskId, { approved });
       }
-      
+
       // Refresh plan
       await fetchAgentPlan();
     } catch (error) {
@@ -86,11 +86,11 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
   const handleHumanInputSubmission = async (taskId: string, input: TaskInput) => {
     try {
       await api.submitHumanInput(taskId, input, pageContext);
-      
+
       if (onHumanInput) {
         onHumanInput(taskId, input);
       }
-      
+
       // Refresh plan
       await fetchAgentPlan();
     } catch (error) {
@@ -100,13 +100,13 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
 
   const handlePlanSuggestionSubmit = async () => {
     if (!planSuggestion.trim() || !agentPlan) return;
-    
+
     try {
       await api.submitPlanSuggestion(agentPlan.plan_id, planSuggestion, feedbackType, pageContext);
-      
+
       setPlanSuggestion('');
       alert('✅ Plan suggestion submitted successfully! Agents will consider this feedback for plan improvements.');
-      
+
       // Refresh plan
       await fetchAgentPlan();
     } catch (error) {
@@ -205,7 +205,7 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
                     </TabsContent>
 
                     <TabsContent value="human-input" className="space-y-4 mt-6">
-                      <HumanInputTab 
+                      <HumanInputTab
                         humanInputTasks={agentPlan.human_input_required}
                         onHumanInputSubmission={handleHumanInputSubmission}
                       />
@@ -233,7 +233,7 @@ const AgentPlanningDashboard: React.FC<AgentPlanningDashboardProps> = ({
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh Plan
               </Button>
-              
+
               <div className="flex gap-3">
                 <Button onClick={handleCloseModal} variant="outline">
                   Close Dashboard

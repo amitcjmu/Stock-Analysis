@@ -1,6 +1,6 @@
 /**
  * Sidebar Group Components
- * 
+ *
  * Components for organizing sidebar content into groups with labels and actions.
  */
 

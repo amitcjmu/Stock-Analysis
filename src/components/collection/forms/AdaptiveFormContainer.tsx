@@ -1,6 +1,6 @@
 /**
  * Adaptive Form Container Component
- * 
+ *
  * Container component that handles form rendering and progress tracking.
  * Extracted from AdaptiveForms.tsx to create a more focused, reusable component.
  */
@@ -15,11 +15,11 @@ import { ValidationDisplay } from '@/components/collection/ValidationDisplay';
 import { BulkDataGrid } from '@/components/collection/BulkDataGrid';
 
 // Import types
-import type { 
-  AdaptiveFormData, 
-  CollectionFormData, 
+import type {
+  AdaptiveFormData,
+  CollectionFormData,
   FormValidationResult,
-  ProgressMilestone 
+  ProgressMilestone
 } from '@/components/collection/types';
 
 // UI Components
@@ -86,7 +86,7 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
             <TabsTrigger value="single">Single Application</TabsTrigger>
             <TabsTrigger value="bulk">Bulk Mode</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="single" className="space-y-6">
             <Card>
               <CardHeader>
@@ -130,8 +130,8 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
         {/* Submit Actions */}
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={onSave}
               disabled={isSaving}
             >
@@ -139,15 +139,15 @@ export const AdaptiveFormContainer: React.FC<AdaptiveFormContainerProps> = ({
               {isSaving ? 'Saving...' : 'Save Progress'}
             </Button>
           </div>
-          
+
           <div className="flex items-center space-x-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={onCancel}
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleFormSubmit}
               disabled={isSubmitting || !validation?.isValid}
             >

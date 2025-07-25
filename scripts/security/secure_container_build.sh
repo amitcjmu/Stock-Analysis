@@ -16,29 +16,29 @@ TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 build_and_scan() {
     local dockerfile=$1
     local tag=$2
-    
+
     echo "🏗️ Building image with $dockerfile..."
     docker build -f "$dockerfile" -t "${IMAGE_NAME}:${tag}" . || {
         echo "❌ Build failed"
         return 1
     }
-    
+
     echo ""
     echo "🔍 Scanning image for vulnerabilities..."
-    
+
     # Use docker scout if available
     if command -v docker scout &> /dev/null; then
         echo "Using Docker Scout..."
         docker scout cves "${IMAGE_NAME}:${tag}" || true
     fi
-    
+
     # Also try trivy if available
     if command -v trivy &> /dev/null; then
         echo ""
         echo "Using Trivy scanner..."
         trivy image --severity HIGH,CRITICAL "${IMAGE_NAME}:${tag}" || true
     fi
-    
+
     # Get vulnerability count from Docker
     echo ""
     echo "📊 Vulnerability Summary:"

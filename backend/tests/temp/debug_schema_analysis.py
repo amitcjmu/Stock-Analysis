@@ -19,8 +19,8 @@ async def analyze_schema():
             result = await session.execute(
                 text(
                     """
-                SELECT table_name 
-                FROM information_schema.tables 
+                SELECT table_name
+                FROM information_schema.tables
                 WHERE table_schema = 'public'
                 ORDER BY table_name
             """
@@ -58,7 +58,7 @@ async def analyze_schema():
                         text(
                             f"""
                         SELECT column_name, data_type, is_nullable, column_default
-                        FROM information_schema.columns 
+                        FROM information_schema.columns
                         WHERE table_name = '{table_name}'
                         ORDER BY ordinal_position
                     """

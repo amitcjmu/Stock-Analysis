@@ -23,7 +23,7 @@ export const useReadinessAssessment = ({
 
 export const useGenerateSignoffPackage = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation<ReadinessAssessment, Error, GenerateSignoffPackageParams>({
     mutationFn: async ({ assessmentId, clientAccountId, engagementId }) => {
       const response = await api.post<ReadinessAssessment>(
@@ -35,9 +35,9 @@ export const useGenerateSignoffPackage = () => {
     onSuccess: (data, variables) => {
       // Invalidate and refetch
       queryClient.invalidateQueries({
-        queryKey: ['readinessAssessment', { 
-          clientAccountId: variables.clientAccountId, 
-          engagementId: variables.engagementId 
+        queryKey: ['readinessAssessment', {
+          clientAccountId: variables.clientAccountId,
+          engagementId: variables.engagementId
         }]
       });
     },
@@ -46,7 +46,7 @@ export const useGenerateSignoffPackage = () => {
 
 export const useSubmitForApproval = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation<ReadinessAssessment, Error, SubmitForApprovalParams>({
     mutationFn: async ({
       assessmentId,
@@ -63,9 +63,9 @@ export const useSubmitForApproval = () => {
     onSuccess: (data, variables) => {
       // Invalidate and refetch
       queryClient.invalidateQueries({
-        queryKey: ['readinessAssessment', { 
-          clientAccountId: variables.clientAccountId, 
-          engagementId: variables.engagementId 
+        queryKey: ['readinessAssessment', {
+          clientAccountId: variables.clientAccountId,
+          engagementId: variables.engagementId
         }]
       });
     },

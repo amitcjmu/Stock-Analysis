@@ -15,7 +15,7 @@ export const FEATURES = {
     BULK_OPERATIONS: true,
     EXPORT_FUNCTIONALITY: true
   },
-  
+
   // Collection features
   COLLECTION: {
     ENABLED: true,
@@ -27,7 +27,7 @@ export const FEATURES = {
     WORKFLOW_AUTOMATION: true,
     PROGRESS_MONITORING: true
   },
-  
+
   // Assessment features
   ASSESSMENT: {
     ENABLED: true,
@@ -37,7 +37,7 @@ export const FEATURES = {
     COLLABORATIVE_REVIEW: true,
     AI_RECOMMENDATIONS: true
   },
-  
+
   // Agent features
   AGENTS: {
     ENABLED: true,
@@ -47,7 +47,7 @@ export const FEATURES = {
     AGENT_MONITORING: true,
     PERFORMANCE_TRACKING: true
   },
-  
+
   // Monitoring features
   MONITORING: {
     ENABLED: true,
@@ -57,7 +57,7 @@ export const FEATURES = {
     HISTORICAL_DATA: true,
     EXPORT_METRICS: true
   },
-  
+
   // Admin features
   ADMIN: {
     ENABLED: true,
@@ -68,7 +68,7 @@ export const FEATURES = {
     AUDIT_LOGGING: true,
     SYSTEM_SETTINGS: true
   },
-  
+
   // UI features
   UI: {
     DARK_MODE: true,
@@ -80,7 +80,7 @@ export const FEATURES = {
     ADVANCED_FILTERS: true,
     BULK_ACTIONS: true
   },
-  
+
   // Integration features
   INTEGRATIONS: {
     API_ACCESS: true,
@@ -90,7 +90,7 @@ export const FEATURES = {
     EXTERNAL_STORAGE: true,
     THIRD_PARTY_TOOLS: true
   },
-  
+
   // Experimental features
   EXPERIMENTAL: {
     BETA_FEATURES: false,
@@ -100,7 +100,7 @@ export const FEATURES = {
     BLOCKCHAIN_AUDIT: false,
     QUANTUM_ANALYSIS: false
   },
-  
+
   // Security features
   SECURITY: {
     TWO_FACTOR_AUTH: true,
@@ -121,7 +121,7 @@ export const FEATURE_ENVIRONMENTS = {
       BETA_FEATURES: true
     }
   },
-  
+
   STAGING: {
     ...FEATURES,
     EXPERIMENTAL: {
@@ -129,7 +129,7 @@ export const FEATURE_ENVIRONMENTS = {
       BETA_FEATURES: true
     }
   },
-  
+
   PRODUCTION: {
     ...FEATURES,
     EXPERIMENTAL: {
@@ -153,7 +153,7 @@ export const FEATURE_DEPENDENCIES = {
 export const isFeatureEnabled = (featurePath: string): boolean => {
   const keys = featurePath.split('.');
   let current: unknown = FEATURES;
-  
+
   for (const key of keys) {
     if (current && typeof current === 'object' && key in current) {
       current = (current as Record<string, unknown>)[key];
@@ -161,7 +161,7 @@ export const isFeatureEnabled = (featurePath: string): boolean => {
       return false;
     }
   }
-  
+
   return current === true;
 };
 

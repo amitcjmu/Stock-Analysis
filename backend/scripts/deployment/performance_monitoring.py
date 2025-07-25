@@ -136,10 +136,10 @@ class PerformanceMonitor:
                 benchmark_results["summary"] = self._generate_benchmark_summary(
                     benchmark_results["tests"]
                 )
-                benchmark_results["recommendations"] = (
-                    self._generate_performance_recommendations(
-                        benchmark_results["tests"]
-                    )
+                benchmark_results[
+                    "recommendations"
+                ] = self._generate_performance_recommendations(
+                    benchmark_results["tests"]
                 )
 
                 total_duration = (datetime.now() - start_time).total_seconds()
@@ -879,11 +879,11 @@ class PerformanceMonitor:
             # Get active connection count
             connection_query = text(
                 """
-                SELECT 
+                SELECT
                     COUNT(*) as active_connections,
                     COUNT(CASE WHEN state = 'active' THEN 1 END) as active_queries,
                     COUNT(CASE WHEN state = 'idle' THEN 1 END) as idle_connections
-                FROM pg_stat_activity 
+                FROM pg_stat_activity
                 WHERE datname = current_database()
             """
             )

@@ -44,7 +44,7 @@ def upgrade():
     op.execute(
         """
         CREATE TYPE asset_status AS ENUM (
-            'discovered', 'assessed', 'planned', 'migrating', 
+            'discovered', 'assessed', 'planned', 'migrating',
             'migrated', 'failed', 'excluded'
         )
     """
@@ -74,7 +74,7 @@ def upgrade():
     op.execute(
         """
         CREATE TYPE flow_status AS ENUM (
-            'initialized', 'running', 'paused', 'completed', 
+            'initialized', 'running', 'paused', 'completed',
             'failed', 'cancelled', 'pending'
         )
     """

@@ -10,7 +10,7 @@ Successfully modularized three large React components by extracting reusable hoo
 
 **Extracted Modules**:
 - **Types**: `src/pages/observability/types/AgentDetailTypes.ts`
-- **Hooks**: 
+- **Hooks**:
   - `useAgentDetail.ts` - Data loading and state management
   - `useAgentMetrics.ts` - Performance metrics calculations
 - **Components**:

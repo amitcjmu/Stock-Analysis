@@ -16,7 +16,7 @@ const AgentMonitoring = () => {
                 Flow & Agent Monitoring
               </h1>
               <p className="text-gray-600">
-                Monitor and observe the performance of CrewAI Discovery Flows, Crews, and Agents in real-time. 
+                Monitor and observe the performance of CrewAI Discovery Flows, Crews, and Agents in real-time.
                 Track flow progress, crew coordination, agent collaboration, and detailed execution analytics.
               </p>
             </div>
@@ -29,4 +29,4 @@ const AgentMonitoring = () => {
   );
 };
 
-export default AgentMonitoring; 
+export default AgentMonitoring;

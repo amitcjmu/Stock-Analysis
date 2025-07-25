@@ -47,7 +47,7 @@ class MasterFlowBenchmark:
             await session.execute(
                 text(
                     """
-                DELETE FROM crewai_flow_state_extensions 
+                DELETE FROM crewai_flow_state_extensions
                 WHERE flow_metadata->>'benchmark' = 'true'
             """
                 )
@@ -204,7 +204,7 @@ class MasterFlowBenchmark:
         result = await self.benchmark_query(
             "JSONB Phase Transitions",
             """
-            SELECT flow_id, flow_name, 
+            SELECT flow_id, flow_name,
                    jsonb_array_length(phase_transitions) as phase_count
             FROM crewai_flow_state_extensions
             WHERE jsonb_array_length(phase_transitions) > 1
@@ -224,9 +224,9 @@ class MasterFlowBenchmark:
                 WHERE parent_flow_id IS NULL
                 AND flow_metadata->>'benchmark' = 'true'
                 LIMIT 10
-                
+
                 UNION ALL
-                
+
                 SELECT c.flow_id, c.parent_flow_id, c.flow_name, h.level + 1
                 FROM crewai_flow_state_extensions c
                 JOIN flow_hierarchy h ON c.parent_flow_id = h.flow_id
@@ -255,7 +255,7 @@ class MasterFlowBenchmark:
         result = await self.benchmark_query(
             "Flow Statistics",
             """
-            SELECT 
+            SELECT
                 flow_type,
                 flow_status,
                 COUNT(*) as count,
@@ -276,7 +276,7 @@ class MasterFlowBenchmark:
             await session.execute(
                 text(
                     """
-                DELETE FROM crewai_flow_state_extensions 
+                DELETE FROM crewai_flow_state_extensions
                 WHERE flow_metadata->>'benchmark' = 'true'
             """
                 )

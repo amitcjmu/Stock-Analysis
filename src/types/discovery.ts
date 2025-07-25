@@ -192,4 +192,4 @@ export interface FlowStatusResponse {
 export interface FlowData {
   flowId: string;
   flowData: Record<string, unknown>;
-} 
+}

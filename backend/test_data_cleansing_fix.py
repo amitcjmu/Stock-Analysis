@@ -35,9 +35,9 @@ async def test_data_retrieval():
             # Check discovery flow
             discovery_query = text(
                 """
-                SELECT flow_id, flow_name, current_phase, status, 
+                SELECT flow_id, flow_name, current_phase, status,
                        progress_percentage, data_import_id, master_flow_id
-                FROM discovery_flows 
+                FROM discovery_flows
                 WHERE flow_id = :flow_id
             """
             )
@@ -63,7 +63,7 @@ async def test_data_retrieval():
             # Get the database ID for this flow_id
             db_id_query = text(
                 """
-                SELECT id FROM crewai_flow_state_extensions 
+                SELECT id FROM crewai_flow_state_extensions
                 WHERE flow_id = :flow_id
             """
             )

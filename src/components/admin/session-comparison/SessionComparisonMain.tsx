@@ -259,7 +259,7 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
       };
 
       setComparison(demoComparison);
-      
+
       if (onComparisonComplete) {
         onComparisonComplete(demoComparison);
       }
@@ -304,7 +304,7 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
           <div className={`flex justify-between text-sm font-medium ${colorClass}`}>
             <span>Change:</span>
             <span>
-              {diff.difference > 0 ? '+' : ''}{diff.difference.toLocaleString()} 
+              {diff.difference > 0 ? '+' : ''}{diff.difference.toLocaleString()}
               ({diff.percentage_change > 0 ? '+' : ''}{diff.percentage_change.toFixed(1)}%)
             </span>
           </div>
@@ -339,7 +339,7 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
                 </div>
               </div>
             </div>
-            
+
             <div>
               <h4 className="font-medium mb-3">Overall Impact</h4>
               <div className="space-y-2">
@@ -454,7 +454,7 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
           </div>
 
           <div className="mt-4 flex gap-2">
-            <Button 
+            <Button
               onClick={performComparison}
               disabled={!selectedSourceSession || !selectedTargetSession || isLoading}
             >
@@ -470,7 +470,7 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
                 </>
               )}
             </Button>
-            
+
             {comparison && (
               <Button variant="outline">
                 <Download className="w-4 h-4 mr-2" />
@@ -534,4 +534,4 @@ export const SessionComparisonMain: React.FC<SessionComparisonProps> = ({
   );
 };
 
-export default SessionComparisonMain; 
+export default SessionComparisonMain;

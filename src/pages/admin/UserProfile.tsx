@@ -14,7 +14,7 @@ const UserProfile: React.FC = () => {
   const navigate = useNavigate();
   const { user, getAuthHeaders } = useAuth();
   const { toast } = useToast();
-  
+
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -128,30 +128,30 @@ const UserProfile: React.FC = () => {
               <Label className="text-sm font-medium text-gray-700">Full Name</Label>
               <p className="text-gray-900 font-medium">{user.full_name}</p>
             </div>
-            
+
             <div>
               <Label className="text-sm font-medium text-gray-700">Email</Label>
               <p className="text-gray-900">{user.email}</p>
             </div>
-            
+
             <div>
               <Label className="text-sm font-medium text-gray-700">Username</Label>
               <p className="text-gray-900">{user.username}</p>
             </div>
-            
+
             <div>
               <Label className="text-sm font-medium text-gray-700">Role</Label>
               <div className="flex items-center gap-2">
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                   (user.role === 'admin' || user.role === 'platform_admin')
-                    ? 'bg-red-100 text-red-800' 
+                    ? 'bg-red-100 text-red-800'
                     : 'bg-blue-100 text-blue-800'
                 }`}>
                   {(user.role === 'admin' || user.role === 'platform_admin') ? 'Administrator' : 'User'}
                 </span>
               </div>
             </div>
-            
+
             <div>
               <Label className="text-sm font-medium text-gray-700">Status</Label>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -253,9 +253,9 @@ const UserProfile: React.FC = () => {
                 </div>
               </div>
 
-              <Button 
-                type="submit" 
-                className="w-full" 
+              <Button
+                type="submit"
+                className="w-full"
                 disabled={passwordChangeMutation.isPending}
               >
                 {passwordChangeMutation.isPending ? (
@@ -278,4 +278,4 @@ const UserProfile: React.FC = () => {
   );
 };
 
-export default UserProfile; 
+export default UserProfile;

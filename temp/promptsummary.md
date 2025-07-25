@@ -521,5 +521,3 @@
   - Hard Refresh: If changes don't appear, clear browser cache or use incognito mode
   - Auth Context Debug: If still seeing zeros, verify getAuthHeaders() returns correct values
   - Database Direct Query: Can manually verify field mappings exist for import ID aeec4c9a-97cd-412a-ae8d-ca6a00743821
-
-  

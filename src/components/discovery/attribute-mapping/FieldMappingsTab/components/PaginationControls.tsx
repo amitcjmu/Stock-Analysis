@@ -24,11 +24,11 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
         <ChevronLeft className="h-4 w-4 mr-1" />
         Previous
       </button>
-      
+
       <span className="px-3 py-2 text-sm text-gray-600">
         Page {currentPage} of {totalPages}
       </span>
-      
+
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}

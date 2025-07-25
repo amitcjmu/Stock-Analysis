@@ -1,14 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Calendar, 
-  Clock, 
-  Eye, 
-  Edit, 
-  Trash2, 
-  MoreHorizontal, 
-  Target, 
-  TrendingUp 
+import {
+  Calendar,
+  Clock,
+  Eye,
+  Edit,
+  Trash2,
+  MoreHorizontal,
+  Target,
+  TrendingUp
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -119,7 +119,7 @@ export const EngagementList: React.FC<EngagementListProps> = ({
                     <TableCell>
                       <div className="text-sm">
                         <div className="font-medium">
-                          {engagement.estimated_budget ? 
+                          {engagement.estimated_budget ?
                             formatCurrency(engagement.estimated_budget, engagement.budget_currency || 'USD') :
                             'No budget set'
                           }
@@ -129,8 +129,8 @@ export const EngagementList: React.FC<EngagementListProps> = ({
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-blue-600 h-2 rounded-full" 
+                          <div
+                            className="bg-blue-600 h-2 rounded-full"
                             style={{ width: `${engagement.completion_percentage}%` }}
                           ></div>
                         </div>
@@ -163,7 +163,7 @@ export const EngagementList: React.FC<EngagementListProps> = ({
                               View Progress
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => onDeleteEngagement(engagement.id, engagement.engagement_name)}
                             className="text-red-600"
                           >
@@ -184,8 +184,8 @@ export const EngagementList: React.FC<EngagementListProps> = ({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex justify-center gap-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => onPageChange(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
           >
@@ -194,8 +194,8 @@ export const EngagementList: React.FC<EngagementListProps> = ({
           <span className="flex items-center px-4 text-sm">
             Page {currentPage} of {totalPages}
           </span>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage === totalPages}
           >
@@ -205,4 +205,4 @@ export const EngagementList: React.FC<EngagementListProps> = ({
       )}
     </>
   );
-}; 
+};

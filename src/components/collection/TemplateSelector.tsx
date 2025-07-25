@@ -1,6 +1,6 @@
 /**
  * Template Selector Component
- * 
+ *
  * Interface for selecting and applying templates to forms
  * Agent Team B3 - Task B3.4 Frontend Implementation
  */
@@ -75,8 +75,8 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {templates.map(template => (
-          <Card 
-            key={template.id} 
+          <Card
+            key={template.id}
             className={cn(
               'cursor-pointer transition-colors hover:bg-muted/50',
               selectedTemplate === template.id && 'ring-2 ring-primary'
@@ -97,7 +97,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                 {template.description}
               </CardDescription>
             </CardHeader>
-            
+
             <CardContent className="pt-0">
               <div className="space-y-2">
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -110,7 +110,7 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                     {template.applicableTypes.length} app types
                   </div>
                 </div>
-                
+
                 <div className="flex flex-wrap gap-1">
                   {template.applicableTypes.slice(0, 3).map(type => (
                     <Badge key={type} variant="outline" className="text-xs">
@@ -123,9 +123,9 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({
                     </Badge>
                   )}
                 </div>
-                
-                <Button 
-                  size="sm" 
+
+                <Button
+                  size="sm"
                   className="w-full"
                   onClick={(e) => {
                     e.stopPropagation();

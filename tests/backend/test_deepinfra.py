@@ -38,27 +38,27 @@ async def test_deepinfra_config():
 async def test_crewai_service():
     """Test CrewAI service initialization."""
     print("\n🤖 Testing CrewAI Service:")
-    
+
     try:
         service = CrewAIFlowService()
-        
+
         if service.llm:
             print("✅ CrewAI service initialized successfully")
             print(f"   LLM Type: {type(service.llm).__name__}")
             print(f"   Agents Created: {len(service.agents)}")
             print(f"   Crews Created: {len(service.crews)}")
-            
+
             # Test agent names
             if service.agents:
                 print("   Available Agents:")
                 for agent_name in service.agents.keys():
                     print(f"     - {agent_name}")
-            
+
             return True
         else:
             print("❌ CrewAI service failed to initialize LLM")
             return False
-            
+
     except Exception as e:
         print(f"❌ CrewAI service error: {e}")
         return False
@@ -67,10 +67,10 @@ async def test_crewai_service():
 async def test_6r_analysis():
     """Test 6R analysis functionality."""
     print("\n📊 Testing 6R Analysis:")
-    
+
     try:
         service = CrewAIFlowService()
-        
+
         # Sample asset data for testing
         test_asset = {
             "name": "web-server-01",
@@ -84,9 +84,9 @@ async def test_6r_analysis():
             "business_criticality": "high",
             "dependencies": ["database-01", "load-balancer"]
         }
-        
+
         result = await service.analyze_asset_6r_strategy(test_asset)
-        
+
         if result:
             print("✅ 6R Analysis completed")
             print(f"   Recommended Strategy: {result.get('recommended_strategy', 'N/A')}")
@@ -97,7 +97,7 @@ async def test_6r_analysis():
         else:
             print("❌ 6R Analysis failed")
             return False
-            
+
     except Exception as e:
         print(f"❌ 6R Analysis error: {e}")
         return False
@@ -107,20 +107,20 @@ async def main():
     """Run all tests."""
     print("🚀 AI Modernize Migration Platform - DeepInfra Integration Test")
     print("=" * 60)
-    
+
     # Test configuration
     await test_deepinfra_config()
-    
+
     # Test service initialization
     service_ok = await test_crewai_service()
-    
+
     # Test 6R analysis (only if service is working)
     if service_ok:
         await test_6r_analysis()
-    
+
     print("\n" + "=" * 60)
     print("🏁 Test completed!")
 
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    asyncio.run(main())

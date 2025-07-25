@@ -84,4 +84,4 @@ const Header: React.FC<HeaderProps> = ({ user, currentClient, availableClients, 
   );
 };
 
-export default Header; 
+export default Header;

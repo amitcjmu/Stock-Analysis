@@ -105,9 +105,9 @@ class InventoryBuildingCrew:
         inventory_manager = Agent(
             role="IT Asset Inventory Coordination Manager",
             goal="Coordinate comprehensive IT asset inventory building across servers, applications, and devices with cross-domain validation",
-            backstory="""You are a senior enterprise architect with specialized expertise in IT asset inventory 
+            backstory="""You are a senior enterprise architect with specialized expertise in IT asset inventory
             management and CMDB classification for large-scale migration projects. Your specific role and boundaries:
-            
+
             INTELLIGENCE & EFFICIENCY RESPONSIBILITIES:
             - FIRST: Use task_completion_checker tool to verify if asset inventory has been completed recently
             - If completed recently, return existing results instead of re-processing to avoid redundant work
@@ -115,7 +115,7 @@ class InventoryBuildingCrew:
             - AFTER asset classification: Use asset_enrichment_analyzer tool to enrich each asset with metadata
             - Use execution_coordinator tool to coordinate with other agents and avoid conflicts
             - Only proceed with full inventory if no recent completion or results are insufficient
-            
+
             CORE COORDINATION RESPONSIBILITIES:
             - Orchestrate asset classification across server, application, and device domains
             - Ensure comprehensive asset inventory coverage with cross-domain validation
@@ -124,27 +124,27 @@ class InventoryBuildingCrew:
             - Validate asset classification accuracy and completeness
             - Manage asset taxonomy and classification standards adherence
             - Escalate complex classification decisions via Agent-UI-Bridge
-            
+
             DOMAIN COORDINATION DUTIES:
             - Coordinate Server Classification Expert for infrastructure assets
-            - Manage Application Discovery Expert for software and service assets  
+            - Manage Application Discovery Expert for software and service assets
             - Oversee Device Classification Expert for network and hardware assets
             - Ensure consistent classification criteria across all domains
             - Validate cross-domain asset relationships and dependencies
-            
+
             CLEAR BOUNDARIES - WHAT YOU DO NOT DO:
             - You DO NOT perform detailed technical asset analysis (delegate to domain experts)
             - You DO NOT make domain-specific classification decisions (expert responsibility)
             - You DO NOT analyze individual asset configurations (specialist task)
             - You DO NOT perform network topology analysis (device expert role)
-            
+
             DELEGATION AUTHORITY & DECISION MAKING:
             - Maximum 3 delegations total across all asset classification tasks
             - After 2nd delegation on any asset type, YOU make the final classification decision
             - Authority to override domain expert recommendations for consistency
             - Use Agent-UI-Bridge for user clarification on ambiguous asset types
             - Determine when inventory building meets completion criteria
-            
+
             ESCALATION TRIGGERS:
             - Conflicting asset classifications between domain experts
             - Unknown asset types not covered by standard taxonomies
@@ -165,9 +165,9 @@ class InventoryBuildingCrew:
         server_expert = Agent(
             role="Enterprise Server & Infrastructure Classification Expert",
             goal="Classify server and infrastructure assets with detailed technical specifications and hosting capacity analysis",
-            backstory="""You are a specialized infrastructure expert with deep knowledge of enterprise server 
+            backstory="""You are a specialized infrastructure expert with deep knowledge of enterprise server
             environments, virtualization platforms, and cloud infrastructure. Your domain expertise includes:
-            
+
             CORE INFRASTRUCTURE EXPERTISE:
             - Physical server classification (blade, rack, tower servers)
             - Virtual machine and hypervisor identification and classification
@@ -176,7 +176,7 @@ class InventoryBuildingCrew:
             - Network infrastructure components (switches, routers, load balancers)
             - Operating system identification and version analysis
             - Hardware specifications and capacity planning analysis
-            
+
             CLASSIFICATION RESPONSIBILITIES:
             - Identify server types: physical, virtual, cloud instances
             - Determine hosting relationships and server dependencies
@@ -185,7 +185,7 @@ class InventoryBuildingCrew:
             - Identify infrastructure roles and responsibilities
             - Map server-to-server relationships and clustering
             - Assess infrastructure modernization potential
-            
+
             TECHNICAL ANALYSIS CAPABILITIES:
             - Operating system and version identification
             - Hardware specifications analysis (CPU, memory, storage)
@@ -193,19 +193,19 @@ class InventoryBuildingCrew:
             - Virtualization platform analysis (VMware, Hyper-V, KVM)
             - Cloud platform identification (AWS, Azure, GCP)
             - Container orchestration platform detection (Kubernetes, Docker)
-            
+
             CLEAR BOUNDARIES - WHAT YOU DO NOT DO:
             - You DO NOT classify application software (Application Expert's domain)
             - You DO NOT analyze business logic or application dependencies (not infrastructure)
             - You DO NOT make business criticality decisions (coordinate with Manager)
             - You DO NOT perform network device classification (Device Expert's domain)
-            
+
             COLLABORATION REQUIREMENTS:
             - Share hosting insights with Application Discovery Expert
             - Coordinate infrastructure dependencies with Device Expert
             - Report complex classification challenges to Inventory Manager
             - Document server patterns for knowledge base enhancement
-            
+
             ESCALATION TRIGGERS:
             - Unknown server platforms or technologies
             - Complex virtualization or cloud configurations
@@ -226,8 +226,8 @@ class InventoryBuildingCrew:
         app_expert = Agent(
             role="Application Discovery Expert",
             goal="Identify and categorize application assets with business context and dependencies",
-            backstory="""You are an application portfolio expert with deep knowledge of enterprise 
-            applications. You excel at identifying application types, versions, business criticality, 
+            backstory="""You are an application portfolio expert with deep knowledge of enterprise
+            applications. You excel at identifying application types, versions, business criticality,
             and hosting relationships for migration strategy.""",
             llm=self.llm_model,
             memory=self.shared_memory,
@@ -243,8 +243,8 @@ class InventoryBuildingCrew:
         device_expert = Agent(
             role="Device Classification Expert",
             goal="Classify network devices and infrastructure components for migration planning",
-            backstory="""You are a network infrastructure expert with knowledge of enterprise device 
-            topologies. You excel at identifying network devices, security appliances, and 
+            backstory="""You are a network infrastructure expert with knowledge of enterprise device
+            topologies. You excel at identifying network devices, security appliances, and
             infrastructure components that support migration planning.""",
             llm=self.llm_model,
             memory=self.shared_memory,
@@ -281,8 +281,8 @@ class InventoryBuildingCrew:
         # These tasks depend on the triage_task and run in parallel.
         server_classification_task = Task(
             description="""Perform a detailed classification of the server assets provided. Identify OS, function, and virtual/physical status.
-            
-            CRITICAL: Each asset in your output MUST have an 'asset_type' field set to exactly 'server'. 
+
+            CRITICAL: Each asset in your output MUST have an 'asset_type' field set to exactly 'server'.
             Add this field to each asset record if it doesn't exist.""",
             expected_output="A JSON list of fully classified server assets with detailed attributes. Each asset MUST have asset_type: 'server'.",
             agent=server_expert,
@@ -292,8 +292,8 @@ class InventoryBuildingCrew:
 
         app_classification_task = Task(
             description="""Perform a detailed classification of the application assets provided. Identify version, type, and business context.
-            
-            CRITICAL: Each asset in your output MUST have an 'asset_type' field set to exactly 'application'. 
+
+            CRITICAL: Each asset in your output MUST have an 'asset_type' field set to exactly 'application'.
             Add this field to each asset record if it doesn't exist.""",
             expected_output="A JSON list of fully classified application assets with detailed attributes. Each asset MUST have asset_type: 'application'.",
             agent=app_expert,
@@ -303,8 +303,8 @@ class InventoryBuildingCrew:
 
         device_classification_task = Task(
             description="""Perform a detailed classification of the device assets provided. Identify device type and network role.
-            
-            CRITICAL: Each asset in your output MUST have an 'asset_type' field set to exactly 'device'. 
+
+            CRITICAL: Each asset in your output MUST have an 'asset_type' field set to exactly 'device'.
             Add this field to each asset record if it doesn't exist.""",
             expected_output="A JSON list of fully classified device assets with detailed attributes. Each asset MUST have asset_type: 'device'.",
             agent=device_expert,
@@ -315,14 +315,14 @@ class InventoryBuildingCrew:
         # Step 3: Final Consolidation and Relationship Mapping
         # This task runs last, after all experts have finished.
         consolidation_task = Task(
-            description="""Consolidate the outputs from the server, application, and device experts into a single, unified asset inventory. 
-            
+            description="""Consolidate the outputs from the server, application, and device experts into a single, unified asset inventory.
+
             CRITICAL DEDUPLICATION STEP:
             1. BEFORE finalizing the inventory, you MUST use the asset_deduplication_checker tool
             2. Pass ALL assets from all categories (servers, applications, devices) to the tool
             3. The tool will return only the unique assets that don't already exist in the database
             4. Only include the assets returned by the deduplication tool in your final output
-            
+
             After deduplication, analyze the consolidated data to map relationships between the assets.""",
             expected_output="A final JSON object containing three lists: 'servers', 'applications', and 'devices' (only unique assets), and a fourth list 'relationships' detailing all identified connections.",
             agent=manager,

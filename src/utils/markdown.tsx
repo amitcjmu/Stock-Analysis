@@ -14,13 +14,13 @@ export const renderMarkdown = (text: string): React.ReactElement => {
   // Split text into lines for processing
   const lines = text.split('\n');
   const elements: React.ReactElement[] = [];
-  
+
   let listItems: string[] = [];
   let inList = false;
-  
+
   lines.forEach((line, index) => {
     const trimmedLine = line.trim();
-    
+
     // Handle bullet points
     if (trimmedLine.startsWith('• ') || trimmedLine.startsWith('* ') || trimmedLine.startsWith('- ')) {
       const listText = trimmedLine.substring(2);
@@ -28,7 +28,7 @@ export const renderMarkdown = (text: string): React.ReactElement => {
       inList = true;
       return;
     }
-    
+
     // If we were in a list and this line doesn't continue it, render the list
     if (inList && !trimmedLine.startsWith('• ') && !trimmedLine.startsWith('* ') && !trimmedLine.startsWith('- ')) {
       elements.push(
@@ -43,7 +43,7 @@ export const renderMarkdown = (text: string): React.ReactElement => {
       listItems = [];
       inList = false;
     }
-    
+
     // Handle headings
     if (trimmedLine.startsWith('**') && trimmedLine.endsWith('**') && trimmedLine.length > 4) {
       const headingText = trimmedLine.slice(2, -2);
@@ -54,7 +54,7 @@ export const renderMarkdown = (text: string): React.ReactElement => {
       );
       return;
     }
-    
+
     // Handle regular paragraphs
     if (trimmedLine) {
       elements.push(
@@ -67,7 +67,7 @@ export const renderMarkdown = (text: string): React.ReactElement => {
       elements.push(<br key={index} />);
     }
   });
-  
+
   // Handle any remaining list items
   if (inList && listItems.length > 0) {
     elements.push(
@@ -80,20 +80,20 @@ export const renderMarkdown = (text: string): React.ReactElement => {
       </ul>
     );
   }
-  
+
   return <div className="markdown-content">{elements}</div>;
 };
 
 const formatInlineMarkdown = (text: string): React.ReactNode => {
   // Handle inline code `code`
   text = text.replace(/`([^`]+)`/g, '<code class="bg-gray-200 px-1 rounded text-sm font-mono">$1</code>');
-  
+
   // Handle bold **text**
   text = text.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-bold">$1</strong>');
-  
+
   // Handle italic *text*
   text = text.replace(/\*([^*]+)\*/g, '<em class="italic">$1</em>');
-  
+
   // Return as JSX
   return <span dangerouslySetInnerHTML={{ __html: text }} />;
 };
@@ -104,4 +104,4 @@ export const Markdown: React.FC<MarkdownProps> = ({ content, className = '' }) =
       {renderMarkdown(content)}
     </div>
   );
-}; 
+};

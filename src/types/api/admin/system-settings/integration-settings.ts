@@ -1,9 +1,9 @@
 /**
  * Integration Settings Configuration Types
- * 
+ *
  * External integration configuration including APIs, webhooks, OAuth,
  * SSO, messaging, and third-party service configurations.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

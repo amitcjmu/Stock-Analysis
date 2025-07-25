@@ -1,6 +1,6 @@
 /**
  * Notification and Toast Component Types
- * 
+ *
  * Type definitions for notification, toast, and badge components.
  */
 
@@ -8,42 +8,42 @@ import type { ReactNode } from 'react';
 import type { BaseComponentProps } from '../shared';
 
 // Position types
-export type NotificationPosition = 
-  | 'top-left' 
-  | 'top-center' 
-  | 'top-right' 
-  | 'middle-left' 
-  | 'middle-center' 
-  | 'middle-right' 
-  | 'bottom-left' 
-  | 'bottom-center' 
+export type NotificationPosition =
+  | 'top-left'
+  | 'top-center'
+  | 'top-right'
+  | 'middle-left'
+  | 'middle-center'
+  | 'middle-right'
+  | 'bottom-left'
+  | 'bottom-center'
   | 'bottom-right';
 
-export type ToastPosition = 
-  | 'top-left' 
-  | 'top-center' 
-  | 'top-right' 
-  | 'bottom-left' 
-  | 'bottom-center' 
+export type ToastPosition =
+  | 'top-left'
+  | 'top-center'
+  | 'top-right'
+  | 'bottom-left'
+  | 'bottom-center'
   | 'bottom-right';
 
 // Animation types
-export type NotificationAnimation = 
-  | 'slide' 
-  | 'fade' 
-  | 'scale' 
-  | 'bounce' 
-  | 'flip' 
-  | 'zoom' 
+export type NotificationAnimation =
+  | 'slide'
+  | 'fade'
+  | 'scale'
+  | 'bounce'
+  | 'flip'
+  | 'zoom'
   | 'none';
 
-export type ToastAnimation = 
-  | 'slide' 
-  | 'fade' 
-  | 'scale' 
-  | 'bounce' 
-  | 'flip' 
-  | 'zoom' 
+export type ToastAnimation =
+  | 'slide'
+  | 'fade'
+  | 'scale'
+  | 'bounce'
+  | 'flip'
+  | 'zoom'
   | 'none';
 
 // Transition interfaces

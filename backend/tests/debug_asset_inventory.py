@@ -54,8 +54,8 @@ async def test_database_cmdb_assets():
             table_check = await session.execute(
                 text(
                     """
-                SELECT table_name 
-                FROM information_schema.tables 
+                SELECT table_name
+                FROM information_schema.tables
                 WHERE table_name = 'cmdb_assets'
             """
                 )
@@ -72,8 +72,8 @@ async def test_database_cmdb_assets():
             columns_check = await session.execute(
                 text(
                     """
-                SELECT column_name, data_type, is_nullable 
-                FROM information_schema.columns 
+                SELECT column_name, data_type, is_nullable
+                FROM information_schema.columns
                 WHERE table_name = 'cmdb_assets'
                 ORDER BY ordinal_position
             """

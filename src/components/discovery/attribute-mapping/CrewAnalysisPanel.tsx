@@ -44,7 +44,7 @@ const CrewAnalysisPanel: React.FC<CrewAnalysisPanelProps> = ({ crewAnalysis }) =
                 </span>
               </div>
               <p className="text-sm text-gray-600 mb-3 font-medium">{analysis.task}</p>
-              
+
               <div className="mb-3">
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">Findings:</h4>
                 <ul className="text-sm text-gray-600 space-y-1 pl-4">
@@ -56,7 +56,7 @@ const CrewAnalysisPanel: React.FC<CrewAnalysisPanelProps> = ({ crewAnalysis }) =
                   ))}
                 </ul>
               </div>
-              
+
               <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded-r-lg">
                 <h4 className="text-sm font-semibold text-blue-800 mb-2">Recommendations:</h4>
                 <ul className="text-sm text-blue-700 space-y-1 pl-4">
@@ -76,4 +76,4 @@ const CrewAnalysisPanel: React.FC<CrewAnalysisPanelProps> = ({ crewAnalysis }) =
   );
 };
 
-export default CrewAnalysisPanel; 
+export default CrewAnalysisPanel;

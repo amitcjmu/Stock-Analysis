@@ -22,8 +22,8 @@ export const SixRActionButtons: React.FC<SixRActionButtonsProps> = ({
   return (
     <div className="flex justify-between items-center pt-6 border-t border-gray-200">
       <div className="flex items-center space-x-2">
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           onClick={onSaveDraft}
           disabled={isDraft || !selectedApp}
         >
@@ -31,8 +31,8 @@ export const SixRActionButtons: React.FC<SixRActionButtonsProps> = ({
           {isDraft ? 'Saving...' : 'Save Progress'}
         </Button>
       </div>
-      
-      <Button 
+
+      <Button
         onClick={onSubmit}
         disabled={isSubmitting || isLoading}
         size="lg"

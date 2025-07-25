@@ -92,9 +92,9 @@ class TestDatabaseConsolidation:
         result = await db_session.execute(
             text(
                 """
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_schema = 'public' 
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
                 AND table_name LIKE 'v3_%'
             """
             )
@@ -109,8 +109,8 @@ class TestDatabaseConsolidation:
         result = await db_session.execute(
             text(
                 """
-                SELECT column_name 
-                FROM information_schema.columns 
+                SELECT column_name
+                FROM information_schema.columns
                 WHERE table_name = 'data_imports'
                 AND column_name IN ('filename', 'file_size', 'mime_type')
             """
@@ -126,8 +126,8 @@ class TestDatabaseConsolidation:
         result = await db_session.execute(
             text(
                 """
-                SELECT column_name 
-                FROM information_schema.columns 
+                SELECT column_name
+                FROM information_schema.columns
                 WHERE table_name = 'data_imports'
                 AND column_name IN ('source_filename', 'file_size_bytes', 'file_type', 'is_mock')
             """
@@ -143,7 +143,7 @@ class TestDatabaseConsolidation:
             text(
                 """
                 SELECT column_name, data_type
-                FROM information_schema.columns 
+                FROM information_schema.columns
                 WHERE table_name = 'discovery_flows'
                 AND column_name IN (
                     'flow_state', 'phase_state', 'agent_state',
@@ -182,9 +182,9 @@ class TestDatabaseConsolidation:
         result = await db_session.execute(
             text(
                 f"""
-                SELECT table_name 
-                FROM information_schema.tables 
-                WHERE table_schema = 'public' 
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
                 AND table_name IN ({','.join([f"'{t}'" for t in deprecated_tables])})
             """
             )
@@ -206,8 +206,8 @@ class TestDatabaseConsolidation:
             result = await db_session.execute(
                 text(
                     f"""
-                    SELECT indexname 
-                    FROM pg_indexes 
+                    SELECT indexname
+                    FROM pg_indexes
                     WHERE tablename = '{table}'
                     AND indexdef LIKE '%client_account_id%'
                 """

@@ -6,7 +6,7 @@
 </head>
 <body>
     <h1>Test Flow Operations</h1>
-    
+
     <div>
         <h2>Test Resume Flow</h2>
         <button onclick="testResumeFlow()">Resume Flow ce8245a2-628b-48b2-8a11-592834277c29</button>
@@ -34,16 +34,16 @@
         async function testResumeFlow() {
             const flowId = 'ce8245a2-628b-48b2-8a11-592834277c29';
             const resultDiv = document.getElementById('resumeResult');
-            
+
             try {
                 resultDiv.innerHTML = 'Testing resume flow...';
-                
+
                 const response = await axios.post(
                     `${API_BASE}/api/v1/flows/${flowId}/resume`,
                     {},
                     { headers: getHeaders() }
                 );
-                
+
                 resultDiv.innerHTML = `<h3>Success!</h3><pre>${JSON.stringify(response.data, null, 2)}</pre>`;
             } catch (error) {
                 resultDiv.innerHTML = `<h3>Error:</h3><pre>${error.response?.data ? JSON.stringify(error.response.data, null, 2) : error.message}</pre>`;
@@ -52,18 +52,18 @@
 
         async function testGetActiveFlows() {
             const resultDiv = document.getElementById('activeFlowsResult');
-            
+
             try {
                 resultDiv.innerHTML = 'Testing get active flows...';
-                
+
                 const response = await axios.get(
                     `${API_BASE}/api/v1/master-flows/active`,
-                    { 
+                    {
                         headers: getHeaders(),
                         params: { flowType: 'discovery' }
                     }
                 );
-                
+
                 resultDiv.innerHTML = `<h3>Success!</h3><pre>${JSON.stringify(response.data, null, 2)}</pre>`;
             } catch (error) {
                 resultDiv.innerHTML = `<h3>Error:</h3><pre>${error.response?.data ? JSON.stringify(error.response.data, null, 2) : error.message}</pre>`;

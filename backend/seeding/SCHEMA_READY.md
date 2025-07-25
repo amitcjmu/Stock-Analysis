@@ -56,7 +56,7 @@
 ## Critical Field Confirmations
 
 ### DiscoveryFlow Table ✅
-- `learning_scope` (VARCHAR 50) - Default: 'engagement' 
+- `learning_scope` (VARCHAR 50) - Default: 'engagement'
 - `memory_isolation_level` (VARCHAR 20) - Default: 'strict'
 - `assessment_ready` (BOOLEAN) - Default: false
 - `phase_state` (JSONB) - Default: {}
@@ -78,12 +78,12 @@
 1. **Platform Admin User**
    - Email: admin@aiforce.com
    - Role: PLATFORM_ADMIN with SUPER_ADMIN access
-   
+
 2. **Demo Client Account**
    - Name: "Demo Corporation"
    - Code: "DEMO"
    - Subscription tier: "standard"
-   
+
 3. **Demo Engagement**
    - Name: "Q1 2025 Cloud Migration"
    - Type: "cloud_migration"
@@ -91,7 +91,7 @@
 
 ### RBAC Role Types (Use These Exact Values)
 - `PLATFORM_ADMIN` - Platform-wide administrator
-- `CLIENT_ADMIN` - Client-level administrator  
+- `CLIENT_ADMIN` - Client-level administrator
 - `ENGAGEMENT_MANAGER` - Manages specific engagements
 - `ANALYST` - Data analyst role
 - `VIEWER` - Read-only access
@@ -119,19 +119,19 @@
 
 ```sql
 -- Check table count
-SELECT COUNT(*) FROM information_schema.tables 
+SELECT COUNT(*) FROM information_schema.tables
 WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
 -- Expected: 32 (excluding alembic_version)
 
 -- Verify no is_mock fields
-SELECT COUNT(*) FROM information_schema.columns 
+SELECT COUNT(*) FROM information_schema.columns
 WHERE column_name = 'is_mock';
 -- Expected: 0
 
 -- Check discovery_flows critical fields
-SELECT column_name, data_type, column_default 
-FROM information_schema.columns 
-WHERE table_name = 'discovery_flows' 
+SELECT column_name, data_type, column_default
+FROM information_schema.columns
+WHERE table_name = 'discovery_flows'
 AND column_name IN ('learning_scope', 'memory_isolation_level', 'assessment_ready', 'phase_state', 'agent_state');
 -- Expected: 5 rows with correct defaults
 ```

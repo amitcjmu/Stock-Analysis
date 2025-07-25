@@ -62,4 +62,4 @@
   "reportIncompleteStub": "warning",
   "reportUnsupportedDunderAll": "warning",
   "reportUnusedCoroutine": "warning"
-} 
+}

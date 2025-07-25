@@ -6,7 +6,7 @@
 - Fixed missing closing bracket in `app/api/v1/admin/security_monitoring_handlers/security_audit_handler.py`
 - Changed `id: Annotated[str` to `id: str`
 
-### 2. Import Path Corrections  
+### 2. Import Path Corrections
 - Fixed incorrect import `from backend.main import app` to `from app.main import app`
 - Added type ignore comments for untyped third-party libraries
 

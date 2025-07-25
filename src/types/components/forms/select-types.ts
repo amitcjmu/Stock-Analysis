@@ -1,6 +1,6 @@
 /**
  * Select Component Types
- * 
+ *
  * Types for select components, dropdowns, and select-related functionality.
  */
 

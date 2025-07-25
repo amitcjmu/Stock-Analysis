@@ -15,7 +15,7 @@ export const useAnalysisFilters = (analyses: AnalysisHistoryItem[]) => {
 
   const filteredAnalyses = useMemo(() => {
     return analyses.filter(analysis => {
-      const matchesSearch = !filters.searchTerm || 
+      const matchesSearch = !filters.searchTerm ||
         analysis.application_name.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
         analysis.department.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
         analysis.analyst.toLowerCase().includes(filters.searchTerm.toLowerCase());
@@ -29,13 +29,13 @@ export const useAnalysisFilters = (analyses: AnalysisHistoryItem[]) => {
     });
   }, [analyses, filters]);
 
-  const departments = useMemo(() => 
-    [...new Set(analyses.map(a => a.department))].sort(), 
+  const departments = useMemo(() =>
+    [...new Set(analyses.map(a => a.department))].sort(),
     [analyses]
   );
 
-  const strategies = useMemo(() => 
-    [...new Set(analyses.map(a => a.recommended_strategy))].sort(), 
+  const strategies = useMemo(() =>
+    [...new Set(analyses.map(a => a.recommended_strategy))].sort(),
     [analyses]
   );
 

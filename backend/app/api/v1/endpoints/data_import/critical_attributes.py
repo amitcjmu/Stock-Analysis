@@ -538,9 +538,7 @@ async def _trigger_field_mapping_reanalysis(
         raw_records = raw_records_result.scalars().all()
 
         if not raw_records:
-            logger.error(
-                f"❌ No raw records found for data_import_id: {data_import.id}"
-            )
+            logger.error(f"❌ No raw records found for data_import_id: {data_import.id}")
             return
 
         # Extract raw data from records
@@ -615,7 +613,6 @@ async def _update_field_mappings_from_reanalysis(
     Update existing field mappings with new mappings from re-analysis.
     """
     try:
-
         # Get existing field mappings
         existing_query = select(ImportFieldMapping).where(
             ImportFieldMapping.data_import_id == data_import_id

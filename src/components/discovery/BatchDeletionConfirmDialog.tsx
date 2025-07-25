@@ -70,8 +70,8 @@ export const BatchDeletionConfirmDialog: React.FC<BatchDeletionConfirmDialogProp
     return {
       aggregatedData: aggregated,
       totalInsights,
-      estimatedTotalTime: estimatedTotalTime > 60 
-        ? `${Math.ceil(estimatedTotalTime / 60)}m` 
+      estimatedTotalTime: estimatedTotalTime > 60
+        ? `${Math.ceil(estimatedTotalTime / 60)}m`
         : `${estimatedTotalTime}s`
     };
   };
@@ -107,7 +107,7 @@ export const BatchDeletionConfirmDialog: React.FC<BatchDeletionConfirmDialogProp
             <span>Batch Delete Discovery Flows</span>
           </DialogTitle>
           <DialogDescription>
-            This action will permanently delete {flowCount} discovery flows and all their associated data. 
+            This action will permanently delete {flowCount} discovery flows and all their associated data.
             This cannot be undone.
           </DialogDescription>
         </DialogHeader>
@@ -151,7 +151,7 @@ export const BatchDeletionConfirmDialog: React.FC<BatchDeletionConfirmDialogProp
                   ))}
                 </div>
               </div>
-              
+
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="font-semibold mb-3">Flows by Status</h3>
                 <div className="space-y-2">
@@ -171,11 +171,11 @@ export const BatchDeletionConfirmDialog: React.FC<BatchDeletionConfirmDialogProp
                 <Database className="h-4 w-4 mr-2" />
                 Aggregated Deletion Impact
               </h3>
-              
+
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {Object.entries(aggregatedData).map(([key, count]) => {
                   if (count === 0) return null;
-                  
+
                   const icons = {
                     workflow_state: FileText,
                     import_sessions: Server,
@@ -184,9 +184,9 @@ export const BatchDeletionConfirmDialog: React.FC<BatchDeletionConfirmDialogProp
                     dependencies: Users,
                     shared_memory_refs: Server
                   };
-                  
+
                   const Icon = icons[key as keyof typeof icons] || Database;
-                  
+
                   return (
                     <div key={key} className="flex items-center space-x-2">
                       <Icon className="h-4 w-4 text-red-600" />
@@ -234,7 +234,7 @@ export const BatchDeletionConfirmDialog: React.FC<BatchDeletionConfirmDialogProp
                   Agent Insights Will Be Lost
                 </h3>
                 <p className="text-sm text-yellow-700">
-                  A total of <strong>{totalInsights} agent insights</strong> across all flows will be permanently deleted. 
+                  A total of <strong>{totalInsights} agent insights</strong> across all flows will be permanently deleted.
                   These insights contain valuable AI-generated analysis and recommendations that cannot be recovered.
                 </p>
               </div>
@@ -244,8 +244,8 @@ export const BatchDeletionConfirmDialog: React.FC<BatchDeletionConfirmDialogProp
             <Alert className="border-red-200 bg-red-50">
               <AlertTriangle className="h-4 w-4 text-red-600" />
               <AlertDescription className="text-red-800">
-                <strong>Critical Warning:</strong> This batch deletion is permanent and cannot be undone. 
-                All {flowCount} flows, their progress, agent insights, and {totalDataRecords} associated data records will be lost forever. 
+                <strong>Critical Warning:</strong> This batch deletion is permanent and cannot be undone.
+                All {flowCount} flows, their progress, agent insights, and {totalDataRecords} associated data records will be lost forever.
                 Consider resuming flows individually if you want to continue any discovery processes.
               </AlertDescription>
             </Alert>
@@ -256,7 +256,7 @@ export const BatchDeletionConfirmDialog: React.FC<BatchDeletionConfirmDialogProp
 
         <DialogFooter className="flex items-center justify-between">
           <div className="text-sm text-gray-500">
-            <strong>{flowCount}</strong> flows • <strong>{totalDataRecords}</strong> records • 
+            <strong>{flowCount}</strong> flows • <strong>{totalDataRecords}</strong> records •
             <strong>{totalInsights}</strong> insights will be permanently deleted
           </div>
           <div className="flex space-x-2">
@@ -272,4 +272,4 @@ export const BatchDeletionConfirmDialog: React.FC<BatchDeletionConfirmDialogProp
       </DialogContent>
     </Dialog>
   );
-}; 
+};

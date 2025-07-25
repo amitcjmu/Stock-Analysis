@@ -94,4 +94,4 @@ docker run --rm \
 
 echo "✅ Database documentation generated successfully!"
 echo "You can view it by opening this file in your browser:"
-echo "file://${OUTPUT_DIR}/index.html" 
+echo "file://${OUTPUT_DIR}/index.html"

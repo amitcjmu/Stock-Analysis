@@ -1,6 +1,6 @@
 /**
  * Cache Management Hook Types
- * 
+ *
  * Hook types for client-side caching with support for
  * various storage backends and TTL management.
  */

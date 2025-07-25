@@ -49,15 +49,15 @@ export const useAttributeMapping = () => {
   // Error state check (define first to avoid temporal dead zone)
   const hasError = !!(flowStateError || agenticError);
   const errorMessage = flowStateError?.message || agenticError?.message;
-  
-  // Enhanced loading state - consider more loading scenarios  
-  const isLoading = (isFlowStateLoading && !flowState) || 
-                   isAgenticLoading || 
+
+  // Enhanced loading state - consider more loading scenarios
+  const isLoading = (isFlowStateLoading && !flowState) ||
+                   isAgenticLoading ||
                    // Also loading if we have an effective flow but no data yet and no errors
                    (effectiveFlowId && !hasError && !agenticData && !fieldMappings?.length);
   // Enhanced data availability check - be more comprehensive about what constitutes "data"
   const hasData = !!(
-    agenticData?.attributes?.length || 
+    agenticData?.attributes?.length ||
     fieldMappings?.length ||
     // Also consider flow state data as valid if present
     (flowState && (flowState.field_mappings?.length || flowState.data_import_completed)) ||
@@ -66,7 +66,7 @@ export const useAttributeMapping = () => {
     // Consider having flows as having potential data
     (flowList && flowList.length > 0)
   );
-  
+
   // Debug data availability
   console.log('🔍 AttributeMapping Data Check:', {
     hasData,
@@ -82,16 +82,16 @@ export const useAttributeMapping = () => {
     effectiveFlowId,
     hasEffectiveFlow
   });
-  
+
   // Enhanced flow detection - more lenient approach
-  const isFlowNotFound = (errorMessage?.includes('Flow not found') || 
+  const isFlowNotFound = (errorMessage?.includes('Flow not found') ||
                         errorMessage?.includes('404')) ||
                         // Only consider flow not found if we have completed loading AND explicitly no flows found AND no effective flow
-                        (!isLoading && !isAgenticLoading && !isFlowStateLoading && 
-                         flowList !== undefined && flowList.length === 0 && 
-                         !effectiveFlowId && !urlFlowId && 
+                        (!isLoading && !isAgenticLoading && !isFlowStateLoading &&
+                         flowList !== undefined && flowList.length === 0 &&
+                         !effectiveFlowId && !urlFlowId &&
                          hasEffectiveFlow === false);
-  
+
   const hasSessionData = flowId || flowState;
   const hasUploadedData = agenticData?.attributes && agenticData.attributes.length > 0;
 
@@ -149,7 +149,7 @@ export const useAttributeMapping = () => {
     state,
     actions,
     navigation,
-    
+
     // Computed state
     isLoading,
     hasError,
@@ -159,10 +159,10 @@ export const useAttributeMapping = () => {
     hasSessionData,
     hasUploadedData,
     sessionInfo,
-    
+
     // Navigation actions
     handleContinueToDataCleansing,
-    
+
     // URL params
     urlFlowId
   };

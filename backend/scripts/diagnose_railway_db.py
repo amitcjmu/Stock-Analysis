@@ -54,8 +54,8 @@ async def check_migration_state():
                         text(
                             f"""
                         SELECT EXISTS (
-                            SELECT FROM information_schema.tables 
-                            WHERE table_schema = 'migration' 
+                            SELECT FROM information_schema.tables
+                            WHERE table_schema = 'migration'
                             AND table_name = '{table}'
                         );
                     """
@@ -76,9 +76,9 @@ async def check_migration_state():
                 result = conn.execute(
                     text(
                         """
-                    SELECT column_name, data_type 
-                    FROM information_schema.columns 
-                    WHERE table_schema = 'migration' 
+                    SELECT column_name, data_type
+                    FROM information_schema.columns
+                    WHERE table_schema = 'migration'
                     AND table_name = 'workflow_states'
                     ORDER BY ordinal_position;
                 """
@@ -135,10 +135,10 @@ async def check_migration_state():
                 result = conn.execute(
                     text(
                         """
-                    SELECT 
+                    SELECT
                         conname as constraint_name,
                         pg_get_constraintdef(oid) as constraint_definition
-                    FROM pg_constraint 
+                    FROM pg_constraint
                     WHERE conname LIKE '%sixr_analysis_parameters%analysis_id%';
                 """
                     )

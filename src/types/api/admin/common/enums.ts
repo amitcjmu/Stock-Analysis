@@ -1,9 +1,9 @@
 /**
  * Common Enums
- * 
+ *
  * Shared enumeration types used across admin modules for
  * priorities, severities, statuses, and other common concepts.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 
@@ -80,13 +80,13 @@ export type Environment = 'production' | 'staging' | 'development' | 'testing' |
 /**
  * Authentication methods
  */
-export type AuthenticationMethod = 
-  | 'password' 
-  | 'mfa' 
-  | 'sso' 
-  | 'api_key' 
-  | 'oauth' 
-  | 'certificate' 
+export type AuthenticationMethod =
+  | 'password'
+  | 'mfa'
+  | 'sso'
+  | 'api_key'
+  | 'oauth'
+  | 'certificate'
   | 'biometric';
 
 /**
@@ -117,35 +117,35 @@ export type ResourceType = 'documentation' | 'tool' | 'service' | 'training' | '
 /**
  * Condition operators for filtering
  */
-export type ConditionOperator = 
-  | 'equals' 
-  | 'not_equals' 
-  | 'contains' 
-  | 'not_contains' 
-  | 'greater_than' 
-  | 'less_than' 
-  | 'in' 
-  | 'not_in' 
-  | 'exists' 
-  | 'not_exists' 
-  | 'matches' 
-  | 'starts_with' 
+export type ConditionOperator =
+  | 'equals'
+  | 'not_equals'
+  | 'contains'
+  | 'not_contains'
+  | 'greater_than'
+  | 'less_than'
+  | 'in'
+  | 'not_in'
+  | 'exists'
+  | 'not_exists'
+  | 'matches'
+  | 'starts_with'
   | 'ends_with';
 
 /**
  * Filter operators for queries
  */
-export type FilterOperator = 
-  | 'equals' 
-  | 'not_equals' 
-  | 'greater_than' 
-  | 'less_than' 
-  | 'greater_equal' 
+export type FilterOperator =
+  | 'equals'
+  | 'not_equals'
+  | 'greater_than'
+  | 'less_than'
+  | 'greater_equal'
   | 'less_equal'
-  | 'contains' 
-  | 'not_contains' 
-  | 'starts_with' 
-  | 'ends_with' 
-  | 'in' 
-  | 'not_in' 
+  | 'contains'
+  | 'not_contains'
+  | 'starts_with'
+  | 'ends_with'
+  | 'in'
+  | 'not_in'
   | 'between';

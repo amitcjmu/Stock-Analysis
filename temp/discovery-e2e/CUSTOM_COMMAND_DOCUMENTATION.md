@@ -327,7 +327,7 @@ The system transforms ad-hoc issue resolution into a structured, compliant, and 
 
 ---
 
-**Command Version**: 1.0.0  
-**Workflow Integration**: Enhanced with original reporter validation  
-**Claude Code Compatible**: Yes  
+**Command Version**: 1.0.0
+**Workflow Integration**: Enhanced with original reporter validation
+**Claude Code Compatible**: Yes
 **Session Management**: Automated

@@ -21,10 +21,10 @@ export interface ApiResponse<T = any> {
 }
 
 // AFTER:
-import type { 
-  ApiResponse as SharedApiResponse, 
-  ApiError as SharedApiError, 
-  ResponseMetadata 
+import type {
+  ApiResponse as SharedApiResponse,
+  ApiError as SharedApiError,
+  ResponseMetadata
 } from '../../types/shared/api-types';
 
 export type ApiResponse<T = unknown> = SharedApiResponse<T, ApiError>;
@@ -70,7 +70,7 @@ export interface ValidationError extends ApiError {
 // BEFORE:
 import { ApiError, RequestConfig } from './apiTypes';
 
-// AFTER:  
+// AFTER:
 import type { ApiError, RequestConfig } from './apiTypes';
 ```
 
@@ -101,7 +101,7 @@ async get<T = unknown>(url: string): Promise<ApiResponse<T>>
    - Improved error handling
    - Added proper type assertions
 
-3. **`src/utils/api/errorHandling.ts`** - ✅ Complete transformation  
+3. **`src/utils/api/errorHandling.ts`** - ✅ Complete transformation
    - Updated error creation functions
    - Improved type safety for error responses
    - Added proper type casting

@@ -25,9 +25,7 @@ class SchemaAnalysisInput(BaseModel):
 
 class SchemaAnalysisTool(BaseTool):
     name: str = "schema_analysis_tool"
-    description: str = (
-        "Analyzes data structure and field semantics to understand field meanings and relationships"
-    )
+    description: str = "Analyzes data structure and field semantics to understand field meanings and relationships"
     args_schema: type[BaseModel] = SchemaAnalysisInput
 
     def __init__(self, **kwargs):

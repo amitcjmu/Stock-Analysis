@@ -65,11 +65,11 @@ interface FlowAnalysis {
   error_message?: string;
 }
 
-const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({ 
-  flowId, 
-  flowType = 'discovery', 
+const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
+  flowId,
+  flowType = 'discovery',
   currentPhase = 'unknown',
-  className = '' 
+  className = ''
 }) => {
   const [analysis, setAnalysis] = useState<FlowAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
@@ -77,7 +77,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
   const navigate = useNavigate();
   const { user } = useAuth();
   const { client, engagement } = useClient();
-  
+
   // Request deduplication
   const requestInProgress = useRef(false);
   const lastRequestTime = useRef(0);
@@ -88,30 +88,30 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
       console.warn('FlowStatusWidget: No flowId provided');
       return;
     }
-    
+
     // Prevent duplicate requests
     const now = Date.now();
     if (requestInProgress.current || (now - lastRequestTime.current) < REQUEST_DEBOUNCE_MS) {
       console.log('FlowStatusWidget: Request blocked (duplicate prevention)');
       return;
     }
-    
+
     requestInProgress.current = true;
     lastRequestTime.current = now;
     setLoading(true);
     setError(null);
-    
+
     try {
       console.log('🔍 FlowStatusWidget: Fetching flow analysis for:', flowId);
-      
+
       const result = await flowProcessingService.processContinuation(flowId, {
         client_account_id: client?.id,
         engagement_id: engagement?.id,
         user_id: user?.id
       });
-      
+
       console.log('📊 FlowStatusWidget: Received result:', result);
-      
+
       if (result.success) {
         setAnalysis(result as FlowAnalysis);
         setError(null);
@@ -124,7 +124,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
       const errorMsg = err instanceof Error ? err.message : 'Unknown error occurred';
       console.error('❌ FlowStatusWidget: Request failed:', err);
       setError(errorMsg);
-      
+
       // Show user-friendly error toast
       toast.error('Flow Analysis Failed', {
         description: 'Unable to analyze flow status. Please try again.',
@@ -140,7 +140,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
     const timer = setTimeout(() => {
       fetchFlowAnalysis();
     }, 100);
-    
+
     return () => clearTimeout(timer);
   }, [flowId]); // Only depend on flowId, not client/engagement which may change frequently
 
@@ -151,13 +151,13 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
       });
       return;
     }
-    
+
     try {
       // Show confirmation toast
       toast.success('🚀 Navigating to recommended next step', {
         description: analysis.user_guidance.primary_message
       });
-      
+
       // Navigate with context
       navigate(analysis.routing_context.target_page, {
         state: {
@@ -241,9 +241,9 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
         </CardHeader>
         <CardContent>
           <p className="text-sm text-gray-600 mb-4">{error}</p>
-          <Button 
-            onClick={handleRetryAnalysis} 
-            variant="outline" 
+          <Button
+            onClick={handleRetryAnalysis}
+            variant="outline"
             size="sm"
             className="w-full"
             disabled={loading || requestInProgress.current}
@@ -267,9 +267,9 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
         </CardHeader>
         <CardContent>
           <p className="text-sm text-gray-600 mb-4">No flow analysis data available.</p>
-          <Button 
-            onClick={handleRetryAnalysis} 
-            variant="outline" 
+          <Button
+            onClick={handleRetryAnalysis}
+            variant="outline"
             size="sm"
             className="w-full"
           >
@@ -310,7 +310,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
           </Button>
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-6">
         {/* Current Status */}
         <div>
@@ -340,7 +340,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge 
+                    <Badge
                       variant={getTaskStatusColor(phase.status)}
                       className="text-xs"
                     >
@@ -359,7 +359,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
           <p className="text-sm text-gray-700 mb-3">
             {analysis.user_guidance.primary_message}
           </p>
-          
+
           {analysis.user_guidance.action_items && analysis.user_guidance.action_items.length > 0 && (
             <div>
               <p className="text-xs font-medium text-gray-500 mb-2">Recommended Next Steps:</p>
@@ -377,7 +377,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
 
         {/* Action Button */}
         <div className="pt-4 border-t">
-          <Button 
+          <Button
             onClick={handleNavigateToRecommendedPage}
             className="w-full"
             size="sm"
@@ -386,7 +386,7 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
             <ArrowRight className="h-4 w-4 mr-2" />
             {analysis.user_guidance.action_items[0] || 'No Action Items'}
           </Button>
-          
+
           {analysis.routing_context.specific_task && (
             <p className="text-xs text-gray-500 mt-2 text-center">
               Task: {analysis.routing_context.specific_task.replace('_', ' ')}
@@ -421,4 +421,4 @@ const FlowStatusWidget: React.FC<FlowStatusWidgetProps> = ({
   );
 };
 
-export default FlowStatusWidget; 
+export default FlowStatusWidget;

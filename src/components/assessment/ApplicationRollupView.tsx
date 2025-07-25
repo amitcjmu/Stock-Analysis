@@ -56,18 +56,18 @@ export const ApplicationRollupView: React.FC<ApplicationRollupViewProps> = ({
     // Sort by: 1) Has decision, 2) Confidence score (low first), 3) Modernization level (high first)
     if (!a.hasDecision && b.hasDecision) return 1;
     if (a.hasDecision && !b.hasDecision) return -1;
-    
+
     if (a.decision && b.decision) {
       // Low confidence first (needs review)
       const confidenceDiff = a.decision.confidence_score - b.decision.confidence_score;
       if (Math.abs(confidenceDiff) > 0.1) return confidenceDiff;
-      
+
       // High modernization first
       const aLevel = getModernizationLevel(a.decision.overall_strategy).level;
       const bLevel = getModernizationLevel(b.decision.overall_strategy).level;
       return bLevel - aLevel;
     }
-    
+
     return a.appId.localeCompare(b.appId);
   });
 
@@ -90,7 +90,7 @@ export const ApplicationRollupView: React.FC<ApplicationRollupViewProps> = ({
               onSelect={() => onApplicationSelect(appId)}
             />
           ))}
-          
+
           {selectedApplicationIds.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               <Clock className="h-8 w-8 mx-auto mb-2" />
@@ -184,7 +184,7 @@ const ApplicationRollupCard: React.FC<ApplicationRollupCardProps> = ({
               {strategyInfo.label}
             </Badge>
           </div>
-          
+
           <div className="flex items-center space-x-4 text-sm">
             <div className="flex items-center space-x-1">
               <span className="text-gray-600">Modernization:</span>
@@ -192,14 +192,14 @@ const ApplicationRollupCard: React.FC<ApplicationRollupCardProps> = ({
                 {modernizationInfo.label}
               </span>
             </div>
-            
+
             <div className="flex items-center space-x-1">
               <span className="text-gray-600">Components:</span>
               <span className="font-medium">
                 {decision.component_treatments?.length || 0}
               </span>
             </div>
-            
+
             {decision.tech_debt_score !== undefined && (
               <div className="flex items-center space-x-1">
                 <span className="text-gray-600">Tech Debt:</span>
@@ -218,7 +218,7 @@ const ApplicationRollupCard: React.FC<ApplicationRollupCardProps> = ({
 
         {/* Confidence Score */}
         <div className="flex-shrink-0">
-          <ConfidenceScoreIndicator 
+          <ConfidenceScoreIndicator
             score={decision.confidence_score}
             size="small"
             showLabel={false}

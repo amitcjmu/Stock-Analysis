@@ -1,8 +1,8 @@
 /**
  * Analytics API Types
- * 
+ *
  * Request and response type definitions for analytics and reporting APIs.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

@@ -11,7 +11,7 @@ import { Spinner } from '@/components/ui/spinner';
 const DataRetention = () => {
   const { isAuthenticated } = useAuth();
   const [selectedPolicy, setSelectedPolicy] = useState('all');
-  
+
   const {
     data: retentionData,
     isLoading,
@@ -195,8 +195,8 @@ const DataRetention = () => {
                               <span className="font-medium">{job.progress}%</span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="bg-blue-500 h-2 rounded-full" 
+                              <div
+                                className="bg-blue-500 h-2 rounded-full"
                                 style={{ width: `${job.progress}%` }}
                               ></div>
                             </div>

@@ -25,11 +25,11 @@ DATABASE_URL = os.getenv("DATABASE_URL", None)
 if not DATABASE_URL:
     # Use synchronous psycopg2 for simplicity
     DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/migration_db"
-    
+
 # Convert to async URL if needed
 if DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
-    
+
 print(f"Using database URL: {DATABASE_URL.split('@')[1] if '@' in DATABASE_URL else DATABASE_URL}")
 
 engine = create_async_engine(DATABASE_URL, echo=False)
@@ -96,7 +96,7 @@ def print_flow_details(flow):
     """Print detailed information about a flow"""
     age = datetime.utcnow() - flow.created_at
     last_update = datetime.utcnow() - flow.updated_at
-    
+
     print(f"\n{'='*60}")
     print(f"Flow ID: {flow.id}")
     print(f"Engagement ID: {flow.engagement_id}")
@@ -113,30 +113,30 @@ async def main():
     """Main diagnostic function"""
     print("Collection Flow Diagnostic Tool")
     print("==============================\n")
-    
+
     async with AsyncSessionLocal() as session:
         # Get all flows
         all_flows = await get_all_collection_flows(session)
         print(f"Total collection flows in database: {len(all_flows)}")
-        
+
         # Get active flows
         active_flows = await get_active_flows(session)
         print(f"Active (non-terminal) flows: {len(active_flows)}")
-        
+
         # Get stuck flows
         stuck_flows = await get_stuck_flows(session, hours=24)
         print(f"Potentially stuck flows (not updated in 24h): {len(stuck_flows)}")
-        
+
         # Show status distribution
         status_counts = {}
         for flow in all_flows:
             status = flow.status
             status_counts[status] = status_counts.get(status, 0) + 1
-        
+
         print("\nStatus Distribution:")
         for status, count in sorted(status_counts.items()):
             print(f"  {status}: {count}")
-        
+
         # Group active flows by engagement
         engagement_flows = {}
         for flow in active_flows:
@@ -144,7 +144,7 @@ async def main():
             if eng_id not in engagement_flows:
                 engagement_flows[eng_id] = []
             engagement_flows[eng_id].append(flow)
-        
+
         if engagement_flows:
             print(f"\nActive Flows by Engagement ({len(engagement_flows)} engagements):")
             for eng_id, flows in engagement_flows.items():
@@ -152,14 +152,14 @@ async def main():
                 for flow in flows:
                     last_update = datetime.utcnow() - flow.updated_at
                     print(f"    - Flow {flow.id}: {flow.status} (last update: {last_update.total_seconds() / 3600:.1f}h ago)")
-        
+
         # Show details of stuck flows
         if stuck_flows:
             print("\n" + "="*60)
             print("STUCK FLOWS DETAILS:")
             for flow in stuck_flows:
                 print_flow_details(flow)
-            
+
             # Offer to cancel stuck flows
             print("\n" + "="*60)
             response = input("\nWould you like to cancel these stuck flows? (yes/no): ").lower().strip()
@@ -173,7 +173,7 @@ async def main():
                 print("UPDATE collection_flow SET status = 'cancelled', completed_at = NOW() WHERE id = 'FLOW_ID';")
         else:
             print("\nNo stuck flows found!")
-        
+
         # Summary
         print("\n" + "="*60)
         print("SUMMARY:")
@@ -182,7 +182,7 @@ async def main():
         print(f"- Completed flows: {status_counts.get(CollectionFlowStatus.COMPLETED.value, 0)}")
         print(f"- Failed flows: {status_counts.get(CollectionFlowStatus.FAILED.value, 0)}")
         print(f"- Cancelled flows: {status_counts.get(CollectionFlowStatus.CANCELLED.value, 0)}")
-        
+
         if active_flows:
             print("\nTo create a new collection flow, you need to complete or cancel existing active flows.")
             print("The frontend error 'An active collection flow already exists' occurs when there are")

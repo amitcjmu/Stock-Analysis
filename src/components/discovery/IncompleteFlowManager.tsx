@@ -55,7 +55,7 @@ export const IncompleteFlowManager: React.FC<IncompleteFlowManagerProps> = ({
   const getPhaseDisplayName = (phase: string) => {
     const names = {
       'field_mapping': 'Field Mapping',
-      'data_cleansing': 'Data Cleansing', 
+      'data_cleansing': 'Data Cleansing',
       'asset_inventory': 'Asset Inventory',
       'dependency_analysis': 'Dependency Analysis',
       'tech_debt_analysis': 'Technical Debt Analysis'
@@ -64,8 +64,8 @@ export const IncompleteFlowManager: React.FC<IncompleteFlowManagerProps> = ({
   };
 
   const handleSelectFlow = (flowId: string, checked: boolean) => {
-    setSelectedFlows(prev => 
-      checked 
+    setSelectedFlows(prev =>
+      checked
         ? [...prev, flowId]
         : prev.filter(id => id !== flowId)
     );
@@ -107,11 +107,11 @@ export const IncompleteFlowManager: React.FC<IncompleteFlowManagerProps> = ({
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Incomplete Discovery Flows</h2>
           <p className="text-gray-600 mt-1">
-            {flows.length} incomplete flow{flows.length !== 1 ? 's' : ''} found. 
+            {flows.length} incomplete flow{flows.length !== 1 ? 's' : ''} found.
             Complete existing flows before starting new ones.
           </p>
         </div>
-        
+
         {selectedFlows.length > 0 && (
           <div className="flex items-center space-x-3">
             <span className="text-sm text-gray-600">
@@ -148,7 +148,7 @@ export const IncompleteFlowManager: React.FC<IncompleteFlowManagerProps> = ({
         {flows.map((flow, index) => {
           const PhaseIcon = getPhaseIcon(flow.current_phase);
           const isSelected = selectedFlows.includes(flow.flow_id);
-          
+
           return (
             <Card key={flow.flow_id || `flow-${index}`} className={`${isSelected ? 'ring-2 ring-blue-500' : ''}`}>
               <CardHeader className="pb-3">
@@ -172,7 +172,7 @@ export const IncompleteFlowManager: React.FC<IncompleteFlowManagerProps> = ({
                       </CardDescription>
                     </div>
                   </div>
-                  
+
                   <div className="text-right">
                     <p className="text-sm text-gray-600">
                       {Math.round(flow.progress_percentage || 0)}% complete
@@ -183,14 +183,14 @@ export const IncompleteFlowManager: React.FC<IncompleteFlowManagerProps> = ({
                   </div>
                 </div>
               </CardHeader>
-              
+
               <CardContent className="pt-0">
                 <div className="space-y-4">
                   {/* Progress bar */}
                   <div>
                     <Progress value={flow.progress_percentage || 0} className="h-2" />
                   </div>
-                  
+
                   {/* Flow details */}
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
@@ -204,7 +204,7 @@ export const IncompleteFlowManager: React.FC<IncompleteFlowManagerProps> = ({
                       <p className="font-medium">{flow.flow_name || 'Discovery Flow'}</p>
                     </div>
                   </div>
-                  
+
                   {/* Agent insights preview */}
                   {flow.agent_insights && flow.agent_insights.length > 0 && (
                     <div className="bg-blue-50 p-3 rounded-lg">
@@ -219,7 +219,7 @@ export const IncompleteFlowManager: React.FC<IncompleteFlowManagerProps> = ({
                       </p>
                     </div>
                   )}
-                  
+
                   {/* Action buttons */}
                   <div className="flex items-center justify-between pt-2">
                     <div className="flex items-center space-x-2">
@@ -238,7 +238,7 @@ export const IncompleteFlowManager: React.FC<IncompleteFlowManagerProps> = ({
                           Continue Flow
                         </Button>
                       )}
-                      
+
                       {onViewDetails && (
                         <Button
                           variant="outline"
@@ -251,7 +251,7 @@ export const IncompleteFlowManager: React.FC<IncompleteFlowManagerProps> = ({
                         </Button>
                       )}
                     </div>
-                    
+
                     <Button
                       variant="destructive"
                       size="sm"

@@ -1,6 +1,6 @@
 /**
  * Supporting Types - Index
- * 
+ *
  * Centralized exports for all admin supporting type modules.
  * This module provides comprehensive type definitions for admin components
  * including users, roles, permissions, audit logs, system configuration,

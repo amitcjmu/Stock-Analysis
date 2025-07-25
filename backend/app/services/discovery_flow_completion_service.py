@@ -572,9 +572,9 @@ class DiscoveryFlowCompletionService:
 
             # Calculate averages
             if len(discovery_assets) > 0:
-                assessment_package["summary"]["average_confidence"] = (
-                    total_confidence / len(discovery_assets)
-                )
+                assessment_package["summary"][
+                    "average_confidence"
+                ] = total_confidence / len(discovery_assets)
 
             # Generate migration waves based on dependencies and complexity
             assessment_package["migration_waves"] = self._generate_migration_waves(
@@ -651,9 +651,7 @@ class DiscoveryFlowCompletionService:
                 },
             }
 
-            logger.info(
-                f"✅ Discovery flow completed successfully: {discovery_flow_id}"
-            )
+            logger.info(f"✅ Discovery flow completed successfully: {discovery_flow_id}")
             return completion_result
 
         except Exception as e:

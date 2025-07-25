@@ -28,21 +28,21 @@ echo ""
 # Function to wait for PostgreSQL
 wait_for_postgres() {
     echo "⏳ Waiting for PostgreSQL to be ready..."
-    
+
     max_attempts=30
     attempt=1
-    
+
     while [ $attempt -le $max_attempts ]; do
         if pg_isready -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" >/dev/null 2>&1; then
             echo "✅ PostgreSQL is ready!"
             return 0
         fi
-        
+
         echo "   Attempt $attempt/$max_attempts: PostgreSQL not ready yet..."
         sleep 2
         attempt=$((attempt + 1))
     done
-    
+
     echo "❌ PostgreSQL did not become ready within timeout"
     exit 1
 }
@@ -50,23 +50,23 @@ wait_for_postgres() {
 # Main execution flow
 main() {
     echo "Starting initialization process..."
-    
+
     # Step 1: Wait for PostgreSQL
     wait_for_postgres
-    
+
     # Step 2: Fix alembic version table if needed
     echo "🔧 Fixing alembic version table..."
     PGPASSWORD=$POSTGRES_PASSWORD psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /app/scripts/fix_alembic_version.sql 2>/dev/null || true
-    
+
     # Step 3: Run Alembic migrations
     # This is the standard and idempotent way to ensure the database schema is up to date.
     echo "🔧 Running database migrations..."
     alembic upgrade head
-    
+
     echo ""
     echo "✅ Database setup complete! Starting application..."
     echo "============================================================="
-    
+
     # Execute the main application command
     exec "$@"
 }

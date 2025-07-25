@@ -40,16 +40,16 @@ const PredictionsTab: React.FC<PredictionsTabProps> = ({ forecasts, showPredicti
                   <XAxis dataKey="timestamp" />
                   <YAxis />
                   <Tooltip />
-                  <Line 
-                    type="monotone" 
-                    dataKey="value" 
-                    stroke="#8b5cf6" 
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#8b5cf6"
                     strokeDasharray="5 5"
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="confidence" 
-                    stroke="#f59e0b" 
+                  <Line
+                    type="monotone"
+                    dataKey="confidence"
+                    stroke="#f59e0b"
                     strokeWidth={1}
                   />
                 </LineChart>

@@ -5,7 +5,7 @@ def apply_fix():
     by directly inserting the corrected code.
     """
     file_path = "backend/app/services/crewai_flow_service.py"
-    
+
     with open(file_path, "r") as f:
         lines = f.readlines()
 
@@ -35,4 +35,4 @@ def apply_fix():
     print("🎉 Final fix applied successfully!")
 
 if __name__ == "__main__":
-    apply_fix() 
+    apply_fix()

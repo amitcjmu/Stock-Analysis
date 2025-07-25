@@ -1,8 +1,8 @@
 import React from 'react';
-import { 
-  Activity, 
-  CheckCircle, 
-  Clock, 
+import {
+  Activity,
+  CheckCircle,
+  Clock,
   Loader2,
   XCircle,
   AlertCircle,
@@ -62,7 +62,7 @@ export const SimplifiedFlowStatus: React.FC<SimplifiedFlowStatusProps> = ({
       bgColor = 'bg-yellow-50 border-yellow-200';
       statusText = 'Paused';
       description = 'Flow is paused. Resume to continue processing.';
-    } else if (status === 'waiting_for_approval' || awaiting_user_approval || 
+    } else if (status === 'waiting_for_approval' || awaiting_user_approval ||
                (current_phase === 'field_mapping' && progress_percentage > 10)) {
       icon = Pause;
       iconColor = 'text-orange-600';
@@ -183,7 +183,7 @@ export const SimplifiedFlowStatus: React.FC<SimplifiedFlowStatusProps> = ({
         {/* Action Button */}
         {showAction && onNavigateToMapping && (
           <div className="pt-4 border-t">
-            <Button 
+            <Button
               className="w-full"
               onClick={onNavigateToMapping}
             >

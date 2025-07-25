@@ -204,8 +204,8 @@ const ApplicationDiscoveryPanel: React.FC<ApplicationDiscoveryPanelProps> = ({
           {/* Results count */}
           <p className="text-sm text-gray-600 mb-4">
             Found {filteredApplications.length} applications
-            {searchTerm || Object.values(filters).some(v => v !== 'all' && v !== '') 
-              ? ` (filtered from ${portfolio.applications.length} total)` 
+            {searchTerm || Object.values(filters).some(v => v !== 'all' && v !== '')
+              ? ` (filtered from ${portfolio.applications.length} total)`
               : ''}
           </p>
 
@@ -216,7 +216,7 @@ const ApplicationDiscoveryPanel: React.FC<ApplicationDiscoveryPanelProps> = ({
                 applications={paginatedApplications}
                 onApplicationSelect={handleApplicationSelect}
               />
-              
+
               {/* Pagination */}
               {totalPages > 1 && (
                 <Pagination

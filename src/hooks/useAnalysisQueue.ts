@@ -31,7 +31,7 @@ export function useAnalysisQueue() {
     enabled: isAuthenticated && !!client && !!engagement,
     retry: (failureCount, error) => {
       // Don't retry 404 or 403 errors
-      if (error && typeof error === 'object' && 'status' in error && 
+      if (error && typeof error === 'object' && 'status' in error &&
           (error.status === 404 || error.status === 403)) {
         return false;
       }
@@ -47,9 +47,9 @@ export function useAnalysisQueue() {
   };
 
   const addToQueue = async (queueId: string, applicationId: string) => {
-    await apiCall(`/api/v1/analysis/queues/${queueId}/items`, { 
+    await apiCall(`/api/v1/analysis/queues/${queueId}/items`, {
       method: 'POST',
-      body: JSON.stringify({ applicationId }) 
+      body: JSON.stringify({ applicationId })
     });
     await queryClient.invalidateQueries({ queryKey: ['analysis-queues'] });
   };
@@ -100,4 +100,4 @@ export function useAnalysisQueue() {
     deleteQueue,
     exportResults: exportQueue
   };
-} 
+}

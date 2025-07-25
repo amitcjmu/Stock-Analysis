@@ -14,10 +14,10 @@ export const EngagementStats: React.FC<EngagementStatsProps> = ({ engagements })
   const activeEngagements = engagements.filter(e => e.is_active).length;
   const completedEngagements = engagements.filter(e => e.migration_phase === 'completed').length;
   const totalBudget = engagements.reduce((sum, e) => sum + (e.estimated_budget || 0), 0);
-  const avgProgress = engagements.length > 0 
-    ? engagements.reduce((sum, e) => sum + e.completion_percentage, 0) / engagements.length 
+  const avgProgress = engagements.length > 0
+    ? engagements.reduce((sum, e) => sum + e.completion_percentage, 0) / engagements.length
     : 0;
-  
+
   // Phase distribution
   const phaseDistribution = engagements.reduce((acc, engagement) => {
     acc[engagement.migration_phase] = (acc[engagement.migration_phase] || 0) + 1;
@@ -133,8 +133,8 @@ export const EngagementStats: React.FC<EngagementStatsProps> = ({ engagements })
                 <span className="text-sm">{getPhaseLabel(phase)}</span>
                 <div className="flex items-center gap-2">
                   <div className="w-20 bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full" 
+                    <div
+                      className="bg-blue-600 h-2 rounded-full"
                       style={{ width: `${(count / totalEngagements) * 100}%` }}
                     ></div>
                   </div>
@@ -158,8 +158,8 @@ export const EngagementStats: React.FC<EngagementStatsProps> = ({ engagements })
                 <span className="text-sm">{getProviderLabel(provider)}</span>
                 <div className="flex items-center gap-2">
                   <div className="w-20 bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-green-600 h-2 rounded-full" 
+                    <div
+                      className="bg-green-600 h-2 rounded-full"
                       style={{ width: `${(count / totalEngagements) * 100}%` }}
                     ></div>
                   </div>
@@ -172,4 +172,4 @@ export const EngagementStats: React.FC<EngagementStatsProps> = ({ engagements })
       </Card>
     </div>
   );
-}; 
+};

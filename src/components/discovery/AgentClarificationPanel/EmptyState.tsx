@@ -1,6 +1,6 @@
 /**
  * Empty State Component
- * 
+ *
  * Displays empty state when no questions are available.
  */
 

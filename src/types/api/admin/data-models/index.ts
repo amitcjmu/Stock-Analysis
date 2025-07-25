@@ -1,9 +1,9 @@
 /**
  * Admin Data Models Index
- * 
+ *
  * Centralized export of all admin data models and types.
  * Provides a single import point for all admin-related data structures.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

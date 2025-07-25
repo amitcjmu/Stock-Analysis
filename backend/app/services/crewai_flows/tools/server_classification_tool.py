@@ -14,9 +14,7 @@ logger = logging.getLogger(__name__)
 
 class ServerClassificationTool(BaseTool):
     name: str = "server_classification_tool"
-    description: str = (
-        "Classifies servers and infrastructure assets based on technical characteristics"
-    )
+    description: str = "Classifies servers and infrastructure assets based on technical characteristics"
 
     def _run(self, asset_data: str) -> str:
         """

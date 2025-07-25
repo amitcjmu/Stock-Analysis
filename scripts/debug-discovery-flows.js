@@ -3,23 +3,23 @@
 
 async function testDiscoveryFlowEndpoints() {
   console.log('🔍 Testing Discovery Flow Endpoints...\n');
-  
+
   // Get auth headers
   const getAuthHeaders = () => {
     const headers = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
     };
-    
+
     // Add context headers if available
     const context = JSON.parse(localStorage.getItem('appContext') || '{}');
     if (context.client?.id) headers['X-Client-Account-ID'] = context.client.id;
     if (context.engagement?.id) headers['X-Engagement-ID'] = context.engagement.id;
     if (context.user?.id) headers['X-User-ID'] = context.user.id;
-    
+
     return headers;
   };
-  
+
   // Test endpoint 1: /api/v1/discovery/flows/active
   console.log('📍 Testing: /api/v1/discovery/flows/active');
   try {
@@ -40,9 +40,9 @@ async function testDiscoveryFlowEndpoints() {
   } catch (error) {
     console.error('❌ Error:', error);
   }
-  
+
   console.log('\n');
-  
+
   // Test endpoint 2: /api/v1/unified-discovery/flow/active
   console.log('📍 Testing: /api/v1/unified-discovery/flow/active');
   try {
@@ -62,9 +62,9 @@ async function testDiscoveryFlowEndpoints() {
   } catch (error) {
     console.error('❌ Error:', error);
   }
-  
+
   console.log('\n');
-  
+
   // Test endpoint 3: /api/v1/data-import/latest-import
   console.log('📍 Testing: /api/v1/data-import/latest-import');
   try {
@@ -80,7 +80,7 @@ async function testDiscoveryFlowEndpoints() {
   } catch (error) {
     console.error('❌ Error:', error);
   }
-  
+
   console.log('\n🎯 Test complete! Check the responses above to identify the issue.');
 }
 

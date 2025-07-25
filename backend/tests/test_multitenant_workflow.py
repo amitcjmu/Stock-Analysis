@@ -213,9 +213,7 @@ class MultiTenantWorkflowTester:
             # Step 4: Capture final state for this client
             final_state = await self.capture_client_final_state(client_id, baseline)
             client_test_results["final_state"] = final_state
-            print(
-                f"📈 Final State - Assets Added: {final_state.get('assets_added', 0)}"
-            )
+            print(f"📈 Final State - Assets Added: {final_state.get('assets_added', 0)}")
 
         except Exception as e:
             error_msg = f"Client workflow test failed for {client_name}: {e}"
@@ -442,9 +440,9 @@ class MultiTenantWorkflowTester:
                         )
                     )
                 )
-                isolation_results["marathon_assets_in_complete"] = (
-                    marathon_assets_in_complete.scalar()
-                )
+                isolation_results[
+                    "marathon_assets_in_complete"
+                ] = marathon_assets_in_complete.scalar()
 
                 # Check if Complete Test Client assets appear in Marathon context
                 complete_assets_in_marathon = await session.execute(
@@ -455,9 +453,9 @@ class MultiTenantWorkflowTester:
                         )
                     )
                 )
-                isolation_results["complete_assets_in_marathon"] = (
-                    complete_assets_in_marathon.scalar()
-                )
+                isolation_results[
+                    "complete_assets_in_marathon"
+                ] = complete_assets_in_marathon.scalar()
 
                 # Check for any cross-contamination
                 if (

@@ -14,10 +14,10 @@ interface EngagementFormProps {
   clients: Client[];
 }
 
-export const EngagementForm: React.FC<EngagementFormProps> = React.memo(({ 
-  formData, 
-  onFormChange, 
-  clients 
+export const EngagementForm: React.FC<EngagementFormProps> = React.memo(({
+  formData,
+  onFormChange,
+  clients
 }) => (
   <div className="space-y-8 max-h-[80vh] overflow-y-auto">
     {/* Basic Information */}
@@ -34,7 +34,7 @@ export const EngagementForm: React.FC<EngagementFormProps> = React.memo(({
             required
           />
         </div>
-        
+
         <div className="space-y-2">
           <Label htmlFor="client_account_id">Client Account *</Label>
           <Select value={formData.client_account_id || ''} onValueChange={(value) => onFormChange('client_account_id', value)}>
@@ -258,4 +258,4 @@ export const EngagementForm: React.FC<EngagementFormProps> = React.memo(({
       </div>
     </div>
   </div>
-)); 
+));

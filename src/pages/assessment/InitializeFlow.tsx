@@ -23,8 +23,8 @@ const InitializeAssessmentFlow: React.FC = () => {
   ) || [];
 
   const handleSelectApp = (appId: string) => {
-    setSelectedApps(prev => 
-      prev.includes(appId) 
+    setSelectedApps(prev =>
+      prev.includes(appId)
         ? prev.filter(id => id !== appId)
         : [...prev, appId]
     );
@@ -40,7 +40,7 @@ const InitializeAssessmentFlow: React.FC = () => {
 
   const handleInitialize = async () => {
     if (selectedApps.length === 0) return;
-    
+
     setInitializing(true);
     try {
       await initializeFlow(selectedApps, false);
@@ -91,8 +91,8 @@ const InitializeAssessmentFlow: React.FC = () => {
               <p className="text-gray-600 mb-4">
                 No applications are ready for assessment.
               </p>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => navigate('/discovery/inventory')}
               >
                 Go to Inventory
@@ -106,8 +106,8 @@ const InitializeAssessmentFlow: React.FC = () => {
                   size="sm"
                   onClick={handleSelectAll}
                 >
-                  {selectedApps.length === readyApplications.length 
-                    ? 'Deselect All' 
+                  {selectedApps.length === readyApplications.length
+                    ? 'Deselect All'
                     : 'Select All'}
                 </Button>
                 <span className="text-sm text-gray-600">
@@ -128,7 +128,7 @@ const InitializeAssessmentFlow: React.FC = () => {
                     <div className="flex-1">
                       <div className="font-medium">{app.name}</div>
                       <div className="text-sm text-gray-600">
-                        {app.metadata?.business_criticality || 'N/A'} criticality • 
+                        {app.metadata?.business_criticality || 'N/A'} criticality •
                         {app.metadata?.technical_stack?.join(', ') || 'Unknown stack'}
                       </div>
                     </div>

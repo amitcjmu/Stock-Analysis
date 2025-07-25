@@ -1,6 +1,6 @@
 /**
  * List Component Types
- * 
+ *
  * Type definitions for list components including list items, pagination,
  * search, filtering, sorting, and list configuration options.
  */

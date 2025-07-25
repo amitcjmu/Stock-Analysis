@@ -69,4 +69,4 @@ export const AgentActivityViewer = ({ insights }) => {
       </CardContent>
     </Card>
   );
-}; 
+};

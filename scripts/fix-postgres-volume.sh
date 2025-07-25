@@ -38,16 +38,16 @@ docker volume rm migrate-ui-orchestrator_postgres_data || true
 if [ -d "postgres-data-volume" ]; then
     print_warning "Found existing postgres-data-volume directory"
     print_status "Creating backup of existing postgres data..."
-    
+
     # Create backups directory if it doesn't exist
     mkdir -p backups
-    
+
     # Create timestamped backup
     TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
     tar -czf "backups/postgres-data-backup_${TIMESTAMP}.tar.gz" postgres-data-volume/
-    
+
     print_status "PostgreSQL data backed up to: backups/postgres-data-backup_${TIMESTAMP}.tar.gz"
-    
+
     # Remove the problematic directory
     print_status "Removing problematic postgres-data-volume directory..."
     rm -rf postgres-data-volume
@@ -78,7 +78,7 @@ sleep 15
 # Step 8: Check if PostgreSQL is running
 if docker ps | grep -q "migration_postgres.*Up"; then
     print_status "✅ PostgreSQL container is running successfully!"
-    
+
     # Test database connection
     print_status "Testing database connection..."
     if docker-compose exec -T postgres pg_isready -U postgres; then
@@ -86,11 +86,11 @@ if docker ps | grep -q "migration_postgres.*Up"; then
     else
         print_warning "Database connection test failed, but container is running"
     fi
-    
+
     # Show PostgreSQL logs
     print_status "Recent PostgreSQL logs:"
     docker-compose logs --tail=10 postgres
-    
+
 else
     print_error "❌ PostgreSQL container failed to start. Checking logs..."
     docker-compose logs postgres
@@ -108,16 +108,16 @@ sleep 10
 if docker-compose ps | grep -q "Up"; then
     print_status "🎉 All services are running successfully!"
     print_status "PostgreSQL volume fix completed successfully!"
-    
+
     # Show status
     print_status "Service status:"
     docker-compose ps
-    
+
     print_status "You can now access:"
     print_status "- Frontend: http://localhost:8081"
     print_status "- Backend API: http://localhost:8000"
     print_status "- PostgreSQL: localhost:5433"
-    
+
 else
     print_error "Some services failed to start. Please check the logs:"
     docker-compose logs

@@ -556,7 +556,7 @@ class TestSixRTools:
         sample_code = """
         public class CustomerService {
             private DatabaseConnection db;
-            
+
             public Customer getCustomer(int id) {
                 return db.query("SELECT * FROM customers WHERE id = " + id);
             }

@@ -18,13 +18,13 @@ This document tracks how issues were resolved during the Discovery flow E2E test
 ### DISC-001 - Resolved at 2025-01-15T11:30:00Z
 - **Root Cause**: The execution_engine.py already has a `_ensure_json_serializable()` method (lines 1076-1115) that handles UUID serialization, but it's not being applied consistently. Line 215 passes `crew_result` directly without serialization.
 
-- **Resolution Steps**: 
+- **Resolution Steps**:
   1. Located the existing `_ensure_json_serializable()` method in execution_engine.py
   2. Found the problematic code at line 215 where crew_result is passed without serialization
   3. Applied the existing serialization method consistently
   4. No new utilities created - used existing functionality
 
-- **Code Changes**: 
+- **Code Changes**:
 ```python
 # File: backend/app/services/crewai_flows/execution_engine.py
 # Line 215 - Before:
@@ -40,13 +40,13 @@ phase_data={
 },
 ```
 
-- **Verification**: 
+- **Verification**:
   1. Rerun discovery flow initialization
   2. Confirm no UUID serialization errors in logs
   3. Verify flow persistence data saved correctly
   4. Check that flow state updates properly
 
-- **Prevention**: 
+- **Prevention**:
   1. Add linting rule to catch unseralized JSON assignments
   2. Create unit test for UUID serialization in flow persistence
   3. Document that all JSONB assignments must use `_ensure_json_serializable()`
@@ -110,12 +110,12 @@ app.include_router(api_v1_router, prefix="/api/v1")
 export const useFlowDeletion = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [flowToDelete, setFlowToDelete] = useState<FlowInfo | null>(null);
-  
+
   const requestDeletion = (flow: FlowInfo) => {
     setFlowToDelete(flow);
     setIsModalOpen(true);
   };
-  
+
   const confirmDeletion = async () => {
     await flowDeletionService.requestFlowDeletion(
       flowToDelete,
@@ -188,9 +188,9 @@ ALTER TABLE discovery_flows ADD COLUMN timeout_at TIMESTAMP WITH TIME ZONE;
 UPDATE discovery_flows SET timeout_at = created_at + INTERVAL '24 hours' WHERE timeout_at IS NULL;
 
 # Added stuck flow detection index
-CREATE INDEX IF NOT EXISTS idx_discovery_flows_stuck_detection 
+CREATE INDEX IF NOT EXISTS idx_discovery_flows_stuck_detection
 ON discovery_flows (status, progress_percentage, created_at)
-WHERE status IN ('active', 'initialized', 'running') 
+WHERE status IN ('active', 'initialized', 'running')
 AND progress_percentage = 0.0;
 ```
 
@@ -253,7 +253,7 @@ AND progress_percentage = 0.0;
 
 - **Claimed Implementation**:
   - retry_utils.py with exponential backoff
-  - enhanced_error_handler.py 
+  - enhanced_error_handler.py
   - checkpoint_manager.py
   - flow_health_monitor.py
 

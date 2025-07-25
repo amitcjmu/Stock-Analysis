@@ -1,6 +1,6 @@
 /**
  * Form Data Transformation Utilities
- * 
+ *
  * Utilities for converting between different data formats in collection workflows.
  * Extracted from AdaptiveForms.tsx for reusability across collection components.
  */
@@ -82,8 +82,8 @@ export const getDefaultFieldOptions = (fieldType: string): FieldOption[] => {
  * Converts a question from CrewAI format to FormField format
  */
 export const convertQuestionToFormField = (
-  question: QuestionData, 
-  index: number, 
+  question: QuestionData,
+  index: number,
   sectionId: string
 ): FormField => {
   return {
@@ -91,7 +91,7 @@ export const convertQuestionToFormField = (
     label: question.question_text || question.label || 'Field',
     fieldType: mapQuestionTypeToFieldType(question.field_type || question.question_type || 'text'),
     criticalAttribute: question.critical_attribute || 'unknown',
-    validation: { 
+    validation: {
       required: question.required !== false,
       ...(question.validation || {})
     },
@@ -110,23 +110,23 @@ export const convertQuestionToFormField = (
  */
 export const groupQuestionsIntoSections = (questions: QuestionData[]): FormSection[] => {
   const sections: FormSection[] = [];
-  
+
   // Group questions by category
-  const basicQuestions = questions.filter((q: QuestionData) => 
+  const basicQuestions = questions.filter((q: QuestionData) =>
     q.category === 'basic' || q.field_type === 'application_name' || q.field_type === 'application_type'
   );
-  
-  const technicalQuestions = questions.filter((q: QuestionData) => 
+
+  const technicalQuestions = questions.filter((q: QuestionData) =>
     q.category === 'technical' || q.field_type === 'technology_stack' || q.field_type === 'database'
   );
-  
+
   // Create basic information section
   if (basicQuestions.length > 0) {
     sections.push({
       id: 'agent-basic-info',
       title: 'Basic Information',
       description: 'Core application details identified by CrewAI gap analysis',
-      fields: basicQuestions.map((q, index) => 
+      fields: basicQuestions.map((q, index) =>
         convertQuestionToFormField(q, index, 'agent-basic-info')
       ),
       order: 1,
@@ -134,14 +134,14 @@ export const groupQuestionsIntoSections = (questions: QuestionData[]): FormSecti
       completionWeight: 0.4
     });
   }
-  
+
   // Create technical details section
   if (technicalQuestions.length > 0) {
     sections.push({
       id: 'agent-technical-details',
       title: 'Technical Details',
       description: 'Technical architecture and dependencies from CrewAI analysis',
-      fields: technicalQuestions.map((q, index) => 
+      fields: technicalQuestions.map((q, index) =>
         convertQuestionToFormField(q, index, 'agent-technical-details')
       ),
       order: 2,
@@ -149,7 +149,7 @@ export const groupQuestionsIntoSections = (questions: QuestionData[]): FormSecti
       completionWeight: 0.6
     });
   }
-  
+
   return sections;
 };
 
@@ -157,16 +157,16 @@ export const groupQuestionsIntoSections = (questions: QuestionData[]): FormSecti
  * Converts CrewAI questionnaires to AdaptiveFormData format
  */
 export const convertQuestionnairesToFormData = (
-  questionnaire: QuestionnaireData, 
+  questionnaire: QuestionnaireData,
   applicationId: string | null
 ): AdaptiveFormData => {
   try {
     const questions = questionnaire.questions || [];
     const sections = groupQuestionsIntoSections(questions);
-    
+
     const totalFields = questions.length;
     const requiredFields = questions.filter((q: QuestionData) => q.required !== false).length;
-    
+
     return {
       formId: questionnaire.id || 'agent-form-001',
       applicationId: applicationId || 'app-new',
@@ -176,7 +176,7 @@ export const convertQuestionnairesToFormData = (
       estimatedCompletionTime: questionnaire.estimated_completion_time || Math.max(20, totalFields * 2),
       confidenceImpactScore: questionnaire.confidence_impact_score || 0.85
     };
-    
+
   } catch (error) {
     console.error('Error converting questionnaire to form data:', error);
     throw new Error('Failed to convert questionnaire data');
@@ -237,14 +237,14 @@ export const validateFormDataStructure = (formData: AdaptiveFormData): boolean =
   if (!formData.formId || !formData.sections || !Array.isArray(formData.sections)) {
     return false;
   }
-  
-  return formData.sections.every(section => 
-    section.id && 
-    section.title && 
+
+  return formData.sections.every(section =>
+    section.id &&
+    section.title &&
     Array.isArray(section.fields) &&
-    section.fields.every(field => 
-      field.id && 
-      field.label && 
+    section.fields.every(field =>
+      field.id &&
+      field.label &&
       field.fieldType &&
       field.section === section.id
     )

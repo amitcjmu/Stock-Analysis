@@ -56,17 +56,17 @@ cat > /tmp/discovery-workflow-test.js << 'EOF'
 const { chromium } = require('playwright');
 
 async function validateDiscoveryWorkflow() {
-  const browser = await chromium.launch({ 
+  const browser = await chromium.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
-  
+
   const context = await browser.newContext();
   const page = await context.newPage();
-  
+
   // Set longer timeout for complex operations
   page.setDefaultTimeout(60000);
-  
+
   const results = {
     login: false,
     fileUpload: false,
@@ -77,36 +77,36 @@ async function validateDiscoveryWorkflow() {
     serverCount: 0,
     deviceCount: 0
   };
-  
+
   try {
     console.log('\n📋 Step 1: Login');
     await page.goto('http://localhost:8081/login');
     await page.fill('input[type="email"]', 'chocka@gmail.com');
     await page.fill('input[type="password"]', 'Password123!');
     await page.click('button[type="submit"]');
-    
+
     // Wait for navigation
     await page.waitForURL('**/discovery/**', { timeout: 10000 });
     results.login = true;
     console.log('✅ Login successful');
-    
+
     // Step 2: Navigate to Data Import
     console.log('\n📋 Step 2: Data Import');
     await page.goto('http://localhost:8081/discovery/cmdb-import');
     await page.waitForLoadState('networkidle');
-    
+
     // Upload file
     const fileInput = await page.locator('input[type="file"]').first();
     await fileInput.setInputFiles('/tmp/test-cmdb-data.csv');
-    
+
     // Wait for upload to process
     await page.waitForTimeout(5000);
     results.fileUpload = true;
     console.log('✅ File uploaded successfully');
-    
+
     // Step 3: Navigate to Attribute Mapping
     console.log('\n📋 Step 3: Attribute Mapping');
-    
+
     // Try clicking attribute mapping link
     const mappingLink = page.locator('a[href*="attribute-mapping"], text=/attribute.*mapping/i').first();
     if (await mappingLink.isVisible()) {
@@ -114,10 +114,10 @@ async function validateDiscoveryWorkflow() {
     } else {
       await page.goto('http://localhost:8081/discovery/attribute-mapping');
     }
-    
+
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(3000);
-    
+
     // Check if field mapping is available or needs to be triggered
     const triggerButton = page.locator('button:has-text("Trigger Field Mapping")');
     if (await triggerButton.isVisible()) {
@@ -125,13 +125,13 @@ async function validateDiscoveryWorkflow() {
       await triggerButton.click();
       await page.waitForTimeout(10000);
     }
-    
+
     // Look for mapping interface
     const mappingInterface = await page.locator('table, .mapping-table, [data-testid*="mapping"]').count();
     if (mappingInterface > 0) {
       results.attributeMapping = true;
       console.log('✅ Attribute mapping interface loaded');
-      
+
       // Try to finalize/continue
       const actionButtons = ['Finalize', 'Continue', 'Next', 'Apply', 'Save'];
       for (const buttonText of actionButtons) {
@@ -143,16 +143,16 @@ async function validateDiscoveryWorkflow() {
         }
       }
     }
-    
+
     // Step 4: Data Cleansing (if available)
     console.log('\n📋 Step 4: Data Cleansing');
-    
+
     // Check if we're on data cleansing page
     const cleansingIndicators = await page.locator('text=/data.*cleansing|cleanse.*data|validation.*rules/i').count();
     if (cleansingIndicators > 0) {
       results.dataCleansing = true;
       console.log('✅ Data cleansing phase detected');
-      
+
       // Try to continue from cleansing
       const continueButton = page.locator('button:has-text("Continue"), button:has-text("Next")').first();
       if (await continueButton.isVisible()) {
@@ -160,42 +160,42 @@ async function validateDiscoveryWorkflow() {
         await page.waitForTimeout(3000);
       }
     }
-    
+
     // Step 5: Navigate to Inventory
     console.log('\n📋 Step 5: Inventory Verification');
     await page.goto('http://localhost:8081/discovery/inventory');
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(5000);
-    
+
     // Count different asset types
     // Look for applications
     const appRows = await page.locator('tr:has-text("Application"), tr:has-text("APP-")').count();
     results.appCount = appRows;
-    
+
     // Look for servers
     const serverRows = await page.locator('tr:has-text("Server"), tr:has-text("SRV-")').count();
     results.serverCount = serverRows;
-    
+
     // Look for devices
     const deviceRows = await page.locator('tr:has-text("Device"), tr:has-text("DEV-")').count();
     results.deviceCount = deviceRows;
-    
+
     // Check if any assets are visible
     const totalAssets = results.appCount + results.serverCount + results.deviceCount;
     if (totalAssets > 0) {
       results.inventoryAssets = true;
     }
-    
+
     // Take screenshot of final inventory
     await page.screenshot({ path: '/tmp/inventory-final.png', fullPage: true });
-    
+
   } catch (error) {
     console.error('❌ Error during workflow:', error.message);
     await page.screenshot({ path: '/tmp/error-screenshot.png', fullPage: true });
   } finally {
     await browser.close();
   }
-  
+
   // Print results
   console.log('\n' + '='.repeat(50));
   console.log('📊 WORKFLOW VALIDATION RESULTS');
@@ -211,7 +211,7 @@ async function validateDiscoveryWorkflow() {
   console.log(`Devices:           ${results.deviceCount} (expected: 4)`);
   console.log(`Total Assets:      ${results.appCount + results.serverCount + results.deviceCount} (expected: 13)`);
   console.log('='.repeat(50));
-  
+
   // Return success if critical steps passed
   const success = results.login && results.fileUpload && results.inventoryAssets;
   process.exit(success ? 0 : 1);
@@ -234,7 +234,7 @@ if [ $? -eq 0 ]; then
   echo ""
   echo -e "${GREEN}✅ Discovery workflow validation PASSED!${NC}"
   echo "The complete workflow from file upload to inventory is working correctly."
-  
+
   # Show screenshot if exists
   if [ -f "/tmp/inventory-final.png" ]; then
     echo ""

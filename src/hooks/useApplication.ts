@@ -26,7 +26,7 @@ export interface Application {
 
 export const useApplication = (applicationId: string) => {
   const { isAuthenticated, client, engagement } = useAuth();
-  
+
   return useQuery<Application>({
     queryKey: ['application', applicationId],
     queryFn: async () => {
@@ -46,7 +46,7 @@ export const useApplication = (applicationId: string) => {
     enabled: isAuthenticated && !!client && !!engagement && !!applicationId,
     retry: (failureCount, error) => {
       // Don't retry 404 or 403 errors
-      if (error && typeof error === 'object' && 'status' in error && 
+      if (error && typeof error === 'object' && 'status' in error &&
           (error.status === 404 || error.status === 403)) {
         return false;
       }
@@ -58,7 +58,7 @@ export const useApplication = (applicationId: string) => {
 
 export const useUpdateApplication = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ applicationId, data }: { applicationId: string; data: Partial<Application> }) => {
       const response = await apiCall(`/api/v1/discovery/applications/${applicationId}`, {
@@ -73,4 +73,4 @@ export const useUpdateApplication = () => {
       queryClient.invalidateQueries({ queryKey: ['applications'] }); // Also invalidate the list if it exists
     }
   });
-}; 
+};

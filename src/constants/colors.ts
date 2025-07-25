@@ -7,32 +7,32 @@ export const UI_COLORS = {
   PRIMARY: '#3B82F6', // Blue
   PRIMARY_HOVER: '#2563EB',
   PRIMARY_LIGHT: '#DBEAFE',
-  
+
   // Secondary colors
   SECONDARY: '#8B5CF6', // Purple
   SECONDARY_HOVER: '#7C3AED',
   SECONDARY_LIGHT: '#EDE9FE',
-  
+
   // Success colors
   SUCCESS: '#10B981', // Green
   SUCCESS_HOVER: '#059669',
   SUCCESS_LIGHT: '#D1FAE5',
-  
+
   // Warning colors
   WARNING: '#F59E0B', // Amber
   WARNING_HOVER: '#D97706',
   WARNING_LIGHT: '#FEF3C7',
-  
+
   // Error colors
   ERROR: '#EF4444', // Red
   ERROR_HOVER: '#DC2626',
   ERROR_LIGHT: '#FEE2E2',
-  
+
   // Info colors
   INFO: '#3B82F6', // Blue
   INFO_HOVER: '#2563EB',
   INFO_LIGHT: '#DBEAFE',
-  
+
   // Neutral colors
   NEUTRAL: {
     50: '#F9FAFB',
@@ -46,21 +46,21 @@ export const UI_COLORS = {
     800: '#1F2937',
     900: '#111827'
   },
-  
+
   // Background colors
   BACKGROUND: {
     PRIMARY: '#FFFFFF',
     SECONDARY: '#F9FAFB',
     TERTIARY: '#F3F4F6'
   },
-  
+
   // Border colors
   BORDER: {
     DEFAULT: '#E5E7EB',
     FOCUS: '#3B82F6',
     ERROR: '#EF4444'
   },
-  
+
   // Text colors
   TEXT: {
     PRIMARY: '#111827',

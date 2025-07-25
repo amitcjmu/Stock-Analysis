@@ -19,7 +19,7 @@ export const AgentList: React.FC<AgentListProps> = ({
   onAgentSelect,
   selectedAgentId
 }) => {
-  const allAgents = crews.flatMap(crew => 
+  const allAgents = crews.flatMap(crew =>
     crew.agents.map(agent => ({ ...agent, crewName: crew.name, crewId: crew.id }))
   );
 
@@ -56,8 +56,8 @@ export const AgentList: React.FC<AgentListProps> = ({
 
       <div className="grid gap-4">
         {allAgents.map((agent) => (
-          <Card 
-            key={agent.id} 
+          <Card
+            key={agent.id}
             className={`border transition-all cursor-pointer hover:shadow-md ${
               selectedAgentId === agent.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
             }`}
@@ -84,7 +84,7 @@ export const AgentList: React.FC<AgentListProps> = ({
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center space-x-2">
                   <Badge className={getStatusColor(agent.status)}>
                     {getStatusIcon(agent.status)} {agent.status}
@@ -92,7 +92,7 @@ export const AgentList: React.FC<AgentListProps> = ({
                 </div>
               </div>
             </CardHeader>
-            
+
             <CardContent className="space-y-4">
               {/* Current Task */}
               <div>

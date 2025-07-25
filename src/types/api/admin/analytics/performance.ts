@@ -1,8 +1,8 @@
 /**
  * Performance Analytics Types
- * 
+ *
  * Performance metrics and monitoring data structures.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

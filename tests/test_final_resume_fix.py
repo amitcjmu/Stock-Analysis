@@ -36,14 +36,14 @@ def test_flow_status():
     """Test flow status endpoint"""
     print("🔍 Testing flow status...")
     flow_id = "7bdc1dc3-2793-4b02-abd7-e35f1697d37a"
-    
+
     try:
         response = requests.get(
             f"{BASE_URL}/api/v1/flows/{flow_id}/status",
             headers=get_test_headers(),
             timeout=10
         )
-        
+
         print(f"Status: {response.status_code}")
         if response.status_code == 200:
             data = response.json()
@@ -63,14 +63,14 @@ def test_flow_resume_endpoint():
     """Test flow resume endpoint"""
     print("▶️ Testing flow resume endpoint...")
     flow_id = "7bdc1dc3-2793-4b02-abd7-e35f1697d37a"
-    
+
     try:
         response = requests.post(
             f"{BASE_URL}/api/v1/flows/{flow_id}/resume",
             headers=get_test_headers(),
             timeout=30
         )
-        
+
         print(f"Status: {response.status_code}")
         if response.status_code == 200:
             data = response.json()
@@ -103,13 +103,13 @@ def main():
     print("=" * 60)
     print("🧪 Final Flow Resume Fix Validation")
     print("=" * 60)
-    
+
     tests = [
         ("API Health Check", test_health_check),
         ("Flow Status Endpoint", test_flow_status),
         ("Flow Resume Endpoint", test_flow_resume_endpoint),
     ]
-    
+
     results = {}
     for test_name, test_func in tests:
         print(f"\n📋 {test_name}...")
@@ -119,18 +119,18 @@ def main():
             print(f"❌ {test_name} failed: {e}")
             results[test_name] = False
         print("-" * 40)
-    
+
     # Summary
     print("\n📊 Test Results Summary:")
     passed = sum(1 for result in results.values() if result)
     total = len(results)
-    
+
     for test_name, result in results.items():
         status = "✅ PASS" if result else "❌ FAIL"
         print(f"  {test_name}: {status}")
-    
+
     print(f"\n🎯 Overall Result: {passed}/{total} tests passed")
-    
+
     if passed == total:
         print("🎉 All flow resume fixes are working correctly!")
         print("   ✅ Database session errors resolved")

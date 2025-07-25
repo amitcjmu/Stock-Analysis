@@ -59,8 +59,8 @@ with engine.connect() as conn:
     result = conn.execute(
         text(
             """
-        SELECT schemaname, tablename 
-        FROM pg_tables 
+        SELECT schemaname, tablename
+        FROM pg_tables
         WHERE schemaname = 'migration'
         ORDER BY tablename
     """

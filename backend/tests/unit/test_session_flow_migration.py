@@ -201,7 +201,6 @@ class TestSessionFlowMigration:
             with patch.object(
                 compatibility_service, "migrate_raw_records", return_value=5
             ) as mock_migrate_raw:
-
                 # Act
                 results = await compatibility_service.batch_migrate(session_flow_pairs)
 

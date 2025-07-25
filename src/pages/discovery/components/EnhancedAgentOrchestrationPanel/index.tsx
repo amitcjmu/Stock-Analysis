@@ -23,7 +23,7 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
   onStatusUpdate
 }) => {
   const [activeTab, setActiveTab] = useState('overview');
-  
+
   const {
     crews,
     collaborationData,
@@ -40,7 +40,7 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
       );
       const activeCrews = crews.filter(c => c.status === 'running').length;
       const completedCrews = crews.filter(c => c.status === 'completed').length;
-      
+
       onStatusUpdate({
         overallProgress,
         activeCrews,
@@ -66,9 +66,9 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
         <TabsContent value="overview" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {crews.slice(0, 4).map((crew, idx) => (
-              <CrewCard 
-                key={idx} 
-                crew={crew} 
+              <CrewCard
+                key={idx}
+                crew={crew}
                 isActive={crew.status === 'running'}
               />
             ))}
@@ -78,9 +78,9 @@ const EnhancedAgentOrchestrationPanel: React.FC<EnhancedAgentOrchestrationPanelP
         <TabsContent value="crews" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {crews.map((crew, idx) => (
-              <CrewCard 
-                key={idx} 
-                crew={crew} 
+              <CrewCard
+                key={idx}
+                crew={crew}
                 isActive={crew.status === 'running'}
               />
             ))}

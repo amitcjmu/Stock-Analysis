@@ -93,4 +93,4 @@ const RecommendationsSummary: React.FC<RecommendationsSummaryProps> = ({
   );
 };
 
-export default RecommendationsSummary; 
+export default RecommendationsSummary;

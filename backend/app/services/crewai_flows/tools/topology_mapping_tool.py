@@ -14,9 +14,7 @@ logger = logging.getLogger(__name__)
 
 class TopologyMappingTool(BaseTool):
     name: str = "topology_mapping_tool"
-    description: str = (
-        "Maps application topology and hosting relationships between applications and infrastructure"
-    )
+    description: str = "Maps application topology and hosting relationships between applications and infrastructure"
 
     def _run(self, topology_data: str) -> str:
         """

@@ -115,7 +115,7 @@ const Observability = () => {
     },
     {
       name: 'Task Duration',
-      value: '5.2s', 
+      value: '5.2s',
       trend: 'down',
       change: '-12%',
       status: 'good'
@@ -190,7 +190,7 @@ const Observability = () => {
     {
       time: '14:28',
       event: 'Monitoring service started',
-      type: 'info', 
+      type: 'info',
       details: 'Real-time tracking enabled'
     },
     {
@@ -219,7 +219,7 @@ const Observability = () => {
     monitoringData.tasks.active.forEach((task: Task, index: number) => {
       const startTime = new Date(task.start_time);
       const timeStr = `${startTime.getHours().toString().padStart(2, '0')}:${startTime.getMinutes().toString().padStart(2, '0')}`;
-      
+
       events.push({
         time: timeStr,
         event: `${task.agent} started ${task.task}`,
@@ -297,7 +297,7 @@ const Observability = () => {
                   Refresh
                 </button>
               </div>
-              
+
               {/* Quick Navigation to Enhanced Features */}
               <div className="mt-6 flex gap-4">
                 <button

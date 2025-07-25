@@ -27,7 +27,7 @@ def table_exists(connection, table_name):
         text(
             """
         SELECT EXISTS (
-            SELECT 1 FROM information_schema.tables 
+            SELECT 1 FROM information_schema.tables
             WHERE table_name = :table_name
         )
     """
@@ -42,7 +42,7 @@ def enum_exists(connection, enum_name):
         text(
             """
         SELECT EXISTS (
-            SELECT 1 FROM pg_type 
+            SELECT 1 FROM pg_type
             WHERE typname = :enum_name
         )
     """
@@ -71,7 +71,7 @@ def upgrade():
         op.execute(
             """
             CREATE TYPE asset_status AS ENUM (
-                'discovered', 'assessed', 'planned', 'migrating', 
+                'discovered', 'assessed', 'planned', 'migrating',
                 'migrated', 'failed', 'excluded'
             )
         """
@@ -81,7 +81,7 @@ def upgrade():
         op.execute(
             """
             CREATE TYPE sixr_strategy AS ENUM (
-                'rehost', 'replatform', 'refactor', 'repurchase', 
+                'rehost', 'replatform', 'refactor', 'repurchase',
                 'retire', 'retain', 'undecided'
             )
         """

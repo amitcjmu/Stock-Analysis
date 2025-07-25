@@ -1,6 +1,6 @@
 /**
  * Shared Form Type Definitions
- * 
+ *
  * Standardized form handling types for React Hook Form integration
  */
 

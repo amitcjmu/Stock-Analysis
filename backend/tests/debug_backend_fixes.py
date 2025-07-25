@@ -75,9 +75,7 @@ def test_user_deactivation():
                 print("   ⚠️ No active users found to test")
                 return True  # Not a failure, just no test data
         else:
-            print(
-                f"   ❌ Failed to get users: {response.status_code} - {response.text}"
-            )
+            print(f"   ❌ Failed to get users: {response.status_code} - {response.text}")
             return False
 
     except Exception as e:

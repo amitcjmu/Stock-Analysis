@@ -6,8 +6,8 @@
 import React from 'react';
 import { useParams } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
-import { 
-  Building2, 
+import {
+  Building2,
   ArrowLeft,
   Edit,
   Archive,
@@ -28,7 +28,7 @@ import {
 const ClientDetails: React.FC = () => {
   const { clientId } = useParams<{ clientId: string }>();
   const navigate = useNavigate();
-  
+
   const { client, isLoading, isError } = useClient(clientId);
   const {
     showEditDialog,
@@ -69,8 +69,8 @@ const ClientDetails: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => navigate('/admin/clients')}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />

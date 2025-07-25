@@ -1,8 +1,8 @@
-import { 
-  CheckCircle2, 
-  Activity, 
-  AlertCircle, 
-  Clock 
+import {
+  CheckCircle2,
+  Activity,
+  AlertCircle,
+  Clock
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { CrewStatus, BadgeVariant } from './types';
@@ -22,7 +22,7 @@ export const getStatusIcon = (status: string) => {
 
 export const getStatusIconWithStyles = (status: string) => {
   const IconComponent = getStatusIcon(status);
-  
+
   switch (status) {
     case 'completed':
       return <IconComponent className="h-4 w-4 text-green-500" />;
@@ -42,7 +42,7 @@ export const getStatusBadgeVariant = (status: CrewStatus): BadgeVariant => {
     completed: 'success',
     failed: 'destructive'
   };
-  
+
   return variants[status] || 'secondary';
 };
 

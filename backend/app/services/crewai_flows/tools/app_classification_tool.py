@@ -14,9 +14,7 @@ logger = logging.getLogger(__name__)
 
 class AppClassificationTool(BaseTool):
     name: str = "app_classification_tool"
-    description: str = (
-        "Classifies applications and services based on their characteristics and business function"
-    )
+    description: str = "Classifies applications and services based on their characteristics and business function"
 
     def _run(self, application_data: str) -> str:
         """

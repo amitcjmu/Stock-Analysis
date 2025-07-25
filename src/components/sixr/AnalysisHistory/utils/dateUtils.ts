@@ -1,10 +1,10 @@
 export const matchesDateRange = (analysisDate: Date, dateRange: string): boolean => {
   if (dateRange === 'all') return true;
-  
+
   const now = new Date();
   const date = new Date(analysisDate);
   const timeDiff = now.getTime() - date.getTime();
-  
+
   switch (dateRange) {
     case 'week':
       return timeDiff <= 7 * 24 * 60 * 60 * 1000;

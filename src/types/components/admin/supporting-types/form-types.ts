@@ -1,6 +1,6 @@
 /**
  * Form Types
- * 
+ *
  * Form field definitions, validation rules, and form-related
  * configuration types.
  */

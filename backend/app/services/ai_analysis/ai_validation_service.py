@@ -107,8 +107,8 @@ class AIValidationService:
         factual_validator = Agent(
             role="Factual Consistency Validator",
             goal="Verify factual accuracy and consistency of AI-generated content against source data",
-            backstory="""You are an expert fact-checker with deep knowledge of enterprise 
-            applications and migration patterns. Your role is to identify any factual 
+            backstory="""You are an expert fact-checker with deep knowledge of enterprise
+            applications and migration patterns. Your role is to identify any factual
             inconsistencies between AI-generated content and source data.""",
             verbose=True,
             allow_delegation=False,
@@ -128,7 +128,7 @@ class AIValidationService:
         confidence_calibrator = Agent(
             role="Confidence Calibration Specialist",
             goal="Assess and calibrate confidence scores to prevent overconfident predictions",
-            backstory="""You are an expert in uncertainty quantification and confidence 
+            backstory="""You are an expert in uncertainty quantification and confidence
             calibration. You ensure AI systems don't express unwarranted confidence.""",
             verbose=True,
             allow_delegation=False,
@@ -138,7 +138,7 @@ class AIValidationService:
         domain_validator = Agent(
             role="Domain Knowledge Validator",
             goal="Validate content against established domain expertise and best practices",
-            backstory="""You have extensive experience in cloud migration and enterprise 
+            backstory="""You have extensive experience in cloud migration and enterprise
             architecture. You validate technical recommendations against industry standards.""",
             verbose=True,
             allow_delegation=False,
@@ -228,16 +228,16 @@ class AIValidationService:
             factual_task = Task(
                 description=f"""
                 Validate factual consistency of the provided content against source data.
-                
+
                 Content to validate: {json.dumps(content, indent=2)}
                 Source data: {json.dumps(context.source_data, indent=2)}
-                
+
                 Check for:
                 1. Data value consistency
                 2. Metric accuracy
                 3. Technology compatibility
                 4. Historical data alignment
-                
+
                 Provide detailed findings with evidence.
                 """,
                 agent=self.validation_agents["factual"],
@@ -249,15 +249,15 @@ class AIValidationService:
             logical_task = Task(
                 description=f"""
                 Analyze logical coherence and identify contradictions in the content.
-                
+
                 Content: {json.dumps(content, indent=2)}
-                
+
                 Examine for:
                 1. Internal contradictions
                 2. Logical flow consistency
                 3. Causal relationship validity
                 4. Temporal logic correctness
-                
+
                 Report any logical issues found.
                 """,
                 agent=self.validation_agents["logical"],
@@ -269,16 +269,16 @@ class AIValidationService:
             confidence_task = Task(
                 description=f"""
                 Evaluate and calibrate confidence scores in the content.
-                
+
                 Content: {json.dumps(content, indent=2)}
                 Historical patterns: {json.dumps(context.historical_patterns, indent=2)}
-                
+
                 Assess:
                 1. Confidence score appropriateness
                 2. Evidence-to-confidence alignment
                 3. Uncertainty quantification
                 4. Overconfidence indicators
-                
+
                 Provide calibrated confidence recommendations.
                 """,
                 agent=self.validation_agents["confidence"],
@@ -290,16 +290,16 @@ class AIValidationService:
             domain_task = Task(
                 description=f"""
                 Validate content against domain expertise and best practices.
-                
+
                 Content: {json.dumps(content, indent=2)}
                 Domain knowledge: {json.dumps(context.domain_knowledge, indent=2)}
-                
+
                 Verify:
                 1. Technical accuracy
                 2. Best practice alignment
                 3. Industry standard compliance
                 4. Migration pattern validity
-                
+
                 Highlight any domain-specific issues.
                 """,
                 agent=self.validation_agents["domain"],

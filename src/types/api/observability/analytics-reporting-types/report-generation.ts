@@ -1,6 +1,6 @@
 /**
  * Report Generation Types
- * 
+ *
  * Type definitions for generating observability reports, customizing report formats,
  * and managing report templates and branding configurations.
  */

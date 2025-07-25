@@ -11,8 +11,8 @@ interface ClassificationProgressProps {
   needsClassification?: boolean;
 }
 
-export const ClassificationProgress: React.FC<ClassificationProgressProps> = ({ 
-  inventoryProgress, 
+export const ClassificationProgress: React.FC<ClassificationProgressProps> = ({
+  inventoryProgress,
   onRefresh,
   needsClassification = false
 }) => {
@@ -28,9 +28,9 @@ export const ClassificationProgress: React.FC<ClassificationProgressProps> = ({
           AI-Powered Classification Progress
         </CardTitle>
         {onRefresh && (
-          <Button 
-            variant={needsClassification ? "default" : "outline"} 
-            size="sm" 
+          <Button
+            variant={needsClassification ? "default" : "outline"}
+            size="sm"
             onClick={onRefresh}
             className={needsClassification ? "bg-orange-600 hover:bg-orange-700" : ""}
           >

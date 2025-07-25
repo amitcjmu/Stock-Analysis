@@ -1,6 +1,6 @@
 /**
  * Mutation Hook Types
- * 
+ *
  * Hook types for data modification operations including
  * mutations with optimistic updates and query invalidation.
  */
@@ -11,7 +11,7 @@ import type {
 } from '../shared/base-patterns';
 
 // Mutation Hook Types
-export interface UseMutationParams<TData = unknown, TError = Error, TVariables = unknown, TContext = unknown> 
+export interface UseMutationParams<TData = unknown, TError = Error, TVariables = unknown, TContext = unknown>
   extends BaseMutationHookParams<TData, TError, TVariables, TContext> {
   endpoint: string;
   method: 'POST' | 'PUT' | 'DELETE' | 'PATCH';
@@ -28,7 +28,7 @@ export interface UseMutationParams<TData = unknown, TError = Error, TVariables =
   onSettled?: (data: TData | undefined, error: TError | null, variables: TVariables, context: TContext | undefined) => Promise<void> | void;
 }
 
-export interface UseMutationReturn<TData = unknown, TError = Error, TVariables = unknown, TContext = unknown> 
+export interface UseMutationReturn<TData = unknown, TError = Error, TVariables = unknown, TContext = unknown>
   extends BaseMutationHookReturn<TData, TError, TVariables, TContext> {
   data: TData | undefined;
   error: TError | null;

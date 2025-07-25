@@ -1,6 +1,6 @@
 /**
  * Collection Components Index
- * 
+ *
  * Frontend components for the Manual Collection Framework
  * Agent Team B3 Implementation
  */

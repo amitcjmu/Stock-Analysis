@@ -23,9 +23,9 @@ try:
 except ImportError:
     SQLALCHEMY_AVAILABLE = False
     # Create dummy classes for type hints
-    Column = Integer = String = DateTime = Text = JSON = Enum = Boolean = ForeignKey = (
-        Float
-    ) = object
+    Column = (
+        Integer
+    ) = String = DateTime = Text = JSON = Enum = Boolean = ForeignKey = Float = object
 
     def relationship(*args, **kwargs):
         return None

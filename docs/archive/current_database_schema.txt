@@ -1,89 +1,89 @@
 / # psql -U postgres -d migration_db -c "\d+ assets"
                                                                          Table "migration.assets"
-           Column            |           Type           | Collation | Nullable |              Default               | Storage  | Compression | Stats target | Description 
+           Column            |           Type           | Collation | Nullable |              Default               | Storage  | Compression | Stats target | Description
 -----------------------------+--------------------------+-----------+----------+------------------------------------+----------+-------------+--------------+-------------
- id                          | integer                  |           | not null | nextval('assets_id_seq'::regclass) | plain    |             |              | 
- migration_id                | integer                  |           | not null |                                    | plain    |             |              | 
- name                        | character varying(255)   |           | not null |                                    | extended |             |              | 
- asset_type                  | assettype                |           | not null |                                    | plain    |             |              | 
- description                 | text                     |           |          |                                    | extended |             |              | 
- hostname                    | character varying(255)   |           |          |                                    | extended |             |              | 
- ip_address                  | character varying(45)    |           |          |                                    | extended |             |              | 
- fqdn                        | character varying(255)   |           |          |                                    | extended |             |              | 
- asset_id                    | character varying(100)   |           |          |                                    | extended |             |              | 
- environment                 | character varying(50)    |           |          |                                    | extended |             |              | 
- datacenter                  | character varying(100)   |           |          |                                    | extended |             |              | 
- rack_location               | character varying(50)    |           |          |                                    | extended |             |              | 
- availability_zone           | character varying(50)    |           |          |                                    | extended |             |              | 
- operating_system            | character varying(100)   |           |          |                                    | extended |             |              | 
- os_version                  | character varying(50)    |           |          |                                    | extended |             |              | 
- cpu_cores                   | integer                  |           |          |                                    | plain    |             |              | 
- memory_gb                   | double precision         |           |          |                                    | plain    |             |              | 
- storage_gb                  | double precision         |           |          |                                    | plain    |             |              | 
- network_interfaces          | json                     |           |          |                                    | extended |             |              | 
- status                      | assetstatus              |           |          |                                    | plain    |             |              | 
- six_r_strategy              | sixrstrategy             |           |          |                                    | plain    |             |              | 
- migration_priority          | integer                  |           |          |                                    | plain    |             |              | 
- migration_complexity        | character varying(20)    |           |          |                                    | extended |             |              | 
- migration_wave              | integer                  |           |          |                                    | plain    |             |              | 
- dependencies                | json                     |           |          |                                    | extended |             |              | 
- dependents                  | json                     |           |          |                                    | extended |             |              | 
- discovered_at               | timestamp with time zone |           |          | now()                              | plain    |             |              | 
- last_scanned                | timestamp with time zone |           |          |                                    | plain    |             |              | 
- discovery_method            | character varying(50)    |           |          |                                    | extended |             |              | 
- discovery_source            | character varying(100)   |           |          |                                    | extended |             |              | 
- risk_score                  | double precision         |           |          |                                    | plain    |             |              | 
- business_criticality        | character varying(20)    |           |          |                                    | extended |             |              | 
- compliance_requirements     | json                     |           |          |                                    | extended |             |              | 
- current_monthly_cost        | double precision         |           |          |                                    | plain    |             |              | 
- estimated_cloud_cost        | double precision         |           |          |                                    | plain    |             |              | 
- cost_optimization_potential | double precision         |           |          |                                    | plain    |             |              | 
- performance_metrics         | json                     |           |          |                                    | extended |             |              | 
- security_findings           | json                     |           |          |                                    | extended |             |              | 
- compatibility_issues        | json                     |           |          |                                    | extended |             |              | 
- ai_recommendations          | json                     |           |          |                                    | extended |             |              | 
- confidence_score            | double precision         |           |          |                                    | plain    |             |              | 
- created_at                  | timestamp with time zone |           |          | now()                              | plain    |             |              | 
- updated_at                  | timestamp with time zone |           |          |                                    | plain    |             |              | 
- client_account_id           | uuid                     |           |          |                                    | plain    |             |              | 
- engagement_id               | uuid                     |           |          |                                    | plain    |             |              | 
- discovery_status            | character varying(50)    |           |          | 'discovered'::character varying    | extended |             |              | 
- mapping_status              | character varying(50)    |           |          | 'pending'::character varying       | extended |             |              | 
- cleanup_status              | character varying(50)    |           |          | 'pending'::character varying       | extended |             |              | 
- assessment_readiness        | character varying(50)    |           |          | 'not_ready'::character varying     | extended |             |              | 
- completeness_score          | double precision         |           |          |                                    | plain    |             |              | 
- quality_score               | double precision         |           |          |                                    | plain    |             |              | 
- source_system               | character varying(100)   |           |          |                                    | extended |             |              | 
- asset_name                  | character varying(255)   |           |          |                                    | extended |             |              | 
- intelligent_asset_type      | character varying(100)   |           |          |                                    | extended |             |              | 
- hardware_type               | character varying(100)   |           |          |                                    | extended |             |              | 
- business_owner              | character varying(100)   |           |          |                                    | extended |             |              | 
- technical_owner             | character varying(100)   |           |          |                                    | extended |             |              | 
- department                  | character varying(100)   |           |          |                                    | extended |             |              | 
- application_id              | character varying(100)   |           |          |                                    | extended |             |              | 
- application_version         | character varying(50)    |           |          |                                    | extended |             |              | 
- programming_language        | character varying(100)   |           |          |                                    | extended |             |              | 
- framework                   | character varying(100)   |           |          |                                    | extended |             |              | 
- database_type               | character varying(100)   |           |          |                                    | extended |             |              | 
- cloud_readiness_score       | double precision         |           |          |                                    | plain    |             |              | 
- modernization_complexity    | character varying(20)    |           |          |                                    | extended |             |              | 
- tech_debt_score             | double precision         |           |          |                                    | plain    |             |              | 
- estimated_monthly_cost      | double precision         |           |          |                                    | plain    |             |              | 
- license_cost                | double precision         |           |          |                                    | plain    |             |              | 
- support_cost                | double precision         |           |          |                                    | plain    |             |              | 
- security_classification     | character varying(50)    |           |          |                                    | extended |             |              | 
- vulnerability_score         | double precision         |           |          |                                    | plain    |             |              | 
- sixr_ready                  | character varying(20)    |           |          |                                    | extended |             |              | 
- estimated_migration_effort  | character varying(20)    |           |          |                                    | extended |             |              | 
- recommended_6r_strategy     | character varying(20)    |           |          |                                    | extended |             |              | 
- strategy_confidence         | double precision         |           |          |                                    | plain    |             |              | 
- strategy_rationale          | text                     |           |          |                                    | extended |             |              | 
- ai_confidence_score         | double precision         |           |          |                                    | plain    |             |              | 
- last_ai_analysis            | timestamp with time zone |           |          |                                    | plain    |             |              | 
- source_file                 | character varying(255)   |           |          |                                    | extended |             |              | 
- import_batch_id             | character varying(100)   |           |          |                                    | extended |             |              | 
- created_by                  | character varying(100)   |           |          |                                    | extended |             |              | 
- updated_by                  | character varying(100)   |           |          |                                    | extended |             |              | 
+ id                          | integer                  |           | not null | nextval('assets_id_seq'::regclass) | plain    |             |              |
+ migration_id                | integer                  |           | not null |                                    | plain    |             |              |
+ name                        | character varying(255)   |           | not null |                                    | extended |             |              |
+ asset_type                  | assettype                |           | not null |                                    | plain    |             |              |
+ description                 | text                     |           |          |                                    | extended |             |              |
+ hostname                    | character varying(255)   |           |          |                                    | extended |             |              |
+ ip_address                  | character varying(45)    |           |          |                                    | extended |             |              |
+ fqdn                        | character varying(255)   |           |          |                                    | extended |             |              |
+ asset_id                    | character varying(100)   |           |          |                                    | extended |             |              |
+ environment                 | character varying(50)    |           |          |                                    | extended |             |              |
+ datacenter                  | character varying(100)   |           |          |                                    | extended |             |              |
+ rack_location               | character varying(50)    |           |          |                                    | extended |             |              |
+ availability_zone           | character varying(50)    |           |          |                                    | extended |             |              |
+ operating_system            | character varying(100)   |           |          |                                    | extended |             |              |
+ os_version                  | character varying(50)    |           |          |                                    | extended |             |              |
+ cpu_cores                   | integer                  |           |          |                                    | plain    |             |              |
+ memory_gb                   | double precision         |           |          |                                    | plain    |             |              |
+ storage_gb                  | double precision         |           |          |                                    | plain    |             |              |
+ network_interfaces          | json                     |           |          |                                    | extended |             |              |
+ status                      | assetstatus              |           |          |                                    | plain    |             |              |
+ six_r_strategy              | sixrstrategy             |           |          |                                    | plain    |             |              |
+ migration_priority          | integer                  |           |          |                                    | plain    |             |              |
+ migration_complexity        | character varying(20)    |           |          |                                    | extended |             |              |
+ migration_wave              | integer                  |           |          |                                    | plain    |             |              |
+ dependencies                | json                     |           |          |                                    | extended |             |              |
+ dependents                  | json                     |           |          |                                    | extended |             |              |
+ discovered_at               | timestamp with time zone |           |          | now()                              | plain    |             |              |
+ last_scanned                | timestamp with time zone |           |          |                                    | plain    |             |              |
+ discovery_method            | character varying(50)    |           |          |                                    | extended |             |              |
+ discovery_source            | character varying(100)   |           |          |                                    | extended |             |              |
+ risk_score                  | double precision         |           |          |                                    | plain    |             |              |
+ business_criticality        | character varying(20)    |           |          |                                    | extended |             |              |
+ compliance_requirements     | json                     |           |          |                                    | extended |             |              |
+ current_monthly_cost        | double precision         |           |          |                                    | plain    |             |              |
+ estimated_cloud_cost        | double precision         |           |          |                                    | plain    |             |              |
+ cost_optimization_potential | double precision         |           |          |                                    | plain    |             |              |
+ performance_metrics         | json                     |           |          |                                    | extended |             |              |
+ security_findings           | json                     |           |          |                                    | extended |             |              |
+ compatibility_issues        | json                     |           |          |                                    | extended |             |              |
+ ai_recommendations          | json                     |           |          |                                    | extended |             |              |
+ confidence_score            | double precision         |           |          |                                    | plain    |             |              |
+ created_at                  | timestamp with time zone |           |          | now()                              | plain    |             |              |
+ updated_at                  | timestamp with time zone |           |          |                                    | plain    |             |              |
+ client_account_id           | uuid                     |           |          |                                    | plain    |             |              |
+ engagement_id               | uuid                     |           |          |                                    | plain    |             |              |
+ discovery_status            | character varying(50)    |           |          | 'discovered'::character varying    | extended |             |              |
+ mapping_status              | character varying(50)    |           |          | 'pending'::character varying       | extended |             |              |
+ cleanup_status              | character varying(50)    |           |          | 'pending'::character varying       | extended |             |              |
+ assessment_readiness        | character varying(50)    |           |          | 'not_ready'::character varying     | extended |             |              |
+ completeness_score          | double precision         |           |          |                                    | plain    |             |              |
+ quality_score               | double precision         |           |          |                                    | plain    |             |              |
+ source_system               | character varying(100)   |           |          |                                    | extended |             |              |
+ asset_name                  | character varying(255)   |           |          |                                    | extended |             |              |
+ intelligent_asset_type      | character varying(100)   |           |          |                                    | extended |             |              |
+ hardware_type               | character varying(100)   |           |          |                                    | extended |             |              |
+ business_owner              | character varying(100)   |           |          |                                    | extended |             |              |
+ technical_owner             | character varying(100)   |           |          |                                    | extended |             |              |
+ department                  | character varying(100)   |           |          |                                    | extended |             |              |
+ application_id              | character varying(100)   |           |          |                                    | extended |             |              |
+ application_version         | character varying(50)    |           |          |                                    | extended |             |              |
+ programming_language        | character varying(100)   |           |          |                                    | extended |             |              |
+ framework                   | character varying(100)   |           |          |                                    | extended |             |              |
+ database_type               | character varying(100)   |           |          |                                    | extended |             |              |
+ cloud_readiness_score       | double precision         |           |          |                                    | plain    |             |              |
+ modernization_complexity    | character varying(20)    |           |          |                                    | extended |             |              |
+ tech_debt_score             | double precision         |           |          |                                    | plain    |             |              |
+ estimated_monthly_cost      | double precision         |           |          |                                    | plain    |             |              |
+ license_cost                | double precision         |           |          |                                    | plain    |             |              |
+ support_cost                | double precision         |           |          |                                    | plain    |             |              |
+ security_classification     | character varying(50)    |           |          |                                    | extended |             |              |
+ vulnerability_score         | double precision         |           |          |                                    | plain    |             |              |
+ sixr_ready                  | character varying(20)    |           |          |                                    | extended |             |              |
+ estimated_migration_effort  | character varying(20)    |           |          |                                    | extended |             |              |
+ recommended_6r_strategy     | character varying(20)    |           |          |                                    | extended |             |              |
+ strategy_confidence         | double precision         |           |          |                                    | plain    |             |              |
+ strategy_rationale          | text                     |           |          |                                    | extended |             |              |
+ ai_confidence_score         | double precision         |           |          |                                    | plain    |             |              |
+ last_ai_analysis            | timestamp with time zone |           |          |                                    | plain    |             |              |
+ source_file                 | character varying(255)   |           |          |                                    | extended |             |              |
+ import_batch_id             | character varying(100)   |           |          |                                    | extended |             |              |
+ created_by                  | character varying(100)   |           |          |                                    | extended |             |              |
+ updated_by                  | character varying(100)   |           |          |                                    | extended |             |              |
 Indexes:
     "assets_pkey" PRIMARY KEY, btree (id)
     "ix_assets_id" btree (id)
@@ -97,4 +97,4 @@ Referenced by:
     TABLE "workflow_progress" CONSTRAINT "workflow_progress_asset_id_fkey" FOREIGN KEY (asset_id) REFERENCES assets(id)
 Access method: heap
 
-/ # 
+/ #

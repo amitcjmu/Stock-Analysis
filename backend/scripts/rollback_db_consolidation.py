@@ -278,8 +278,8 @@ class DatabaseConsolidationRollback:
                 cur.execute(
                     """
                     SELECT EXISTS (
-                        SELECT FROM information_schema.tables 
-                        WHERE table_schema = 'public' 
+                        SELECT FROM information_schema.tables
+                        WHERE table_schema = 'public'
                         AND table_name = %s
                     )
                 """,
@@ -369,7 +369,9 @@ Steps Completed ({len(self.steps_completed)}):
 
             if not step_func():
                 self.log(f"\n✗ Rollback failed at step: {step_name}", "ERROR")
-                self.log("⚠️  CRITICAL: Database may be in inconsistent state!", "ERROR")
+                self.log(
+                    "⚠️  CRITICAL: Database may be in inconsistent state!", "ERROR"
+                )
                 self.log(
                     "Consider restoring from the pre-rollback backup created earlier",
                     "ERROR",

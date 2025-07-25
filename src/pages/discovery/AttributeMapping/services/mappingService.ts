@@ -2,14 +2,14 @@
 import { apiCall } from '@/config/api';
 
 export class MappingService {
-  
+
   static async approveMapping(mappingId: string, flowId: string) {
     try {
       const response = await apiCall(`/field-mapping/approve/${mappingId}`, {
         method: 'POST',
         body: JSON.stringify({ flowId })
       });
-      
+
       return response;
     } catch (error) {
       console.error('Error approving mapping:', error);
@@ -23,7 +23,7 @@ export class MappingService {
         method: 'POST',
         body: JSON.stringify({ flowId, reason })
       });
-      
+
       return response;
     } catch (error) {
       console.error('Error rejecting mapping:', error);
@@ -37,7 +37,7 @@ export class MappingService {
         method: 'PUT',
         body: JSON.stringify({ ...updates, flowId })
       });
-      
+
       return response;
     } catch (error) {
       console.error('Error updating mapping:', error);
@@ -51,7 +51,7 @@ export class MappingService {
         method: 'PUT',
         body: JSON.stringify({ ...updates, flowId })
       });
-      
+
       return response;
     } catch (error) {
       console.error('Error updating attribute:', error);
@@ -64,7 +64,7 @@ export class MappingService {
       const response = await apiCall(`/field-mapping/trigger/${flowId}`, {
         method: 'POST'
       });
-      
+
       return response;
     } catch (error) {
       console.error('Error triggering field mapping analysis:', error);
@@ -75,7 +75,7 @@ export class MappingService {
   static async getMappingProgress(flowId: string) {
     try {
       const response = await apiCall(`/field-mapping/progress/${flowId}`);
-      
+
       return response;
     } catch (error) {
       console.error('Error getting mapping progress:', error);
@@ -86,7 +86,7 @@ export class MappingService {
   static async getFieldMappings(importId: string) {
     try {
       const response = await apiCall(`/data-import/field-mapping/imports/${importId}/field-mappings`);
-      
+
       return response;
     } catch (error) {
       console.error('Error getting field mappings:', error);
@@ -97,7 +97,7 @@ export class MappingService {
   static async getCriticalAttributes(flowId: string) {
     try {
       const response = await apiCall(`/attribute-mapping/critical/${flowId}`);
-      
+
       return response;
     } catch (error) {
       console.error('Error getting critical attributes:', error);

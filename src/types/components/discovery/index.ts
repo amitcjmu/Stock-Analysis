@@ -1,6 +1,6 @@
 /**
  * Discovery Component Types Index
- * 
+ *
  * Central export point for all discovery component types organized by functional area.
  */
 

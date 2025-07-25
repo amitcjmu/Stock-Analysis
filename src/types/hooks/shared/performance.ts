@@ -1,6 +1,6 @@
 /**
  * Performance Hook Types
- * 
+ *
  * Hook interfaces for performance optimization including memoization and virtualization.
  */
 

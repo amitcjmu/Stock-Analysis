@@ -101,4 +101,4 @@ export const EngagementScope: React.FC<EngagementScopeProps> = ({
       </CardContent>
     </Card>
   );
-}; 
+};

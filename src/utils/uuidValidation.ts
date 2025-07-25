@@ -1,6 +1,6 @@
 /**
  * UUID Validation and Type Safety Utilities
- * 
+ *
  * Provides comprehensive UUID validation and type safety to prevent
  * character corruption issues in flow ID handling.
  */
@@ -25,7 +25,7 @@ export function validateUUID(value: string, context: string = 'UUID'): Validated
   if (!value) {
     throw new Error(`${context} is required`);
   }
-  
+
   if (!isValidUUID(value)) {
     console.error(`❌ Invalid UUID detected in ${context}:`, {
       received: value,
@@ -34,7 +34,7 @@ export function validateUUID(value: string, context: string = 'UUID'): Validated
     });
     throw new Error(`${context} must be a valid UUID format: ${value}`);
   }
-  
+
   return value;
 }
 
@@ -66,7 +66,7 @@ export function extractFlowId(
   context: string = 'Flow ID'
 ): ValidatedUUID {
   let flowId: string;
-  
+
   if (typeof source === 'string') {
     flowId = source;
   } else if (isFlowIdSource(source)) {
@@ -75,7 +75,7 @@ export function extractFlowId(
   } else {
     throw new Error(`${context}: Invalid source type`);
   }
-  
+
   return validateUUID(flowId, context);
 }
 
@@ -89,14 +89,14 @@ export function createDisplaySafeUUID(uuid: ValidatedUUID, options: {
   verify?: boolean;
 } = {}): string {
   const { prefix = true, length = 8, verify = true } = options;
-  
+
   if (verify) {
     // Re-validate to catch any corruption
     validateUUID(uuid, 'Display UUID');
   }
-  
+
   const shortId = uuid.slice(0, length);
-  
+
   // Add visual indicators to help spot corruption
   return prefix ? `ID:${shortId}...` : `${shortId}...`;
 }
@@ -133,7 +133,7 @@ export function validateFlowObject(
   context: string = 'Flow object'
 ): FlowValidationResult {
   const issues: string[] = [];
-  
+
   if (!isFlowObject(flow)) {
     issues.push(`${context}: Invalid flow object structure`);
     return {
@@ -142,10 +142,10 @@ export function validateFlowObject(
       issues
     };
   }
-  
+
   try {
     const flow_id = extractFlowId(flow, `${context} flow_id`);
-    
+
     // Additional integrity checks
     if (flow.master_flow_id && flow.master_flow_id !== flow_id) {
       // Validate master flow ID if present
@@ -156,7 +156,7 @@ export function validateFlowObject(
         issues.push(`Invalid master_flow_id: ${errorMessage}`);
       }
     }
-    
+
     return {
       flow_id,
       validated: true,
@@ -165,7 +165,7 @@ export function validateFlowObject(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     issues.push(`Flow ID validation failed: ${errorMessage}`);
-    
+
     return {
       flow_id: '' as ValidatedUUID,
       validated: false,
@@ -210,10 +210,10 @@ export function validateFlowBatch(
   const validFlows: ValidFlowResult[] = [];
   const invalidFlows: InvalidFlowResult[] = [];
   const allIssues: string[] = [];
-  
+
   flows.forEach((flow, index) => {
     const validation = validateFlowObject(flow, `${context}[${index}]`);
-    
+
     if (validation.validated && isFlowObject(flow)) {
       validFlows.push({
         flow_id: validation.flow_id,
@@ -225,10 +225,10 @@ export function validateFlowBatch(
         original: flow
       });
     }
-    
+
     allIssues.push(...validation.issues);
   });
-  
+
   return {
     validFlows,
     invalidFlows,

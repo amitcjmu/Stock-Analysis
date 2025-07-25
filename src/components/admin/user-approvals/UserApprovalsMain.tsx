@@ -24,13 +24,13 @@ import type { PendingUser, ActiveUser } from './types'
 export const UserApprovalsMain: React.FC = () => {
   const { getAuthHeaders } = useAuth();
   const { toast } = useToast();
-  const { 
-    showUserApprovedToast, 
-    showUserRejectedToast, 
-    showUserDeactivatedToast, 
-    showUserActivatedToast, 
-    showGenericErrorToast, 
-    showDataFetchErrorToast 
+  const {
+    showUserApprovedToast,
+    showUserRejectedToast,
+    showUserDeactivatedToast,
+    showUserActivatedToast,
+    showGenericErrorToast,
+    showDataFetchErrorToast
   } = useAdminToasts();
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
@@ -171,7 +171,7 @@ export const UserApprovalsMain: React.FC = () => {
       // Refresh the user lists
       fetchPendingUsers();
       fetchActiveUsers();
-      
+
       toast({
         title: "User Created",
         description: "New user has been created successfully",
@@ -193,7 +193,7 @@ export const UserApprovalsMain: React.FC = () => {
 
     try {
       setActionLoading(selectedUser.user_id);
-      
+
       const response = await apiCall('/auth/approve-user', {
         method: 'POST',
         body: JSON.stringify({
@@ -210,7 +210,7 @@ export const UserApprovalsMain: React.FC = () => {
 
         // Remove from pending users
         setPendingUsers(prev => prev.filter(u => u.user_id !== selectedUser.user_id));
-        
+
         // Add to active users
         const newActiveUser: ActiveUser = {
           user_id: selectedUser.user_id,
@@ -253,7 +253,7 @@ export const UserApprovalsMain: React.FC = () => {
 
     try {
       setActionLoading(selectedUser.user_id);
-      
+
       const response = await apiCall('/auth/reject-user', {
         method: 'POST',
         body: JSON.stringify({
@@ -285,7 +285,7 @@ export const UserApprovalsMain: React.FC = () => {
   const handleDeactivateUser = async (user: ActiveUser) => {
     try {
       setActionLoading(user.user_id);
-      
+
       const response = await apiCall('/auth/deactivate-user', {
         method: 'POST',
         body: JSON.stringify({
@@ -298,7 +298,7 @@ export const UserApprovalsMain: React.FC = () => {
         showUserDeactivatedToast(user.full_name);
 
         // Update user status
-        setActiveUsers(prev => prev.map(u => 
+        setActiveUsers(prev => prev.map(u =>
           u.user_id === user.user_id ? { ...u, is_active: false } : u
         ));
       } else {
@@ -315,7 +315,7 @@ export const UserApprovalsMain: React.FC = () => {
   const handleActivateUser = async (user: ActiveUser) => {
     try {
       setActionLoading(user.user_id);
-      
+
       const response = await apiCall('/auth/activate-user', {
         method: 'POST',
         body: JSON.stringify({
@@ -327,7 +327,7 @@ export const UserApprovalsMain: React.FC = () => {
         showUserActivatedToast(user.full_name);
 
         // Update user status
-        setActiveUsers(prev => prev.map(u => 
+        setActiveUsers(prev => prev.map(u =>
           u.user_id === user.user_id ? { ...u, is_active: true } : u
         ));
       } else {
@@ -431,11 +431,11 @@ export const UserApprovalsMain: React.FC = () => {
               Configure access settings for {selectedUser?.full_name}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div>
               <Label htmlFor="access-level">Access Level</Label>
-              <Select value={approvalData.access_level} onValueChange={(value) => 
+              <Select value={approvalData.access_level} onValueChange={(value) =>
                 setApprovalData(prev => ({ ...prev, access_level: value }))
               }>
                 <SelectTrigger>
@@ -448,10 +448,10 @@ export const UserApprovalsMain: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
               <Label htmlFor="role-name">Role Name</Label>
-              <Select value={approvalData.role_name} onValueChange={(value) => 
+              <Select value={approvalData.role_name} onValueChange={(value) =>
                 setApprovalData(prev => ({ ...prev, role_name: value }))
               }>
                 <SelectTrigger>
@@ -465,7 +465,7 @@ export const UserApprovalsMain: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
               <Label htmlFor="notes">Approval Notes (Optional)</Label>
               <Textarea
@@ -476,7 +476,7 @@ export const UserApprovalsMain: React.FC = () => {
               />
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowApprovalDialog(false)}>
               Cancel
@@ -497,7 +497,7 @@ export const UserApprovalsMain: React.FC = () => {
               Provide a reason for rejecting {selectedUser?.full_name}'s request
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div>
               <Label htmlFor="rejection-reason">Rejection Reason *</Label>
@@ -515,14 +515,14 @@ export const UserApprovalsMain: React.FC = () => {
               )}
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowRejectionDialog(false)}>
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleReject} 
+            <Button
+              variant="destructive"
+              onClick={handleReject}
               disabled={!rejectionData.rejection_reason || rejectionData.rejection_reason.length < 10 || actionLoading === selectedUser?.user_id}
             >
               {actionLoading === selectedUser?.user_id ? 'Rejecting...' : 'Reject Request'}
@@ -532,4 +532,4 @@ export const UserApprovalsMain: React.FC = () => {
       </Dialog>
     </div>
   );
-}; 
+};

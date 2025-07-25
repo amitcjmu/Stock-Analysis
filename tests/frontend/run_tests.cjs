@@ -4,7 +4,7 @@ const { TestUtils, FrontendTestRunner } = require('./test_ui_components.js');
 
 async function runTests() {
     const runner = new FrontendTestRunner();
-    
+
     // Add all tests
     runner.addTest('Responsive Breakpoints', TestUtils.testResponsiveBreakpoints);
     runner.addTest('Grid Responsiveness', TestUtils.testGridResponsiveness);
@@ -16,9 +16,9 @@ async function runTests() {
     runner.addTest('Form Validation', TestUtils.testFormValidation);
     runner.addTest('Navigation', TestUtils.testNavigation);
     runner.addTest('Data Visualization', TestUtils.testDataVisualization);
-    
+
     const success = await runner.runAllTests();
     process.exit(success ? 0 : 1);
 }
 
-runTests().catch(console.error); 
+runTests().catch(console.error);

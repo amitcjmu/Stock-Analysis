@@ -16,9 +16,9 @@ export interface UserManagementProps {
   className?: string;
 }
 
-export const UserManagement: React.FC<UserManagementProps> = ({ 
-  usersData, 
-  className = '' 
+export const UserManagement: React.FC<UserManagementProps> = ({
+  usersData,
+  className = ''
 }) => {
   // User management actions
   const userActions: ActionItem[] = [
@@ -31,7 +31,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
     },
     {
       label: "Manage All Users",
-      href: "/admin/users", 
+      href: "/admin/users",
       icon: Users,
       variant: "outline"
     },

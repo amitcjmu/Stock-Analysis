@@ -11,7 +11,7 @@ export const useCMDBAnalysis = () => {
   const parseCSVData = useCallback((csvContent: string): Array<Record<string, string>> => {
     const lines = csvContent.trim().split('\n');
     if (lines.length < 2) return [];
-    
+
     const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
     const data = lines.slice(1).map(line => {
       const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
@@ -21,7 +21,7 @@ export const useCMDBAnalysis = () => {
       });
       return row;
     });
-    
+
     return data;
   }, []);
 
@@ -45,12 +45,12 @@ export const useCMDBAnalysis = () => {
       // Read and parse file content
       const fileContent = await readFileContent(fileUpload.file);
       console.log('File content read:', fileContent.substring(0, 200) + '...');
-      
+
       const parsedData = parseCSVData(fileContent);
-      
+
       // Generate a flow ID for this analysis
       const flowId = `flow_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-      
+
       // Prepare data in the format expected by CrewAI Flow endpoint
       const requestData = {
         analysis_type: "data_source_analysis",
@@ -67,17 +67,17 @@ export const useCMDBAnalysis = () => {
           sample_data: parsedData.slice(0, 10) // First 10 rows as sample
         }
       };
-      
+
       console.log('Sending analysis request:', requestData);
-      
+
       // Call CrewAI Flow analysis API
       const analysis = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.ANALYZE_CMDB, {
         method: 'POST',
         body: JSON.stringify(requestData)
       });
-      
+
       console.log('Analysis result:', analysis);
-      
+
       // Transform the response to match the expected format
       const transformedAnalysis = {
         status: analysis.status || 'success',
@@ -100,18 +100,18 @@ export const useCMDBAnalysis = () => {
         flowId: analysis.flow_id || flowId,
         agentAnalysis: analysis.agent_analysis
       };
-      
+
       onFileUpdate(fileUpload.id, {
         status: 'processed',
         analysis: transformedAnalysis,
         preview: transformedAnalysis.preview,
         editableData: JSON.parse(JSON.stringify(parsedData)) // Deep copy for editing
       });
-      
+
       return transformedAnalysis;
     } catch (error) {
       console.error('Analysis failed:', error);
-      
+
       const errorAnalysis: AnalysisResult = {
         status: 'error',
         dataQuality: {
@@ -124,12 +124,12 @@ export const useCMDBAnalysis = () => {
         requiredProcessing: [],
         readyForImport: false
       };
-      
+
       onFileUpdate(fileUpload.id, {
         status: 'error',
         analysis: errorAnalysis
       });
-      
+
       throw error;
     } finally {
       setIsAnalyzing(false);
@@ -154,9 +154,9 @@ export const useCMDBAnalysis = () => {
         filename: selectedFile.file.name,
         options: projectInfo || {}
       };
-      
+
       console.log('Sending processing request:', requestData);
-      
+
       const response = await apiCall(API_CONFIG.ENDPOINTS.DISCOVERY.PROCESS_CMDB, {
         method: 'POST',
         body: JSON.stringify(requestData)
@@ -199,14 +199,14 @@ export const useCMDBAnalysis = () => {
       });
 
       console.log('Feedback submitted successfully:', response);
-      
+
       // If we have an updated analysis and file update callback, update the file
       if (response.updated_analysis && onFileUpdate && fileId) {
         onFileUpdate(fileId, {
           analysis: response.updated_analysis
         });
       }
-      
+
       return response;
     } catch (error) {
       console.error('Failed to submit feedback:', error);
@@ -223,4 +223,4 @@ export const useCMDBAnalysis = () => {
     parseCSVData,
     readFileContent
   };
-}; 
+};

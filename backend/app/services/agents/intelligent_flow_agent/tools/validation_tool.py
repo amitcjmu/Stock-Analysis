@@ -42,9 +42,7 @@ class PhaseValidationTool(BaseTool):
     """Tool for validating specific phase completion using success criteria"""
 
     name: str = "phase_validator"
-    description: str = (
-        "Validates if a specific phase meets its success criteria by checking actual data and validation services"
-    )
+    description: str = "Validates if a specific phase meets its success criteria by checking actual data and validation services"
 
     def _run(
         self, flow_id: str, phase_id: str, flow_type: str, context_data: str

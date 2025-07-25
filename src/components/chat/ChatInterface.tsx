@@ -19,7 +19,7 @@ interface FeedbackFormData {
 const ChatInterface: React.FC = () => {
   const location = useLocation();
   const { getAuthHeaders, client, engagement } = useAuth();
-  
+
   // Feedback form state
   const [rating, setRating] = useState(0);
   const [feedbackText, setFeedbackText] = useState('');

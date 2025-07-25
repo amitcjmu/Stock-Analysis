@@ -7,13 +7,13 @@ import { useDependencyLogic } from '../../hooks/discovery/useDependencyLogic';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
-import { 
-  Network, 
-  Server, 
-  Database, 
-  ArrowRight, 
-  AlertCircle, 
-  CheckCircle, 
+import {
+  Network,
+  Server,
+  Database,
+  ArrowRight,
+  AlertCircle,
+  CheckCircle,
   Clock,
   RefreshCw,
   Play
@@ -29,7 +29,7 @@ const DependencyAnalysisPage = () => {
     isFlowListLoading,
     hasEffectiveFlow
   } = useDependencyFlowDetection();
-  
+
   // V2 Discovery flow hook - pass effectiveFlowId instead of urlFlowId
   const {
     flowState: flow,
@@ -40,11 +40,11 @@ const DependencyAnalysisPage = () => {
     refreshFlow: refresh,
     isPhaseComplete
   } = useUnifiedDiscoveryFlow(effectiveFlowId);
-  
+
   // Extract flow details
   const progressPercentage = flow?.progress_percentage || 0;
   const currentPhase = flow?.current_phase || '';
-  const completedPhases = flow?.phase_completion ? 
+  const completedPhases = flow?.phase_completion ?
     Object.entries(flow.phase_completion)
       .filter(([_, completed]) => completed)
       .map(([phase, _]) => phase) : [];
@@ -71,7 +71,7 @@ const DependencyAnalysisPage = () => {
 
   // Get dependency analysis specific data from V2 flow - extract from flow state
   const isDependencyAnalysisComplete = completedPhases.includes('dependency_analysis') || completedPhases.includes('dependencies_completed');
-  
+
   // Handle dependency analysis execution
   const handleExecuteDependencyAnalysis = async () => {
     try {
@@ -266,7 +266,7 @@ const DependencyAnalysisPage = () => {
             >
               Back to Asset Inventory
             </Button>
-            
+
             {isDependencyAnalysisComplete && (
               <Button
                 onClick={handleContinueToTechDebt}
@@ -283,4 +283,4 @@ const DependencyAnalysisPage = () => {
   );
 };
 
-export default DependencyAnalysisPage; 
+export default DependencyAnalysisPage;

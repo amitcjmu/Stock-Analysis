@@ -27,15 +27,15 @@ import { chromium } from 'playwright';
     console.log('Screenshot saved as discovery-layout-example.png');
 
     console.log('5. Analyzing layout structure...');
-    
+
     // Check for sidebar
     const sidebar = await page.$('[data-sidebar="sidebar"], nav, .sidebar').catch(() => null);
     console.log('Sidebar found:', !!sidebar);
-    
+
     // Check for breadcrumbs
     const breadcrumbs = await page.$('[role="navigation"], .breadcrumb, .breadcrumbs').catch(() => null);
     console.log('Breadcrumbs found:', !!breadcrumbs);
-    
+
     // Check for agent monitor panel
     const agentPanel = await page.$('.agent-monitor, .agent-panel, [data-testid="agent-monitor"]').catch(() => null);
     console.log('Agent monitor panel found:', !!agentPanel);
@@ -46,7 +46,7 @@ import { chromium } from 'playwright';
       const mainLayout = body.querySelector('main, .main, .app-layout, .page-layout');
       const sidebars = document.querySelectorAll('nav, .sidebar, [data-sidebar]');
       const headers = document.querySelectorAll('header, .header, .breadcrumb');
-      
+
       return {
         hasMainLayout: !!mainLayout,
         sidebarCount: sidebars.length,
@@ -55,7 +55,7 @@ import { chromium } from 'playwright';
         mainLayoutClasses: mainLayout?.className || 'none'
       };
     });
-    
+
     console.log('Layout analysis:', layoutInfo);
 
   } catch (error) {

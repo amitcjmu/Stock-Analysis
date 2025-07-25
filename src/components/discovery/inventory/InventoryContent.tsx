@@ -28,8 +28,8 @@ import type { InventoryContentProps } from './types/inventory.types'
 import type { AssetInventory } from './types/inventory.types'
 
 const DEFAULT_COLUMNS = [
-  'asset_name', 'asset_type', 'environment', 'operating_system', 
-  'location', 'status', 'business_criticality', 'risk_score', 
+  'asset_name', 'asset_type', 'environment', 'operating_system',
+  'location', 'status', 'business_criticality', 'risk_score',
   'migration_readiness', 'dependencies', 'last_updated'
 ];
 
@@ -41,7 +41,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
 }) => {
   const { client, engagement } = useAuth();
   const { flowState: flow, getPhaseData, executeFlowPhase, isExecutingPhase, refreshFlow } = useUnifiedDiscoveryFlow(flowId);
-  
+
   // Debug logging
   console.log('🔍 InventoryContent flow state:', {
     flowId,
@@ -51,7 +51,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     rawDataCount: flow?.raw_data?.length || 0,
     phaseCompletion: flow?.phase_completion
   });
-  
+
   // Get assets from flow if available, but this should not be the only source
   const getAssetsFromFlow = () => flow?.asset_inventory?.assets || [];
   const getFlow = () => flow;
@@ -70,30 +70,30 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
       try {
         // Import API call function with proper headers
         const { apiCall } = await import('../../../config/api');
-        
+
         // First try to fetch from the database API with proper context headers
         // The apiCall function will handle the proxy and headers correctly
         const response = await apiCall('/assets/list/paginated?page=1&page_size=100');
-        
+
         console.log('📊 Assets API response:', response);
-        
+
         // Check if the response indicates an error
         if (response && response.data_source === 'error') {
           console.warn('⚠️ Assets API returned error state. Backend may have failed to fetch assets.');
         }
-        
+
         if (response && response.assets && response.assets.length > 0) {
           console.log('📊 Assets from API:', response.assets.length);
           console.log('📊 Assets need classification:', response.needs_classification);
-          
+
           // Update classification state
           setNeedsClassification(response.needs_classification || false);
-          
+
           // If assets are properly classified, mark as triggered to prevent auto-execution loops
           if (!response.needs_classification && assets.length > 0) {
             setHasTriggeredInventory(true);
           }
-          
+
           // Transform API assets to match expected format
           return response.assets.map((asset: unknown) => ({
             id: asset.id,
@@ -117,7 +117,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
             last_updated: asset.updated_at
           }));
         }
-        
+
         // Fallback to flow assets if API returns no data
         const flowAssets = getAssetsFromFlow();
         console.log('📊 Using flow assets as fallback:', flowAssets.length);
@@ -190,27 +190,27 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   const handleRefreshClassification = async () => {
     try {
       console.log('🔄 Refreshing asset classification with CrewAI...');
-      
+
       // Reset the trigger state to allow fresh execution
       setHasTriggeredInventory(false);
-      
+
       // Re-execute the asset inventory phase to trigger CrewAI classification
       await executeFlowPhase('asset_inventory', {
         trigger: 'manual_refresh',
         source: 'inventory_classification_refresh'
       });
-      
+
       console.log('✅ Asset inventory phase re-executed');
-      
+
       // Set the trigger state to true after execution
       setHasTriggeredInventory(true);
-      
+
       // Refetch assets after phase execution (no fixed delay for agentic activities)
       setTimeout(() => {
         refetchAssets();
         refreshFlow();
       }, 1000);
-      
+
     } catch (error) {
       console.error('❌ Failed to refresh asset classification:', error);
       // Fallback to just refetching assets
@@ -226,13 +226,13 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
     }
 
     setIsReclassifying(true);
-    
+
     try {
       console.log(`🔄 Reclassifying ${selectedAssets.length} selected assets...`);
-      
+
       // Import API call function
       const { apiCall } = await import('../../../config/api');
-      
+
       const response = await apiCall('/assets/auto-classify', {
         method: 'POST',
         body: JSON.stringify({
@@ -242,16 +242,16 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
           classification_context: "user_initiated_reclassification"
         })
       });
-      
+
       console.log('✅ Reclassification completed:', response);
-      
+
       // Refresh assets after reclassification
       setTimeout(() => {
         refetchAssets();
         refreshFlow();
         clearSelection(); // Clear selection after successful reclassification
       }, 1000);
-      
+
     } catch (error) {
       console.error('❌ Failed to reclassify selected assets:', error);
     } finally {
@@ -269,7 +269,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
       const hasNoAssets = assets.length === 0;
       const notExecuting = !isExecutingPhase;
       const notTriggered = !hasTriggeredInventory;
-      
+
       // Log the conditions for debugging
       console.log('🔍 Auto-execute conditions (post-render):', {
         hasRawData,
@@ -301,7 +301,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
           }, 3000);
         }).catch(error => {
           console.error('❌ Failed to auto-execute asset inventory phase:', error);
-          
+
           // Reset for retry on any error since we fixed the endpoint authentication issue
           console.warn('🔄 Phase execution failed, will allow retry');
           setHasTriggeredInventory(false);
@@ -350,8 +350,8 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
   // Show a helpful message when there are no assets
   if (assets.length === 0 && !assetsLoading) {
     // Check if we need to execute the asset inventory phase
-    const shouldExecuteInventoryPhase = flow && 
-      flow.phase_completion?.data_cleansing === true && 
+    const shouldExecuteInventoryPhase = flow &&
+      flow.phase_completion?.data_cleansing === true &&
       flow.phase_completion?.inventory !== true &&
       flow.current_phase !== 'asset_inventory' &&
       !isExecutingPhase;
@@ -382,7 +382,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
                 <>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">No Assets Found</h3>
                   <p className="text-gray-600 mb-4">
-                    {flow ? 
+                    {flow ?
                       "The asset inventory will be populated once the inventory phase is executed." :
                       "No assets have been discovered yet for this client and engagement."
                     }
@@ -439,8 +439,8 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
 
         <TabsContent value="overview" className="space-y-6">
           <InventoryOverview inventoryProgress={inventoryProgress} />
-          <ClassificationProgress 
-            inventoryProgress={inventoryProgress} 
+          <ClassificationProgress
+            inventoryProgress={inventoryProgress}
             onRefresh={handleRefreshClassification}
             needsClassification={needsClassification}
           />
@@ -450,7 +450,7 @@ const InventoryContent: React.FC<InventoryContentProps> = ({
             onAssetTypeSelect={handleClassificationCardClick}
           />
           <NextStepCard inventoryProgress={inventoryProgress} />
-          
+
           {/* Show filtered asset details below Next Step when a type is selected */}
           {filters.selectedAssetType !== 'all' && (
             <div className="mt-6">

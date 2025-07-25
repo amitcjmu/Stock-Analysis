@@ -14,12 +14,12 @@ import { ValidationDisplay } from '@/components/collection/ValidationDisplay';
 import { ProgressTracker } from '@/components/collection/ProgressTracker';
 
 // Import types
-import type { 
-  ApplicationSummary, 
-  FormField, 
+import type {
+  ApplicationSummary,
+  FormField,
   BulkUploadResult,
   FormValidationResult,
-  ProgressMilestone 
+  ProgressMilestone
 } from '@/components/collection/types';
 
 // UI Components
@@ -210,8 +210,8 @@ const BulkUpload: React.FC = () => {
   };
 
   const handleDataChange = (applicationId: string, fieldId: string, value: unknown) => {
-    setApplications(prev => prev.map(app => 
-      app.id === applicationId 
+    setApplications(prev => prev.map(app =>
+      app.id === applicationId
         ? { ...app, [fieldId]: value }
         : app
     ));
@@ -258,9 +258,9 @@ const BulkUpload: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => navigate('/collection')}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -274,8 +274,8 @@ const BulkUpload: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={handleDownloadTemplate}
           >
             <Download className="h-4 w-4 mr-2" />
@@ -333,12 +333,12 @@ const BulkUpload: React.FC = () => {
                     </React.Fragment>
                   ))}
                 </div>
-                
+
                 {uploadResults[0]?.validationIssues.length > 0 && (
                   <Alert className="mt-4">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      {uploadResults[0].validationIssues.length} validation issues found. 
+                      {uploadResults[0].validationIssues.length} validation issues found.
                       Review the data grid below to address these issues.
                     </AlertDescription>
                   </Alert>
@@ -400,7 +400,7 @@ const BulkUpload: React.FC = () => {
 
           {/* Validation Results */}
           {validation && (
-            <ValidationDisplay 
+            <ValidationDisplay
               validation={validation}
               showWarnings={true}
               onErrorClick={(fieldId) => {
@@ -411,13 +411,13 @@ const BulkUpload: React.FC = () => {
 
           {/* Action Buttons */}
           <div className="flex justify-end space-x-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => navigate('/collection')}
             >
               Save and Continue Later
             </Button>
-            <Button 
+            <Button
               onClick={() => navigate('/collection/data-integration')}
               disabled={applications.length === 0}
             >

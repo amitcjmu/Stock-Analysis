@@ -14,7 +14,7 @@ export const ActionableRecommendations: React.FC<ActionableRecommendationsProps>
         <Target className="h-4 w-4 text-emerald-500" />
         Actionable Recommendations
       </h4>
-      
+
       <div className="space-y-4">
         {recommendations.immediate_actions.length > 0 && (
           <div>

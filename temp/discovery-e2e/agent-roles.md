@@ -7,7 +7,7 @@
    - Maintain implementation queue priority
    - Assign work to available agents
    - Handle dependencies between issues
-   
+
 2. **User Interface**
    - Accept priority overrides from user
    - Process focus directives
@@ -101,13 +101,13 @@ ELIF agent_blocked:
 1. **Data Integrity Checks**
    ```sql
    -- Active flows check
-   SELECT * FROM discovery_flows 
+   SELECT * FROM discovery_flows
    WHERE created_at > NOW() - INTERVAL '1 hour';
-   
+
    -- Master flow linkage
-   SELECT df.*, mf.id as master_id 
+   SELECT df.*, mf.id as master_id
    FROM discovery_flows df
-   LEFT JOIN crewai_flow_state_extensions mf 
+   LEFT JOIN crewai_flow_state_extensions mf
    ON df.master_flow_id = mf.id;
    ```
 
@@ -171,7 +171,7 @@ docker exec -it migration_db psql -U postgres -d migration_db
    # Search for related changes
    git log --grep="UUID" --since="1 year ago"
    git log --grep="flow.*cleanup"
-   
+
    # Check file history
    git log -p backend/app/services/crewai_flows/execution_engine.py
    ```

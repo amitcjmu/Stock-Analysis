@@ -1,6 +1,6 @@
 /**
  * Shared API Type Definitions
- * 
+ *
  * Standardized API interfaces to replace any types in API response handling
  */
 
@@ -19,7 +19,7 @@ export interface ApiResponse<TData = unknown, TError = ApiError> {
 }
 
 /**
- * Standard API error structure  
+ * Standard API error structure
  */
 export interface ApiError {
   /** Error code for programmatic handling */

@@ -25,7 +25,7 @@ const formatLogData = (data: LogData): LogData => {
   if (data === null || data === undefined) {
     return data;
   }
-  
+
   if (typeof data === 'object' && data !== null) {
     try {
       return JSON.parse(JSON.stringify(data));
@@ -33,7 +33,7 @@ const formatLogData = (data: LogData): LogData => {
       return '[Circular or non-serializable object]';
     }
   }
-  
+
   return data;
 };
 
@@ -49,11 +49,11 @@ const formatError = (error: LogError): LogError => {
       ...(error.cause && { cause: error.cause })
     };
   }
-  
+
   if (typeof error === 'string') {
     return error;
   }
-  
+
   return formatLogData(error) as LogError;
 };
 
@@ -75,4 +75,4 @@ export const logger: Logger = {
   error: (message: string, error?: LogError) => {
     console.error('[AI Modernize Error]', message, error ? formatError(error) : undefined);
   }
-}; 
+};

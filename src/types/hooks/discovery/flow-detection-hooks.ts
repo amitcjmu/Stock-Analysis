@@ -1,6 +1,6 @@
 /**
  * Discovery Flow Detection Hook Types
- * 
+ *
  * Type definitions for flow detection hooks including automatic flow detection,
  * import data management, and workflow orchestration.
  */

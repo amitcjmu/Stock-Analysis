@@ -4,11 +4,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { 
-  CheckCircle, 
-  AlertCircle, 
-  Server, 
-  Database, 
+import {
+  CheckCircle,
+  AlertCircle,
+  Server,
+  Database,
   Network,
   ArrowRight,
   X
@@ -122,14 +122,14 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
 
             {onValidate && application.validation_status !== 'high_confidence' && (
               <div className="flex gap-2 mt-4">
-                <Button 
+                <Button
                   onClick={() => onValidate('approve')}
                   className="flex items-center gap-2"
                 >
                   <CheckCircle className="h-4 w-4" />
                   Approve Configuration
                 </Button>
-                <Button 
+                <Button
                   onClick={() => onValidate('modify')}
                   variant="outline"
                   className="flex items-center gap-2"
@@ -221,8 +221,8 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
                   {Math.round(application.confidence * 100)}%
                 </span>
               </div>
-              <Progress 
-                value={application.confidence * 100} 
+              <Progress
+                value={application.confidence * 100}
                 className="h-3 mt-2"
               />
             </div>

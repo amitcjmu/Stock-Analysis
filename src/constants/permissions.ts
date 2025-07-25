@@ -12,7 +12,7 @@ export const PERMISSIONS = {
     VIEW_LOGS: 'system.view_logs',
     MANAGE_SETTINGS: 'system.manage_settings'
   },
-  
+
   // Discovery permissions
   DISCOVERY: {
     VIEW: 'discovery.view',
@@ -24,7 +24,7 @@ export const PERMISSIONS = {
     MANAGE_ASSETS: 'discovery.manage_assets',
     MANAGE_APPLICATIONS: 'discovery.manage_applications'
   },
-  
+
   // Collection permissions
   COLLECTION: {
     VIEW: 'collection.view',
@@ -35,7 +35,7 @@ export const PERMISSIONS = {
     MANAGE_FLOWS: 'collection.manage_flows',
     EXECUTE_FLOWS: 'collection.execute_flows'
   },
-  
+
   // Assessment permissions
   ASSESSMENT: {
     VIEW: 'assessment.view',
@@ -45,7 +45,7 @@ export const PERMISSIONS = {
     EXECUTE: 'assessment.execute',
     APPROVE: 'assessment.approve'
   },
-  
+
   // Monitoring permissions
   MONITORING: {
     VIEW: 'monitoring.view',
@@ -54,7 +54,7 @@ export const PERMISSIONS = {
     VIEW_METRICS: 'monitoring.view_metrics',
     EXPORT_METRICS: 'monitoring.export_metrics'
   },
-  
+
   // Agent permissions
   AGENT: {
     VIEW: 'agent.view',
@@ -63,7 +63,7 @@ export const PERMISSIONS = {
     TRAIN: 'agent.train',
     VIEW_LEARNING: 'agent.view_learning'
   },
-  
+
   // Report permissions
   REPORT: {
     VIEW: 'report.view',
@@ -73,7 +73,7 @@ export const PERMISSIONS = {
     EXPORT: 'report.export',
     SHARE: 'report.share'
   },
-  
+
   // Client permissions
   CLIENT: {
     VIEW: 'client.view',
@@ -81,7 +81,7 @@ export const PERMISSIONS = {
     MANAGE_USERS: 'client.manage_users',
     MANAGE_ENGAGEMENTS: 'client.manage_engagements'
   },
-  
+
   // Engagement permissions
   ENGAGEMENT: {
     VIEW: 'engagement.view',
@@ -104,7 +104,7 @@ export const PERMISSION_GROUPS = {
     ...Object.values(PERMISSIONS.CLIENT),
     ...Object.values(PERMISSIONS.ENGAGEMENT)
   ],
-  
+
   CLIENT_ADMIN: [
     PERMISSIONS.CLIENT.VIEW,
     PERMISSIONS.CLIENT.EDIT,
@@ -118,7 +118,7 @@ export const PERMISSION_GROUPS = {
     PERMISSIONS.MONITORING.VIEW_METRICS,
     ...Object.values(PERMISSIONS.REPORT)
   ],
-  
+
   ENGAGEMENT_LEAD: [
     PERMISSIONS.ENGAGEMENT.VIEW,
     PERMISSIONS.ENGAGEMENT.EDIT,
@@ -130,7 +130,7 @@ export const PERMISSION_GROUPS = {
     PERMISSIONS.MONITORING.VIEW_METRICS,
     ...Object.values(PERMISSIONS.REPORT)
   ],
-  
+
   ANALYST: [
     PERMISSIONS.DISCOVERY.VIEW,
     PERMISSIONS.DISCOVERY.CREATE,
@@ -147,7 +147,7 @@ export const PERMISSION_GROUPS = {
     PERMISSIONS.REPORT.VIEW,
     PERMISSIONS.REPORT.CREATE
   ],
-  
+
   VIEWER: [
     PERMISSIONS.DISCOVERY.VIEW,
     PERMISSIONS.COLLECTION.VIEW,

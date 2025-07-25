@@ -1,6 +1,6 @@
 /**
  * Performance Analysis Types
- * 
+ *
  * Type definitions for analyzing performance metrics, identifying bottlenecks,
  * generating recommendations, and tracking performance trends.
  */
@@ -259,4 +259,3 @@ export interface TrendForecast {
   lowerBound: number;
   assumptions: string[];
 }
-

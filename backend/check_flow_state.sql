@@ -1,5 +1,5 @@
 -- Check discovery_flows table (child - source of truth)
-SELECT 
+SELECT
     flow_id,
     status,
     progress_percentage,
@@ -12,7 +12,7 @@ ORDER BY updated_at DESC
 LIMIT 5;
 
 -- Check master flow table
-SELECT 
+SELECT
     flow_id,
     flow_status,
     flow_persistence_data->>'status' as persistence_status,

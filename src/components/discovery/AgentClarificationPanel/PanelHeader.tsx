@@ -1,6 +1,6 @@
 /**
  * Panel Header Component
- * 
+ *
  * Header section with title, pending count, and refresh button.
  */
 

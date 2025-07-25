@@ -389,28 +389,28 @@ def get_performance_recommendations(metrics: FlowPerformanceMetrics) -> Dict[str
     recommendations = {}
 
     if metrics.execution_time_seconds > 300:
-        recommendations["execution_time"] = (
-            "Consider optimizing algorithms or adding parallel processing"
-        )
+        recommendations[
+            "execution_time"
+        ] = "Consider optimizing algorithms or adding parallel processing"
 
     if metrics.memory_usage_mb > 1000:
-        recommendations["memory"] = (
-            "Consider implementing memory optimization or data streaming"
-        )
+        recommendations[
+            "memory"
+        ] = "Consider implementing memory optimization or data streaming"
 
     if metrics.cpu_usage_percent > 80:
-        recommendations["cpu"] = (
-            "Consider load balancing or reducing computational complexity"
-        )
+        recommendations[
+            "cpu"
+        ] = "Consider load balancing or reducing computational complexity"
 
     if metrics.error_rate_percent > 5:
-        recommendations["error_rate"] = (
-            "Review error handling and implement better validation"
-        )
+        recommendations[
+            "error_rate"
+        ] = "Review error handling and implement better validation"
 
     if metrics.database_queries > 100:
-        recommendations["database"] = (
-            "Consider query optimization or caching strategies"
-        )
+        recommendations[
+            "database"
+        ] = "Consider query optimization or caching strategies"
 
     return recommendations

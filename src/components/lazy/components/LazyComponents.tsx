@@ -15,7 +15,7 @@ const createLazyComponent = <P extends Record<string, unknown> = Record<string, 
   priority: LoadingPriority = LoadingPriority.NORMAL
 ) => {
   const LazyComponent = lazy(importFn);
-  
+
   const getFallback = () => {
     switch (fallbackType) {
       case 'skeleton':
@@ -32,7 +32,7 @@ const createLazyComponent = <P extends Record<string, unknown> = Record<string, 
         );
     }
   };
-  
+
   return React.forwardRef<HTMLElement, P>((props, ref) => (
     <ErrorBoundary
       FallbackComponent={({ error, resetErrorBoundary }) => (
@@ -308,7 +308,7 @@ export const ProgressiveLazyComponent = <P extends Record<string, unknown> = Rec
   }, [enhancementCondition, EnhancedComponent, enhancedImport]);
 
   const ComponentToRender = EnhancedComponent || BaseComponent;
-  
+
   return (
     <Suspense fallback={<LoadingFallback compact />}>
       <ComponentToRender {...props} />

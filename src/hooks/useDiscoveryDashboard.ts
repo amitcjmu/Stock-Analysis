@@ -58,7 +58,7 @@ export interface InfrastructureLandscape {
 
 export const useDiscoveryMetrics = () => {
   const { client, engagement } = useAuth();
-  
+
   return useQuery<DiscoveryMetrics, Error>({
     queryKey: ['discovery', 'metrics', client?.id, engagement?.id],
     queryFn: async () => {
@@ -77,7 +77,7 @@ export const useDiscoveryMetrics = () => {
           dataQuality: 0
         };
       }
-      
+
       return await masterFlowServiceExtended.getDiscoveryMetrics(
         client.id,
         engagement.id
@@ -91,7 +91,7 @@ export const useDiscoveryMetrics = () => {
 
 export const useApplicationLandscape = () => {
   const { client, engagement } = useAuth();
-  
+
   return useQuery<ApplicationLandscape, Error>({
     queryKey: ['discovery', 'application-landscape', client?.id, engagement?.id],
     queryFn: async () => {
@@ -108,7 +108,7 @@ export const useApplicationLandscape = () => {
           }
         };
       }
-      
+
       return await masterFlowServiceExtended.getApplicationLandscape(
         client.id,
         engagement.id
@@ -122,7 +122,7 @@ export const useApplicationLandscape = () => {
 
 export const useInfrastructureLandscape = () => {
   const { client, engagement } = useAuth();
-  
+
   return useQuery<InfrastructureLandscape, Error>({
     queryKey: ['discovery', 'infrastructure-landscape', client?.id, engagement?.id],
     queryFn: async () => {
@@ -152,7 +152,7 @@ export const useInfrastructureLandscape = () => {
           }
         };
       }
-      
+
       return await masterFlowServiceExtended.getInfrastructureLandscape(
         client.id,
         engagement.id
@@ -162,4 +162,4 @@ export const useInfrastructureLandscape = () => {
     refetchOnWindowFocus: false,
     enabled: !!client?.id && !!engagement?.id, // Only run when auth context is available
   });
-}; 
+};

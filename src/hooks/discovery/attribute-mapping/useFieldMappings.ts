@@ -82,11 +82,11 @@ export const useFieldMappings = (
   const { getAuthHeaders } = useAuth();
 
   // Get field mappings using the import ID
-  const { 
-    data: realFieldMappings, 
-    isLoading: isFieldMappingsLoading, 
-    error: fieldMappingsError, 
-    refetch: refetchFieldMappings 
+  const {
+    data: realFieldMappings,
+    isLoading: isFieldMappingsLoading,
+    error: fieldMappingsError,
+    refetch: refetchFieldMappings
   } = useQuery({
     queryKey: ['field-mappings', importData?.import_metadata?.import_id],
     queryFn: async () => {
@@ -95,9 +95,9 @@ export const useFieldMappings = (
         console.warn('⚠️ No import ID available for field mappings fetch');
         return [];
       }
-      
+
       console.log('🔍 Fetching field mappings for import ID:', importId);
-      
+
       try {
         // First, get all field mappings (including filtered ones)
         const mappings = await apiCall(`/api/v1/data-import/field-mapping/imports/${importId}/field-mappings`, {
@@ -107,13 +107,13 @@ export const useFieldMappings = (
             ...getAuthHeaders()
           }
         });
-        
+
         console.log('✅ Fetched field mappings from API:', {
           import_id: importId,
           mappings_count: Array.isArray(mappings) ? mappings.length : 'not an array',
           mappings_sample: Array.isArray(mappings) ? mappings.slice(0, 2) : mappings
         });
-        
+
         // Now try to get the raw import data to see all original CSV fields
         try {
           const rawImportData = await apiCall(`/api/v1/data-import/imports/${importId}`, {
@@ -123,7 +123,7 @@ export const useFieldMappings = (
               ...getAuthHeaders()
             }
           });
-          
+
           console.log('📊 Raw import data retrieved:', {
             has_raw_data: !!rawImportData?.raw_data,
             raw_data_keys: rawImportData?.raw_data ? Object.keys(rawImportData.raw_data) : [],
@@ -131,40 +131,40 @@ export const useFieldMappings = (
             total_records: rawImportData?.record_count,
             field_count: rawImportData?.field_count
           });
-          
+
           // If we have raw data, ensure all CSV fields are represented as mappings
           if (rawImportData?.sample_record || rawImportData?.raw_data) {
             const sampleRecord = rawImportData.sample_record || rawImportData.raw_data;
             const allCsvFields = Object.keys(sampleRecord);
             const mappedFieldNames = (mappings || []).map(m => m.source_field);
-            
+
             // Create mappings for fields that don't exist in the API response
             const missingFields = allCsvFields.filter(field => !mappedFieldNames.includes(field));
-            
+
             if (missingFields.length > 0) {
               console.log(`📋 Found ${missingFields.length} unmapped CSV fields:`, missingFields);
-              
+
               // Create placeholder mappings for unmapped fields
               const additionalMappings = missingFields.map(sourceField => ({
                 id: crypto.randomUUID(), // Generate proper UUID for unmapped fields
                 source_field: sourceField,
-                target_field: 'UNMAPPED', // Use UNMAPPED placeholder 
+                target_field: 'UNMAPPED', // Use UNMAPPED placeholder
                 confidence: 0,
                 is_approved: false,
                 status: 'unmapped',
                 match_type: 'unmapped',
                 is_placeholder: true // Mark as placeholder to prevent approval attempts
               }));
-              
+
               const enhancedMappings = [...(mappings || []), ...additionalMappings];
-              
+
               console.log('✅ Enhanced field mappings with all CSV fields:', {
                 original_mappings: mappings?.length || 0,
                 additional_mappings: additionalMappings.length,
                 total_mappings: enhancedMappings.length,
                 total_csv_fields: allCsvFields.length
               });
-              
+
               // Transform enhanced mappings to frontend format before returning
               const transformedEnhancedMappings = enhancedMappings.map((mapping: RawFieldMapping) => ({
                 id: mapping.id,
@@ -180,20 +180,20 @@ export const useFieldMappings = (
                 is_required: mapping.is_required,
                 is_placeholder: mapping.is_placeholder
               }));
-              
+
               console.log('✅ Transformed enhanced field mappings:', {
                 enhanced_count: enhancedMappings.length,
                 transformed_count: transformedEnhancedMappings.length,
                 sample_transformed: transformedEnhancedMappings.slice(0, 3)
               });
-              
+
               return transformedEnhancedMappings;
             }
           }
         } catch (rawDataError) {
           console.warn('⚠️ Could not fetch raw import data:', rawDataError);
         }
-        
+
         // Return the raw mappings directly from the API
         // The backend already provides the correct field names
         console.log('✅ Returning raw field mappings from API:', {
@@ -204,13 +204,13 @@ export const useFieldMappings = (
         return mappings || [];
       } catch (error) {
         console.error('❌ Error fetching field mappings:', error);
-        
+
         // If rate limited, wait and retry manually
         if (error.message?.includes('Rate limit') || error.message?.includes('Too Many Requests')) {
           console.log('⚠️ Rate limited - will retry with exponential backoff');
           // Let react-query handle the retry
         }
-        
+
         return [];
       }
     },
@@ -256,16 +256,16 @@ export const useFieldMappings = (
       fieldMappingData_type: typeof fieldMappingData,
       fieldMappingData_keys: fieldMappingData ? Object.keys(fieldMappingData) : []
     });
-    
+
     // Use the API field mappings data
     if (realFieldMappings && Array.isArray(realFieldMappings)) {
       const mappedData = realFieldMappings.map(mapping => {
         // Check if this is an unmapped field
         const isUnmapped = mapping.target_field === 'UNMAPPED' || mapping.target_field === null;
-        
+
         // Ensure source_field is always a string
         const sourceField = String(mapping.source_field || 'Unknown Field');
-        
+
         return {
           id: mapping.id,
           sourceField: sourceField,
@@ -286,17 +286,17 @@ export const useFieldMappings = (
           is_required: mapping.is_required
         };
       });
-      
+
       console.log('🔍 [DEBUG] Using API field mappings data:', {
         original_count: realFieldMappings.length,
         mapped_count: mappedData.length,
         sample_original: realFieldMappings.slice(0, 2),
         sample_mapped: mappedData.slice(0, 2)
       });
-      
+
       return mappedData;
     }
-    
+
     // REMOVED FALLBACK - Always use API data to avoid field name issues
     // The fallback logic was converting field names to numeric indices
     // Dead code block - commented out to fix linting errors
@@ -310,14 +310,14 @@ export const useFieldMappings = (
           keys: fieldMappingData ? Object.keys(fieldMappingData) : []
         }
       });
-      
+
       // Case 1: Handle direct field mappings structure from backend
       if (fieldMappingData && typeof fieldMappingData === 'object' && !fieldMappingData.mappings && !fieldMappingData.attributes) {
         // Backend returns field_mappings directly as object with confidence_scores
         const mappingsObj = { ...fieldMappingData };
         delete mappingsObj.confidence_scores; // Remove confidence_scores from main object
         delete mappingsObj.data; // Remove data object if present
-        
+
         console.log('🔍 [DEBUG] Processing mappingsObj:', {
           mappingsObj_type: typeof mappingsObj,
           mappingsObj_isArray: Array.isArray(mappingsObj),
@@ -325,28 +325,28 @@ export const useFieldMappings = (
           mappingsObj_entries: Object.entries(mappingsObj).slice(0, 3),
           mappingsObj_sample: mappingsObj
         });
-        
+
         const flowStateMappings = Object.entries(mappingsObj)
           .filter(([key, value]) => {
             console.log('🔍 [DEBUG] Processing entry:', { key, key_type: typeof key, value, value_type: typeof value });
             return key !== 'confidence_scores' && key !== 'data';
           })
           .map(([sourceField, targetField]: [string, string]) => {
-            console.log('🔍 [DEBUG] Mapping entry:', { 
-              sourceField, 
+            console.log('🔍 [DEBUG] Mapping entry:', {
+              sourceField,
               sourceField_type: typeof sourceField,
-              targetField, 
-              targetField_type: typeof targetField 
+              targetField,
+              targetField_type: typeof targetField
             });
-            
+
             // Ensure sourceField is always a string, not an array index
             const cleanSourceField = String(sourceField).trim();
             const isNumericIndex = /^\d+$/.test(cleanSourceField);
-            
+
             if (isNumericIndex) {
               console.warn('⚠️ [WARNING] Detected numeric index as sourceField:', cleanSourceField);
             }
-            
+
             return {
               id: crypto.randomUUID(), // Generate proper UUID
               sourceField: (cleanSourceField === 'None' || isNumericIndex) ? 'Unknown Field' : cleanSourceField,
@@ -369,7 +369,7 @@ export const useFieldMappings = (
         });
         return flowStateMappings;
       }
-      
+
       // Handle structured mappings format
       if (fieldMappingData && fieldMappingData.mappings) {
         const mappingsObj = fieldMappingData.mappings;

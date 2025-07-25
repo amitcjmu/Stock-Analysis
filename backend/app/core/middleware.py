@@ -382,9 +382,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         url = str(request.url)
 
         # Log request start
-        logger.info(
-            f"🔄 {method} {url} | IP: {client_ip} | Agent: {user_agent[:50]}..."
-        )
+        logger.info(f"🔄 {method} {url} | IP: {client_ip} | Agent: {user_agent[:50]}...")
 
         try:
             # Process request

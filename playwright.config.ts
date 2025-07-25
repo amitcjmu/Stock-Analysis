@@ -40,7 +40,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { 
+      use: {
         ...devices['Desktop Chrome'],
         // Keep browser console open to see errors
         launchOptions: {

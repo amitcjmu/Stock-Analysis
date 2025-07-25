@@ -13,7 +13,7 @@ import Sidebar from '../../components/Sidebar';
 const Verification = () => {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
-  
+
   const {
     data: verificationData,
     isLoading,
@@ -199,7 +199,7 @@ const Verification = () => {
                       </CardHeader>
                       <CardContent>
                         <p className="text-sm text-gray-600 mb-4">{check.description}</p>
-                        
+
                         <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                           {check.lastRun && (
                             <div>
@@ -275,4 +275,4 @@ const Verification = () => {
   );
 };
 
-export default Verification; 
+export default Verification;

@@ -95,9 +95,9 @@ class AgenticAssetEnrichmentCrew:
         asset_intelligence_agent = Agent(
             role="Asset Intelligence Specialist",
             goal="Analyze assets using discovered patterns and memory to determine business value, risk, and modernization potential",
-            backstory="""You are an expert asset intelligence specialist who uses pattern recognition 
-            and institutional memory to assess business value and migration readiness. You learn from 
-            previous enrichment decisions and discover new patterns during analysis. Your intelligence 
+            backstory="""You are an expert asset intelligence specialist who uses pattern recognition
+            and institutional memory to assess business value and migration readiness. You learn from
+            previous enrichment decisions and discover new patterns during analysis. Your intelligence
             comes from reasoning, not hard-coded rules.""",
             tools=tools,
             memory=True,  # Enable CrewAI memory (Tier 1)
@@ -112,8 +112,8 @@ class AgenticAssetEnrichmentCrew:
         pattern_discovery_agent = Agent(
             role="Pattern Discovery Specialist",
             goal="Identify and record new patterns in asset data that can improve future enrichment decisions",
-            backstory="""You are a pattern recognition expert who analyzes asset enrichment results 
-            to discover repeatable patterns. You look for correlations between asset attributes and 
+            backstory="""You are a pattern recognition expert who analyzes asset enrichment results
+            to discover repeatable patterns. You look for correlations between asset attributes and
             business outcomes, recording insights for future agent reasoning.""",
             tools=tools,
             memory=True,  # Enable CrewAI memory (Tier 1)
@@ -158,32 +158,32 @@ class AgenticAssetEnrichmentCrew:
         enrichment_task = Task(
             description=f"""
             Perform intelligent asset enrichment for {len(assets_data)} assets using pattern-based reasoning.
-            
+
             Asset Overview:
             - Total assets: {asset_summary['total_assets']}
             - Asset types: {asset_summary['asset_types']}
             - Environments: {asset_summary['environments']}
-            
+
             Your Process:
             1. Use the pattern_search tool to find existing patterns that might apply to these assets
             2. Use the asset_data_query tool to examine asset characteristics and relationships
             3. Apply reasoning (not rules) to assess business value, risk, and modernization potential
             4. Use the asset_enrichment tool to update assets with your intelligence
             5. Document your reasoning process for each enrichment decision
-            
+
             Focus on:
             - Business value assessment based on asset characteristics and usage patterns
             - Risk evaluation considering technology, dependencies, and criticality
             - Modernization potential analysis based on current state and cloud readiness
             - Pattern recognition for similar assets
-            
+
             Remember: Your intelligence comes from reasoning and pattern recognition, not hard-coded rules.
             Learn from existing patterns and apply contextual judgment to each asset.
             """,
             expected_output="""A comprehensive enrichment report containing:
             1. Summary of patterns discovered and applied
             2. Business value scores with reasoning for each asset category
-            3. Risk assessments and mitigation considerations  
+            3. Risk assessments and mitigation considerations
             4. Modernization recommendations with priority rankings
             5. New patterns identified during analysis
             6. Confidence levels and validation recommendations""",
@@ -195,21 +195,21 @@ class AgenticAssetEnrichmentCrew:
         pattern_discovery_task = Task(
             description="""
             Analyze the enrichment results to discover and record new patterns for future learning.
-            
+
             Your Process:
             1. Use the asset_data_query tool to examine enriched assets and identify correlations
             2. Look for repeatable patterns in business value assignments, risk assessments, and modernization decisions
             3. Use the pattern_recording tool to capture significant patterns you discover
             4. Validate patterns against multiple asset examples
             5. Assess pattern confidence based on evidence strength
-            
+
             Pattern Types to Consider:
             - Business value indicators (what makes an asset valuable?)
             - Risk factors (what increases migration risk?)
             - Modernization opportunities (what indicates cloud readiness?)
             - Technology correlations (how do tech stacks relate to outcomes?)
             - Naming conventions and organizational patterns
-            
+
             Record patterns with:
             - Clear descriptions of when they apply
             - Confidence scores based on evidence

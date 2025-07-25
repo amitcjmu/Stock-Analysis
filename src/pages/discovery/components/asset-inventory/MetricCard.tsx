@@ -33,7 +33,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
   ) : '';
 
   return (
-    <div 
+    <div
       className={cn(
         'bg-white rounded-lg shadow-sm border border-gray-200 p-6 transition-all duration-200',
         onClick ? 'hover:shadow-md hover:border-gray-300 cursor-pointer' : '',

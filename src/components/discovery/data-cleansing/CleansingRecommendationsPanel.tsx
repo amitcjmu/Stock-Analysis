@@ -144,4 +144,4 @@ const CleansingRecommendationsPanel: React.FC<CleansingRecommendationsPanelProps
   );
 };
 
-export default CleansingRecommendationsPanel; 
+export default CleansingRecommendationsPanel;

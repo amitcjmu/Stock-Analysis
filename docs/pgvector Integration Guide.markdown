@@ -84,7 +84,7 @@ CREATE TABLE cmdb_asset_embeddings (
     embedding VECTOR(1536), -- Adjust dimension based on DeepInfra LLM (e.g., 1536 for text-embedding-ada-002)
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
+
     -- Constraints
     CONSTRAINT unique_asset_embedding UNIQUE (cmdb_asset_id, client_account_id, engagement_id)
 );
@@ -200,7 +200,7 @@ Define a SQLAlchemy model for the `cmdb_asset_embeddings` table, compatible with
 
    class CMDBAssetEmbedding(Base):
        __tablename__ = 'cmdb_asset_embeddings'
-       
+
        id = Column(UUID, primary_key=True, default=uuid.uuid4)
        cmdb_asset_id = Column(UUID, ForeignKey('cmdb_assets.id'), nullable=False)
        client_account_id = Column(UUID, ForeignKey('client_accounts.id'), nullable=False)
@@ -227,17 +227,17 @@ from app.repositories.base_repository import ContextAwareRepository
 
 class CMDBAssetEmbeddingRepository(ContextAwareRepository):
     """Repository for CMDB asset embeddings with context awareness."""
-    
+
     def __init__(self, db: Session, context: dict):
         super().__init__(db, context)
-    
+
     def create_embedding(self, cmdb_asset_id: str, embedding: list) -> CMDBAssetEmbedding:
         """Create a new embedding record."""
-        return self.create_with_context(CMDBAssetEmbedding, 
+        return self.create_with_context(CMDBAssetEmbedding,
             cmdb_asset_id=cmdb_asset_id,
             embedding=embedding
         )
-    
+
     def find_similar_assets(self, query_embedding: list, top_k: int = 5) -> list:
         """Find similar CMDB assets using vector search."""
         query = self.db.query(CMDBAssetEmbedding).filter(
@@ -245,7 +245,7 @@ class CMDBAssetEmbeddingRepository(ContextAwareRepository):
         )
         if self.context.get('engagement_id'):
             query = query.filter(CMDBAssetEmbedding.engagement_id == self.context['engagement_id'])
-        
+
         query = query.order_by(CMDBAssetEmbedding.embedding.cosine_distance(query_embedding)).limit(top_k)
         return query.all()
 ```
@@ -410,7 +410,7 @@ from app.services.embedding_service import EmbeddingService
 class CMDBSimilarityTool(Tool):
     name = "CMDB Similarity Search"
     description = "Finds similar CMDB assets using vector search."
-    
+
     def _run(self, query_text: str, top_k: int = 5, **context) -> list:
         db = context["db"]
         embedding_service = EmbeddingService(db, context)

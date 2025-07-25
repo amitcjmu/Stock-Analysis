@@ -16,7 +16,7 @@ interface ContextWithIds {
 export const getAuthHeaders = (context?: Partial<AuthContextType & ContextWithIds>): Record<string, string> => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
   const headers: Record<string, string> = {};
-  
+
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
@@ -29,7 +29,7 @@ export const getAuthHeaders = (context?: Partial<AuthContextType & ContextWithId
   if (context?.currentEngagementId) {
     headers['X-Engagement-ID'] = context.currentEngagementId;
   }
-  
+
   if (context?.flowId) {
     headers['X-Flow-ID'] = context.flowId;
   }
@@ -44,21 +44,21 @@ export const getAuthHeaders = (context?: Partial<AuthContextType & ContextWithId
  */
 export const getContextHeaders = (context?: Partial<ContextWithIds>) => {
   const headers: Record<string, string> = {};
-  
+
   if (context?.client?.id) {
     headers['X-Client-Account-ID'] = context.client.id;
   }
-  
+
   if (context?.engagement?.id) {
     headers['X-Engagement-ID'] = context.engagement.id;
   } else if (context?.currentEngagementId) {
     headers['X-Engagement-ID'] = context.currentEngagementId;
   }
-  
+
   if (context?.flowId) {
     headers['X-Flow-ID'] = context.flowId;
   }
-  
+
   return headers;
 };
 

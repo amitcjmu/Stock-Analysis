@@ -17,10 +17,10 @@ import { ReadinessScoreCard } from './AssessmentReadiness/components/ReadinessSc
 import { ReadinessTabs } from './AssessmentReadiness/components/ReadinessTabs';
 
 // Hooks
-import { 
-  useReadinessAssessment, 
-  useGenerateSignoffPackage, 
-  useSubmitForApproval 
+import {
+  useReadinessAssessment,
+  useGenerateSignoffPackage,
+  useSubmitForApproval
 } from './AssessmentReadiness/hooks/useReadinessAssessment';
 
 // Types
@@ -53,9 +53,9 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
             <p className="text-red-700 mt-2">
               We're having trouble loading the assessment readiness data. Please try again later.
             </p>
-            <Button 
-              variant="outline" 
-              className="mt-4" 
+            <Button
+              variant="outline"
+              className="mt-4"
               onClick={() => this.setState({ hasError: false })}
             >
               Retry
@@ -74,7 +74,7 @@ const AssessmentReadiness: React.FC = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('overview');
 
-  
+
   // Fetch assessment data
   const {
     data: readinessAssessment,
@@ -138,7 +138,7 @@ const AssessmentReadiness: React.FC = () => {
   // Handle submission for approval
   const handleSubmitForApproval = () => {
     if (!readinessAssessment?.signoffPackage) return;
-    
+
     submitApproval({
       assessmentId: readinessAssessment.id,
       signoffPackage: readinessAssessment.signoffPackage,
@@ -168,9 +168,9 @@ const AssessmentReadiness: React.FC = () => {
         <p className="mt-2 text-sm text-red-700">
           {assessmentError.message || 'Failed to load assessment data. Please try again.'}
         </p>
-        <Button 
-          variant="outline" 
-          className="mt-4" 
+        <Button
+          variant="outline"
+          className="mt-4"
           onClick={() => refetchAssessment()}
         >
           <RefreshCw className="h-4 w-4 mr-2" />
@@ -200,9 +200,9 @@ const AssessmentReadiness: React.FC = () => {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <ReadinessScoreCard readinessAssessment={readinessAssessment} />
-      
+
       <div className="mt-6">
-        <ReadinessTabs 
+        <ReadinessTabs
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           readinessAssessment={readinessAssessment}
@@ -222,4 +222,4 @@ const AssessmentReadinessWithErrorBoundary = () => (
   </ErrorBoundary>
 );
 
-export default AssessmentReadinessWithErrorBoundary; 
+export default AssessmentReadinessWithErrorBoundary;

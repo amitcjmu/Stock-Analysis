@@ -125,7 +125,7 @@ export const BusinessPriorities = [
 ];
 
 export const Industries = [
-  'Technology', 'Healthcare', 'Finance', 'Manufacturing', 'Retail', 
+  'Technology', 'Healthcare', 'Finance', 'Manufacturing', 'Retail',
   'Education', 'Government', 'Energy', 'Transportation', 'Other'
 ];
 
@@ -138,4 +138,4 @@ export const SubscriptionTiers = [
   { value: 'professional', label: 'Professional' },
   { value: 'enterprise', label: 'Enterprise' },
   { value: 'premium', label: 'Premium' }
-]; 
+];

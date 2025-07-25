@@ -1,6 +1,6 @@
 /**
  * Form Component Types Index
- * 
+ *
  * Central export point for all form component types organized by functional area.
  */
 

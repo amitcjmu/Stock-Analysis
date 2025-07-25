@@ -34,7 +34,7 @@ except Exception as e:
         echo "✅ Database is ready!"
         break
     fi
-    
+
     echo "   Attempt $attempt/$max_attempts: Database not ready yet..."
     sleep 2
     attempt=$((attempt + 1))
@@ -55,7 +55,7 @@ if python -m alembic upgrade head; then
     echo "✅ Alembic migrations completed successfully!"
 else
     echo "❌ Alembic migration failed. Running fix script again..."
-    
+
     # Try fix script one more time in case of race conditions
     if python scripts/fix_migration_state.py; then
         echo "✅ Migration state re-fixed, trying upgrade again..."

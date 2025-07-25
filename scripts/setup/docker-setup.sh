@@ -62,7 +62,7 @@ fi
 echo "🚀 Starting services..."
 if docker-compose up -d; then
     echo "✅ Services started successfully"
-    
+
     echo ""
     echo "🌐 Access URLs:"
     echo "   - Frontend: http://localhost:8081"
@@ -78,9 +78,9 @@ if docker-compose up -d; then
     echo ""
     echo "🛑 To stop services:"
     echo "   docker-compose down"
-    
+
 else
     echo "❌ Failed to start services"
     echo "📝 Check logs with: docker-compose logs"
     exit 1
-fi 
+fi

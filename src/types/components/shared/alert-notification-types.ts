@@ -1,6 +1,6 @@
 /**
  * Alert and Notification Component Types
- * 
+ *
  * Alert, toast, and notification component interfaces.
  */
 

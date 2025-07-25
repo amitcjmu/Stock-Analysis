@@ -49,7 +49,7 @@ DATABASE_URL="postgresql+asyncpg://postgres:password@localhost:5432/migration_db
 
 # Option 2: Individual components
 POSTGRES_HOST="localhost"
-POSTGRES_PORT="5432" 
+POSTGRES_PORT="5432"
 POSTGRES_USER="postgres"
 POSTGRES_PASSWORD="password"
 POSTGRES_DB="migration_db"
@@ -102,7 +102,7 @@ The script performs these checks and fixes:
 - **Symptom**: DuplicateTableError during initial migration
 - **Fix**: Stamp database with `001_comprehensive_initial_schema`
 
-### Case 2: Tables Exist, Migration Files Missing  
+### Case 2: Tables Exist, Migration Files Missing
 - **Symptom**: Migration references non-existent files (e.g., `002_*`)
 - **Fix**: Reset version to current comprehensive schema
 

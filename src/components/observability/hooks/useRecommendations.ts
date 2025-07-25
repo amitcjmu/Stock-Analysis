@@ -17,7 +17,7 @@ export interface UseRecommendationsOptions {
 
 export const useRecommendations = (options: UseRecommendationsOptions) => {
   const { agentName, showAllAgents = false, maxRecommendations = 10, period = 7 } = options;
-  
+
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,11 +50,11 @@ export const useRecommendations = (options: UseRecommendationsOptions) => {
     setRecommendations(prev => prev.map(rec => {
       if (rec.id === recommendationId) {
         const feedback = rec.feedback || { helpful: 0, notHelpful: 0, userFeedback: null };
-        
+
         // Remove previous feedback if exists
         if (feedback.userFeedback === 'helpful') feedback.helpful--;
         if (feedback.userFeedback === 'not_helpful') feedback.notHelpful--;
-        
+
         // Add new feedback
         if (helpful) {
           feedback.helpful++;
@@ -63,7 +63,7 @@ export const useRecommendations = (options: UseRecommendationsOptions) => {
           feedback.notHelpful++;
           feedback.userFeedback = 'not_helpful';
         }
-        
+
         return { ...rec, feedback };
       }
       return rec;
@@ -86,7 +86,7 @@ async function generateRealDataRecommendations(
   maxRecommendations: number
 ): Promise<Recommendation[]> {
   let agents: string[] = [];
-  
+
   try {
     const agentsResponse = await agentObservabilityService.getAllAgentsSummary();
     if (agentsResponse.success) {

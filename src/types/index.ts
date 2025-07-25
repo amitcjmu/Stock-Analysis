@@ -1,21 +1,21 @@
 /**
  * TypeScript Module Boundaries - Main Entry Point
- * 
+ *
  * This is the main barrel export file that provides access to all type definitions
  * across the application. It enforces clear module boundaries and provides a
  * structured approach to importing types.
- * 
+ *
  * Usage:
  * ```typescript
  * // Import specific module namespaces
  * import { DiscoveryFlow, FlowOrchestration, SharedUtilities } from '@/types';
- * 
+ *
  * // Import component types
  * import { NavigationComponents, DiscoveryComponents, SharedComponents } from '@/types';
- * 
+ *
  * // Import hook types
  * import { DiscoveryHooks, SharedHooks, APIHooks } from '@/types';
- * 
+ *
  * // Import API types
  * import { DiscoveryAPI, AssessmentAPI, SharedAPI } from '@/types';
  * ```
@@ -40,10 +40,10 @@ export * from './guards';
 export * from './global';
 
 // Re-export namespaces for convenience
-export { 
+export {
   type DiscoveryFlow,
   type FlowOrchestration,
-  type SharedUtilities 
+  type SharedUtilities
 } from './modules';
 
 // Re-export component type groups
@@ -81,7 +81,7 @@ export type SharedAPI = typeof import('./api/shared');
 export const MODULE_BOUNDARIES = {
   MODULES: [
     'DiscoveryFlow',
-    'FlowOrchestration', 
+    'FlowOrchestration',
     'SharedUtilities'
   ] as const,
   COMPONENTS: [
@@ -140,9 +140,9 @@ export const createModuleImporter = <T extends ModuleBoundaryType>(
   boundaryType: T
 ) => {
   return {
-    validate: (moduleName: string): moduleName is ModuleName<T> => 
+    validate: (moduleName: string): moduleName is ModuleName<T> =>
       validateModuleBoundary(boundaryType, moduleName),
-    getAvailable: (): ReadonlyArray<ModuleName<T>> => 
+    getAvailable: (): ReadonlyArray<ModuleName<T>> =>
       getAvailableModules(boundaryType),
     importModule: async (moduleName: ModuleName<T>) => {
       switch (boundaryType) {
@@ -178,7 +178,7 @@ export const DEV_HELPERS = {
     console.groupEnd();
   },
   validateImport: (category: string, module: string) => {
-    const isValid = Object.entries(MODULE_BOUNDARIES).some(([key, modules]) => 
+    const isValid = Object.entries(MODULE_BOUNDARIES).some(([key, modules]) =>
       key.toLowerCase() === category.toLowerCase() && (modules as readonly string[]).includes(module)
     );
     if (!isValid) {
@@ -225,7 +225,7 @@ export const TYPE_SYSTEM_METADATA = {
   description: 'TypeScript module boundaries and namespace organization system',
   features: [
     'Module namespace declarations',
-    'Component type libraries', 
+    'Component type libraries',
     'Hook type definitions',
     'API type boundaries',
     'Barrel exports',

@@ -6,7 +6,7 @@ import type { DashboardState } from '../types';
 
 export const useDashboard = () => {
   const { user, client, engagement } = useAuth();
-  
+
   const [state, setState] = useState<DashboardState>({
     currentFlow: null,
     flowLoading: false,
@@ -27,10 +27,10 @@ export const useDashboard = () => {
   // Fetch dashboard data
   const fetchDashboardData = useCallback(async () => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
-    
+
     try {
       const data = await dashboardService.fetchDashboardData(user, client, engagement);
-      
+
       setState(prev => ({
         ...prev,
         activeFlows: data.activeFlows,
@@ -74,9 +74,9 @@ export const useDashboard = () => {
 
   // Toggle flow manager dialog
   const toggleFlowManager = useCallback((show?: boolean) => {
-    setState(prev => ({ 
-      ...prev, 
-      showIncompleteFlowManager: show !== undefined ? show : !prev.showIncompleteFlowManager 
+    setState(prev => ({
+      ...prev,
+      showIncompleteFlowManager: show !== undefined ? show : !prev.showIncompleteFlowManager
     }));
   }, []);
 
@@ -95,7 +95,7 @@ export const useDashboard = () => {
   return {
     // State
     ...state,
-    
+
     // Actions
     fetchDashboardData,
     refreshFlow,

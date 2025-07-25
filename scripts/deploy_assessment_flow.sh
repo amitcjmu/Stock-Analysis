@@ -55,20 +55,20 @@ trap cleanup EXIT
 # Function to check prerequisites
 check_prerequisites() {
     log_info "Checking deployment prerequisites..."
-    
+
     # Check required environment variables
     required_vars=(
         "DATABASE_URL"
         "DEEPINFRA_API_KEY"
         "ASSESSMENT_FLOW_ENABLED"
     )
-    
+
     for var in "${required_vars[@]}"; do
         if [[ -z "${!var:-}" ]]; then
             error_exit "Required environment variable $var is not set"
         fi
     done
-    
+
     # Check database connectivity
     log_info "Testing database connectivity..."
     if ! docker exec migration_backend python -c "
@@ -85,35 +85,35 @@ asyncio.run(test_db())
 " 2>/dev/null; then
         error_exit "Database connection failed"
     fi
-    
+
     # Check Docker services
     log_info "Checking Docker services..."
     required_services=("migration_backend" "migration_postgres")
-    
+
     for service in "${required_services[@]}"; do
         if ! docker ps --format "table {{.Names}}" | grep -q "$service"; then
             error_exit "Docker service $service is not running"
         fi
     done
-    
+
     # Check disk space (need at least 1GB for backups)
     available_space=$(df / | awk 'NR==2 {print $4}')
     if [ "$available_space" -lt 1048576 ]; then  # 1GB in KB
         log_warning "Less than 1GB disk space available. Backup may fail."
     fi
-    
+
     log_success "Prerequisites check passed"
 }
 
 # Function to create database backup
 create_backup() {
     log_info "Creating database backup..."
-    
+
     local backup_dir="$PROJECT_ROOT/backups"
     mkdir -p "$backup_dir"
-    
+
     local backup_file="$backup_dir/assessment_flow_backup_${TIMESTAMP}.sql"
-    
+
     # Extract database connection details
     if [[ $DATABASE_URL =~ postgresql://([^:]+):([^@]+)@([^:]+):([0-9]+)/(.+) ]]; then
         DB_USER="${BASH_REMATCH[1]}"
@@ -124,10 +124,10 @@ create_backup() {
     else
         error_exit "Could not parse DATABASE_URL"
     fi
-    
+
     # Create backup using pg_dump
     log_info "Creating backup: $backup_file"
-    
+
     if docker exec migration_postgres pg_dump \
         -h localhost \
         -U "$DB_USER" \
@@ -136,7 +136,7 @@ create_backup() {
         --verbose \
         --format=custom \
         --compress=9 > "$backup_file" 2>/dev/null; then
-        
+
         log_success "Database backup created: $backup_file"
         echo "$backup_file" > "$backup_dir/latest_backup_path.txt"
     else
@@ -147,13 +147,13 @@ create_backup() {
 # Function to run pre-deployment tests
 run_pre_deployment_tests() {
     log_info "Running pre-deployment tests..."
-    
+
     # Run basic unit tests
     log_info "Running unit tests..."
     if ! docker exec migration_backend python -m pytest tests/assessment_flow/ -v --tb=short; then
         error_exit "Unit tests failed"
     fi
-    
+
     # Test API endpoints
     log_info "Testing API health..."
     if ! docker exec migration_backend python -c "
@@ -174,35 +174,35 @@ except Exception as e:
 " 2>/dev/null; then
         error_exit "API health check failed"
     fi
-    
+
     log_success "Pre-deployment tests passed"
 }
 
 # Function to run database migration
 run_migration() {
     log_info "Running Assessment Flow database migration..."
-    
+
     # First run in dry-run mode to validate
     log_info "Running migration dry-run..."
     if ! docker exec migration_backend python scripts/migrations/assessment_flow_migration.py --dry-run; then
         error_exit "Migration dry-run failed"
     fi
-    
+
     log_success "Migration dry-run completed successfully"
-    
+
     # Run actual migration
     log_info "Running actual migration..."
     if ! docker exec migration_backend python scripts/migrations/assessment_flow_migration.py --verbose; then
         error_exit "Database migration failed"
     fi
-    
+
     log_success "Database migration completed"
 }
 
 # Function to verify deployment
 verify_deployment() {
     log_info "Verifying deployment..."
-    
+
     # Test assessment flow health endpoint
     log_info "Testing assessment flow health endpoint..."
     if ! docker exec migration_backend python -c "
@@ -224,7 +224,7 @@ except Exception as e:
 " 2>/dev/null; then
         log_warning "Assessment health check returned degraded status (this may be expected)"
     fi
-    
+
     # Verify database tables
     log_info "Verifying database tables..."
     if ! docker exec migration_backend python -c "
@@ -241,19 +241,19 @@ async def verify_tables():
             'tech_debt_analysis',
             'sixr_decisions'
         ]
-        
+
         for table in tables:
             result = await db.execute(text(f'SELECT COUNT(*) FROM {table}'))
             count = result.scalar()
             print(f'Table {table}: {count} rows')
-        
+
         print('All assessment flow tables verified')
 
 asyncio.run(verify_tables())
 " 2>/dev/null; then
         error_exit "Database table verification failed"
     fi
-    
+
     # Test basic assessment flow functionality
     log_info "Testing basic assessment flow functionality..."
     if ! docker exec migration_backend python -c "
@@ -269,26 +269,26 @@ except ImportError as e:
 " 2>/dev/null; then
         log_warning "Assessment flow functionality test returned warnings (may be expected)"
     fi
-    
+
     log_success "Deployment verification completed"
 }
 
 # Function to update configuration
 update_configuration() {
     log_info "Updating application configuration..."
-    
+
     # Restart backend to pick up new configuration
     log_info "Restarting backend service..."
     docker restart migration_backend
-    
+
     # Wait for service to be ready
     log_info "Waiting for service to be ready..."
     sleep 10
-    
+
     # Verify service is responsive
     local max_attempts=30
     local attempt=1
-    
+
     while [ $attempt -le $max_attempts ]; do
         if docker exec migration_backend python -c "
 import requests
@@ -306,7 +306,7 @@ except:
             ((attempt++))
         fi
     done
-    
+
     if [ $attempt -gt $max_attempts ]; then
         error_exit "Backend service failed to start within expected time"
     fi
@@ -315,7 +315,7 @@ except:
 # Function to run post-deployment tests
 run_post_deployment_tests() {
     log_info "Running post-deployment tests..."
-    
+
     # Run smoke tests
     log_info "Running smoke tests..."
     if ! docker exec migration_backend python -c "
@@ -337,7 +337,7 @@ try:
 except Exception as e:
     print(f'✗ Health endpoint test error: {e}')
 
-# Test 2: Assessment health endpoint  
+# Test 2: Assessment health endpoint
 try:
     response = requests.get('http://localhost:8000/api/v1/health/assessment')
     if response.status_code in [200, 503]:
@@ -367,13 +367,13 @@ display_summary() {
     echo "Migration Status: Completed"
     echo "Services Status: Running"
     echo "=================================="
-    
+
     log_info "Next steps:"
     echo "1. Monitor application logs for any issues"
     echo "2. Test assessment flow functionality manually"
     echo "3. Monitor metrics and performance"
     echo "4. Update documentation with new features"
-    
+
     log_info "Useful commands:"
     echo "- Check logs: docker-compose logs -f backend"
     echo "- Health check: curl http://localhost:8000/api/v1/health/assessment"
@@ -383,37 +383,37 @@ display_summary() {
 # Function to handle rollback
 rollback_deployment() {
     local backup_timestamp="$1"
-    
+
     log_warning "Starting deployment rollback..."
-    
+
     if [ -z "$backup_timestamp" ]; then
         error_exit "Backup timestamp required for rollback"
     fi
-    
+
     local backup_file="$PROJECT_ROOT/backups/assessment_flow_backup_${backup_timestamp}.sql"
-    
+
     if [ ! -f "$backup_file" ]; then
         error_exit "Backup file not found: $backup_file"
     fi
-    
+
     log_info "Restoring database from backup: $backup_file"
     # Rollback logic would go here
-    
+
     log_success "Rollback completed"
 }
 
 # Main deployment function
 main() {
     local action="${1:-deploy}"
-    
+
     echo "=========================================="
     echo "Assessment Flow Production Deployment"
     echo "=========================================="
-    
+
     case "$action" in
         "deploy")
             log_info "Starting Assessment Flow deployment..."
-            
+
             check_prerequisites
             create_backup
             run_pre_deployment_tests
@@ -422,22 +422,22 @@ main() {
             verify_deployment
             run_post_deployment_tests
             display_summary
-            
+
             log_success "Assessment Flow deployment completed successfully!"
             ;;
-        
+
         "rollback")
             local timestamp="${2:-}"
             rollback_deployment "$timestamp"
             ;;
-        
+
         "verify")
             log_info "Running deployment verification only..."
             check_prerequisites
             verify_deployment
             log_success "Verification completed"
             ;;
-        
+
         *)
             echo "Usage: $0 {deploy|rollback|verify} [timestamp]"
             echo ""

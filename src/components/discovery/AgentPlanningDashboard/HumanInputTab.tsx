@@ -1,6 +1,6 @@
 /**
  * Human Input Tab Component
- * 
+ *
  * Displays tasks requiring human input with feedback options.
  */
 
@@ -17,9 +17,9 @@ interface HumanInputTabProps {
   onHumanInputSubmission: (taskId: string, input: TaskInput) => void;
 }
 
-const HumanInputTab: React.FC<HumanInputTabProps> = ({ 
-  humanInputTasks, 
-  onHumanInputSubmission 
+const HumanInputTab: React.FC<HumanInputTabProps> = ({
+  humanInputTasks,
+  onHumanInputSubmission
 }) => {
   if (humanInputTasks.length === 0) {
     return (
@@ -43,7 +43,7 @@ const HumanInputTab: React.FC<HumanInputTabProps> = ({
               {task.priority}
             </Badge>
           </div>
-          
+
           {task.human_feedback && (
             <div className="mt-3">
               <p className="text-sm font-medium text-orange-900 mb-2">

@@ -62,21 +62,21 @@ export const useLazyHook = <T = unknown>(
 
     try {
       const startTime = performance.now();
-      
+
       const modulePromise = importFn();
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Hook load timeout')), timeout)
       );
 
       const module = await Promise.race([modulePromise, timeoutPromise]);
-      
+
       const endTime = performance.now();
       console.debug(`Hook ${hookId} loaded in ${endTime - startTime}ms`);
 
       // Cache the module
       cacheRef.current.set(hookId, module as T);
       setHookModule(module as T);
-      
+
       return module as T;
     } catch (err) {
       const error = err as Error;
@@ -121,15 +121,15 @@ export const useLazyHookWithDependencies = <T = unknown>(
   options: UseLazyHookOptions = {}
 ): UseLazyHookReturn<T> => {
   const [dependenciesLoaded, setDependenciesLoaded] = useState(false);
-  const mainHook = useLazyHook(hookId, importFn, { 
-    ...options, 
-    immediate: options.immediate && dependenciesLoaded 
+  const mainHook = useLazyHook(hookId, importFn, {
+    ...options,
+    immediate: options.immediate && dependenciesLoaded
   });
 
   useEffect(() => {
     // Load dependencies first
     Promise.all(
-      dependencies.map(dep => 
+      dependencies.map(dep =>
         import(/* webpackChunkName: "hook-dependency" */ dep)
       )
     ).then(() => {
@@ -171,7 +171,7 @@ export const useLazyHookWithCache = <T = unknown>(
   hookId: string,
   importFn: () => Promise<LazyHookModule<T>>,
   cacheKey: string,
-  options: UseLazyHookOptions & { 
+  options: UseLazyHookOptions & {
     cacheTimeout?: number;
     invalidateOn?: string[];
   } = {}
@@ -205,7 +205,7 @@ export const useLazyHookWithCache = <T = unknown>(
   // Invalidate cache on specified events
   useEffect(() => {
     const handleEvent = () => clearCache();
-    
+
     invalidateOn.forEach(event => {
       window.addEventListener(event, handleEvent);
     });

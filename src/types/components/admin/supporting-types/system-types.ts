@@ -1,6 +1,6 @@
 /**
  * System Types
- * 
+ *
  * System configuration, health monitoring, and dependency tracking
  * type definitions.
  */

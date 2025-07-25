@@ -120,7 +120,7 @@ const AgentComparison: React.FC<AgentComparisonProps> = ({
             Compare performance metrics across multiple agents
           </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <Select value={period.toString()} onValueChange={(value) => setPeriod(parseInt(value))}>
             <SelectTrigger className="w-32">
@@ -134,12 +134,12 @@ const AgentComparison: React.FC<AgentComparisonProps> = ({
               ))}
             </SelectContent>
           </Select>
-          
+
           <Button onClick={refresh} variant="outline" disabled={loading || selectedAgents.length === 0}>
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          
+
           {enableExport && (
             <Button onClick={handleExportData} variant="outline" disabled={comparisonData.length === 0}>
               <Download className="w-4 h-4 mr-2" />

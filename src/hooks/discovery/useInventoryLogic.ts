@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export const useInventoryLogic = (flowId?: string) => {
   const { client, engagement } = useAuth();
-  
+
   // Use the unified discovery flow
   const {
     flowState: flow,
@@ -16,7 +16,7 @@ export const useInventoryLogic = (flowId?: string) => {
     executeFlowPhase: updatePhase,
     refreshFlow: refresh
   } = useUnifiedDiscoveryFlow(flowId);
-  
+
   // Extract assets from flow state
   const assets = flow?.asset_inventory?.assets || [];
 
@@ -34,9 +34,9 @@ export const useInventoryLogic = (flowId?: string) => {
     asset_type?: string;
     [key: string]: unknown;
   }
-  
+
   const typedFlowAssets = flowAssets as Asset[];
-  
+
   const inventoryProgress = {
     total_assets: typedFlowAssets.length,
     classified_assets: typedFlowAssets.filter((asset: Asset) => asset.asset_type).length,
@@ -129,9 +129,9 @@ export const useInventoryLogic = (flowId?: string) => {
   const handleCompleteInventoryAndTriggerParallelAnalysis = useCallback(async () => {
     if (flow?.flow_id) {
       // Complete inventory and automatically trigger parallel dependencies + tech debt analysis
-      await updatePhase('inventory_completed', { 
+      await updatePhase('inventory_completed', {
         trigger_parallel_analysis: true,
-        execute_dependencies_and_tech_debt: true 
+        execute_dependencies_and_tech_debt: true
       });
     }
   }, [flow, updatePhase]);
@@ -199,4 +199,4 @@ export const useInventoryLogic = (flowId?: string) => {
     isTechDebtAnalysisComplete: flow?.tech_debt_completed || false,
     nextPhase: flow?.next_phase || null
   };
-}; 
+};

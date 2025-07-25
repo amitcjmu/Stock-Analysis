@@ -19,9 +19,9 @@ async def test_final_schema():
         result = await session.execute(
             text(
                 """
-            SELECT COUNT(*) 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public' 
+            SELECT COUNT(*)
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
             AND table_type = 'BASE TABLE'
         """
             )
@@ -54,7 +54,7 @@ async def test_final_schema():
             result = await session.execute(
                 f"""
                 SELECT EXISTS (
-                    SELECT 1 FROM information_schema.tables 
+                    SELECT 1 FROM information_schema.tables
                     WHERE table_name = '{table}'
                 )
             """
@@ -69,8 +69,8 @@ async def test_final_schema():
         print("\nAsset table fields:")
         result = await session.execute(
             """
-            SELECT COUNT(*) 
-            FROM information_schema.columns 
+            SELECT COUNT(*)
+            FROM information_schema.columns
             WHERE table_name = 'assets'
         """
         )
@@ -95,7 +95,7 @@ async def test_final_schema():
             result = await session.execute(
                 f"""
                 SELECT EXISTS (
-                    SELECT 1 FROM information_schema.columns 
+                    SELECT 1 FROM information_schema.columns
                     WHERE table_name = 'assets' AND column_name = '{field}'
                 )
             """
@@ -117,7 +117,7 @@ async def test_final_schema():
             result = await session.execute(
                 f"""
                 SELECT EXISTS (
-                    SELECT 1 FROM information_schema.columns 
+                    SELECT 1 FROM information_schema.columns
                     WHERE table_name = 'discovery_flows' AND column_name = '{field}'
                 )
             """
@@ -138,7 +138,7 @@ async def test_final_schema():
             result = await session.execute(
                 f"""
                 SELECT EXISTS (
-                    SELECT 1 FROM information_schema.columns 
+                    SELECT 1 FROM information_schema.columns
                     WHERE table_name = 'data_imports' AND column_name = '{field}'
                 )
             """
@@ -151,7 +151,7 @@ async def test_final_schema():
         result = await session.execute(
             """
             SELECT EXISTS (
-                SELECT 1 FROM information_schema.columns 
+                SELECT 1 FROM information_schema.columns
                 WHERE table_name = 'client_accounts' AND column_name = 'agent_preferences'
             )
         """
@@ -175,7 +175,7 @@ async def test_final_schema():
             result = await session.execute(
                 f"""
                 SELECT EXISTS (
-                    SELECT 1 FROM information_schema.columns 
+                    SELECT 1 FROM information_schema.columns
                     WHERE table_name = 'user_roles' AND column_name = '{field}'
                 )
             """
@@ -187,8 +187,8 @@ async def test_final_schema():
         print("\n=== NO is_mock FIELDS CHECK ===")
         result = await session.execute(
             """
-            SELECT table_name, column_name 
-            FROM information_schema.columns 
+            SELECT table_name, column_name
+            FROM information_schema.columns
             WHERE column_name = 'is_mock'
         """
         )
@@ -214,7 +214,7 @@ async def test_final_schema():
             result = await session.execute(
                 f"""
                 SELECT EXISTS (
-                    SELECT 1 FROM pg_indexes 
+                    SELECT 1 FROM pg_indexes
                     WHERE tablename = '{table}' AND indexname = '{index}'
                 )
             """

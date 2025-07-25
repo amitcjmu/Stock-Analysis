@@ -33,7 +33,7 @@ export const CMDBUploadSection: React.FC<CMDBUploadSectionProps> = ({
       <h2 className="text-xl font-semibold text-gray-900 mb-6">Choose Data Category</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {categories.map((category) => (
-          <Card 
+          <Card
             key={category.id}
             className={`relative cursor-pointer transition-all hover:shadow-md border-2 ${
               selectedCategory === category.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
@@ -81,7 +81,7 @@ export const CMDBUploadSection: React.FC<CMDBUploadSectionProps> = ({
                   <p className="text-sm text-gray-600">{category.examples.join(', ')}</p>
                 </div>
               </div>
-              
+
               {/* File Input */}
               <div className="mt-4">
                 <input

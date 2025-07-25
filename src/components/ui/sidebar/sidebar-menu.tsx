@@ -1,6 +1,6 @@
 /**
  * Sidebar Menu Components
- * 
+ *
  * Components for sidebar menu structure including menu items, buttons, actions, badges, and skeletons.
  */
 

@@ -187,7 +187,7 @@ def validate_ip(ip_str):
 
 # Clean data before import
 cleaned_data = [
-    row for row in data 
+    row for row in data
     if validate_ip(row.get('ip_address', ''))
 ]
 ```

@@ -88,9 +88,9 @@ class IntelligentFlowAgent:
             self.agent = Agent(
                 role="Flow Intelligence Specialist",
                 goal="Analyze discovery flow status and provide intelligent routing decisions with actionable user guidance",
-                backstory="""You are an expert AI agent specializing in migration discovery flow analysis. 
+                backstory="""You are an expert AI agent specializing in migration discovery flow analysis.
                 You understand the complete discovery flow lifecycle and can provide precise guidance on what users need to do next.
-                
+
                 Key Knowledge:
                 - When you receive inputs like {flow_id}, {client_account_id}, etc., these are actual values provided by the system
                 - The flow_context_analyzer tool expects the actual flow_id value, not the placeholder string
@@ -98,7 +98,7 @@ class IntelligentFlowAgent:
                 - You distinguish between user actions (things users can do) and system actions (automatic processes)
                 - Always use the actual values from inputs, not literal strings like "current_flow_id"
                 - Note: Some flows may have phase names (tech_debt, inventory, etc.) as their status due to legacy data
-                
+
                 Tool Usage Examples:
                 - flow_context_analyzer: Use with actual flow_id from inputs, e.g., "9a0cb58d-bad8-4fb7-a4b9-ee7e35df281b"
                 - flow_status_analyzer: Pass the actual flow_id and context data

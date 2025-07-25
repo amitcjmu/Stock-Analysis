@@ -1,6 +1,6 @@
 /**
  * Discovery API Types - Main Export File
- * 
+ *
  * This file now serves as the main aggregator for all Discovery API types,
  * importing from modularized files to maintain backward compatibility
  * while providing better code organization.

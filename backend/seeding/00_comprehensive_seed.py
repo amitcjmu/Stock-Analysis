@@ -160,7 +160,7 @@ async def cleanup_existing_data(session: AsyncSession):
         "engagements",
         "client_accounts",
     ]
-    
+
     # Validate table names are from our known list
     allowed_tables = set(tables_to_clean)
 
@@ -169,7 +169,7 @@ async def cleanup_existing_data(session: AsyncSession):
         if table not in allowed_tables:
             print(f"  ❌ Invalid table name: {table}")
             continue
-            
+
         try:
             # Safe to use string formatting after validation
             await session.execute(

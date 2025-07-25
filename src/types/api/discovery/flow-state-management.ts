@@ -1,6 +1,6 @@
 /**
  * Discovery Flow State Management API Types
- * 
+ *
  * Type definitions for flow state operations including state transitions,
  * checkpoints, agent states, and state history management.
  */

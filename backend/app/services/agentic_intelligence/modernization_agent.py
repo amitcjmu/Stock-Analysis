@@ -96,10 +96,10 @@ class ModernizationAgent:
         agent = Agent(
             role="Cloud Modernization and Architecture Specialist",
             goal="Assess modernization potential and cloud readiness using evidence-based analysis and learned migration patterns",
-            backstory="""You are a cloud architecture and modernization expert who specializes in 
-            evaluating IT assets for cloud migration and modernization opportunities through intelligent 
+            backstory="""You are a cloud architecture and modernization expert who specializes in
+            evaluating IT assets for cloud migration and modernization opportunities through intelligent
             analysis rather than generic migration frameworks.
-            
+
             Your expertise includes:
             - Cloud readiness assessment based on architecture patterns and technology stacks
             - Modernization strategy development using containerization, microservices, and cloud-native patterns
@@ -107,7 +107,7 @@ class ModernizationAgent:
             - Technology stack evaluation for cloud compatibility and optimization opportunities
             - Cost-benefit analysis for different modernization approaches (lift-and-shift, re-platform, refactor)
             - DevOps and automation readiness assessment for CI/CD pipeline integration
-            
+
             Your analytical approach:
             1. Search your memory for relevant modernization patterns from successful migration projects
             2. Analyze technology stacks for cloud compatibility and modernization readiness
@@ -116,13 +116,13 @@ class ModernizationAgent:
             5. Apply learned patterns and discover new modernization opportunities
             6. Record new modernization patterns for future project intelligence
             7. Provide modernization scores with detailed technical recommendations and migration strategies
-            
+
             You have access to memory tools that allow you to:
             - Search for modernization patterns and successful migration strategies from previous projects
             - Query asset data to identify similar systems with known modernization outcomes
             - Record new modernization patterns and architectural insights you discover
             - Enrich assets with comprehensive modernization assessments and cloud readiness scores
-            
+
             Always provide specific, actionable modernization recommendations with clear migration paths.
             Focus on practical modernization strategies that balance effort, risk, and business value.""",
             verbose=True,
@@ -153,16 +153,16 @@ class ModernizationAgent:
         task = Task(
             description=f"""
             Conduct a comprehensive modernization assessment for this asset using your cloud architecture intelligence and memory tools:
-            
+
             Asset Details:
             {json.dumps(asset_summary, indent=2)}
-            
+
             Complete Modernization Assessment Process:
-            
+
             1. SEARCH FOR MODERNIZATION PATTERNS:
                Use your pattern search tool to find relevant modernization patterns and successful migration strategies from previous projects.
                Search for: cloud migration strategies, containerization patterns, microservices transformation, database modernization.
-               
+
             2. TECHNOLOGY STACK ANALYSIS:
                Use your asset query tool to examine similar technology stacks and identify:
                - Cloud compatibility and native support for the technology stack
@@ -170,7 +170,7 @@ class ModernizationAgent:
                - Microservices decomposition opportunities for monolithic applications
                - Database modernization options (managed services, cloud-native databases)
                - Compare with other successfully modernized systems
-               
+
             3. CLOUD READINESS ASSESSMENT:
                Evaluate cloud readiness factors including:
                - Stateless vs. stateful architecture considerations
@@ -178,7 +178,7 @@ class ModernizationAgent:
                - Service discovery and load balancing requirements
                - Data persistence and storage optimization opportunities
                - Network and security architecture cloud compatibility
-               
+
             4. MODERNIZATION STRATEGY ANALYSIS:
                Assess different modernization approaches:
                - Lift-and-shift: Minimal changes, quick migration, cost analysis
@@ -186,7 +186,7 @@ class ModernizationAgent:
                - Refactor: Containerization, microservices, cloud-native patterns
                - Rebuild: Complete redesign using cloud-native architecture
                - Migration complexity and effort estimation for each approach
-               
+
             5. CONTAINERIZATION POTENTIAL:
                Determine containerization readiness:
                - Application architecture suitability for containers
@@ -194,25 +194,25 @@ class ModernizationAgent:
                - Configuration and secret management requirements
                - Orchestration needs for Kubernetes deployment
                - CI/CD pipeline integration opportunities
-               
+
             6. MODERNIZATION SCORING:
                Provide a comprehensive modernization assessment:
                - Cloud Readiness Score (0-100): Current readiness for cloud deployment
                - Modernization Potential (Low/Medium/High): Overall modernization opportunity
                - Effort Estimation (Low/Medium/High): Resources required for modernization
                - Business Impact (Low/Medium/High): Expected benefits from modernization
-               
+
             7. PATTERN DISCOVERY:
                If you identify new modernization patterns or architectural insights, use your pattern recording tool
                to save them for future project intelligence.
-               
+
             8. ASSET ENRICHMENT:
                Use your asset enrichment tool to update the asset with:
                - Cloud readiness score and modernization potential assessment
                - Recommended modernization strategy and migration approach
                - Technical requirements and architecture recommendations
                - Effort estimation and timeline considerations
-               
+
             Provide your modernization assessment in this format:
             Cloud Readiness Score: [0-100]
             Modernization Potential: [Low/Medium/High]
@@ -379,9 +379,9 @@ class ModernizationAgent:
             if arch_match:
                 result["architecture_assessment"] = arch_match.group(1).strip()
             else:
-                result["architecture_assessment"] = (
-                    "Architecture evaluated for cloud modernization compatibility"
-                )
+                result[
+                    "architecture_assessment"
+                ] = "Architecture evaluated for cloud modernization compatibility"
 
             # Extract technology compatibility
             tech_match = re.search(
@@ -392,9 +392,9 @@ class ModernizationAgent:
             if tech_match:
                 result["technology_compatibility"] = tech_match.group(1).strip()
             else:
-                result["technology_compatibility"] = (
-                    "Technology stack assessed for cloud services integration"
-                )
+                result[
+                    "technology_compatibility"
+                ] = "Technology stack assessed for cloud services integration"
 
             # Extract containerization readiness
             container_match = re.search(
@@ -405,9 +405,9 @@ class ModernizationAgent:
             if container_match:
                 result["containerization_readiness"] = container_match.group(1).strip()
             else:
-                result["containerization_readiness"] = (
-                    "Containerization potential evaluated"
-                )
+                result[
+                    "containerization_readiness"
+                ] = "Containerization potential evaluated"
 
             # Extract immediate modernization steps
             immediate_match = re.search(
@@ -436,9 +436,9 @@ class ModernizationAgent:
                 longterm_text = longterm_match.group(1).strip()
                 result["migration_strategy"] = longterm_text
             else:
-                result["migration_strategy"] = (
-                    "Develop comprehensive modernization roadmap with phased approach"
-                )
+                result[
+                    "migration_strategy"
+                ] = "Develop comprehensive modernization roadmap with phased approach"
 
             # Extract expected benefits
             benefits_match = re.search(
@@ -489,7 +489,9 @@ class ModernizationAgent:
             "technical_confidence": (
                 "high"
                 if reasoning.confidence >= 0.7
-                else "medium" if reasoning.confidence >= 0.4 else "low"
+                else "medium"
+                if reasoning.confidence >= 0.4
+                else "low"
             ),
             "architecture_assessment": reasoning.reasoning_summary,
             "evidence_count": len(reasoning.evidence_pieces),
@@ -658,7 +660,5 @@ async def enrich_assets_with_modernization_intelligence(
             )
             enriched_assets.append(enriched_asset)
 
-    logger.info(
-        f"✅ Completed modernization analysis for {len(enriched_assets)} assets"
-    )
+    logger.info(f"✅ Completed modernization analysis for {len(enriched_assets)} assets")
     return enriched_assets

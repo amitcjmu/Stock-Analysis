@@ -80,7 +80,7 @@ const validateFlowState = async (flowId: string, comprehensive: boolean = true):
 };
 
 const recoverFlowState = async (
-  flowId: string, 
+  flowId: string,
   recoveryStrategy: string = 'postgresql',
   forceRecovery: boolean = false
 ): Promise<FlowRecoveryResponse> => {
@@ -139,14 +139,14 @@ export const useEnhancedFlowManagement = () => {
 
   // Flow State Recovery
   const recoverFlow = useMutation({
-    mutationFn: ({ 
-      flowId, 
-      recoveryStrategy = 'postgresql', 
-      forceRecovery = false 
-    }: { 
-      flowId: string; 
-      recoveryStrategy?: string; 
-      forceRecovery?: boolean; 
+    mutationFn: ({
+      flowId,
+      recoveryStrategy = 'postgresql',
+      forceRecovery = false
+    }: {
+      flowId: string;
+      recoveryStrategy?: string;
+      forceRecovery?: boolean;
     }) => recoverFlowState(flowId, recoveryStrategy, forceRecovery),
     onMutate: () => setIsRecovering(true),
     onSettled: () => setIsRecovering(false),
@@ -154,14 +154,14 @@ export const useEnhancedFlowManagement = () => {
 
   // Flow Cleanup
   const cleanupFlows = useMutation({
-    mutationFn: ({ 
-      expirationHours = 72, 
-      dryRun = false, 
-      specificSessionIds 
-    }: { 
-      expirationHours?: number; 
-      dryRun?: boolean; 
-      specificFlowIds?: string[]; 
+    mutationFn: ({
+      expirationHours = 72,
+      dryRun = false,
+      specificSessionIds
+    }: {
+      expirationHours?: number;
+      dryRun?: boolean;
+      specificFlowIds?: string[];
     }) => cleanupExpiredFlows(expirationHours, dryRun, specificSessionIds),
     onMutate: () => setIsCleaning(true),
     onSettled: () => setIsCleaning(false),
@@ -195,13 +195,13 @@ export const useEnhancedFlowManagement = () => {
   const validateFlowWithRecommendations = useCallback(async (flowId: string) => {
     try {
       const result = await validateFlow.mutateAsync({ flowId, comprehensive: true });
-      
+
       return {
         ...result,
         hasIssues: !result.overall_valid,
         criticalIssues: result.postgresql_validation?.errors?.length > 0,
         warningCount: result.postgresql_validation?.warnings?.length || 0,
-        actionableRecommendations: result.recommendations?.filter(rec => 
+        actionableRecommendations: result.recommendations?.filter(rec =>
           rec.includes('Address') || rec.includes('Review') || rec.includes('Consider')
         ) || []
       };
@@ -213,12 +213,12 @@ export const useEnhancedFlowManagement = () => {
 
   const performFlowRecovery = useCallback(async (flowId: string, strategy: 'postgresql' | 'hybrid' = 'postgresql') => {
     try {
-      const result = await recoverFlow.mutateAsync({ 
-        flowId, 
+      const result = await recoverFlow.mutateAsync({
+        flowId,
         recoveryStrategy: strategy,
-        forceRecovery: false 
+        forceRecovery: false
       });
-      
+
       return {
         ...result,
         canResume: result.recovery_successful && result.recovered_state,
@@ -244,7 +244,7 @@ export const useEnhancedFlowManagement = () => {
         dryRun: options.dryRun || false,
         specificFlowIds: options.specificSessions
       });
-      
+
       return {
         ...result,
         cleanupEffective: result.flows_cleaned > 0,
@@ -260,10 +260,10 @@ export const useEnhancedFlowManagement = () => {
   const performBulkValidation = useCallback(async (flowIds: string[]) => {
     try {
       const result = await bulkValidate.mutateAsync(flowIds);
-      
+
       const healthyFlows = result.results.filter(r => r.valid);
       const problematicFlows = result.results.filter(r => !r.valid || r.error);
-      
+
       return {
         ...result,
         healthyFlows,
@@ -289,23 +289,23 @@ export const useEnhancedFlowManagement = () => {
     recoverFlow,
     cleanupFlows,
     bulkValidate,
-    
+
     // Query hooks (functions that return useQuery)
     usePersistenceStatus,
     usePersistenceHealth,
-    
+
     // Loading states
     isValidating,
     isRecovering,
     isCleaning,
     isBulkValidating: bulkValidate.isPending,
-    
+
     // Enhanced convenience methods
     validateFlowWithRecommendations,
     performFlowRecovery,
     performFlowCleanup,
     performBulkValidation,
-    
+
     // Status checks
     isAnyOperationPending: isValidating || isRecovering || isCleaning || bulkValidate.isPending,
   };
@@ -320,7 +320,7 @@ export const useEnhancedFlowManagement = () => {
  */
 export const useFlowHealthMonitor = (flowIds: string[], enabled: boolean = true) => {
   const { performBulkValidation } = useEnhancedFlowManagement();
-  
+
   return useQuery({
     queryKey: ['flow-health-monitor', flowIds],
     queryFn: () => performBulkValidation(flowIds),
@@ -336,7 +336,7 @@ export const useFlowHealthMonitor = (flowIds: string[], enabled: boolean = true)
  */
 export const useAutomaticCleanup = (enabled: boolean = false) => {
   console.warn('⚠️ useAutomaticCleanup is deprecated. Automatic cleanup is disabled for user safety. Use useFlowCleanupRecommendations instead.');
-  
+
   // Always return disabled state - no automatic cleanup allowed
   return {
     data: null,
@@ -345,4 +345,4 @@ export const useAutomaticCleanup = (enabled: boolean = false) => {
     error: null,
     refetch: () => Promise.resolve(),
   };
-}; 
+};

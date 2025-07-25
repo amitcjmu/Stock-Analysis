@@ -127,9 +127,9 @@ class CompletenessAnalyzerTool(AsyncBaseDiscoveryTool):
                 ) * 100
 
             # Generate recommendations
-            analysis_results["recommendations"] = (
-                self._generate_completeness_recommendations(analysis_results)
-            )
+            analysis_results[
+                "recommendations"
+            ] = self._generate_completeness_recommendations(analysis_results)
 
             self.log_with_context("info", "Completeness analysis completed")
             return analysis_results

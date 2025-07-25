@@ -4,7 +4,7 @@ import type { AssetInventory, InventoryProgress } from '../types/inventory.types
 export const useInventoryProgress = (assets: AssetInventory[]): InventoryProgress => {
   return useMemo(() => {
     const total = assets.length;
-    
+
     // Debug logging to see what asset types we're receiving
     if (assets.length > 0) {
       const assetTypes = assets.map(asset => asset.asset_type).filter(Boolean);
@@ -14,7 +14,7 @@ export const useInventoryProgress = (assets: AssetInventory[]): InventoryProgres
     }
     const servers = assets.filter(asset => {
       const assetType = asset.asset_type?.toLowerCase();
-      return assetType?.includes('server') || 
+      return assetType?.includes('server') ||
              assetType === 'server' ||
              assetType === 'virtual_machine' ||
              assetType === 'vm' ||
@@ -22,7 +22,7 @@ export const useInventoryProgress = (assets: AssetInventory[]): InventoryProgres
     }).length;
     const applications = assets.filter(asset => {
       const assetType = asset.asset_type?.toLowerCase();
-      return assetType?.includes('application') || 
+      return assetType?.includes('application') ||
              assetType === 'application' ||
              assetType?.includes('app') ||
              assetType?.includes('service') ||
@@ -31,7 +31,7 @@ export const useInventoryProgress = (assets: AssetInventory[]): InventoryProgres
     }).length;
     const databases = assets.filter(asset => {
       const assetType = asset.asset_type?.toLowerCase();
-      return assetType?.includes('database') || 
+      return assetType?.includes('database') ||
              assetType === 'database' ||
              assetType?.includes('db') ||
              assetType === 'mysql' ||
@@ -41,10 +41,10 @@ export const useInventoryProgress = (assets: AssetInventory[]): InventoryProgres
     }).length;
     const devices = assets.filter(asset => {
       const assetType = asset.asset_type?.toLowerCase();
-      return assetType?.includes('device') || 
-             assetType?.includes('network') || 
-             assetType?.includes('storage') || 
-             assetType?.includes('security') || 
+      return assetType?.includes('device') ||
+             assetType?.includes('network') ||
+             assetType?.includes('storage') ||
+             assetType?.includes('security') ||
              assetType?.includes('infrastructure') ||
              assetType === 'load_balancer' ||
              assetType === 'firewall' ||
@@ -52,7 +52,7 @@ export const useInventoryProgress = (assets: AssetInventory[]): InventoryProgres
              assetType === 'switch' ||
              assetType === 'device';
     }).length;
-    
+
     return {
       total_assets: total,
       classified_assets: total,

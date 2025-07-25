@@ -13,7 +13,7 @@ export const generateAnalyticsData = async (
 ): Promise<AnalyticsData> => {
   // Get real agents from the system
   let agents: string[] = [];
-  
+
   try {
     const agentsResponse = await agentObservabilityService.getAllAgentsSummary();
     if (agentsResponse.success) {
@@ -24,24 +24,24 @@ export const generateAnalyticsData = async (
     console.error('Failed to fetch real agents:', error);
     agents = agentNames.length > 0 ? agentNames : ['Asset Intelligence Agent', 'Agent Health Monitor', 'Performance Analytics Agent'];
   }
-  
+
   // Generate time series data from real API data
   const timeSeriesData = [];
   const days = Math.min(Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24)), 30); // Max 30 days
-  
+
   // Get actual performance data for each agent
   for (let i = 0; i < days; i++) {
     const timestamp = format(addDays(dateRange.from, i), 'yyyy-MM-dd');
     const dataPoint: Record<string, string | number> = { timestamp };
-    
+
     for (const agent of agents) {
       try {
         // Try to get real performance data
         const performanceResponse = await agentObservabilityService.getAgentPerformance(agent, 1);
-        
+
         if (performanceResponse.success && performanceResponse.data?.summary) {
           const summary = performanceResponse.data.summary;
-          
+
           // Use real metrics
           dataPoint[`${agent}_successRate`] = summary.success_rate || 0;
           dataPoint[`${agent}_avgDuration`] = summary.avg_duration_seconds || 0;
@@ -65,7 +65,7 @@ export const generateAnalyticsData = async (
         dataPoint[`${agent}_confidence`] = 0;
       }
     }
-    
+
     timeSeriesData.push(dataPoint);
   }
 
@@ -93,7 +93,7 @@ export const generateAnalyticsData = async (
         }
         return false;
       });
-      
+
       return {
         hour,
         activity: hourTasks.length > 0 ? hourTasks.length : 0
@@ -110,7 +110,7 @@ export const generateAnalyticsData = async (
         }
         return false;
       });
-      
+
       return {
         day,
         averagePerformance: dayTasks.length > 0 ? dayTasks.length * 10 : 0
@@ -126,7 +126,7 @@ export const generateAnalyticsData = async (
   // Generate simplified correlation matrix based on real data patterns
   const correlationMatrix: AnalyticsData['correlationMatrix'] = {};
   const metrics = ['successRate', 'avgDuration', 'throughput', 'memoryUsage', 'confidence'];
-  
+
   metrics.forEach(metric1 => {
     correlationMatrix[metric1] = {};
     metrics.forEach(metric2 => {
@@ -134,10 +134,10 @@ export const generateAnalyticsData = async (
         correlationMatrix[metric1][metric2] = 1.0;
       } else {
         // Use simple logical correlations based on actual system behavior
-        if ((metric1 === 'successRate' && metric2 === 'confidence') || 
+        if ((metric1 === 'successRate' && metric2 === 'confidence') ||
             (metric1 === 'confidence' && metric2 === 'successRate')) {
           correlationMatrix[metric1][metric2] = 0.8; // Success and confidence are highly correlated
-        } else if ((metric1 === 'avgDuration' && metric2 === 'throughput') || 
+        } else if ((metric1 === 'avgDuration' && metric2 === 'throughput') ||
                    (metric1 === 'throughput' && metric2 === 'avgDuration')) {
           correlationMatrix[metric1][metric2] = -0.7; // Duration and throughput are inversely correlated
         } else {

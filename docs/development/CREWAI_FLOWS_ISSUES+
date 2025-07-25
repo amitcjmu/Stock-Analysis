@@ -60,7 +60,7 @@ async def execute_phase(self, phase_name: str, state: UnifiedDiscoveryFlowState)
     if not state.processed_assets or len(state.processed_assets) == 0:
         logger.error(f"❌ No data available for {phase_name} - skipping")
         return {"status": "skipped", "reason": "no_data"}
-    
+
     logger.info(f"✅ Processing {len(state.processed_assets)} assets in {phase_name}")
     # Continue with crew execution...
 ```
@@ -121,7 +121,7 @@ CREW_FACTORIES = {
 class DiscoveryFlowStateManager:
     def __init__(self, flow_id: str):
         self.flow_id = flow_id
-    
+
     def validate_state(self, state_data: dict) -> bool:
         # Implement state validation logic
         return True
@@ -147,13 +147,13 @@ def create_optimized_crew(crewai_service, state: UnifiedDiscoveryFlowState):
         max_iter=1,    # Limit iterations
         max_execution_time=30  # 30 second timeout
     )
-    
+
     task = Task(
         description="Process data directly without asking questions",
         agent=agent,
         expected_output="Processed data results"
     )
-    
+
     return Crew(
         agents=[agent],
         tasks=[task],
@@ -179,7 +179,7 @@ def finalize_discovery(self, state: UnifiedDiscoveryFlowState):
         state.status = "failed"
         state.error_message = "No assets were processed"
         raise Exception("Discovery flow failed: No assets processed")
-    
+
     # Continue with successful finalization...
 ```
 

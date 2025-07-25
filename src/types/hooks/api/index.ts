@@ -1,6 +1,6 @@
 /**
  * API Hook Types - Barrel Export
- * 
+ *
  * Central export file for all API hook types, organized by domain.
  * This file serves as the main entry point for API hook type imports.
  */

@@ -17,16 +17,16 @@ interface PasswordChangeResponse {
 const getApiBaseUrl = (): string => {
   // First, check for environment-specific variables
   const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL;
-  
+
   if (backendUrl) {
     return backendUrl;
   }
-  
+
   // In development mode, use relative path to utilize Vite proxy
   if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
     return '';  // Empty string means use same origin with proxy
   }
-  
+
   // For production without explicit backend URL, use same origin
   console.warn('No VITE_BACKEND_URL environment variable found. Using same origin as fallback.');
   return window.location.origin;

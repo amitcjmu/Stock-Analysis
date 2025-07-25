@@ -1,9 +1,9 @@
 /**
  * Time Range Types
- * 
+ *
  * Common time-related type definitions used across admin modules
  * for filtering, analytics, and reporting.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

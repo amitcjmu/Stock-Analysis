@@ -1,6 +1,6 @@
 /**
  * Value Types
- * 
+ *
  * Common value types used across API types for fields with dynamic values.
  */
 

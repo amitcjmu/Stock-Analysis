@@ -30,14 +30,14 @@ class DataCleansingAgent(BaseCrewAIAgent):
         super().__init__(
             role="Data Cleansing Specialist",
             goal="Clean and standardize data to ensure quality and consistency",
-            backstory="""You are an expert data engineer specializing in data quality 
+            backstory="""You are an expert data engineer specializing in data quality
             and standardization. You excel at:
             - Identifying and correcting data inconsistencies
             - Applying standardization rules across large datasets
             - Handling missing and invalid data intelligently
             - Performing bulk operations efficiently
             - Maintaining data integrity during cleansing
-            
+
             Your work ensures high-quality, consistent data for migration success.""",
             tools=tools,
             llm=llm,

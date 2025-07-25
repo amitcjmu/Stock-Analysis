@@ -1,6 +1,6 @@
 /**
  * Audit and Logging API Types
- * 
+ *
  * @deprecated This file has been modularized. Please import from specific modules:
  * - @/types/api/admin/audit for all audit types
  * - @/types/api/admin/audit/api-types for API request/response types
@@ -8,9 +8,9 @@
  * - @/types/api/admin/audit/security-events for security event types
  * - @/types/api/admin/audit/activity for user activity types
  * - @/types/api/admin/common for shared types like GeoLocation, DeviceInfo
- * 
+ *
  * This file now re-exports all types for backward compatibility.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 
@@ -18,8 +18,8 @@
 export type * from './audit';
 
 // Re-export common types that were previously defined here
-export type { 
-  GeoLocation, 
+export type {
+  GeoLocation,
   DeviceInfo,
   AuditMetadata,
   SecurityEventMetadata,

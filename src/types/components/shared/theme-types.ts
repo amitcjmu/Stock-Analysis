@@ -1,6 +1,6 @@
 /**
  * Theme Types
- * 
+ *
  * Complete theme system interfaces for design tokens and component theming.
  */
 

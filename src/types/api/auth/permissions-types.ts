@@ -1,6 +1,6 @@
 /**
  * Permissions and Authorization Types
- * 
+ *
  * Permission checking, role management, and authorization API types.
  */
 

@@ -1,9 +1,9 @@
 /**
  * Notification Settings Configuration Types
- * 
+ *
  * Notification system configuration including email, SMS, push notifications,
  * in-app notifications, and delivery settings.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

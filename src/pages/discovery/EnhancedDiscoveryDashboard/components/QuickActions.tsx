@@ -1,9 +1,9 @@
 import React from 'react';
-import { 
-  Plus, 
-  Upload, 
-  Settings, 
-  Eye, 
+import {
+  Plus,
+  Upload,
+  Settings,
+  Eye,
   RefreshCw,
   BarChart3,
   Users,
@@ -50,7 +50,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
             </div>
             <ArrowRight className="h-4 w-4" />
           </Button>
-          
+
           <Button
             onClick={onDataImport}
             variant="outline"
@@ -62,7 +62,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
             </div>
             <ArrowRight className="h-4 w-4" />
           </Button>
-          
+
           {/* Secondary Actions */}
           <Button
             onClick={onViewFlows}
@@ -75,7 +75,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
             </div>
             <ArrowRight className="h-4 w-4" />
           </Button>
-          
+
           <Button
             onClick={onSystemHealth}
             variant="outline"
@@ -88,7 +88,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
-        
+
         {/* Additional Actions */}
         <div className="mt-4 pt-4 border-t">
           <div className="flex items-center justify-between">
@@ -96,7 +96,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
               <Users className="h-4 w-4" />
               <span>Agent Management</span>
             </div>
-            
+
             <Button
               onClick={onRefreshDashboard}
               variant="ghost"

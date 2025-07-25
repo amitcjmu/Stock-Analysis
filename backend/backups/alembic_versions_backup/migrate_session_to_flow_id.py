@@ -91,7 +91,7 @@ def upgrade():
         text(
             """
         INSERT INTO session_flow_mapping (session_id, flow_id)
-        SELECT 
+        SELECT
             dis.id as session_id,
             df.flow_id as flow_id
         FROM data_import_sessions dis
@@ -126,8 +126,8 @@ def upgrade():
             text(
                 """
             INSERT INTO discovery_flows (
-                id, flow_id, client_account_id, engagement_id, user_id, 
-                import_session_id, flow_name, flow_description, status, 
+                id, flow_id, client_account_id, engagement_id, user_id,
+                import_session_id, flow_name, flow_description, status,
                 progress_percentage, crewai_state_data, created_at
             ) VALUES (
                 :id, :flow_id, :client_account_id, :engagement_id, :user_id,
@@ -176,7 +176,7 @@ def upgrade():
     assets_updated = conn.execute(
         text(
             """
-        UPDATE assets 
+        UPDATE assets
         SET flow_id = sfm.flow_id
         FROM session_flow_mapping sfm
         WHERE assets.session_id = sfm.session_id
@@ -191,7 +191,7 @@ def upgrade():
     assets_no_session = conn.execute(
         text(
             """
-        UPDATE assets 
+        UPDATE assets
         SET flow_id = df.flow_id
         FROM discovery_flows df
         WHERE assets.client_account_id = df.client_account_id
@@ -224,7 +224,7 @@ def upgrade():
     audit_updated = conn.execute(
         text(
             """
-        UPDATE flow_deletion_audit 
+        UPDATE flow_deletion_audit
         SET flow_id = sfm.flow_id
         FROM session_flow_mapping sfm
         WHERE flow_deletion_audit.session_id = sfm.session_id
@@ -387,8 +387,8 @@ def downgrade():
     removed_flows = conn.execute(
         text(
             """
-        DELETE FROM discovery_flows 
-        WHERE status = 'migrated' 
+        DELETE FROM discovery_flows
+        WHERE status = 'migrated'
           AND flow_description LIKE '%Auto-created during session-to-flow migration%'
     """
         )

@@ -374,9 +374,7 @@ class MFOSyncAgent:
                         }
                     )
 
-            logger.info(
-                f"✅ [MFOSyncAgent] Health monitoring complete: {health_report}"
-            )
+            logger.info(f"✅ [MFOSyncAgent] Health monitoring complete: {health_report}")
             return health_report
 
         except Exception as e:

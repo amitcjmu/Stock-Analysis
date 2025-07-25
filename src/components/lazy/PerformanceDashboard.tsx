@@ -10,12 +10,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Activity, 
-  Clock, 
-  Database, 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  Activity,
+  Clock,
+  Database,
+  AlertTriangle,
+  CheckCircle,
   TrendingUp,
   Download,
   RefreshCw
@@ -173,8 +173,8 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
               </div>
               <Activity className="h-8 w-8 text-blue-500" />
             </div>
-            <Progress 
-              value={summary?.performanceScore || 0} 
+            <Progress
+              value={summary?.performanceScore || 0}
               className="mt-2"
             />
           </CardContent>
@@ -204,8 +204,8 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
               </div>
               <Database className="h-8 w-8 text-purple-500" />
             </div>
-            <Progress 
-              value={summary?.cacheHitRate || 0} 
+            <Progress
+              value={summary?.cacheHitRate || 0}
               className="mt-2"
             />
           </CardContent>
@@ -249,7 +249,7 @@ export const PerformanceDashboard: React.FC<PerformanceDashboardProps> = ({
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-1">
                           <h4 className="font-medium">{insight.message}</h4>
-                          <Badge variant={insight.impact === 'high' ? 'destructive' : 
+                          <Badge variant={insight.impact === 'high' ? 'destructive' :
                                         insight.impact === 'medium' ? 'default' : 'secondary'}>
                             {insight.impact} impact
                           </Badge>

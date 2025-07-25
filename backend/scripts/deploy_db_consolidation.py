@@ -104,9 +104,9 @@ class DatabaseConsolidationDeployment:
             # Check for v3_ tables
             cur.execute(
                 """
-                SELECT COUNT(*) 
-                FROM information_schema.tables 
-                WHERE table_schema = 'public' 
+                SELECT COUNT(*)
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
                 AND table_name LIKE 'v3_%'
             """
             )
@@ -128,8 +128,8 @@ class DatabaseConsolidationDeployment:
                 cur.execute(
                     """
                     SELECT EXISTS (
-                        SELECT FROM information_schema.tables 
-                        WHERE table_schema = 'public' 
+                        SELECT FROM information_schema.tables
+                        WHERE table_schema = 'public'
                         AND table_name = %s
                     )
                 """,
@@ -167,9 +167,9 @@ class DatabaseConsolidationDeployment:
             # Verify no v3_ tables exist
             cur.execute(
                 """
-                SELECT COUNT(*) 
-                FROM information_schema.tables 
-                WHERE table_schema = 'public' 
+                SELECT COUNT(*)
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
                 AND table_name LIKE 'v3_%'
             """
             )
@@ -192,8 +192,8 @@ class DatabaseConsolidationDeployment:
                 cur.execute(
                     """
                     SELECT EXISTS (
-                        SELECT FROM information_schema.columns 
-                        WHERE table_name = %s 
+                        SELECT FROM information_schema.columns
+                        WHERE table_name = %s
                         AND column_name = %s
                     )
                 """,

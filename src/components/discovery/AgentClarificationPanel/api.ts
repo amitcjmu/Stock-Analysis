@@ -1,6 +1,6 @@
 /**
  * API Functions
- * 
+ *
  * API interactions for agent clarification panel.
  */
 

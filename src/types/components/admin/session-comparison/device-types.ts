@@ -1,6 +1,6 @@
 /**
  * Device and Browser Types
- * 
+ *
  * Device, browser, and network information types for session comparison.
  */
 

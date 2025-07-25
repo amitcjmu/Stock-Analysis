@@ -209,7 +209,7 @@ export const UserAccessManagement: React.FC = () => {
       setLoading(true);
 
       // In production, this would be a real API call
-      const resourceName = selectedResourceType === 'client' 
+      const resourceName = selectedResourceType === 'client'
         ? clients.find(c => c.id === selectedResource)?.account_name
         : engagements.find(e => e.id === selectedResource)?.name;
 
@@ -401,15 +401,15 @@ export const UserAccessManagement: React.FC = () => {
               <Label htmlFor="resource-select">
                 {selectedResourceType === 'client' ? 'Select Client' : 'Select Engagement'}
               </Label>
-              <Select 
-                value={selectedResource} 
+              <Select
+                value={selectedResource}
                 onValueChange={setSelectedResource}
                 disabled={selectedResourceType === 'engagement' && !selectedClient}
               >
                 <SelectTrigger>
                   <SelectValue placeholder={
-                    selectedResourceType === 'engagement' && !selectedClient 
-                      ? 'Select client first...' 
+                    selectedResourceType === 'engagement' && !selectedClient
+                      ? 'Select client first...'
                       : `Choose ${selectedResourceType}...`
                   } />
                 </SelectTrigger>
@@ -453,8 +453,8 @@ export const UserAccessManagement: React.FC = () => {
             </div>
           </div>
 
-          <Button 
-            onClick={handleGrantAccess} 
+          <Button
+            onClick={handleGrantAccess}
             disabled={loading || !selectedUser || !selectedResource}
             className="w-full md:w-auto"
           >
@@ -511,13 +511,13 @@ export const UserAccessManagement: React.FC = () => {
                           </span>
                         </div>
                       </div>
-                      
+
                       <div className="flex-grow">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-medium">{user.full_name}</span>
                           <span className="text-sm text-gray-500">({user.email})</span>
                         </div>
-                        
+
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           {grant.resource_type === 'client' ? (
                             <Building2 className="h-4 w-4" />

@@ -63,4 +63,4 @@ export const Currencies = [
   { value: 'GBP', label: 'GBP' },
   { value: 'CAD', label: 'CAD' },
   { value: 'AUD', label: 'AUD' }
-]; 
+];

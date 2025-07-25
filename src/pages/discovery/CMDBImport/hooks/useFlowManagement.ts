@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom';
-import { 
-  useIncompleteFlowDetectionV2, 
+import {
+  useIncompleteFlowDetectionV2,
   useFlowResumptionV2,
-  useBulkFlowOperationsV2 
+  useBulkFlowOperationsV2
 } from '@/hooks/discovery/useFlowOperations';
 import { useFlowDeletion } from '@/hooks/useFlowDeletion';
 import type { getDiscoveryPhaseRoute } from '@/config/flowRoutes';
@@ -15,7 +15,7 @@ export const useFlowManagement = () => {
   const navigate = useNavigate();
   const { client, engagement, user } = useAuth();
   const { toast } = useToast();
-  
+
   // Flow Management State
   const { data: incompleteFlowsData, isLoading: checkingFlows } = useIncompleteFlowDetectionV2();
   const flowResumption = useFlowResumptionV2();
@@ -36,7 +36,7 @@ export const useFlowManagement = () => {
     }
   );
   const bulkFlowOperations = useBulkFlowOperationsV2();
-  
+
   const [showFlowManager, setShowFlowManager] = useState(false);
   interface ConflictFlow {
     flow_id: string;
@@ -48,7 +48,7 @@ export const useFlowManagement = () => {
   }
 
   const [conflictFlows, setConflictFlows] = useState<ConflictFlow[]>([]);
-  
+
   const incompleteFlows = incompleteFlowsData?.flows || [];
   const hasIncompleteFlows = incompleteFlows.length > 0;
 
@@ -66,7 +66,7 @@ export const useFlowManagement = () => {
       });
       return;
     }
-    
+
     await deletionActions.requestDeletion(
       [flowId],
       client.id,
@@ -85,7 +85,7 @@ export const useFlowManagement = () => {
       });
       return;
     }
-    
+
     await deletionActions.requestDeletion(
       flowIds,
       client.id,
@@ -98,7 +98,7 @@ export const useFlowManagement = () => {
   const handleViewFlowDetails = useCallback((flowId: string, phase: string) => {
     // If phase is undefined or empty, default to field_mapping since the flow is waiting for approval
     const actualPhase = phase || 'field_mapping';
-    
+
     // Navigate to phase-specific page using centralized routing configuration
     const route = getDiscoveryPhaseRoute(actualPhase, flowId);
     navigate(route);
@@ -113,13 +113,13 @@ export const useFlowManagement = () => {
     incompleteFlows,
     hasIncompleteFlows,
     checkingFlows,
-    
+
     // Actions
     handleContinueFlow,
     handleDeleteFlow,
     handleBatchDeleteFlows,
     handleViewFlowDetails,
-    
+
     // Flow operations
     flowResumption,
     bulkFlowOperations

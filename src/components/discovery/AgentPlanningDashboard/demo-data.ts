@@ -1,6 +1,6 @@
 /**
  * Demo Data Generator
- * 
+ *
  * Generates demo agent plans for different page contexts.
  */
 
@@ -8,7 +8,7 @@ import type { AgentPlan } from './types';
 
 export const generateDemoPlan = (context: string): AgentPlan => {
   const baseId = `plan_${context}_${Date.now()}`;
-  
+
   const contextPlans = {
     'asset-inventory': {
       name: 'Asset Inventory Intelligence Plan',
@@ -27,7 +27,7 @@ export const generateDemoPlan = (context: string): AgentPlan => {
           requires_human_input: false
         },
         {
-          id: 'task_2', 
+          id: 'task_2',
           agent_name: 'Field Mapping Intelligence',
           task_description: 'Suggest field mappings based on organizational patterns and validate data completeness',
           status: 'in_progress' as const,
@@ -130,7 +130,7 @@ export const generateDemoPlan = (context: string): AgentPlan => {
   const planData = contextPlans[context] || contextPlans['asset-inventory'];
   const completed = planData.tasks.filter(t => t.status === 'completed').length;
   const total = planData.tasks.length;
-  
+
   return {
     plan_id: baseId,
     plan_name: planData.name,

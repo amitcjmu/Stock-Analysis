@@ -21,7 +21,7 @@ const FeedbackView: React.FC = () => {
   const [filteredFeedback, setFilteredFeedback] = useState<FeedbackItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Filters
   const [selectedPage, setSelectedPage] = useState('all');
   const [selectedRating, setSelectedRating] = useState('all');
@@ -65,15 +65,15 @@ const FeedbackView: React.FC = () => {
       // Try to fetch from actual API first
       const response = await apiCall('discovery/feedback');
       console.log('API Response:', response); // Debug log
-      
+
       const allFeedback = response.feedback || [];
-      
+
       // Filter for page feedback only (exclude CMDB analysis feedback)
-      const pageFeedback = allFeedback.filter((item: unknown) => 
-        item.feedback_type === 'page_feedback' || 
+      const pageFeedback = allFeedback.filter((item: unknown) =>
+        item.feedback_type === 'page_feedback' ||
         (!item.feedback_type && item.page && item.rating && item.comment)
       );
-      
+
       // Transform the data to match our expected format
       const transformedFeedback: FeedbackItem[] = pageFeedback.map((item: unknown) => ({
         id: item.id || Math.random().toString(),
@@ -85,9 +85,9 @@ const FeedbackView: React.FC = () => {
         status: item.status || 'new',
         category: item.category || 'general'
       }));
-      
+
       setFeedback(transformedFeedback);
-      
+
       // Calculate summary from feedback data
       if (transformedFeedback.length > 0) {
         const total = transformedFeedback.length;
@@ -106,16 +106,16 @@ const FeedbackView: React.FC = () => {
           return acc;
         }, {} as Record<string, number>);
 
-        setSummary({ 
-          total, 
-          avgRating, 
+        setSummary({
+          total,
+          avgRating,
           byStatus: {
             new: byStatus['new'] || 0,
             reviewed: byStatus['reviewed'] || 0,
             resolved: byStatus['resolved'] || 0
           },
           byPage,
-          byRating 
+          byRating
         });
       } else {
         // Set empty summary if no feedback
@@ -127,9 +127,9 @@ const FeedbackView: React.FC = () => {
           byRating: {}
         });
       }
-      
+
       console.log('Processed feedback:', transformedFeedback); // Debug log
-      
+
     } catch (error) {
       console.error('Failed to fetch feedback:', error);
       console.error('Error details:', {
@@ -137,9 +137,9 @@ const FeedbackView: React.FC = () => {
         message: error?.message,
         stack: error?.stack
       });
-      
+
       setError(`Failed to load feedback data: ${error}`);
-      
+
       // In production, always show demo data as fallback for better UX
       if (import.meta.env.PROD || import.meta.env.DEV) {
         console.warn('Using demo data as fallback');
@@ -162,7 +162,7 @@ const FeedbackView: React.FC = () => {
         category: 'feature'
       },
       {
-        id: '2', 
+        id: '2',
         page: 'Discovery > CMDB Import',
         rating: 5,
         comment: 'AI field mapping is incredible. It automatically detected our custom field names like "CI_Name" and "Sys_Class" from ServiceNow. Saved hours of manual mapping work.',
@@ -227,7 +227,7 @@ const FeedbackView: React.FC = () => {
     ];
 
     setFeedback(demoFeedback);
-    
+
     // Calculate summary
     const total = demoFeedback.length;
     const avgRating = demoFeedback.reduce((sum, f) => sum + f.rating, 0) / total;
@@ -245,16 +245,16 @@ const FeedbackView: React.FC = () => {
       return acc;
     }, {} as Record<string, number>);
 
-    setSummary({ 
-      total, 
-      avgRating, 
+    setSummary({
+      total,
+      avgRating,
       byStatus: {
         new: byStatus['new'] || 0,
         reviewed: byStatus['reviewed'] || 0,
         resolved: byStatus['resolved'] || 0
       },
       byPage,
-      byRating 
+      byRating
     });
   };
 
@@ -278,7 +278,7 @@ const FeedbackView: React.FC = () => {
     }
 
     if (searchTerm) {
-      filtered = filtered.filter(f => 
+      filtered = filtered.filter(f =>
         f.comment.toLowerCase().includes(searchTerm.toLowerCase()) ||
         f.page.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -551,4 +551,4 @@ const FeedbackView: React.FC = () => {
   );
 };
 
-export default FeedbackView; 
+export default FeedbackView;

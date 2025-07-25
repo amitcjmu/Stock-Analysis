@@ -49,7 +49,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA migration;
 
 
 --
--- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner: 
+-- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner:
 --
 
 COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UUIDs)';
@@ -63,7 +63,7 @@ CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA migration;
 
 
 --
--- Name: EXTENSION vector; Type: COMMENT; Schema: -; Owner: 
+-- Name: EXTENSION vector; Type: COMMENT; Schema: -; Owner:
 --
 
 COMMENT ON EXTENSION vector IS 'vector data type and ivfflat and hnsw access methods';
@@ -4927,4 +4927,3 @@ REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 --
 -- PostgreSQL database dump complete
 --
-

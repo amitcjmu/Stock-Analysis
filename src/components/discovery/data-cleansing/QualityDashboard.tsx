@@ -55,7 +55,7 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ metrics, isLoading 
             <Database className="h-6 w-6 text-blue-500" />
           </div>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow-md p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -65,7 +65,7 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ metrics, isLoading 
             <CheckCircle className="h-6 w-6 text-green-500" />
           </div>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow-md p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -75,7 +75,7 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ metrics, isLoading 
             <AlertTriangle className="h-6 w-6 text-yellow-500" />
           </div>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow-md p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -108,7 +108,7 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ metrics, isLoading 
             <span className="font-medium text-gray-900">{Math.round(metrics.completion_percentage)}% Complete</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-3">
-            <div 
+            <div
               className={`h-3 rounded-full transition-all duration-300 ${getProgressColor(metrics.completion_percentage)}`}
               style={{ width: `${metrics.completion_percentage}%` }}
             />
@@ -141,4 +141,4 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ metrics, isLoading 
   );
 };
 
-export default QualityDashboard; 
+export default QualityDashboard;

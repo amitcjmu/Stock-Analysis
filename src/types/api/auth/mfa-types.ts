@@ -1,6 +1,6 @@
 /**
  * Multi-Factor Authentication Types
- * 
+ *
  * MFA setup, verification, and management API types.
  */
 

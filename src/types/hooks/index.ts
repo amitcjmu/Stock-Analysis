@@ -1,6 +1,6 @@
 /**
  * Hook Type Definitions
- * 
+ *
  * Centralized hook type definitions and patterns.
  * Provides type safety for all custom hooks and their compositions.
  */

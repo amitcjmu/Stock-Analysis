@@ -1,6 +1,6 @@
 /**
  * Metrics and Performance Types
- * 
+ *
  * Performance and session metrics types for session comparison.
  */
 

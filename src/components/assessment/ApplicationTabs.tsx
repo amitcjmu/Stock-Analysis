@@ -26,12 +26,12 @@ export const ApplicationTabs: React.FC<ApplicationTabsProps> = ({
         <h3 className="text-sm font-medium text-gray-700">Application:</h3>
         <Badge variant="outline">{applications.length} applications selected</Badge>
       </div>
-      
+
       <Tabs value={selectedApp} onValueChange={onAppSelect}>
         <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${Math.min(applications.length, 4)}, 1fr)` }}>
           {applications.slice(0, 4).map((appId) => (
-            <TabsTrigger 
-              key={appId} 
+            <TabsTrigger
+              key={appId}
               value={appId}
               className="truncate text-xs px-2"
             >
@@ -39,7 +39,7 @@ export const ApplicationTabs: React.FC<ApplicationTabsProps> = ({
             </TabsTrigger>
           ))}
         </TabsList>
-        
+
         {applications.length > 4 && (
           <div className="mt-2 p-2 bg-gray-50 rounded-lg">
             <p className="text-xs text-gray-600 mb-2">Additional applications:</p>
@@ -50,8 +50,8 @@ export const ApplicationTabs: React.FC<ApplicationTabsProps> = ({
                   onClick={() => onAppSelect(appId)}
                   className={cn(
                     "px-2 py-1 text-xs rounded-md border transition-colors",
-                    selectedApp === appId 
-                      ? "bg-blue-100 text-blue-700 border-blue-200" 
+                    selectedApp === appId
+                      ? "bg-blue-100 text-blue-700 border-blue-200"
                       : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
                   )}
                 >

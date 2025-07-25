@@ -97,7 +97,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               </Link>
             );
           })}
-          
+
           {/* Platform Admin Only Navigation */}
           {user?.role === 'platform_admin' && platformAdminNavItems.map((item) => {
             const isActive = location.pathname === item.href;
@@ -126,7 +126,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
         {/* Footer */}
         <div className="p-4 border-t border-gray-200">
-          <Link 
+          <Link
             to="/"
             className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
           >
@@ -145,7 +145,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               <Settings className="h-4 w-4" />
               <span>Administration</span>
             </div>
-            
+
             {/* User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -190,4 +190,4 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   );
 };
 
-export default AdminLayout; 
+export default AdminLayout;

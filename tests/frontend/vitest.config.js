@@ -42,7 +42,7 @@ export default defineConfig({
     // Test timeout
     testTimeout: 10000,
     hookTimeout: 10000,
-    
+
     // Environment variables for testing
     env: {
       NODE_ENV: 'test',
@@ -50,7 +50,7 @@ export default defineConfig({
       DOCKER_API_BASE: 'http://localhost:8000',
       DOCKER_FRONTEND_BASE: 'http://localhost:8081'
     },
-    
+
     // Test patterns - Updated for modular architecture
     include: [
       'tests/frontend/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
@@ -67,18 +67,18 @@ export default defineConfig({
       '.git',
       '.cache'
     ],
-    
+
     // Mock configuration - Enhanced for modular architecture
     deps: {
       inline: ['vitest-canvas-mock']
     },
-    
+
     // Setup for lazy loading and module boundary testing
     transformMode: {
       web: [/\.[jt]sx?$/],
       ssr: [/\.([cm]?[jt]s|[jt]sx)$/]
     },
-    
+
     // Browser-like environment for React components
     threads: false,
     isolate: false
@@ -101,4 +101,4 @@ export default defineConfig({
       DOCKER_FRONTEND_BASE: '"http://localhost:8081"'
     }
   }
-}); 
+});

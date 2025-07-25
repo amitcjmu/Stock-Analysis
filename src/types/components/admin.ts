@@ -1,6 +1,6 @@
 /**
  * Admin Component Types - Modularized Version
- * 
+ *
  * This file serves as a central export point for all admin component types.
  * Individual type definitions have been moved to specialized modules for better organization.
  */

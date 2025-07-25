@@ -40,7 +40,7 @@ export const useClient = (clientId: string | undefined) => {
       const response = await apiCallWithFallback(`/admin/clients/${clientId}`, {
         headers: getAuthHeaders()
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch client details');
       }
@@ -70,7 +70,7 @@ export const useClient = (clientId: string | undefined) => {
 export const useClientForm = (client: Client | null, clientId: string | undefined) => {
   const { toast } = useToast();
   const { getAuthHeaders } = useAuth();
-  
+
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [formData, setFormData] = useState<ClientFormData>({
     account_name: '',

@@ -1,6 +1,6 @@
 /**
  * Validation Display Component
- * 
+ *
  * Shows form validation results, errors, warnings, and overall status
  * Agent Team B3 - Validation feedback component
  */
@@ -118,8 +118,8 @@ export const ValidationDisplay: React.FC<ValidationDisplayProps> = ({
               <span className="text-sm font-medium">
                 {issue.field_label || issue.field_id}
               </span>
-              <Badge 
-                variant="outline" 
+              <Badge
+                variant="outline"
                 className={cn(
                   'text-xs',
                   issue.severity === 'error' && 'border-red-300 text-red-700',
@@ -130,11 +130,11 @@ export const ValidationDisplay: React.FC<ValidationDisplayProps> = ({
                 {issue.error_code}
               </Badge>
             </div>
-            
+
             <p className="text-sm text-gray-700 mb-2">
               {issue.error_message}
             </p>
-            
+
             {issue.suggested_value && (
               <Button
                 type="button"
@@ -172,10 +172,10 @@ export const ValidationDisplay: React.FC<ValidationDisplayProps> = ({
             <Badge variant="outline" className="text-xs">
               {Math.round(validation.overall_confidence_score * 100)}% confidence
             </Badge>
-            
+
             <div className="flex items-center gap-2">
-              <Progress 
-                value={validation.completion_percentage} 
+              <Progress
+                value={validation.completion_percentage}
                 className="w-20"
               />
               <span className="text-xs text-muted-foreground">
@@ -191,24 +191,24 @@ export const ValidationDisplay: React.FC<ValidationDisplayProps> = ({
             <Target className="h-4 w-4 text-muted-foreground" />
             <span>{stats.validFields}/{stats.totalFields} fields valid</span>
           </div>
-          
+
           {stats.errorCount > 0 && (
             <Badge variant="destructive" className="text-xs">
               {stats.errorCount} errors
             </Badge>
           )}
-          
+
           {stats.warningCount > 0 && showWarnings && (
             <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800">
               {stats.warningCount} warnings
             </Badge>
           )}
-          
+
           <div className="flex items-center gap-1 text-sm text-muted-foreground">
             <TrendingUp className="h-4 w-4" />
             <span>+{Math.round(validation.estimated_6r_confidence_impact * 100)}% 6R confidence</span>
           </div>
-          
+
           {(stats.errorCount > 0 || (stats.warningCount > 0 && showWarnings)) && (
             <Button
               type="button"

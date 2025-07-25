@@ -6,7 +6,7 @@
 - **Severity**: Critical
 - **Impact**: Complete UI blockage
 - **Description**: A flow deletion confirmation dialog persists even after page refresh/navigation attempts
-- **Dialog Content**: 
+- **Dialog Content**:
   ```
   🗑️ Flow Deletion Confirmation
   Delete this flow?
@@ -76,7 +76,7 @@ None available - application requires code fix to remove native confirm() dialog
 - **Stuck Flows**: 0 flows found in `initialized`/`active` state with 0% progress > 1 hour old
 - **Total Flows**: 22 discovery flows total
   - Running: 9 flows
-  - Failed: 9 flows  
+  - Failed: 9 flows
   - Completed: 0 flows
   - Other: 4 flows (deleted/cancelled)
 - **Progress Pattern**: Failed flows all stopped at 90% progress with field_mapping_completed=true but data_import_completed=false

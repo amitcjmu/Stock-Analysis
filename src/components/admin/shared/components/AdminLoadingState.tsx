@@ -16,7 +16,7 @@ export const AdminLoadingState: React.FC<AdminLoadingStateProps> = ({
   fullScreen = false,
   className = ''
 }) => {
-  const containerClasses = fullScreen 
+  const containerClasses = fullScreen
     ? "flex items-center justify-center min-h-screen"
     : "container mx-auto p-6";
 

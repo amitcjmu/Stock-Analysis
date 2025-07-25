@@ -54,20 +54,20 @@ admin/
 ### Old Import Pattern (Still Works)
 ```typescript
 // Importing from monolithic files
-import { 
-  Notification, 
-  GeoLocation, 
-  DeviceInfo 
+import {
+  Notification,
+  GeoLocation,
+  DeviceInfo
 } from '@/types/api/admin/notification-types';
 
-import { 
-  PlatformAnalytics, 
-  ReportType 
+import {
+  PlatformAnalytics,
+  ReportType
 } from '@/types/api/admin/analytics-reporting-types';
 
-import { 
-  AuditLog, 
-  SecurityEvent 
+import {
+  AuditLog,
+  SecurityEvent
 } from '@/types/api/admin/audit-logging-types';
 ```
 

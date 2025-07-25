@@ -21,7 +21,7 @@ export interface DiscoveryFlow {
 
 export const useDiscoveryFlowList = () => {
   const { client, engagement } = useAuth();
-  
+
   return useQuery<DiscoveryFlow[]>({
     queryKey: ['discovery-flows', client?.id, engagement?.id],
     queryFn: async () => {
@@ -31,9 +31,9 @@ export const useDiscoveryFlowList = () => {
           console.warn('⚠️ Missing client or engagement context for discovery flows:', { client: client?.id, engagement: engagement?.id });
           return []; // Return empty array instead of throwing to prevent infinite retries
         }
-        
+
         console.log('🔍 Fetching discovery flows for:', { clientId: client.id, engagementId: engagement.id });
-        
+
         // Use the same endpoint as dashboard for consistency
         const response = await apiCall('/api/v1/discovery/flows/active', {
           method: 'GET',
@@ -43,12 +43,12 @@ export const useDiscoveryFlowList = () => {
             'X-Engagement-ID': engagement.id
           }
         });
-        
+
         console.log('✅ Raw discovery flows response:', response);
-        
+
         // Handle both array response and object with flows array (same as dashboard)
         let flowsToProcess = [];
-        
+
         if (Array.isArray(response)) {
           // Direct array response from /api/v1/discovery/flows/active
           flowsToProcess = response;
@@ -59,9 +59,9 @@ export const useDiscoveryFlowList = () => {
           // Legacy structure
           flowsToProcess = response.flow_details;
         }
-        
+
         console.log(`✅ Processing ${flowsToProcess.length} flows from discovery API...`);
-        
+
         // Transform to expected format (matching the dashboard flow structure)
         const transformedFlows = flowsToProcess.map(flow => ({
           id: flow.flow_id, // Add id field for compatibility
@@ -80,7 +80,7 @@ export const useDiscoveryFlowList = () => {
           dependencies_completed: flow.dependencies_completed === true,
           tech_debt_completed: flow.tech_debt_completed === true,
         }));
-        
+
         console.log('✅ Transformed discovery flows:', transformedFlows);
         return transformedFlows;
       } catch (error) {
@@ -100,19 +100,19 @@ export const useDiscoveryFlowList = () => {
         console.log(`❌ Max retries reached for discovery flows (${failureCount}), stopping`);
         return false;
       }
-      
+
       // Only retry for specific conditions
       if (error?.message === 'Missing client or engagement context') {
         console.log(`🔄 Retrying discovery flows fetch (attempt ${failureCount + 1}) - waiting for context...`);
         return true;
       }
-      
+
       // Retry 429 rate limit errors with exponential backoff
       if (error?.status === 429) {
         console.log(`🔄 Rate limited, retrying discovery flows fetch (attempt ${failureCount + 1})...`);
         return true;
       }
-      
+
       // Don't retry other errors
       console.log(`❌ Not retrying discovery flows fetch - error: ${error?.message || error}`);
       return false;
@@ -137,9 +137,9 @@ export const getFlows = async (clientId?: string, engagementId?: string) => {
       console.warn('getFlows utility requires client and engagement context');
       return [];
     }
-    
+
     console.log('🔍 getFlows utility - Fetching discovery flows for:', { clientId, engagementId });
-    
+
     // Use the same endpoint as main hook for consistency
     const response = await apiCall('/api/v1/discovery/flows/active', {
       method: 'GET',
@@ -149,9 +149,9 @@ export const getFlows = async (clientId?: string, engagementId?: string) => {
         'X-Engagement-ID': engagementId
       }
     });
-    
+
     console.log('✅ getFlows utility - Raw response:', response);
-    
+
     // Handle response format (same as main hook)
     let flowsToProcess = [];
     if (Array.isArray(response)) {
@@ -161,7 +161,7 @@ export const getFlows = async (clientId?: string, engagementId?: string) => {
     } else if (response.flow_details && Array.isArray(response.flow_details)) {
       flowsToProcess = response.flow_details;
     }
-    
+
     // Transform to legacy format for compatibility
     const transformedFlows = flowsToProcess.map(flow => ({
       flow_id: flow.flow_id,
@@ -170,7 +170,7 @@ export const getFlows = async (clientId?: string, engagementId?: string) => {
       created_at: flow.created_at,
       updated_at: flow.updated_at
     }));
-    
+
     console.log('✅ getFlows utility - Transformed flows:', transformedFlows);
     return transformedFlows;
   } catch (error) {

@@ -1,6 +1,6 @@
 /**
  * Shared API Types Index
- * 
+ *
  * Central export point for all shared API types organized by functional area.
  */
 

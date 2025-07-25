@@ -1,6 +1,6 @@
 /**
  * Agent Clarification Panel
- * 
+ *
  * Main panel component for displaying and managing agent questions.
  */
 
@@ -47,11 +47,11 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
   // Set up polling only when processing is active
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
-    
+
     if (isProcessing) {
       interval = setInterval(fetchQuestions, 30000); // Poll every 30 seconds only when processing
     }
-    
+
     return () => {
       if (interval) clearInterval(interval);
     };
@@ -61,7 +61,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
     try {
       const fetchedQuestions = await api.fetchAgentQuestions(pageContext);
       setQuestions(fetchedQuestions);
-      
+
       // Fetch asset details for application boundary questions
       await fetchAssetDetailsForQuestions(fetchedQuestions);
       setError(null);
@@ -74,7 +74,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
 
   const fetchAssetDetailsForQuestions = async (questions: AgentQuestion[]) => {
     const assetDetailsMap: Record<string, AssetDetails> = {};
-    
+
     for (const question of questions) {
       if (question.question_type === 'application_boundary' && question.context?.components) {
         for (const componentName of question.context.components) {
@@ -90,7 +90,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
         }
       }
     }
-    
+
     setAssetDetails(assetDetailsMap);
   };
 
@@ -105,15 +105,15 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
 
       if (success) {
         // Update the question as resolved
-        setQuestions(prev => prev.map(q => 
-          q.id === questionId 
+        setQuestions(prev => prev.map(q =>
+          q.id === questionId
             ? { ...q, is_resolved: true, user_response: response, answered_at: new Date().toISOString() }
             : q
         ));
-        
+
         // Clear the response input
         setResponses(prev => ({ ...prev, [questionId]: '' }));
-        
+
         // Notify parent component
         onQuestionAnswered?.(questionId, response);
       }
@@ -131,12 +131,12 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
       const success = await api.submitQuestionResponse(questionId, selectedOption, 'selection', pageContext);
 
       if (success) {
-        setQuestions(prev => prev.map(q => 
-          q.id === questionId 
+        setQuestions(prev => prev.map(q =>
+          q.id === questionId
             ? { ...q, is_resolved: true, user_response: selectedOption, answered_at: new Date().toISOString() }
             : q
         ));
-        
+
         onQuestionAnswered?.(questionId, selectedOption);
       }
     } catch (err: unknown) {
@@ -175,7 +175,7 @@ const AgentClarificationPanel: React.FC<AgentClarificationPanelProps> = ({
 
   return (
     <div className={`bg-white rounded-lg border shadow-sm ${className}`}>
-      <PanelHeader 
+      <PanelHeader
         pendingCount={pendingQuestions.length}
         onRefresh={fetchQuestions}
       />

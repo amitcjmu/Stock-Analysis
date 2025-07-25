@@ -1,6 +1,6 @@
 /**
  * Discovery Data Import Hook Types
- * 
+ *
  * Type definitions for data import hooks including file validation,
  * preview data, column schemas, and import statistics.
  */

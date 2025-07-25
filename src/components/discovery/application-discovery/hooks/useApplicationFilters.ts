@@ -62,7 +62,7 @@ export const useApplicationFilters = (applications: Application[]) => {
     // Text search
     if (searchTerm.trim()) {
       const search = searchTerm.toLowerCase();
-      filtered = filtered.filter(app => 
+      filtered = filtered.filter(app =>
         app.name.toLowerCase().includes(search) ||
         app.technology_stack.some(tech => tech.toLowerCase().includes(search)) ||
         app.environment.toLowerCase().includes(search) ||
@@ -88,7 +88,7 @@ export const useApplicationFilters = (applications: Application[]) => {
 
     // Technology stack filter
     if (filters.technology_stack !== 'all') {
-      filtered = filtered.filter(app => 
+      filtered = filtered.filter(app =>
         app.technology_stack.some(tech => tech.toLowerCase().includes(filters.technology_stack.toLowerCase()))
       );
     }

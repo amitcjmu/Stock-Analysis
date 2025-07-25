@@ -19,7 +19,7 @@ backup_files() {
 update_backend() {
     echo ""
     echo "🐍 Updating Backend Python packages..."
-    
+
     # Use the secure requirements file
     if [ -f "backend/requirements-docker-secure.txt" ]; then
         echo "Using secure requirements file..."
@@ -32,7 +32,7 @@ update_backend() {
 update_frontend() {
     echo ""
     echo "📦 Updating Frontend npm packages..."
-    
+
     # Use the updated package.json
     if [ -f "package-updated.json" ]; then
         echo "Using updated package.json..."
@@ -45,13 +45,13 @@ update_frontend() {
 rebuild_containers() {
     echo ""
     echo "🐳 Rebuilding Docker containers..."
-    
+
     # Stop current containers
     docker-compose down
-    
+
     # Build with no cache to ensure updates
     docker-compose build --no-cache
-    
+
     echo "✅ Containers rebuilt with security updates"
 }
 
@@ -59,20 +59,20 @@ rebuild_containers() {
 test_updates() {
     echo ""
     echo "🧪 Testing updated packages..."
-    
+
     # Start containers
     docker-compose up -d
-    
+
     # Wait for services to start
     sleep 10
-    
+
     # Check health
     echo "Checking backend health..."
     curl -s http://localhost:8000/health || echo "Backend health check failed"
-    
+
     echo "Checking frontend..."
     curl -s http://localhost:8081 > /dev/null && echo "Frontend is running" || echo "Frontend check failed"
-    
+
     echo ""
     echo "📊 Container status:"
     docker-compose ps
@@ -90,7 +90,7 @@ if [[ "$response" =~ ^[Yy]$ ]]; then
     update_frontend
     rebuild_containers
     test_updates
-    
+
     echo ""
     echo "✅ Package updates complete!"
     echo ""

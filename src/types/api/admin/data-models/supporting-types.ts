@@ -1,9 +1,9 @@
 /**
  * Supporting Types and Complex Interfaces
- * 
+ *
  * Complex supporting interfaces and remaining type definitions
  * that support the main data model domains.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

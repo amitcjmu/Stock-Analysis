@@ -50,7 +50,7 @@ export interface DataRetentionData {
 
 export const useDataRetention = () => {
   const { getAuthHeaders } = useAuth();
-  
+
   return useQuery<DataRetentionData>({
     queryKey: ['data-retention'],
     queryFn: async () => {
@@ -99,4 +99,4 @@ export const useUpdateRetentionPolicy = () => {
       queryClient.invalidateQueries({ queryKey: ['data-retention'] });
     },
   });
-}; 
+};

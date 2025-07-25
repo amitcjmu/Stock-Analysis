@@ -1,6 +1,6 @@
 /**
  * Tree Component Types
- * 
+ *
  * Type definitions for tree components including tree nodes, drag and drop,
  * selection, expansion, and tree configuration options.
  */

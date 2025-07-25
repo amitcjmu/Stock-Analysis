@@ -10,7 +10,7 @@ tests/
 ├── backend/                 # Python backend tests
 │   ├── test_asset_classification.py    # Asset type classification tests
 │   └── test_api_integration.py         # API integration tests
-├── frontend/                # JavaScript frontend tests  
+├── frontend/                # JavaScript frontend tests
 │   ├── AssetInventory.test.js          # React component tests
 │   ├── setup.js                        # Test environment setup
 │   └── vitest.config.js                # Vitest configuration
@@ -154,7 +154,7 @@ Use pytest markers to run specific test categories:
 # Device classification tests only
 python -m pytest -m device_classification
 
-# 6R readiness tests only  
+# 6R readiness tests only
 python -m pytest -m sixr_readiness
 
 # Agentic workflow tests only
@@ -286,7 +286,7 @@ npm install --save-dev vitest jsdom @testing-library/react @testing-library/jest
 - name: Run Enhanced Asset Inventory Tests
   run: |
     python tests/run_tests_docker.py --suites all
-    
+
 - name: Upload Coverage Reports
   uses: codecov/codecov-action@v1
   with:
@@ -322,7 +322,7 @@ For questions or contributions, please refer to the main project documentation.
 This application uses **fixed ports** to avoid conflicts with other development projects:
 
 - **Backend API**: `http://localhost:8000` (FastAPI)
-- **Frontend**: `http://localhost:8081` (Vite React app)  
+- **Frontend**: `http://localhost:8081` (Vite React app)
 - **PostgreSQL**: `localhost:5433` (mapped from container port 5432)
 
 ### Why Port 8081 for Frontend?
@@ -351,4 +351,4 @@ You can adjust this in `docker-compose.yml` if needed:
 ```yaml
 healthcheck:
   interval: 120s  # Adjust as needed
-``` 
+```

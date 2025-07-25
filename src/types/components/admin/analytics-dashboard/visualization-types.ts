@@ -1,6 +1,6 @@
 /**
  * Visualization Types
- * 
+ *
  * Chart, table, metric, and other visualization configuration types.
  */
 

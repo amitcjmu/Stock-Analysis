@@ -1,6 +1,6 @@
 /**
  * Base Discovery Component Types
- * 
+ *
  * Core interfaces and base types for discovery components.
  */
 

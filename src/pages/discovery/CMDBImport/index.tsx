@@ -24,7 +24,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const CMDBImportContainer: React.FC = () => {
   const { user, client, engagement } = useAuth();
-  
+
   const {
     // File upload state
     uploadedFiles,
@@ -35,7 +35,7 @@ const CMDBImportContainer: React.FC = () => {
     handleDragOver,
     handleDragLeave,
     handleDrop,
-    
+
     // Flow management
     showFlowManager,
     setShowFlowManager,
@@ -47,10 +47,10 @@ const CMDBImportContainer: React.FC = () => {
     handleDeleteFlow,
     handleBatchDeleteFlows,
     handleViewFlowDetails,
-    
+
     // Loading states
     isStartingFlow,
-    
+
     // Actions
     startDiscoveryFlow,
 
@@ -60,7 +60,7 @@ const CMDBImportContainer: React.FC = () => {
     isFlowStateLoading,
     flowStateError,
     pollingStatus,
-    
+
     // Deletion state and actions
     deletionState,
     deletionActions,
@@ -72,7 +72,7 @@ const CMDBImportContainer: React.FC = () => {
       <div className="hidden lg:block w-64 border-r bg-white">
         <Sidebar />
       </div>
-      
+
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-6xl">
@@ -86,7 +86,7 @@ const CMDBImportContainer: React.FC = () => {
                 <Upload className="h-8 w-8 text-blue-600" />
                 <h1 className="text-3xl font-bold text-gray-900">Secure Data Import</h1>
               </div>
-              
+
               {/* Authentication Context Status */}
               <div className="flex items-center space-x-3">
                 <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm ${
@@ -94,8 +94,8 @@ const CMDBImportContainer: React.FC = () => {
                 }`}>
                   <Activity className="h-4 w-4" />
                   <span>
-                    {client && engagement 
-                      ? `${client.name} • ${engagement.name}` 
+                    {client && engagement
+                      ? `${client.name} • ${engagement.name}`
                       : 'Select Client & Engagement'
                     }
                   </span>
@@ -109,10 +109,10 @@ const CMDBImportContainer: React.FC = () => {
               </div>
             </div>
             <p className="mt-2 text-gray-600 max-w-3xl">
-              Upload migration data files for AI-powered validation and security analysis. 
+              Upload migration data files for AI-powered validation and security analysis.
               Our specialized agents ensure data quality, security, and privacy compliance before processing.
             </p>
-          
+
             {/* Context Warning */}
             {(!client || !engagement) && (
               <Alert className="mb-4 border-yellow-200 bg-yellow-50">
@@ -139,7 +139,7 @@ const CMDBImportContainer: React.FC = () => {
               <span className="ml-3 text-gray-600">Checking for incomplete discovery flows...</span>
             </div>
           ) : hasIncompleteFlows ? (
-            <UploadBlocker 
+            <UploadBlocker
               incompleteFlows={incompleteFlows}
               onContinueFlow={handleContinueFlow}
               onDeleteFlow={handleDeleteFlow}
@@ -159,7 +159,7 @@ const CMDBImportContainer: React.FC = () => {
               onDrop={handleDrop}
             />
           )}
-            
+
           {/* Upload Progress & Validation */}
           <CMDBDataTable
             uploadedFiles={uploadedFiles}
@@ -220,7 +220,7 @@ const CMDBImportContainer: React.FC = () => {
               />
             </DialogContent>
           </Dialog>
-          
+
           {/* Flow Deletion Modal */}
           <FlowDeletionModal
             open={deletionState.isModalOpen}

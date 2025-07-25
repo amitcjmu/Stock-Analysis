@@ -42,7 +42,7 @@ interface SupportTimeline {
 const TechDebtAnalysis = () => {
   const { client, engagement } = useAuth();
   const { toast } = useToast();
-  
+
   // Use the new auto-detection hook for consistent flow detection
   const {
     urlFlowId,
@@ -52,7 +52,7 @@ const TechDebtAnalysis = () => {
     isFlowListLoading,
     hasEffectiveFlow
   } = useTechDebtFlowDetection();
-  
+
   // Unified Discovery flow hook - pass effectiveFlowId instead of urlFlowId
   const {
     flowState: flow,
@@ -63,11 +63,11 @@ const TechDebtAnalysis = () => {
     refreshFlow: refresh,
     isPhaseComplete
   } = useUnifiedDiscoveryFlow(effectiveFlowId);
-  
+
   // Extract flow details
   const progressPercentage = flow?.progress_percentage || 0;
   const currentPhase = flow?.current_phase || '';
-  const completedPhases = flow?.phase_completion ? 
+  const completedPhases = flow?.phase_completion ?
     Object.entries(flow.phase_completion)
       .filter(([_, completed]) => completed)
       .map(([phase, _]) => phase) : [];
@@ -85,14 +85,14 @@ const TechDebtAnalysis = () => {
   // Get tech debt specific data from V2 flow - extract from flow state
   const techDebtResults = flow?.results?.tech_debt || flow?.tech_debt_analysis || flow?.results?.tech_debt_analysis || {};
   const isTechDebtComplete = completedPhases.includes('tech_debt') || completedPhases.includes('tech_debt_completed');
-  
+
   // Local state for UI
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedRisk, setSelectedRisk] = useState('all');
   const [agentRefreshTrigger, setAgentRefreshTrigger] = useState(0);
 
   // Extract tech debt data from flow results
-  const techDebtItems = techDebtResults?.items || techDebtResults?.debt_items || techDebtResults?.debt_scores ? 
+  const techDebtItems = techDebtResults?.items || techDebtResults?.debt_items || techDebtResults?.debt_scores ?
     Object.entries(techDebtResults.debt_scores || {}).map(([key, value]: [string, { score: number; severity: string; recommendations?: string[] }], index) => ({
       id: `debt_${index}`,
       assetId: key,
@@ -111,7 +111,7 @@ const TechDebtAnalysis = () => {
     })) : [];
 
   const supportTimelines = techDebtResults?.support_timelines || [];
-  
+
   // Generate summary from tech debt items
   const summary = {
     totalItems: techDebtItems.length,
@@ -165,7 +165,7 @@ const TechDebtAnalysis = () => {
     const timer = setTimeout(() => {
       setAgentRefreshTrigger(prev => prev + 1);
     }, 1000);
-    
+
     return () => clearTimeout(timer);
   }, []);
 
@@ -254,7 +254,7 @@ const TechDebtAnalysis = () => {
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900">
           <div className="container mx-auto px-6 py-8">
             <h1 className="text-4xl font-bold text-gray-800 dark:text-white">Technical Debt Analysis</h1>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
                 <div className="flex items-center">
@@ -300,8 +300,8 @@ const TechDebtAnalysis = () => {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Debt Details</h2>
                 <div className="flex space-x-4">
-                  <select 
-                    value={selectedCategory} 
+                  <select
+                    value={selectedCategory}
                     onChange={e => setSelectedCategory(e.target.value)}
                     className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-md p-2"
                   >
@@ -312,8 +312,8 @@ const TechDebtAnalysis = () => {
                     <option value="app">Application</option>
                     <option value="web">Web Server</option>
                   </select>
-                  <select 
-                    value={selectedRisk} 
+                  <select
+                    value={selectedRisk}
                     onChange={e => setSelectedRisk(e.target.value)}
                     className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-md p-2"
                   >
@@ -397,17 +397,17 @@ const TechDebtAnalysis = () => {
               </div>
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
-                  Agent Insights 
-                  <button 
-                    onClick={() => setAgentRefreshTrigger(prev => prev + 1)} 
+                  Agent Insights
+                  <button
+                    onClick={() => setAgentRefreshTrigger(prev => prev + 1)}
                     className="ml-4 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
                     title="Refresh Agent Analysis"
                   >
                     <RotateCcw className="w-4 h-4" />
                   </button>
                 </h2>
-                <AgentInsightsSection 
-                  context="tech_debt_analysis" 
+                <AgentInsightsSection
+                  context="tech_debt_analysis"
                   refreshTrigger={agentRefreshTrigger}
                 />
               </div>
@@ -419,4 +419,4 @@ const TechDebtAnalysis = () => {
   );
 };
 
-export default TechDebtAnalysis; 
+export default TechDebtAnalysis;

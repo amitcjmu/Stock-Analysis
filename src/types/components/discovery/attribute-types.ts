@@ -1,6 +1,6 @@
 /**
  * Critical Attributes Component Types
- * 
+ *
  * Types for critical attribute management, editing, and configuration.
  */
 

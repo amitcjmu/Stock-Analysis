@@ -12,10 +12,10 @@ import { ReadinessScoreCard } from './components/ReadinessScoreCard';
 import { ReadinessTabs } from './components/ReadinessTabs';
 
 // Hooks
-import { 
-  useReadinessAssessment, 
-  useGenerateSignoffPackage, 
-  useSubmitForApproval 
+import {
+  useReadinessAssessment,
+  useGenerateSignoffPackage,
+  useSubmitForApproval
 } from './hooks/useReadinessAssessment';
 
 // Types
@@ -91,7 +91,7 @@ const AssessmentReadiness: React.FC = () => {
   // Handle submission for approval
   const handleSubmitForApproval = () => {
     if (!readinessAssessment?.signoffPackage) return;
-    
+
     submitApproval({
       assessmentId: readinessAssessment.id,
       signoffPackage: readinessAssessment.signoffPackage,
@@ -147,12 +147,12 @@ const AssessmentReadiness: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Readiness Score Card */}
-      <ReadinessScoreCard 
-        assessment={readinessAssessment} 
-        onRefresh={refetchAssessment} 
-        isLoading={isLoadingAssessment} 
+      <ReadinessScoreCard
+        assessment={readinessAssessment}
+        onRefresh={refetchAssessment}
+        isLoading={isLoadingAssessment}
       />
-      
+
       {/* Readiness Tabs */}
       <ReadinessTabs
         activeTab={activeTab}

@@ -13,12 +13,12 @@ export const OverallProgress: React.FC<OverallProgressProps> = ({ crews }) => {
   const overallProgress = Math.round(
     crews.reduce((sum, crew) => sum + crew.progress, 0) / crews.length
   );
-  
+
   const activeCrews = crews.filter(c => c.status === 'running').length;
   const completedCrews = crews.filter(c => c.status === 'completed').length;
   const totalAgents = crews.reduce((sum, crew) => sum + crew.agents.length, 0);
   const activeAgents = crews.reduce(
-    (sum, crew) => sum + crew.agents.filter(a => a.status === 'active').length, 
+    (sum, crew) => sum + crew.agents.filter(a => a.status === 'active').length,
     0
   );
 
@@ -44,7 +44,7 @@ export const OverallProgress: React.FC<OverallProgressProps> = ({ crews }) => {
             </div>
             <Progress value={overallProgress} className="h-3" />
           </div>
-          
+
           <div className="grid grid-cols-4 gap-4 text-center">
             <div>
               <div className="flex justify-center mb-2">

@@ -90,15 +90,15 @@ const parseCSVFile = (file: File): Promise<{ headers: string[]; sample_data: Arr
       try {
         const text = e.target?.result as string;
         const lines = text.split('\n').filter(line => line.trim());
-        
+
         if (lines.length === 0) {
           reject(new Error('File is empty'));
           return;
         }
-        
+
         // Parse headers
         const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-        
+
         // Parse data rows
         const sample_data: Array<Record<string, unknown>> = [];
         for (let i = 1; i < Math.min(lines.length, 11); i++) { // Take first 10 data rows
@@ -109,7 +109,7 @@ const parseCSVFile = (file: File): Promise<{ headers: string[]; sample_data: Arr
           });
           sample_data.push(row);
         }
-        
+
         resolve({ headers, sample_data });
       } catch (error) {
         reject(new Error('Failed to parse CSV file'));
@@ -124,22 +124,22 @@ const parseCSVFile = (file: File): Promise<{ headers: string[]; sample_data: Arr
 export const useDiscoveryFlow = () => {
   const queryClient = useQueryClient();
   const { flowId } = useAuth(); // Get flow ID from AuthContext
-  
+
   return useMutation<DiscoveryFlowResponse, Error, { file: File }>(
     {
       mutationFn: async ({ file }) => {
         console.log('🔍 Starting discovery flow for file:', file.name);
         console.log('📋 Using flow ID from AuthContext:', flowId);
-        
+
         // Parse CSV file
         const { headers, sample_data } = await parseCSVFile(file);
-        
+
         console.log('📊 Parsed CSV data:', {
           headers,
           sample_data_count: sample_data.length,
           first_record: sample_data[0]
         });
-        
+
         // Prepare request for the working backend endpoint
         const requestBody: DiscoveryFlowRequest = {
           headers,
@@ -153,7 +153,7 @@ export const useDiscoveryFlow = () => {
             flow_id: flowId // Use flow ID from AuthContext
           }
         };
-        
+
         console.log('🚀 Sending request to backend:', {
           endpoint: '/api/v1/discovery/flow/run-redesigned',
           flow_id: flowId,
@@ -161,15 +161,15 @@ export const useDiscoveryFlow = () => {
           headers_count: headers.length,
           sample_data_count: sample_data.length
         });
-        
+
         // Call the redesigned backend endpoint with proper crew implementation
         const response = await apiCall('/api/v1/discovery/flow/run-redesigned', {
           method: 'POST',
           body: JSON.stringify(requestBody),
         }) as DiscoveryFlowResponse;
-        
+
         console.log('✅ Discovery flow response:', response);
-        
+
         return response;
       },
       onSuccess: (data) => {
@@ -190,25 +190,25 @@ export const useDiscoveryFlowStatus = (flowId: string | null) => {
     queryKey: ['discoveryFlowStatus', flowId],
     queryFn: async () => {
       if (!flowId) throw new Error('Flow ID is required');
-      
+
       // Use the public status endpoint that doesn't require authentication
       const response = await apiCall(
         `/api/v1/discovery/flow/agentic-analysis/status-public?flow_id=${flowId}`
       ) as AnalysisStatusResponse;
-      
+
       // Extract the actual workflow status from the backend response
       const flowStatus = response.flow_status || {};
       const workflowStatus = flowStatus.status || response.status || 'unknown';
       const currentPhase = flowStatus.current_phase || response.current_phase || 'unknown';
       const progressPercentage = flowStatus.progress_percentage || 0;
-      
+
       console.log('📊 Status response from backend:', {
         response_status: response.status,
         flow_status: flowStatus.status,
         current_phase: currentPhase,
         progress: progressPercentage
       });
-      
+
       // Simple transformation - just pass through what the agents provide
       return {
         status: workflowStatus,
@@ -253,27 +253,27 @@ export const useDiscoveryFlowStatus = (flowId: string | null) => {
  */
 export const useAuthenticatedDiscoveryStatus = (flowId: string | null) => {
   const { user, client, engagement } = useAuth();
-  
+
   return useQuery<AnalysisStatusResponse, Error>({
     queryKey: ['authenticatedDiscoveryStatus', flowId],
     queryFn: async () => {
       if (!flowId) throw new Error('Flow ID is required');
       if (!user) throw new Error('Authentication required');
-      
+
       try {
         // Get the current context from the auth context
         let clientId = client?.id || '';
         let engagementId = engagement?.id || '';
-        
+
         console.log('Auth context - Client ID:', clientId, 'Engagement ID:', engagementId);
-        
+
         // If we're missing either ID, try to fetch the full context
         if (!clientId || !engagementId) {
           try {
             console.log('Fetching user context from /api/v1/context/me');
             const contextResponse = await apiCall('/context/me', { method: 'GET' });
             console.log('User context response:', contextResponse);
-            
+
             if (contextResponse?.client?.id) {
               clientId = contextResponse.client.id;
             }
@@ -285,11 +285,11 @@ export const useAuthenticatedDiscoveryStatus = (flowId: string | null) => {
             throw new Error('Failed to load user context. Please ensure you have selected a client and engagement.');
           }
         }
-        
+
         if (!clientId || !engagementId) {
           throw new Error('Missing client or engagement context. Please ensure you have selected a client and engagement.');
         }
-        
+
         // Prepare headers for the status request
         const headers: Record<string, string> = {
           'X-Client-Account-Id': clientId,
@@ -297,9 +297,9 @@ export const useAuthenticatedDiscoveryStatus = (flowId: string | null) => {
           'X-Flow-ID': flowId,
           'X-Requested-With': 'XMLHttpRequest' // Helps identify AJAX requests
         };
-        
+
         console.log('Making authenticated status request with headers:', headers);
-        
+
         // Build query parameters
         const queryParams = new URLSearchParams({
           flow_id: flowId,
@@ -310,11 +310,11 @@ export const useAuthenticatedDiscoveryStatus = (flowId: string | null) => {
         });
 
         console.log('Calling authenticated status endpoint with params:', queryParams.toString());
-        
+
         // Call the authenticated endpoint with context headers and query params
         const endpoint = `/api/v1/agents/discovery/agent-status?${queryParams.toString()}`;
         console.log('Calling authenticated status endpoint:', endpoint);
-        
+
         const response = await apiCall(
           endpoint,
           {
@@ -327,19 +327,19 @@ export const useAuthenticatedDiscoveryStatus = (flowId: string | null) => {
             credentials: 'include' // Ensure cookies are sent with the request
           }
         ) as AnalysisStatusResponse;
-        
+
         // Transform response to match AnalysisStatusResponse
         const flowStatus = response.flow_status || {};
         const workflowStatus = flowStatus.status || response.status || 'unknown';
         const currentPhase = flowStatus.current_phase || response.current_phase || 'unknown';
         const progressPercentage = flowStatus.progress_percentage || 0;
-        
+
         console.log('🔒 Authenticated status response:', {
           status: workflowStatus,
           phase: currentPhase,
           progress: progressPercentage
         });
-        
+
         return {
           status: workflowStatus,
           flow_id: flowId,
@@ -382,36 +382,36 @@ export const useAuthenticatedDiscoveryStatus = (flowId: string | null) => {
 export const useFileUpload = () => {
   const queryClient = useQueryClient();
   const discoveryFlow = useDiscoveryFlow();
-  
+
   return useMutation({
     mutationFn: async (files: Array<{ file: File; type: string; id: string }>) => {
       const uploadPromises = files.map(async ({ file, type, id }) => {
         try {
           // Update file status to analyzing
-          queryClient.setQueryData<UploadedFile[]>(['uploadedFiles'], (old = []) => 
-            old.map(f => f.id === id ? { 
-              ...f, 
+          queryClient.setQueryData<UploadedFile[]>(['uploadedFiles'], (old = []) =>
+            old.map(f => f.id === id ? {
+              ...f,
               status: 'analyzing',
               analysisError: undefined,
               processingMessages: ['🚀 Starting discovery workflow...']
             } : f)
           );
-          
+
           // Start the discovery workflow
           const result = await discoveryFlow.mutateAsync({
             file,
           });
-          
+
           // Use the flow ID returned by the backend
           const actualFlowId = result.flow_id || id;
-          
+
           // Parse CSV to get record count for display
           const { headers, sample_data } = await parseCSVFile(file);
-          
+
           // Update file with backend flow ID and additional metadata
-          queryClient.setQueryData<UploadedFile[]>(['uploadedFiles'], (old = []) => 
-            old.map(f => f.id === id ? { 
-              ...f, 
+          queryClient.setQueryData<UploadedFile[]>(['uploadedFiles'], (old = []) =>
+            old.map(f => f.id === id ? {
+              ...f,
               id: actualFlowId,
               flowId: actualFlowId, // Add flow ID for status polling
               filename: file.name, // Add filename for display
@@ -420,19 +420,19 @@ export const useFileUpload = () => {
               processingMessages: [`✅ Workflow started: ${result.current_phase}`]
             } : f)
           );
-          
+
           return {
             id: actualFlowId,
             file,
             type,
             status: 'analyzing' as const,
             flowId: actualFlowId, // Add flow ID for status polling
-            filename: file.name, // Add filename for display 
+            filename: file.name, // Add filename for display
             recordCount: sample_data.length, // Add record count for display
             detectedFileType: file.name.split('.').pop()?.toUpperCase() || 'CSV',
             analysisSteps: [
               'Data source analysis',
-              'Data validation', 
+              'Data validation',
               'Field mapping',
               'Asset classification',
               'Dependency analysis',
@@ -453,7 +453,7 @@ export const useFileUpload = () => {
           };
         }
       });
-      
+
       return Promise.all(uploadPromises);
     },
     onMutate: (files) => {
@@ -469,7 +469,7 @@ export const useFileUpload = () => {
         detectedFileType: file.name.split('.').pop()?.toUpperCase(),
         analysisSteps: [
           'Data source analysis',
-          'Data validation', 
+          'Data validation',
           'Field mapping',
           'Asset classification',
           'Dependency analysis',
@@ -478,9 +478,9 @@ export const useFileUpload = () => {
         currentStep: 0,
         processingMessages: ['📁 File uploaded, preparing analysis...']
       }));
-      
+
       queryClient.setQueryData<UploadedFile[]>(['uploadedFiles'], (old = []) => [...old, ...newFiles]);
-      
+
       return { previousFiles: queryClient.getQueryData<UploadedFile[]>(['uploadedFiles']) };
     },
     onError: (error, variables, context) => {
@@ -494,4 +494,4 @@ export const useFileUpload = () => {
       queryClient.invalidateQueries({ queryKey: ['uploadedFiles'] });
     },
   });
-}; 
+};

@@ -1,9 +1,9 @@
 /**
  * System Configuration and Integration Types
- * 
+ *
  * System settings, integration management, configuration validation,
  * and environment management types.
- * 
+ *
  * Generated with CC for modular admin type organization.
  */
 

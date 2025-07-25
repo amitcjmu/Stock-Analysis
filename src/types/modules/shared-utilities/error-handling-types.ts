@@ -1,6 +1,6 @@
 /**
  * Error Handling Types
- * 
+ *
  * Types for error handling, error boundaries, and error recovery.
  */
 

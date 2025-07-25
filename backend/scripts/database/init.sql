@@ -24,4 +24,4 @@ ALTER DATABASE migration_db SET search_path TO migration, public;
 -- This will be handled by the application's user management system
 
 COMMENT ON DATABASE migration_db IS 'AI Modernize Migration Platform Database';
-COMMENT ON SCHEMA migration IS 'Main application schema for migration data'; 
+COMMENT ON SCHEMA migration IS 'Main application schema for migration data';

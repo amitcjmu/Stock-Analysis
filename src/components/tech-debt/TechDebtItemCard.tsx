@@ -15,12 +15,12 @@ interface TechDebtItemCardProps {
   showCheckbox?: boolean;
 }
 
-export function TechDebtItemCard({ 
-  item, 
-  isSelected, 
-  onSelect, 
-  onViewDetails, 
-  showCheckbox = true 
+export function TechDebtItemCard({
+  item,
+  isSelected,
+  onSelect,
+  onViewDetails,
+  showCheckbox = true
 }: TechDebtItemCardProps) {
   const getRiskBadgeVariant = () => {
     switch (item.securityRisk) {
@@ -77,12 +77,12 @@ export function TechDebtItemCard({
           </Badge>
         </div>
       </CardHeader>
-      
+
       <CardContent className="p-4 pt-0">
         <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">
           {item.description}
         </p>
-        
+
         <div className="mt-2 flex flex-wrap gap-2">
           {item.tags?.map((tag) => (
             <Badge key={tag} variant="outline" className="text-xs">
@@ -117,7 +117,7 @@ export function TechDebtItemCard({
           </div>
         )}
       </CardContent>
-      
+
       <CardFooter className="flex items-center justify-between border-t bg-muted/20 p-4">
         <div className="flex items-center space-x-2 text-xs text-muted-foreground">
           <span>Last scanned: {new Date(item.lastScanned).toLocaleDateString()}</span>

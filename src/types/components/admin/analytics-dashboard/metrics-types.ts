@@ -1,6 +1,6 @@
 /**
  * Metrics Types
- * 
+ *
  * Metrics overview and metric-specific type definitions.
  */
 

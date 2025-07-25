@@ -1,6 +1,6 @@
 /**
  * Utility Function Types
- * 
+ *
  * Types for common utility services including date, string, number, array, object, and color utilities.
  */
 

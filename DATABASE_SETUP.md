@@ -209,13 +209,13 @@ The platform uses these main table groups:
 
 ### Core Tables
 - `users` - User accounts
-- `client_accounts` - Customer organizations  
+- `client_accounts` - Customer organizations
 - `engagements` - Migration projects
 - `user_profiles` - User profile and RBAC data
 
 ### Flow Management
 - `discovery_flows` - Discovery process flows
-- `assessment_flows` - Assessment process flows  
+- `assessment_flows` - Assessment process flows
 - `crewai_flow_state_extensions` - Master flow orchestration
 - `user_active_flows` - User flow associations
 
@@ -294,7 +294,7 @@ Overall Status: ✅ HEALTHY
 Component Status:
   📊 Tables: ✅ (45+ found)
   🔌 Extensions: ✅
-  👤 Platform Admin: ✅  
+  👤 Platform Admin: ✅
   🎭 Demo Data: ✅
 
 Data Summary:
@@ -306,14 +306,14 @@ Data Summary:
 ## 🚨 Common Issues & Solutions
 
 ### Issue: "Migration failed"
-**Solution**: 
+**Solution**:
 ```bash
 # Reset and reinitialize
 docker-compose exec backend python scripts/init_database.py --force
 ```
 
-### Issue: "Account not approved" 
-**Solution**: 
+### Issue: "Account not approved"
+**Solution**:
 ```bash
 # Run data initialization
 docker-compose exec backend python -m app.core.database_initialization
@@ -328,7 +328,7 @@ python scripts/init_database.py
 ```
 
 ### Issue: "Extension not available"
-**Solution**: 
+**Solution**:
 ```bash
 # Install pgvector in PostgreSQL
 docker-compose exec postgres psql -U postgres -d migration_db -c "CREATE EXTENSION IF NOT EXISTS vector;"
@@ -361,7 +361,7 @@ docker-compose down -v
 docker system prune -f
 docker-compose up -d --build
 
-# Local setup  
+# Local setup
 dropdb migration_db
 createdb migration_db
 python scripts/init_database.py --force

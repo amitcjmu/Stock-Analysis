@@ -1,6 +1,6 @@
 /**
  * Discovery Flow Management API Types
- * 
+ *
  * Type definitions for flow lifecycle management including initialization,
  * status updates, configuration, and flow control operations.
  */

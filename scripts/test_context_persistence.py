@@ -39,7 +39,7 @@ SAMPLE_CSV_DATA = [
         "Location": "Dallas DC"
     },
     {
-        "Asset_Name": "APP-DATABASE-01", 
+        "Asset_Name": "APP-DATABASE-01",
         "CI_Type": "Database",
         "Environment": "Production",
         "Owner": "Database Team",
@@ -48,7 +48,7 @@ SAMPLE_CSV_DATA = [
     {
         "Asset_Name": "DEV-WEBAPP-01",
         "CI_Type": "Application",
-        "Environment": "Development", 
+        "Environment": "Development",
         "Owner": "Development Team",
         "Location": "Cloud"
     }
@@ -57,9 +57,9 @@ SAMPLE_CSV_DATA = [
 async def test_store_import_validation():
     """Test that store-import API accepts the corrected payload format"""
     print("🧪 Testing Store-Import API Validation...")
-    
+
     context = TEST_CONTEXTS["marathon_petroleum"]
-    
+
     # Corrected payload format matching StoreImportRequest schema
     payload = {
         "file_data": SAMPLE_CSV_DATA,
@@ -76,14 +76,14 @@ async def test_store_import_validation():
         "client_id": context["client_id"],        # String ID, not object
         "engagement_id": context["engagement_id"] # String ID, not object
     }
-    
+
     headers = {
         "Content-Type": "application/json",
         "X-Client-Account-ID": context["client_id"],
         "X-Engagement-ID": context["engagement_id"],
         "X-User-ID": context["user_id"]
     }
-    
+
     async with aiohttp.ClientSession() as session:
         try:
             async with session.post(
@@ -91,9 +91,9 @@ async def test_store_import_validation():
                 json=payload,
                 headers=headers
             ) as response:
-                
+
                 result = await response.json()
-                
+
                 if response.status == 200:
                     print("✅ Store-Import API: SUCCESS (200)")
                     print(f"   Import Session ID: {result.get('import_session_id')}")
@@ -108,7 +108,7 @@ async def test_store_import_validation():
                     print(f"⚠️  Store-Import API: Unexpected Status ({response.status})")
                     print(f"   Response: {result}")
                     return False
-                    
+
         except Exception as e:
             print(f"❌ Store-Import API: Connection Error - {e}")
             return False
@@ -116,15 +116,15 @@ async def test_store_import_validation():
 async def test_context_persistence():
     """Test context endpoints to verify Marathon context is preserved"""
     print("\n🧪 Testing Context Persistence...")
-    
+
     context = TEST_CONTEXTS["marathon_petroleum"]
-    
+
     headers = {
         "X-Client-Account-ID": context["client_id"],
         "X-Engagement-ID": context["engagement_id"],
         "X-User-ID": context["user_id"]
     }
-    
+
     async with aiohttp.ClientSession() as session:
         try:
             # Test context extraction
@@ -132,7 +132,7 @@ async def test_context_persistence():
                 "http://localhost:8000/api/v1/discovery/latest-import",
                 headers=headers
             ) as response:
-                
+
                 if response.status == 200:
                     await response.json()
                     print("✅ Context Persistence: Headers processed correctly")
@@ -142,7 +142,7 @@ async def test_context_persistence():
                 else:
                     print(f"❌ Context Persistence: Failed ({response.status})")
                     return False
-                    
+
         except Exception as e:
             print(f"❌ Context Persistence: Connection Error - {e}")
             return False
@@ -150,9 +150,9 @@ async def test_context_persistence():
 async def test_backend_context_extraction():
     """Test that backend properly extracts context from standardized headers"""
     print("\n🧪 Testing Backend Context Extraction...")
-    
+
     context = TEST_CONTEXTS["marathon_petroleum"]
-    
+
     # Test all header variations
     header_variations = [
         {
@@ -164,7 +164,7 @@ async def test_backend_context_extraction():
             }
         },
         {
-            "name": "Lowercase Format", 
+            "name": "Lowercase Format",
             "headers": {
                 "x-client-account-id": context["client_id"],
                 "x-engagement-id": context["engagement_id"],
@@ -172,7 +172,7 @@ async def test_backend_context_extraction():
             }
         }
     ]
-    
+
     success_count = 0
     async with aiohttp.ClientSession() as session:
         for variation in header_variations:
@@ -181,41 +181,41 @@ async def test_backend_context_extraction():
                     "http://localhost:8000/api/v1/discovery/latest-import",
                     headers=variation["headers"]
                 ) as response:
-                    
+
                     if response.status == 200:
                         print(f"✅ {variation['name']}: Context extracted successfully")
                         success_count += 1
                     else:
                         print(f"❌ {variation['name']}: Failed ({response.status})")
-                        
+
             except Exception as e:
                 print(f"❌ {variation['name']}: Error - {e}")
-    
+
     return success_count == len(header_variations)
 
 async def main():
     """Run all context and validation tests"""
     print("🎯 Context Persistence & Store-Import Validation Test Suite")
     print("=" * 60)
-    
+
     results = {
         "store_import_validation": await test_store_import_validation(),
-        "context_persistence": await test_context_persistence(), 
+        "context_persistence": await test_context_persistence(),
         "backend_context_extraction": await test_backend_context_extraction()
     }
-    
+
     print("\n📊 Test Results Summary:")
     print("=" * 30)
-    
+
     all_passed = True
     for test_name, passed in results.items():
         status = "✅ PASS" if passed else "❌ FAIL"
         print(f"{test_name.replace('_', ' ').title()}: {status}")
         if not passed:
             all_passed = False
-    
+
     print(f"\n🎯 Overall Result: {'✅ ALL TESTS PASSED' if all_passed else '❌ SOME TESTS FAILED'}")
-    
+
     if all_passed:
         print("\n🎉 Context switching and store-import validation issues resolved!")
         print("   - Marathon context should persist across page loads")
@@ -223,8 +223,8 @@ async def main():
         print("   - Backend context extraction handles all header formats")
     else:
         print("\n⚠️  Some issues remain - check logs for details")
-    
+
     return all_passed
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    asyncio.run(main())

@@ -19,9 +19,9 @@ async def add_timeout_column():
             # Check if column already exists
             check_query = text(
                 """
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_name = 'discovery_flows' 
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'discovery_flows'
                 AND column_name = 'timeout_at'
             """
             )
@@ -35,7 +35,7 @@ async def add_timeout_column():
                 # Add the column
                 add_column_query = text(
                     """
-                    ALTER TABLE discovery_flows 
+                    ALTER TABLE discovery_flows
                     ADD COLUMN timeout_at TIMESTAMP WITH TIME ZONE
                 """
                 )
@@ -48,7 +48,7 @@ async def add_timeout_column():
                 # Update existing flows with default timeout (24 hours from creation)
                 update_query = text(
                     """
-                    UPDATE discovery_flows 
+                    UPDATE discovery_flows
                     SET timeout_at = created_at + INTERVAL '24 hours'
                     WHERE timeout_at IS NULL
                 """
@@ -74,9 +74,9 @@ async def add_stuck_detection_index():
             # Create index for stuck flow queries
             index_query = text(
                 """
-                CREATE INDEX IF NOT EXISTS idx_discovery_flows_stuck_detection 
+                CREATE INDEX IF NOT EXISTS idx_discovery_flows_stuck_detection
                 ON discovery_flows (status, progress_percentage, created_at)
-                WHERE status IN ('active', 'initialized', 'running') 
+                WHERE status IN ('active', 'initialized', 'running')
                 AND progress_percentage = 0.0
             """
             )
@@ -98,10 +98,10 @@ async def update_flow_health_metrics():
             # Add health check timestamp to state data
             update_query = text(
                 """
-                UPDATE discovery_flows 
-                SET crewai_state_data = 
-                    CASE 
-                        WHEN crewai_state_data IS NULL THEN 
+                UPDATE discovery_flows
+                SET crewai_state_data =
+                    CASE
+                        WHEN crewai_state_data IS NULL THEN
                             jsonb_build_object('metadata', jsonb_build_object(
                                 'health_check_at', to_jsonb(now()),
                                 'created_at', to_jsonb(created_at)

@@ -49,7 +49,7 @@ export const useAdminToasts = () => {
 
   const showUserDeactivatedToast = (userName: string) => {
     showSuccessToast(
-      "User Deactivated", 
+      "User Deactivated",
       `${userName} has been deactivated`
     );
   };
@@ -70,7 +70,7 @@ export const useAdminToasts = () => {
 
   const showPurgeRejectedToast = (message?: string) => {
     showSuccessToast(
-      "Purge Rejected", 
+      "Purge Rejected",
       message || "Purge request has been rejected"
     );
   };

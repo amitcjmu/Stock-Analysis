@@ -23,7 +23,7 @@ export const ClassificationCard: React.FC<ClassificationCardProps> = ({
   onClick
 }) => {
   return (
-    <Card 
+    <Card
       className={`cursor-pointer transition-all ${
         isActive ? 'ring-2 ring-blue-500 shadow-lg' : 'hover:shadow-md'
       }`}

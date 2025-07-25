@@ -48,7 +48,7 @@ export const JobCreationDialog: React.FC<JobCreationDialogProps> = ({
           {/* Basic Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Basic Information</h3>
-            
+
             <div className="space-y-2">
               <Label htmlFor="job-name">Job Name *</Label>
               <Input
@@ -108,7 +108,7 @@ export const JobCreationDialog: React.FC<JobCreationDialogProps> = ({
           {/* Advanced Parameters */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Advanced Parameters</h3>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="parallel-limit">Parallel Processing Limit</Label>
@@ -118,8 +118,8 @@ export const JobCreationDialog: React.FC<JobCreationDialogProps> = ({
                   min="1"
                   max="20"
                   value={formData.parameters.parallel_limit}
-                  onChange={(e) => updateParameters({ 
-                    parallel_limit: parseInt(e.target.value) || 1 
+                  onChange={(e) => updateParameters({
+                    parallel_limit: parseInt(e.target.value) || 1
                   })}
                 />
               </div>
@@ -133,8 +133,8 @@ export const JobCreationDialog: React.FC<JobCreationDialogProps> = ({
                   max="1"
                   step="0.1"
                   value={formData.parameters.confidence_threshold}
-                  onChange={(e) => updateParameters({ 
-                    confidence_threshold: parseFloat(e.target.value) || 0.8 
+                  onChange={(e) => updateParameters({
+                    confidence_threshold: parseFloat(e.target.value) || 0.8
                   })}
                 />
               </div>
@@ -145,8 +145,8 @@ export const JobCreationDialog: React.FC<JobCreationDialogProps> = ({
                 <Checkbox
                   id="retry-failed"
                   checked={formData.parameters.retry_failed}
-                  onCheckedChange={(checked) => updateParameters({ 
-                    retry_failed: checked as boolean 
+                  onCheckedChange={(checked) => updateParameters({
+                    retry_failed: checked as boolean
                   })}
                 />
                 <Label htmlFor="retry-failed" className="text-sm">
@@ -158,8 +158,8 @@ export const JobCreationDialog: React.FC<JobCreationDialogProps> = ({
                 <Checkbox
                   id="auto-approve"
                   checked={formData.parameters.auto_approve_high_confidence}
-                  onCheckedChange={(checked) => updateParameters({ 
-                    auto_approve_high_confidence: checked as boolean 
+                  onCheckedChange={(checked) => updateParameters({
+                    auto_approve_high_confidence: checked as boolean
                   })}
                 />
                 <Label htmlFor="auto-approve" className="text-sm">

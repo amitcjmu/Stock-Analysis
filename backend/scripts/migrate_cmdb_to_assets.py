@@ -220,7 +220,7 @@ class CMDBToAssetsDataMigrator:
                         INSERT INTO migration.assets (
                             client_account_id, engagement_id,
                             name, hostname, asset_type, ip_address, operating_system, environment,
-                            cpu_cores, memory_gb, storage_gb, business_owner, department, 
+                            cpu_cores, memory_gb, storage_gb, business_owner, department,
                             business_criticality, six_r_strategy, sixr_ready,
                             migration_complexity, migration_priority, migration_wave,
                             dependencies, dependents, discovery_source, discovery_method,
@@ -341,7 +341,9 @@ class CMDBToAssetsDataMigrator:
         print(
             f"   🧠 Asset Embeddings Updated: {self.migration_stats['asset_embeddings_updated']}"
         )
-        print(f"   🏷️  Asset Tags Updated: {self.migration_stats['asset_tags_updated']}")
+        print(
+            f"   🏷️  Asset Tags Updated: {self.migration_stats['asset_tags_updated']}"
+        )
         print(f"   ❌ Errors: {len(self.migration_stats['errors'])}")
 
         if self.migration_stats["errors"]:

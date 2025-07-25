@@ -1,6 +1,6 @@
 /**
  * Collection Utilities Index
- * 
+ *
  * Centralized exports for all collection-related utilities and helpers.
  */
 
