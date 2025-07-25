@@ -462,6 +462,9 @@ if ENABLE_MIDDLEWARE:
             "/api/v1/admin/clients/dashboard/stats",  # Admin dashboard stats
             "/api/v1/admin/engagements/dashboard/stats",  # Admin engagement stats
             "/api/v1/auth/admin/dashboard-stats",  # Admin user stats
+            # Platform admin endpoints should bypass client/engagement requirements
+            "/api/v1/admin/",  # All admin endpoints
+            "/api/v1/auth/admin/",  # All auth admin endpoints
             # NO DEMO FALLBACK - All users must be authenticated
             # Data import endpoints that need to work before context is established
             "/api/v1/data-import/latest-import",  # Allow checking for existing data
