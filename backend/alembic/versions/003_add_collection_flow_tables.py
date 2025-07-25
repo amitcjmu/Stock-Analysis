@@ -63,8 +63,8 @@ def upgrade() -> None:
             sa.text(
                 """
                 SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_schema = 'migration' 
+                    SELECT FROM information_schema.tables
+                    WHERE table_schema = 'migration'
                     AND table_name = :table_name
                 )
                 """
@@ -86,9 +86,9 @@ def upgrade() -> None:
             sa.text(
                 """
                 SELECT EXISTS (
-                    SELECT FROM pg_indexes 
-                    WHERE schemaname = 'migration' 
-                    AND tablename = :table_name 
+                    SELECT FROM pg_indexes
+                    WHERE schemaname = 'migration'
+                    AND tablename = :table_name
                     AND indexname = :index_name
                 )
                 """
@@ -600,9 +600,9 @@ def upgrade() -> None:
             sa.text(
                 """
                 SELECT EXISTS (
-                    SELECT FROM information_schema.columns 
-                    WHERE table_schema = 'migration' 
-                    AND table_name = :table_name 
+                    SELECT FROM information_schema.columns
+                    WHERE table_schema = 'migration'
+                    AND table_name = :table_name
                     AND column_name = :column_name
                 )
                 """
@@ -654,9 +654,9 @@ def upgrade() -> None:
             sa.text(
                 """
                 SELECT EXISTS (
-                    SELECT FROM information_schema.table_constraints 
-                    WHERE constraint_schema = 'migration' 
-                    AND table_name = :table_name 
+                    SELECT FROM information_schema.table_constraints
+                    WHERE constraint_schema = 'migration'
+                    AND table_name = :table_name
                     AND constraint_name = :constraint_name
                     AND constraint_type = 'FOREIGN KEY'
                 )
@@ -670,9 +670,7 @@ def upgrade() -> None:
     if table_exists("crewai_flow_state_extensions") and table_exists(
         "collection_flows"
     ):
-        constraint_name = (
-            "fk_crewai_flow_state_extensions_collection_flow_id_collection_flows"
-        )
+        constraint_name = "fk_crewai_flow_ext_collection_flow_id"
         if not foreign_key_exists(constraint_name, "crewai_flow_state_extensions"):
             op.create_foreign_key(
                 op.f(constraint_name),
@@ -711,7 +709,7 @@ def downgrade() -> None:
 
     # Drop foreign key and columns from crewai_flow_state_extensions
     op.drop_constraint(
-        op.f("fk_crewai_flow_state_extensions_collection_flow_id_collection_flows"),
+        op.f("fk_crewai_flow_ext_collection_flow_id"),
         "crewai_flow_state_extensions",
         type_="foreignkey",
     )
