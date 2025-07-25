@@ -328,6 +328,17 @@ class ContextMiddleware(BaseHTTPMiddleware):
                 return False
 
             async with AsyncSessionLocal() as db:
+                # First check if user has is_admin flag
+                from app.models.client_account import User
+
+                user_result = await db.execute(select(User).where(User.id == user_uuid))
+                user = user_result.scalar_one_or_none()
+
+                if user and user.is_admin:
+                    logger.info(f"User {user_id} is platform admin (is_admin=True)")
+                    return True
+
+                # Also check UserRole for platform_admin role
                 query = select(UserRole).where(
                     and_(
                         UserRole.user_id == user_uuid,
