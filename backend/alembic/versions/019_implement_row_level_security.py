@@ -191,12 +191,12 @@ def upgrade() -> None:
             PERFORM set_config('app.client_id', p_client_id::text, false);
             RAISE NOTICE 'Set tenant context to %', p_client_id;
         END;
-        $$ LANGUAGE plpgsql SECURITY DEFINER;
-
-        -- Grant execute permission to application_role
-        GRANT EXECUTE ON FUNCTION migration.set_tenant_context(uuid) TO application_role;
-    """
+        $$ LANGUAGE plpgsql SECURITY DEFINER
+        """
     )
+    
+    # Grant execute permission to application_role
+    op.execute("GRANT EXECUTE ON FUNCTION migration.set_tenant_context(uuid) TO application_role")
 
     # 8. Create function to get current tenant context
     op.execute(
@@ -209,12 +209,12 @@ def upgrade() -> None:
             WHEN OTHERS THEN
                 RETURN NULL;
         END;
-        $$ LANGUAGE plpgsql SECURITY DEFINER;
-
-        -- Grant execute permission to application_role
-        GRANT EXECUTE ON FUNCTION migration.get_current_tenant() TO application_role;
-    """
+        $$ LANGUAGE plpgsql SECURITY DEFINER
+        """
     )
+    
+    # Grant execute permission to application_role
+    op.execute("GRANT EXECUTE ON FUNCTION migration.get_current_tenant() TO application_role")
 
     print("✅ Row-Level Security implementation completed successfully")
 
