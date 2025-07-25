@@ -155,7 +155,9 @@ def upgrade() -> None:
     )
 
     # Create unique constraint to prevent duplicate dependencies
-    if not constraint_exists("uq_asset_dependencies_asset_depends_on", "asset_dependencies"):
+    if not constraint_exists(
+        "uq_asset_dependencies_asset_depends_on", "asset_dependencies"
+    ):
         op.create_unique_constraint(
             "uq_asset_dependencies_asset_depends_on",
             "asset_dependencies",

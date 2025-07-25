@@ -21,13 +21,15 @@ def upgrade():
     # Check if column already exists
     conn = op.get_bind()
     result = conn.execute(
-        sa.text("""
-            SELECT column_name 
-            FROM information_schema.columns 
+        sa.text(
+            """
+            SELECT column_name
+            FROM information_schema.columns
             WHERE table_schema = 'migration'
-            AND table_name = 'collection_flows' 
+            AND table_name = 'collection_flows'
             AND column_name = 'next_phase'
-        """)
+        """
+        )
     )
     if not result.fetchone():
         op.add_column(

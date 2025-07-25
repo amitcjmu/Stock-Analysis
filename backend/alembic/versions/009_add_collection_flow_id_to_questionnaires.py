@@ -20,16 +20,18 @@ depends_on = None
 def upgrade() -> None:
     # Add collection_flow_id column to adaptive_questionnaires table
     conn = op.get_bind()
-    
+
     # Check if collection_flow_id already exists
     result = conn.execute(
-        sa.text("""
-            SELECT column_name 
-            FROM information_schema.columns 
+        sa.text(
+            """
+            SELECT column_name
+            FROM information_schema.columns
             WHERE table_schema = 'migration'
-            AND table_name = 'adaptive_questionnaires' 
+            AND table_name = 'adaptive_questionnaires'
             AND column_name = 'collection_flow_id'
-        """)
+        """
+        )
     )
     if not result.fetchone():
         op.add_column(
@@ -39,13 +41,15 @@ def upgrade() -> None:
 
     # Add foreign key constraint if it doesn't exist
     result = conn.execute(
-        sa.text("""
-            SELECT constraint_name 
-            FROM information_schema.table_constraints 
+        sa.text(
+            """
+            SELECT constraint_name
+            FROM information_schema.table_constraints
             WHERE table_schema = 'migration'
-            AND table_name = 'adaptive_questionnaires' 
+            AND table_name = 'adaptive_questionnaires'
             AND constraint_name = 'fk_adaptive_questionnaires_collection_flow_id_collection_flows'
-        """)
+        """
+        )
     )
     if not result.fetchone():
         op.create_foreign_key(
@@ -59,13 +63,15 @@ def upgrade() -> None:
 
     # Create index for better query performance if it doesn't exist
     result = conn.execute(
-        sa.text("""
-            SELECT indexname 
-            FROM pg_indexes 
+        sa.text(
+            """
+            SELECT indexname
+            FROM pg_indexes
             WHERE schemaname = 'migration'
-            AND tablename = 'adaptive_questionnaires' 
+            AND tablename = 'adaptive_questionnaires'
             AND indexname = 'ix_adaptive_questionnaires_collection_flow_id'
-        """)
+        """
+        )
     )
     if not result.fetchone():
         op.create_index(
@@ -77,13 +83,15 @@ def upgrade() -> None:
 
     # Add new columns for better questionnaire management
     result = conn.execute(
-        sa.text("""
-            SELECT column_name 
-            FROM information_schema.columns 
+        sa.text(
+            """
+            SELECT column_name
+            FROM information_schema.columns
             WHERE table_schema = 'migration'
-            AND table_name = 'adaptive_questionnaires' 
+            AND table_name = 'adaptive_questionnaires'
             AND column_name = 'title'
-        """)
+        """
+        )
     )
     if not result.fetchone():
         op.add_column(
@@ -92,27 +100,32 @@ def upgrade() -> None:
         )
 
     result = conn.execute(
-        sa.text("""
-            SELECT column_name 
-            FROM information_schema.columns 
+        sa.text(
+            """
+            SELECT column_name
+            FROM information_schema.columns
             WHERE table_schema = 'migration'
-            AND table_name = 'adaptive_questionnaires' 
+            AND table_name = 'adaptive_questionnaires'
             AND column_name = 'description'
-        """)
+        """
+        )
     )
     if not result.fetchone():
         op.add_column(
-            "adaptive_questionnaires", sa.Column("description", sa.TEXT(), nullable=True)
+            "adaptive_questionnaires",
+            sa.Column("description", sa.TEXT(), nullable=True),
         )
 
     result = conn.execute(
-        sa.text("""
-            SELECT column_name 
-            FROM information_schema.columns 
+        sa.text(
+            """
+            SELECT column_name
+            FROM information_schema.columns
             WHERE table_schema = 'migration'
-            AND table_name = 'adaptive_questionnaires' 
+            AND table_name = 'adaptive_questionnaires'
             AND column_name = 'target_gaps'
-        """)
+        """
+        )
     )
     if not result.fetchone():
         op.add_column(
@@ -126,13 +139,15 @@ def upgrade() -> None:
         )
 
     result = conn.execute(
-        sa.text("""
-            SELECT column_name 
-            FROM information_schema.columns 
+        sa.text(
+            """
+            SELECT column_name
+            FROM information_schema.columns
             WHERE table_schema = 'migration'
-            AND table_name = 'adaptive_questionnaires' 
+            AND table_name = 'adaptive_questionnaires'
             AND column_name = 'questions'
-        """)
+        """
+        )
     )
     if not result.fetchone():
         op.add_column(
@@ -146,13 +161,15 @@ def upgrade() -> None:
         )
 
     result = conn.execute(
-        sa.text("""
-            SELECT column_name 
-            FROM information_schema.columns 
+        sa.text(
+            """
+            SELECT column_name
+            FROM information_schema.columns
             WHERE table_schema = 'migration'
-            AND table_name = 'adaptive_questionnaires' 
+            AND table_name = 'adaptive_questionnaires'
             AND column_name = 'completion_status'
-        """)
+        """
+        )
     )
     if not result.fetchone():
         op.add_column(
@@ -166,13 +183,15 @@ def upgrade() -> None:
         )
 
     result = conn.execute(
-        sa.text("""
-            SELECT column_name 
-            FROM information_schema.columns 
+        sa.text(
+            """
+            SELECT column_name
+            FROM information_schema.columns
             WHERE table_schema = 'migration'
-            AND table_name = 'adaptive_questionnaires' 
+            AND table_name = 'adaptive_questionnaires'
             AND column_name = 'responses_collected'
-        """)
+        """
+        )
     )
     if not result.fetchone():
         op.add_column(
@@ -185,13 +204,15 @@ def upgrade() -> None:
         )
 
     result = conn.execute(
-        sa.text("""
-            SELECT column_name 
-            FROM information_schema.columns 
+        sa.text(
+            """
+            SELECT column_name
+            FROM information_schema.columns
             WHERE table_schema = 'migration'
-            AND table_name = 'adaptive_questionnaires' 
+            AND table_name = 'adaptive_questionnaires'
             AND column_name = 'completed_at'
-        """)
+        """
+        )
     )
     if not result.fetchone():
         op.add_column(

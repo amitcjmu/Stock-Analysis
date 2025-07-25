@@ -57,7 +57,8 @@ def constraint_exists(constraint_name, table_name):
     bind = op.get_bind()
     try:
         result = bind.execute(
-            sa.text("""
+            sa.text(
+                """
                 SELECT EXISTS (
                     SELECT 1 FROM information_schema.table_constraints
                     WHERE table_schema = 'migration'
@@ -65,7 +66,8 @@ def constraint_exists(constraint_name, table_name):
                     AND table_name = :table_name
                     AND constraint_name = :constraint_name
                 )
-            """).bindparams(table_name=table_name, constraint_name=constraint_name)
+            """
+            ).bindparams(table_name=table_name, constraint_name=constraint_name)
         ).scalar()
         return result
     except Exception as e:

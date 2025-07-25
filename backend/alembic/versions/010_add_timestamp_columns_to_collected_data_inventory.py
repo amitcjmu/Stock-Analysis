@@ -18,40 +18,50 @@ depends_on = None
 
 def upgrade() -> None:
     conn = op.get_bind()
-    
+
     # Add created_at column to collected_data_inventory table if it doesn't exist
     result = conn.execute(
-        sa.text("""
-            SELECT column_name 
-            FROM information_schema.columns 
+        sa.text(
+            """
+            SELECT column_name
+            FROM information_schema.columns
             WHERE table_schema = 'migration'
-            AND table_name = 'collected_data_inventory' 
+            AND table_name = 'collected_data_inventory'
             AND column_name = 'created_at'
-        """)
+        """
+        )
     )
     if not result.fetchone():
         op.add_column(
             "collected_data_inventory",
             sa.Column(
-                "created_at", sa.DateTime(), nullable=False, server_default=sa.text("now()")
+                "created_at",
+                sa.DateTime(),
+                nullable=False,
+                server_default=sa.text("now()"),
             ),
         )
 
     # Add updated_at column to collected_data_inventory table if it doesn't exist
     result = conn.execute(
-        sa.text("""
-            SELECT column_name 
-            FROM information_schema.columns 
+        sa.text(
+            """
+            SELECT column_name
+            FROM information_schema.columns
             WHERE table_schema = 'migration'
-            AND table_name = 'collected_data_inventory' 
+            AND table_name = 'collected_data_inventory'
             AND column_name = 'updated_at'
-        """)
+        """
+        )
     )
     if not result.fetchone():
         op.add_column(
             "collected_data_inventory",
             sa.Column(
-                "updated_at", sa.DateTime(), nullable=False, server_default=sa.text("now()")
+                "updated_at",
+                sa.DateTime(),
+                nullable=False,
+                server_default=sa.text("now()"),
             ),
         )
 

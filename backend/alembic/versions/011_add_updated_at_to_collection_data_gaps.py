@@ -19,16 +19,18 @@ depends_on = None
 def upgrade():
     """Add updated_at column to collection_data_gaps table"""
     conn = op.get_bind()
-    
+
     # Add updated_at column to collection_data_gaps table if it doesn't exist
     result = conn.execute(
-        sa.text("""
-            SELECT column_name 
-            FROM information_schema.columns 
+        sa.text(
+            """
+            SELECT column_name
+            FROM information_schema.columns
             WHERE table_schema = 'migration'
-            AND table_name = 'collection_data_gaps' 
+            AND table_name = 'collection_data_gaps'
             AND column_name = 'updated_at'
-        """)
+        """
+        )
     )
     if not result.fetchone():
         op.add_column(
@@ -56,14 +58,16 @@ def upgrade():
 
     # Check if trigger exists before creating
     result = conn.execute(
-        sa.text("""
-            SELECT trigger_name 
-            FROM information_schema.triggers 
+        sa.text(
+            """
+            SELECT trigger_name
+            FROM information_schema.triggers
             WHERE trigger_schema = 'migration'
             AND event_object_schema = 'migration'
             AND event_object_table = 'collection_data_gaps'
             AND trigger_name = 'update_collection_data_gaps_updated_at'
-        """)
+        """
+        )
     )
     if not result.fetchone():
         op.execute(

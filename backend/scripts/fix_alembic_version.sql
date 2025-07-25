@@ -6,20 +6,20 @@ DO $$
 BEGIN
     -- Check if alembic_version table exists
     IF EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'migration' 
+        SELECT FROM information_schema.tables
+        WHERE table_schema = 'migration'
         AND table_name = 'alembic_version'
     ) THEN
         -- Check if version_num column is too small
         IF EXISTS (
-            SELECT FROM information_schema.columns 
-            WHERE table_schema = 'migration' 
-            AND table_name = 'alembic_version' 
+            SELECT FROM information_schema.columns
+            WHERE table_schema = 'migration'
+            AND table_name = 'alembic_version'
             AND column_name = 'version_num'
             AND character_maximum_length < 255
         ) THEN
             -- Alter the column to allow longer version strings
-            ALTER TABLE migration.alembic_version 
+            ALTER TABLE migration.alembic_version
             ALTER COLUMN version_num TYPE VARCHAR(255);
         END IF;
     ELSE

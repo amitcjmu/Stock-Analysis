@@ -367,8 +367,11 @@ def get_cors_origins():
 
     # Ensure Vercel domain is always included if we're on Railway or in production
     if (
-        os.getenv("DATABASE_URL") and "railway.app" in os.getenv("DATABASE_URL", "")
-    ) or os.getenv("PORT") or os.getenv("RAILWAY_ENVIRONMENT") or env == "production":
+        (os.getenv("DATABASE_URL") and "railway.app" in os.getenv("DATABASE_URL", ""))
+        or os.getenv("PORT")
+        or os.getenv("RAILWAY_ENVIRONMENT")
+        or env == "production"
+    ):
         vercel_domain = "https://aiforce-assess.vercel.app"
         if vercel_domain not in cors_origins:
             cors_origins.append(vercel_domain)
@@ -661,9 +664,6 @@ async def health_check():
 
 
 # WebSocket endpoint removed - using HTTP polling for Vercel+Railway compatibility
-
-# Create an alias for backward compatibility
-app = fastapi_app
 
 if __name__ == "__main__":
     # Port assignment - Use Railway PORT or default to 8000 for local development

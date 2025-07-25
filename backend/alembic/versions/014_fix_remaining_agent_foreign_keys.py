@@ -20,7 +20,8 @@ def constraint_exists(constraint_name, table_name):
     """Check if a constraint exists"""
     conn = op.get_bind()
     result = conn.execute(
-        sa.text("""
+        sa.text(
+            """
             SELECT EXISTS (
                 SELECT 1 FROM information_schema.table_constraints
                 WHERE table_schema = 'migration'
@@ -28,7 +29,8 @@ def constraint_exists(constraint_name, table_name):
                 AND table_name = :table_name
                 AND constraint_name = :constraint_name
             )
-        """).bindparams(table_name=table_name, constraint_name=constraint_name)
+        """
+        ).bindparams(table_name=table_name, constraint_name=constraint_name)
     ).scalar()
     return result
 
@@ -37,7 +39,9 @@ def upgrade():
     """Add foreign key constraints to agent_performance_daily and agent_discovered_patterns tables"""
 
     # Add foreign key constraints for agent_performance_daily
-    if not constraint_exists("fk_agent_performance_daily_client_account_id", "agent_performance_daily"):
+    if not constraint_exists(
+        "fk_agent_performance_daily_client_account_id", "agent_performance_daily"
+    ):
         op.create_foreign_key(
             "fk_agent_performance_daily_client_account_id",
             "agent_performance_daily",
@@ -47,7 +51,9 @@ def upgrade():
             ondelete="CASCADE",
         )
 
-    if not constraint_exists("fk_agent_performance_daily_engagement_id", "agent_performance_daily"):
+    if not constraint_exists(
+        "fk_agent_performance_daily_engagement_id", "agent_performance_daily"
+    ):
         op.create_foreign_key(
             "fk_agent_performance_daily_engagement_id",
             "agent_performance_daily",
@@ -58,7 +64,9 @@ def upgrade():
         )
 
     # Add foreign key constraints for agent_discovered_patterns
-    if not constraint_exists("fk_agent_discovered_patterns_client_account_id", "agent_discovered_patterns"):
+    if not constraint_exists(
+        "fk_agent_discovered_patterns_client_account_id", "agent_discovered_patterns"
+    ):
         op.create_foreign_key(
             "fk_agent_discovered_patterns_client_account_id",
             "agent_discovered_patterns",
@@ -68,7 +76,9 @@ def upgrade():
             ondelete="CASCADE",
         )
 
-    if not constraint_exists("fk_agent_discovered_patterns_engagement_id", "agent_discovered_patterns"):
+    if not constraint_exists(
+        "fk_agent_discovered_patterns_engagement_id", "agent_discovered_patterns"
+    ):
         op.create_foreign_key(
             "fk_agent_discovered_patterns_engagement_id",
             "agent_discovered_patterns",
