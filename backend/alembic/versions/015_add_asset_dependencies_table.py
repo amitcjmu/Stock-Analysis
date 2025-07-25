@@ -126,9 +126,11 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=True),
-        sa.ForeignKeyConstraint(["asset_id"], ["assets.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(
-            ["depends_on_asset_id"], ["assets.id"], ondelete="CASCADE"
+            ["asset_id"], ["migration.assets.id"], ondelete="CASCADE"
+        ),
+        sa.ForeignKeyConstraint(
+            ["depends_on_asset_id"], ["migration.assets.id"], ondelete="CASCADE"
         ),
         sa.PrimaryKeyConstraint("id"),
         schema="migration",

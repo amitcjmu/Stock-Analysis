@@ -42,6 +42,34 @@ done
 
 # Fix migration state issues intelligently instead of destructive cleanup
 echo "🔧 Checking and fixing migration state..."
+
+# First, run the SQL script to ensure alembic_version table exists with proper schema
+echo "🔧 Running fix_alembic_version.sql to ensure migration schema exists..."
+python -c "
+import os
+import psycopg
+from pathlib import Path
+
+db_url = os.getenv('DATABASE_URL', '')
+if 'postgresql+asyncpg://' in db_url:
+    db_url = db_url.replace('postgresql+asyncpg://', 'postgresql://')
+
+try:
+    with psycopg.connect(db_url) as conn:
+        with conn.cursor() as cur:
+            # Read and execute the SQL script
+            sql_file = Path('scripts/fix_alembic_version.sql')
+            if sql_file.exists():
+                sql_content = sql_file.read_text()
+                cur.execute(sql_content)
+                conn.commit()
+                print('✅ Successfully ran fix_alembic_version.sql')
+            else:
+                print('⚠️  fix_alembic_version.sql not found')
+except Exception as e:
+    print(f'⚠️  Error running fix_alembic_version.sql: {e}')
+"
+
 if python scripts/fix_migration_state.py; then
     echo "✅ Migration state validated/fixed successfully"
 else
