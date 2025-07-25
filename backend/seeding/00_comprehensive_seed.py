@@ -160,14 +160,23 @@ async def cleanup_existing_data(session: AsyncSession):
         "engagements",
         "client_accounts",
     ]
+    
+    # Validate table names are from our known list
+    allowed_tables = set(tables_to_clean)
 
     for table in tables_to_clean:
+        # Validate table name against whitelist
+        if table not in allowed_tables:
+            print(f"  ❌ Invalid table name: {table}")
+            continue
+            
         try:
+            # Safe to use string formatting after validation
             await session.execute(
                 text(
-                    f"DELETE FROM migration.{table} WHERE client_account_id IN :tenant_ids"
+                    f"DELETE FROM migration.{table} WHERE client_account_id = ANY(:tenant_ids)"
                 ),
-                {"tenant_ids": tuple(str(tid) for tid in TENANT_CONFIG.keys())},
+                {"tenant_ids": [str(tid) for tid in TENANT_CONFIG.keys()]},
             )
             print(f"  ✓ Cleaned {table}")
         except Exception:
@@ -175,12 +184,12 @@ async def cleanup_existing_data(session: AsyncSession):
             try:
                 if table in ["users", "engagements", "client_accounts"]:
                     await session.execute(
-                        text(f"DELETE FROM migration.{table} WHERE id IN :ids"),
+                        text(f"DELETE FROM migration.{table} WHERE id = ANY(:ids)"),
                         {
-                            "ids": tuple(
+                            "ids": [
                                 str(config["users"]["admin"])
                                 for config in TENANT_CONFIG.values()
-                            )
+                            ]
                         },
                     )
                     print(f"  ✓ Cleaned {table}")

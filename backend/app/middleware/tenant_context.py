@@ -14,7 +14,7 @@ from sqlalchemy import text
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
-from app.core.database import get_db
+from app.core.database import AsyncSessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +104,7 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
 
     async def _set_tenant_context(self, client_id: UUID) -> None:
         """Set the tenant context in PostgreSQL session"""
-        async for db in get_db():
+        async with AsyncSessionLocal() as db:
             try:
                 # Use the function we created in the migration
                 await db.execute(
@@ -116,12 +116,10 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
                 logger.error(f"Failed to set tenant context: {e}")
                 await db.rollback()
                 raise
-            finally:
-                await db.close()
 
     async def _clear_tenant_context(self) -> None:
         """Clear the tenant context from PostgreSQL session"""
-        async for db in get_db():
+        async with AsyncSessionLocal() as db:
             try:
                 # Reset the session variable
                 await db.execute(text("RESET app.client_id"))
@@ -129,8 +127,6 @@ class TenantContextMiddleware(BaseHTTPMiddleware):
             except Exception as e:
                 logger.error(f"Failed to clear tenant context: {e}")
                 await db.rollback()
-            finally:
-                await db.close()
 
 
 def get_current_tenant_id(request: Request) -> Optional[UUID]:

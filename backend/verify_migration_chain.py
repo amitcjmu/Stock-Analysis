@@ -80,5 +80,7 @@ def verify_migration_chain():
 
 
 if __name__ == "__main__":
-    os.chdir("/Users/chocka/CursorProjects/migrate-ui-orchestrator/backend")
+    # Change to backend directory relative to script location
+    script_dir = Path(__file__).parent
+    os.chdir(script_dir)
     verify_migration_chain()
